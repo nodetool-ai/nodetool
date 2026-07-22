@@ -9,9 +9,10 @@
  * then hands them to the suite. Adding a suite means pushing an `EvalSuite`
  * entry — not another hand-wired command block.
  *
- * The GraphPlanner suite lives in `@nodetool-ai/agents`
- * (`GRAPH_PLANNER_EVAL_CASES`). Heavy deps are imported lazily so command
- * registration stays light.
+ * The suites live in `@nodetool-ai/agents`: GraphPlanner
+ * (`GRAPH_PLANNER_EVAL_CASES`, one-shot DSL) and the frontend tool-loop
+ * (`TOOL_LOOP_EVAL_CASES`, multi-turn `ui_*` tool calling). Heavy deps are
+ * imported lazily so command registration stays light.
  */
 import type { Command } from "commander";
 import type { BaseProvider } from "@nodetool-ai/runtime";
@@ -25,6 +26,7 @@ interface EvalCliOptions {
   json?: boolean;
   out?: string;
   maxRetries?: string;
+  maxIterations?: string;
   minSuccess?: string;
   /** commander negated flag: `--no-find-model` sets this to false. */
   findModel?: boolean;
@@ -51,6 +53,8 @@ interface EvalRunDeps {
   /** Case ids to run; undefined runs the whole suite. */
   caseIds?: string[];
   maxRetries?: number;
+  /** Turn cap per case, for loop-style suites (tool-loop). */
+  maxIterations?: number;
   /** Progress callback (one line per event, for CLI display). */
   onEvent: (line: string) => void;
 }
@@ -133,8 +137,138 @@ const graphPlannerSuite: EvalSuite = {
   }
 };
 
+/** Minimal shape of a tool-loop case, enough for `--list` + id filtering. */
+interface ToolLoopCaseLike {
+  id: string;
+  description: string;
+  needsModelProviders?: boolean;
+}
+
+/**
+ * Build a tool-loop suite (multi-turn `ui_*` tool calling) from a named export
+ * in `@nodetool-ai/agents`. The graph-editor suite and the five editor-surface
+ * suites (script/sketch/timeline/storyboard/3D) all share the generic runner
+ * and report shape — only the case array differs — so each is data, not code.
+ */
+function makeToolLoopSuite(
+  id: string,
+  description: string,
+  casesExport: string
+): EvalSuite {
+  const pickCases = (
+    mod: Record<string, unknown>
+  ): readonly ToolLoopCaseLike[] => {
+    const picked = mod[casesExport];
+    if (!Array.isArray(picked)) {
+      throw new Error(
+        `Eval suite "${id}" expected an array export "${casesExport}" from ` +
+          `@nodetool-ai/agents, but got ${picked === undefined ? "undefined" : typeof picked}.`
+      );
+    }
+    return picked as readonly ToolLoopCaseLike[];
+  };
+
+  return {
+    id,
+    description,
+    async listCases() {
+      const mod = (await import("@nodetool-ai/agents")) as unknown as Record<
+        string,
+        unknown
+      >;
+      return pickCases(mod).map((c) => ({
+        id: c.id,
+        description: c.description,
+        needsModelProviders: c.needsModelProviders
+      }));
+    },
+    async run(deps) {
+      const mod = await import("@nodetool-ai/agents");
+      const { runToolLoopEval, formatToolLoopReport } = mod;
+      let cases = pickCases(mod as unknown as Record<string, unknown>);
+
+      if (deps.caseIds) {
+        const wanted = new Set(deps.caseIds);
+        cases = cases.filter((c) => wanted.has(c.id));
+        const missing = [...wanted].filter(
+          (want) => !cases.some((c) => c.id === want)
+        );
+        if (missing.length > 0) {
+          throw new Error(
+            `Unknown case ids: ${missing.join(", ")} (see --list)`
+          );
+        }
+      }
+
+      console.log(
+        `Running ${cases.length} ${id} case(s) with ${deps.providerId}/${deps.model}`
+      );
+
+      const report = await runToolLoopEval({
+        provider: deps.provider,
+        model: deps.model,
+        // Cases are surface-specific in their final-state type; the runner is
+        // generic and scores each case against its own predicates.
+        cases: cases as unknown as Parameters<
+          typeof runToolLoopEval
+        >[0]["cases"],
+        maxIterations: deps.maxIterations,
+        onEvent: deps.onEvent
+      });
+
+      return {
+        report,
+        formatted: formatToolLoopReport(report),
+        successRate: report.summary.successRate
+      };
+    }
+  };
+}
+
 /** All evaluation suites exposed under `nodetool eval <suite>`. */
-export const EVAL_SUITES: readonly EvalSuite[] = [graphPlannerSuite];
+export const EVAL_SUITES: readonly EvalSuite[] = [
+  graphPlannerSuite,
+  makeToolLoopSuite(
+    "tool-loop",
+    "Run the frontend graph-editor tool-loop eval suite (ui_* graph tools) against a provider/model and report metrics",
+    "TOOL_LOOP_EVAL_CASES"
+  ),
+  makeToolLoopSuite(
+    "script-tools",
+    "Run the Script surface tool-loop eval suite (ui_script_* tools) against a provider/model",
+    "SCRIPT_TOOL_LOOP_CASES"
+  ),
+  makeToolLoopSuite(
+    "sketch-tools",
+    "Run the Sketch/image-editor surface tool-loop eval suite (ui_sketch_* tools) against a provider/model",
+    "SKETCH_TOOL_LOOP_CASES"
+  ),
+  makeToolLoopSuite(
+    "timeline-tools",
+    "Run the Timeline/video-editor surface tool-loop eval suite (ui_timeline_* tools) against a provider/model",
+    "TIMELINE_TOOL_LOOP_CASES"
+  ),
+  makeToolLoopSuite(
+    "storyboard-tools",
+    "Run the Storyboard surface tool-loop eval suite (ui_storyboard_* tools) against a provider/model",
+    "STORYBOARD_TOOL_LOOP_CASES"
+  ),
+  makeToolLoopSuite(
+    "model3d-tools",
+    "Run the 3D model-editor surface tool-loop eval suite (ui_3d_* tools) against a provider/model",
+    "MODEL3D_TOOL_LOOP_CASES"
+  ),
+  makeToolLoopSuite(
+    "app-tools",
+    "Run the App Builder surface tool-loop eval suite (ui_app_* tools) against a provider/model",
+    "APP_TOOL_LOOP_CASES"
+  ),
+  makeToolLoopSuite(
+    "thread-memory-tools",
+    "Run the thread-memory tool-loop eval suite (thread_memory_*/asset tools, real DB) against a provider/model",
+    "THREAD_MEMORY_TOOL_LOOP_CASES"
+  )
+];
 
 /**
  * Shared runner for every suite: handles `--list`, builds the provider/
@@ -185,6 +319,9 @@ async function runSuite(suite: EvalSuite, opts: EvalCliOptions): Promise<void> {
       providers,
       caseIds,
       maxRetries: opts.maxRetries ? Number(opts.maxRetries) : undefined,
+      maxIterations: opts.maxIterations
+        ? Number(opts.maxIterations)
+        : undefined,
       onEvent: (line) => {
         if (!opts.json) console.log(line);
       }
@@ -243,6 +380,10 @@ export function registerEvalCommand(program: Command): void {
       .option("--json", "Print the full report as JSON")
       .option("--out <path>", "Write the JSON report to a file")
       .option("--max-retries <n>", "Planner attempts per case (default 3)")
+      .option(
+        "--max-iterations <n>",
+        "Turn cap per case for loop-style suites (tool-loop; default 12)"
+      )
       .option(
         "--min-success <rate>",
         "Exit non-zero when the success rate is below this threshold (0..1)"

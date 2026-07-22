@@ -516,5 +516,29 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
   },
   ".MuiButton-root": {
     fontSize: theme.fontSizeNormal
+  },
+  // Mobile (<600px): the fixed sidebars are already dropped in JS, so here we
+  // reclaim the horizontal breathing room the desktop layout reserves —
+  // trim the oversized header/content padding and let the capped content
+  // columns run edge-to-edge so form fields aren't squeezed into a thin strip.
+  [theme.breakpoints.down("sm")]: {
+    ".settings-page-header": {
+      padding: theme.spacing(3, 3, 2),
+      gap: theme.spacing(3)
+    },
+    ".sticky-header": {
+      padding: `0 ${getSpacingPx(SPACING.md)}`
+    },
+    ".settings-tabs": {
+      marginBottom: `${getSpacingPx(SPACING.md)}`
+    },
+    ".settings-content": {
+      padding: `0 ${getSpacingPx(SPACING.md)}`,
+      maxWidth: "100%"
+    },
+    ".settings-content--api-keys": {
+      padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.md)}`,
+      maxWidth: "100%"
+    }
   }
 });

@@ -14,7 +14,6 @@
  *     delete      (mutation) — { ok: true }
  *   layers:
  *     create      (mutation) — LayerWorkflowBinding
- *     delete      (mutation) — { ok: true }
  *     duplicate   (mutation) — LayerWorkflowBinding
  */
 
@@ -537,23 +536,6 @@ export const sketchRouter = router({
           latest.layerBindings.push(newBinding);
           return newBinding;
         });
-      }),
-
-    delete: protectedProcedure
-      .input(z.object({ id: z.string(), layerId: z.string() }))
-      .output(okOutput)
-      .mutation(async ({ ctx, input }) => {
-        await mutateOwnedDocumentData(ctx.userId, input.id, (data) => {
-          const bindingIndex = data.layerBindings.findIndex(
-            (b) => b.layerId === input.layerId
-          );
-          if (bindingIndex === -1) {
-            throwApiError(ApiErrorCode.NOT_FOUND, "Layer binding not found");
-          }
-          data.layerBindings.splice(bindingIndex, 1);
-          return null;
-        });
-        return { ok: true as const };
       }),
 
     duplicate: protectedProcedure

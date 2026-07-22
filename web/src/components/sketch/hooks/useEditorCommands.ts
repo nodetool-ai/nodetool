@@ -243,7 +243,7 @@ export function useEditorCommands({
     handleRedo,
     handleZoomIn: canvasActions.handleZoomIn,
     handleZoomOut: canvasActions.handleZoomOut,
-    handleZoomReset: canvasActions.handleZoomReset,
+    handleZoomFit: canvasActions.handleZoomFit,
     handleExportPng: canvasActions.handleExportPng,
     handleClearLayer: canvasActions.handleClearLayer,
     handleFillLayerWithColor: canvasActions.handleFillLayerWithColor,
@@ -275,6 +275,7 @@ export function useEditorCommands({
     handleTransformRedo: canvasActions.handleTransformRedo,
     handleLayerViaCopy,
     handleLayerViaCut,
+    handleMoveActiveLayer: layerActions.handleMoveActiveLayer,
     handleFreeTransform,
     handleRepeatLastTransform: canvasActions.handleRepeatLastTransform,
     handleRepeatLastTransformOnCopy:

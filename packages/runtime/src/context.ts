@@ -2171,16 +2171,33 @@ export class ProcessingContext {
     if (!trimmed) {
       return [];
     }
-    const raw = trimmed.startsWith("asset://")
-      ? trimmed.slice("asset://".length)
-      : trimmed;
+    // Strip a leading reference prefix down to the bare storage key. `asset://`
+    // is the ref scheme; `/api/storage/` (and its slash-less variant) is the
+    // browser-facing storage route that older messages / callers still carry —
+    // treating that whole path as the id probes a bogus key and builds a
+    // double-prefixed, percent-encoded HTTP url that 404s.
+    let raw = trimmed;
+    if (raw.startsWith("asset://")) {
+      raw = raw.slice("asset://".length);
+    } else if (raw.startsWith("/api/storage/")) {
+      raw = raw.slice("/api/storage/".length);
+    } else if (raw.startsWith("api/storage/")) {
+      raw = raw.slice("api/storage/".length);
+    }
     // Preserve sub-paths: `asset://user-1/image.png` -> primary `user-1/image.png`,
-    // so storage keys with hierarchical layouts still resolve.
+    // so storage keys with hierarchical layouts still resolve. Drop any
+    // `?query`/`#hash` before deriving the key.
     const primary = raw.split(/[?#]/)[0];
     if (!primary) {
       return [];
     }
-    const withoutExt = primary.replace(/\.[^.]+$/, "");
+    // Strip the extension from the LAST path segment only. A `.` in an earlier
+    // segment (`folder.v2/img`) is part of the id, not an extension — slicing
+    // across `/` would yield a wrong-bytes candidate (`folder`).
+    const slash = primary.lastIndexOf("/");
+    const dir = slash >= 0 ? primary.slice(0, slash + 1) : "";
+    const lastSegment = slash >= 0 ? primary.slice(slash + 1) : primary;
+    const withoutExt = dir + lastSegment.replace(/\.[^.]+$/, "");
     return Array.from(new Set([primary, withoutExt].filter(Boolean)));
   }
 
@@ -2322,9 +2339,23 @@ export class ProcessingContext {
         ): Promise<Uint8Array | null> => {
           try {
             const listing = await this.storage!.list(prefix);
+            const bareEndsWithThumb = bareId.endsWith("_thumb");
             const match = listing.entries.find((entry) => {
-              const base = entry.key.split("/").pop() ?? "";
-              return base.startsWith(`${bareId}.`) && !base.includes("_thumb");
+              const key = entry.key;
+              const lastSegment = key.split("/").pop() ?? "";
+              // A hierarchical id (`user-1/image`) lives in the full key, a flat
+              // id in the last segment — match against whichever form fits.
+              const matches =
+                key.startsWith(`${bareId}.`) ||
+                lastSegment.startsWith(`${bareId}.`);
+              if (!matches) {
+                return false;
+              }
+              // Skip generated thumbnails (`<id>_thumb.<ext>`) — but only ones
+              // that aren't the id we're resolving, so a legit `banner_thumb`
+              // still matches instead of being dropped by a substring test.
+              const isThumb = /_thumb\.[^./]+$/.test(lastSegment);
+              return !isThumb || bareEndsWithThumb;
             });
             if (match) {
               return await tryStorageUri(match.uri);
@@ -2546,7 +2577,15 @@ export class ProcessingContext {
    * as opaque storage URIs (memory/file/s3) via the storage adapter.
    */
   private async retrieveMediaBytes(uri: string): Promise<Uint8Array | null> {
-    if (uri.startsWith("asset://")) {
+    // `/api/storage/<key>` (and its slash-less `api/storage/<key>` form) is the
+    // browser-facing route, not a storage-adapter uri — the InMemory/S3 adapters
+    // only accept `memory://`/`s3://`, so route it through resolveAssetBytes
+    // (which parses the key) like `asset://`.
+    if (
+      uri.startsWith("asset://") ||
+      uri.startsWith("/api/storage/") ||
+      uri.startsWith("api/storage/")
+    ) {
       const { bytes } = await this.resolveAssetBytes(uri);
       return bytes;
     }
@@ -3100,11 +3139,26 @@ export class ProcessingContext {
     if (decoded) return decoded;
 
     const uri = asset.uri;
-    if (typeof uri !== "string" || !this.storage) return null;
-    const stored = await this.storage.retrieve(uri);
-    if (stored) return stored;
-    if (uri.startsWith("asset://") || uri.startsWith("/api/storage/")) {
-      return (await this.resolveAssetBytes(uri)).bytes;
+    if (typeof uri === "string" && this.storage) {
+      const stored = await this.storage.retrieve(uri);
+      if (stored) return stored;
+    }
+    if (
+      typeof uri === "string" &&
+      (uri.startsWith("asset://") ||
+        uri.startsWith("/api/storage/") ||
+        uri.startsWith("api/storage/"))
+    ) {
+      const { bytes } = await this.resolveAssetBytes(uri);
+      if (bytes) return bytes;
+    }
+    // No usable uri but an asset_id is present: resolve directly by id.
+    // resolveAssetBytes has its own HTTP fallback, so this works even without a
+    // storage adapter (which the early `!this.storage` return used to preclude).
+    const assetId = asset.asset_id;
+    if (typeof assetId === "string" && assetId) {
+      const { bytes } = await this.resolveAssetBytes(`asset://${assetId}`);
+      if (bytes) return bytes;
     }
     return null;
   }

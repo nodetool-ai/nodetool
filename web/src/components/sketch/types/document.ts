@@ -943,6 +943,43 @@ export function findMergeDownTargetIndex(
   return idx - 1;
 }
 
+/**
+ * Flat target index for moving `activeId` one step "up" (toward the top of the
+ * stack — higher index, painted later) or "down", or `-1` when the move is not
+ * possible.
+ *
+ * The move is only allowed when the immediate neighbor in the move direction is
+ * a **sibling** (same `parentId`) and **not a group**. A group carries a
+ * contiguous block of descendants that a single-index swap would orphan, and
+ * hopping across a parent boundary would silently re-parent the layer — both
+ * are treated as no-ops rather than a corrupting reorder. This mirrors the
+ * safety rules of `findMergeDownTargetIndex`.
+ */
+export function findLayerMoveTargetIndex(
+  layers: Layer[],
+  activeId: string,
+  direction: "up" | "down"
+): number {
+  const idx = layers.findIndex((l) => l.id === activeId);
+  if (idx < 0) {
+    return -1;
+  }
+  if (layers[idx].type === "group") {
+    return -1;
+  }
+  const neighborIdx = direction === "up" ? idx + 1 : idx - 1;
+  if (neighborIdx < 0 || neighborIdx >= layers.length) {
+    return -1;
+  }
+  const active = layers[idx];
+  const neighbor = layers[neighborIdx];
+  const sameParent = (neighbor.parentId ?? null) === (active.parentId ?? null);
+  if (!sameParent || neighbor.type === "group") {
+    return -1;
+  }
+  return neighborIdx;
+}
+
 /** Recursively collect all descendant IDs of a group (children, grandchildren, etc.) */
 export function getDescendantIds(layers: Layer[], groupId: string): string[] {
   const ids: string[] = [];

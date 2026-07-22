@@ -12,7 +12,11 @@
 
 import { useEffect, useRef } from "react";
 import { trpc, trpcClient } from "../../trpc/client";
-import { useScriptStore, type ScriptDraft } from "../../stores/script/ScriptStore";
+import {
+  useScriptStore,
+  type ScriptDraft,
+  type ScriptSaveStatus
+} from "../../stores/script/ScriptStore";
 
 const AUTOSAVE_DEBOUNCE_MS = 750;
 const RETRY_DELAY_MS = 5_000;
@@ -57,19 +61,38 @@ export const useScriptServerSync = (scriptId: string): void => {
     let disposed = false;
     const store = useScriptStore;
 
-    const applyResponse = (res: ScriptResponse): void => {
+    // `statusAfter` is applied only once the server copy has actually replaced
+    // the local one, so the indicator never claims a state before it's true.
+    const applyResponse = (
+      res: ScriptResponse,
+      statusAfter: ScriptSaveStatus | null
+    ): void => {
       if (disposed) return;
       store.getState().loadScript(scriptId, responseToScript(res));
       store.getState().setServerRevision(scriptId, res.updatedAt);
       syncedRef.current = store.getState().scripts[scriptId] ?? null;
+      if (statusAfter) store.getState().setSaveStatus(scriptId, statusAfter);
     };
 
-    const load = async (): Promise<void> => {
+    // `statusAfter` is the status to set once the load lands. Mount load →
+    // "saved" (clearing a stale error from a previous session); the CAS-conflict
+    // reload → "reloaded", set post-replacement so a slow reload can't claim it
+    // early. A load that never applies (early error) sets nothing.
+    const load = async (
+      statusAfter: ScriptSaveStatus | null = "saved"
+    ): Promise<void> => {
       try {
-        applyResponse(await trpcClient.scripts.get.query({ id: scriptId }));
+        applyResponse(
+          await trpcClient.scripts.get.query({ id: scriptId }),
+          statusAfter
+        );
       } catch (error) {
         if (!isNotFound(error)) {
           console.error("Failed to load script", error);
+          // A failed load (e.g. a CAS-conflict reload that couldn't fetch) must
+          // not leave the status stuck on the "saving" it was set to — surface
+          // the failure.
+          store.getState().setSaveStatus(scriptId, "error");
           return;
         }
         // Unknown to the server: upsert-create carrying any local content.
@@ -83,9 +106,11 @@ export const useScriptServerSync = (scriptId: string): void => {
           if (disposed) return;
           store.getState().setServerRevision(scriptId, created.updatedAt);
           syncedRef.current = store.getState().scripts[scriptId] ?? null;
+          if (statusAfter) store.getState().setSaveStatus(scriptId, statusAfter);
           void utilsRef.current.scripts.list.invalidate();
         } catch (createError) {
           console.error("Failed to create script", createError);
+          store.getState().setSaveStatus(scriptId, "error");
         }
       }
     };
@@ -102,6 +127,7 @@ export const useScriptServerSync = (scriptId: string): void => {
 
       inFlightRef.current = true;
       let saved = false;
+      store.getState().setSaveStatus(scriptId, "saving");
       try {
         const updated = await trpcClient.scripts.update.mutate({
           id: scriptId,
@@ -114,20 +140,34 @@ export const useScriptServerSync = (scriptId: string): void => {
         syncedRef.current = script;
         saved = true;
         void utilsRef.current.scripts.list.invalidate();
-        // Edits landed while the save was in flight — go again.
+        // Only claim "saved" when the saved snapshot still matches the store.
+        // Edits that landed mid-flight leave newer work queued, so keep the
+        // "unsaved" state (the subscriber already set it) and go again rather
+        // than flashing a false "Saved".
         if (store.getState().scripts[scriptId] !== syncedRef.current) {
+          store.getState().setSaveStatus(scriptId, "unsaved");
           if (disposed || flushAfterSaveRef.current) {
             flushAfterSaveRef.current = true;
           } else {
             schedule();
           }
+        } else {
+          store.getState().setSaveStatus(scriptId, "saved");
         }
       } catch (error) {
-        if (disposed) return;
         console.error("Script autosave failed", error);
+        // Tab unmounted mid-flush: no live hook remains to retry or reload, but
+        // don't leave the singleton status stuck on "saving" — mark it failed so
+        // reopening the script shows the truth. The next mount reconciles.
+        if (disposed) {
+          store.getState().setSaveStatus(scriptId, "error");
+          return;
+        }
         if (/modified since last read/i.test((error as Error).message ?? "")) {
-          await load();
+          // Set "reloaded" only after the server copy is applied, not before.
+          await load("reloaded");
         } else {
+          store.getState().setSaveStatus(scriptId, "error");
           schedule(RETRY_DELAY_MS);
         }
       } finally {
@@ -150,6 +190,10 @@ export const useScriptServerSync = (scriptId: string): void => {
       if (state.scripts[scriptId] === prev.scripts[scriptId]) return;
       if (state.scripts[scriptId] === syncedRef.current) return;
       if (!state.serverRevisions[scriptId]) return;
+      // Edits landed; the debounced save hasn't fired yet. Reflect the pending
+      // state so "saved" never lies during the debounce window. (Setting status
+      // only touches saveStatus, so this subscriber early-returns on it.)
+      store.getState().setSaveStatus(scriptId, "unsaved");
       schedule();
     });
 

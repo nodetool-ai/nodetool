@@ -503,7 +503,11 @@ export const ProviderCard = memo(function ProviderCard({
       padding="compact"
       sx={{
         display: "flex",
-        alignItems: "center",
+        // Stack on mobile (<sm) so the status band + action buttons drop below
+        // the icon/info instead of overflowing the narrow row. Pure CSS
+        // breakpoints keep this a layout concern with no per-card matchMedia.
+        flexDirection: { xs: "column", sm: "row" },
+        alignItems: { xs: "stretch", sm: "center" },
         gap: theme.spacing(3),
         borderRadius: BORDER_RADIUS.lg,
         border: `1px solid ${theme.vars.palette.divider}`,
@@ -515,6 +519,8 @@ export const ProviderCard = memo(function ProviderCard({
         }
       }}
     >
+      {/* Icon + info stay a row even when the card stacks on mobile. */}
+      <FlexRow align="center" gap={3} sx={{ flex: 1, minWidth: 0 }}>
       {/* Icon */}
       <FlexRow
         align="center"
@@ -584,10 +590,24 @@ export const ProviderCard = memo(function ProviderCard({
           </Caption>
         )}
       </FlexColumn>
+      </FlexRow>
 
-      {/* Status + Actions — one vertically centered band */}
-      <FlexRow align="center" gap={3} sx={{ flexShrink: 0 }}>
-        <FlexColumn align="flex-end" gap={1}>
+      {/* Status + Actions — one vertically centered band. On mobile it drops
+          below the icon/info and spreads full width, letting the action
+          buttons wrap instead of overflowing. */}
+      <FlexRow
+        align="center"
+        gap={3}
+        sx={{
+          flexShrink: 0,
+          flexWrap: "wrap",
+          justifyContent: { xs: "space-between", sm: "flex-start" }
+        }}
+      >
+        <FlexColumn
+          gap={1}
+          sx={{ alignItems: { xs: "flex-start", sm: "flex-end" } }}
+        >
           <FlexRow
             align="center"
             gap={1}
@@ -660,7 +680,7 @@ export const ProviderCard = memo(function ProviderCard({
           )}
         </FlexColumn>
 
-        <FlexRow align="center" gap={0.5}>
+        <FlexRow align="center" gap={0.5} sx={{ flexWrap: "wrap" }}>
           <EditorButton
             density="compact"
             variant="text"

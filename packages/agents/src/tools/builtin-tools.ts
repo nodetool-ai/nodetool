@@ -84,6 +84,13 @@ import {
   RecordStylePreferenceTool,
   GetStyleProfileTool
 } from "./creative-critique-tools.js";
+import {
+  ThreadMemorySaveTool,
+  ThreadMemoryListTool,
+  ThreadMemoryUpdateTool,
+  ThreadMemoryDeleteTool
+} from "./thread-memory-tools.js";
+import { AssetSearchTool, AssetListTool } from "./asset-library-tools.js";
 
 export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   // Filesystem (workspace-relative)
@@ -96,6 +103,16 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
 
   // Task tracking
   TodoWriteTool,
+
+  // Thread-level memory (durable per-conversation notes + asset references)
+  ThreadMemorySaveTool,
+  ThreadMemoryListTool,
+  ThreadMemoryUpdateTool,
+  ThreadMemoryDeleteTool,
+
+  // Asset library (discover + reuse generated/uploaded media)
+  AssetSearchTool,
+  AssetListTool,
 
   // Vision (lazy image loading: handles → pixels on demand)
   ListImagesTool,

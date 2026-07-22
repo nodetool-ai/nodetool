@@ -152,42 +152,6 @@ describe("tRPC HTTP smoke tests", () => {
     });
   });
 
-  describe("nodes.validateUsername (protected query)", () => {
-    it("returns 401 when no userId header", async () => {
-      const res = await trpcQuery("nodes.validateUsername", { username: "hello" });
-      expect(res.status).toBe(401);
-    });
-
-    it("returns valid: true for a valid username with auth", async () => {
-      const res = await trpcQuery(
-        "nodes.validateUsername",
-        { username: "hello_world" },
-        AUTH_USER_ID
-      );
-      expect(res.status).toBe(200);
-      const body = await res.json() as { result: { data: unknown } };
-      const data = body.result.data as { valid: boolean; available: boolean };
-      expect(data.valid).toBe(true);
-      expect(data.available).toBe(true);
-    });
-  });
-
-  describe("nodes.dummy (protected query)", () => {
-    it("returns 401 when no userId header", async () => {
-      const res = await trpcQuery("nodes.dummy");
-      expect(res.status).toBe(401);
-    });
-
-    it("returns the dummy asset shape with auth", async () => {
-      const res = await trpcQuery("nodes.dummy", undefined, AUTH_USER_ID);
-      expect(res.status).toBe(200);
-      const body = await res.json() as { result: { data: unknown } };
-      const data = body.result.data as Record<string, unknown>;
-      expect(data.type).toBe("asset");
-      expect(data.uri).toBe("");
-      expect(data.asset_id).toBeNull();
-    });
-  });
 
   describe("models.recommended (protected query)", () => {
     it("returns 401 when no userId header", async () => {

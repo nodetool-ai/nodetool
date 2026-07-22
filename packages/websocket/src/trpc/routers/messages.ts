@@ -6,7 +6,7 @@
  * throw NOT_FOUND) to avoid leaking existence.
  */
 
-import { Message, Thread } from "@nodetool-ai/models";
+import { Message } from "@nodetool-ai/models";
 import type { Message as MessageModel } from "@nodetool-ai/models";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
@@ -16,11 +16,6 @@ import { resolveContentUrls } from "../../resolve-media-urls.js";
 import {
   listInput,
   listOutput,
-  createInput,
-  messageResponse,
-  getInput,
-  deleteInput,
-  deleteOutput,
   type MessageResponse
 } from "@nodetool-ai/protocol/api-schemas/messages.js";
 
@@ -72,66 +67,5 @@ export const messagesRouter = router({
         messages: msgs.map((m) => toMessageResponse(m)),
         next: cursor || null
       };
-    }),
-
-  create: protectedProcedure
-    .input(createInput)
-    .output(messageResponse)
-    .mutation(async ({ ctx, input }) => {
-      let threadId = input.thread_id;
-      if (!threadId) {
-        const thread = (await Thread.create({
-          user_id: ctx.userId,
-          workflow_id: input.workflow_id ?? null,
-          title: "New Thread"
-        })) as unknown as { id: string };
-        threadId = thread.id;
-      } else {
-        // Only allow appending to a thread the caller owns. Without this any
-        // authenticated user could inject a message into another user's thread
-        // — and because list() 404s on the first foreign message, that would
-        // also lock the owner out of their own thread.
-        const thread = await Thread.find(ctx.userId, threadId);
-        if (!thread) {
-          throwApiError(ApiErrorCode.NOT_FOUND, "Thread not found");
-        }
-      }
-      const contentStr =
-        typeof input.content === "string"
-          ? input.content
-          : JSON.stringify(input.content ?? null);
-      const msg = (await Message.create({
-        user_id: ctx.userId,
-        thread_id: threadId,
-        workflow_id: input.workflow_id ?? null,
-        role: input.role,
-        name: input.name ?? null,
-        content: contentStr,
-        tool_calls: input.tool_calls ?? null
-      })) as MessageModel;
-      return toMessageResponse(msg);
-    }),
-
-  get: protectedProcedure
-    .input(getInput)
-    .output(messageResponse)
-    .query(async ({ ctx, input }) => {
-      const msg = (await Message.get(input.id)) as MessageModel | null;
-      if (!msg || msg.user_id !== ctx.userId) {
-        throwApiError(ApiErrorCode.NOT_FOUND, "Message not found");
-      }
-      return toMessageResponse(msg);
-    }),
-
-  delete: protectedProcedure
-    .input(deleteInput)
-    .output(deleteOutput)
-    .mutation(async ({ ctx, input }) => {
-      const msg = (await Message.get(input.id)) as MessageModel | null;
-      if (!msg || msg.user_id !== ctx.userId) {
-        throwApiError(ApiErrorCode.NOT_FOUND, "Message not found");
-      }
-      await msg.delete();
-      return { ok: true as const };
     })
 });

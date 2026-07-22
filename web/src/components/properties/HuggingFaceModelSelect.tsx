@@ -172,7 +172,7 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
       const modelToPass: HuggingFaceModelValue = {
         type: modelType,
         repo_id: repo_id || model.id || "",
-        path: pathFromId || model.path || undefined
+        path: pathFromId || model.path || null
       };
 
       onChange(modelToPass);

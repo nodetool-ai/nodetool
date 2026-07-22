@@ -93,11 +93,12 @@ const SandboxesPanel: React.FC = () => {
     if (!el) return;
     // Request fullscreen from the parent page — bypasses the iframe's
     // Permissions Policy restriction that blocks noVNC's own button.
-    const request =
+    const request: (() => Promise<void>) | undefined =
       el.requestFullscreen ??
-      (el as unknown as { webkitRequestFullscreen?: () => Promise<void> })
-        .webkitRequestFullscreen;
-    if (typeof request === "function") {
+      ("webkitRequestFullscreen" in el
+        ? (el.webkitRequestFullscreen as () => Promise<void>)
+        : undefined);
+    if (request) {
       void request.call(el);
     }
   }, []);

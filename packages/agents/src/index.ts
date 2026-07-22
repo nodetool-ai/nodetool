@@ -319,6 +319,21 @@ export {
   setLongTermMemory,
   getLongTermMemory
 } from "./tools/ltm-tools.js";
+export {
+  ThreadMemorySaveTool,
+  ThreadMemoryListTool,
+  ThreadMemoryUpdateTool,
+  ThreadMemoryDeleteTool,
+  getThreadMemoryTools,
+  formatThreadMemoriesForPrompt,
+  THREAD_MEMORY_TOOL_NAMES
+} from "./tools/thread-memory-tools.js";
+export {
+  AssetSearchTool,
+  AssetListTool,
+  getAssetLibraryTools,
+  ASSET_LIBRARY_TOOL_NAMES
+} from "./tools/asset-library-tools.js";
 
 // Plan cache + checkpoint store (opt-in planning/execution persistence)
 export {
@@ -371,6 +386,95 @@ export type {
   EvalCheck
 } from "./evals/graph-planner-eval.js";
 export { GRAPH_PLANNER_EVAL_CASES } from "./evals/graph-planner-cases.js";
+
+// Tool-loop evaluation harness (frontend ui_* tool surface)
+export {
+  runToolLoopEval,
+  formatToolLoopReport,
+  checkToolLoopExpectations
+} from "./evals/tool-loop-eval.js";
+export type {
+  HeadlessSurfaceBridge,
+  ToolLoopEvalCase,
+  ToolLoopEvalExpectations,
+  ToolLoopStatePredicate,
+  ToolLoopObservation,
+  ToolCallRecord,
+  ToolLoopCaseResult,
+  ToolLoopEvalReport,
+  RunToolLoopEvalOptions
+} from "./evals/tool-loop-eval.js";
+export {
+  createToolLoopBridge,
+  DEFAULT_TOOL_NAMES
+} from "./evals/tool-loop-bridge.js";
+export type {
+  ToolLoopInitialState,
+  ToolLoopFinalState,
+  ToolLoopState,
+  HeadlessTool,
+  HeadlessBridge,
+  HeadlessNode,
+  HeadlessEdge
+} from "./evals/tool-loop-bridge.js";
+export { TOOL_LOOP_EVAL_CASES } from "./evals/tool-loop-cases.js";
+
+// Editor-surface tool-loop suites (script, sketch, timeline, storyboard, 3D)
+export {
+  createScriptToolBridge,
+  SCRIPT_TOOL_LOOP_CASES
+} from "./evals/surfaces/script.js";
+export type {
+  ScriptBridgeFinalState,
+  ScriptBridgeInitialState
+} from "./evals/surfaces/script.js";
+export {
+  createSketchToolBridge,
+  SKETCH_TOOL_LOOP_CASES
+} from "./evals/surfaces/sketch.js";
+export type {
+  SketchBridgeFinalState,
+  SketchBridgeInitialState
+} from "./evals/surfaces/sketch.js";
+export {
+  createTimelineToolBridge,
+  TIMELINE_TOOL_LOOP_CASES
+} from "./evals/surfaces/timeline.js";
+export type {
+  TimelineBridgeFinalState,
+  TimelineBridgeInitialState
+} from "./evals/surfaces/timeline.js";
+export {
+  createStoryboardToolBridge,
+  STORYBOARD_TOOL_LOOP_CASES
+} from "./evals/surfaces/storyboard.js";
+export type {
+  StoryboardBridgeFinalState,
+  StoryboardBridgeInitialState
+} from "./evals/surfaces/storyboard.js";
+export {
+  createModel3DToolBridge,
+  MODEL3D_TOOL_LOOP_CASES
+} from "./evals/surfaces/model3d.js";
+export type {
+  Model3DBridgeFinalState,
+  Model3DBridgeInitialState
+} from "./evals/surfaces/model3d.js";
+export {
+  createAppToolBridge,
+  APP_TOOL_LOOP_CASES
+} from "./evals/surfaces/app.js";
+export type {
+  AppBridgeFinalState,
+  AppBridgeInitialState,
+  AppComponentSummary,
+  SeedComponent
+} from "./evals/surfaces/app.js";
+export {
+  createThreadMemoryToolBridge,
+  THREAD_MEMORY_TOOL_LOOP_CASES
+} from "./evals/surfaces/thread-memory.js";
+export type { ThreadMemoryBridgeFinalState } from "./evals/surfaces/thread-memory.js";
 
 // Graph-native planning & execution
 export { evaluateGraphDsl } from "./graph-dsl.js";

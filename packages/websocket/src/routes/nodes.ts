@@ -23,15 +23,6 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   });
 
   /**
-   * Legacy alias for /api/nodes/metadata.
-   */
-  app.get("/api/node/metadata", async (req, reply) => {
-    await bridge(req, reply, (request) =>
-      handleNodeMetadata(request, apiOptions)
-    );
-  });
-
-  /**
    * KIE dynamic schema resolution — stays as REST (fast, stateless, no auth needed).
    */
   app.post("/api/kie/resolve-dynamic-schema", async (req, reply) => {

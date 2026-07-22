@@ -1697,43 +1697,6 @@ export function toJobResponse(job: Job): JsonObject {
   };
 }
 
-// ── Trigger job stubs ─────────────────────────────────────────────
-
-export async function handleTriggersRunning(
-  request: Request
-): Promise<Response> {
-  if (request.method !== "GET") {
-    return errorResponse(405, "Method not allowed");
-  }
-  return jsonResponse({ workflows: [] });
-}
-
-export async function handleTriggerStart(
-  request: Request,
-  _workflowId: string
-): Promise<Response> {
-  if (request.method !== "POST") {
-    return errorResponse(405, "Method not allowed");
-  }
-  return errorResponse(
-    501,
-    "Trigger workflows not available in standalone mode"
-  );
-}
-
-export async function handleTriggerStop(
-  request: Request,
-  _workflowId: string
-): Promise<Response> {
-  if (request.method !== "POST") {
-    return errorResponse(405, "Method not allowed");
-  }
-  return errorResponse(
-    501,
-    "Trigger workflows not available in standalone mode"
-  );
-}
-
 // ── Nodes dummy ───────────────────────────────────────────────────
 
 export async function handleNodesDummy(request: Request): Promise<Response> {

@@ -3,22 +3,14 @@ import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
 
-// Mock @nodetool-ai/models — the router orchestrates Message + Thread static
-// methods; we stub those here.
+// Mock @nodetool-ai/models — the router orchestrates Message static methods.
 vi.mock("@nodetool-ai/models", async (orig) => {
   const actual = await orig<typeof import("@nodetool-ai/models")>();
   return {
     ...actual,
     Message: {
       ...actual.Message,
-      create: vi.fn(),
-      get: vi.fn(),
       paginate: vi.fn()
-    },
-    Thread: {
-      ...actual.Thread,
-      create: vi.fn(),
-      find: vi.fn()
     }
   };
 });
@@ -35,7 +27,7 @@ vi.mock("../src/resolve-media-urls.js", async (orig) => {
   };
 });
 
-import { Message, Thread } from "@nodetool-ai/models";
+import { Message } from "@nodetool-ai/models";
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -84,12 +76,6 @@ function makeMessage(opts: {
 describe("messages router", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default: the caller owns the thread they post to. Individual tests
-    // override this to exercise the not-owned path.
-    (Thread.find as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: "t1",
-      user_id: "user-1"
-    });
   });
 
   afterEach(() => {
@@ -186,176 +172,6 @@ describe("messages router", () => {
       await expect(
         caller.messages.list({ thread_id: "t1" })
       ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
-    });
-  });
-
-  // ── create ──────────────────────────────────────────────────────
-  describe("create", () => {
-    it("creates a message on an existing thread", async () => {
-      const msg = makeMessage({ id: "m1", thread_id: "t1" });
-      (Message.create as ReturnType<typeof vi.fn>).mockResolvedValue(msg);
-
-      const caller = createCaller(makeCtx());
-      const result = await caller.messages.create({
-        thread_id: "t1",
-        role: "user",
-        content: "hello"
-      });
-      expect(result.id).toBe("m1");
-      expect(Message.create).toHaveBeenCalledWith({
-        user_id: "user-1",
-        thread_id: "t1",
-        workflow_id: null,
-        role: "user",
-        name: null,
-        content: "hello",
-        tool_calls: null
-      });
-      expect(Thread.create).not.toHaveBeenCalled();
-    });
-
-    it("rejects appending to a thread the caller does not own (IDOR)", async () => {
-      // Thread.find returns null for a thread owned by someone else.
-      (Thread.find as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-      const caller = createCaller(makeCtx());
-      await expect(
-        caller.messages.create({
-          thread_id: "victim-thread",
-          role: "user",
-          content: "x"
-        })
-      ).rejects.toMatchObject({ code: "NOT_FOUND" });
-      expect(Message.create).not.toHaveBeenCalled();
-    });
-
-    it("auto-creates a thread when thread_id is omitted", async () => {
-      (Thread.create as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: "auto-thread",
-        title: "New Thread"
-      });
-      const msg = makeMessage({
-        id: "m1",
-        thread_id: "auto-thread"
-      });
-      (Message.create as ReturnType<typeof vi.fn>).mockResolvedValue(msg);
-
-      const caller = createCaller(makeCtx());
-      const result = await caller.messages.create({
-        role: "user",
-        content: "hello"
-      });
-      expect(Thread.create).toHaveBeenCalledWith({
-        user_id: "user-1",
-        workflow_id: null,
-        title: "New Thread"
-      });
-      expect(result.thread_id).toBe("auto-thread");
-    });
-
-    it("stringifies object/array content before storing", async () => {
-      const msg = makeMessage({
-        id: "m1",
-        content: '[{"type":"text"}]'
-      });
-      (Message.create as ReturnType<typeof vi.fn>).mockResolvedValue(msg);
-
-      const caller = createCaller(makeCtx());
-      await caller.messages.create({
-        thread_id: "t1",
-        role: "assistant",
-        content: [{ type: "text", text: "hi" }]
-      });
-      const call = (Message.create as ReturnType<typeof vi.fn>).mock.calls[0];
-      expect(typeof call?.[0].content).toBe("string");
-      expect(JSON.parse(call?.[0].content as string)).toEqual([
-        { type: "text", text: "hi" }
-      ]);
-    });
-
-    it("passes string content through unchanged", async () => {
-      const msg = makeMessage({ id: "m1" });
-      (Message.create as ReturnType<typeof vi.fn>).mockResolvedValue(msg);
-
-      const caller = createCaller(makeCtx());
-      await caller.messages.create({
-        thread_id: "t1",
-        role: "user",
-        content: "plain text"
-      });
-      const call = (Message.create as ReturnType<typeof vi.fn>).mock.calls[0];
-      expect(call?.[0].content).toBe("plain text");
-    });
-
-    it("rejects unauthenticated callers", async () => {
-      const caller = createCaller(makeCtx({ userId: null }));
-      await expect(
-        caller.messages.create({
-          role: "user",
-          content: "hi"
-        })
-      ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
-    });
-  });
-
-  // ── get ─────────────────────────────────────────────────────────
-  describe("get", () => {
-    it("returns a message when the user owns it", async () => {
-      const msg = makeMessage({ id: "m1", user_id: "user-1" });
-      (Message.get as ReturnType<typeof vi.fn>).mockResolvedValue(msg);
-
-      const caller = createCaller(makeCtx());
-      const result = await caller.messages.get({ id: "m1" });
-      expect(result.id).toBe("m1");
-    });
-
-    it("throws NOT_FOUND when the message doesn't exist", async () => {
-      (Message.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-      const caller = createCaller(makeCtx());
-      await expect(
-        caller.messages.get({ id: "missing" })
-      ).rejects.toMatchObject({ code: "NOT_FOUND" });
-    });
-
-    it("throws NOT_FOUND when the user does not own the message", async () => {
-      const msg = makeMessage({ id: "m1", user_id: "other-user" });
-      (Message.get as ReturnType<typeof vi.fn>).mockResolvedValue(msg);
-
-      const caller = createCaller(makeCtx());
-      await expect(
-        caller.messages.get({ id: "m1" })
-      ).rejects.toMatchObject({ code: "NOT_FOUND" });
-    });
-  });
-
-  // ── delete ──────────────────────────────────────────────────────
-  describe("delete", () => {
-    it("deletes the message when the user owns it", async () => {
-      const msg = makeMessage({ id: "m1", user_id: "user-1" });
-      (Message.get as ReturnType<typeof vi.fn>).mockResolvedValue(msg);
-
-      const caller = createCaller(makeCtx());
-      const result = await caller.messages.delete({ id: "m1" });
-      expect(msg.delete).toHaveBeenCalled();
-      expect(result).toEqual({ ok: true });
-    });
-
-    it("throws NOT_FOUND when the message doesn't exist", async () => {
-      (Message.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-      const caller = createCaller(makeCtx());
-      await expect(
-        caller.messages.delete({ id: "missing" })
-      ).rejects.toMatchObject({ code: "NOT_FOUND" });
-    });
-
-    it("throws NOT_FOUND when the user doesn't own the message", async () => {
-      const msg = makeMessage({ id: "m1", user_id: "other-user" });
-      (Message.get as ReturnType<typeof vi.fn>).mockResolvedValue(msg);
-
-      const caller = createCaller(makeCtx());
-      await expect(
-        caller.messages.delete({ id: "m1" })
-      ).rejects.toMatchObject({ code: "NOT_FOUND" });
-      expect(msg.delete).not.toHaveBeenCalled();
     });
   });
 });

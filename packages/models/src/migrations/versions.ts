@@ -1896,5 +1896,47 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_script_updated");
       await db.execute("DROP TABLE IF EXISTS scripts");
     }
+  },
+
+  // ── Create thread_memories ──────────────────────────────────────────
+  // Durable, per-conversation memory. Rows are scoped to a chat thread and
+  // can reference assets (generated images/videos) so an agent can record
+  // and reuse the media it produces across a creative project.
+  {
+    version: "20260722_000000",
+    name: "create_thread_memories",
+    createsTables: ["nodetool_thread_memories"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS nodetool_thread_memories (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          thread_id TEXT NOT NULL,
+          kind TEXT NOT NULL DEFAULT 'note',
+          title TEXT NOT NULL DEFAULT '',
+          content TEXT NOT NULL DEFAULT '',
+          resources TEXT,
+          metadata TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_thread_memory_thread_created
+        ON nodetool_thread_memories (thread_id, created_at)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_thread_memory_user
+        ON nodetool_thread_memories (user_id)
+      `);
+    },
+    async down(db) {
+      await db.execute(
+        "DROP INDEX IF EXISTS idx_thread_memory_thread_created"
+      );
+      await db.execute("DROP INDEX IF EXISTS idx_thread_memory_user");
+      await db.execute("DROP TABLE IF EXISTS nodetool_thread_memories");
+    }
   }
 ];

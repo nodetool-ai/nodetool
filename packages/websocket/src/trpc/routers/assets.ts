@@ -34,17 +34,13 @@ import {
   listOutput,
   getInput,
   assetResponse,
-  createInput,
   updateInput,
   deleteInput,
   deleteOutput,
-  childrenInput,
-  childrenOutput,
   recursiveInput,
   recursiveOutput,
   searchInput,
   searchOutput,
-  byFilenameInput,
   type AssetResponse
 } from "@nodetool-ai/protocol/api-schemas/assets.js";
 
@@ -205,26 +201,6 @@ export const assetsRouter = router({
       return toAssetResponse(asset);
     }),
 
-  create: protectedProcedure
-    .input(createInput)
-    .output(assetResponse)
-    .mutation(async ({ ctx, input }) => {
-      const asset = (await Asset.create({
-        user_id: ctx.userId,
-        name: input.name,
-        content_type: input.content_type,
-        parent_id: input.parent_id,
-        workflow_id: input.workflow_id ?? null,
-        node_id: input.node_id ?? null,
-        job_id: input.job_id ?? null,
-        timeline_id: input.timeline_id ?? null,
-        metadata: input.metadata ?? null,
-        sketch_document_id: input.sketch_document_id ?? null,
-        size: input.size ?? null
-      })) as unknown as AssetModel;
-      return toAssetResponse(asset);
-    }),
-
   update: protectedProcedure
     .input(updateInput)
     .output(assetResponse)
@@ -306,25 +282,6 @@ export const assetsRouter = router({
       return { deleted_asset_ids: deletedAssetIds };
     }),
 
-  children: protectedProcedure
-    .input(childrenInput)
-    .output(childrenOutput)
-    .query(async ({ ctx, input }) => {
-      const [assets] = await Asset.paginate(ctx.userId, {
-        parentId: input.id,
-        limit: input.limit
-      });
-      return {
-        assets: assets.map((a) => ({
-          id: a.id,
-          name: a.name,
-          content_type: a.content_type
-        })),
-        // Legacy returned `null` here; pagination isn't wired through for children.
-        next: null
-      };
-    }),
-
   recursive: protectedProcedure
     .input(recursiveInput)
     .output(recursiveOutput)
@@ -358,17 +315,5 @@ export const assetsRouter = router({
         total_count: matched.length,
         is_global_search: input.workflow_id === undefined
       };
-    }),
-
-  byFilename: protectedProcedure
-    .input(byFilenameInput)
-    .output(assetResponse)
-    .query(async ({ ctx, input }) => {
-      const [assets] = await Asset.paginate(ctx.userId, { limit: 10000 });
-      const asset = assets.find((a) => a.name === input.filename) ?? null;
-      if (!asset) {
-        throwApiError(ApiErrorCode.NOT_FOUND, "Asset not found");
-      }
-      return toAssetResponse(asset);
     })
 });

@@ -192,4 +192,23 @@ describe("buildAssetUrl", () => {
       "/api/storage/temp/uuid.png"
     );
   });
+
+  it("percent-encodes reserved chars while preserving / separators", () => {
+    expect(buildAssetUrl("my file.png")).toBe("/api/storage/my%20file.png");
+    expect(buildAssetUrl("a#b.png")).toBe("/api/storage/a%23b.png");
+    expect(buildAssetUrl("dir/my file#1.png")).toBe(
+      "/api/storage/dir/my%20file%231.png"
+    );
+  });
+
+  it("round-trips reserved chars through decodeURIComponent per segment", () => {
+    const key = "dir/my file#1.png";
+    const url = buildAssetUrl(key);
+    const decoded = url
+      .replace("/api/storage/", "")
+      .split("/")
+      .map(decodeURIComponent)
+      .join("/");
+    expect(decoded).toBe(key);
+  });
 });

@@ -57,6 +57,8 @@ import { registerNodeCommands } from "./commands/node.js";
 import { registerGenerateCommand } from "./commands/generate.js";
 import { registerEvalCommand } from "./commands/eval.js";
 import { registerAffectedCommand } from "./commands/affected.js";
+import { registerCollectionCommands } from "./commands/collections.js";
+import { registerCostsCommands } from "./commands/costs.js";
 import {
   listConfiguredProviderInfo,
   listProviderModels,
@@ -1836,6 +1838,8 @@ registerNodeCommands(program);
 registerGenerateCommand(program);
 registerEvalCommand(program);
 registerAffectedCommand(program);
+registerCollectionCommands(program);
+registerCostsCommands(program);
 
 // ---------------------------------------------------------------------------
 

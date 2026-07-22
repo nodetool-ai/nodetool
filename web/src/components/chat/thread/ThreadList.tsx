@@ -25,7 +25,8 @@ const ThreadList: React.FC<ThreadListProps> = ({
   currentThreadId,
   onSelectThread,
   onDeleteThread,
-  getThreadPreview
+  getThreadPreview,
+  isFiltered = false
 }) => {
   const theme = useTheme<Theme>();
   const componentStyles = createStyles(theme);
@@ -94,7 +95,7 @@ const ThreadList: React.FC<ThreadListProps> = ({
     <div className="thread-list-container" css={componentStyles}>
       <ul className="thread-list">
         {!threads || Object.keys(threads).length === 0 || listElements.length === 0 ? (
-          <EmptyThreadList />
+          <EmptyThreadList isFiltered={isFiltered} />
         ) : (
           listElements
         )}

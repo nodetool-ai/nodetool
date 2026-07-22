@@ -20,6 +20,7 @@ import { ConversationHeader } from "./ConversationHeader";
 import ChatInputSection, { type ChatComposerVariant } from "./ChatInputSection";
 import ComposerSlot from "../composer/ComposerSlot";
 import { TodoSidebar } from "../sidebar/TodoSidebar";
+import { ThreadMemorySidebar } from "../sidebar/ThreadMemorySidebar";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import {
   buildUiContext,
@@ -263,6 +264,9 @@ const ChatView = ({
     return (id && state.todosByThread[id]) || NO_TODOS;
   });
   const showTodoSidebar = todos.length > 0;
+  const effectiveThreadId = useGlobalChatStore(
+    (state) => threadId ?? state.currentThreadId
+  );
 
   return (
     <div className="chat-view" css={cssStyles}>
@@ -316,6 +320,9 @@ const ChatView = ({
         )}
       </div>
       {showTodoSidebar && <TodoSidebar todos={todos} />}
+      {effectiveThreadId && (
+        <ThreadMemorySidebar threadId={effectiveThreadId} />
+      )}
     </div>
   );
 };

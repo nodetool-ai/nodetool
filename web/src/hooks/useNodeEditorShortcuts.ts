@@ -21,7 +21,7 @@ import { useNotificationStore } from "../stores/NotificationStore";
 import { useRightPanelStore } from "../stores/RightPanelStore";
 import { usePanelStore } from "../stores/PanelStore";
 import { NodeData } from "../stores/NodeData";
-import { getCollapseTogglePatches } from "../stores/collapseNodeLayout";
+import { useToggleCollapse } from "./nodes/useToggleCollapse";
 import { Node } from "@xyflow/react";
 import { isMac } from "../utils/platform";
 import { useFindInWorkflowStore } from "../stores/FindInWorkflowStore";
@@ -432,21 +432,10 @@ export const useNodeEditorShortcuts = (
     leftPanelToggle("settings");
   }, [leftPanelToggle]);
 
+  const toggleCollapse = useToggleCollapse();
   const handleToggleSelectedNodesCollapsed = useCallback(() => {
-    const selected = nodeStore.getState().getSelectedNodes();
-    if (selected.length === 0) {
-      return;
-    }
-    const { updateNodeData, updateNode, findNode } = nodeStore.getState();
-    for (const n of selected) {
-      const live = findNode(n.id) ?? n;
-      const next = !live.data.collapsed;
-      const { data: dataPatch, node: nodePatch } =
-        getCollapseTogglePatches(live, next);
-      updateNodeData(n.id, dataPatch);
-      updateNode(n.id, nodePatch);
-    }
-  }, [nodeStore]);
+    toggleCollapse();
+  }, [toggleCollapse]);
 
   useMenuHandler(handleMenuEvent);
 

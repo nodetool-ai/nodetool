@@ -45,7 +45,12 @@ const seedVoicedScript = (id: string, timelineId: string | null): void => {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  useScriptStore.setState({ scripts: {}, serverRevisions: {}, voicingLineIds: {} });
+  useScriptStore.setState({
+    scripts: {},
+    serverRevisions: {},
+    saveStatus: {},
+    voicingLineIds: {}
+  });
   jest.spyOn(useWorkspaceTabsStore.getState(), "openTab").mockImplementation(
     () => undefined as never
   );

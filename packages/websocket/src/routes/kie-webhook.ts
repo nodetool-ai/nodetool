@@ -43,23 +43,7 @@ const FAILURE_STATES = new Set([
 ]);
 
 const kieWebhookRoute: FastifyPluginAsync = async (app) => {
-  // Per-task URL: KIE calls POST /api/kie/webhook/:taskId
-  app.post<{ Params: { taskId: string } }>(
-    "/api/kie/webhook/:taskId",
-    async (req, reply) => {
-      const { taskId } = req.params;
-      const status = extractStatus(req.body);
-
-      if (status && FAILURE_STATES.has(status)) {
-        rejectWebhook(taskId, status);
-      } else {
-        resolveWebhook(taskId, req.body);
-      }
-      reply.send({ status: "accepted" });
-    }
-  );
-
-  // Generic URL: KIE calls POST /api/kie/webhook with taskId in body
+  // KIE calls POST /api/kie/webhook with taskId in the body.
   app.post("/api/kie/webhook", async (req, reply) => {
     const taskId = extractTaskId(req.body);
     if (!taskId) {

@@ -75,26 +75,11 @@ export interface SecretResponse {
   value?: string;
 }
 
-export interface SecretsListResponse {
-  secrets: SecretResponse[];
-  next_key: string | null;
-}
-
-export interface SecretUpdateRequest {
-  value: string;
-  description?: string | null;
-}
-
 export interface CollectionResponse {
   name: string;
   count: number;
   metadata?: Record<string, string | number | boolean>;
   workflow_name?: string | null;
-}
-
-export interface CollectionList {
-  collections: CollectionResponse[];
-  count: number;
 }
 
 export interface CollectionCreate {

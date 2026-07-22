@@ -2,6 +2,7 @@ export { workflows } from "./workflows.js";
 export { jobs } from "./jobs.js";
 export { messages } from "./messages.js";
 export { threads } from "./threads.js";
+export { threadMemories } from "./thread-memories.js";
 export { assets } from "./assets.js";
 export { secrets } from "./secrets.js";
 export { workspaces } from "./workspaces.js";

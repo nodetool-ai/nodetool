@@ -115,6 +115,41 @@ describe("usePackageManager", () => {
     expect(result.current.notice).toBeNull();
   });
 
+  it("offers a bulk Update all action on the registry tab when packs have updates", () => {
+    useNodePacksStore.setState({
+      availablePacks: [],
+      installed: [
+        {
+          name: "Cool",
+          description: "Cool nodes.",
+          version: "1.0.0",
+          repo_id: "acme/cool",
+          latestVersion: "1.1.0",
+          hasUpdate: true
+        },
+        {
+          name: "Plain",
+          description: "Up to date.",
+          version: "2.0.0",
+          repo_id: "acme/plain"
+        }
+      ]
+    });
+    const { result } = renderHook(() =>
+      usePackageManager({ tab: "packs", cat: "python", q: "", filter: "all" })
+    );
+    expect(result.current.bulkUpdate?.count).toBe(1);
+    expect(result.current.bulkUpdate?.busy).toBe(false);
+  });
+
+  it("hides the bulk Update all action when nothing needs updating", () => {
+    const { result } = renderHook(() =>
+      usePackageManager({ tab: "packs", cat: "python", q: "", filter: "all" })
+    );
+    // Seed default has one uninstalled pack → no updates available.
+    expect(result.current.bulkUpdate).toBeNull();
+  });
+
   it("shows a desktop-only notice for software without the runtime IPC", () => {
     const { result } = renderHook(() =>
       usePackageManager({ tab: "software", cat: "all", q: "", filter: "all" })

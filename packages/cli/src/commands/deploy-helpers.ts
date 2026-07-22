@@ -5,7 +5,6 @@
  * prompt utilities, output formatters, and stubs used by `deploy add`.
  */
 
-import { createInterface } from "node:readline";
 import { spawnSync } from "node:child_process";
 
 import {
@@ -32,47 +31,18 @@ import { Asset, Workflow } from "@nodetool-ai/models";
 import { FileStorageAdapter } from "@nodetool-ai/runtime";
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
 
-// ---------------------------------------------------------------------------
-// Output helpers (duplicated from nodetool.ts so the CLI root stays simple)
-// ---------------------------------------------------------------------------
-
-/** Print a table to stdout. Missing values render as empty. */
-export function printTable(
-  rows: Record<string, unknown>[],
-  columns?: string[]
-): void {
-  if (rows.length === 0) {
-    console.log("(no results)");
-    return;
-  }
-  const cols = columns ?? Object.keys(rows[0]!);
-  const widths = cols.map((c) =>
-    Math.max(c.length, ...rows.map((r) => String(r[c] ?? "").length))
-  );
-  const sep = widths.map((w) => "─".repeat(w + 2)).join("┼");
-  const header = cols.map((c, i) => ` ${c.padEnd(widths[i]!)} `).join("│");
-  console.log(header);
-  console.log(sep);
-  for (const row of rows) {
-    console.log(
-      cols
-        .map((c, i) => ` ${String(row[c] ?? "").padEnd(widths[i]!)} `)
-        .join("│")
-    );
-  }
-}
-
-export function asJson(data: unknown): void {
-  console.log(JSON.stringify(data, null, 2));
-}
-
-export function printKv(rows: Record<string, unknown>): void {
-  const list = Object.entries(rows).map(([key, value]) => ({
-    key,
-    value: String(value ?? "")
-  }));
-  printTable(list, ["key", "value"]);
-}
+// Pure output + prompt helpers live in ./output.js so lightweight command
+// modules can import them without pulling in the heavy deploy stack above.
+// Re-exported here for the existing callers that import them from this module.
+import { promptHidden } from "./output.js";
+export {
+  printTable,
+  asJson,
+  printKv,
+  promptLine,
+  promptHidden,
+  confirm
+} from "./output.js";
 
 // ---------------------------------------------------------------------------
 // Config / manager factories
@@ -194,88 +164,6 @@ export async function getUserManager(
   const serverUrl = requireServerUrl(deployment, deploymentName);
   const token = await resolveAdminToken(opts);
   return new APIUserManager(serverUrl, token);
-}
-
-// ---------------------------------------------------------------------------
-// Prompts
-// ---------------------------------------------------------------------------
-
-/** Prompt for a line on stdin (echoes). TTY only — exits if non-TTY. */
-export async function promptLine(
-  message: string,
-  opts?: { default?: string }
-): Promise<string> {
-  if (!process.stdin.isTTY) {
-    console.error(`Missing value for interactive prompt: ${message}`);
-    process.exit(1);
-  }
-  const rl = createInterface({
-    input: process.stdin,
-    output: process.stderr
-  });
-  return new Promise<string>((resolve) => {
-    const suffix = opts?.default ? ` [${opts.default}]` : "";
-    rl.question(`${message}${suffix}: `, (answer) => {
-      rl.close();
-      const trimmed = answer.trim();
-      resolve(trimmed || (opts?.default ?? ""));
-    });
-  });
-}
-
-/** Prompt for hidden input (typed but not echoed). TTY only. */
-export async function promptHidden(message: string): Promise<string> {
-  if (!process.stdin.isTTY) {
-    console.error(`Missing value for interactive prompt: ${message}`);
-    process.exit(1);
-  }
-  process.stderr.write(message);
-  return new Promise<string>((resolve) => {
-    let value = "";
-    const stdin = process.stdin;
-    const wasRaw = stdin.isRaw;
-    stdin.setRawMode(true);
-    stdin.resume();
-    stdin.setEncoding("utf8");
-
-    const onData = (data: string): void => {
-      for (const ch of data) {
-        if (ch === "\r" || ch === "\n") {
-          stdin.setRawMode(wasRaw ?? false);
-          stdin.pause();
-          stdin.removeListener("data", onData);
-          process.stderr.write("\n");
-          resolve(value);
-          return;
-        }
-        if (ch === "\x03") {
-          stdin.setRawMode(wasRaw ?? false);
-          stdin.pause();
-          process.exit(130);
-        }
-        if (ch === "" || ch === "\b") {
-          value = value.slice(0, -1);
-          continue;
-        }
-        value += ch;
-      }
-    };
-    stdin.on("data", onData);
-  });
-}
-
-/** Yes/no confirm. Non-TTY returns the `force` value (default: false). */
-export async function confirm(
-  message: string,
-  opts?: { force?: boolean; default?: boolean }
-): Promise<boolean> {
-  if (opts?.force) return true;
-  if (!process.stdin.isTTY) return false;
-  const defaultYes = opts?.default ?? false;
-  const hint = defaultYes ? "[Y/n]" : "[y/N]";
-  const answer = await promptLine(`${message} ${hint}`);
-  if (!answer) return defaultYes;
-  return /^y(es)?$/i.test(answer);
 }
 
 // ---------------------------------------------------------------------------

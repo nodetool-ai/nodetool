@@ -306,7 +306,7 @@ const PaneContextMenu: React.FC = () => {
           tooltip={
             !isClipboardValid ? (
               <span>
-                {getShortcutTooltip("paste-selection")}
+                {getShortcutTooltip("paste")}
                 <br />
                 <span className="attention">
                   no valid node data <br />
@@ -314,7 +314,7 @@ const PaneContextMenu: React.FC = () => {
                 </span>
               </span>
             ) : (
-              getShortcutTooltip("paste-selection")
+              getShortcutTooltip("paste")
             )
           }
         />
@@ -322,7 +322,7 @@ const PaneContextMenu: React.FC = () => {
           onClick={handleFitViewAndClose}
           label="Fit Screen"
           IconComponent={<FitScreenIcon />}
-          tooltip={getShortcutTooltip("fit-view")}
+          tooltip={getShortcutTooltip("fitView")}
         />
         {favorites.length > 0 && [
           <Divider key="favorites-divider" />,

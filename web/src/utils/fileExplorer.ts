@@ -54,29 +54,23 @@ function getExplorerBridge(): ExplorerBridge | null {
 }
 
 function resolveExplorerWindow(): ExplorerWindow | null {
-  const candidateGetters: Array<() => ExplorerWindow | undefined> = [
-    () => (typeof window !== "undefined" ? (window as ExplorerWindow) : undefined),
-    () =>
-      typeof global !== "undefined"
-        ? (global as unknown as { window?: ExplorerWindow }).window
-        : undefined,
-    () =>
-      typeof globalThis !== "undefined"
-        ? (globalThis as unknown as { window?: ExplorerWindow }).window
-        : undefined,
-    () =>
-      typeof globalThis !== "undefined"
-        ? (globalThis as unknown as ExplorerWindow)
-        : undefined
-  ];
-
-  for (const getCandidate of candidateGetters) {
-    const candidate = getCandidate();
-    if (candidate && candidate.api) {
-      return candidate;
-    }
+  if (typeof window !== "undefined" && "api" in window) {
+    return window as ExplorerWindow;
   }
-
+  const g: object | undefined =
+    typeof globalThis !== "undefined"
+      ? globalThis
+      : typeof global !== "undefined"
+        ? (global as object)
+        : undefined;
+  if (!g) return null;
+  if ("window" in g) {
+    const w = g.window as ExplorerWindow | undefined;
+    if (w?.api) return w;
+  }
+  if ("api" in g) {
+    return g as ExplorerWindow;
+  }
   return null;
 }
 

@@ -328,7 +328,7 @@ async function buildArgs(
         if (isRefSet(ref)) {
           const url =
             kind === "image"
-              ? ((await imageToDataUrl(ref!)) ??
+              ? ((await imageToDataUrl(ref!, context)) ??
                 (await assetToFalUrl(apiKey, ref!, context)))
               : await assetToFalUrl(apiKey, ref!, context);
           if (url) args[apiName] = url;

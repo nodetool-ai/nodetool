@@ -317,6 +317,16 @@ export function normalizeBinaryRef(
     out.mimeType = record.mimeType;
   if (typeof record.mime_type === "string" && record.mime_type)
     out.mimeType = record.mime_type;
+  // A library-picked or freshly-generated ref carries only `asset_id` (with an
+  // empty `uri`). Encode it as an `asset://<id>` URI so `buildUserMessage` keeps
+  // the image/audio part and `ProcessingContext.resolveMessageMediaUris`
+  // dereferences it to bytes before the provider call.
+  if (!out.uri && !out.data) {
+    const assetId = record.asset_id;
+    if (typeof assetId === "string" && assetId) {
+      out.uri = `asset://${assetId}`;
+    }
+  }
   return out.uri || out.data ? out : null;
 }
 

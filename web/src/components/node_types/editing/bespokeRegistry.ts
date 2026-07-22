@@ -140,6 +140,17 @@ export const BESPOKE_BODY_REGISTRY: Readonly<
 };
 
 /**
+ * Default widths for bespoke bodies that are wider than the generic node.
+ * Consumed by `graphNodeToReactFlowNode` — only applied when the node has no
+ * saved width yet, so user resizes are preserved.
+ */
+export const BESPOKE_DEFAULT_WIDTHS: Readonly<Record<string, number>> = {
+  // Extract Video Frame: the transport row (time readout + step/play/mute +
+  // download) needs more than the 200px generic default to fit on one line.
+  [EXTRACT_VIDEO_FRAME_NODE_TYPE]: 320
+};
+
+/**
  * Default heights for bespoke bodies that are taller than the generic node.
  * Consumed by `graphNodeToReactFlowNode` — only applied when the node has no
  * saved height yet, so user resizes are preserved.

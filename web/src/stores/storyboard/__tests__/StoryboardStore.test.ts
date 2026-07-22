@@ -102,6 +102,48 @@ describe("selectKeyframeVersion", () => {
   });
 });
 
+describe("moveShot", () => {
+  const seedThree = (): void => {
+    const store = useStoryboardStore.getState();
+    store.ensureBoard(BOARD);
+    for (let i = 0; i < 3; i++) {
+      store.upsertShot(BOARD, {
+        type: "shot",
+        id: `s${i}`,
+        index: i,
+        action: `shot ${i}`,
+        status: "planned"
+      });
+    }
+  };
+
+  const order = () =>
+    useStoryboardStore.getState().boards[BOARD]?.shots.map((s) => s.id);
+
+  it("moves a shot later and re-stamps index to match order", () => {
+    seedThree();
+    useStoryboardStore.getState().moveShot(BOARD, "s0", "down");
+
+    expect(order()).toEqual(["s1", "s0", "s2"]);
+    const shots = useStoryboardStore.getState().boards[BOARD]?.shots;
+    expect(shots?.map((s) => s.index)).toEqual([0, 1, 2]);
+  });
+
+  it("moves a shot earlier", () => {
+    seedThree();
+    useStoryboardStore.getState().moveShot(BOARD, "s2", "up");
+    expect(order()).toEqual(["s0", "s2", "s1"]);
+  });
+
+  it("is a no-op at the ends", () => {
+    seedThree();
+    const store = useStoryboardStore.getState();
+    store.moveShot(BOARD, "s0", "up");
+    store.moveShot(BOARD, "s2", "down");
+    expect(order()).toEqual(["s0", "s1", "s2"]);
+  });
+});
+
 describe("setShotClip / selectClipVersion", () => {
   it("accumulates takes and switches between them", () => {
     seed();
@@ -117,5 +159,119 @@ describe("setShotClip / selectClipVersion", () => {
     shot = getShot();
     expect(shot?.clip).toEqual(video(1));
     expect(shot?.clip_versions).toEqual([video(1), video(2)]);
+  });
+});
+
+describe("undo/redo", () => {
+  const board = () => useStoryboardStore.getState().boards[BOARD];
+  const seedShots = (): void => {
+    const store = useStoryboardStore.getState();
+    store.ensureBoard(BOARD);
+    for (let i = 0; i < 3; i++) {
+      store.upsertShot(BOARD, {
+        type: "shot",
+        id: `s${i}`,
+        index: i,
+        action: `shot ${i}`,
+        status: "planned"
+      });
+    }
+  };
+
+  it("undoes and redoes a shot removal", () => {
+    seedShots();
+    const store = useStoryboardStore.getState();
+    store.removeShot(BOARD, "s1");
+    expect(board()?.shots.map((s) => s.id)).toEqual(["s0", "s2"]);
+
+    store.undo(BOARD);
+    expect(board()?.shots.map((s) => s.id)).toEqual(["s0", "s1", "s2"]);
+
+    store.redo(BOARD);
+    expect(board()?.shots.map((s) => s.id)).toEqual(["s0", "s2"]);
+  });
+
+  it("keeps selection and shot status live across undo", () => {
+    seedShots();
+    const store = useStoryboardStore.getState();
+    // A tracked content edit, then transient changes that must survive undo.
+    store.updateShot(BOARD, "s0", { action: "revised" });
+    store.selectShot(BOARD, "s2");
+    store.setShotStatus(BOARD, "s0", "keyframe_ready");
+
+    store.undo(BOARD);
+    const b = board();
+    // Content reverts…
+    expect(b?.shots.find((s) => s.id === "s0")?.action).toBe("shot 0");
+    // …but selection and generation status stay where they are now.
+    expect(b?.activeShotId).toBe("s2");
+    expect(b?.shots.find((s) => s.id === "s0")?.status).toBe("keyframe_ready");
+  });
+
+  it("does not record selection or status as undo steps", () => {
+    seedShots();
+    const store = useStoryboardStore.getState();
+    const before =
+      useStoryboardStore.getState().history[BOARD]?.past.length ?? 0;
+    store.selectShot(BOARD, "s1");
+    store.setShotStatus(BOARD, "s1", "keyframe_generating");
+    const after =
+      useStoryboardStore.getState().history[BOARD]?.past.length ?? 0;
+    expect(after).toBe(before);
+  });
+
+  it("folds rapid edits to one shot field into a single undo step", () => {
+    seedShots();
+    const store = useStoryboardStore.getState();
+    store.updateShot(BOARD, "s0", { action: "a" });
+    store.updateShot(BOARD, "s0", { action: "ab" });
+    store.updateShot(BOARD, "s0", { action: "abc" });
+
+    store.undo(BOARD);
+    expect(board()?.shots.find((s) => s.id === "s0")?.action).toBe("shot 0");
+  });
+
+  it("removeBoard drops the board's history", () => {
+    seedShots();
+    expect(
+      useStoryboardStore.getState().history[BOARD]?.past.length
+    ).toBeGreaterThan(0);
+    useStoryboardStore.getState().removeBoard(BOARD);
+    expect(useStoryboardStore.getState().history[BOARD]).toBeUndefined();
+  });
+});
+
+describe("removeBoard cleanup", () => {
+  it("clears a lingering server revision even when no board exists", () => {
+    const store = useStoryboardStore.getState();
+    // Autosave can set the CAS token before loadBoard ever runs.
+    store.setServerRevision(BOARD, "rev-1");
+    expect(useStoryboardStore.getState().serverRevisions[BOARD]).toBe("rev-1");
+
+    store.removeBoard(BOARD);
+    expect(useStoryboardStore.getState().serverRevisions[BOARD]).toBeUndefined();
+  });
+});
+
+describe("undo selection safety", () => {
+  it("clears activeShotId when undo removes the selected shot", () => {
+    const store = useStoryboardStore.getState();
+    store.ensureBoard(BOARD);
+    // upsertShot is tracked, so its checkpoint predates the shot's existence.
+    store.upsertShot(BOARD, {
+      type: "shot",
+      id: "s0",
+      index: 0,
+      action: "shot 0",
+      status: "planned"
+    });
+    store.selectShot(BOARD, "s0");
+    expect(useStoryboardStore.getState().boards[BOARD]?.activeShotId).toBe("s0");
+
+    // Undo the creation of the selected shot: the selection must not dangle.
+    store.undo(BOARD);
+    const board = useStoryboardStore.getState().boards[BOARD];
+    expect(board?.shots).toHaveLength(0);
+    expect(board?.activeShotId).toBeNull();
   });
 });

@@ -1,7 +1,10 @@
 /** @jsxImportSource @emotion/react */
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { DragEvent } from "react";
+import { useTheme } from "@mui/material/styles";
+import { useMediaQuery } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -15,7 +18,9 @@ import {
   TextInput,
   EditorButton,
   ToolbarIconButton,
+  UndoRedoButtons,
   EmptyState,
+  AlertBanner,
   LoadingSpinner,
   SPACING,
   BORDER_RADIUS,
@@ -26,13 +31,16 @@ import {
 import {
   useScript,
   useScriptStore,
+  useScriptCanUndo,
+  useScriptCanRedo,
   type ScriptSection
 } from "../../stores/script/ScriptStore";
 import { voiceAll } from "../../stores/script/scriptVoicing";
 import { exportScriptSubtitles } from "../../stores/script/scriptSubtitles";
 import { useScriptPlaythrough } from "../../hooks/script/useScriptPlaythrough";
 import { useAssembleScriptTimeline } from "../../hooks/script/useAssembleScriptTimeline";
-import ScriptLineRow, { TEXT_INSET } from "./ScriptLineRow";
+import ScriptLineRow, { TEXT_INSET, type LineKeyNav } from "./ScriptLineRow";
+import ScriptSaveIndicator from "./ScriptSaveIndicator";
 
 interface ScriptDocumentPaneProps {
   scriptId: string;
@@ -64,18 +72,20 @@ const InsertLineGap = ({
   onInsert,
   onDragOver,
   onDrop,
-  active
+  active,
+  inset
 }: {
   onInsert: () => void;
   onDragOver: (e: DragEvent<HTMLElement>) => void;
   onDrop: (e: DragEvent<HTMLElement>) => void;
   active: boolean;
+  inset: number;
 }) => (
   <Box
     onDragOver={onDragOver}
     onDrop={onDrop}
     sx={{
-      marginLeft: `${TEXT_INSET}px`,
+      marginLeft: `${inset}px`,
       height: 12,
       display: "flex",
       alignItems: "center",
@@ -123,19 +133,27 @@ const SectionBlock = ({
   section,
   currentLineId,
   readOnly,
-  dnd
+  mobile,
+  dnd,
+  onKeyNav
 }: {
   scriptId: string;
   section: ScriptSection;
   currentLineId: string | null;
   readOnly: boolean;
+  mobile: boolean;
   dnd: LineDnd;
+  onKeyNav: (lineId: string, nav: LineKeyNav) => void;
 }) => {
   const cast = useScript(scriptId).cast;
   const setSectionTitle = useScriptStore((s) => s.setSectionTitle);
   const addLine = useScriptStore((s) => s.addLine);
   const insertLine = useScriptStore((s) => s.insertLine);
   const removeSection = useScriptStore((s) => s.removeSection);
+
+  // On mobile the wide speaker gutter collapses, so insert affordances and
+  // add-line buttons align to the left edge instead of under the dialogue.
+  const inset = mobile ? 0 : TEXT_INSET;
 
   const isTarget = (beforeLineId: string | null): boolean =>
     dnd.dropTarget?.sectionId === section.id &&
@@ -216,7 +234,7 @@ const SectionBlock = ({
             <ToolbarIconButton
               tooltip="Remove section"
               onClick={() => removeSection(scriptId, section.id)}
-              icon={<Text size="smaller">✕</Text>}
+              icon={<CloseIcon fontSize="small" />}
             />
           </Box>
         )}
@@ -231,6 +249,7 @@ const SectionBlock = ({
                 onDragOver={onGapDragOver(line.id)}
                 onDrop={onGapDrop}
                 active={isTarget(line.id)}
+                inset={inset}
               />
             )}
             <ScriptLineRow
@@ -239,6 +258,8 @@ const SectionBlock = ({
               cast={cast}
               highlighted={line.id === currentLineId}
               readOnly={readOnly}
+              mobile={mobile}
+              onKeyNav={onKeyNav}
               isDragging={dnd.draggingLineId === line.id}
               onDragStart={
                 readOnly ? undefined : () => dnd.onLineDragStart(line.id)
@@ -256,10 +277,11 @@ const SectionBlock = ({
           onDragOver={onGapDragOver(null)}
           onDrop={onGapDrop}
           active={isTarget(null)}
+          inset={inset}
         />
       )}
       {!readOnly && (
-        <FlexRow sx={{ marginLeft: `${TEXT_INSET}px` }}>
+        <FlexRow sx={{ marginLeft: `${inset}px` }}>
           <EditorButton
             size="small"
             variant="text"
@@ -278,14 +300,26 @@ const ScriptDocumentPane = ({
   scriptId,
   readOnly
 }: ScriptDocumentPaneProps) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const { sections, timelineId } = useScript(scriptId);
   const addLine = useScriptStore((s) => s.addLine);
   const addSection = useScriptStore((s) => s.addSection);
   const moveLine = useScriptStore((s) => s.moveLine);
+  const insertLine = useScriptStore((s) => s.insertLine);
+  const patchLine = useScriptStore((s) => s.patchLine);
+  const removeLine = useScriptStore((s) => s.removeLine);
+  const undo = useScriptStore((s) => s.undo);
+  const redo = useScriptStore((s) => s.redo);
+  const canUndo = useScriptCanUndo(scriptId);
+  const canRedo = useScriptCanRedo(scriptId);
+  const onUndo = useCallback(() => undo(scriptId), [undo, scriptId]);
+  const onRedo = useCallback(() => redo(scriptId), [redo, scriptId]);
   const { playing, currentLineId, play, stop } =
     useScriptPlaythrough(scriptId);
   const [voicingAll, setVoicingAll] = useState(false);
-  const { assemble, assembling } = useAssembleScriptTimeline();
+  const { assemble, assembling, error: assembleError } =
+    useAssembleScriptTimeline();
 
   const [draggingLineId, setDraggingLineId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
@@ -313,6 +347,75 @@ const ScriptDocumentPane = ({
       setDropTarget(null);
     }
   };
+
+  // Flat, document-order line id list — drives arrow-key focus moves and
+  // delete-and-focus-previous.
+  const flatLineIds = useMemo(
+    () => sections.flatMap((s) => s.lines.map((l) => l.id)),
+    [sections]
+  );
+
+  // Focus a line's text field once React has committed the mutation, placing
+  // the caret at the start or end.
+  const focusLine = useCallback((lineId: string, caret: "start" | "end") => {
+    requestAnimationFrame(() => {
+      const el = document.querySelector<HTMLTextAreaElement>(
+        `[data-script-line="${lineId}"]`
+      );
+      if (!el) return;
+      el.focus();
+      const pos = caret === "start" ? 0 : el.value.length;
+      el.setSelectionRange(pos, pos);
+    });
+  }, []);
+
+  const onLineKeyNav = useCallback(
+    (lineId: string, nav: LineKeyNav) => {
+      const located = (() => {
+        for (const section of sections) {
+          const index = section.lines.findIndex((l) => l.id === lineId);
+          if (index >= 0) return { section, index };
+        }
+        return null;
+      })();
+      if (!located) return;
+      const { section, index } = located;
+      const line = section.lines[index];
+
+      if (nav.type === "split") {
+        patchLine(scriptId, lineId, { text: nav.before });
+        const newId = insertLine(scriptId, section.id, index + 1);
+        // Continue the same speaker so a run of dialogue doesn't need
+        // re-tagging after every Enter.
+        patchLine(scriptId, newId, {
+          text: nav.after,
+          speakerId: line.speakerId ?? null
+        });
+        focusLine(newId, "start");
+        return;
+      }
+      if (nav.type === "delete-empty") {
+        const pos = flatLineIds.indexOf(lineId);
+        const prevId = pos > 0 ? flatLineIds[pos - 1] : null;
+        removeLine(scriptId, lineId);
+        if (prevId) focusLine(prevId, "end");
+        return;
+      }
+      // Arrow move: hop to the sibling in document order.
+      const pos = flatLineIds.indexOf(lineId);
+      const targetId = flatLineIds[pos + nav.dir];
+      if (targetId) focusLine(targetId, nav.dir < 0 ? "end" : "start");
+    },
+    [
+      sections,
+      flatLineIds,
+      scriptId,
+      patchLine,
+      insertLine,
+      removeLine,
+      focusLine
+    ]
+  );
 
   const onVoiceAll = useCallback(async () => {
     setVoicingAll(true);
@@ -349,6 +452,17 @@ const ScriptDocumentPane = ({
   }, [scriptId]);
 
   const isEmpty = sections.every((s) => s.lines.length === 0);
+  const { lineCount, wordCount } = useMemo(() => {
+    let lines = 0;
+    let words = 0;
+    for (const section of sections)
+      for (const line of section.lines) {
+        lines += 1;
+        const trimmed = line.text.trim();
+        if (trimmed) words += trimmed.split(/\s+/).length;
+      }
+    return { lineCount: lines, wordCount: words };
+  }, [sections]);
   const hasVoicedLine = sections.some((section) =>
     section.lines.some((line) =>
       line.takes.some((t) => t.id === line.currentTakeId)
@@ -363,9 +477,10 @@ const ScriptDocumentPane = ({
       <FlexRow
         align="center"
         gap={SPACING.sm}
+        wrap={isMobile}
         sx={{
           paddingY: SPACING.sm,
-          paddingX: SPACING.md,
+          paddingX: isMobile ? SPACING.sm : SPACING.md,
           borderBottom: "1px solid",
           borderColor: "divider",
           position: "sticky",
@@ -374,6 +489,16 @@ const ScriptDocumentPane = ({
           zIndex: Z_INDEX.sticky
         }}
       >
+        {!readOnly && (
+          <UndoRedoButtons
+            canUndo={canUndo}
+            canRedo={canRedo}
+            onUndo={onUndo}
+            onRedo={onRedo}
+            undoTooltip="Undo (⌘Z)"
+            redoTooltip="Redo (⌘⇧Z)"
+          />
+        )}
         {!readOnly &&
           (voicingAll ? (
             <FlexRow align="center" gap={SPACING.xs}>
@@ -410,6 +535,13 @@ const ScriptDocumentPane = ({
           </EditorButton>
         )}
         <Box sx={{ flex: 1 }} />
+        {!isEmpty && (
+          <Text size="smaller" sx={{ color: "text.secondary" }}>
+            {lineCount} {lineCount === 1 ? "line" : "lines"} · {wordCount}{" "}
+            {wordCount === 1 ? "word" : "words"}
+          </Text>
+        )}
+        {!readOnly && <ScriptSaveIndicator scriptId={scriptId} />}
         {!readOnly && (
           <EditorButton
             size="small"
@@ -448,10 +580,23 @@ const ScriptDocumentPane = ({
         )}
       </FlexRow>
 
+      {!readOnly && assembleError && (
+        <AlertBanner
+          severity="error"
+          compact
+          sx={{ marginX: SPACING.md }}
+        >
+          {assembleError}
+        </AlertBanner>
+      )}
+
       <FlexColumn
         gap={SPACING.xxl}
         style={{ maxWidth: 780, width: "100%", margin: "0 auto" }}
-        sx={{ paddingX: SPACING.xl, paddingY: SPACING.xl }}
+        sx={{
+          paddingX: isMobile ? SPACING.sm : SPACING.xl,
+          paddingY: isMobile ? SPACING.md : SPACING.xl
+        }}
       >
         {isEmpty && (
           <EmptyState
@@ -468,11 +613,16 @@ const ScriptDocumentPane = ({
             section={section}
             currentLineId={currentLineId}
             readOnly={readOnly}
+            mobile={isMobile}
             dnd={dnd}
+            onKeyNav={onLineKeyNav}
           />
         ))}
         {!readOnly && !isEmpty && (
-          <FlexRow gap={SPACING.sm} sx={{ marginLeft: `${TEXT_INSET}px` }}>
+          <FlexRow
+            gap={SPACING.sm}
+            sx={{ marginLeft: isMobile ? 0 : `${TEXT_INSET}px` }}
+          >
             <EditorButton
               size="small"
               variant="text"

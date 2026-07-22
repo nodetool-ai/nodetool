@@ -28,4 +28,4 @@ export const hasAppSpec = (workflow?: Workflow | null): boolean => {
 export const toAppDocField = (
   doc: AppDocument | null
 ): Record<string, unknown> | null =>
-  doc === null ? null : (doc as unknown as Record<string, unknown>);
+  doc === null ? null : { version: doc.version, data: doc.data };

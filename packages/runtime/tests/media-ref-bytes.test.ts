@@ -102,6 +102,43 @@ describe("loadMediaRefBytes", () => {
     expect(bytes).toEqual(new Uint8Array([7, 8, 9]));
     expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://abc-123.png");
   });
+
+  it("resolves an asset_id-only ref (empty uri) via resolveAssetBytes", async () => {
+    // Regression: the early `if (!uri) return null` bailed before the asset_id
+    // fallback, so `{ asset_id, uri: "" }` never resolved.
+    const ctx = {
+      resolveAssetBytes: vi.fn(async () => ({
+        bytes: new Uint8Array([10, 11, 12]),
+        attempts: []
+      }))
+    } as unknown as ProcessingContext;
+
+    const bytes = await loadMediaRefBytes(
+      { type: "image", uri: "", asset_id: "abc" },
+      ctx
+    );
+
+    expect(bytes).toEqual(new Uint8Array([10, 11, 12]));
+    expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://abc");
+  });
+
+  it("resolves an asset_id-only ref via storage candidates", async () => {
+    const ctx = {
+      resolveAssetBytes: vi.fn(async () => ({ bytes: null, attempts: [] })),
+      storage: {
+        retrieve: vi.fn(async (uri: string) =>
+          uri === "/api/storage/abc.png" ? new Uint8Array([13, 14, 15]) : null
+        )
+      }
+    } as unknown as ProcessingContext;
+
+    const bytes = await loadMediaRefBytes(
+      { type: "image", asset_id: "abc" },
+      ctx
+    );
+
+    expect(bytes).toEqual(new Uint8Array([13, 14, 15]));
+  });
 });
 
 describe("encodeBase64", () => {

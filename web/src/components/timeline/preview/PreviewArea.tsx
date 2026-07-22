@@ -448,7 +448,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       }
 
       const ctx = graph.getContext();
-      await ctx.resume();
+      if (ctx instanceof AudioContext) await ctx.resume();
       if (isStale()) return;
 
       // Only decode/schedule what's audible now or about to become audible —

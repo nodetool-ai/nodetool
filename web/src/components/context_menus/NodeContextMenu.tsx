@@ -12,6 +12,10 @@ import BlockIcon from "@mui/icons-material/Block";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import DataArrayIcon from "@mui/icons-material/DataArray";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import ContentCutIcon from "@mui/icons-material/ContentCut";
+import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
+import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import QueueIcon from "@mui/icons-material/Queue";
 import SouthIcon from "@mui/icons-material/South";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
@@ -61,6 +65,34 @@ const NodeContextMenu: React.FC = () => {
       />
     ),
     <ContextMenuItem
+      key="copy"
+      onClick={handlers.handleCopy}
+      label="Copy"
+      IconComponent={<ContentCopyIcon />}
+      tooltip={
+        <div className="tooltip-span">
+          <div className="tooltip-title">Copy</div>
+          <div className="tooltip-key">
+            <kbd>CTRL</kbd>+<kbd>C</kbd> / <kbd>⌘</kbd>+<kbd>C</kbd>
+          </div>
+        </div>
+      }
+    />,
+    <ContextMenuItem
+      key="cut"
+      onClick={handlers.handleCut}
+      label="Cut"
+      IconComponent={<ContentCutIcon />}
+      tooltip={
+        <div className="tooltip-span">
+          <div className="tooltip-title">Cut</div>
+          <div className="tooltip-key">
+            <kbd>CTRL</kbd>+<kbd>X</kbd> / <kbd>⌘</kbd>+<kbd>X</kbd>
+          </div>
+        </div>
+      }
+    />,
+    <ContextMenuItem
       key="duplicate"
       onClick={handlers.handleDuplicate}
       label="Duplicate"
@@ -108,6 +140,24 @@ const NodeContextMenu: React.FC = () => {
           </div>
           <div className="tooltip-key">
             <kbd>B</kbd>
+          </div>
+        </div>
+      }
+    />,
+    <ContextMenuItem
+      key="toggle-collapsed"
+      onClick={handlers.handleToggleCollapsed}
+      label={conditions.isCollapsed ? "Expand Node" : "Collapse Node"}
+      IconComponent={
+        conditions.isCollapsed ? <UnfoldMoreIcon /> : <UnfoldLessIcon />
+      }
+      tooltip={
+        <div className="tooltip-span">
+          <div className="tooltip-title">
+            {conditions.isCollapsed ? "Expand Node" : "Collapse Node"}
+          </div>
+          <div className="tooltip-key">
+            <kbd>C</kbd>
           </div>
         </div>
       }

@@ -91,6 +91,15 @@ describe("isRefSet", () => {
   it("returns false when data and uri are null", () => {
     expect(isRefSet({ data: null, uri: null })).toBe(false);
   });
+
+  it("returns true for an asset_id-only ref (resolved via the context)", () => {
+    expect(isRefSet({ uri: "", data: null, asset_id: "asset-123" })).toBe(true);
+  });
+
+  it("returns false when asset_id is null or empty", () => {
+    expect(isRefSet({ uri: "", data: null, asset_id: null })).toBe(false);
+    expect(isRefSet({ asset_id: "" })).toBe(false);
+  });
 });
 
 // ---------------------------------------------------------------------------

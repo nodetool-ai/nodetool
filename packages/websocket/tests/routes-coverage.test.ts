@@ -25,11 +25,8 @@ const mocks = vi.hoisted(() => ({
   handleOpenAIRequest: vi.fn(),
   createStorageHandler: vi.fn(),
   storageHandler: vi.fn(),
-  // http-api exports used across jobs/oauth/openai/workflows plugins
+  // http-api exports used across oauth/openai/workflows plugins
   getUserId: vi.fn(),
-  handleTriggersRunning: vi.fn(),
-  handleTriggerStart: vi.fn(),
-  handleTriggerStop: vi.fn(),
   handleWorkflowById: vi.fn(),
   handleWorkflowDslExport: vi.fn(),
   handleWorkflowExportBundle: vi.fn(),
@@ -69,9 +66,6 @@ vi.mock("../src/storage-api.js", () => ({
 }));
 vi.mock("../src/http-api.js", () => ({
   getUserId: mocks.getUserId,
-  handleTriggersRunning: mocks.handleTriggersRunning,
-  handleTriggerStart: mocks.handleTriggerStart,
-  handleTriggerStop: mocks.handleTriggerStop,
   handleWorkflowById: mocks.handleWorkflowById,
   handleWorkflowDslExport: mocks.handleWorkflowDslExport,
   handleWorkflowExportBundle: mocks.handleWorkflowExportBundle,
@@ -97,7 +91,6 @@ vi.mock("../src/lib/extension-dist.js", () => ({
 
 import collectionsRoutes from "../src/routes/collections.js";
 import filesRoutes from "../src/routes/files.js";
-import jobsRoutes from "../src/routes/jobs.js";
 import oauthRoutes from "../src/routes/oauth.js";
 import openaiRoutes from "../src/routes/openai.js";
 import storageRoutes from "../src/routes/storage.js";
@@ -175,61 +168,12 @@ describe("collections routes", () => {
 });
 
 describe("files routes", () => {
-  it("forwards the download handler response", async () => {
-    mocks.handleFileRequest.mockResolvedValue(jsonResponse({ file: "d" }));
-    app = await makeApp(filesRoutes);
-    const res = await app.inject({ method: "GET", url: "/api/files/download" });
-    expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ file: "d" });
-  });
-
   it("forwards the local-file handler response", async () => {
     mocks.handleFileRequest.mockResolvedValue(jsonResponse({ file: "l" }));
     app = await makeApp(filesRoutes);
     const res = await app.inject({ method: "GET", url: "/api/files/local" });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ file: "l" });
-  });
-});
-
-describe("jobs routes", () => {
-  it("handles triggers running", async () => {
-    mocks.handleTriggersRunning.mockResolvedValue(jsonResponse([]));
-    app = await makeApp(jobsRoutes);
-    const res = await app.inject({
-      method: "GET",
-      url: "/api/jobs/triggers/running"
-    });
-    expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual([]);
-  });
-
-  it("forwards the trigger id to start", async () => {
-    mocks.handleTriggerStart.mockResolvedValue(jsonResponse({ started: true }));
-    app = await makeApp(jobsRoutes);
-    const res = await app.inject({
-      method: "POST",
-      url: "/api/jobs/triggers/abc/start"
-    });
-    expect(res.statusCode).toBe(200);
-    expect(mocks.handleTriggerStart).toHaveBeenCalledWith(
-      expect.any(Request),
-      "abc"
-    );
-  });
-
-  it("forwards the trigger id to stop", async () => {
-    mocks.handleTriggerStop.mockResolvedValue(jsonResponse({ stopped: true }));
-    app = await makeApp(jobsRoutes);
-    const res = await app.inject({
-      method: "POST",
-      url: "/api/jobs/triggers/xyz/stop"
-    });
-    expect(res.statusCode).toBe(200);
-    expect(mocks.handleTriggerStop).toHaveBeenCalledWith(
-      expect.any(Request),
-      "xyz"
-    );
   });
 });
 

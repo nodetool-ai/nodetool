@@ -93,32 +93,6 @@ describe("users router", () => {
     });
   });
 
-  // ── get ─────────────────────────────────────────────────────────
-  describe("get", () => {
-    it("returns a single user with masked token_hash", async () => {
-      vi.spyOn(FileUserManager.prototype, "getUser").mockResolvedValue({
-        id: "u1",
-        username: "alice",
-        role: "admin",
-        tokenHash: "abcdef0123456789abcdef0123456789",
-        createdAt: "2026-01-01T00:00:00Z"
-      });
-
-      const caller = createCaller(makeCtx());
-      const result = await caller.users.get({ username: "alice" });
-      expect(result.user_id).toBe("u1");
-      expect(result.token_hash).toBe("abcdef0123456789...");
-    });
-
-    it("throws NOT_FOUND when user does not exist", async () => {
-      vi.spyOn(FileUserManager.prototype, "getUser").mockResolvedValue(null);
-      const caller = createCaller(makeCtx());
-      await expect(
-        caller.users.get({ username: "ghost" })
-      ).rejects.toMatchObject({ code: "NOT_FOUND" });
-    });
-  });
-
   // ── create ──────────────────────────────────────────────────────
   describe("create", () => {
     it("creates a user and returns plaintext token", async () => {

@@ -79,7 +79,7 @@ export const ACTION_HANDLERS: ActionHandlerMap = {
 
   // Canvas
   "export-png": (_e, p) => p.handleExportPng(),
-  "zoom-reset": (_e, p) => p.handleZoomReset(),
+  "zoom-fit": (_e, p) => p.handleZoomFit(),
   "zoom-100": (_e, p) => p.setZoom(1),
   "zoom-in": (_e, p) => p.handleZoomIn(),
   "zoom-out": (_e, p) => p.handleZoomOut(),
@@ -92,6 +92,8 @@ export const ACTION_HANDLERS: ActionHandlerMap = {
   // Layers
   "layer-via-copy": (_e, p) => p.handleLayerViaCopy(),
   "layer-via-cut": (_e, p) => p.handleLayerViaCut(),
+  "layer-move-up": (_e, p) => p.handleMoveActiveLayer("up"),
+  "layer-move-down": (_e, p) => p.handleMoveActiveLayer("down"),
 
   // Paint settings
   "tool-size-decrease": (_e, p) => adjustSize(p, -1),

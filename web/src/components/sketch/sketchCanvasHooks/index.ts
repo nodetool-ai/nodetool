@@ -46,6 +46,15 @@ export type {
 export { usePointerHandlers } from "./usePointerHandlers";
 export type { UsePointerHandlersParams, UsePointerHandlersResult } from "./usePointerHandlers";
 
+export {
+  useCanvasTouchGestures,
+  computePinchStep
+} from "./useCanvasTouchGestures";
+export type {
+  UseCanvasTouchGesturesParams,
+  UseCanvasTouchGesturesResult
+} from "./useCanvasTouchGestures";
+
 export { useTransformPreviewBridge } from "./useTransformPreviewBridge";
 export type { UseTransformPreviewBridgeResult } from "./useTransformPreviewBridge";
 

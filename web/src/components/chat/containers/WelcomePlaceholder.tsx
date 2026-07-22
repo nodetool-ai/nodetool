@@ -15,8 +15,8 @@ import {
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import KeyRoundedIcon from "@mui/icons-material/KeyRounded";
 import { memo, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { useLanguageModelProviders } from "../../../hooks/useProviders";
+import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
 
 import openaiIcon from "../../../icons/providers/openai.svg";
 import anthropicIcon from "../../../icons/providers/anthropic.svg";
@@ -109,7 +109,6 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
 }) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
-  const navigate = useNavigate();
   const { providers, isLoading, error } = useLanguageModelProviders();
 
   const handleClick = useCallback(
@@ -119,9 +118,12 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
     [onSuggestionClick]
   );
 
-  const handleOpenSettings = useCallback(() => {
-    navigate("/settings?tab=1");
-  }, [navigate]);
+  const handleConnectProvider = useCallback(() => {
+    openProviderOnboarding({
+      capability: "generate_message",
+      reason: "Chat needs a language model. Connect a provider to start."
+    });
+  }, []);
 
   // Only treat the chat as "no provider" once the provider query has settled
   // successfully — while loading (or on a transient fetch error, which the
@@ -179,10 +181,10 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
               color="primary"
               size="small"
               startIcon={<KeyRoundedIcon sx={{ fontSize: 16 }} />}
-              onClick={handleOpenSettings}
+              onClick={handleConnectProvider}
               sx={{ mt: 1 }}
             >
-              Add API keys in Settings
+              Connect a provider
             </EditorButton>
           </FlexColumn>
         ) : (

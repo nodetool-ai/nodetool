@@ -59,7 +59,12 @@ export const READ_ONLY_TOOL_NAMES: ReadonlySet<string> = new Set([
   "glob",
   "grep",
   "list_directory",
-  "memory_read"
+  "memory_read",
+  // Read-only discovery over the thread's memory and the asset library, so a
+  // fan-out search sub-agent can find prior notes and generated media.
+  "thread_memory_list",
+  "asset_search",
+  "asset_list"
 ]);
 
 const VALID_BREADTHS: readonly SearchBreadth[] = ["medium", "very thorough"];

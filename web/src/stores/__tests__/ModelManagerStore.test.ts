@@ -163,6 +163,42 @@ describe("ModelManagerStore", () => {
     });
   });
 
+  describe("persistence", () => {
+    test("persists sort and size-filter preferences to localStorage", () => {
+      act(() => {
+        useModelManagerStore.getState().setSortField("downloads");
+        useModelManagerStore.getState().setSortDirection("desc");
+        useModelManagerStore.getState().setMaxModelSizeGB(12);
+      });
+
+      const persisted = JSON.parse(
+        localStorage.getItem("model-manager") || "{}"
+      );
+      expect(persisted.state).toMatchObject({
+        sortField: "downloads",
+        sortDirection: "desc",
+        maxModelSizeGB: 12
+      });
+    });
+
+    test("does not persist ephemeral session state", () => {
+      act(() => {
+        useModelManagerStore.getState().setModelSearchTerm("llama");
+        useModelManagerStore.getState().setScope("worker");
+        useModelManagerStore.getState().setSource("hub");
+        useModelManagerStore.getState().setSelectedModelType("text-generation");
+      });
+
+      const persisted = JSON.parse(
+        localStorage.getItem("model-manager") || "{}"
+      );
+      expect(persisted.state).not.toHaveProperty("modelSearchTerm");
+      expect(persisted.state).not.toHaveProperty("scope");
+      expect(persisted.state).not.toHaveProperty("source");
+      expect(persisted.state).not.toHaveProperty("selectedModelType");
+    });
+  });
+
   describe("multiple state changes", () => {
     test("should handle multiple state changes", () => {
       act(() => {

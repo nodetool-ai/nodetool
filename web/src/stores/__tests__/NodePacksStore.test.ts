@@ -101,6 +101,79 @@ describe("NodePacksStore", () => {
     expect(restart).toHaveBeenCalled();
   });
 
+  it("updateAll updates every pack with an upgrade and restarts once", async () => {
+    useNodePacksStore.setState({
+      installed: [
+        {
+          name: "Base",
+          description: "",
+          version: "1.0.0",
+          repo_id: "nodetool-ai/nodetool-base",
+          hasUpdate: true
+        },
+        {
+          name: "HF",
+          description: "",
+          version: "1.0.0",
+          repo_id: "nodetool-ai/nodetool-huggingface",
+          hasUpdate: true
+        },
+        {
+          name: "Current",
+          description: "",
+          version: "2.0.0",
+          repo_id: "nodetool-ai/nodetool-current"
+        }
+      ]
+    });
+    const ok = await useNodePacksStore.getState().updateAll();
+    expect(ok).toBe(true);
+    expect(api.update).toHaveBeenCalledTimes(2);
+    expect(api.update).toHaveBeenCalledWith("nodetool-ai/nodetool-base");
+    expect(api.update).toHaveBeenCalledWith("nodetool-ai/nodetool-huggingface");
+    // A pack without an update is left alone.
+    expect(api.update).not.toHaveBeenCalledWith("nodetool-ai/nodetool-current");
+    // One restart for the whole batch, not one per pack.
+    expect(restart).toHaveBeenCalledTimes(1);
+    expect(useNodePacksStore.getState().busyIds).toEqual([]);
+  });
+
+  it("updateAll no-ops when nothing has an update", async () => {
+    useNodePacksStore.setState({
+      installed: [
+        {
+          name: "Current",
+          description: "",
+          version: "2.0.0",
+          repo_id: "nodetool-ai/nodetool-current"
+        }
+      ]
+    });
+    const ok = await useNodePacksStore.getState().updateAll();
+    expect(ok).toBe(false);
+    expect(api.update).not.toHaveBeenCalled();
+    expect(restart).not.toHaveBeenCalled();
+  });
+
+  it("updateAll reports a failure and does not restart when a pack fails", async () => {
+    api.update.mockResolvedValueOnce({ success: false, message: "nope" });
+    useNodePacksStore.setState({
+      installed: [
+        {
+          name: "Base",
+          description: "",
+          version: "1.0.0",
+          repo_id: "nodetool-ai/nodetool-base",
+          hasUpdate: true
+        }
+      ]
+    });
+    const ok = await useNodePacksStore.getState().updateAll();
+    expect(ok).toBe(false);
+    expect(useNodePacksStore.getState().error).toBe("nope");
+    expect(restart).not.toHaveBeenCalled();
+  });
+
   it("surfaces a failure message when install fails", async () => {
     api.install.mockResolvedValueOnce({ success: false, message: "boom" });
     const ok = await useNodePacksStore

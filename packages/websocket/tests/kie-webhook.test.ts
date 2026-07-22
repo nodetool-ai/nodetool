@@ -31,44 +31,17 @@ afterEach(async () => {
   vi.clearAllMocks();
 });
 
-describe("POST /api/kie/webhook/:taskId", () => {
-  it("resolves a pending task on success callback", async () => {
-    const res = await app.inject({
-      method: "POST",
-      url: "/api/kie/webhook/task-abc",
-      payload: { state: "success", data: { taskId: "task-abc" } }
-    });
-    expect(res.statusCode).toBe(200);
-    expect(JSON.parse(res.body)).toEqual({ status: "accepted" });
-    expect(mockResolve).toHaveBeenCalledWith("task-abc", {
-      state: "success",
-      data: { taskId: "task-abc" }
-    });
-  });
-
-  it("rejects a pending task on failure callback", async () => {
-    const res = await app.inject({
-      method: "POST",
-      url: "/api/kie/webhook/task-xyz",
-      payload: { state: "failed" }
-    });
-    expect(res.statusCode).toBe(200);
-    expect(mockReject).toHaveBeenCalledWith("task-xyz", "failed");
-    expect(mockResolve).not.toHaveBeenCalled();
-  });
-
+describe("POST /api/kie/webhook (generic)", () => {
   it("detects Suno failure statuses", async () => {
     const res = await app.inject({
       method: "POST",
-      url: "/api/kie/webhook/task-suno",
-      payload: { data: { status: "CREATE_TASK_FAILED" } }
+      url: "/api/kie/webhook",
+      payload: { taskId: "task-suno", data: { status: "CREATE_TASK_FAILED" } }
     });
     expect(res.statusCode).toBe(200);
     expect(mockReject).toHaveBeenCalledWith("task-suno", "CREATE_TASK_FAILED");
   });
-});
 
-describe("POST /api/kie/webhook (generic)", () => {
   it("extracts taskId from body and resolves", async () => {
     const res = await app.inject({
       method: "POST",

@@ -17,12 +17,24 @@ const MIME_TYPES: Record<string, string> = {
   ".png": "image/png",
   ".gif": "image/gif",
   ".webp": "image/webp",
+  ".bmp": "image/bmp",
   ".mp4": "video/mp4",
+  ".webm": "video/webm",
   ".mp3": "audio/mpeg",
   ".wav": "audio/wav",
+  ".ogg": "audio/ogg",
+  ".aac": "audio/aac",
+  ".flac": "audio/flac",
+  ".glb": "model/gltf-binary",
   ".json": "application/json",
   ".txt": "text/plain",
-  ".pdf": "application/pdf"
+  ".pdf": "application/pdf",
+  // Serve user-authored HTML as text/plain — never image/svg+xml-style inline
+  // rendering — so a stored `.html` asset can't execute script in the app's
+  // origin. `.svg` is deliberately omitted for the same reason (falls through
+  // to application/octet-stream).
+  ".html": "text/plain",
+  ".htm": "text/plain"
 };
 
 function getMimeType(filePath: string): string {

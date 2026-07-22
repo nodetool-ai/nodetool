@@ -145,7 +145,7 @@ describe("worker router", () => {
     });
   });
 
-  // ── provision / stop / status / reconcile ────────────────────────
+  // ── provision / stop / reconcile ────────────────────────
   it("provision delegates to manager.provision(profileName)", async () => {
     manager.provision.mockResolvedValue(makeInstance());
     const caller = createCaller(makeCtx(manager, repoint));
@@ -168,14 +168,6 @@ describe("worker router", () => {
     const result = await caller.worker.stopAll();
     expect(manager.stopAll).toHaveBeenCalled();
     expect(result).toEqual({ ok: true });
-  });
-
-  it("status delegates to manager.status(id)", async () => {
-    manager.status.mockResolvedValue("running");
-    const caller = createCaller(makeCtx(manager, repoint));
-    const result = await caller.worker.status({ id: "i1" });
-    expect(manager.status).toHaveBeenCalledWith("i1");
-    expect(result).toEqual({ status: "running" });
   });
 
   it("reconcile delegates to manager.reconcile and returns its summary", async () => {

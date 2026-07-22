@@ -112,6 +112,9 @@ export interface PackageManagerModel {
   error: string | null;
   console: { lines: string[]; onClear: () => void; busy: boolean } | null;
   thirdPartyCount: number;
+  /** Bulk "update everything with an upgrade" action for the registry tab;
+   *  `null` when it doesn't apply (wrong tab, or nothing to update). */
+  bulkUpdate: { count: number; busy: boolean; onUpdateAll: () => void } | null;
 }
 
 /** Join the registry list with installed records by repo_id (see registry tab). */
@@ -216,6 +219,7 @@ export function usePackageManager(params: {
     pyInstall,
     pyUninstall,
     pyUpdate,
+    pyUpdateAll,
     pySubscribe,
     pyUnsubscribe,
     pyClear,
@@ -231,6 +235,7 @@ export function usePackageManager(params: {
       pyInstall: s.install,
       pyUninstall: s.uninstall,
       pyUpdate: s.update,
+      pyUpdateAll: s.updateAll,
       pySubscribe: s.subscribeConsole,
       pyUnsubscribe: s.unsubscribeConsole,
       pyClear: s.clearConsole,
@@ -502,6 +507,19 @@ export function usePackageManager(params: {
           : null
         : null;
 
+    const updatableCount =
+      cat === "python"
+        ? pythonPacks.filter((p) => p.installed?.hasUpdate).length
+        : 0;
+    const bulkUpdate =
+      cat === "python" && pyAvailable && updatableCount > 0
+        ? {
+            count: updatableCount,
+            busy: pyBusy.length > 0,
+            onUpdateAll: () => void pyUpdateAll()
+          }
+        : null;
+
     return {
       isSoftware,
       isThirdParty,
@@ -516,7 +534,8 @@ export function usePackageManager(params: {
       notice,
       error: isSoftware ? rtError : cat === "python" ? pyError : builtinsError,
       console: consoleModel,
-      thirdPartyCount: thirdPartyPacks.length
+      thirdPartyCount: thirdPartyPacks.length,
+      bulkUpdate
     };
   }, [
     tab,
@@ -544,6 +563,7 @@ export function usePackageManager(params: {
     rtUninstall,
     pyInstall,
     pyUpdate,
+    pyUpdateAll,
     pyUninstall,
     selectInstallLocation,
     rtClear,

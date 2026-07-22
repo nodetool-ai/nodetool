@@ -396,7 +396,6 @@ export {
   getOptionalNodeModulesPath,
   _resetCondaEnvCache,
   PID_FILE_PATH,
-  PID_DIRECTORY,
   srcPath,
   webPath,
 };

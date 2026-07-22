@@ -82,6 +82,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
     }))
   );
   const theme = useTheme();
+  const isOnboarding = source === "onboarding";
 
   const handleSliderChange = (_: Event, value: number | number[]) => {
     const v = Array.isArray(value) ? value[0] : value;
@@ -97,14 +98,16 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
 
   return (
     <>
-      <SearchInput
-        focusOnTyping={true}
-        focusSearchInput={false}
-        width={250}
-        maxWidth={"300px"}
-        onSearchChange={setModelSearchTerm}
-        searchTerm={modelSearchTerm}
-      />
+      {!isOnboarding && (
+        <SearchInput
+          focusOnTyping={true}
+          focusSearchInput={false}
+          width={250}
+          maxWidth={"300px"}
+          onSearchChange={setModelSearchTerm}
+          searchTerm={modelSearchTerm}
+        />
+      )}
 
       <FlexRow
         sx={{
@@ -115,32 +118,38 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
           pr: 2
         }}
       >
-        <Text
-          size="small"
-          color="secondary"
-          sx={{ whiteSpace: "nowrap", mr: "auto", ml: 2 }}
-        >
-          {source === "hub"
-            ? filteredCount >= HUB_RESULT_LIMIT
-              ? `Top ${HUB_RESULT_LIMIT} results`
-              : `${filteredCount} result${filteredCount === 1 ? "" : "s"}`
-            : filteredCount !== totalCount
-              ? `${filteredCount} of ${totalCount} models`
-              : `${totalCount} models`}
-        </Text>
+        {!isOnboarding && (
+          <Text
+            size="small"
+            color="secondary"
+            sx={{ whiteSpace: "nowrap", mr: "auto", ml: 2 }}
+          >
+            {source === "hub"
+              ? filteredCount >= HUB_RESULT_LIMIT
+                ? `Top ${HUB_RESULT_LIMIT} results`
+                : `${filteredCount} result${filteredCount === 1 ? "" : "s"}`
+              : filteredCount !== totalCount
+                ? `${filteredCount} of ${totalCount} models`
+                : `${totalCount} models`}
+          </Text>
+        )}
 
         <SourceToggle source={source} onChange={onSourceChange} />
 
-        <ScopeToggle
-          scope={scope}
-          onChange={onScopeChange}
-          workerName={workerName}
-          supported={workerSupported}
-        />
+        {!isOnboarding && (
+          <ScopeToggle
+            scope={scope}
+            onChange={onScopeChange}
+            workerName={workerName}
+            supported={workerSupported}
+          />
+        )}
 
-        <Box sx={dividerSx(theme)} />
+        {!isOnboarding && (
+          <>
+            <Box sx={dividerSx(theme)} />
 
-        <FlexRow align="center" gap={1.25}>
+            <FlexRow align="center" gap={1.25}>
           <Text size="small" color="secondary" sx={{ whiteSpace: "nowrap" }}>
             Sort
           </Text>
@@ -254,6 +263,8 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
             {maxModelSizeGB === 0 ? "All" : `${maxModelSizeGB} GB`}
           </Text>
         </FlexRow>
+          </>
+        )}
       </FlexRow>
     </>
   );

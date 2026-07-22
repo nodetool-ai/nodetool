@@ -110,6 +110,38 @@ describe("FileStorageAdapter", () => {
     it("returns null for a missing file", async () => {
       expect(await adapter.retrieve("/api/storage/nope.txt")).toBeNull();
     });
+
+    it("percent-decodes a key with a space (https URL)", async () => {
+      await adapter.store("my file.png", Buffer.from("spaced"));
+      const got = await adapter.retrieve(
+        "https://host.example/api/storage/my%20file.png"
+      );
+      expect(Buffer.from(got!).toString()).toBe("spaced");
+    });
+
+    it("percent-decodes a key with a space (relative path)", async () => {
+      await adapter.store("my file.png", Buffer.from("spaced"));
+      const got = await adapter.retrieve("/api/storage/my%20file.png");
+      expect(Buffer.from(got!).toString()).toBe("spaced");
+    });
+
+    it("strips a ?query suffix before resolving the key", async () => {
+      await adapter.store("x.png", Buffer.from("q"));
+      const got = await adapter.retrieve("/api/storage/x.png?thumb=1");
+      expect(Buffer.from(got!).toString()).toBe("q");
+    });
+
+    it("strips a #fragment suffix before resolving the key", async () => {
+      await adapter.store("x.png", Buffer.from("h"));
+      const got = await adapter.retrieve("/api/storage/x.png#frag");
+      expect(Buffer.from(got!).toString()).toBe("h");
+    });
+
+    it("leaves a malformed percent-escape as-is instead of throwing", async () => {
+      // %ZZ is not a valid escape — decodeURIComponent throws; retrieve must
+      // not throw, just fail to find the (non-existent) literal key.
+      expect(await adapter.retrieve("/api/storage/bad%ZZname.txt")).toBeNull();
+    });
   });
 
   describe("exists", () => {

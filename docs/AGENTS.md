@@ -486,9 +486,24 @@ When NodeTool itself runs **under** Claude Code (e.g. Claude Code on the web),
 the inherited `CLAUDECODE` / `CLAUDE_CODE_*` / `CLAUDE_SESSION_*` /
 `CLAUDE_ENABLE_*` / `CLAUDE_AFTER_*` / `CLAUDE_AUTO_*` env vars are stripped from
 the spawned child so the nested CLI starts clean. `ANTHROPIC_BASE_URL` and
-`HTTP_PROXY` / `HTTPS_PROXY` are preserved for API routing. Because no tools are
-enabled, the provider never passes `--dangerously-skip-permissions`, so it
-avoids the SDK's refusal to run that flag as `uid=0`.
+`HTTP_PROXY` / `HTTPS_PROXY` are preserved for API routing.
+
+**`uid=0` blocker (tool path).** The tool-free primitive
+(`generateMessages`) runs without permission bypass, but `generateLoop` with
+tools exposes them as an in-process MCP server and runs the SDK under
+`permissionMode: "bypassPermissions"` + `allowDangerouslySkipPermissions: true`
+(see the query options in `claude-agent-provider.ts`). The CLI **refuses
+`--dangerously-skip-permissions` as `root`/sudo** — so the tool path fails
+(`Claude Code process exited with code 1`) whenever NodeTool runs as `uid=0`,
+which the web sandbox does. Two ways out:
+- Run the server as a **non-root** user — but only if that user can reach the
+  CLI's auth (in the web sandbox the OAuth credentials + proxy CA bundle are
+  root-only, so switching users trips `authentication_failed` and a CA
+  `EACCES`). This is the SDK's intended fix and works on normal hosts.
+- Set **`IS_SANDBOX=1`** in the environment. It is preserved by
+  `buildChildEnv()` (not a `CLAUDE_*` var) and lifts the CLI's root refusal.
+  Accurate and safe inside an actual sandboxed container; do **not** set it on a
+  real multi-tenant host.
 
 ---
 

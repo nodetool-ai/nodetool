@@ -44,7 +44,12 @@ const take = (overrides: Partial<ScriptTake> = {}): ScriptTake => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
-  useScriptStore.setState({ scripts: {}, serverRevisions: {}, voicingLineIds: {} });
+  useScriptStore.setState({
+    scripts: {},
+    serverRevisions: {},
+    saveStatus: {},
+    voicingLineIds: {}
+  });
 });
 
 const seedScript = (timelineId: string | null): void => {

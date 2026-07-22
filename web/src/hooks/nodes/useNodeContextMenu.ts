@@ -14,6 +14,8 @@ import {
 } from "../../utils/NodeTypeMapping";
 import { useRunFromHere } from "./useRunFromHere";
 import { useDuplicateNodes } from "../useDuplicate";
+import { useCopyPaste } from "../handlers/useCopyPaste";
+import { useToggleCollapse } from "./useToggleCollapse";
 import { shallow } from "zustand/shallow";
 
 interface UseNodeContextMenuReturn {
@@ -34,6 +36,9 @@ interface UseNodeContextMenuReturn {
     handleConvertToConstant: () => void;
     handleDuplicate: () => void;
     handleDuplicateVertical: () => void;
+    handleCopy: () => void;
+    handleCut: () => void;
+    handleToggleCollapsed: () => void;
   };
   conditions: {
     hasCommentTitle: boolean;
@@ -42,6 +47,7 @@ interface UseNodeContextMenuReturn {
     canConvertToConstant: boolean;
     isWorkflowRunning: boolean;
     isInGroup: boolean;
+    isCollapsed: boolean;
   };
 }
 
@@ -240,6 +246,32 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     closeContextMenu
   ]);
 
+  const { handleCopy: copyNodes, handleCut: cutNodes } = useCopyPaste();
+  const toggleCollapse = useToggleCollapse();
+
+  const handleCopy = useCallback(() => {
+    if (nodeId) {
+      void copyNodes(nodeId);
+    }
+    closeContextMenu();
+  }, [copyNodes, nodeId, closeContextMenu]);
+
+  const handleCut = useCallback(() => {
+    if (nodeId) {
+      void cutNodes(nodeId);
+    }
+    closeContextMenu();
+  }, [cutNodes, nodeId, closeContextMenu]);
+
+  const handleToggleCollapsed = useCallback(() => {
+    if (nodeId) {
+      toggleCollapse([nodeId]);
+    }
+    closeContextMenu();
+  }, [toggleCollapse, nodeId, closeContextMenu]);
+
+  const isCollapsed = Boolean(nodeData?.collapsed);
+
   const canConvertToInput = Boolean(
     nodeId && constantToInputType(node?.type ?? "")
   );
@@ -265,7 +297,10 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
       handleConvertToInput,
       handleConvertToConstant,
       handleDuplicate,
-      handleDuplicateVertical
+      handleDuplicateVertical,
+      handleCopy,
+      handleCut,
+      handleToggleCollapsed
     },
     conditions: {
       hasCommentTitle,
@@ -273,7 +308,8 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
       canConvertToInput,
       canConvertToConstant,
       isWorkflowRunning,
-      isInGroup
+      isInGroup,
+      isCollapsed
     }
   };
 }

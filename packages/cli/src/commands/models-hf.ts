@@ -17,7 +17,7 @@ import {
   type DownloadUpdate
 } from "@nodetool-ai/huggingface";
 
-import { asJson, printTable } from "./deploy-helpers.js";
+import { asJson, printTable } from "./output.js";
 
 // ---------------------------------------------------------------------------
 // Formatting helpers

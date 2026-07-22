@@ -460,6 +460,10 @@ const createSingleAssetFile = async (
   const outputUri = typeof typedOutput?.uri === "string" ? typedOutput.uri : undefined;
   const isAssetUri = typeof outputUri === "string" && outputUri.startsWith("asset://");
   let desiredFilename = typedOutput?.filename;
+  // Content type reported by the server when the bytes are fetched via
+  // `asset_id`. Used as the MIME/extension fallback so a JPEG/WEBP asset with
+  // no inline `mime_type` isn't mislabeled `image/png`.
+  let serverContentType: string | undefined;
 
   // Fetch from URI whenever inline `data` isn't a usable binary payload.
   // This covers asset://, /api/storage/, http(s)://, and also the ExtData
@@ -478,6 +482,9 @@ const createSingleAssetFile = async (
       });
       const downloadUrl = assetResponse.get_url;
       desiredFilename = assetResponse.name || desiredFilename;
+      if (typeof assetResponse.content_type === "string" && assetResponse.content_type.includes("/")) {
+        serverContentType = assetResponse.content_type;
+      }
       if (downloadUrl) {
         data = await fetchBinaryFromUri(downloadUrl);
       } else if (outputUri) {
@@ -511,7 +518,7 @@ const createSingleAssetFile = async (
 
   switch (type) {
     case "image": {
-      mimeType = getMimeType(output, "image/png");
+      mimeType = getMimeType(output, serverContentType ?? "image/png");
       const extension = getExtension(mimeType, "png");
       const bytes = toUint8Array(data);
       if (bytes.length === 0) {
@@ -525,14 +532,14 @@ const createSingleAssetFile = async (
       break;
     }
     case "video": {
-      mimeType = getMimeType(output, "video/mp4");
+      mimeType = getMimeType(output, serverContentType ?? "video/mp4");
       const extension = getExtension(mimeType, "mp4");
       content = toArrayBuffer(toUint8Array(data));
       filename = buildFilename(desiredFilename, id, suffix, extension, index);
       break;
     }
     case "audio": {
-      mimeType = getMimeType(output, "audio/mp3");
+      mimeType = getMimeType(output, serverContentType ?? "audio/mp3");
       const extension = getExtension(mimeType, "mp3");
       content = toArrayBuffer(toUint8Array(data));
       filename = buildFilename(desiredFilename, id, suffix, extension, index);

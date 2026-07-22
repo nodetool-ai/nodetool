@@ -219,6 +219,34 @@ describe("S3StorageAdapter list", () => {
     });
   });
 
+  it("strips a prefix containing regex metacharacters literally", async () => {
+    // A prefix like `my.data+v1` must be stripped as a literal string, not as a
+    // regex where `.` and `+` are wildcards.
+    const client = makeClient({
+      listObjectsV2: vi.fn(async () => ({
+        contents: [
+          { key: "my.data+v1/a.txt", size: 1, lastModified: new Date(1) },
+          // A key that a `.`/`+`-as-wildcard regex would mis-strip: `myXdataYv1`
+          // is not under the prefix and must be left untouched.
+          { key: "myXdataYv1z/b.txt", size: 2, lastModified: new Date(2) }
+        ],
+        commonPrefixes: ["my.data+v1/sub/"],
+        isTruncated: false
+      }))
+    });
+    const adapter = new S3StorageAdapter({
+      bucket: "b",
+      prefix: "my.data+v1",
+      client
+    });
+    const result = await adapter.list("files", { delimiter: "/" });
+    expect(result.entries.map((e) => e.key)).toEqual([
+      "a.txt",
+      "myXdataYv1z/b.txt"
+    ]);
+    expect(result.commonPrefixes).toEqual(["sub/"]);
+  });
+
   it("paginates across continuation tokens", async () => {
     const pages = [
       {

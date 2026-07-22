@@ -196,6 +196,12 @@ export interface UsePointerHandlersResult {
   selectStartRef: React.MutableRefObject<Point | null>;
   /** Cancel the active tool's in-progress operation (e.g. crop drag, transform). */
   cancelActiveTool: () => void;
+  /**
+   * Abort an in-progress pointer gesture (stroke or pan) without committing it.
+   * Resets the drawing/pan refs, discards the uncommitted stroke preview, and
+   * repaints. Used when a multi-touch pinch/pan supersedes a one-finger draw.
+   */
+  cancelDrawing: () => void;
   /** Apply pending crop rectangle (crop tool). */
   commitPendingCrop: () => void;
   /** Root container cursor (tool, space pan hint, or active pan). */
@@ -850,6 +856,37 @@ export function usePointerHandlers({
     }
   }, []);
 
+  const cancelDrawing = useCallback(() => {
+    if (isPanningRef.current) {
+      isPanningRef.current = false;
+      isSpacePanningRef.current = false;
+      setIsPanningUi(false);
+    }
+    if (isSizeDraggingRef.current) {
+      isSizeDraggingRef.current = false;
+    }
+    if (!isDrawingRef.current) {
+      return;
+    }
+    const gestureTool = gestureToolRef.current ?? interactionTool;
+    gestureToolRef.current = null;
+    isDrawingRef.current = false;
+    getToolHandler(gestureTool).onCancel?.(toolCtxRef.current);
+    // Drop the uncommitted stroke from the composite and restore the committed
+    // selection ants. The compositor reads activeStrokeRef, so nulling it and
+    // repainting removes the in-progress stroke.
+    activeStrokeRef.current = null;
+    clearOverlay();
+    drawSelectionOverlay();
+    requestRedraw();
+  }, [
+    interactionTool,
+    clearOverlay,
+    drawSelectionOverlay,
+    requestRedraw,
+    activeStrokeRef
+  ]);
+
   return {
     handlePointerDown,
     handlePointerMove,
@@ -864,6 +901,7 @@ export function usePointerHandlers({
     altHeldRef,
     selectStartRef,
     cancelActiveTool,
+    cancelDrawing,
     commitPendingCrop,
     containerCursor
   };

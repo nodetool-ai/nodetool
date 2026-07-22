@@ -794,6 +794,27 @@ describe("output normalization", () => {
       await rm(root, { recursive: true, force: true });
     }
   });
+
+  it("materializes an asset whose uri is a slash-less `api/storage/<key>`", async () => {
+    // Regression: getAssetBytes must route the slash-less `api/storage/` form
+    // through resolveAssetBytes (InMemory/S3 reject the raw route), else the
+    // ref never materializes to a data URI.
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("pic.png", new Uint8Array([1, 2, 3]), "image/png");
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      assetOutputMode: "data_uri",
+      storage
+    });
+
+    const normalized = (await ctx.normalizeOutputValue({
+      image: { type: "image", uri: "api/storage/pic.png" }
+    })) as { image: { uri: string } };
+    expect(normalized.image.uri.startsWith("data:image/png;base64,")).toBe(true);
+    expect(normalized.image.uri).toContain(
+      Buffer.from([1, 2, 3]).toString("base64")
+    );
+  });
 });
 
 describe("FileStorageAdapter", () => {
@@ -875,6 +896,62 @@ describe("ProcessingContext.resolveAssetBytes", () => {
     // URN extension mismatches the stored file, forcing the prefix listing.
     const { bytes } = await ctx.resolveAssetBytes("asset://ghi789.png");
     expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([4, 5, 6]));
+  });
+
+  it("resolves a bare `/api/storage/<key>` path against the storage adapter", async () => {
+    // Regression: parseAssetIdCandidates treated the whole `/api/storage/...`
+    // path as the id, probing a bogus key and building a double-prefixed url.
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("abc.png", new Uint8Array([7, 8, 9]), "image/png");
+    const ctx = new ProcessingContext({ jobId: "j1", storage });
+
+    const { bytes } = await ctx.resolveAssetBytes("/api/storage/abc.png");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([7, 8, 9]));
+  });
+
+  it("resolves the slash-less `api/storage/<key>` form too", async () => {
+    // Regression: the slash-less route (handled elsewhere) must strip to the
+    // bare key like the leading-slash form, not be treated as the whole id.
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("abc.png", new Uint8Array([7, 8, 9]), "image/png");
+    const ctx = new ProcessingContext({ jobId: "j1", storage });
+
+    const { bytes } = await ctx.resolveAssetBytes("api/storage/abc.png");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([7, 8, 9]));
+  });
+
+  it("strips the extension from the last segment only (dotted sub-path id)", async () => {
+    // Regression: `folder.v2/img` produced a bogus `folder` candidate that could
+    // resolve wrong bytes. Store a decoy at `folder.png` to prove it isn't hit.
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("folder.v2/img.webp", new Uint8Array([1, 2, 3]), "image/webp");
+    await storage.store("folder.png", new Uint8Array([9, 9]), "image/png");
+    const ctx = new ProcessingContext({ jobId: "j1", storage });
+
+    // Extension mismatch (.png vs stored .webp) forces the prefix listing.
+    const { bytes } = await ctx.resolveAssetBytes("asset://folder.v2/img.png");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([1, 2, 3]));
+  });
+
+  it("matches a hierarchical (sub-path) id in the listing fallback", async () => {
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("user-1/image.webp", new Uint8Array([4, 5, 6]), "image/webp");
+    const ctx = new ProcessingContext({ jobId: "j1", storage });
+
+    const { bytes } = await ctx.resolveAssetBytes("asset://user-1/image.png");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([4, 5, 6]));
+  });
+
+  it("resolves a legit `_thumb` id instead of filtering it out", async () => {
+    // Regression: the blanket `_thumb` substring filter dropped a genuine id
+    // like `banner_thumb`.
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("banner_thumb.png", new Uint8Array([1, 1]), "image/png");
+    const ctx = new ProcessingContext({ jobId: "j1", storage });
+
+    // Extension mismatch (.jpg vs stored .png) forces the prefix listing.
+    const { bytes } = await ctx.resolveAssetBytes("asset://banner_thumb.jpg");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([1, 1]));
   });
 
   it("falls back to the /api/storage route when no adapter is configured", async () => {

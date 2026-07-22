@@ -44,7 +44,15 @@ jest.mock("../../../contexts/NodeContext", () => ({
       workflow: { id: "wf-1" },
       findNode: () => undefined
     })
-  )
+  ),
+  useNodeStoreRef: jest.fn(() => ({
+    getState: () => ({
+      getSelectedNodes: () => [],
+      findNode: () => undefined,
+      updateNodeData: mockUpdateNodeData,
+      updateNode: mockUpdateNode
+    })
+  }))
 }));
 
 jest.mock("../../../config/IconForType", () => ({

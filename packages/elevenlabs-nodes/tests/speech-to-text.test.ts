@@ -84,14 +84,29 @@ describe("SpeechToTextNode", () => {
     await expect(node.process()).rejects.toThrow("ELEVENLABS_API_KEY");
   });
 
-  it("throws when audio input is missing", async () => {
-    const node = makeNode({ audio: {} });
+  it("throws when audio input is not an object", async () => {
+    const node = makeNode({ audio: null });
     await expect(node.process()).rejects.toThrow("Audio input is required");
   });
 
-  it("throws on invalid audio data URI", async () => {
-    const node = makeNode({ audio: { data: "not-a-data-uri" } });
-    await expect(node.process()).rejects.toThrow("Invalid audio data URI");
+  it("throws when audio ref carries no resolvable source", async () => {
+    const node = makeNode({ audio: { type: "audio" } });
+    await expect(node.process()).rejects.toThrow(
+      "Failed to resolve audio input for transcription"
+    );
+  });
+
+  it("accepts a native ref carrying raw base64 (no data: prefix)", async () => {
+    // MiniMax and other native refs carry raw base64 in `data` with no
+    // `data:` prefix. The canonical resolver decodes it instead of rejecting it.
+    const node = makeNode({ audio: { type: "audio", data: WAV_BASE64 } });
+    const result = await node.process();
+
+    expect(mockFetch).toHaveBeenCalledOnce();
+    expect(mockFetch.mock.calls[0][0]).toBe(
+      "https://api.elevenlabs.io/v1/speech-to-text"
+    );
+    expect(result.text).toBe("Hello world");
   });
 
   it("fetches audio from a URI when data is absent", async () => {

@@ -83,7 +83,6 @@ import healthRoute from "./routes/health.js";
 import configRoute from "./routes/config.js";
 import assetsRoutes from "./routes/assets.js";
 import workflowsRoutes from "./routes/workflows.js";
-import jobsRoutes from "./routes/jobs.js";
 import nodesRoutes from "./routes/nodes.js";
 import storageRoutes from "./routes/storage.js";
 import openaiRoutes from "./routes/openai.js";
@@ -787,7 +786,6 @@ app.addHook("onRequest", async (req, reply) => {
     pathname === "/api/assets/packages" ||
     pathname.startsWith("/api/assets/packages/") ||
     pathname === "/api/nodes/metadata" ||
-    pathname === "/api/node/metadata" ||
     pathname.startsWith("/api/kie/webhook") ||
     isPublicWorkflowMetadataRequest(pathname, req.method)
   ) {
@@ -1093,7 +1091,6 @@ const routeOpts = { apiOptions };
 
 await app.register(assetsRoutes, routeOpts);
 await app.register(workflowsRoutes, routeOpts);
-await app.register(jobsRoutes, routeOpts);
 await app.register(nodesRoutes, routeOpts);
 await app.register(storageRoutes, routeOpts);
 await app.register(openaiRoutes, routeOpts);

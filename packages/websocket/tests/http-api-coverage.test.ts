@@ -21,9 +21,6 @@ import {
   handleWorkflowExamplesSearch,
   handleWorkflowExamplesThumbnail,
   handlePublicWorkflows,
-  handleTriggersRunning,
-  handleTriggerStart,
-  handleTriggerStop,
   handleNodesDummy,
   handleWorkflowDslExport
 } from "../src/http-api.js";
@@ -196,27 +193,6 @@ describe("http-api coverage: simple stub routes", () => {
     expect((await handleNodesDummy(req("/x", { method: "POST" }))).status).toBe(
       405
     );
-  });
-
-  it("handleTriggersRunning returns empty workflows, 405 otherwise", async () => {
-    const ok = (await jsonBody(
-      await handleTriggersRunning(req("/api/triggers/running"))
-    )) as { workflows: unknown[] };
-    expect(ok.workflows).toEqual([]);
-    expect(
-      (await handleTriggersRunning(req("/x", { method: "POST" }))).status
-    ).toBe(405);
-  });
-
-  it("handleTriggerStart/Stop are 501 (POST) and 405 (other)", async () => {
-    expect(
-      (await handleTriggerStart(req("/x", { method: "POST" }), "w1")).status
-    ).toBe(501);
-    expect((await handleTriggerStart(req("/x"), "w1")).status).toBe(405);
-    expect(
-      (await handleTriggerStop(req("/x", { method: "POST" }), "w1")).status
-    ).toBe(501);
-    expect((await handleTriggerStop(req("/x"), "w1")).status).toBe(405);
   });
 
   it("handleWorkflowApp serves an HTML page embedding the workflow id", async () => {

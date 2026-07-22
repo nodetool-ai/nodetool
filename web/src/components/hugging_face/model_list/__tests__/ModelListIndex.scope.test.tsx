@@ -33,6 +33,10 @@ jest.mock("../LocalModelsHero", () => ({
   __esModule: true,
   default: () => null
 }));
+jest.mock("../../onboarding/ModelOnboarding", () => ({
+  __esModule: true,
+  default: () => null
+}));
 
 import ModelListIndex from "../ModelListIndex";
 import { useModelManagerStore } from "../../../../stores/ModelManagerStore";
@@ -82,6 +86,9 @@ beforeEach(() => {
   useModelManagerStore.setState({
     scope: "local",
     source: "installed",
+    // These tests exercise the Installed/Recommended views directly, so pin the
+    // source as already-settled to bypass the empty-install onboarding default.
+    sourceInitialized: true,
     modelSearchTerm: "",
     selectedModelType: "All"
   });
@@ -154,6 +161,60 @@ describe("ModelListIndex scope toggle", () => {
     expect(
       screen.getByText(/gathered from the nodes you have installed/i)
     ).toBeInTheDocument();
+  });
+
+  it("defaults to onboarding when nothing is installed locally", async () => {
+    mockUseWorkers.mockReturnValue({ activeWorker: null });
+    useModelManagerStore.setState({
+      source: "installed",
+      sourceInitialized: false
+    });
+    renderIndex();
+    await waitFor(() =>
+      expect(useModelManagerStore.getState().source).toBe("onboarding")
+    );
+    expect(useModelManagerStore.getState().sourceInitialized).toBe(true);
+  });
+
+  it("stays on Installed when local models exist", async () => {
+    mockUseWorkers.mockReturnValue({ activeWorker: null });
+    mockUseModels.mockReturnValue({
+      ...EMPTY_MODELS,
+      allModels: [{ id: "org/m", name: "m", type: "hf.text_generation" }],
+      filteredModels: [{ id: "org/m", name: "m", type: "hf.text_generation" }]
+    });
+    useModelManagerStore.setState({
+      source: "installed",
+      sourceInitialized: false
+    });
+    renderIndex();
+    // Give the auto-default effect a chance to (not) run.
+    await new Promise((r) => setTimeout(r, 0));
+    expect(useModelManagerStore.getState().source).toBe("installed");
+  });
+
+  it("does not auto-default to onboarding while a worker is attached", async () => {
+    mockUseWorkers.mockReturnValue({ activeWorker: makeInstance() });
+    useModelManagerStore.setState({
+      scope: "local",
+      source: "installed",
+      sourceInitialized: false
+    });
+    renderIndex();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(useModelManagerStore.getState().source).toBe("installed");
+  });
+
+  it("does not bounce back to onboarding after the user opens Installed", async () => {
+    mockUseWorkers.mockReturnValue({ activeWorker: null });
+    // User has explicitly settled on Installed even though it's empty.
+    useModelManagerStore.setState({
+      source: "installed",
+      sourceInitialized: true
+    });
+    renderIndex();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(useModelManagerStore.getState().source).toBe("installed");
   });
 
   it("falls back to Local scope when the worker detaches", async () => {
