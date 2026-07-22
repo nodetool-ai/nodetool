@@ -12,7 +12,6 @@ export * as models from "./models.js";
 export * as nodes from "./nodes.js";
 export * as scripts from "./scripts.js";
 export * as settings from "./settings.js";
-export * as skills from "./skills.js";
 export * as storage from "./storage.js";
 export * as threads from "./threads.js";
 export * as users from "./users.js";

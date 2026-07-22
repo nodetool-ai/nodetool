@@ -19,14 +19,11 @@ import { throwApiError } from "../error-formatter.js";
 import { notifyResourceChange } from "../../resource-events.js";
 import {
   listOutput,
-  getInput,
   collectionResponse,
   createInput,
   updateInput,
   deleteInput,
-  deleteOutput,
-  queryInput,
-  queryOutput
+  deleteOutput
 } from "@nodetool-ai/protocol/api-schemas/collections.js";
 
 /**
@@ -100,24 +97,6 @@ export const collectionsRouter = router({
 
     return { collections: results, count: results.length };
   }),
-
-  get: protectedProcedure
-    .input(getInput)
-    .output(collectionResponse)
-    .query(async ({ input }) => {
-      const provider = getDefaultVectorProvider();
-      try {
-        const collection = await provider.getCollection({ name: input.name });
-        const count = await collection.count();
-        return {
-          name: collection.name,
-          metadata: normalizeMetadata(collection.metadata),
-          count
-        };
-      } catch (err) {
-        rethrowAsTrpc(err);
-      }
-    }),
 
   create: protectedProcedure
     .input(createInput)
@@ -201,36 +180,5 @@ export const collectionsRouter = router({
         resource: { id: input.name }
       });
       return { message: `Collection ${input.name} deleted successfully` };
-    }),
-
-  query: protectedProcedure
-    .input(queryInput)
-    .output(queryOutput)
-    .query(async ({ input }) => {
-      const provider = getDefaultVectorProvider();
-      let collection;
-      try {
-        collection = await provider.getCollection({ name: input.name });
-      } catch (err) {
-        rethrowAsTrpc(err);
-      }
-
-      const ids: string[][] = [];
-      const documents: (string | null)[][] = [];
-      const metadatas: (Record<string, unknown> | null)[][] = [];
-      const distances: number[][] = [];
-
-      for (const text of input.query_texts) {
-        const matches = await collection.query({
-          text,
-          topK: input.n_results
-        });
-        ids.push(matches.map((m) => m.id));
-        documents.push(matches.map((m) => m.document));
-        metadatas.push(matches.map((m) => m.metadata));
-        distances.push(matches.map((m) => m.distance));
-      }
-
-      return { ids, documents, metadatas, distances };
     })
 });

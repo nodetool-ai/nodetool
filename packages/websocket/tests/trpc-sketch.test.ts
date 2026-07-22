@@ -622,26 +622,6 @@ describe("sketch router", () => {
       ).rejects.toThrow();
     });
 
-    it("delete removes only the binding", async () => {
-      ID.findById.mockResolvedValue(
-        makeDoc({ document: JSON.stringify(layerDoc) })
-      );
-      ID.updateDoc.mockResolvedValue(undefined);
-
-      const caller = createCaller(makeCtx());
-      const out = await caller.sketch.layers.delete({
-        id: "doc-1",
-        layerId: "layer-1"
-      });
-
-      expect(out.ok).toBe(true);
-      const updateArgs = ID.updateDoc.mock.calls[0];
-      const persisted = JSON.parse(
-        updateArgs?.[1]?.document as string
-      ) as ImageDocumentData;
-      expect(persisted.layerBindings).toHaveLength(0);
-    });
-
     it("duplicate copies overrides and shares the workflow", async () => {
       ID.findById.mockResolvedValue(
         makeDoc({ document: JSON.stringify(layerDoc) })

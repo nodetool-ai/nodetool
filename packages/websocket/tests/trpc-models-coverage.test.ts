@@ -141,17 +141,10 @@ describe("models router — extra coverage", () => {
       expect(Array.isArray(result)).toBe(true);
     });
 
-    it("recommendedLanguageTextGeneration returns language models", async () => {
-      const caller = createCaller(makeCtx());
-      const result = await caller.models.recommendedLanguageTextGeneration();
-      for (const m of result) expect(m.type).toMatch(/language/);
-    });
-
-    it("recommendedAsr / Tts / Music / video variants each return arrays", async () => {
+    it("recommendedAsr / Tts / video variants each return arrays", async () => {
       const caller = createCaller(makeCtx());
       expect(Array.isArray(await caller.models.recommendedAsr())).toBe(true);
       expect(Array.isArray(await caller.models.recommendedTts())).toBe(true);
-      expect(Array.isArray(await caller.models.recommendedMusic())).toBe(true);
       expect(
         Array.isArray(await caller.models.recommendedVideoTextToVideo())
       ).toBe(true);
@@ -725,29 +718,4 @@ describe("models router — extra coverage", () => {
     });
   });
 
-  // ── huggingfaceTryCacheRepos with a cache hit ────────────────────────────
-
-  describe("huggingfaceTryCacheRepos with cached files", () => {
-    it("reports downloaded:true when a snapshot has files", async () => {
-      (access as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
-      (readdir as ReturnType<typeof vi.fn>).mockImplementation(
-        async (dir: string) => {
-          if (dir.endsWith("snapshots")) {
-            return [{ name: "snap1", isDirectory: () => true }] as never;
-          }
-          return [
-            {
-              name: "config.json",
-              isDirectory: () => false,
-              isFile: () => true,
-              isSymbolicLink: () => false
-            }
-          ] as never;
-        }
-      );
-      const caller = createCaller(makeCtx());
-      const result = await caller.models.huggingfaceTryCacheRepos(["org/repo"]);
-      expect(result[0].downloaded).toBe(true);
-    });
-  });
 });

@@ -146,13 +146,4 @@ describe("nodes routes — /api/nodes/metadata", () => {
     expect(body).toHaveLength(1);
     expect(body[0].node_type).toBe("other.Beta");
   });
-
-  it("serves the legacy /api/node/metadata alias", async () => {
-    const res = await app.inject({
-      method: "GET",
-      url: "/api/node/metadata"
-    });
-    expect(res.statusCode).toBe(200);
-    expect(Array.isArray(res.json())).toBe(true);
-  });
 });

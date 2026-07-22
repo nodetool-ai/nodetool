@@ -17,11 +17,8 @@ import { throwApiError } from "../error-formatter.js";
 import {
   listInput,
   listOutput,
-  runningAllOutput,
   getInput,
   jobResponse,
-  deleteInput,
-  deleteOutput,
   cancelInput,
   cancelOutput,
   type JobResponse,
@@ -73,18 +70,6 @@ export const jobsRouter = router({
       };
     }),
 
-  // GET /api/jobs/running/all — returns only running/scheduled jobs
-  // (legacy paginated with limit=500 then filtered).
-  runningAll: protectedProcedure
-    .output(runningAllOutput)
-    .query(async ({ ctx }) => {
-      const [jobs] = await Job.paginate(ctx.userId, { limit: 500 });
-      const running = jobs.filter(
-        (j) => j.status === "running" || j.status === "scheduled"
-      );
-      return running.map((j) => toBackgroundJobResponse(j));
-    }),
-
   get: protectedProcedure
     .input(getInput)
     .output(jobResponse)
@@ -94,18 +79,6 @@ export const jobsRouter = router({
         throwApiError(ApiErrorCode.NOT_FOUND, "Job not found");
       }
       return toJobResponse(job);
-    }),
-
-  delete: protectedProcedure
-    .input(deleteInput)
-    .output(deleteOutput)
-    .mutation(async ({ ctx, input }) => {
-      const job = (await Job.get(input.id)) as JobModel | null;
-      if (!job || job.user_id !== ctx.userId) {
-        throwApiError(ApiErrorCode.NOT_FOUND, "Job not found");
-      }
-      await job.delete();
-      return { ok: true as const };
     }),
 
   cancel: protectedProcedure

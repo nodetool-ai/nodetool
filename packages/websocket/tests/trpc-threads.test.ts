@@ -10,7 +10,6 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     ...actual,
     Thread: {
       ...actual.Thread,
-      create: vi.fn(),
       find: vi.fn(),
       paginate: vi.fn()
     },
@@ -160,50 +159,6 @@ describe("threads router", () => {
       const caller = createCaller(makeCtx({ userId: null }));
       await expect(caller.threads.list({})).rejects.toMatchObject({
         code: "UNAUTHORIZED"
-      });
-    });
-  });
-
-  // ── create ──────────────────────────────────────────────────────
-  describe("create", () => {
-    it("creates a thread with provided title", async () => {
-      const t = makeThread({ id: "new-t", title: "My Thread" });
-      (Thread.create as ReturnType<typeof vi.fn>).mockResolvedValue(t);
-
-      const caller = createCaller(makeCtx());
-      const result = await caller.threads.create({ title: "My Thread" });
-      expect(Thread.create).toHaveBeenCalledWith({
-        user_id: "user-1",
-        workflow_id: null,
-        title: "My Thread"
-      });
-      expect(result.id).toBe("new-t");
-      expect(result.title).toBe("My Thread");
-    });
-
-    it("defaults title to 'New Thread' when omitted", async () => {
-      const t = makeThread({ id: "auto", title: "New Thread" });
-      (Thread.create as ReturnType<typeof vi.fn>).mockResolvedValue(t);
-
-      const caller = createCaller(makeCtx());
-      await caller.threads.create({});
-      expect(Thread.create).toHaveBeenCalledWith({
-        user_id: "user-1",
-        workflow_id: null,
-        title: "New Thread"
-      });
-    });
-
-    it("binds the thread to a workflow when workflow_id is given", async () => {
-      const t = makeThread({ id: "wf-t", title: "New Thread" });
-      (Thread.create as ReturnType<typeof vi.fn>).mockResolvedValue(t);
-
-      const caller = createCaller(makeCtx());
-      await caller.threads.create({ workflow_id: "wf-1" });
-      expect(Thread.create).toHaveBeenCalledWith({
-        user_id: "user-1",
-        workflow_id: "wf-1",
-        title: "New Thread"
       });
     });
   });

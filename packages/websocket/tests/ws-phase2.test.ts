@@ -4,7 +4,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { initTestDb, Job } from "@nodetool-ai/models";
 import { handleApiRequest } from "../src/http-api.js";
-import { handleFileRequest, type FileApiOptions } from "../src/file-api.js";
+import { handleFileRequest } from "../src/file-api.js";
 import { createStorageHandler } from "../src/storage-api.js";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
@@ -95,29 +95,20 @@ describe("T-WS-8: Username validation", () => {
 //
 // JSON ops (list, info) have moved to the tRPC `files` router.
 // Tests for those use the tRPC caller directly against a real temp dir.
-// The REST handler (/api/files/download) is tested for download + traversal.
 
 describe("T-WS-9: File browser API", () => {
   let tmpDir: string;
-  let fileOpts: FileApiOptions;
 
   beforeEach(async () => {
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "ws-file-test-"));
-    fileOpts = { rootDir: tmpDir };
-    // Create test structure
-    await fs.mkdir(path.join(tmpDir, "subdir"));
     await fs.writeFile(path.join(tmpDir, "hello.txt"), "hello world");
-    await fs.writeFile(
-      path.join(tmpDir, "subdir", "nested.txt"),
-      "nested content"
-    );
   });
 
   afterEach(async () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  // ── list / info — now in tRPC files router ───────────────────────────
+  // ── list — now in tRPC files router ──────────────────────────────────
 
   it("tRPC files.list lists the home directory", async () => {
     // Uses real homedir — just assert shape (entries may vary per machine)
@@ -132,26 +123,10 @@ describe("T-WS-9: File browser API", () => {
     }
   });
 
-  it("tRPC files.info returns file metadata", async () => {
-    const caller = createCaller(makeFileCtx());
-    // info uses homedir as root — test with "." to get root info
-    const result = await caller.files.info({ path: "." });
-    expect(result).toHaveProperty("name");
-    expect(result).toHaveProperty("is_dir");
-    expect(typeof result.modified_at).toBe("string");
-  });
-
   it("tRPC files.list returns 404 for nonexistent directory", async () => {
     const caller = createCaller(makeFileCtx());
     await expect(
       caller.files.list({ path: "nonexistent-dir-xyz" })
-    ).rejects.toMatchObject({ code: "NOT_FOUND" });
-  });
-
-  it("tRPC files.info returns 404 for nonexistent file", async () => {
-    const caller = createCaller(makeFileCtx());
-    await expect(
-      caller.files.info({ path: "nonexistent-file-xyz.txt" })
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
@@ -162,49 +137,18 @@ describe("T-WS-9: File browser API", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it("tRPC files.info rejects path traversal with FORBIDDEN", async () => {
-    const caller = createCaller(makeFileCtx());
-    await expect(
-      caller.files.info({ path: "/../../etc/passwd" })
-    ).rejects.toMatchObject({ code: "FORBIDDEN" });
-  });
-
   it("REST /api/files/list now returns 404 (moved to tRPC)", async () => {
     const res = await handleFileRequest(
-      new Request("http://localhost/api/files/list?path=/"),
-      fileOpts
+      new Request("http://localhost/api/files/list?path=/")
     );
     expect(res.status).toBe(404);
   });
 
   it("REST /api/files/info now returns 404 (moved to tRPC)", async () => {
     const res = await handleFileRequest(
-      new Request("http://localhost/api/files/info?path=/hello.txt"),
-      fileOpts
+      new Request("http://localhost/api/files/info?path=/hello.txt")
     );
     expect(res.status).toBe(404);
-  });
-
-  // ── download — stays as REST ─────────────────────────────────────────
-
-  it("GET /api/files/download?path=/hello.txt returns file content", async () => {
-    const res = await handleFileRequest(
-      new Request("http://localhost/api/files/download?path=/hello.txt"),
-      fileOpts
-    );
-    expect(res.status).toBe(200);
-    const text = await res.text();
-    expect(text).toBe("hello world");
-  });
-
-  it("GET /api/files/download with path traversal returns 403", async () => {
-    const res = await handleFileRequest(
-      new Request(
-        "http://localhost/api/files/download?path=/../../../etc/passwd"
-      ),
-      fileOpts
-    );
-    expect(res.status).toBe(403);
   });
 });
 

@@ -18,80 +18,11 @@ import {
   parseRangeHeader
 } from "./storage-api.js";
 
-export interface FileApiOptions {
-  /** Root directory for the file browser sandbox. Defaults to user home. */
-  rootDir?: string;
-}
-
 function errorResponse(status: number, detail: string): Response {
   return new Response(JSON.stringify({ detail }), {
     status,
     headers: { "content-type": "application/json" }
   });
-}
-
-/**
- * Resolve a user-provided path within the sandbox root.
- * Returns the resolved absolute path, or null if the path escapes the sandbox.
- */
-async function resolveSandboxed(
-  rootDir: string,
-  userPath: string
-): Promise<string | null> {
-  const resolved = path.resolve(
-    rootDir,
-    userPath.startsWith("/") ? "." + userPath : userPath
-  );
-  const normalizedRoot = path.resolve(rootDir);
-  const isContained = (p: string): boolean =>
-    p === normalizedRoot || p.startsWith(normalizedRoot + path.sep);
-  if (!isContained(resolved)) {
-    return null;
-  }
-
-  // Resolve symlinks on the deepest existing ancestor and re-check containment:
-  // a symlink that lives under the root but points outside it passes the lexical
-  // prefix check yet resolves elsewhere. Mirrors the tRPC `files` router.
-  let probe = resolved;
-  for (;;) {
-    try {
-      const real = await fs.realpath(probe);
-      if (!isContained(real)) {
-        return null;
-      }
-      break;
-    } catch {
-      const parent = path.dirname(probe);
-      if (parent === probe) break; // reached filesystem root without resolving
-      probe = parent;
-    }
-  }
-  return resolved;
-}
-
-async function handleDownload(url: URL, rootDir: string): Promise<Response> {
-  const userPath = url.searchParams.get("path");
-  if (!userPath) return errorResponse(400, "path parameter is required");
-
-  const resolved = await resolveSandboxed(rootDir, userPath);
-  if (!resolved) return errorResponse(403, "Path traversal not allowed");
-
-  try {
-    const stat = await fs.stat(resolved);
-    if (stat.isDirectory()) {
-      return errorResponse(400, "Cannot download a directory");
-    }
-    const content = await fs.readFile(resolved);
-    return new Response(content, {
-      status: 200,
-      headers: {
-        "content-type": "application/octet-stream",
-        "content-length": String(content.byteLength)
-      }
-    });
-  } catch {
-    return errorResponse(404, "File not found");
-  }
 }
 
 // ── Local-file streaming (/api/files/local) ─────────────────────────
@@ -258,30 +189,18 @@ async function handleLocalFileStream(
 /**
  * Handle file browser binary requests.
  * Routes:
- *   /api/files/download — sandboxed binary download (octet-stream, no Range)
- *   /api/files/local    — stream a local file by absolute path (Range-capable)
+ *   /api/files/local — stream a local file by absolute path (Range-capable)
  *
  * JSON ops (list, info) have moved to the tRPC `files` router.
  */
-export async function handleFileRequest(
-  request: Request,
-  options: FileApiOptions = {}
-): Promise<Response> {
+export async function handleFileRequest(request: Request): Promise<Response> {
   // File browser exposes the local filesystem — disabled in production
   if (process.env["NODETOOL_ENV"] === "production") {
     return errorResponse(403, "File browser is disabled in production");
   }
 
-  const rootDir = options.rootDir ?? os.homedir();
   const url = new URL(request.url);
   const pathname = url.pathname.replace(/\/+$/, "");
-
-  if (pathname === "/api/files/download") {
-    if (request.method !== "GET") {
-      return errorResponse(405, "Method not allowed");
-    }
-    return handleDownload(url, rootDir);
-  }
 
   if (pathname === "/api/files/local") {
     if (request.method !== "GET" && request.method !== "HEAD") {
