@@ -227,6 +227,8 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const redo = useStoryboardStore((state) => state.redo);
   const canUndo = useStoryboardCanUndo(boardId);
   const canRedo = useStoryboardCanRedo(boardId);
+  const onUndo = useCallback(() => undo(boardId), [undo, boardId]);
+  const onRedo = useCallback(() => redo(boardId), [redo, boardId]);
 
   const [shotCount, setShotCount] = useState<number>(6);
   const [confirmRedirect, setConfirmRedirect] = useState(false);
@@ -397,8 +399,8 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                 <UndoRedoButtons
                   canUndo={canUndo}
                   canRedo={canRedo}
-                  onUndo={() => undo(boardId)}
-                  onRedo={() => redo(boardId)}
+                  onUndo={onUndo}
+                  onRedo={onRedo}
                   undoTooltip="Undo (⌘Z)"
                   redoTooltip="Redo (⌘⇧Z)"
                 />

@@ -216,7 +216,11 @@ const withLiveTransient = (
   current: StoryboardBoard
 ): StoryboardBoard => ({
   ...restored,
-  activeShotId: current.activeShotId,
+  // Keep the live selection, but only if that shot survives in the checkpoint;
+  // a selection undone out of existence resets rather than dangling.
+  activeShotId: restored.shots.some((s) => s.id === current.activeShotId)
+    ? current.activeShotId
+    : null,
   updatedAt: Date.now(),
   shots: restored.shots.map((s) => {
     const live = current.shots.find((c) => c.id === s.id);
@@ -331,12 +335,27 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
 
   removeBoard: (id) =>
     set((state) => {
-      if (!state.boards[id]) {
+      // A board entry can be gone while its revision/history linger — e.g.
+      // useStoryboardServerSync sets the CAS token after `create` before any
+      // loadBoard. Clear whichever of the three still holds the id.
+      if (
+        !(id in state.boards) &&
+        !(id in state.serverRevisions) &&
+        !(id in state.history)
+      ) {
         return state;
       }
       const boards = { ...state.boards };
       delete boards[id];
-      return { boards, history: clearHistory(state.history, id) };
+      // Drop the CAS token too, so re-creating this id later can't reuse a
+      // stale revision (mirrors ScriptStore.removeScript).
+      const serverRevisions = { ...state.serverRevisions };
+      delete serverRevisions[id];
+      return {
+        boards,
+        serverRevisions,
+        history: clearHistory(state.history, id)
+      };
     }),
 
   setScreenplay: (boardId, screenplay) =>

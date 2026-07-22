@@ -298,6 +298,8 @@ const ScriptDocumentPane = ({
   const redo = useScriptStore((s) => s.redo);
   const canUndo = useScriptCanUndo(scriptId);
   const canRedo = useScriptCanRedo(scriptId);
+  const onUndo = useCallback(() => undo(scriptId), [undo, scriptId]);
+  const onRedo = useCallback(() => redo(scriptId), [redo, scriptId]);
   const { playing, currentLineId, play, stop } =
     useScriptPlaythrough(scriptId);
   const [voicingAll, setVoicingAll] = useState(false);
@@ -475,8 +477,8 @@ const ScriptDocumentPane = ({
           <UndoRedoButtons
             canUndo={canUndo}
             canRedo={canRedo}
-            onUndo={() => undo(scriptId)}
-            onRedo={() => redo(scriptId)}
+            onUndo={onUndo}
+            onRedo={onRedo}
             undoTooltip="Undo (⌘Z)"
             redoTooltip="Redo (⌘⇧Z)"
           />

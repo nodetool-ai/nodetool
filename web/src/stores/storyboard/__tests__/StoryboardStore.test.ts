@@ -240,3 +240,38 @@ describe("undo/redo", () => {
     expect(useStoryboardStore.getState().history[BOARD]).toBeUndefined();
   });
 });
+
+describe("removeBoard cleanup", () => {
+  it("clears a lingering server revision even when no board exists", () => {
+    const store = useStoryboardStore.getState();
+    // Autosave can set the CAS token before loadBoard ever runs.
+    store.setServerRevision(BOARD, "rev-1");
+    expect(useStoryboardStore.getState().serverRevisions[BOARD]).toBe("rev-1");
+
+    store.removeBoard(BOARD);
+    expect(useStoryboardStore.getState().serverRevisions[BOARD]).toBeUndefined();
+  });
+});
+
+describe("undo selection safety", () => {
+  it("clears activeShotId when undo removes the selected shot", () => {
+    const store = useStoryboardStore.getState();
+    store.ensureBoard(BOARD);
+    // upsertShot is tracked, so its checkpoint predates the shot's existence.
+    store.upsertShot(BOARD, {
+      type: "shot",
+      id: "s0",
+      index: 0,
+      action: "shot 0",
+      status: "planned"
+    });
+    store.selectShot(BOARD, "s0");
+    expect(useStoryboardStore.getState().boards[BOARD]?.activeShotId).toBe("s0");
+
+    // Undo the creation of the selected shot: the selection must not dangle.
+    store.undo(BOARD);
+    const board = useStoryboardStore.getState().boards[BOARD];
+    expect(board?.shots).toHaveLength(0);
+    expect(board?.activeShotId).toBeNull();
+  });
+});
