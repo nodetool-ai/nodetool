@@ -240,3 +240,15 @@ describe("undo/redo", () => {
     expect(useStoryboardStore.getState().history[BOARD]).toBeUndefined();
   });
 });
+
+describe("removeBoard cleanup", () => {
+  it("clears a lingering server revision even when no board exists", () => {
+    const store = useStoryboardStore.getState();
+    // Autosave can set the CAS token before loadBoard ever runs.
+    store.setServerRevision(BOARD, "rev-1");
+    expect(useStoryboardStore.getState().serverRevisions[BOARD]).toBe("rev-1");
+
+    store.removeBoard(BOARD);
+    expect(useStoryboardStore.getState().serverRevisions[BOARD]).toBeUndefined();
+  });
+});

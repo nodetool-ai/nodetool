@@ -335,7 +335,14 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
 
   removeBoard: (id) =>
     set((state) => {
-      if (!state.boards[id]) {
+      // A board entry can be gone while its revision/history linger — e.g.
+      // useStoryboardServerSync sets the CAS token after `create` before any
+      // loadBoard. Clear whichever of the three still holds the id.
+      if (
+        !(id in state.boards) &&
+        !(id in state.serverRevisions) &&
+        !(id in state.history)
+      ) {
         return state;
       }
       const boards = { ...state.boards };
