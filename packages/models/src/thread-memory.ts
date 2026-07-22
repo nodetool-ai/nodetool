@@ -98,22 +98,34 @@ export class ThreadMemory extends DBModel {
           eq(threadMemories.thread_id, threadId)
         )
       )
-      .orderBy(desc(threadMemories.created_at))
+      // Secondary sort on the id keeps ordering deterministic when two rows
+      // share a created_at (same-millisecond writes).
+      .orderBy(desc(threadMemories.created_at), desc(threadMemories.id))
       .limit(limit);
     return rows.map(
       (r: Record<string, unknown>) => new ThreadMemory(r as Record<string, unknown>)
     );
   }
 
-  /** Delete every memory belonging to a thread. Returns how many were removed. */
+  /**
+   * Delete every memory belonging to a thread in one statement. Returns how
+   * many were removed (no per-row cap).
+   */
   static async deleteByThread(
     userId: string,
     threadId: string
   ): Promise<number> {
-    const memories = await ThreadMemory.listByThread(userId, threadId, 10_000);
-    for (const memory of memories) {
-      await memory.delete();
-    }
-    return memories.length;
+    const db = getDb();
+    const where = and(
+      eq(threadMemories.user_id, userId),
+      eq(threadMemories.thread_id, threadId)
+    );
+    const existing = await db
+      .select({ id: threadMemories.id })
+      .from(threadMemories)
+      .where(where);
+    if (existing.length === 0) return 0;
+    await db.delete(threadMemories).where(where);
+    return existing.length;
   }
 }

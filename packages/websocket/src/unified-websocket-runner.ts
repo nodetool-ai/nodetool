@@ -3323,8 +3323,9 @@ export class UnifiedWebSocketRunner {
 
   /**
    * Load the thread's durable memories and render them as a system block for
-   * injection at the start of a turn. Referenced assets are resolved to their
-   * `asset://` uris (dropping any the user no longer owns). Best-effort — a DB
+   * injection at the start of a turn. Resource refs are used as stored (asset
+   * refs already carry the `asset://` uri captured at save time) — a single
+   * indexed query, no per-asset lookups on the hot path. Best-effort: a DB
    * hiccup returns an empty block rather than breaking the turn.
    */
   private async buildThreadMemoryBlock(
@@ -3334,36 +3335,14 @@ export class UnifiedWebSocketRunner {
     try {
       const memories = await ThreadMemory.listByThread(userId, threadId, 100);
       if (memories.length === 0) return "";
-      const rendered = [];
-      for (const memory of memories) {
-        const resources: ThreadMemoryResource[] = [];
-        const refs = Array.isArray(memory.resources) ? memory.resources : [];
-        for (const ref of refs) {
-          if (!ref || typeof ref !== "object") continue;
-          // Re-resolve asset refs to a live uri and drop any the user no longer
-          // owns; pass every other resource kind through unchanged.
-          if (ref.type === "asset") {
-            const asset = await Asset.find(userId, ref.id);
-            if (!asset) continue;
-            const ext = asset.fileExtension;
-            resources.push({
-              type: "asset",
-              id: asset.id,
-              uri: ext ? `asset://${asset.id}.${ext}` : `asset://${asset.id}`,
-              label: ref.label || asset.name,
-              metadata: { content_type: asset.content_type }
-            });
-          } else {
-            resources.push(ref);
-          }
-        }
-        rendered.push({
-          kind: memory.kind,
-          title: memory.title,
-          content: memory.content,
-          resources
-        });
-      }
+      const rendered = memories.map((memory) => ({
+        kind: memory.kind,
+        title: memory.title,
+        content: memory.content,
+        resources: (Array.isArray(memory.resources)
+          ? memory.resources
+          : []) as ThreadMemoryResource[]
+      }));
       return formatThreadMemoriesForPrompt(rendered);
     } catch (err) {
       log.warn("Failed to build thread memory block", {

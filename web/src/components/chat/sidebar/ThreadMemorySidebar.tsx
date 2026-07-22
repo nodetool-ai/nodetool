@@ -20,6 +20,8 @@ import { useAsset } from "../../../serverState/useAsset";
 import { trpc, type RouterOutputs } from "../../../trpc/client";
 
 export const THREAD_MEMORY_SIDEBAR_WIDTH = 300;
+/** Asset thumbnail edge (px), on the 4px grid — a fixed component dimension. */
+const THUMB_SIZE = 48;
 
 type Memory = RouterOutputs["threadMemories"]["list"]["memories"][number];
 type Resource = Memory["resources"][number];
@@ -44,7 +46,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "baseline",
       justifyContent: "space-between",
-      gap: 8
+      gap: getSpacingPx(SPACING.md)
     },
     ".memory-list": {
       flex: 1,
@@ -67,17 +69,17 @@ const styles = (theme: Theme) =>
     ".memory-content": {
       wordBreak: "break-word",
       lineHeight: 1.4,
-      marginTop: 2
+      marginTop: getSpacingPx(SPACING.xxs)
     },
     ".memory-resources": {
       display: "flex",
       flexWrap: "wrap",
-      gap: 6,
+      gap: getSpacingPx(SPACING.sm),
       marginTop: getSpacingPx(SPACING.sm)
     },
     ".memory-thumb": {
-      width: 44,
-      height: 44,
+      width: THUMB_SIZE,
+      height: THUMB_SIZE,
       objectFit: "cover",
       borderRadius: BORDER_RADIUS.sm,
       border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.10)`,
