@@ -535,16 +535,17 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     // pointercancel (OS interrupts the touch, or pointer capture is lost) must
     // tear down the gesture refs so a later touch isn't consumed by a stuck
-    // "always active" gesture. When it wasn't a gesture, treat it as an up so
-    // a one-finger stroke ends cleanly.
+    // "always active" gesture. When it wasn't a gesture, the input sequence was
+    // aborted — discard the in-progress stroke via cancelDrawing() rather than
+    // committing it like a normal pointerup would.
     const handlePointerCancelWithGesture = useCallback(
       (e: React.PointerEvent) => {
         if (onGesturePointerCancel(e)) {
           return;
         }
-        drawPointerUp(e);
+        cancelDrawing();
       },
-      [drawPointerUp, onGesturePointerCancel]
+      [cancelDrawing, onGesturePointerCancel]
     );
 
     const handleMouseLeaveWithCoords = useCallback(() => {
