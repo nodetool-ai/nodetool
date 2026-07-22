@@ -42,6 +42,19 @@ describe("tRPC Fastify mount", () => {
   });
 });
 
+describe("tRPC /trpc/fonts.list over Fastify", () => {
+  it("returns the fonts list shape", async () => {
+    const app = buildTestApp();
+    await app.ready();
+    const res = await app.inject({ method: "GET", url: "/trpc/fonts.list" });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    const data = body.result?.data?.json ?? body.result?.data;
+    expect(Array.isArray(data.fonts)).toBe(true);
+    await app.close();
+  });
+});
+
 describe("tRPC /trpc/settings.list over Fastify", () => {
   it("returns the registered settings with configured values resolved", async () => {
     // Mock model reads to produce a deterministic (empty-DB) response so the
