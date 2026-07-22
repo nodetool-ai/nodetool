@@ -442,6 +442,37 @@ IS_SANDBOX=1 npm run dev:nodetool -- eval timeline-tools \
   -p claude_agent_sdk -m sonnet --max-iterations 40 --no-find-model
 ```
 
+### Sub-agent execution eval (`subtask`)
+
+Where the tool-loop suites score a model on one flat tool surface, the
+`subtask` suite scores `RunSubtaskTool` — the primitive that lets an agent
+decompose work by spawning a fresh child agent that inherits the parent's
+toolset. It runs a real `StepExecutor` parent equipped with `run_subtask` plus
+six instrumented worker tools (`calculate`, `kv_write`, `kv_read`,
+`lookup_fact`, `slugify`, `flaky_fail`), each objective written to force
+delegation. The tools are shared instances at both levels; each records the
+`SUBTASK_DEPTH_KEY` it ran at, so the scorer distinguishes "the parent did it
+itself" (depth 0) from "the parent delegated and the child did it" (depth >=
+1). Scoring is structural (`checkSubtaskExpectations`): required parent tools,
+required *child* tools, forbidden tools, subtask-count and depth bounds, no
+failed subtasks, required store keys, and answer/subtask-result substrings.
+Cases + tools live in `src/evals/subtask-cases.ts`, the runner in
+`src/evals/subtask-eval.ts`.
+
+```bash
+npm run dev:nodetool -- eval subtask --list
+npm run dev:nodetool -- eval subtask -p anthropic -m claude-sonnet-4-6
+npm run dev:nodetool -- eval subtask -p openai -m gpt-5.4-mini --cases all-tools
+IS_SANDBOX=1 npm run dev:nodetool -- eval subtask \
+  -p claude_agent_sdk -m sonnet --max-iterations 40 --no-find-model
+```
+
+Its cases do not use `find_model`, so `--no-find-model` does not skip them —
+the primary `-p` provider runs both the parent and every subtask. A low score
+with `subtasks=0` is a real finding, not a harness bug: a capable model often
+does trivial single-step work inline instead of delegating. Harness tests
+(scripted provider, no network): `tests/subtask-eval.test.ts`.
+
 ## Observing LLM Steps and Planning
 
 ### Execution Tree (CLI)
