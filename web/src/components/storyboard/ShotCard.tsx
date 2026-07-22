@@ -279,7 +279,13 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
               pulse={meta.pulse}
             />
             {!readOnly && (
-              <HoverActionGroup triggerSelector=".shot-card:hover" gap={0}>
+              <HoverActionGroup
+                triggerSelector=".shot-card:hover"
+                gap={0}
+                // Touch devices can't hover; keep the row actions (reorder,
+                // delete) visible there instead of hiding behind the reveal.
+                sx={{ "@media (pointer: coarse)": { opacity: 1 } }}
+              >
                 <ToolbarIconButton
                   icon={<ArrowUpwardIcon sx={{ fontSize: 16 }} />}
                   tooltip="Move up"

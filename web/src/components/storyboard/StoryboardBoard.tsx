@@ -101,6 +101,11 @@ const styles = (theme: Theme) =>
     display: "flex",
     flexDirection: "column",
     gap: getSpacingPx(SPACING.lg),
+    // Reclaim horizontal room for shots on phones.
+    [theme.breakpoints.down("sm")]: {
+      padding: getSpacingPx(SPACING.md),
+      gap: getSpacingPx(SPACING.md)
+    },
     // Children must keep their natural height so the container scrolls;
     // otherwise the header panel gets flex-shrunk under the grid.
     "> *": { flexShrink: 0 },

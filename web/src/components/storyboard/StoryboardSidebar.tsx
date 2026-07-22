@@ -48,6 +48,12 @@ const styles = (theme: Theme) =>
     height: "100%",
     overflowY: "auto",
     borderRight: `1px solid ${theme.vars.palette.divider}`,
+    // On phones the sidebar is a full-width pane behind a segmented switcher
+    // (see StoryboardSurface), not a fixed rail beside the board.
+    [theme.breakpoints.down("sm")]: {
+      width: "100%",
+      borderRight: "none"
+    },
     padding: getSpacingPx(SPACING.md),
     display: "flex",
     flexDirection: "column",
@@ -64,7 +70,11 @@ const styles = (theme: Theme) =>
       "&:hover": { backgroundColor: theme.vars.palette.action.hover },
       "&.active": { backgroundColor: theme.vars.palette.action.selected },
       ".delete-button": { opacity: 0, transition: MOTION.opacity },
-      "&:hover .delete-button": { opacity: 1 }
+      "&:hover .delete-button": { opacity: 1 },
+      // Touch devices have no hover; keep the delete affordance reachable.
+      "@media (pointer: coarse)": {
+        ".delete-button": { opacity: 1 }
+      }
     }
   });
 
