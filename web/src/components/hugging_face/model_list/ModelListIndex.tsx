@@ -156,7 +156,6 @@ const ModelListIndex: React.FC = () => {
   );
   const { activeWorker } = useWorkers();
   const workerName = activeWorker?.profile_name ?? activeWorker?.id ?? null;
-  const [visibleRange, setVisibleRange] = useState({ start: 0, stop: -1 });
   const { cacheStatuses, cachePending, cacheVersion, ensureStatuses } =
     useHfCacheStatusStore(
       useShallow((state) => ({
@@ -181,13 +180,13 @@ const ModelListIndex: React.FC = () => {
   const openDialog = useModelDownloadStore((state) => state.openDialog);
   const { getModelCompatibility } = useModelCompatibility();
 
-  const handleDeleteClick = (modelId: string) => {
+  const handleDeleteClick = useCallback((modelId: string) => {
     setModelToDelete(modelId);
-  };
+  }, []);
 
-  const handleCancelDelete = () => {
+  const handleCancelDelete = useCallback(() => {
     setModelToDelete(null);
-  };
+  }, []);
 
   const handleStartDownload = useCallback(
     (model: UnifiedModel) => {
@@ -300,28 +299,19 @@ const ModelListIndex: React.FC = () => {
   const lastVirtualIndex =
     virtualItems[virtualItems.length - 1]?.index ?? -1;
 
-  useEffect(() => {
-    setVisibleRange((prev) => {
-      if (prev.start === firstVirtualIndex && prev.stop === lastVirtualIndex) {
-        return prev;
-      }
-      return { start: firstVirtualIndex, stop: lastVirtualIndex };
-    });
-  }, [firstVirtualIndex, lastVirtualIndex]);
-
   const visibleModels = useMemo(() => {
-    if (visibleRange.stop < visibleRange.start) {
+    if (lastVirtualIndex < firstVirtualIndex) {
       return [];
     }
     const models: UnifiedModel[] = [];
-    for (let i = visibleRange.start; i <= visibleRange.stop; i += 1) {
+    for (let i = firstVirtualIndex; i <= lastVirtualIndex; i += 1) {
       const item = flattenedList[i];
       if (item?.type === "model") {
         models.push(item.model);
       }
     }
     return models;
-  }, [flattenedList, visibleRange]);
+  }, [flattenedList, firstVirtualIndex, lastVirtualIndex]);
 
   useEffect(() => {
     // The HF cache store scans the LOCAL filesystem; for the worker scope the
