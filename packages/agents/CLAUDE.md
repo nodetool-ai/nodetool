@@ -373,7 +373,7 @@ expectations, and the runner reports the same metrics as graph-planner
 predicates, tool-call budgets, no-error-results) — never an exact transcript,
 so many valid tool orderings pass.
 
-Six suites are registered, one per surface:
+Seven suites are registered, one per surface:
 
 | Suite | Tools | Bridge (`src/evals/`) |
 |---|---|---|
@@ -383,6 +383,7 @@ Six suites are registered, one per surface:
 | `timeline-tools` | `ui_timeline_*` | `surfaces/timeline.ts` |
 | `storyboard-tools` | `ui_storyboard_*` | `surfaces/storyboard.ts` |
 | `model3d-tools` | `ui_3d_*` | `surfaces/model3d.ts` |
+| `app-tools` | `ui_app_*` App Builder | `surfaces/app.ts` |
 
 Bridges reuse the pure packages where the real logic already lives —
 `@nodetool-ai/timeline` (`splitClip`, `ANIMATION_PRESETS`, subtitle assembly,
@@ -393,7 +394,10 @@ Browser-only tools (image/asset capture, WebGL viewport render) are scoped out:
 `ui_sketch_get_layer_image`, `ui_sketch_render_to_asset`,
 `ui_timeline_get_clip_frames`, `ui_3d_capture_view`. Storyboard cannot import
 `@nodetool-ai/llm-nodes` (it depends on `@nodetool-ai/agents`), so its
-generate/render jobs are faked by flipping shot status.
+generate/render jobs are faked by flipping shot status. The app-builder surface
+reimplements the Puck document ops (nested slot tree: top-level content plus
+slot-valued props on Panel/Columns) headlessly — the real ops live in
+`web/` (`puckDataOps.ts`), which a backend package can't import.
 
 ```bash
 npm run dev:nodetool -- eval timeline-tools --list
@@ -403,7 +407,7 @@ npm run dev:nodetool -- eval model3d-tools -p openai -m gpt-5.4-mini --min-succe
 ```
 
 Harness tests (scripted provider, no network): `tests/tool-loop-eval.test.ts`
-plus one per surface (`tests/{script,sketch,timeline,storyboard,model3d}-tool-loop.test.ts`).
+plus one per surface (`tests/{script,sketch,timeline,storyboard,model3d,app}-tool-loop.test.ts`).
 A live check against a local Ollama model runs when a daemon is reachable:
 `tests/tool-loop-eval.ollama.test.ts`.
 

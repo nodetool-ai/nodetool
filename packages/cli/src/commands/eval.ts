@@ -257,6 +257,11 @@ export const EVAL_SUITES: readonly EvalSuite[] = [
     "model3d-tools",
     "Run the 3D model-editor surface tool-loop eval suite (ui_3d_* tools) against a provider/model",
     "MODEL3D_TOOL_LOOP_CASES"
+  ),
+  makeToolLoopSuite(
+    "app-tools",
+    "Run the App Builder surface tool-loop eval suite (ui_app_* tools) against a provider/model",
+    "APP_TOOL_LOOP_CASES"
   )
 ];
 
