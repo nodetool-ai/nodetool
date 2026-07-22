@@ -264,8 +264,9 @@ export function useImageAssets(value: unknown): { assets: Asset[]; urls: string[
           // A bare asset ref carrying only `id` (no uri/data/bitmap). The
           // storage route serves by filename, so `/api/storage/<id>` with no
           // extension 404s. Build an `asset://<id>.<ext>` ref — extension from
-          // the item name, falling back to the content type — and resolve it
-          // the same way as `uri`.
+          // the item name, defaulting to `png` when the name has none (these
+          // grid items carry no mime, and png is the assumed content type) —
+          // and resolve it the same way as `uri`.
           const cleanName = (imageItem.name ?? "").split(/[?#]/)[0];
           const dot = cleanName.lastIndexOf(".");
           const ext =

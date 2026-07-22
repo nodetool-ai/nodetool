@@ -794,6 +794,27 @@ describe("output normalization", () => {
       await rm(root, { recursive: true, force: true });
     }
   });
+
+  it("materializes an asset whose uri is a slash-less `api/storage/<key>`", async () => {
+    // Regression: getAssetBytes must route the slash-less `api/storage/` form
+    // through resolveAssetBytes (InMemory/S3 reject the raw route), else the
+    // ref never materializes to a data URI.
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("pic.png", new Uint8Array([1, 2, 3]), "image/png");
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      assetOutputMode: "data_uri",
+      storage
+    });
+
+    const normalized = (await ctx.normalizeOutputValue({
+      image: { type: "image", uri: "api/storage/pic.png" }
+    })) as { image: { uri: string } };
+    expect(normalized.image.uri.startsWith("data:image/png;base64,")).toBe(true);
+    expect(normalized.image.uri).toContain(
+      Buffer.from([1, 2, 3]).toString("base64")
+    );
+  });
 });
 
 describe("FileStorageAdapter", () => {
@@ -885,6 +906,17 @@ describe("ProcessingContext.resolveAssetBytes", () => {
     const ctx = new ProcessingContext({ jobId: "j1", storage });
 
     const { bytes } = await ctx.resolveAssetBytes("/api/storage/abc.png");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([7, 8, 9]));
+  });
+
+  it("resolves the slash-less `api/storage/<key>` form too", async () => {
+    // Regression: the slash-less route (handled elsewhere) must strip to the
+    // bare key like the leading-slash form, not be treated as the whole id.
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("abc.png", new Uint8Array([7, 8, 9]), "image/png");
+    const ctx = new ProcessingContext({ jobId: "j1", storage });
+
+    const { bytes } = await ctx.resolveAssetBytes("api/storage/abc.png");
     expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([7, 8, 9]));
   });
 
