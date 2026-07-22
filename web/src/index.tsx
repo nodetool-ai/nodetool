@@ -75,6 +75,7 @@ const ProviderOnboardingDialog = React.lazy(
 
 import { installIpcLogBridge } from "./logging/ipcLogBridge";
 import MobileClassProvider from "./components/MobileClassProvider";
+import { registerAppRouter } from "./lib/appNavigation";
 import { SkipLinks } from "./components/ui_primitives";
 
 import ChatComposerLayout from "./components/chat/containers/ChatComposerLayout";
@@ -547,6 +548,9 @@ const handleHashRoute = () => {
 handleHashRoute();
 
 const router = createBrowserRouter(getRoutes());
+// Expose the router singleton to components rendered outside the router tree
+// (global dialogs), so they can navigate without the useNavigate hook.
+registerAppRouter(router);
 const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("Root element #root not found");
 const root = ReactDOM.createRoot(rootElement);

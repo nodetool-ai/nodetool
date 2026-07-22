@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
 import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
@@ -22,6 +21,7 @@ import {
 } from "../ui_primitives";
 import { useSecrets } from "../../hooks/useSecrets";
 import useProviderOnboardingStore from "../../stores/ProviderOnboardingStore";
+import { navigateTo } from "../../lib/appNavigation";
 import ollamaIcon from "../../icons/providers/ollama.svg";
 import ProviderOnboardingCard from "./ProviderOnboardingCard";
 import CostGuide from "./CostGuide";
@@ -69,7 +69,6 @@ const SectionHeading = ({
  */
 const ProviderOnboardingDialog: React.FC = () => {
   const theme = useTheme();
-  const navigate = useNavigate();
   const { open, capability, reason, highlightSecretKey, dismiss } =
     useProviderOnboardingStore(
       useShallow((s) => ({
@@ -106,8 +105,8 @@ const ProviderOnboardingDialog: React.FC = () => {
 
   const handleOpenSettings = useCallback(() => {
     dismiss();
-    navigate("/settings?tab=1");
-  }, [dismiss, navigate]);
+    navigateTo("/settings?tab=1");
+  }, [dismiss]);
 
   if (!open) {
     return null;
