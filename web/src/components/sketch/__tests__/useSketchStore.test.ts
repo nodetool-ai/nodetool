@@ -685,4 +685,24 @@ describe("useSketchStore", () => {
       }
     });
   });
+
+  describe("mobile panels sheet", () => {
+    it("starts closed", () => {
+      expect(useSketchStore.getState().mobilePanelsOpen).toBe(false);
+    });
+
+    it("toggles open and closed", () => {
+      act(() => useSketchStore.getState().toggleMobilePanels());
+      expect(useSketchStore.getState().mobilePanelsOpen).toBe(true);
+      act(() => useSketchStore.getState().toggleMobilePanels());
+      expect(useSketchStore.getState().mobilePanelsOpen).toBe(false);
+    });
+
+    it("sets open state directly", () => {
+      act(() => useSketchStore.getState().setMobilePanelsOpen(true));
+      expect(useSketchStore.getState().mobilePanelsOpen).toBe(true);
+      act(() => useSketchStore.getState().setMobilePanelsOpen(false));
+      expect(useSketchStore.getState().mobilePanelsOpen).toBe(false);
+    });
+  });
 });

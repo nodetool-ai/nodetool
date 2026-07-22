@@ -37,7 +37,8 @@ import {
   DisplayFrameCoordinator,
   useCanvasImperativeHandle,
   useTransformPreviewBridge,
-  useCanvasOrchestration
+  useCanvasOrchestration,
+  useCanvasTouchGestures
 } from "./sketchCanvasHooks";
 import { clientToDocumentCanvas } from "./tools/transform/handleGeometry";
 import type { StrokeEndOptions } from "./tools/types";
@@ -463,21 +464,53 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       ]
     );
 
+    // Two-finger pan / pinch-zoom. Runs before the drawing handlers and, once a
+    // pinch begins, consumes the touch events so a gesture never paints.
+    const touchGestures = useCanvasTouchGestures({
+      containerRef,
+      zoom,
+      pan,
+      onZoomChange,
+      onPanChange,
+      cancelDrawing: pointerHandlers.cancelDrawing
+    });
+
     const handlePointerMoveWithCoords = useCallback(
       (e: React.PointerEvent) => {
         lastPointerClientRef.current = { x: e.clientX, y: e.clientY };
+        if (touchGestures.onPointerMove(e)) {
+          return;
+        }
         pointerHandlers.handlePointerMove(e);
         updateCursorDocPosFromClient(e.clientX, e.clientY);
       },
-      [lastPointerClientRef, pointerHandlers, updateCursorDocPosFromClient]
+      [
+        lastPointerClientRef,
+        pointerHandlers,
+        touchGestures,
+        updateCursorDocPosFromClient
+      ]
     );
 
     const handlePointerDownWithClient = useCallback(
       (e: React.PointerEvent) => {
         lastPointerClientRef.current = { x: e.clientX, y: e.clientY };
+        if (touchGestures.onPointerDown(e)) {
+          return;
+        }
         pointerHandlers.handlePointerDown(e);
       },
-      [lastPointerClientRef, pointerHandlers]
+      [lastPointerClientRef, pointerHandlers, touchGestures]
+    );
+
+    const handlePointerUpWithGesture = useCallback(
+      (e: React.PointerEvent) => {
+        if (touchGestures.onPointerUp(e)) {
+          return;
+        }
+        pointerHandlers.handlePointerUp(e);
+      },
+      [pointerHandlers, touchGestures]
     );
 
     const handleMouseLeaveWithCoords = useCallback(() => {
@@ -517,7 +550,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         containerCursor={pointerHandlers.containerCursor}
         onPointerDown={handlePointerDownWithClient}
         onPointerMove={handlePointerMoveWithCoords}
-        onPointerUp={pointerHandlers.handlePointerUp}
+        onPointerUp={handlePointerUpWithGesture}
         onDoubleClick={pointerHandlers.handleDoubleClick}
         onPointerLeave={pointerHandlers.handlePointerLeave}
         onMouseLeave={handleMouseLeaveWithCoords}
