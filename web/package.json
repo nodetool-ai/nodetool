@@ -94,6 +94,8 @@
     "test:e2e-runner:headed": "playwright test -c playwright.e2e-runner.config.ts --headed",
     "test:debug-harness": "playwright test -c playwright.debug-harness.config.ts",
     "e2e-suite:prepare": "tsx tests/e2e-runner/prepareSuite.ts",
+    "test:smoke": "playwright test -c playwright.smoke.config.ts",
+    "typecheck:smoke": "tsc --noEmit -p tsconfig.smoke.json",
     "test:visual": "playwright test -c playwright.visual.config.ts",
     "test:visual:headed": "playwright test -c playwright.visual.config.ts --headed",
     "test:visual:update": "playwright test -c playwright.visual.config.ts --update-snapshots",
