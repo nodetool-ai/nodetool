@@ -223,6 +223,15 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
     const setMobilePanelsOpen = useSketchStore((s) => s.setMobilePanelsOpen);
     const setAssistantPanelOpen = useSketchStore((s) => s.setAssistantPanelOpen);
 
+    // The mobile panels sheet is a mobile-only surface. Clear its flag when the
+    // viewport grows to desktop (rotate/resize) so it doesn't silently reopen
+    // the next time the viewport shrinks back to mobile.
+    useEffect(() => {
+      if (!isMobile && mobilePanelsOpen) {
+        setMobilePanelsOpen(false);
+      }
+    }, [isMobile, mobilePanelsOpen, setMobilePanelsOpen]);
+
     // Register the agent bridge under this document's id so the `ui_sketch_*`
     // tools can address it whether or not this surface is focused. The session
     // store is the authority: a never-saved document has no id yet, and gains
