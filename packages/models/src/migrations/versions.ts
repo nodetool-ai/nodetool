@@ -1923,8 +1923,8 @@ export const migrations: MigrationDef[] = [
         )
       `);
       await db.execute(`
-        CREATE INDEX IF NOT EXISTS idx_thread_memory_thread
-        ON nodetool_thread_memories (thread_id)
+        CREATE INDEX IF NOT EXISTS idx_thread_memory_thread_created
+        ON nodetool_thread_memories (thread_id, created_at)
       `);
       await db.execute(`
         CREATE INDEX IF NOT EXISTS idx_thread_memory_user
@@ -1932,7 +1932,9 @@ export const migrations: MigrationDef[] = [
       `);
     },
     async down(db) {
-      await db.execute("DROP INDEX IF EXISTS idx_thread_memory_thread");
+      await db.execute(
+        "DROP INDEX IF EXISTS idx_thread_memory_thread_created"
+      );
       await db.execute("DROP INDEX IF EXISTS idx_thread_memory_user");
       await db.execute("DROP TABLE IF EXISTS nodetool_thread_memories");
     }

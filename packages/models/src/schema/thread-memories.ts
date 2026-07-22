@@ -23,7 +23,13 @@ export const threadMemories = sqliteTable(
     updated_at: text("updated_at").notNull()
   },
   (table) => [
-    index("idx_thread_memory_thread").on(table.thread_id),
+    // Primary access pattern: list a thread's memories newest-first. The
+    // composite (thread_id, created_at) lets the sidebar query resolve as an
+    // index range scan with no separate sort.
+    index("idx_thread_memory_thread_created").on(
+      table.thread_id,
+      table.created_at
+    ),
     index("idx_thread_memory_user").on(table.user_id)
   ]
 );
