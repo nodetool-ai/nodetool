@@ -110,6 +110,40 @@ function pinText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function obviouslyExceedsDefaultBudget(value: unknown): boolean {
+  let minimumBytes = 0;
+  const pending: unknown[] = [value];
+  const seen = new WeakSet<object>();
+
+  while (pending.length > 0) {
+    const current = pending.pop();
+    if (current == null) {
+      minimumBytes += 4;
+    } else if (typeof current === "string") {
+      // UTF-8 JSON needs at least one byte per UTF-16 code unit, plus quotes.
+      minimumBytes += current.length + 2;
+    } else if (typeof current === "number" || typeof current === "boolean") {
+      minimumBytes += 1;
+    } else if (typeof current === "object") {
+      if (ArrayBuffer.isView(current)) {
+        if (current.byteLength > MAX_DEFAULT_JSON_BYTES) return true;
+      }
+      if (seen.has(current)) continue;
+      seen.add(current);
+      const entries = Object.entries(current);
+      minimumBytes += entries.length * 2;
+      for (const [key, child] of entries) {
+        minimumBytes += key.length + 3;
+        pending.push(child);
+      }
+    }
+
+    if (minimumBytes > MAX_DEFAULT_JSON_BYTES) return true;
+  }
+
+  return false;
+}
+
 function safeDefault(
   value: unknown,
   nodeId: string,
@@ -117,6 +151,17 @@ function safeDefault(
   diagnostics: WorkflowInterfaceDiagnostic[]
 ): unknown {
   if (value === undefined) return null;
+
+  if (obviouslyExceedsDefaultBudget(value)) {
+    diagnostics.push({
+      severity: "warning",
+      code: "default_too_large",
+      message: `Default value for input '${pinName}' exceeds ${MAX_DEFAULT_JSON_BYTES} bytes and was omitted from discovery.`,
+      node_id: nodeId,
+      pin_name: pinName
+    });
+    return null;
+  }
 
   let json: string | undefined;
   try {

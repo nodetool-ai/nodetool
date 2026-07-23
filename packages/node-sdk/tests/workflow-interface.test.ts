@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   deriveWorkflowInterfaceV1,
   type NodeMetadata,
@@ -141,6 +141,34 @@ describe("deriveWorkflowInterfaceV1", () => {
     expect(result.inputs[0]?.default).toBeNull();
     expect(result.diagnostics).toContainEqual(expect.objectContaining({ code: "default_too_large", severity: "warning" }));
     expect(JSON.stringify(result)).not.toContain("x".repeat(100));
+  });
+
+  it("rejects oversized defaults before invoking custom JSON serialization", () => {
+    const nodeType = "nodetool.input.ImageInput";
+    const toJSON = vi.fn(() => {
+      throw new Error("large defaults must be rejected before serialization");
+    });
+    const result = deriveWorkflowInterfaceV1({
+      workflowId: "wf-large-preflight",
+      registry: registry([metadata(nodeType, "image")]),
+      graph: {
+        nodes: [{
+          id: "image",
+          type: nodeType,
+          data: {
+            name: "image",
+            value: { type: "image", data: "x".repeat(2_000_000), toJSON }
+          }
+        }],
+        edges: []
+      }
+    });
+
+    expect(toJSON).not.toHaveBeenCalled();
+    expect(result.inputs[0]?.default).toBeNull();
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "default_too_large" })
+    );
   });
 
   it("reports duplicate pin names and unresolved output sources", () => {
