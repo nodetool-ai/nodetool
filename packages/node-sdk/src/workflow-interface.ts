@@ -89,7 +89,7 @@ function cloneType(type: TypeMetadata): TypeMetadata {
   return {
     type: type.type,
     optional: type.optional ?? false,
-    values: type.values ? [...type.values] : undefined,
+    ...(type.values !== undefined ? { values: [...type.values] } : {}),
     type_args: (type.type_args ?? []).map(cloneType),
     type_name: type.type_name ?? null
   };
