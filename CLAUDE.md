@@ -427,7 +427,9 @@ npm run dev:nodetool -- affected --json
 
 ### nodetool workflows
 
-Requires a running server (localhost:7777 or `--api-url`).
+Reads and writes the local database directly — no running server needed. Pass
+`--api-url <url>` (or set `NODETOOL_API_URL`) to target a remote server instead.
+The same applies to `jobs`, `assets`, and `models list/ollama/huggingface`.
 
 ```bash
 npm run dev:nodetool -- workflows list                          # List all workflows
@@ -532,7 +534,10 @@ npm run dev:nodetool -- info --json
 
 ### Global Options
 
-Most server-calling commands accept `--api-url <url>` (default: `http://localhost:7777`, env: `NODETOOL_API_URL`).
+The read commands (`workflows`, `jobs`, `assets`, `models`) hit the local
+database, providers, and caches by default — no server required. Pass
+`--api-url <url>` (env: `NODETOOL_API_URL`) to route through a remote server
+instead.
 
 ### Observing Agent Execution
 

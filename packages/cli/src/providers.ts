@@ -23,8 +23,10 @@ import {
   isProviderConfigured,
   listRegisteredProviderIds,
   PythonProvider,
-  registerProvider
+  registerProvider,
+  RECOMMENDED_MODELS
 } from "@nodetool-ai/runtime";
+import { readCachedHfModels } from "@nodetool-ai/huggingface";
 import type { Chunk, UnifiedModel } from "@nodetool-ai/protocol";
 import { getSecret } from "@nodetool-ai/models";
 import type { WebSocketChatClient } from "./websocket-client.js";
@@ -314,6 +316,52 @@ export async function listProviderModels(
         toUnifiedModel(model, "embedding_model")
       );
   }
+}
+
+/**
+ * The full model catalog assembled locally, mirroring the server's
+ * `models.all` endpoint without a running server: the recommended models, the
+ * language models of every configured provider (tagged with tool support), and
+ * the locally cached HuggingFace repos. Provider and cache failures are skipped
+ * so one broken provider never sinks the whole list.
+ */
+export async function listAllModels(): Promise<UnifiedModel[]> {
+  const all: UnifiedModel[] = [...RECOMMENDED_MODELS];
+
+  const providers = await buildConfiguredProviders();
+  const perProvider = await Promise.all(
+    Object.values(providers).map(async (instance) => {
+      try {
+        const models = await instance.getAvailableLanguageModels();
+        const toolFlags = await Promise.all(
+          models.map((model) =>
+            instance.hasToolSupport(model.id).catch(() => null)
+          )
+        );
+        return models.map((model, index) => ({
+          ...toUnifiedModel(model, "language_model"),
+          supports_tools: toolFlags[index]
+        }));
+      } catch {
+        // Provider unavailable — skip it.
+        return [] as UnifiedModel[];
+      }
+    })
+  );
+  for (const models of perProvider) all.push(...models);
+
+  try {
+    all.push(...(await readCachedHfModels()));
+  } catch {
+    // HuggingFace cache unavailable — continue without it.
+  }
+
+  return all;
+}
+
+/** Ollama's locally installed language models, read straight from the daemon. */
+export async function listOllamaModels(): Promise<UnifiedModel[]> {
+  return listProviderModels("ollama", "llm");
 }
 
 /**
