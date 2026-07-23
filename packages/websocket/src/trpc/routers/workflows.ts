@@ -30,7 +30,10 @@ import type {
   Workflow as WorkflowModel,
   WorkflowVersion as WorkflowVersionModel
 } from "@nodetool-ai/models";
-import { loadPythonPackageMetadata } from "@nodetool-ai/node-sdk";
+import {
+  deriveWorkflowInterfaceV1,
+  loadPythonPackageMetadata
+} from "@nodetool-ai/node-sdk";
 import { createLogger } from "@nodetool-ai/config";
 import {
   loadExampleGraph,
@@ -66,6 +69,10 @@ import {
   terminalOutputsInput,
   terminalOutputsOutput,
   workflowResponse,
+  workflowInterfaceInput,
+  workflowInterfaceV1,
+  sdkWorkflowSummariesInput,
+  sdkWorkflowSummariesOutput,
   graph as graphSchema,
   sharingGetInput,
   sharingGetOutput,
@@ -424,6 +431,32 @@ function buildExampleWorkflows(
 // ── Router ─────────────────────────────────────────────────────────────────
 
 export const workflowsRouter = router({
+  sdkSummaries: protectedProcedure
+    .input(sdkWorkflowSummariesInput)
+    .output(sdkWorkflowSummariesOutput)
+    .query(async ({ ctx, input }) => {
+      if (process.env["NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1"] !== "1") {
+        throwApiError(
+          ApiErrorCode.SERVICE_UNAVAILABLE,
+          "SDK workflow interface v1 is disabled"
+        );
+      }
+      const [workflows, cursor] = await Workflow.paginateSummaries(ctx.userId, {
+        limit: input.limit,
+        startKey: input.cursor
+      });
+      return {
+        workflows: workflows.map((workflow) => ({
+          id: workflow.id,
+          name: workflow.name,
+          description: workflow.description,
+          revision: workflow.updated_at,
+          run_mode: workflow.run_mode
+        })),
+        next: cursor || null
+      };
+    }),
+
   // ── list (GET /api/workflows) ─────────────────────────────────────────────
   list: protectedProcedure
     .input(listInput)
@@ -432,7 +465,8 @@ export const workflowsRouter = router({
       const [workflows, cursor] = await Workflow.paginate(ctx.userId, {
         limit: input.limit,
         runMode: input.run_mode,
-        tag: input.tag
+        tag: input.tag,
+        startKey: input.cursor
       });
       let filtered = workflows;
       if (input.mediaOutput) {
@@ -457,6 +491,35 @@ export const workflowsRouter = router({
         "viewer"
       );
       return toWorkflowResponse(workflow);
+    }),
+
+  // SDK-only, versioned workflow contract. Existing workflow responses remain
+  // unchanged, and the flag lets deployments roll this out independently.
+  interface: protectedProcedure
+    .input(workflowInterfaceInput)
+    .output(workflowInterfaceV1)
+    .query(async ({ ctx, input }) => {
+      if (process.env["NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1"] !== "1") {
+        throwApiError(
+          ApiErrorCode.SERVICE_UNAVAILABLE,
+          "SDK workflow interface v1 is disabled"
+        );
+      }
+      const { workflow } = await requireWorkflowRole(
+        input.id,
+        ctx.userId,
+        "viewer"
+      );
+      const graph = safeGraph(workflow.id, workflow.graph);
+      if (!graph) {
+        throwApiError(ApiErrorCode.INVALID_INPUT, "Workflow graph is invalid");
+      }
+      return deriveWorkflowInterfaceV1({
+        workflowId: workflow.id,
+        etag: workflow.getEtag() ?? null,
+        graph,
+        registry: ctx.registry
+      });
     }),
 
   // ── create (POST /api/workflows) ─────────────────────────────────────────

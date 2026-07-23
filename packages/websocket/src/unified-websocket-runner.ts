@@ -4,7 +4,10 @@ import { pathToFileURL } from "node:url";
 import { getSecret } from "@nodetool-ai/models";
 import { getSetting } from "./settings-registry.js";
 import { JobConcurrencyQueue } from "./job-queue.js";
-import { pack, unpack } from "msgpackr";
+import {
+  packWebSocketMessage,
+  unpackWebSocketMessage
+} from "./messagepack.js";
 import {
   createLogger,
   getDefaultAssetsPath,
@@ -1865,7 +1868,7 @@ export class UnifiedWebSocketRunner {
         return;
       }
       if (mode === "binary") {
-        await websocket.sendBytes(pack(payload));
+        await websocket.sendBytes(packWebSocketMessage(payload));
       } else {
         await websocket.sendText(JSON.stringify(payload));
       }
@@ -1891,7 +1894,7 @@ export class UnifiedWebSocketRunner {
             `(set NODETOOL_WS_MAX_MESSAGE_BYTES to raise the limit)`
         );
       }
-      return unpack(message.bytes) as Record<string, unknown>;
+      return unpackWebSocketMessage(message.bytes) as Record<string, unknown>;
     }
     if (message.text) {
       const maxBytes = getMaxWsMessageBytes();

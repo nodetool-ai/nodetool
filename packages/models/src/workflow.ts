@@ -19,6 +19,14 @@ export interface WorkflowGraph {
   edges: Record<string, unknown>[];
 }
 
+export interface WorkflowSummary {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly updated_at: string;
+  readonly run_mode: string | null;
+}
+
 function ensureSqlCondition(condition: SQL<unknown> | undefined): SQL<unknown> {
   if (!condition) {
     throw new Error("Expected SQL condition");
@@ -189,6 +197,71 @@ export class Workflow extends DBModel {
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";
     return [items, cursor];
+  }
+
+  /**
+   * Lists workflow identity fields without selecting or parsing graph JSON.
+   * `updated_at` is the lightweight discovery revision; the authoritative
+   * graph-derived etag is returned by the workflow-interface endpoint.
+   */
+  static async paginateSummaries(
+    userId: string,
+    opts: { limit?: number; startKey?: string } = {}
+  ): Promise<[WorkflowSummary[], string]> {
+    const { limit = 50, startKey } = opts;
+    const db = getDb();
+    const conditions = [eq(workflows.user_id, userId)];
+
+    if (startKey) {
+      const [cursor] = await db
+        .select({ id: workflows.id, updated_at: workflows.updated_at })
+        .from(workflows)
+        .where(
+          and(eq(workflows.id, startKey), eq(workflows.user_id, userId))
+        )
+        .limit(1);
+      if (cursor) {
+        conditions.push(
+          ensureSqlCondition(
+            or(
+              lt(workflows.updated_at, cursor.updated_at),
+              and(
+                eq(workflows.updated_at, cursor.updated_at),
+                lt(workflows.id, cursor.id)
+              )
+            )
+          )
+        );
+      }
+    }
+
+    conditions.push(
+      ensureSqlCondition(
+        or(
+          eq(workflows.run_mode, "workflow"),
+          eq(workflows.run_mode, "layer"),
+          eq(workflows.run_mode, "clip"),
+          isNull(workflows.run_mode)
+        )
+      )
+    );
+
+    const rows = await db
+      .select({
+        id: workflows.id,
+        name: workflows.name,
+        description: workflows.description,
+        updated_at: workflows.updated_at,
+        run_mode: workflows.run_mode
+      })
+      .from(workflows)
+      .where(and(...conditions))
+      .orderBy(desc(workflows.updated_at), desc(workflows.id))
+      .limit(limit + 1);
+
+    const hasNext = rows.length > limit;
+    const items = hasNext ? rows.slice(0, limit) : rows;
+    return [items, hasNext ? (items.at(-1)?.id ?? "") : ""];
   }
 
   static async paginatePublic(

@@ -144,6 +144,38 @@ describe("http-api extra: workflows root + by-id branches", () => {
     expect(data.workflows.map((w) => w.name)).not.toContain("PlainWF");
   });
 
+  it("GET /api/workflows advances past the supplied cursor", async () => {
+    await makeWorkflow({ user_id: "user-1", name: "Oldest" });
+    await makeWorkflow({ user_id: "user-1", name: "Middle" });
+    await makeWorkflow({ user_id: "user-1", name: "Newest" });
+
+    const first = await app.inject({
+      method: "GET",
+      url: "/api/workflows?limit=1",
+      headers: { "x-user-id": "user-1" }
+    });
+    const firstPage = first.json() as {
+      workflows: Array<{ id: string }>;
+      next: string;
+    };
+    expect(firstPage.workflows).toHaveLength(1);
+    expect(firstPage.next).toBeTruthy();
+
+    const second = await app.inject({
+      method: "GET",
+      url: `/api/workflows?limit=1&cursor=${encodeURIComponent(firstPage.next)}`,
+      headers: { "x-user-id": "user-1" }
+    });
+    const secondPage = second.json() as {
+      workflows: Array<{ id: string }>;
+      next: string | null;
+    };
+
+    expect(second.statusCode).toBe(200);
+    expect(secondPage.workflows).toHaveLength(1);
+    expect(secondPage.workflows[0]?.id).not.toBe(firstPage.workflows[0]?.id);
+  });
+
   it("DELETE /api/workflows/:id returns 405 for an unsupported method", async () => {
     const wf = await makeWorkflow({ user_id: "user-1" });
     const res = await app.inject({

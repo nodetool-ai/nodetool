@@ -63,7 +63,7 @@ import fastifyWebSocket from "@fastify/websocket";
 import fastifyCors from "@fastify/cors";
 import fastifyRateLimit from "@fastify/rate-limit";
 import fastifyStatic from "@fastify/static";
-import { pack } from "msgpackr";
+import { packWebSocketMessage } from "./messagepack.js";
 import { SupabaseAuthProvider, LocalAuthProvider } from "@nodetool-ai/auth";
 import {
   fastifyTRPCPlugin,
@@ -175,7 +175,7 @@ async function broadcastResourceChange(
     resource: Record<string, unknown>;
   }
 ): Promise<void> {
-  const message = pack({
+  const message = packWebSocketMessage({
     type: "resource_change",
     ...change
   });

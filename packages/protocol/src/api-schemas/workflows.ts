@@ -142,6 +142,78 @@ export const workflowResponse = z.object({
 });
 export type WorkflowResponse = z.infer<typeof workflowResponse>;
 
+// ── SDK workflow interface v1 ──────────────────────────────────────────────
+
+export const workflowInterfaceType = dynamicOutputTypeMetadata;
+
+export const workflowInterfaceDiagnostic = z.object({
+  severity: z.enum(["warning", "error"]),
+  code: z.string(),
+  message: z.string(),
+  node_id: z.string().optional(),
+  pin_name: z.string().optional()
+});
+
+const workflowInterfacePin = z.object({
+  node_id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  type: workflowInterfaceType
+});
+
+export const workflowInterfaceInputPin = workflowInterfacePin.extend({
+  required: z.boolean(),
+  default: z.json(),
+  min: z.number().optional(),
+  max: z.number().optional()
+});
+
+export const workflowInterfaceOutputPin = workflowInterfacePin.extend({
+  stream: z.boolean()
+});
+
+export const workflowInterfaceV1 = z.object({
+  version: z.literal(1),
+  workflow_id: z.string(),
+  etag: z.string().nullable(),
+  source: z.literal("server"),
+  inputs: z.array(workflowInterfaceInputPin),
+  outputs: z.array(workflowInterfaceOutputPin),
+  diagnostics: z.array(workflowInterfaceDiagnostic)
+});
+export type WorkflowInterfaceV1Response = z.infer<typeof workflowInterfaceV1>;
+
+export const workflowInterfaceInput = z.object({
+  id: z.string().min(1),
+  version: z.literal(1)
+});
+export type WorkflowInterfaceInput = z.infer<typeof workflowInterfaceInput>;
+
+export const sdkWorkflowSummariesInput = z.object({
+  limit: z.number().int().min(1).max(100).default(50),
+  cursor: z.string().optional()
+});
+export type SdkWorkflowSummariesInput = z.infer<
+  typeof sdkWorkflowSummariesInput
+>;
+
+export const sdkWorkflowSummary = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  revision: z.string(),
+  run_mode: z.string().nullable()
+});
+export type SdkWorkflowSummary = z.infer<typeof sdkWorkflowSummary>;
+
+export const sdkWorkflowSummariesOutput = z.object({
+  workflows: z.array(sdkWorkflowSummary),
+  next: z.string().nullable()
+});
+export type SdkWorkflowSummariesOutput = z.infer<
+  typeof sdkWorkflowSummariesOutput
+>;
+
 // ── list (GET /api/workflows) ─────────────────────────────────────────────────
 
 export const listInput = z.object({

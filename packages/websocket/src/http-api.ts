@@ -1564,11 +1564,12 @@ export async function handleWorkflowsRoot(
   if (request.method === "GET") {
     const limit = parseLimit(url, 100);
     const runMode = url.searchParams.get("run_mode")?.trim() ?? undefined;
-    // cursor and columns params accepted for Python parity (cursor ignored in memory adapter)
-    // columns param is Python-specific (column selection) — ignored here
+    const startKey = url.searchParams.get("cursor")?.trim() || undefined;
+    // columns is Python-specific (column selection) and is ignored here.
     const [workflows, cursor] = await Workflow.paginate(userId, {
       limit,
-      runMode
+      runMode,
+      startKey
     });
     return jsonResponse({
       workflows: workflows.map((w) => toWorkflowResponse(w)),
