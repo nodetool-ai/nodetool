@@ -260,7 +260,11 @@ export class Workflow extends DBModel {
       .limit(limit + 1);
 
     const hasNext = rows.length > limit;
-    const items = hasNext ? rows.slice(0, limit) : rows;
+    const selectedRows = hasNext ? rows.slice(0, limit) : rows;
+    const items = selectedRows.map((row) => ({
+      ...row,
+      description: row.description ?? ""
+    }));
     return [items, hasNext ? (items.at(-1)?.id ?? "") : ""];
   }
 

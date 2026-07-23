@@ -30,10 +30,7 @@ import type {
   Workflow as WorkflowModel,
   WorkflowVersion as WorkflowVersionModel
 } from "@nodetool-ai/models";
-import {
-  deriveWorkflowInterfaceV1,
-  loadPythonPackageMetadata
-} from "@nodetool-ai/node-sdk";
+import { loadPythonPackageMetadata } from "@nodetool-ai/node-sdk";
 import { createLogger } from "@nodetool-ai/config";
 import {
   loadExampleGraph,
@@ -44,6 +41,11 @@ import { ApiErrorCode } from "../../error-codes.js";
 import { router, publicProcedure } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
+import {
+  getWorkflowInterfaceV1,
+  listWorkflowSummariesV1,
+  WorkflowInterfaceServiceError
+} from "../../workflow-interface-service.js";
 import {
   listInput,
   listOutput,
@@ -92,6 +94,19 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
 const log = createLogger("nodetool.websocket.trpc.workflows");
+
+function throwWorkflowInterfaceError(error: unknown): never {
+  if (!(error instanceof WorkflowInterfaceServiceError)) {
+    throw error;
+  }
+  if (error.code === "feature_disabled") {
+    throwApiError(ApiErrorCode.SERVICE_UNAVAILABLE, error.message);
+  }
+  if (error.code === "workflow_not_found") {
+    throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, error.message);
+  }
+  throwApiError(ApiErrorCode.INVALID_INPUT, error.message);
+}
 
 /**
  * The caller's effective role on a workflow:
@@ -435,26 +450,25 @@ export const workflowsRouter = router({
     .input(sdkWorkflowSummariesInput)
     .output(sdkWorkflowSummariesOutput)
     .query(async ({ ctx, input }) => {
-      if (process.env["NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1"] !== "1") {
-        throwApiError(
-          ApiErrorCode.SERVICE_UNAVAILABLE,
-          "SDK workflow interface v1 is disabled"
-        );
+      try {
+        const result = await listWorkflowSummariesV1({
+          userId: ctx.userId,
+          limit: input.limit,
+          ...(input.cursor ? { cursor: input.cursor } : {})
+        });
+        return {
+          workflows: result.workflows.map((workflow) => ({
+            id: workflow.id,
+            name: workflow.name,
+            description: workflow.description,
+            revision: workflow.updated_at,
+            run_mode: workflow.run_mode
+          })),
+          next: result.next
+        };
+      } catch (error) {
+        throwWorkflowInterfaceError(error);
       }
-      const [workflows, cursor] = await Workflow.paginateSummaries(ctx.userId, {
-        limit: input.limit,
-        startKey: input.cursor
-      });
-      return {
-        workflows: workflows.map((workflow) => ({
-          id: workflow.id,
-          name: workflow.name,
-          description: workflow.description,
-          revision: workflow.updated_at,
-          run_mode: workflow.run_mode
-        })),
-        next: cursor || null
-      };
     }),
 
   // ── list (GET /api/workflows) ─────────────────────────────────────────────
@@ -499,27 +513,15 @@ export const workflowsRouter = router({
     .input(workflowInterfaceInput)
     .output(workflowInterfaceV1)
     .query(async ({ ctx, input }) => {
-      if (process.env["NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1"] !== "1") {
-        throwApiError(
-          ApiErrorCode.SERVICE_UNAVAILABLE,
-          "SDK workflow interface v1 is disabled"
-        );
+      try {
+        return await getWorkflowInterfaceV1({
+          workflowId: input.id,
+          userId: ctx.userId,
+          registry: ctx.registry
+        });
+      } catch (error) {
+        throwWorkflowInterfaceError(error);
       }
-      const { workflow } = await requireWorkflowRole(
-        input.id,
-        ctx.userId,
-        "viewer"
-      );
-      const graph = safeGraph(workflow.id, workflow.graph);
-      if (!graph) {
-        throwApiError(ApiErrorCode.INVALID_INPUT, "Workflow graph is invalid");
-      }
-      return deriveWorkflowInterfaceV1({
-        workflowId: workflow.id,
-        etag: workflow.getEtag() ?? null,
-        graph,
-        registry: ctx.registry
-      });
     }),
 
   // ── create (POST /api/workflows) ─────────────────────────────────────────

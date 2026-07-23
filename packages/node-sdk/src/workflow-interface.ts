@@ -137,7 +137,8 @@ function safeDefault(
     });
     return null;
   }
-  return value;
+  const normalized: unknown = JSON.parse(json);
+  return normalized;
 }
 
 function outputTypeForNode(

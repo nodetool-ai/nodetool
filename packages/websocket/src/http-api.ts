@@ -36,6 +36,11 @@ import {
   NodeRegistry
 } from "@nodetool-ai/node-sdk";
 import type { GraphData } from "@nodetool-ai/protocol";
+import {
+  sdkWorkflowSummariesInput,
+  sdkWorkflowSummariesOutput,
+  workflowInterfaceV1
+} from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
   PythonNodeExecutor,
@@ -69,6 +74,11 @@ import {
   importWorkflowBundle,
   type BundledWorkflow
 } from "./lib/workflow-bundle.js";
+import {
+  getWorkflowInterfaceV1,
+  listWorkflowSummariesV1,
+  WorkflowInterfaceServiceError
+} from "./workflow-interface-service.js";
 
 const log = createLogger("nodetool.websocket.http");
 
@@ -1607,6 +1617,112 @@ export async function handleWorkflowsRoot(
   return errorResponse(405, "Method not allowed");
 }
 
+function workflowInterfaceErrorResponse(error: unknown): Response {
+  if (!(error instanceof WorkflowInterfaceServiceError)) {
+    throw error;
+  }
+  if (error.code === "feature_disabled") {
+    return jsonResponse(
+      { code: "SDK_WORKFLOW_INTERFACE_DISABLED", detail: error.message },
+      { status: 503 }
+    );
+  }
+  if (error.code === "workflow_not_found") {
+    return jsonResponse(
+      { code: "WORKFLOW_NOT_FOUND", detail: error.message },
+      { status: 404 }
+    );
+  }
+  return jsonResponse(
+    { code: "INVALID_WORKFLOW_GRAPH", detail: error.message },
+    { status: 422 }
+  );
+}
+
+export async function handleSdkWorkflowSummaries(
+  request: Request,
+  options: HttpApiOptions
+): Promise<Response> {
+  if (request.method !== "GET") {
+    return errorResponse(405, "Method not allowed");
+  }
+  const url = new URL(request.url);
+  const parsed = sdkWorkflowSummariesInput.safeParse({
+    ...(url.searchParams.has("limit")
+      ? { limit: Number(url.searchParams.get("limit")) }
+      : {}),
+    ...(url.searchParams.get("cursor")
+      ? { cursor: url.searchParams.get("cursor") }
+      : {})
+  });
+  if (!parsed.success) {
+    return jsonResponse(
+      { code: "INVALID_INPUT", detail: "Invalid workflow summary query" },
+      { status: 400 }
+    );
+  }
+  try {
+    const result = await listWorkflowSummariesV1({
+      userId: getUserId(request, options.userIdHeader ?? "x-user-id"),
+      limit: parsed.data.limit,
+      ...(parsed.data.cursor ? { cursor: parsed.data.cursor } : {})
+    });
+    return jsonResponse(
+      sdkWorkflowSummariesOutput.parse({
+        workflows: result.workflows.map((workflow) => ({
+          id: workflow.id,
+          name: workflow.name,
+          description: workflow.description,
+          revision: workflow.updated_at,
+          run_mode: workflow.run_mode
+        })),
+        next: result.next
+      })
+    );
+  } catch (error) {
+    return workflowInterfaceErrorResponse(error);
+  }
+}
+
+export async function handleWorkflowInterface(
+  request: Request,
+  workflowId: string,
+  options: HttpApiOptions
+): Promise<Response> {
+  if (request.method !== "GET") {
+    return errorResponse(405, "Method not allowed");
+  }
+  const url = new URL(request.url);
+  if (url.searchParams.get("version") !== "1") {
+    return jsonResponse(
+      {
+        code: "UNSUPPORTED_WORKFLOW_INTERFACE_VERSION",
+        detail: "Workflow interface version 1 is required"
+      },
+      { status: 400 }
+    );
+  }
+  if (process.env["NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1"] !== "1") {
+    return workflowInterfaceErrorResponse(
+      new WorkflowInterfaceServiceError(
+        "feature_disabled",
+        "SDK workflow interface v1 is disabled"
+      )
+    );
+  }
+  const registry = options.registry ?? (await getWorkflowRuntimeEnvironment(options)).registry;
+  try {
+    const result = await getWorkflowInterfaceV1({
+      workflowId,
+      userId: getUserId(request, options.userIdHeader ?? "x-user-id"),
+      registry
+    });
+    return jsonResponse(workflowInterfaceV1.parse(result));
+  } catch (error) {
+    return workflowInterfaceErrorResponse(error);
+  }
+}
+
 export async function handlePublicWorkflows(
   request: Request
 ): Promise<Response> {
@@ -2011,6 +2127,10 @@ export async function handleApiRequest(
     return handleWorkflowsRoot(request, options);
   }
 
+  if (pathname === "/api/sdk/v1/workflows") {
+    return handleSdkWorkflowSummaries(request, options);
+  }
+
   if (pathname === "/api/workflows/names") {
     if (request.method !== "GET")
       return errorResponse(405, "Method not allowed");
@@ -2086,6 +2206,9 @@ export async function handleApiRequest(
       }
       if (subPath === "dsl-export") {
         return handleWorkflowDslExport(request, workflowId, options);
+      }
+      if (subPath === "interface") {
+        return handleWorkflowInterface(request, workflowId, options);
       }
       if (subPath === "export-bundle") {
         return handleWorkflowExportBundle(request, workflowId, options);

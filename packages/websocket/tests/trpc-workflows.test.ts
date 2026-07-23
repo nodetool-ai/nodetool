@@ -397,8 +397,7 @@ describe("workflows router", () => {
         next: "next-id"
       });
       expect(Workflow.paginateSummaries).toHaveBeenCalledWith("user-1", {
-        limit: 25,
-        startKey: undefined
+        limit: 25
       });
     });
   });

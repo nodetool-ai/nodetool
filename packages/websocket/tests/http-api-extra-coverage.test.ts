@@ -10,8 +10,19 @@ import {
   vi
 } from "vitest";
 import Fastify, { type FastifyInstance } from "fastify";
+
+vi.mock("@nodetool-ai/node-sdk", async (orig) => ({
+  ...(await orig<typeof import("@nodetool-ai/node-sdk")>()),
+  deriveWorkflowInterfaceV1: (
+    await import("../../node-sdk/src/workflow-interface.js")
+  ).deriveWorkflowInterfaceV1
+}));
+
 import { initTestDb, Workflow, Job, Asset } from "@nodetool-ai/models";
-import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import {
+  NodeRegistry,
+  type NodeMetadata
+} from "@nodetool-ai/node-sdk";
 import {
   handleApiRequest,
   handleAssetsRoot,
@@ -106,6 +117,7 @@ describe("http-api extra: workflows root + by-id branches", () => {
     app = await makeApp();
   });
   afterEach(async () => {
+    vi.unstubAllEnvs();
     await app.close();
   });
 
@@ -174,6 +186,129 @@ describe("http-api extra: workflows root + by-id branches", () => {
     expect(second.statusCode).toBe(200);
     expect(secondPage.workflows).toHaveLength(1);
     expect(secondPage.workflows[0]?.id).not.toBe(firstPage.workflows[0]?.id);
+  });
+
+  it("GET /api/sdk/v1/workflows excludes graph and inline media data", async () => {
+    vi.stubEnv("NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
+    await makeWorkflow({
+      name: "Large workflow",
+      description: "Small summary",
+      graph: {
+        nodes: [
+          {
+            id: "image",
+            type: "nodetool.input.ImageInput",
+            properties: {
+              value: { type: "image", data: "x".repeat(100_000) }
+            }
+          }
+        ],
+        edges: []
+      }
+    });
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/sdk/v1/workflows?limit=25",
+      headers: { "x-user-id": "user-1" }
+    });
+    const body = response.body;
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      workflows: [
+        {
+          name: "Large workflow",
+          description: "Small summary",
+          run_mode: "workflow"
+        }
+      ],
+      next: null
+    });
+    expect(body).not.toContain("nodes");
+    expect(body).not.toContain("x".repeat(100));
+  });
+
+  it("returns a stable REST error when SDK discovery is disabled", async () => {
+    vi.stubEnv("NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/sdk/v1/workflows",
+      headers: { "x-user-id": "user-1" }
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({
+      code: "SDK_WORKFLOW_INTERFACE_DISABLED",
+      detail: "SDK workflow interface v1 is disabled"
+    });
+  });
+
+  it("GET /api/workflows/:id/interface returns the compact v1 contract", async () => {
+    vi.stubEnv("NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
+    const nodeType = "nodetool.input.StringInput";
+    const metadata: NodeMetadata = {
+      title: "String Input",
+      description: "",
+      namespace: "nodetool.input",
+      node_type: nodeType,
+      properties: [],
+      outputs: [
+        {
+          name: "output",
+          type: { type: "str", optional: false, type_args: [] }
+        }
+      ]
+    };
+    const registry = new NodeRegistry({
+      metadataByType: new Map([[nodeType, metadata]])
+    });
+    await app.close();
+    app = await makeApp({ registry });
+    const workflow = await makeWorkflow({
+      graph: {
+        nodes: [
+          {
+            id: "input",
+            type: nodeType,
+            properties: { name: "prompt", value: "hello" }
+          },
+          {
+            id: "output",
+            type: "nodetool.output.Output",
+            properties: { name: "text" }
+          }
+        ],
+        edges: [
+          {
+            id: "edge",
+            source: "input",
+            sourceHandle: "output",
+            target: "output",
+            targetHandle: "value"
+          }
+        ]
+      }
+    });
+
+    const response = await app.inject({
+      method: "GET",
+      url: `/api/workflows/${workflow.id}/interface?version=1`,
+      headers: { "x-user-id": "user-1" }
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      version: 1,
+      workflow_id: workflow.id,
+      source: "server",
+      inputs: [{ node_id: "input", name: "prompt", default: "hello" }],
+      outputs: [{ node_id: "output", name: "text" }],
+      diagnostics: []
+    });
+    expect(response.body).not.toContain("edges");
+    expect(response.body).not.toContain("properties");
   });
 
   it("DELETE /api/workflows/:id returns 405 for an unsupported method", async () => {

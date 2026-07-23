@@ -153,6 +153,12 @@ function isPublicWorkflowMetadataRequest(
   if (pathname === "/api/workflows/names" || pathname === "/api/workflows/tools") {
     return true;
   }
+  if (pathname === "/api/sdk/v1/workflows") {
+    return true;
+  }
+  if (/^\/api\/workflows\/[^/]+\/interface$/.test(pathname)) {
+    return true;
+  }
   if (/^\/api\/workflows\/[^/]+\/dsl-export$/.test(pathname)) {
     return true;
   }
