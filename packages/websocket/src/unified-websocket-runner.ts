@@ -2850,10 +2850,15 @@ export class UnifiedWebSocketRunner {
       const job = (await Job.get(jobId)) as Job | null;
       await this.sendMessage({
         type: "job_update",
-        status: job?.status ?? "completed",
+        status: job?.status ?? "failed",
         job_id: jobId,
         workflow_id: workflowId ?? job?.workflow_id ?? null,
-        ...(job ? {} : { error: `Job ${jobId} not found` })
+        ...(job?.status === "completed" ? { result: { outputs: {} } } : {}),
+        ...(job
+          ? job.error
+            ? { error: job.error }
+            : {}
+          : { error: `Job ${jobId} not found` })
       });
       return;
     }

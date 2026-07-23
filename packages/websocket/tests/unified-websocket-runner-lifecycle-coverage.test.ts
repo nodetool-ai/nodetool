@@ -434,6 +434,26 @@ describe("UnifiedWebSocketRunner lifecycle — job status/cancel/reconnect", () 
     ).toBe(true);
     await expect(runner.resumeJob("missing")).resolves.toBeUndefined();
   });
+
+  it("reconnectJob gives completed persisted jobs a terminal result shape", async () => {
+    await Job.create({
+      id: "completed-job",
+      workflow_id: "wf",
+      user_id: "1",
+      status: "completed"
+    });
+
+    await runner.reconnectJob("completed-job");
+
+    expect(decodeAll(ws)).toContainEqual(
+      expect.objectContaining({
+        type: "job_update",
+        status: "completed",
+        job_id: "completed-job",
+        result: { outputs: {} }
+      })
+    );
+  });
 });
 
 describe("UnifiedWebSocketRunner lifecycle — sendMessage encoding", () => {
