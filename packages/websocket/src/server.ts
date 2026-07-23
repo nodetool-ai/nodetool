@@ -20,9 +20,11 @@ import {
   getPostgresDatabaseUrl,
   loadEnvironment
 } from "@nodetool-ai/config";
-import type { NodeMetadata } from "@nodetool-ai/node-sdk";
 import { registerTransformersJsProvider } from "@nodetool-ai/transformers-js-provider";
-import { bootstrapNodeRegistry } from "./node-registry-setup.js";
+import {
+  bootstrapNodeRegistry,
+  mergePythonBridgeMetadata
+} from "./node-registry-setup.js";
 import { corsOriginDelegate } from "./cors.js";
 import { zipExtensionDist } from "./lib/extension-dist.js";
 import {
@@ -1026,27 +1028,9 @@ await app.register(websocketPlugin, {
     pythonBridgeReady = true;
     log.info(`Python bridge lazy start completed [${startupMs()}]`);
     const meta = pythonBridge.getNodeMetadata();
-    // Register Python bridge nodes — skip those already loaded from JSON metadata
-    let bridgeOnly = 0;
-    for (const nodeMeta of meta) {
-      if (!nodeMeta.node_type) continue;
-      if (registry.getMetadata(nodeMeta.node_type)) continue;
-      bridgeOnly++;
-      registry.loadMetadata(nodeMeta.node_type, {
-        ...(nodeMeta as unknown as NodeMetadata),
-        namespace: nodeMeta.node_type.split(".").slice(0, -1).join("."),
-        layout: "default",
-        recommended_models: nodeMeta.recommended_models ?? [],
-        required_settings: nodeMeta.required_settings ?? [],
-        // Python worker still emits `is_dynamic` on the stdio wire; map it to
-        // the protocol's `supports_dynamic_inputs`.
-        supports_dynamic_inputs: nodeMeta.is_dynamic ?? false,
-        is_streaming_output: nodeMeta.is_streaming_output ?? false,
-        supports_dynamic_outputs: false
-      });
-    }
+    const mergeResult = mergePythonBridgeMetadata(registry, meta);
     log.info(
-      `Python bridge connected [${startupMs()}] — ${meta.length} Python nodes (${bridgeOnly} bridge-only, ${meta.length - bridgeOnly} from JSON)`
+      `Python bridge connected [${startupMs()}] — ${mergeResult.total} Python nodes (${mergeResult.bridgeOnly} bridge-only, ${mergeResult.alreadyKnown} already registered)`
     );
     (
       pythonBridge as {
@@ -1353,26 +1337,9 @@ if (pythonBridge.isAvailable()) {
       pythonBridgeReady = true;
       log.info(`Python bridge eager start completed [${startupMs()}]`);
       const meta = pythonBridge.getNodeMetadata();
-      let bridgeOnly = 0;
-      for (const nodeMeta of meta) {
-        if (!nodeMeta.node_type) continue;
-        if (registry.getMetadata(nodeMeta.node_type)) continue;
-        bridgeOnly++;
-        registry.loadMetadata(nodeMeta.node_type, {
-          ...(nodeMeta as unknown as NodeMetadata),
-          namespace: nodeMeta.node_type.split(".").slice(0, -1).join("."),
-          layout: "default",
-          recommended_models: nodeMeta.recommended_models ?? [],
-          required_settings: nodeMeta.required_settings ?? [],
-          // Python worker still emits `is_dynamic` on the stdio wire; map it to
-          // the protocol's `supports_dynamic_inputs`.
-          supports_dynamic_inputs: nodeMeta.is_dynamic ?? false,
-          is_streaming_output: nodeMeta.is_streaming_output ?? false,
-          supports_dynamic_outputs: false
-        });
-      }
+      const mergeResult = mergePythonBridgeMetadata(registry, meta);
       log.info(
-        `Python bridge connected [${startupMs()}] — ${meta.length} Python nodes (${bridgeOnly} bridge-only, ${meta.length - bridgeOnly} from JSON)`
+        `Python bridge connected [${startupMs()}] — ${mergeResult.total} Python nodes (${mergeResult.bridgeOnly} bridge-only, ${mergeResult.alreadyKnown} already registered)`
       );
       (
         pythonBridge as {

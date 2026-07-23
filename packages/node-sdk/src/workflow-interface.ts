@@ -342,7 +342,42 @@ export function deriveWorkflowInterfaceV1(args: {
         const edge = incoming[0]!;
         const source = typeof edge.source === "string" ? nodesById.get(edge.source) : undefined;
         const handle = String(edge.sourceHandle ?? edge.source_handle ?? "");
-        if (source && handle) resolved = outputTypeForNode(source, handle, args.registry);
+        if (!source) {
+          diagnostics.push({
+            severity: "error",
+            code: "missing_source_node",
+            message: `Workflow output '${name}' references a source node that is not present in the graph.`,
+            node_id: nodeId,
+            pin_name: name
+          });
+        } else if (!handle) {
+          diagnostics.push({
+            severity: "error",
+            code: "missing_source_handle",
+            message: `Workflow output '${name}' has an incoming edge without a source handle.`,
+            node_id: nodeId,
+            pin_name: name
+          });
+        } else {
+          resolved = outputTypeForNode(source, handle, args.registry);
+          if (!resolved) {
+            const dynamic = record(source.dynamic_outputs);
+            const hasDynamicHandle = record(dynamic?.[handle]) !== null;
+            const sourceType = typeof source.type === "string" ? source.type : "";
+            const sourceMetadata = args.registry.resolveMetadata(sourceType);
+            diagnostics.push({
+              severity: "error",
+              code: !hasDynamicHandle && !sourceMetadata
+                ? "missing_node_metadata"
+                : "missing_output_handle",
+              message: !hasDynamicHandle && !sourceMetadata
+                ? `Node metadata for workflow output source '${sourceType}' is unavailable. The node pack may be disabled or not loaded.`
+                : `Source handle '${handle}' is not declared by node '${sourceType}'.`,
+              node_id: typeof source.id === "string" ? source.id : nodeId,
+              pin_name: handle
+            });
+          }
+        }
       }
     }
     if (!resolved) {

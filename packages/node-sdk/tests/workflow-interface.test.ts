@@ -1,9 +1,22 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  BaseNode,
+  NodeRegistry,
   deriveWorkflowInterfaceV1,
   type NodeMetadata,
   type WorkflowInterfaceRegistry
 } from "../src/index.js";
+
+class TypeScriptImageSource extends BaseNode {
+  static readonly nodeType = "test.native.ImageSource";
+  static readonly title = "Native Image Source";
+  static readonly description = "";
+  static readonly outputTypes = { output: "image" };
+
+  async process() {
+    return { output: null };
+  }
+}
 
 function metadata(nodeType: string, outputType: string): NodeMetadata {
   return {
@@ -26,6 +39,111 @@ function registry(entries: NodeMetadata[]): WorkflowInterfaceRegistry {
 }
 
 describe("deriveWorkflowInterfaceV1", () => {
+  it("uses one hybrid registry for TypeScript-native and Python-bridge metadata", () => {
+    const hybridRegistry = new NodeRegistry();
+    hybridRegistry.register(TypeScriptImageSource);
+    hybridRegistry.loadMetadata("test.python.AudioSource", {
+      title: "Python Audio Source",
+      description: "",
+      namespace: "test.python",
+      node_type: "test.python.AudioSource",
+      properties: [],
+      outputs: [
+        {
+          name: "output",
+          stream: false,
+          type: { type: "audio", optional: false, type_args: [] }
+        }
+      ]
+    });
+
+    const result = deriveWorkflowInterfaceV1({
+      workflowId: "wf-hybrid",
+      registry: hybridRegistry,
+      graph: {
+        nodes: [
+          { id: "native", type: TypeScriptImageSource.nodeType },
+          { id: "python", type: "test.python.AudioSource" },
+          {
+            id: "image-out",
+            type: "nodetool.output.Output",
+            properties: { name: "image" }
+          },
+          {
+            id: "audio-out",
+            type: "nodetool.output.Output",
+            properties: { name: "audio" }
+          }
+        ],
+        edges: [
+          {
+            source: "native",
+            sourceHandle: "output",
+            target: "image-out",
+            targetHandle: "value"
+          },
+          {
+            source: "python",
+            sourceHandle: "output",
+            target: "audio-out",
+            targetHandle: "value"
+          }
+        ]
+      }
+    });
+
+    expect(result.outputs).toEqual([
+      expect.objectContaining({
+        name: "image",
+        type: expect.objectContaining({ type: "image" })
+      }),
+      expect.objectContaining({
+        name: "audio",
+        type: expect.objectContaining({ type: "audio" })
+      })
+    ]);
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it("reports an unavailable node pack instead of guessing its output type", () => {
+    const result = deriveWorkflowInterfaceV1({
+      workflowId: "wf-unavailable-pack",
+      registry: new NodeRegistry(),
+      graph: {
+        nodes: [
+          { id: "missing", type: "disabled.pack.Source" },
+          {
+            id: "out",
+            type: "nodetool.output.Output",
+            properties: { name: "result" }
+          }
+        ],
+        edges: [
+          {
+            source: "missing",
+            sourceHandle: "output",
+            target: "out",
+            targetHandle: "value"
+          }
+        ]
+      }
+    });
+
+    expect(result.outputs).toEqual([
+      expect.objectContaining({
+        name: "result",
+        type: expect.objectContaining({ type: "any" })
+      })
+    ]);
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "missing_node_metadata",
+        node_id: "missing",
+        severity: "error"
+      })
+    );
+  });
+
   it("derives typed inputs and generic Output types from graph edges", () => {
     const inputType = "nodetool.input.ImageInput";
     const result = deriveWorkflowInterfaceV1({

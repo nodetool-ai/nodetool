@@ -12,8 +12,10 @@ import {
   NodeRegistry,
   loadInstalledPacks,
   readBuiltinPackOverrides,
+  type NodeMetadata,
   type LoadedPackResult
 } from "@nodetool-ai/node-sdk";
+import type { PythonNodeMetadata } from "@nodetool-ai/runtime";
 import {
   BUILTIN_NODE_PACKS,
   resolveBuiltinPackEnabled,
@@ -117,6 +119,57 @@ export interface RegisterBuiltInNodesOptions {
    */
   enabledOverrides?: Record<string, boolean>;
   log?: BootstrapLogger;
+}
+
+export interface PythonBridgeMetadataMergeResult {
+  total: number;
+  bridgeOnly: number;
+  alreadyKnown: number;
+}
+
+/**
+ * Merge metadata discovered from the live Python worker into the shared
+ * registry. Metadata already supplied by a package JSON file or a registered
+ * TypeScript class remains authoritative; the bridge only fills genuine gaps.
+ *
+ * Keeping this operation centralized ensures REST, tRPC, WebSocket discovery,
+ * and workflow-interface derivation all observe the same hybrid registry.
+ */
+export function mergePythonBridgeMetadata(
+  registry: NodeRegistry,
+  metadata: readonly PythonNodeMetadata[]
+): PythonBridgeMetadataMergeResult {
+  let bridgeOnly = 0;
+  let alreadyKnown = 0;
+
+  for (const nodeMeta of metadata) {
+    if (!nodeMeta.node_type) continue;
+    if (registry.getMetadata(nodeMeta.node_type)) {
+      alreadyKnown++;
+      continue;
+    }
+
+    bridgeOnly++;
+    registry.loadMetadata(nodeMeta.node_type, {
+      ...(nodeMeta as unknown as NodeMetadata),
+      namespace: nodeMeta.node_type.split(".").slice(0, -1).join("."),
+      layout: "default",
+      recommended_models: nodeMeta.recommended_models ?? [],
+      required_settings: nodeMeta.required_settings ?? [],
+      // Python worker still emits `is_dynamic` on the bridge wire; normalize it
+      // to the current registry contract.
+      supports_dynamic_inputs: nodeMeta.is_dynamic ?? false,
+      is_streaming_input: nodeMeta.is_streaming_input ?? false,
+      is_streaming_output: nodeMeta.is_streaming_output ?? false,
+      supports_dynamic_outputs: false
+    });
+  }
+
+  return {
+    total: metadata.length,
+    bridgeOnly,
+    alreadyKnown
+  };
 }
 
 /**

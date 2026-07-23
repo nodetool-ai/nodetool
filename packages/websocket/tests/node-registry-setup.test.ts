@@ -9,6 +9,7 @@ import {
 import {
   applyBuiltinPackEnabled,
   applyCloudNodePolicy,
+  mergePythonBridgeMetadata,
   registerBuiltInNodes
 } from "../src/node-registry-setup.js";
 
@@ -116,6 +117,85 @@ describe("applyBuiltinPackEnabled", () => {
     expect(() =>
       applyBuiltinPackEnabled(new NodeRegistry(), "nope", true)
     ).toThrow(/No registrar/);
+  });
+});
+
+describe("mergePythonBridgeMetadata", () => {
+  it("adds bridge-only Python nodes with current dynamic and streaming flags", () => {
+    const registry = new NodeRegistry();
+    const beforeRevision = registry.revision;
+
+    const result = mergePythonBridgeMetadata(registry, [
+      {
+        node_type: "python.dynamic.Streamer",
+        title: "Python Streamer",
+        description: "Bridge-only test node",
+        properties: [
+          {
+            name: "items",
+            type: { type: "list", type_args: [{ type: "image" }] }
+          }
+        ],
+        outputs: [
+          {
+            name: "output",
+            type: { type: "image", type_args: [] }
+          }
+        ],
+        required_settings: ["PYTHON_TEST_TOKEN"],
+        recommended_models: [],
+        is_dynamic: true,
+        is_streaming_input: true,
+        is_streaming_output: true
+      }
+    ]);
+
+    expect(result).toEqual({ total: 1, bridgeOnly: 1, alreadyKnown: 0 });
+    expect(registry.revision).toBeGreaterThan(beforeRevision);
+    expect(registry.getMetadata("python.dynamic.Streamer")).toMatchObject({
+      namespace: "python.dynamic",
+      supports_dynamic_inputs: true,
+      supports_dynamic_outputs: false,
+      is_streaming_input: true,
+      is_streaming_output: true,
+      required_settings: ["PYTHON_TEST_TOKEN"],
+      properties: [
+        {
+          name: "items",
+          type: { type: "list", type_args: [{ type: "image" }] }
+        }
+      ]
+    });
+  });
+
+  it("does not overwrite metadata already in the registry", () => {
+    const registry = new NodeRegistry();
+    registry.loadMetadata("shared.Node", {
+      title: "Authoritative TypeScript node",
+      description: "",
+      namespace: "shared",
+      node_type: "shared.Node",
+      properties: [],
+      outputs: []
+    });
+    const beforeRevision = registry.revision;
+
+    const result = mergePythonBridgeMetadata(registry, [
+      {
+        node_type: "shared.Node",
+        title: "Python copy",
+        description: "",
+        properties: [],
+        outputs: [],
+        required_settings: []
+      }
+    ]);
+
+    expect(result).toEqual({ total: 1, bridgeOnly: 0, alreadyKnown: 1 });
+    expect(registry.revision).toBe(beforeRevision);
+    expect(registry.getMetadata("shared.Node")?.title).toBe(
+      "Authoritative TypeScript node"
+    );
   });
 });
 
