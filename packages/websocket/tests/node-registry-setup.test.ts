@@ -166,6 +166,9 @@ describe("mergePythonBridgeMetadata", () => {
         }
       ]
     });
+    expect(registry.getMetadataSource("python.dynamic.Streamer")).toBe(
+      "python-bridge"
+    );
   });
 
   it("does not overwrite metadata already in the registry", () => {
@@ -196,6 +199,7 @@ describe("mergePythonBridgeMetadata", () => {
     expect(registry.getMetadata("shared.Node")?.title).toBe(
       "Authoritative TypeScript node"
     );
+    expect(registry.getMetadataSource("shared.Node")).toBe("loaded-metadata");
   });
 });
 

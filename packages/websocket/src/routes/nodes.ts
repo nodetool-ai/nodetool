@@ -1,7 +1,10 @@
 import type { FastifyPluginAsync } from "fastify";
 import { bridge } from "../lib/bridge.js";
 import type { HttpApiOptions } from "../http-api.js";
-import { handleNodeMetadata } from "../http-api.js";
+import {
+  handleNodeMetadata,
+  handleSdkNodeTypeInventory
+} from "../http-api.js";
 import { resolveKieDynamicSchema } from "@nodetool-ai/base-nodes";
 import { ApiErrorCode, apiError } from "../error-codes.js";
 
@@ -19,6 +22,12 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   app.get("/api/nodes/metadata", async (req, reply) => {
     await bridge(req, reply, (request) =>
       handleNodeMetadata(request, apiOptions)
+    );
+  });
+
+  app.get("/api/sdk/v1/node-types", async (req, reply) => {
+    await bridge(req, reply, (request) =>
+      handleSdkNodeTypeInventory(request, apiOptions)
     );
   });
 

@@ -6745,6 +6745,14 @@ export class UnifiedWebSocketRunner {
           caller.nodes.get({ node_type: String(data.node_type ?? "") })
         );
       }
+      case "get_node_type_inventory": {
+        const caller = this.getTrpcCaller();
+        return this.runRpc(command, () =>
+          caller.nodes.sdkTypeInventory(
+            data as Parameters<typeof caller.nodes.sdkTypeInventory>[0]
+          )
+        );
+      }
       case "generate_media": {
         const rawMode = data.mode;
         const mode: "image" | "image_edit" | "inpaint" | "video" | "audio" =

@@ -8,9 +8,12 @@ import {
   listInput as nodesListInput,
   listOutput as nodesListOutput,
   getInput as nodesGetInput,
-  getOutput as nodesGetOutput
+  getOutput as nodesGetOutput,
+  sdkNodeTypeInventoryInput,
+  sdkNodeTypeInventoryOutput
 } from "@nodetool-ai/protocol/api-schemas/nodes.js";
 import type { NodeMetadata } from "@nodetool-ai/node-sdk";
+import { getSdkNodeTypeInventory } from "../../sdk-node-type-inventory-service.js";
 
 type NodeMetaOut = {
   node_type: string;
@@ -118,5 +121,16 @@ export const nodesRouter = router({
         );
       }
       return match as unknown as NodeMetaOut;
-    })
+    }),
+
+  sdkTypeInventory: protectedProcedure
+    .input(sdkNodeTypeInventoryInput)
+    .output(sdkNodeTypeInventoryOutput)
+    .query(({ ctx, input }) =>
+      getSdkNodeTypeInventory({
+        registry: ctx.registry,
+        pythonBridgeReady: ctx.getPythonBridgeReady(),
+        input
+      })
+    )
 });

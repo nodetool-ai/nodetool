@@ -248,6 +248,75 @@ describe("http-api extra: workflows root + by-id branches", () => {
     });
   });
 
+  it("GET /api/sdk/v1/node-types returns bounded hybrid type usage", async () => {
+    vi.stubEnv("NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
+    const registry = new NodeRegistry();
+    registry.loadMetadata(
+      "python.ListImage",
+      {
+        title: "List Image",
+        description: "",
+        namespace: "python",
+        node_type: "python.ListImage",
+        properties: [
+          {
+            name: "images",
+            type: {
+              type: "list",
+              type_args: [{ type: "image", type_args: [] }]
+            }
+          }
+        ],
+        outputs: []
+      },
+      { source: "python-bridge" }
+    );
+    await app.close();
+    app = await makeApp({
+      registry,
+      getPythonBridgeReady: () => true
+    });
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/sdk/v1/node-types?cursor=0&limit=1"
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      version: 1,
+      registry_revision: registry.revision,
+      registry_ready: true,
+      python_bridge_ready: true,
+      node_count: 1,
+      type_count: 2,
+      provenance_counts: { "python-bridge": 1 },
+      cursor: 0,
+      next_cursor: 1
+    });
+    expect(response.json().types).toHaveLength(1);
+  });
+
+  it("rejects invalid node type inventory bounds and honors the flag", async () => {
+    vi.stubEnv("NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
+    const invalid = await app.inject({
+      method: "GET",
+      url: "/api/sdk/v1/node-types?limit=101"
+    });
+    expect(invalid.statusCode).toBe(400);
+
+    vi.stubEnv("NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
+    const disabled = await app.inject({
+      method: "GET",
+      url: "/api/sdk/v1/node-types"
+    });
+    expect(disabled.statusCode).toBe(503);
+    expect(disabled.json()).toEqual({
+      code: "SDK_NODE_TYPE_INVENTORY_DISABLED",
+      detail: "SDK node/type inventory v1 is disabled"
+    });
+  });
+
   it("GET /api/workflows/:id/interface returns the compact v1 contract", async () => {
     vi.stubEnv("NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
     const nodeType = "nodetool.input.StringInput";

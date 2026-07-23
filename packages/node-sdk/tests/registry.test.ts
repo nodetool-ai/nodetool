@@ -59,6 +59,28 @@ describe("NodeRegistry", () => {
     expect(registry.revision).toBe(initialRevision + 2);
   });
 
+  it("tracks the authoritative metadata source", () => {
+    registry.register(NodeA);
+    registry.loadMetadata(
+      "python.BridgeNode",
+      {
+        title: "Bridge Node",
+        description: "",
+        namespace: "python",
+        node_type: "python.BridgeNode",
+        properties: [],
+        outputs: []
+      },
+      { source: "python-bridge" }
+    );
+
+    expect(registry.getMetadataSource("test.NodeA")).toBe("typescript");
+    expect(registry.getMetadataSource("python.BridgeNode")).toBe(
+      "python-bridge"
+    );
+    expect(registry.getMetadataSource("missing.Node")).toBeUndefined();
+  });
+
   it("has() returns false for unregistered types", () => {
     expect(registry.has("test.Unknown")).toBe(false);
   });

@@ -532,6 +532,7 @@ export type UnifiedCommandType =
   | "get_asset"
   | "list_nodes"
   | "get_node"
+  | "get_node_type_inventory"
   | "generate_media"
   | "transcribe_audio";
 
@@ -554,6 +555,7 @@ export type RpcCommandType =
   | "get_asset"
   | "list_nodes"
   | "get_node"
+  | "get_node_type_inventory"
   | "generate_media"
   | "transcribe_audio";
 

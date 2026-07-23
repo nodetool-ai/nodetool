@@ -24,8 +24,19 @@ export interface NodeRegistryOptions {
   strictMetadata?: boolean;
 }
 
+export type NodeMetadataSource =
+  | "typescript"
+  | "python-package"
+  | "python-bridge"
+  | "loaded-metadata";
+
 export interface RegisterNodeOptions {
   metadata?: NodeMetadata;
+  source?: NodeMetadataSource;
+}
+
+export interface LoadMetadataOptions {
+  source?: NodeMetadataSource;
 }
 
 export interface RegistryGraphResolverOptions {
@@ -39,6 +50,8 @@ export class NodeRegistry {
   private _classes = new Map<string, NodeClass>();
   private _loadedMetadataByType = new Map<string, NodeMetadata>();
   private _registeredMetadataByType = new Map<string, NodeMetadata>();
+  private _loadedMetadataSourceByType = new Map<string, NodeMetadataSource>();
+  private _registeredMetadataSourceByType = new Map<string, NodeMetadataSource>();
   private _strictMetadata: boolean;
   private _revision = 0;
 
@@ -56,6 +69,7 @@ export class NodeRegistry {
     if (options.metadataByType) {
       for (const [nodeType, metadata] of options.metadataByType.entries()) {
         this._loadedMetadataByType.set(nodeType, metadata);
+        this._loadedMetadataSourceByType.set(nodeType, "loaded-metadata");
       }
     }
   }
@@ -83,6 +97,10 @@ export class NodeRegistry {
     // Stryker disable ConditionalExpression,BlockStatement,StringLiteral: getNodeMetadata always returns a populated object for a valid class, so `metadata` is always truthy and the strict-mode else branch is unreachable dead defensive code.
     if (metadata) {
       this._registeredMetadataByType.set(nodeClass.nodeType, metadata);
+      this._registeredMetadataSourceByType.set(
+        nodeClass.nodeType,
+        options.source ?? "typescript"
+      );
     } else if (this._strictMetadata) {
       throw new Error(
         `Missing resolved metadata for node type: ${nodeClass.nodeType}`
@@ -181,10 +199,18 @@ export class NodeRegistry {
     for (const [nodeType, nodeClass] of this._classes) {
       if (!supportsPlatform(nodeClass.platforms, target)) continue;
       const metadata = this._registeredMetadataByType.get(nodeType);
-      filtered.register(nodeClass, metadata ? { metadata } : {});
+      const source =
+        this._registeredMetadataSourceByType.get(nodeType) ?? "typescript";
+      filtered.register(nodeClass, metadata ? { metadata, source } : { source });
       const loaded = this._loadedMetadataByType.get(nodeType);
       // Stryker disable next-line ConditionalExpression: every kept node is re-registered with derived metadata above (which getMetadata returns first), so copying the loaded entry is unobservable (equivalent).
-      if (loaded) filtered._loadedMetadataByType.set(nodeType, loaded);
+      if (loaded) {
+        filtered._loadedMetadataByType.set(nodeType, loaded);
+        filtered._loadedMetadataSourceByType.set(
+          nodeType,
+          this._loadedMetadataSourceByType.get(nodeType) ?? "loaded-metadata"
+        );
+      }
     }
     return filtered;
   }
@@ -256,6 +282,13 @@ export class NodeRegistry {
     );
   }
 
+  getMetadataSource(nodeType: string): NodeMetadataSource | undefined {
+    return (
+      this._registeredMetadataSourceByType.get(nodeType) ??
+      this._loadedMetadataSourceByType.get(nodeType)
+    );
+  }
+
   resolveMetadata(nodeType: string): NodeMetadata | undefined {
     const exact = this.getMetadata(nodeType);
     if (exact) return exact;
@@ -294,8 +327,16 @@ export class NodeRegistry {
   }
 
   /** Add or replace metadata for a node type (e.g. from Python bridge). */
-  loadMetadata(nodeType: string, metadata: NodeMetadata): void {
+  loadMetadata(
+    nodeType: string,
+    metadata: NodeMetadata,
+    options: LoadMetadataOptions = {}
+  ): void {
     this._loadedMetadataByType.set(nodeType, metadata);
+    this._loadedMetadataSourceByType.set(
+      nodeType,
+      options.source ?? "loaded-metadata"
+    );
     this.invalidateMetadataCaches();
   }
 
@@ -305,6 +346,7 @@ export class NodeRegistry {
     const loaded = loadPythonPackageMetadata(options);
     for (const [nodeType, metadata] of loaded.nodesByType.entries()) {
       this._loadedMetadataByType.set(nodeType, metadata);
+      this._loadedMetadataSourceByType.set(nodeType, "python-package");
     }
     this.invalidateMetadataCaches();
     return loaded;
@@ -318,6 +360,8 @@ export class NodeRegistry {
     const hadClass = this._classes.delete(nodeType);
     this._loadedMetadataByType.delete(nodeType);
     this._registeredMetadataByType.delete(nodeType);
+    this._loadedMetadataSourceByType.delete(nodeType);
+    this._registeredMetadataSourceByType.delete(nodeType);
     this.invalidateMetadataCaches();
     return hadClass;
   }
@@ -326,6 +370,8 @@ export class NodeRegistry {
     this._classes.clear();
     this._loadedMetadataByType.clear();
     this._registeredMetadataByType.clear();
+    this._loadedMetadataSourceByType.clear();
+    this._registeredMetadataSourceByType.clear();
     this.invalidateMetadataCaches();
   }
 

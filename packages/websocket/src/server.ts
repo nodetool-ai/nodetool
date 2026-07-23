@@ -146,6 +146,9 @@ function isPublicWorkflowMetadataRequest(
     return true;
   }
   if (method !== "GET") return false;
+  if (pathname === "/api/sdk/v1/node-types") {
+    return true;
+  }
   if (pathname === "/api/workflows" || pathname === "/api/workflows/") {
     return true;
   }
@@ -918,7 +921,11 @@ if (_resolvedExamplesDir) {
 // API options for HTTP route handlers
 // ---------------------------------------------------------------------------
 
-const apiOptions: HttpApiOptions = { metadataRoots, registry };
+const apiOptions: HttpApiOptions = {
+  metadataRoots,
+  registry,
+  getPythonBridgeReady
+};
 if (_resolvedExamplesDir) {
   apiOptions.examplesDir = _resolvedExamplesDir;
   if (existsSync(_bundledAssetsDir)) {

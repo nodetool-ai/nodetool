@@ -43,6 +43,7 @@ import {
   workflowInterfacesInput,
   workflowInterfacesOutput
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import { sdkNodeTypeInventoryInput } from "@nodetool-ai/protocol/api-schemas/nodes.js";
 import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
   PythonNodeExecutor,
@@ -82,6 +83,10 @@ import {
   listWorkflowSummariesV1,
   WorkflowInterfaceServiceError
 } from "./workflow-interface-service.js";
+import {
+  getSdkNodeTypeInventory,
+  SdkNodeTypeInventoryServiceError
+} from "./sdk-node-type-inventory-service.js";
 
 const log = createLogger("nodetool.websocket.http");
 
@@ -106,6 +111,8 @@ export interface HttpApiOptions {
   storage?: StorageHandlerOptions;
   /** NodeRegistry to use for unified metadata. If not provided, Python metadata is used. */
   registry?: NodeRegistry;
+  /** Current Python bridge readiness for SDK discovery diagnostics. */
+  getPythonBridgeReady?: () => boolean;
   /**
    * Path to a directory of example workflow JSON files (e.g.
    * `packages/base-nodes/nodetool/examples/nodetool-base`).
@@ -1620,6 +1627,50 @@ export async function handleWorkflowsRoot(
   return errorResponse(405, "Method not allowed");
 }
 
+export async function handleSdkNodeTypeInventory(
+  request: Request,
+  options: HttpApiOptions
+): Promise<Response> {
+  if (request.method !== "GET") {
+    return errorResponse(405, "Method not allowed");
+  }
+  const url = new URL(request.url);
+  const parsed = sdkNodeTypeInventoryInput.safeParse({
+    ...(url.searchParams.has("cursor")
+      ? { cursor: Number(url.searchParams.get("cursor")) }
+      : {}),
+    ...(url.searchParams.has("limit")
+      ? { limit: Number(url.searchParams.get("limit")) }
+      : {})
+  });
+  if (!parsed.success) {
+    return jsonResponse(
+      { code: "INVALID_INPUT", detail: "cursor must be >= 0 and limit 1..100" },
+      { status: 400 }
+    );
+  }
+
+  const registry =
+    options.registry ?? (await getWorkflowRuntimeEnvironment(options)).registry;
+  try {
+    return jsonResponse(
+      getSdkNodeTypeInventory({
+        registry,
+        pythonBridgeReady: options.getPythonBridgeReady?.() ?? false,
+        input: parsed.data
+      })
+    );
+  } catch (error) {
+    if (error instanceof SdkNodeTypeInventoryServiceError) {
+      return jsonResponse(
+        { code: "SDK_NODE_TYPE_INVENTORY_DISABLED", detail: error.message },
+        { status: 503 }
+      );
+    }
+    throw error;
+  }
+}
+
 function workflowInterfaceErrorResponse(error: unknown): Response {
   if (!(error instanceof WorkflowInterfaceServiceError)) {
     throw error;
@@ -2164,6 +2215,10 @@ export async function handleApiRequest(
 
   if (pathname === "/api/nodes/metadata" || pathname === "/api/node/metadata") {
     return handleNodeMetadata(request, options);
+  }
+
+  if (pathname === "/api/sdk/v1/node-types") {
+    return handleSdkNodeTypeInventory(request, options);
   }
 
   if (pathname === "/api/workflows") {

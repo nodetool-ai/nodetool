@@ -46,6 +46,10 @@ vi.mock("@nodetool-ai/config", async (orig) => {
 });
 
 import { Workflow, WorkflowCollaborator, Asset } from "@nodetool-ai/models";
+import {
+  NodeRegistry,
+  type NodeMetadata
+} from "@nodetool-ai/node-sdk";
 
 class MockWebSocket implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -74,7 +78,7 @@ class MockWebSocket implements WebSocketConnection {
   }
 }
 
-const FOO_NODE = {
+const FOO_NODE: NodeMetadata = {
   node_type: "foo.Bar",
   title: "Bar",
   description: "A node",
@@ -90,22 +94,18 @@ const FOO_NODE = {
 };
 
 function makeRunner(ws: MockWebSocket) {
+  const registry = new NodeRegistry();
+  registry.loadMetadata("foo.Bar", FOO_NODE, { source: "typescript" });
   const runner = new UnifiedWebSocketRunner({
     resolveExecutor: () => ({
       async process() {
         return {};
       }
     }),
-    nodeRegistry: {
-      listMetadata: () => [FOO_NODE],
-      has: () => false,
-      resolve: () => ({ async process() { return {}; } }),
-      getMetadata: () => undefined,
-      createNodeValidator: () => () => undefined
-    } as never,
+    nodeRegistry: registry,
     apiOptions: {
       metadataRoots: [],
-      registry: {} as never,
+      registry,
       storage: {}
     } as never,
     pythonBridge: {} as never,
@@ -349,6 +349,28 @@ describe("RPC read-only commands", () => {
           message: "Workflow not found"
         }
       ]);
+    });
+
+    it("returns the bounded recursive node type inventory", async () => {
+      const out = await runOne(ws, runner, {
+        command: "get_node_type_inventory",
+        request_id: "sdk-types",
+        data: { cursor: 0, limit: 10 }
+      });
+
+      expect(out.type).toBe("rpc_response");
+      expect(out.command).toBe("get_node_type_inventory");
+      expect(out.request_id).toBe("sdk-types");
+      expect(out.result).toMatchObject({
+        version: 1,
+        registry_ready: true,
+        python_bridge_ready: true,
+        node_count: 1,
+        provenance_counts: { typescript: 1 },
+        cursor: 0,
+        next_cursor: null,
+        types: []
+      });
     });
 
     it("reports the feature flag state through the correlated error", async () => {

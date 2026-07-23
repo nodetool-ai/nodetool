@@ -8,7 +8,9 @@ import {
   nodeMetadataSummary,
   listInput,
   listOutput,
-  getInput
+  getInput,
+  sdkNodeTypeInventoryInput,
+  sdkNodeTypeInventoryOutput
 } from "../src/api-schemas/nodes.js";
 
 describe("nodes.replicateStatusOutput", () => {
@@ -158,5 +160,56 @@ describe("nodes.listOutput", () => {
 describe("nodes.getInput", () => {
   it("rejects empty node_type", () => {
     expect(getInput.safeParse({ node_type: "" }).success).toBe(false);
+  });
+});
+
+describe("nodes.sdkNodeTypeInventory", () => {
+  it("defaults to the first bounded page", () => {
+    expect(sdkNodeTypeInventoryInput.parse({})).toEqual({
+      cursor: 0,
+      limit: 100
+    });
+    expect(
+      sdkNodeTypeInventoryInput.safeParse({ cursor: -1, limit: 101 }).success
+    ).toBe(false);
+  });
+
+  it("accepts a bounded recursive type usage response", () => {
+    expect(
+      sdkNodeTypeInventoryOutput.safeParse({
+        version: 1,
+        registry_revision: 3,
+        registry_ready: true,
+        python_bridge_ready: true,
+        node_count: 2,
+        type_count: 1,
+        provenance_counts: { typescript: 1, "python-bridge": 1 },
+        cursor: 0,
+        next_cursor: null,
+        types: [
+          {
+            signature: "list[image]",
+            type: "list",
+            type_name: null,
+            optional: false,
+            type_args: ["image"],
+            values: [],
+            values_truncated: false,
+            input_uses: 1,
+            output_uses: 0,
+            node_count: 1,
+            sources: { "python-bridge": 1 },
+            examples: [
+              {
+                node_type: "python.ImageList",
+                pin: "images",
+                direction: "input"
+              }
+            ]
+          }
+        ],
+        unavailable_packs: []
+      }).success
+    ).toBe(true);
   });
 });

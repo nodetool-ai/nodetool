@@ -13,6 +13,7 @@ import {
   loadInstalledPacks,
   readBuiltinPackOverrides,
   type NodeMetadata,
+  type NodePackAvailabilityDiagnostic,
   type LoadedPackResult
 } from "@nodetool-ai/node-sdk";
 import type { PythonNodeMetadata } from "@nodetool-ai/runtime";
@@ -121,6 +122,33 @@ export interface RegisterBuiltInNodesOptions {
   log?: BootstrapLogger;
 }
 
+export function getUnavailableBuiltinPackDiagnostics(): NodePackAvailabilityDiagnostic[] {
+  const overrides = isCloudProfile()
+    ? cloudPackOverrides()
+    : readBuiltinPackOverrides();
+  return BUILTIN_NODE_PACKS.flatMap((pack) => {
+    if (!resolveBuiltinPackEnabled(pack, overrides[pack.id])) {
+      return [
+        {
+          id: pack.id,
+          name: pack.name,
+          reason: "disabled by built-in pack configuration"
+        }
+      ];
+    }
+    if (pack.id === "transformers-js" && isProduction()) {
+      return [
+        {
+          id: pack.id,
+          name: pack.name,
+          reason: "unavailable in production"
+        }
+      ];
+    }
+    return [];
+  });
+}
+
 export interface PythonBridgeMetadataMergeResult {
   total: number;
   bridgeOnly: number;
@@ -150,19 +178,23 @@ export function mergePythonBridgeMetadata(
     }
 
     bridgeOnly++;
-    registry.loadMetadata(nodeMeta.node_type, {
-      ...(nodeMeta as unknown as NodeMetadata),
-      namespace: nodeMeta.node_type.split(".").slice(0, -1).join("."),
-      layout: "default",
-      recommended_models: nodeMeta.recommended_models ?? [],
-      required_settings: nodeMeta.required_settings ?? [],
-      // Python worker still emits `is_dynamic` on the bridge wire; normalize it
-      // to the current registry contract.
-      supports_dynamic_inputs: nodeMeta.is_dynamic ?? false,
-      is_streaming_input: nodeMeta.is_streaming_input ?? false,
-      is_streaming_output: nodeMeta.is_streaming_output ?? false,
-      supports_dynamic_outputs: false
-    });
+    registry.loadMetadata(
+      nodeMeta.node_type,
+      {
+        ...(nodeMeta as unknown as NodeMetadata),
+        namespace: nodeMeta.node_type.split(".").slice(0, -1).join("."),
+        layout: "default",
+        recommended_models: nodeMeta.recommended_models ?? [],
+        required_settings: nodeMeta.required_settings ?? [],
+        // Python worker still emits `is_dynamic` on the bridge wire; normalize it
+        // to the current registry contract.
+        supports_dynamic_inputs: nodeMeta.is_dynamic ?? false,
+        is_streaming_input: nodeMeta.is_streaming_input ?? false,
+        is_streaming_output: nodeMeta.is_streaming_output ?? false,
+        supports_dynamic_outputs: false
+      },
+      { source: "python-bridge" }
+    );
   }
 
   return {
