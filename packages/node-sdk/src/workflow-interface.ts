@@ -65,6 +65,11 @@ export interface WorkflowInterfaceV1 {
 const MAX_DEFAULT_JSON_BYTES = 16 * 1024;
 const INPUT_PREFIX = "nodetool.input.";
 const OUTPUT_TYPE = "nodetool.output.Output";
+const DEDICATED_OUTPUT_TYPES: Readonly<Record<string, string>> = {
+  "nodetool.output.ImageOutput": "image",
+  "nodetool.output.AudioOutput": "audio",
+  "nodetool.output.VideoOutput": "video"
+};
 
 function record(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === "object" && !Array.isArray(value)
@@ -88,6 +93,13 @@ function cloneType(type: TypeMetadata): TypeMetadata {
 
 function anyType(): TypeMetadata {
   return { type: "any", optional: false, type_args: [], type_name: null };
+}
+
+function dedicatedOutputType(nodeType: string): TypeMetadata | null {
+  const type = DEDICATED_OUTPUT_TYPES[nodeType];
+  return type
+    ? { type, optional: false, type_args: [], type_name: null }
+    : null;
 }
 
 function pinText(value: unknown): string {
@@ -243,7 +255,9 @@ export function deriveWorkflowInterfaceV1(args: {
 
   for (const node of nodes) {
     const nodeId = typeof node.id === "string" ? node.id : "";
-    if (node.type !== OUTPUT_TYPE) continue;
+    const nodeType = typeof node.type === "string" ? node.type : "";
+    const dedicatedType = dedicatedOutputType(nodeType);
+    if (nodeType !== OUTPUT_TYPE && !dedicatedType) continue;
     const props = nodeProperties(node);
     const name = pinText(props.name) || nodeId;
     if (!nodeId || !name) {
@@ -267,15 +281,20 @@ export function deriveWorkflowInterfaceV1(args: {
     }
     outputNames.add(name);
 
-    const incoming = edges.filter((edge) =>
-      edge.target === nodeId &&
-      String(edge.targetHandle ?? edge.target_handle ?? "") === "value");
-    let resolved: { type: TypeMetadata; stream: boolean } | null = null;
-    if (incoming.length === 1) {
-      const edge = incoming[0]!;
-      const source = typeof edge.source === "string" ? nodesById.get(edge.source) : undefined;
-      const handle = String(edge.sourceHandle ?? edge.source_handle ?? "");
-      if (source && handle) resolved = outputTypeForNode(source, handle, args.registry);
+    let resolved: { type: TypeMetadata; stream: boolean } | null = dedicatedType
+      ? { type: dedicatedType, stream: false }
+      : null;
+    let incoming: WorkflowInterfaceGraphEdge[] = [];
+    if (!dedicatedType) {
+      incoming = edges.filter((edge) =>
+        edge.target === nodeId &&
+        String(edge.targetHandle ?? edge.target_handle ?? "") === "value");
+      if (incoming.length === 1) {
+        const edge = incoming[0]!;
+        const source = typeof edge.source === "string" ? nodesById.get(edge.source) : undefined;
+        const handle = String(edge.sourceHandle ?? edge.source_handle ?? "");
+        if (source && handle) resolved = outputTypeForNode(source, handle, args.registry);
+      }
     }
     if (!resolved) {
       diagnostics.push({

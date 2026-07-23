@@ -70,6 +70,28 @@ describe("deriveWorkflowInterfaceV1", () => {
     });
   });
 
+  it("derives dedicated media output nodes without graph edges", () => {
+    const result = deriveWorkflowInterfaceV1({
+      workflowId: "wf-media",
+      registry: registry([]),
+      graph: {
+        nodes: [
+          { id: "image", type: "nodetool.output.ImageOutput", properties: { name: "poster" } },
+          { id: "audio", type: "nodetool.output.AudioOutput", properties: { name: "soundtrack" } },
+          { id: "video", type: "nodetool.output.VideoOutput", properties: { name: "clip" } }
+        ],
+        edges: []
+      }
+    });
+
+    expect(result.outputs).toEqual([
+      expect.objectContaining({ name: "poster", type: expect.objectContaining({ type: "image" }) }),
+      expect.objectContaining({ name: "soundtrack", type: expect.objectContaining({ type: "audio" }) }),
+      expect.objectContaining({ name: "clip", type: expect.objectContaining({ type: "video" }) })
+    ]);
+    expect(result.diagnostics).toEqual([]);
+  });
+
   it("omits image-heavy defaults from the compact interface", () => {
     const nodeType = "nodetool.input.ImageInput";
     const result = deriveWorkflowInterfaceV1({
