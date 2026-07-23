@@ -1677,6 +1677,9 @@ export async function handleSdkWorkflowSummaries(
           name: workflow.name,
           description: workflow.description,
           revision: workflow.updated_at,
+          registry_revision: Number.isSafeInteger(options.registry?.revision)
+            ? options.registry!.revision
+            : null,
           run_mode: workflow.run_mode
         })),
         next: result.next

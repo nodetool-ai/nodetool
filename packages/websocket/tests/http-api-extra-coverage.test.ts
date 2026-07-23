@@ -190,6 +190,8 @@ describe("http-api extra: workflows root + by-id branches", () => {
 
   it("GET /api/sdk/v1/workflows excludes graph and inline media data", async () => {
     vi.stubEnv("NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
+    await app.close();
+    app = await makeApp({ registry: new NodeRegistry() });
     await makeWorkflow({
       name: "Large workflow",
       description: "Small summary",
@@ -220,6 +222,7 @@ describe("http-api extra: workflows root + by-id branches", () => {
         {
           name: "Large workflow",
           description: "Small summary",
+          registry_revision: 0,
           run_mode: "workflow"
         }
       ],

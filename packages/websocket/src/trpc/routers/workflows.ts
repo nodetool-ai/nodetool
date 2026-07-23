@@ -465,6 +465,9 @@ export const workflowsRouter = router({
             name: workflow.name,
             description: workflow.description,
             revision: workflow.updated_at,
+            registry_revision: Number.isSafeInteger(ctx.registry.revision)
+              ? ctx.registry.revision
+              : null,
             run_mode: workflow.run_mode
           })),
           next: result.next

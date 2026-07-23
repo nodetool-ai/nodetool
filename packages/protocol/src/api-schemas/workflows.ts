@@ -227,6 +227,12 @@ export const sdkWorkflowSummary = z.object({
   name: z.string(),
   description: z.string(),
   revision: z.string(),
+  /**
+   * Revision of the node registry used to derive workflow interfaces. A
+   * client must refresh a cached interface when either this value or the
+   * workflow revision changes.
+   */
+  registry_revision: z.number().int().nonnegative().nullable(),
   run_mode: z.string().nullable()
 });
 export type SdkWorkflowSummary = z.infer<typeof sdkWorkflowSummary>;

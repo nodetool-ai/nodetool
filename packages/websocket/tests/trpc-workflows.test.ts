@@ -393,6 +393,7 @@ describe("workflows router", () => {
             name: "Large workflow",
             description: "Description",
             revision: "2026-07-23T01:02:03.000Z",
+            registry_revision: null,
             run_mode: "workflow"
           }
         ],
