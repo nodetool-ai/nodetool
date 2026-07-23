@@ -44,6 +44,21 @@ describe("NodeRegistry", () => {
     expect(registry.has("test.NodeA")).toBe(true);
   });
 
+  it("increments its revision whenever registry metadata changes", () => {
+    const initialRevision = registry.revision;
+    registry.register(NodeA);
+    expect(registry.revision).toBe(initialRevision + 1);
+    registry.loadMetadata("python.Node", {
+      title: "Python Node",
+      description: "",
+      namespace: "python",
+      node_type: "python.Node",
+      properties: [],
+      outputs: []
+    });
+    expect(registry.revision).toBe(initialRevision + 2);
+  });
+
   it("has() returns false for unregistered types", () => {
     expect(registry.has("test.Unknown")).toBe(false);
   });

@@ -29,6 +29,44 @@ export class WorkflowInterfaceServiceError extends Error {
   }
 }
 
+const MAX_CACHED_INTERFACES_PER_REGISTRY = 512;
+interface WorkflowInterfaceCache {
+  revision: number;
+  values: Map<string, WorkflowInterfaceV1Response>;
+}
+const interfaceCaches = new WeakMap<NodeRegistry, WorkflowInterfaceCache>();
+
+function deriveCachedWorkflowInterface(
+  workflow: Workflow,
+  graph: Parameters<typeof deriveWorkflowInterfaceV1>[0]["graph"],
+  registry: NodeRegistry
+): WorkflowInterfaceV1Response {
+  let cache = interfaceCaches.get(registry);
+  if (!cache || cache.revision !== registry.revision) {
+    cache = { revision: registry.revision, values: new Map() };
+    interfaceCaches.set(registry, cache);
+  }
+  const etag = workflow.getEtag() ?? null;
+  const cacheKey = `${workflow.id}\u0000${etag ?? ""}`;
+  const cached = cache.values.get(cacheKey);
+  if (cached) return cached;
+
+  const result = workflowInterfaceV1.parse(
+    deriveWorkflowInterfaceV1({
+      workflowId: workflow.id,
+      etag,
+      graph,
+      registry
+    })
+  );
+  cache.values.set(cacheKey, result);
+  if (cache.values.size > MAX_CACHED_INTERFACES_PER_REGISTRY) {
+    const oldestKey = cache.values.keys().next().value;
+    if (oldestKey !== undefined) cache.values.delete(oldestKey);
+  }
+  return result;
+}
+
 function requireFeature(): void {
   if (process.env["NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1"] !== "1") {
     throw new WorkflowInterfaceServiceError(
@@ -74,14 +112,7 @@ export async function getWorkflowInterfaceV1(args: {
       "Workflow graph is invalid"
     );
   }
-  return workflowInterfaceV1.parse(
-    deriveWorkflowInterfaceV1({
-      workflowId: workflow.id,
-      etag: workflow.getEtag() ?? null,
-      graph: graph.data,
-      registry: args.registry
-    })
-  );
+  return deriveCachedWorkflowInterface(workflow, graph.data, args.registry);
 }
 
 /** Derives up to 100 interfaces with bounded database queries and item errors. */
@@ -135,14 +166,7 @@ export async function getWorkflowInterfacesV1(args: {
       continue;
     }
     result.interfaces.push(
-      workflowInterfaceV1.parse(
-        deriveWorkflowInterfaceV1({
-          workflowId,
-          etag: workflow.getEtag() ?? null,
-          graph: graph.data,
-          registry: args.registry
-        })
-      )
+      deriveCachedWorkflowInterface(workflow, graph.data, args.registry)
     );
   }
   return result;

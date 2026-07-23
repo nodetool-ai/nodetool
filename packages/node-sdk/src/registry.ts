@@ -40,6 +40,7 @@ export class NodeRegistry {
   private _loadedMetadataByType = new Map<string, NodeMetadata>();
   private _registeredMetadataByType = new Map<string, NodeMetadata>();
   private _strictMetadata: boolean;
+  private _revision = 0;
 
   // Memoized derived views of the metadata maps above. Both are O(n) to build,
   // and `listMetadata`/`searchMetadata` are called many times per graph build
@@ -99,6 +100,12 @@ export class NodeRegistry {
   private invalidateMetadataCaches(): void {
     this._mergedMetadataCache = null;
     this._searchIndexCache = null;
+    this._revision++;
+  }
+
+  /** Monotonic metadata revision used to invalidate derived contract caches. */
+  get revision(): number {
+    return this._revision;
   }
 
   /**

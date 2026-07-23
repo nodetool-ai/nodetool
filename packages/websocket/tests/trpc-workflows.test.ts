@@ -467,9 +467,8 @@ describe("workflows router", () => {
       const resolveMetadata = vi.fn().mockImplementation((nodeType: string) =>
         nodeType === "nodetool.input.StringInput" ? stringMetadata : undefined
       );
-      const caller = createCaller(
-        makeCtx({ registry: { resolveMetadata } as never })
-      );
+      const registry = { resolveMetadata, revision: 0 };
+      const caller = createCaller(makeCtx({ registry: registry as never }));
 
       const result = await caller.workflows.interface({
         id: "wf-1",
@@ -487,6 +486,16 @@ describe("workflows router", () => {
       });
       expect(JSON.stringify(result)).not.toContain("edges");
       expect(JSON.stringify(result)).not.toContain("properties");
+
+      const callsAfterFirstDerivation = resolveMetadata.mock.calls.length;
+      await caller.workflows.interface({ id: "wf-1", version: 1 });
+      expect(resolveMetadata).toHaveBeenCalledTimes(callsAfterFirstDerivation);
+
+      registry.revision++;
+      await caller.workflows.interface({ id: "wf-1", version: 1 });
+      expect(resolveMetadata.mock.calls.length).toBeGreaterThan(
+        callsAfterFirstDerivation
+      );
     });
 
     it("derives a bounded interface batch without per-workflow lookups", async () => {
