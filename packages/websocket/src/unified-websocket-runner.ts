@@ -1374,6 +1374,8 @@ export interface RunJobRequest {
     edges: Array<Record<string, unknown>>;
   };
   explicit_types?: boolean;
+  /** SDK opt-in: completed job updates are terminal only when they carry result.outputs. */
+  require_terminal_result?: boolean;
   settings?: Record<string, unknown>;
 }
 
@@ -1386,6 +1388,7 @@ interface ActiveJob {
   finished: boolean;
   status: "running" | "completed" | "failed" | "cancelled" | "suspended";
   error?: string;
+  requireTerminalResult: boolean;
   /** Suspension detail when status is "suspended" (node + saved state). */
   suspend?: {
     node_id: string;
@@ -2339,6 +2342,20 @@ export class UnifiedWebSocketRunner {
     // Hydrate the graph (resolves node types from the registry)
     const graph = await this.hydrateGraph(rawGraph);
 
+    // The kernel keys terminal outputs by node.name. For SDK runs, align output
+    // node names with their public interface names before execution so the
+    // authoritative terminal snapshot addresses the same pins as output_update.
+    if (req.require_terminal_result) {
+      for (const node of graph.nodes) {
+        if (!node.type.startsWith("nodetool.output.")) continue;
+        const properties = node.properties as Record<string, unknown> | null;
+        const publicName = properties?.name;
+        if (typeof publicName === "string" && publicName.trim().length > 0) {
+          node.name = publicName;
+        }
+      }
+    }
+
     if (this.beforeRunJob) {
       try {
         await this.beforeRunJob(graph);
@@ -2400,7 +2417,8 @@ export class UnifiedWebSocketRunner {
       runner,
       graph,
       finished: false,
-      status: "running"
+      status: "running",
+      requireTerminalResult: req.require_terminal_result === true
     };
     this.activeJobs.set(jobId, active);
     // Slot ownership transfers from startingJobs to activeJobs now that the
@@ -2736,9 +2754,16 @@ export class UnifiedWebSocketRunner {
             );
           }
         }
-        await this.sendMessage(outbound);
-        if (outbound.type === "job_update") {
-          const status = String(outbound.status ?? "");
+        const status =
+          outbound.type === "job_update" ? String(outbound.status ?? "") : "";
+        const suppressProvisionalCompletion =
+          active.requireTerminalResult &&
+          status === "completed" &&
+          outbound.result === undefined;
+        if (!suppressProvisionalCompletion) {
+          await this.sendMessage(outbound);
+        }
+        if (outbound.type === "job_update" && !suppressProvisionalCompletion) {
           if (
             ["completed", "failed", "cancelled", "error", "suspended"].includes(
               status
@@ -5655,7 +5680,8 @@ export class UnifiedWebSocketRunner {
         runner,
         graph,
         finished: false,
-        status: "running"
+        status: "running",
+        requireTerminalResult: false
       };
       this.activeJobs.set(jobId, active);
 

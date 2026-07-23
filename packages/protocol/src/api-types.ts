@@ -894,6 +894,8 @@ export interface RunJobRequest {
   env?: Record<string, unknown>;
   graph?: WorkflowGraph;
   explicit_types?: Record<string, string> | boolean;
+  /** Suppress provisional completed events and emit one terminal result snapshot. */
+  require_terminal_result?: boolean;
   resource_limits?: ResourceLimits | null;
 }
 
