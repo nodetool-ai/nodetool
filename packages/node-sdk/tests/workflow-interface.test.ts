@@ -92,6 +92,41 @@ describe("deriveWorkflowInterfaceV1", () => {
     expect(result.diagnostics).toEqual([]);
   });
 
+  it("uses dynamic input properties and dynamic output type metadata", () => {
+    const result = deriveWorkflowInterfaceV1({
+      workflowId: "wf-dynamic",
+      registry: registry([]),
+      graph: {
+        nodes: [
+          {
+            id: "dynamic-input",
+            type: "nodetool.input.CustomInput",
+            data: { name: "old-name", value: "old-value" },
+            dynamic_properties: { name: "query", value: "hello" },
+            dynamic_outputs: {
+              output: {
+                type: "str",
+                optional: false,
+                type_args: [],
+                type_name: null
+              }
+            }
+          }
+        ],
+        edges: []
+      }
+    });
+
+    expect(result.inputs).toEqual([
+      expect.objectContaining({
+        name: "query",
+        default: "hello",
+        type: expect.objectContaining({ type: "str" })
+      })
+    ]);
+    expect(result.diagnostics).toEqual([]);
+  });
+
   it("omits image-heavy defaults from the compact interface", () => {
     const nodeType = "nodetool.input.ImageInput";
     const result = deriveWorkflowInterfaceV1({

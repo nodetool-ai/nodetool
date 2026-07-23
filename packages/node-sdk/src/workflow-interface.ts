@@ -5,6 +5,7 @@ export interface WorkflowInterfaceGraphNode {
   type?: unknown;
   data?: unknown;
   properties?: unknown;
+  dynamic_properties?: unknown;
   dynamic_outputs?: unknown;
 }
 
@@ -78,7 +79,10 @@ function record(value: unknown): Record<string, unknown> | null {
 }
 
 function nodeProperties(node: WorkflowInterfaceGraphNode): Record<string, unknown> {
-  return record(node.properties) ?? record(node.data) ?? {};
+  return {
+    ...(record(node.properties) ?? record(node.data) ?? {}),
+    ...(record(node.dynamic_properties) ?? {})
+  };
 }
 
 function cloneType(type: TypeMetadata): TypeMetadata {
