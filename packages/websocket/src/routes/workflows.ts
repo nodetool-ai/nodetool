@@ -159,11 +159,15 @@ const workflowsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     );
   });
 
-  app.get("/api/workflows/:id", async (req, reply) => {
-    const { id } = req.params as { id: string };
-    await bridge(req, reply, (request) =>
-      handleWorkflowById(request, id, apiOptions)
-    );
+  app.route({
+    method: ["GET", "PUT", "DELETE"],
+    url: "/api/workflows/:id",
+    handler: async (req, reply) => {
+      const { id } = req.params as { id: string };
+      await bridge(req, reply, (request) =>
+        handleWorkflowById(request, id, apiOptions)
+      );
+    }
   });
 };
 
