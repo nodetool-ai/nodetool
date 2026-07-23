@@ -43,6 +43,7 @@ import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import {
   getWorkflowInterfaceV1,
+  getWorkflowInterfacesV1,
   listWorkflowSummariesV1,
   WorkflowInterfaceServiceError
 } from "../../workflow-interface-service.js";
@@ -73,6 +74,8 @@ import {
   workflowResponse,
   workflowInterfaceInput,
   workflowInterfaceV1,
+  workflowInterfacesInput,
+  workflowInterfacesOutput,
   sdkWorkflowSummariesInput,
   sdkWorkflowSummariesOutput,
   graph as graphSchema,
@@ -516,6 +519,21 @@ export const workflowsRouter = router({
       try {
         return await getWorkflowInterfaceV1({
           workflowId: input.id,
+          userId: ctx.userId,
+          registry: ctx.registry
+        });
+      } catch (error) {
+        throwWorkflowInterfaceError(error);
+      }
+    }),
+
+  interfaces: protectedProcedure
+    .input(workflowInterfacesInput)
+    .output(workflowInterfacesOutput)
+    .query(async ({ ctx, input }) => {
+      try {
+        return await getWorkflowInterfacesV1({
+          workflowIds: input.ids,
           userId: ctx.userId,
           registry: ctx.registry
         });

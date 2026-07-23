@@ -10,7 +10,8 @@ import {
 import {
   graph as graphSchema,
   workflowInterfaceV1,
-  type WorkflowInterfaceV1Response
+  type WorkflowInterfaceV1Response,
+  type WorkflowInterfacesOutput
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
 export type WorkflowInterfaceServiceErrorCode =
@@ -81,6 +82,70 @@ export async function getWorkflowInterfaceV1(args: {
       registry: args.registry
     })
   );
+}
+
+/** Derives up to 100 interfaces with bounded database queries and item errors. */
+export async function getWorkflowInterfacesV1(args: {
+  readonly workflowIds: readonly string[];
+  readonly userId: string;
+  readonly registry: NodeRegistry;
+}): Promise<WorkflowInterfacesOutput> {
+  requireFeature();
+  if (args.workflowIds.length < 1 || args.workflowIds.length > 100) {
+    throw new Error("Expected between 1 and 100 workflow ids");
+  }
+
+  const workflows = await Workflow.getManyByIds(args.workflowIds);
+  const candidateIds = args.workflowIds.filter((id) => {
+    const workflow = workflows.get(id);
+    return (
+      workflow &&
+      workflow.user_id !== args.userId &&
+      workflow.access !== "public"
+    );
+  });
+  const grantedIds = await WorkflowCollaborator.grantedWorkflowIds(
+    args.userId,
+    candidateIds
+  );
+  const result: WorkflowInterfacesOutput = { interfaces: [], errors: [] };
+
+  for (const workflowId of args.workflowIds) {
+    const workflow = workflows.get(workflowId);
+    if (
+      !workflow ||
+      (workflow.user_id !== args.userId &&
+        workflow.access !== "public" &&
+        !grantedIds.has(workflowId))
+    ) {
+      result.errors.push({
+        workflow_id: workflowId,
+        code: "workflow_not_found",
+        message: "Workflow not found"
+      });
+      continue;
+    }
+    const graph = graphSchema.safeParse(workflow.graph);
+    if (!graph.success) {
+      result.errors.push({
+        workflow_id: workflowId,
+        code: "invalid_graph",
+        message: "Workflow graph is invalid"
+      });
+      continue;
+    }
+    result.interfaces.push(
+      workflowInterfaceV1.parse(
+        deriveWorkflowInterfaceV1({
+          workflowId,
+          etag: workflow.getEtag() ?? null,
+          graph: graph.data,
+          registry: args.registry
+        })
+      )
+    );
+  }
+  return result;
 }
 
 /** Lists only small identity columns; workflow graph JSON is not selected. */

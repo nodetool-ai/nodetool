@@ -140,6 +140,9 @@ function isPublicWorkflowMetadataRequest(
   pathname: string,
   method: string
 ): boolean {
+  if (method === "POST" && pathname === "/api/sdk/v1/workflow-interfaces") {
+    return true;
+  }
   if (method !== "GET") return false;
   if (pathname === "/api/workflows" || pathname === "/api/workflows/") {
     return true;

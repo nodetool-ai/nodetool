@@ -4,7 +4,7 @@
  * Port of Python's `nodetool.models.workflow`.
  */
 
-import { eq, and, desc, or, isNull, lt, type SQL } from "drizzle-orm";
+import { eq, and, desc, or, isNull, lt, inArray, type SQL } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { workflows } from "./schema/workflows.js";
@@ -266,6 +266,24 @@ export class Workflow extends DBModel {
       description: row.description ?? ""
     }));
     return [items, hasNext ? (items.at(-1)?.id ?? "") : ""];
+  }
+
+  /** Loads a bounded set of workflows in one query, keyed by workflow id. */
+  static async getManyByIds(
+    workflowIds: readonly string[]
+  ): Promise<Map<string, Workflow>> {
+    if (workflowIds.length === 0) return new Map();
+    const db = getDb();
+    const rows = await db
+      .select()
+      .from(workflows)
+      .where(inArray(workflows.id, [...workflowIds]));
+    const result = new Map<string, Workflow>();
+    for (const row of rows) {
+      const workflow = new Workflow(row as Record<string, unknown>);
+      result.set(workflow.id, workflow);
+    }
+    return result;
   }
 
   static async paginatePublic(

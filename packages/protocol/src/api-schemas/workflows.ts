@@ -189,6 +189,31 @@ export const workflowInterfaceInput = z.object({
 });
 export type WorkflowInterfaceInput = z.infer<typeof workflowInterfaceInput>;
 
+export const workflowInterfacesInput = z.object({
+  ids: z
+    .array(z.string().min(1))
+    .min(1)
+    .max(100)
+    .refine((ids) => new Set(ids).size === ids.length, {
+      message: "Workflow ids must be unique"
+    }),
+  version: z.literal(1)
+});
+export type WorkflowInterfacesInput = z.infer<typeof workflowInterfacesInput>;
+
+export const workflowInterfaceError = z.object({
+  workflow_id: z.string(),
+  code: z.enum(["workflow_not_found", "invalid_graph"]),
+  message: z.string()
+});
+export type WorkflowInterfaceError = z.infer<typeof workflowInterfaceError>;
+
+export const workflowInterfacesOutput = z.object({
+  interfaces: z.array(workflowInterfaceV1),
+  errors: z.array(workflowInterfaceError)
+});
+export type WorkflowInterfacesOutput = z.infer<typeof workflowInterfacesOutput>;
+
 export const sdkWorkflowSummariesInput = z.object({
   limit: z.number().int().min(1).max(100).default(50),
   cursor: z.string().optional()

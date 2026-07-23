@@ -39,7 +39,9 @@ import type { GraphData } from "@nodetool-ai/protocol";
 import {
   sdkWorkflowSummariesInput,
   sdkWorkflowSummariesOutput,
-  workflowInterfaceV1
+  workflowInterfaceV1,
+  workflowInterfacesInput,
+  workflowInterfacesOutput
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
@@ -76,6 +78,7 @@ import {
 } from "./lib/workflow-bundle.js";
 import {
   getWorkflowInterfaceV1,
+  getWorkflowInterfacesV1,
   listWorkflowSummariesV1,
   WorkflowInterfaceServiceError
 } from "./workflow-interface-service.js";
@@ -1723,6 +1726,43 @@ export async function handleWorkflowInterface(
   }
 }
 
+export async function handleWorkflowInterfaces(
+  request: Request,
+  options: HttpApiOptions
+): Promise<Response> {
+  if (request.method !== "POST") {
+    return errorResponse(405, "Method not allowed");
+  }
+  const body = await parseJsonBody<unknown>(request);
+  const parsed = workflowInterfacesInput.safeParse(body);
+  if (!parsed.success) {
+    return jsonResponse(
+      { code: "INVALID_INPUT", detail: "Expected 1 to 100 unique workflow ids" },
+      { status: 400 }
+    );
+  }
+  if (process.env["NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1"] !== "1") {
+    return workflowInterfaceErrorResponse(
+      new WorkflowInterfaceServiceError(
+        "feature_disabled",
+        "SDK workflow interface v1 is disabled"
+      )
+    );
+  }
+  const registry =
+    options.registry ?? (await getWorkflowRuntimeEnvironment(options)).registry;
+  try {
+    const result = await getWorkflowInterfacesV1({
+      workflowIds: parsed.data.ids,
+      userId: getUserId(request, options.userIdHeader ?? "x-user-id"),
+      registry
+    });
+    return jsonResponse(workflowInterfacesOutput.parse(result));
+  } catch (error) {
+    return workflowInterfaceErrorResponse(error);
+  }
+}
+
 export async function handlePublicWorkflows(
   request: Request
 ): Promise<Response> {
@@ -2129,6 +2169,10 @@ export async function handleApiRequest(
 
   if (pathname === "/api/sdk/v1/workflows") {
     return handleSdkWorkflowSummaries(request, options);
+  }
+
+  if (pathname === "/api/sdk/v1/workflow-interfaces") {
+    return handleWorkflowInterfaces(request, options);
   }
 
   if (pathname === "/api/workflows/names") {

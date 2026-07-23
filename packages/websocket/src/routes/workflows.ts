@@ -23,6 +23,7 @@ import {
   handleWorkflowTools,
   handleSdkWorkflowSummaries,
   handleWorkflowInterface,
+  handleWorkflowInterfaces,
   handleWorkflowsRoot,
   handlePublicWorkflowById,
   handlePublicWorkflows
@@ -92,6 +93,12 @@ const workflowsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   app.get("/api/sdk/v1/workflows", async (req, reply) => {
     await bridge(req, reply, (request) =>
       handleSdkWorkflowSummaries(request, apiOptions)
+    );
+  });
+
+  app.post("/api/sdk/v1/workflow-interfaces", async (req, reply) => {
+    await bridge(req, reply, (request) =>
+      handleWorkflowInterfaces(request, apiOptions)
     );
   });
 

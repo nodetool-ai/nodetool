@@ -311,6 +311,59 @@ describe("http-api extra: workflows root + by-id branches", () => {
     expect(response.body).not.toContain("properties");
   });
 
+  it("POST /api/sdk/v1/workflow-interfaces preserves order and isolates errors", async () => {
+    vi.stubEnv("NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
+    await app.close();
+    app = await makeApp({ registry: new NodeRegistry() });
+    const first = await makeWorkflow({ name: "First" });
+    const second = await makeWorkflow({ name: "Second" });
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/sdk/v1/workflow-interfaces",
+      headers: JSON_HEADERS(),
+      payload: JSON.stringify({
+        ids: [second.id, "missing", first.id],
+        version: 1
+      })
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      interfaces: [
+        { workflow_id: second.id, version: 1, source: "server" },
+        { workflow_id: first.id, version: 1, source: "server" }
+      ],
+      errors: [
+        {
+          workflow_id: "missing",
+          code: "workflow_not_found",
+          message: "Workflow not found"
+        }
+      ]
+    });
+    expect(response.body).not.toContain("graph");
+    expect(response.body).not.toContain("nodes");
+  });
+
+  it("POST /api/sdk/v1/workflow-interfaces enforces the 100-id bound", async () => {
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/sdk/v1/workflow-interfaces",
+      headers: JSON_HEADERS(),
+      payload: JSON.stringify({
+        ids: Array.from({ length: 101 }, (_, index) => `wf-${index}`),
+        version: 1
+      })
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      code: "INVALID_INPUT",
+      detail: "Expected 1 to 100 unique workflow ids"
+    });
+  });
+
   it("DELETE /api/workflows/:id returns 405 for an unsupported method", async () => {
     const wf = await makeWorkflow({ user_id: "user-1" });
     const res = await app.inject({

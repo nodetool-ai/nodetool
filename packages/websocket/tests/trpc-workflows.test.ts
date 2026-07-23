@@ -24,6 +24,7 @@ vi.mock("@nodetool-ai/models", async (orig) => {
       find: vi.fn(),
       paginate: vi.fn(),
       paginateSummaries: vi.fn(),
+      getManyByIds: vi.fn(),
       paginatePublic: vi.fn(),
       create: vi.fn()
     },
@@ -39,6 +40,7 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     WorkflowCollaborator: {
       ...actual.WorkflowCollaborator,
       findFor: vi.fn(),
+      grantedWorkflowIds: vi.fn(),
       listForWorkflow: vi.fn(),
       listForUser: vi.fn(),
       upsert: vi.fn(),
@@ -485,6 +487,42 @@ describe("workflows router", () => {
       });
       expect(JSON.stringify(result)).not.toContain("edges");
       expect(JSON.stringify(result)).not.toContain("properties");
+    });
+
+    it("derives a bounded interface batch without per-workflow lookups", async () => {
+      vi.stubEnv("NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
+      const first = makeWorkflow({ id: "wf-1" });
+      const second = makeWorkflow({ id: "wf-2" });
+      (Workflow.getManyByIds as ReturnType<typeof vi.fn>).mockResolvedValue(
+        new Map([
+          [first.id, first],
+          [second.id, second]
+        ])
+      );
+      (
+        WorkflowCollaborator.grantedWorkflowIds as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(new Set());
+      const caller = createCaller(makeCtx());
+
+      const result = await caller.workflows.interfaces({
+        ids: [second.id, "missing", first.id],
+        version: 1
+      });
+
+      expect(result.interfaces.map((item) => item.workflow_id)).toEqual([
+        second.id,
+        first.id
+      ]);
+      expect(result.errors).toEqual([
+        {
+          workflow_id: "missing",
+          code: "workflow_not_found",
+          message: "Workflow not found"
+        }
+      ]);
+      expect(Workflow.get).not.toHaveBeenCalled();
+      expect(Workflow.getManyByIds).toHaveBeenCalledTimes(1);
+      expect(WorkflowCollaborator.grantedWorkflowIds).toHaveBeenCalledTimes(1);
     });
   });
 
