@@ -525,6 +525,9 @@ export type UnifiedCommandType =
   | "stop"
   | "list_workflows"
   | "get_workflow"
+  | "list_workflow_summaries"
+  | "get_workflow_interface"
+  | "get_workflow_interfaces"
   | "list_assets"
   | "get_asset"
   | "list_nodes"
@@ -544,6 +547,9 @@ export type UnifiedCommandType =
 export type RpcCommandType =
   | "list_workflows"
   | "get_workflow"
+  | "list_workflow_summaries"
+  | "get_workflow_interface"
+  | "get_workflow_interfaces"
   | "list_assets"
   | "get_asset"
   | "list_nodes"
@@ -579,6 +585,21 @@ export interface ListWorkflowsRequest {
 
 export interface GetWorkflowRequest {
   id: string;
+}
+
+export interface ListWorkflowSummariesRequest {
+  limit?: number;
+  cursor?: string;
+}
+
+export interface GetWorkflowInterfaceRequest {
+  id: string;
+  version: 1;
+}
+
+export interface GetWorkflowInterfacesRequest {
+  ids: string[];
+  version: 1;
 }
 
 export interface ListAssetsRequest {

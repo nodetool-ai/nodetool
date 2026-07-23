@@ -6697,6 +6697,30 @@ export class UnifiedWebSocketRunner {
           caller.workflows.get({ id: String(data.id ?? "") })
         );
       }
+      case "list_workflow_summaries": {
+        const caller = this.getTrpcCaller();
+        return this.runRpc(command, () =>
+          caller.workflows.sdkSummaries(
+            data as Parameters<typeof caller.workflows.sdkSummaries>[0]
+          )
+        );
+      }
+      case "get_workflow_interface": {
+        const caller = this.getTrpcCaller();
+        return this.runRpc(command, () =>
+          caller.workflows.interface(
+            data as Parameters<typeof caller.workflows.interface>[0]
+          )
+        );
+      }
+      case "get_workflow_interfaces": {
+        const caller = this.getTrpcCaller();
+        return this.runRpc(command, () =>
+          caller.workflows.interfaces(
+            data as Parameters<typeof caller.workflows.interfaces>[0]
+          )
+        );
+      }
       case "list_assets": {
         const caller = this.getTrpcCaller();
         return this.runRpc(command, () =>
