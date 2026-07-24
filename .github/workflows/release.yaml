@@ -219,7 +219,12 @@ jobs:
 
       - name: Install system libraries for keytar (Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get update && sudo apt-get install -y libsecret-1-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsecret-1-dev flatpak flatpak-builder
+          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
+          flatpak install --user -y flathub org.electronjs.Electron2.BaseApp//24.08
 
       - name: Configure node-gyp Python path
         shell: bash
@@ -535,7 +540,7 @@ jobs:
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEBUG: electron-builder
+          DEBUG: electron-builder,@malept/flatpak-bundler
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
