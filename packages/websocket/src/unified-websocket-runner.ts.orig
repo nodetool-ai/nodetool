@@ -2524,6 +2524,19 @@ export class UnifiedWebSocketRunner {
     // N-variant run does one query per node, not one per variant (RFC D8).
     const persistedIndexByNode = new Map<string, Set<number>>();
 
+    const graphNodes =
+      (
+        active.graph as {
+          nodes?: Array<{ id?: unknown; type?: unknown }>;
+        }
+      ).nodes ?? [];
+    const graphNodeMap = new Map<string, { id?: unknown; type?: unknown }>();
+    for (const n of graphNodes) {
+      if (typeof n.id === "string") {
+        graphNodeMap.set(n.id, n);
+      }
+    }
+
     await this.sendMessage({
       type: "job_update",
       status: "running",
@@ -2546,20 +2559,6 @@ export class UnifiedWebSocketRunner {
       .finally(() => {
         active.finished = true;
       });
-
-    const graphNodes =
-      (
-        active.graph as {
-          nodes?: Array<{ id?: unknown; type?: unknown }>;
-        }
-      ).nodes ?? [];
-    const graphNodeMap = new Map<string, { id?: unknown; type?: unknown }>();
-    for (const n of graphNodes) {
-      if (typeof n.id === "string") {
-        graphNodeMap.set(n.id, n);
-      }
-    }
-
 
     while (!active.finished || active.context.hasMessages()) {
       while (active.context.hasMessages()) {
