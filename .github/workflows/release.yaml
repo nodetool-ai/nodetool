@@ -729,6 +729,7 @@ jobs:
             electron/dist/*.dmg
             electron/dist/*.zip
             electron/dist/*.AppImage
+            electron/dist/*.flatpak
             electron/dist/*.exe
             electron/dist/*.blockmap
             electron/dist/*.yml
@@ -843,6 +844,7 @@ jobs:
             release-assets/*.zip
             release-assets/*.dmg
             release-assets/*.AppImage
+            release-assets/*.flatpak
             release-assets/*.exe
             release-assets/*.blockmap
             release-assets/*.yml
