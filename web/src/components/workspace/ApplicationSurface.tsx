@@ -1,14 +1,19 @@
-import { memo } from "react";
+import { memo, useCallback, useState, type MouseEvent } from "react";
 
 import ApplicationGovernancePanel from "../applications/ApplicationGovernancePanel";
+import ApplicationAppBuilder from "../appbuilder/ApplicationAppBuilder";
 import { useApplication } from "../../hooks/useApplications";
 import {
+  Box,
   Caption,
   EmptyState,
   FlexColumn,
+  FlexRow,
   LoadingSpinner,
   ScrollArea,
   Text,
+  ToggleGroup,
+  ToggleOption,
   SPACING
 } from "../ui_primitives";
 
@@ -16,13 +21,22 @@ export interface ApplicationSurfaceProps {
   refId: string;
 }
 
+type ApplicationView = "design" | "settings";
+
 /**
- * Workspace surface for a mini app. Shows the app's identity and its publish +
- * governance controls; the WYSIWYG editing of the app document still lives in
- * the app builder.
+ * Workspace surface for a mini app: the WYSIWYG canvas over the app's own
+ * document, plus its publish and governance controls.
  */
 const ApplicationSurface = ({ refId }: ApplicationSurfaceProps) => {
   const { data: application, isLoading, isError, error } = useApplication(refId);
+  const [view, setView] = useState<ApplicationView>("design");
+
+  const handleViewChange = useCallback(
+    (_event: MouseEvent<HTMLElement>, next: ApplicationView | null) => {
+      if (next) setView(next);
+    },
+    []
+  );
 
   if (isLoading) {
     return <LoadingSpinner size="large" text="Loading app" />;
@@ -39,19 +53,52 @@ const ApplicationSurface = ({ refId }: ApplicationSurfaceProps) => {
   }
 
   return (
-    <ScrollArea fullHeight>
-      <FlexColumn gap={SPACING.lg} padding={SPACING.xl} fullWidth>
-        <FlexColumn gap={SPACING.xs}>
-          <Text size="big" weight={600}>
+    <FlexColumn gap={0} fullWidth sx={{ height: "100%", minHeight: 0 }}>
+      <FlexRow
+        align="center"
+        justify="space-between"
+        gap={SPACING.md}
+        sx={{
+          px: SPACING.lg,
+          py: SPACING.md,
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          backgroundColor: "background.paper"
+        }}
+      >
+        <Box sx={{ minWidth: 0 }}>
+          <Text size="small" weight={600} truncate>
             {application.name || "Untitled app"}
           </Text>
           {application.description && (
-            <Caption>{application.description}</Caption>
+            <Caption color="secondary" sx={{ display: "block" }}>
+              {application.description}
+            </Caption>
           )}
-        </FlexColumn>
-        <ApplicationGovernancePanel applicationId={application.id} />
-      </FlexColumn>
-    </ScrollArea>
+        </Box>
+        <ToggleGroup
+          segmented
+          exclusive
+          value={view}
+          onChange={handleViewChange}
+          aria-label="App view"
+        >
+          <ToggleOption value="design">Design</ToggleOption>
+          <ToggleOption value="settings">Settings</ToggleOption>
+        </ToggleGroup>
+      </FlexRow>
+      <Box sx={{ flex: 1, minHeight: 0 }}>
+        {view === "design" ? (
+          <ApplicationAppBuilder applicationId={application.id} />
+        ) : (
+          <ScrollArea fullHeight>
+            <FlexColumn gap={SPACING.lg} padding={SPACING.xl} fullWidth>
+              <ApplicationGovernancePanel applicationId={application.id} />
+            </FlexColumn>
+          </ScrollArea>
+        )}
+      </Box>
+    </FlexColumn>
   );
 };
 
