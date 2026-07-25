@@ -1,3 +1,5 @@
+import { describe, expect, it } from "vitest";
+
 import {
   EMPTY_DOC_META,
   addOperation,
@@ -9,31 +11,14 @@ import {
   removeVariable,
   updateOperation,
   updateVariable,
-  type AppDocMeta
-} from "../appDocOps";
-import type { WorkflowState } from "../workflowState";
+  type AppDocMeta,
+  type BindableWorkflow
+} from "../src/doc-ops.js";
 
-const workflow: WorkflowState = {
-  inputs: [
-    {
-      nodeId: "in-1",
-      nodeType: "nodetool.input.StringInput",
-      name: "prompt",
-      label: "Prompt",
-      kind: "string"
-    }
-  ],
-  outputs: [
-    {
-      nodeId: "out-1",
-      nodeType: "nodetool.output.StringOutput",
-      name: "answer",
-      label: "Answer"
-    }
-  ],
-  variables: ["channel"],
-  nodes: [],
-  resources: []
+const workflow: BindableWorkflow = {
+  inputs: [{ nodeId: "in-1", name: "prompt", label: "Prompt" }],
+  outputs: [{ nodeId: "out-1", name: "answer", label: "Answer" }],
+  variables: ["channel"]
 };
 
 describe("operations", () => {

@@ -32,7 +32,7 @@ import {
   updateOperation,
   updateVariable,
   type AppDocMeta
-} from "../appDocOps";
+} from "@nodetool-ai/app-runtime";
 import type { WorkflowState } from "../workflowState";
 
 interface PuckAgentBinderProps {

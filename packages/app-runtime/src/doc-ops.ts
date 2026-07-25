@@ -2,28 +2,25 @@
  * Pure operations on the non-UI half of an {@link ApplicationDocument}: its
  * operation bindings, declared variables, and resource bindings.
  *
- * Puck owns `ui`; these three lists are edited beside it — by the agent's
- * `ui_app_*` tools today, by inspector panels later — so they live here as
- * immutable functions the editor and the tests can both call.
+ * The UI half belongs to whatever renders it (Puck in the web editor); these
+ * three lists are edited beside it — by the agent's `ui_app_*` tools, by
+ * inspector panels, by the eval bridge — so they live here as immutable
+ * functions every consumer calls instead of reimplementing.
  */
-import {
-  encodeBinding,
-  implicitOperation,
-  mergeVariables,
-  type ExecutionField,
-  type InputMapping,
-  type OperationBinding,
-  type OperationPolicy,
-  type OutputMapping,
-  type ResourceBinding,
-  type ResourceKind,
-  type ResourceOperation,
-  type VariableDeclaration
-} from "@nodetool-ai/app-runtime";
+import { encodeBinding, type ExecutionField } from "./bindings.js";
+import { implicitOperation, mergeVariables } from "./operations.js";
+import type {
+  InputMapping,
+  OperationBinding,
+  OperationPolicy,
+  OutputMapping,
+  ResourceBinding,
+  ResourceKind,
+  ResourceOperation,
+  VariableDeclaration
+} from "./document.js";
 
-import type { WorkflowState } from "./workflowState";
-
-/** The parts of an application document that are not the Puck layout. */
+/** The parts of an application document that are not the UI layout. */
 export interface AppDocMeta {
   operations: OperationBinding[];
   resources: ResourceBinding[];
@@ -262,6 +259,18 @@ export const removeResource = (
 
 const EXECUTION_FIELDS: ExecutionField[] = ["running", "progress", "error"];
 
+/**
+ * The bindable surface of a workflow graph, as much of it as
+ * {@link bindingTargets} reads. The web editor's richer `WorkflowState`
+ * satisfies it structurally.
+ */
+export interface BindableWorkflow {
+  inputs: ReadonlyArray<{ nodeId: string; name: string; label: string }>;
+  outputs: ReadonlyArray<{ nodeId: string; name: string; label: string }>;
+  /** SetVariable channel names the graph publishes. */
+  variables: ReadonlyArray<string>;
+}
+
 export interface BindingTarget {
   nodeId: string;
   /** Node name as the graph declares it. */
@@ -308,7 +317,7 @@ export interface BindingTargets {
 export const bindingTargets = (
   meta: AppDocMeta,
   hostWorkflowId: string,
-  workflow: WorkflowState
+  workflow: BindableWorkflow
 ): BindingTargets => {
   const operations =
     meta.operations.length > 0

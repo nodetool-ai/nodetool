@@ -403,9 +403,12 @@ Browser-only tools (image/asset capture, WebGL viewport render) are scoped out:
 `ui_timeline_get_clip_frames`, `ui_3d_capture_view`. Storyboard cannot import
 `@nodetool-ai/llm-nodes` (it depends on `@nodetool-ai/agents`), so its
 generate/render jobs are faked by flipping shot status. The app-builder surface
-reimplements the Puck document ops (nested slot tree: top-level content plus
-slot-valued props on Panel/Columns) headlessly — the real ops live in
-`web/` (`puckDataOps.ts`), which a backend package can't import.
+reimplements only the Puck *layout* ops (nested slot tree: top-level content plus
+slot-valued props on Panel/Columns) headlessly — those live in `web/`
+(`puckDataOps.ts`), which a backend package can't import. Its operation,
+variable, resource, and binding-target tools call the shared doc-ops in
+`@nodetool-ai/app-runtime` (`src/doc-ops.ts`), the same module the browser
+handler calls, so that half of the contract cannot drift.
 
 ```bash
 npm run dev:nodetool -- eval timeline-tools --list

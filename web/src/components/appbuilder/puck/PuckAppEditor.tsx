@@ -22,7 +22,7 @@ import { appConfig } from "./config";
 import PuckAgentBinder from "./PuckAgentBinder";
 import { generateAppData } from "../generateAppDoc";
 import { isRenderableData } from "../appData";
-import { EMPTY_DOC_META, type AppDocMeta } from "../appDocOps";
+import { EMPTY_DOC_META, type AppDocMeta } from "@nodetool-ai/app-runtime";
 import {
   Box,
   Dialog,

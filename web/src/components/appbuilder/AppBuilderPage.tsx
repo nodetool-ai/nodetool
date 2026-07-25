@@ -20,7 +20,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import FrontendToolRuntimeSync from "../panels/FrontendToolRuntimeSync";
 import { createEmptyData, createEmptyDocument } from "./appData";
-import { EMPTY_DOC_META, type AppDocMeta } from "./appDocOps";
+import { EMPTY_DOC_META, type AppDocMeta } from "@nodetool-ai/app-runtime";
 import { loadAppDocument, toAppDocField } from "./persistence";
 import PuckAppEditor from "./puck/PuckAppEditor";
 import AppBuilderAgentPanel from "./AppBuilderAgentPanel";

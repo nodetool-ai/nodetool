@@ -52,8 +52,10 @@ the existing worker path.
 - `appData.ts` — storage model: re-exports the shared `ApplicationDocument`
   parser and the empty-document helpers.
 - `persistence.ts` — load/save the document on `workflow.app_doc`.
-- `appDocOps.ts` — pure edits to the document's operations, variables, and
-  resources, plus the bindable-target report the agent reads.
+- Pure edits to the document's operations, variables, and resources, plus the
+  bindable-target report the agent reads, live in `@nodetool-ai/app-runtime`
+  (`src/doc-ops.ts`) so the editor, the CLI harness, and the eval bridge share
+  one implementation.
 - `workflowIO.ts` / `workflowState.ts` — a workflow's bindable surface
   (inputs, outputs, variables).
 - `runtime/` — `appRuntimeStore` (a Zustand wrapper around the shared reducer,
@@ -88,7 +90,7 @@ The builder embeds the same agent chat the other editors use (`AppBuilderAgentPa
   - **operations** — `list/add/update/remove_operation`, keyed on input and
     output **node ids**.
   - **variables** — `list/declare/update/remove_variable`, with the
-    user-scope-only persist rule enforced in `appDocOps.ts`.
+    user-scope-only persist rule enforced by app-runtime's doc-ops.
   - **resources** — `list/add/remove_resource`.
   - **binding inspection** — `ui_app_get_binding_targets` reports every
     bindable slot with both its display name and the ID-form token to store,
@@ -99,7 +101,7 @@ The builder embeds the same agent chat the other editors use (`AppBuilderAgentPa
   naming which app to act on. The app document lives on `workflow.app_doc`, so the
   workflow id *is* the app's identity. Puck owns `ui`; `AppBuilderPage` holds the
   operations/variables/resources beside it and saves both together
-  (`appDocOps.ts` holds the pure edits).
+  (app-runtime's `doc-ops.ts` holds the pure edits).
 - `ui_*` (existing workflow tools) edit the graph. `FrontendToolRuntimeSync`
   (shared with the editor's right panel) is mounted here and the page sets the
   current workflow, so adding Input/Output/SetVariable nodes works — which is what

@@ -6,19 +6,17 @@
  * {@link getPuckAgentHandler} with that id to read and mutate the app document.
  */
 import type {
-  OperationBinding,
-  ResourceBinding,
-  VariableDeclaration
-} from "@nodetool-ai/app-runtime";
-
-import type {
   BindingTargets,
+  OperationBinding,
   OperationInput,
   OperationPatch,
+  ResourceBinding,
   ResourceInput,
+  VariableDeclaration,
   VariableInput,
   VariablePatch
-} from "../appDocOps";
+} from "@nodetool-ai/app-runtime";
+
 import { ComponentSummary } from "./puckDataOps";
 
 export interface PuckComponentType {

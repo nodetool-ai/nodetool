@@ -57,18 +57,30 @@ const WF = "wf-under-test";
 // --- createAppToolBridge -----------------------------------------------------
 
 describe("createAppToolBridge", () => {
-  it("exposes exactly the 7 ui_app_* tools", () => {
+  it("exposes exactly the 19 ui_app_* tools the frontend registers", () => {
     const bridge = createAppToolBridge();
     const names = bridge.tools.map((t) => t.name).sort();
     expect(names).toEqual(
       [
         "ui_app_add_component",
+        "ui_app_add_operation",
+        "ui_app_add_resource",
+        "ui_app_declare_variable",
+        "ui_app_get_binding_targets",
         "ui_app_get_snapshot",
         "ui_app_list_component_types",
+        "ui_app_list_operations",
+        "ui_app_list_resources",
+        "ui_app_list_variables",
         "ui_app_remove_component",
+        "ui_app_remove_operation",
+        "ui_app_remove_resource",
+        "ui_app_remove_variable",
         "ui_app_select_component",
         "ui_app_set_title",
-        "ui_app_update_component"
+        "ui_app_update_component",
+        "ui_app_update_operation",
+        "ui_app_update_variable"
       ].sort()
     );
   });
@@ -308,6 +320,194 @@ describe("createAppToolBridge", () => {
   });
 });
 
+// --- document meta tools (shared app-runtime doc-ops) ------------------------
+
+describe("createAppToolBridge document meta", () => {
+  const bridgeTools = (bridge: ReturnType<typeof createAppToolBridge>) =>
+    Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+
+  it("adds, updates, lists, and removes an operation", async () => {
+    const bridge = createAppToolBridge({ workflowId: "wf-app" });
+    const byName = bridgeTools(bridge);
+
+    const added = (await byName["ui_app_add_operation"].execute({
+      workflow_id: WF,
+      name: "Translate Title",
+      target_workflow_id: "wf-app",
+      inputs: { "in-1": { from: "widget" } }
+    })) as { ok: boolean; operation: { id: string; policy: string } };
+    expect(added.ok).toBe(true);
+    // Id is derived from the name by the shared doc-ops.
+    expect(added.operation.id).toBe("translate_title");
+    expect(added.operation.policy).toBe("replace");
+
+    // Mappings merge per node id, so one input can be remapped alone.
+    await byName["ui_app_update_operation"].execute({
+      workflow_id: WF,
+      id: "translate_title",
+      policy: "queue",
+      inputs: { "in-2": { from: "constant", value: 7 } }
+    });
+    const listed = (await byName["ui_app_list_operations"].execute({
+      workflow_id: WF
+    })) as { operations: { id: string; policy: string; inputs: object }[] };
+    expect(listed.operations).toHaveLength(1);
+    expect(listed.operations[0].policy).toBe("queue");
+    expect(listed.operations[0].inputs).toEqual({
+      "in-1": { from: "widget" },
+      "in-2": { from: "constant", value: 7 }
+    });
+
+    const removed = (await byName["ui_app_remove_operation"].execute({
+      workflow_id: WF,
+      id: "translate_title"
+    })) as { ok: boolean; removed_id: string | null };
+    expect(removed.ok).toBe(true);
+    expect(bridge.finalState().operations).toEqual([]);
+  });
+
+  it("update_operation returns an error result for an unknown id", async () => {
+    const byName = bridgeTools(createAppToolBridge());
+    const result = (await byName["ui_app_update_operation"].execute({
+      workflow_id: WF,
+      id: "nope",
+      policy: "parallel"
+    })) as { ok: boolean; error?: string };
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/No operation/);
+  });
+
+  it("only lets a user-scoped variable persist", async () => {
+    const bridge = createAppToolBridge();
+    const byName = bridgeTools(bridge);
+
+    const instance = (await byName["ui_app_declare_variable"].execute({
+      workflow_id: WF,
+      id: "draft",
+      scope: "instance",
+      persist: true
+    })) as { variable: { persist: boolean } };
+    expect(instance.variable.persist).toBe(false);
+
+    const user = (await byName["ui_app_declare_variable"].execute({
+      workflow_id: WF,
+      id: "theme",
+      scope: "user",
+      persist: true
+    })) as { variable: { persist: boolean } };
+    expect(user.variable.persist).toBe(true);
+
+    // Narrowing the scope clears persist, the same rule the parser enforces.
+    const narrowed = (await byName["ui_app_update_variable"].execute({
+      workflow_id: WF,
+      id: "theme",
+      scope: "instance"
+    })) as { variable: { persist: boolean } };
+    expect(narrowed.variable.persist).toBe(false);
+
+    await byName["ui_app_remove_variable"].execute({
+      workflow_id: WF,
+      id: "draft"
+    });
+    const listed = (await byName["ui_app_list_variables"].execute({
+      workflow_id: WF
+    })) as { variables: { id: string }[] };
+    expect(listed.variables.map((v) => v.id)).toEqual(["theme"]);
+    expect(bridge.finalState().variables.map((v) => v.id)).toEqual(["theme"]);
+  });
+
+  it("adds a resource binding defaulting to read-only, and removes it", async () => {
+    const bridge = createAppToolBridge();
+    const byName = bridgeTools(bridge);
+
+    const added = (await byName["ui_app_add_resource"].execute({
+      workflow_id: WF,
+      name: "Shots",
+      kind: "timeline",
+      project_id: "proj-1"
+    })) as { resource: { id: string; operations: string[] } };
+    expect(added.resource).toMatchObject({
+      id: "shots",
+      operations: ["read"]
+    });
+    expect(bridge.finalState().resources).toHaveLength(1);
+
+    await byName["ui_app_remove_resource"].execute({
+      workflow_id: WF,
+      id: "shots"
+    });
+    expect(bridge.finalState().resources).toEqual([]);
+  });
+
+  it("rejects a resource binding with no scope", async () => {
+    const byName = bridgeTools(createAppToolBridge());
+    await expect(
+      byName["ui_app_add_resource"].execute({
+        workflow_id: WF,
+        kind: "asset"
+      })
+    ).rejects.toThrow(/needs a scope/);
+  });
+
+  it("reports the implicit operation's binding tokens for the host workflow", async () => {
+    const byName = bridgeTools(
+      createAppToolBridge({
+        workflowId: "wf-app",
+        workflow: {
+          inputs: [{ nodeId: "in-1", name: "prompt", label: "Prompt" }],
+          outputs: [{ nodeId: "out-1", name: "answer", label: "Answer" }],
+          variables: ["channel"]
+        }
+      })
+    );
+    const targets = (await byName["ui_app_get_binding_targets"].execute({
+      workflow_id: WF
+    })) as {
+      operations: {
+        operationId: string;
+        ioAvailable: boolean;
+        inputs: { binding: string }[];
+        outputs: { binding: string }[];
+      }[];
+      variables: { binding: string }[];
+    };
+    expect(targets.operations).toHaveLength(1);
+    expect(targets.operations[0].operationId).toBe("main");
+    expect(targets.operations[0].ioAvailable).toBe(true);
+    expect(targets.operations[0].inputs[0].binding).toBe("op:main/in:in-1");
+    expect(targets.operations[0].outputs[0].binding).toBe("op:main/out:out-1");
+    // SetVariable channels show up next to declared variables.
+    expect(targets.variables.map((v) => v.binding)).toEqual(["var:channel"]);
+  });
+
+  it("reports no node targets for an operation over another workflow", async () => {
+    const byName = bridgeTools(
+      createAppToolBridge({
+        workflowId: "wf-app",
+        workflow: {
+          inputs: [{ nodeId: "in-1", name: "prompt", label: "Prompt" }],
+          outputs: [],
+          variables: []
+        }
+      })
+    );
+    await byName["ui_app_add_operation"].execute({
+      workflow_id: WF,
+      id: "other",
+      target_workflow_id: "wf-elsewhere"
+    });
+    const targets = (await byName["ui_app_get_binding_targets"].execute({
+      workflow_id: WF
+    })) as {
+      operations: { ioAvailable: boolean; inputs: unknown[] }[];
+    };
+    expect(targets.operations[0]).toMatchObject({
+      ioAvailable: false,
+      inputs: []
+    });
+  });
+});
+
 // --- APP_TOOL_LOOP_CASES via runToolLoopEval ---------------------------------
 
 describe("APP_TOOL_LOOP_CASES", () => {
@@ -363,6 +563,67 @@ describe("APP_TOOL_LOOP_CASES", () => {
       provider: createScriptedProvider(script),
       model: "test-model",
       cases: [APP_TOOL_LOOP_CASES[2]]
+    });
+    const r = report.cases[0];
+    expect(r.accepted).toBe(true);
+    expect(r.score).toBe(1);
+  });
+
+  it("bind-widgets-to-workflow: binding both widgets to the looked-up tokens passes", async () => {
+    const script: ScriptedCall[] = [
+      { name: "ui_app_get_binding_targets", args: { workflow_id: WF } },
+      {
+        name: "ui_app_update_component",
+        args: {
+          workflow_id: WF,
+          id: "input-1",
+          props: { binding: "op:main/in:in-1" }
+        }
+      },
+      {
+        name: "ui_app_update_component",
+        args: {
+          workflow_id: WF,
+          id: "text-1",
+          props: { binding: "op:main/out:out-1" }
+        }
+      }
+    ];
+    const report = await runToolLoopEval({
+      provider: createScriptedProvider(script),
+      model: "test-model",
+      cases: [APP_TOOL_LOOP_CASES[3]]
+    });
+    const r = report.cases[0];
+    expect(r.accepted).toBe(true);
+    expect(r.score).toBe(1);
+  });
+
+  it("declare-and-bind-variable: declaring a persisted variable and binding the Switch passes", async () => {
+    const script: ScriptedCall[] = [
+      {
+        name: "ui_app_declare_variable",
+        args: {
+          workflow_id: WF,
+          id: "dark_mode",
+          name: "Dark mode",
+          scope: "user",
+          persist: true
+        }
+      },
+      {
+        name: "ui_app_update_component",
+        args: {
+          workflow_id: WF,
+          id: "switch-1",
+          props: { binding: "var:dark_mode" }
+        }
+      }
+    ];
+    const report = await runToolLoopEval({
+      provider: createScriptedProvider(script),
+      model: "test-model",
+      cases: [APP_TOOL_LOOP_CASES[4]]
     });
     const r = report.cases[0];
     expect(r.accepted).toBe(true);
