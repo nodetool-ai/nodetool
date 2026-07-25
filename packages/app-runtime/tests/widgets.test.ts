@@ -13,11 +13,20 @@ describe("widget catalog", () => {
       "VideoInput",
       "DocumentInput",
       "ColorInput",
-      "ResourcePicker"
+      "ResourcePicker",
+      "ResourceGallery",
+      "StoryboardSceneList"
     ]) {
       expect(isKnownWidget(type)).toBe(true);
       expect(widgetMode(type)).toBe("write");
     }
+  });
+
+  it("gives resource widgets the trigger their editor entry emits", () => {
+    // The gallery reports a selection change; the scene list writes straight to
+    // the resource provider, so it has no event of its own.
+    expect(WIDGET_CATALOG.ResourceGallery.trigger).toBe("change");
+    expect(WIDGET_CATALOG.StoryboardSceneList.trigger).toBeUndefined();
   });
 
   it("reports unknown widget types rather than guessing a mode", () => {

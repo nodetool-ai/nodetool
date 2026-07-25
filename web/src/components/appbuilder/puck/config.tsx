@@ -31,6 +31,8 @@ import {
   DividerWidget
 } from "./widgets";
 import { ResourcePickerWidget } from "./ResourcePickerWidget";
+import { ResourceGalleryWidget } from "./ResourceGalleryWidget";
+import { StoryboardSceneListWidget } from "./StoryboardSceneListWidget";
 import {
   WorkflowInputWidget,
   FixedKindInputWidget,
@@ -192,6 +194,8 @@ export const appConfig: Config = {
         "Switch",
         "Select",
         "ResourcePicker",
+        "ResourceGallery",
+        "StoryboardSceneList",
         "ImageInput",
         "AudioInput",
         "VideoInput",
@@ -417,6 +421,39 @@ export const appConfig: Config = {
       },
       defaultProps: { resourceBindingId: "", label: "" },
       render: withConditions((props) => <ResourcePickerWidget {...props} />)
+    },
+    ResourceGallery: {
+      label: "Resource Gallery",
+      fields: {
+        resourceBindingId: resourceBindingField(),
+        label: { type: "text", label: "Label" },
+        tileSize: { type: "number", label: "Tile size (px)" },
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: { resourceBindingId: "", label: "", tileSize: 140 },
+      render: withConditions((props) => <ResourceGalleryWidget {...props} />)
+    },
+    StoryboardSceneList: {
+      label: "Storyboard Scenes",
+      fields: {
+        resourceBindingId: resourceBindingField(),
+        label: { type: "text", label: "Label" },
+        allowRemove: {
+          type: "radio",
+          label: "Allow remove",
+          options: [
+            { label: "No", value: false },
+            { label: "Yes", value: true }
+          ]
+        },
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: {
+        resourceBindingId: "",
+        label: "",
+        allowRemove: true
+      },
+      render: withConditions((props) => <StoryboardSceneListWidget {...props} />)
     },
     ImageInput: fixedInputEntry("Image Input", "image"),
     AudioInput: fixedInputEntry("Audio Input", "audio"),

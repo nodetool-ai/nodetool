@@ -89,6 +89,15 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
     trigger: "change",
     commits: false
   },
+  ResourceGallery: {
+    label: "Resource Gallery",
+    mode: "write",
+    trigger: "change",
+    commits: false
+  },
+  // Edits the bound document through the resource provider rather than app
+  // state, so it emits no event of its own.
+  StoryboardSceneList: { label: "Storyboard Scenes", mode: "write" },
   // Actions
   Button: { label: "Button", mode: "action", trigger: "click" },
   // Layout
