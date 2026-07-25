@@ -95,6 +95,8 @@ const buildRunJobData = (opts: {
   authToken: string;
   userId: string;
   concurrent?: boolean;
+  /** Set when a mini app started this run, so the server meters it. */
+  application?: { id: string; version?: number };
 }): RunJobRequest & { settings?: Record<string, unknown>; job_id: string; concurrent?: boolean; graph: WorkflowGraph } => {
   const activeNodes: Node<NodeData>[] = [];
   const bypassedNodeIds = new Set<string>();
@@ -127,9 +129,17 @@ const buildRunJobData = (opts: {
     resource_limits: opts.resource_limits,
     settings: { ...(opts.workflow.settings ?? {}) },
     job_id: opts.jobId,
-    concurrent: opts.concurrent
+    concurrent: opts.concurrent,
+    application_id: opts.application?.id ?? null,
+    application_version: opts.application?.version ?? null
   };
 };
+
+/** Extra, rarely-set run options. An object so the arity stops growing. */
+export interface RunOptions {
+  /** The mini app this run belongs to; drives the server-side budget check. */
+  application?: { id: string; version?: number };
+}
 
 export type WorkflowRunner = {
   workflow: WorkflowAttributes | null;
@@ -195,7 +205,8 @@ export type WorkflowRunner = {
     resource_limits?: Record<string, unknown>,
     subgraphNodeIds?: Set<string>,
     concurrent?: boolean,
-    inputSignatures?: Record<string, string>
+    inputSignatures?: Record<string, string>,
+    options?: RunOptions
   ) => Promise<string>;
   reconnect: (jobId: string) => Promise<void>;
   reconnectWithWorkflow: (
@@ -380,7 +391,8 @@ export const createWorkflowRunnerStore = (
       resource_limits?: Record<string, unknown>,
       subgraphNodeIds?: Set<string>,
       concurrent?: boolean,
-      inputSignatures?: Record<string, string>
+      inputSignatures?: Record<string, string>,
+      options?: RunOptions
     ) => {
       useOnboardingStore.getState().markStep("run-workflow");
       const activeNodeTypes = nodes
@@ -509,7 +521,8 @@ export const createWorkflowRunnerStore = (
         resource_limits,
         authToken: auth_token,
         userId: user,
-        concurrent
+        concurrent,
+        application: options?.application
       });
 
       if (queueRun) {

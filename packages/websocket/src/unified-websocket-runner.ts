@@ -33,8 +33,11 @@ import {
 } from "@nodetool-ai/kernel";
 import {
   Asset,
+  checkApplicationBudget,
   ImageDocument,
   Job,
+  recordInvocation,
+  settleInvocation,
   Message,
   ModelChangeEvent,
   ModelObserver,
@@ -47,6 +50,7 @@ import {
   type DBModel,
   type ThreadMemoryResource
 } from "@nodetool-ai/models";
+import { estimateWorkflowCost } from "@nodetool-ai/node-sdk/cost-estimate";
 import type {
   ProviderTool,
   Message as ProviderMessage,
@@ -1372,6 +1376,14 @@ export interface RunJobRequest {
   };
   explicit_types?: boolean;
   settings?: Record<string, unknown>;
+  /**
+   * The mini app this run belongs to, when one started it. Present only for
+   * app runs: the server checks the app's spend budget before creating the job
+   * and settles the ledger row when the run finishes.
+   */
+  application_id?: string | null;
+  /** Released version the run executes against; absent for a draft run. */
+  application_version?: number | null;
 }
 
 interface ActiveJob {
@@ -1393,6 +1405,8 @@ interface ActiveJob {
   streamTask?: Promise<void>;
   /** Running sum of node-level provider charges (e.g. kie credits) for this run. */
   providerCostTotal?: number;
+  /** Mini app this run belongs to, when one started it. Drives budget settlement. */
+  applicationId?: string | null;
 }
 
 class ToolBridge {
@@ -2173,7 +2187,76 @@ export class UnifiedWebSocketRunner {
    * client is under its concurrency cap, otherwise queues it (FIFO) and emits a
    * `queued` job update. Queued runs start automatically as active jobs finish.
    */
+  /**
+   * Best-effort pre-run cost estimate for a graph, in USD. Nodes the estimator
+   * cannot price contribute nothing, so the figure is a floor — good enough to
+   * stop a run that would obviously blow the budget, and never a reason to
+   * refuse one it cannot price.
+   */
+  private estimateRunCost(req: RunJobRequest): number {
+    const nodes = req.graph?.nodes;
+    if (!nodes || !this.getNodeMetadata) return 0;
+    try {
+      const estimate = estimateWorkflowCost({
+        nodes: nodes.map((node) => ({
+          id: String(node.id),
+          type: String(node.type),
+          data: (node.data ?? {}) as Record<string, unknown>
+        })),
+        getMetadata: (nodeType: string) => this.getNodeMetadata?.(nodeType)
+      });
+      return Number.isFinite(estimate.total) ? estimate.total : 0;
+    } catch (err) {
+      this.logError("run cost estimate failed", err);
+      return 0;
+    }
+  }
+
+  /**
+   * Gate an app's run on its spend budget. Runs of a published app execute with
+   * the creator's secrets, so this refuses before the job exists rather than
+   * reporting an overspend afterwards. Returns false when the run was refused
+   * (the client has already been told why).
+   */
+  private async admitApplicationRun(req: RunJobRequest): Promise<boolean> {
+    const applicationId = req.application_id;
+    if (!applicationId) return true;
+    const jobId = req.job_id ?? randomUUID();
+    req.job_id = jobId;
+    try {
+      const estimatedUsd = this.estimateRunCost(req);
+      const decision = await checkApplicationBudget(applicationId, estimatedUsd);
+      if (!decision.allowed) {
+        log.warn("Run refused by application budget", {
+          applicationId,
+          jobId,
+          reason: decision.reason
+        });
+        this.sendDetached({
+          type: "job_update",
+          status: "failed",
+          job_id: jobId,
+          workflow_id: req.workflow_id ?? null,
+          error: decision.reason
+        });
+        return false;
+      }
+      await recordInvocation({
+        applicationId,
+        version: req.application_version ?? null,
+        invocationId: jobId,
+        estimatedUsd
+      });
+    } catch (err) {
+      // A ledger that is unavailable must not take runs down with it; the
+      // refusal path above is the only one that blocks.
+      this.logError("application budget check failed", err);
+    }
+    return true;
+  }
+
   async runJob(req: RunJobRequest): Promise<void> {
+    if (!(await this.admitApplicationRun(req))) return;
     const max = await this.getMaxConcurrentJobs();
     const perWorkflowMax = await this.perWorkflowLimitFor(req);
     // Queue the run when over the global cap, or when this workflow already has
@@ -2397,7 +2480,8 @@ export class UnifiedWebSocketRunner {
       runner,
       graph,
       finished: false,
-      status: "running"
+      status: "running",
+      applicationId: req.application_id ?? null
     };
     this.activeJobs.set(jobId, active);
     // Slot ownership transfers from startingJobs to activeJobs now that the
@@ -2815,6 +2899,25 @@ export class UnifiedWebSocketRunner {
       }
     } catch (error) {
       this.logError("job persistence (final status) failed", error);
+    }
+
+    // Close the app's ledger row at what the run actually cost. Until this
+    // lands the run keeps counting against the budget at its estimate, which is
+    // the conservative direction: a crash cannot free spend it may have incurred.
+    if (active.applicationId) {
+      try {
+        await settleInvocation(
+          active.jobId,
+          active.providerCostTotal ?? 0,
+          active.status === "failed"
+            ? "failed"
+            : active.status === "cancelled"
+              ? "cancelled"
+              : "completed"
+        );
+      } catch (error) {
+        this.logError("application invocation settlement failed", error);
+      }
     }
     // Slot release + queue drain happen in the streamJobMessages wrapper's
     // finally, so they run even if the drain loop above throws.

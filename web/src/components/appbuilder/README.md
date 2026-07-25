@@ -109,10 +109,15 @@ immutable `application_versions` snapshot with a capability summary **derived**
 from its bindings — the workflows it may invoke and the resource kinds it
 touches. Rollback moves the release pointer.
 
-A released app runs on the creator's secrets, so runs are metered: the server
-checks the app's budget (`applications.beginInvocation`) before the job is
-created, refusing with a typed `BUDGET_EXCEEDED` error rather than letting a run
-reach a provider, and settles the ledger row at the run's actual cost afterwards.
-An unsettled run keeps counting at its estimate, so a crash cannot free spend it
-may already have incurred. The same ledger is the release telemetry, keyed by
-`(applicationId, version, invocationId)`.
+A released app runs on the creator's secrets, so runs are metered. An app run
+carries its `application_id` on the run request; the websocket runner checks the
+budget before the job is created — refusing with a typed `BUDGET_EXCEEDED` error
+rather than letting the run reach a provider — and settles the ledger row from
+the run's recorded provider cost when it finishes. An unsettled run keeps
+counting at its estimate, so a crash cannot free spend it may already have
+incurred, and a budget backend that is unavailable never blocks a run: only an
+explicit refusal does. The same ledger is the release telemetry, keyed by
+`(applicationId, version, invocationId)`. The pre-run estimate comes from
+`estimateWorkflowCost`; nodes it cannot price contribute nothing, so the figure
+is a floor — enough to stop an obviously over-budget run, never a reason to
+refuse one it cannot price.

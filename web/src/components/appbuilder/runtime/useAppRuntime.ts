@@ -61,6 +61,12 @@ export interface AppRuntimeOptions {
    * shapes take one code path.
    */
   document?: ApplicationDocument;
+  /**
+   * The application record this app belongs to. Sent with every run so the
+   * server can check the app's spend budget before creating the job and settle
+   * the ledger afterwards. Absent for an app that has no record yet.
+   */
+  application?: { id: string; version?: number };
   /** Open a resource in its own editor. The runtime only knows which one. */
   onOpenResource?: (resourceBindingId: string, ref: ResourceRef) => void;
   /** Run a provider command (upload, delete, …) against a resource binding. */
@@ -76,7 +82,7 @@ export const useAppRuntime = (
   designMode: boolean,
   options: AppRuntimeOptions = {}
 ): AppRuntimeContextValue => {
-  const { document, onOpenResource, onResourceCommand } = options;
+  const { application, document, onOpenResource, onResourceCommand } = options;
   const io = useMemo(() => extractWorkflowIO(workflow), [workflow]);
   const workflowId = workflow?.id;
 
@@ -288,7 +294,17 @@ export const useAppRuntime = (
     try {
       const jobId = await runnerStore
         .getState()
-        .run(params, workflow, nodes, edges);
+        .run(
+          params,
+          workflow,
+          nodes,
+          edges,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          { application }
+        );
       claimInvocation(jobId, true);
     } catch (error) {
       pendingRef.current = [];
@@ -307,7 +323,16 @@ export const useAppRuntime = (
     } finally {
       awaitingJobRef.current -= 1;
     }
-  }, [claimInvocation, designMode, io.inputs, operation, runnerStore, store, workflow]);
+  }, [
+    application,
+    claimInvocation,
+    designMode,
+    io.inputs,
+    operation,
+    runnerStore,
+    store,
+    workflow
+  ]);
 
   const cancel = useCallback(async () => {
     await runnerStore.getState().cancel();

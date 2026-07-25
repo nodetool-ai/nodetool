@@ -904,6 +904,14 @@ export interface RunJobRequest {
   graph?: WorkflowGraph;
   explicit_types?: Record<string, string> | boolean;
   resource_limits?: ResourceLimits | null;
+  /**
+   * The mini app this run belongs to, when it was started by one. Present only
+   * for app runs; the server checks the app's spend budget before creating the
+   * job and settles the ledger when it finishes.
+   */
+  application_id?: string | null;
+  /** Released version the run executes against; absent for a draft run. */
+  application_version?: number | null;
 }
 
 export interface ResourceLimits {
