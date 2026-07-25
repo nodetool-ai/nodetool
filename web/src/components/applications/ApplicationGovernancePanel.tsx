@@ -13,6 +13,7 @@ import {
   useSetApplicationBudget
 } from "../../hooks/useApplications";
 import {
+  AlertBanner,
   Button,
   Caption,
   Chip,
@@ -43,6 +44,20 @@ const isBudgetPeriod = (value: string): value is BudgetPeriod =>
 const formatUsd = (value: number): string => `$${value.toFixed(4)}`;
 
 const formatDate = (iso: string): string => new Date(iso).toLocaleString();
+
+type ParsedLimit = { ok: true; value: number | null } | { ok: false };
+
+/** Empty means no ceiling; anything else must be a non-negative number. */
+const parseLimit = (raw: string): ParsedLimit => {
+  const trimmed = raw.trim();
+  if (trimmed === "") return { ok: true, value: null };
+  const value = Number(trimmed);
+  return Number.isFinite(value) && value >= 0
+    ? { ok: true, value }
+    : { ok: false };
+};
+
+const LIMIT_HINT = "Enter a number of 0 or more, or leave empty for no limit.";
 
 /** "2 workflows · asset (read, create)" — what a release is allowed to touch. */
 const capabilitySummary = (version: Version): string => {
@@ -88,7 +103,7 @@ const VersionRow = memo(function VersionRow({
           disabled={releasing}
           onClick={handleRelease}
         >
-          Roll back to this
+          {`Roll back to version ${version.version}`}
         </Button>
       )}
     </FlexRow>
@@ -102,7 +117,12 @@ interface BudgetSectionProps {
 const BudgetSection = memo(function BudgetSection({
   applicationId
 }: BudgetSectionProps) {
-  const { data: budget, isLoading } = useApplicationBudget(applicationId);
+  const {
+    data: budget,
+    isLoading,
+    isError,
+    error
+  } = useApplicationBudget(applicationId);
   const { data: usage } = useApplicationUsage(applicationId);
   const setBudget = useSetApplicationBudget();
 
@@ -124,18 +144,31 @@ const BudgetSection = memo(function BudgetSection({
     if (isBudgetPeriod(value)) setPeriod(value);
   }, []);
 
+  const parsedUsd = parseLimit(maxUsd);
+  const parsedInvocations = parseLimit(maxInvocations);
+  const canSave = parsedUsd.ok && parsedInvocations.ok;
+
   const handleSave = useCallback(() => {
-    const usd = maxUsd.trim();
-    const invocations = maxInvocations.trim();
+    const usd = parseLimit(maxUsd);
+    const invocations = parseLimit(maxInvocations);
+    if (!usd.ok || !invocations.ok) return;
     setBudget.mutate({
       id: applicationId,
       period,
-      maxUsd: usd === "" ? null : Number(usd),
-      maxInvocations: invocations === "" ? null : Number(invocations)
+      maxUsd: usd.value,
+      maxInvocations: invocations.value
     });
   }, [applicationId, maxInvocations, maxUsd, period, setBudget]);
 
   if (isLoading) return <LoadingSpinner text="Loading budget" />;
+
+  if (isError) {
+    return (
+      <AlertBanner severity="error">
+        {`Could not load the budget: ${error?.message ?? "try again later."}`}
+      </AlertBanner>
+    );
+  }
 
   return (
     <FlexColumn gap={SPACING.md} fullWidth>
@@ -154,28 +187,34 @@ const BudgetSection = memo(function BudgetSection({
       <TextInput
         label="Max spend (USD)"
         size="small"
+        inputMode="decimal"
         value={maxUsd}
+        errorMessage={parsedUsd.ok ? undefined : LIMIT_HINT}
         onChange={(event) => setMaxUsd(event.target.value)}
       />
       <TextInput
         label="Max invocations"
         size="small"
+        inputMode="numeric"
         value={maxInvocations}
+        errorMessage={parsedInvocations.ok ? undefined : LIMIT_HINT}
         onChange={(event) => setMaxInvocations(event.target.value)}
       />
       <FlexRow gap={2} align="center">
         <Button
           variant="contained"
           size="small"
-          disabled={setBudget.isPending}
+          disabled={setBudget.isPending || !canSave}
           onClick={handleSave}
         >
           Save budget
         </Button>
-        {setBudget.isError && (
-          <Caption color="error">{setBudget.error.message}</Caption>
-        )}
       </FlexRow>
+      {setBudget.isError && (
+        <AlertBanner severity="error">
+          {`Could not save the budget: ${setBudget.error.message}`}
+        </AlertBanner>
+      )}
       {usage && (
         <Caption>
           {`Used ${formatUsd(usage.spentUsd)} across ${usage.invocations} run${
@@ -194,9 +233,18 @@ interface InvocationsSectionProps {
 const InvocationsSection = memo(function InvocationsSection({
   applicationId
 }: InvocationsSectionProps) {
-  const { data, isLoading } = useApplicationInvocations(applicationId);
+  const { data, isLoading, isError, error } =
+    useApplicationInvocations(applicationId);
 
   if (isLoading) return <LoadingSpinner text="Loading invocations" />;
+
+  if (isError) {
+    return (
+      <AlertBanner severity="error">
+        {`Could not load invocations: ${error?.message ?? "try again later."}`}
+      </AlertBanner>
+    );
+  }
 
   const invocations = data ?? [];
 
@@ -250,7 +298,12 @@ export interface ApplicationGovernancePanelProps {
 const ApplicationGovernancePanel = ({
   applicationId
 }: ApplicationGovernancePanelProps) => {
-  const { data: versions, isLoading } = useApplicationVersions(applicationId);
+  const {
+    data: versions,
+    isLoading,
+    isError,
+    error
+  } = useApplicationVersions(applicationId);
   const { data: released } = useReleasedApplicationVersion(applicationId);
   const publish = usePublishApplication();
   const release = useReleaseApplicationVersion();
@@ -293,8 +346,16 @@ const ApplicationGovernancePanel = ({
           Publish new version
         </Button>
       </FlexRow>
-      {publish.isError && <Caption color="error">{publish.error.message}</Caption>}
-      {release.isError && <Caption color="error">{release.error.message}</Caption>}
+      {publish.isError && (
+        <AlertBanner severity="error">
+          {`Could not publish: ${publish.error.message}`}
+        </AlertBanner>
+      )}
+      {release.isError && (
+        <AlertBanner severity="error">
+          {`Could not change the release: ${release.error.message}`}
+        </AlertBanner>
+      )}
 
       <Divider />
 
@@ -302,6 +363,10 @@ const ApplicationGovernancePanel = ({
         <SectionHeader title="Versions" />
         {isLoading ? (
           <LoadingSpinner text="Loading versions" />
+        ) : isError ? (
+          <AlertBanner severity="error">
+            {`Could not load versions: ${error?.message ?? "try again later."}`}
+          </AlertBanner>
         ) : sortedVersions.length === 0 ? (
           <EmptyState
             title="No versions yet"

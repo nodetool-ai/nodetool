@@ -11,6 +11,24 @@ import { trpc } from "../trpc/client";
 
 const LIST_STALE_TIME = 30_000;
 
+/**
+ * True when a mutation lost the `baseUpdatedAt` compare-and-set — the record
+ * changed between the read and the write. The server maps that to a tRPC
+ * CONFLICT; callers must tell the user their edit was not saved.
+ */
+export const isConcurrencyConflict = (error: unknown): boolean => {
+  if (typeof error !== "object" || error === null || !("data" in error)) {
+    return false;
+  }
+  const { data } = error;
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "code" in data &&
+    data.code === "CONFLICT"
+  );
+};
+
 /** All apps the user owns, optionally scoped to a project. */
 export const useApplications = (projectId?: string) =>
   trpc.applications.list.useQuery(

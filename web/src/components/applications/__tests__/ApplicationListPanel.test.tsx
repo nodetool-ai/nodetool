@@ -5,12 +5,30 @@ import { ThemeProvider } from "@mui/material/styles";
 import { MemoryRouter } from "react-router-dom";
 import mockTheme from "../../../__mocks__/themeMock";
 
+interface MutateOptions {
+  onError?: (error: { message: string; data?: { code: string } }) => void;
+}
+
 const createMutateAsync = jest.fn(async () => ({
   id: "app-new",
   name: "Untitled app"
 }));
-const updateMutate = jest.fn();
-const deleteMutate = jest.fn();
+const updateMutate = jest.fn(
+  (_input: unknown, _options?: MutateOptions) => undefined
+);
+const deleteMutate = jest.fn(
+  (_input: unknown, _options?: MutateOptions) => undefined
+);
+const listInvalidate = jest.fn();
+const getFetch = jest.fn(async () => ({
+  id: "app-1",
+  projectId: "default",
+  name: "Poster maker",
+  description: "Makes posters",
+  document: { schemaVersion: 1, ui: { root: {}, content: [] } },
+  createdAt: "2026-07-01T10:00:00.000Z",
+  updatedAt: "2026-07-20T10:00:00.000Z"
+}));
 
 const applications = [
   {
@@ -32,6 +50,7 @@ const applications = [
 ];
 
 jest.mock("../../../hooks/useApplications", () => ({
+  ...jest.requireActual("../../../hooks/useApplications"),
   useApplications: () => ({
     data: applications,
     isLoading: false,
@@ -53,7 +72,12 @@ const workflowsQuery = jest.fn(() => ({
 
 jest.mock("../../../trpc/client", () => ({
   trpc: {
-    useUtils: () => ({ applications: { get: { fetch: jest.fn() } } }),
+    useUtils: () => ({
+      applications: {
+        get: { fetch: getFetch },
+        list: { invalidate: listInvalidate }
+      }
+    }),
     workflows: { list: { useQuery: () => workflowsQuery() } }
   }
 }));
@@ -70,6 +94,7 @@ import ApplicationListPanel, {
   CreateApplicationFromWorkflowButton
 } from "../ApplicationListPanel";
 import { useSidebarDocumentActionsStore } from "../../../stores/SidebarDocumentActionsStore";
+import { useNotificationStore } from "../../../stores/NotificationStore";
 import { ContextMenuProvider } from "../../../providers/ContextMenuProvider";
 
 const renderPanel = (ui: React.ReactElement) =>
@@ -83,6 +108,7 @@ const renderPanel = (ui: React.ReactElement) =>
 
 beforeEach(() => {
   jest.clearAllMocks();
+  useNotificationStore.getState().clearNotifications();
 });
 
 describe("ApplicationListPanel", () => {
@@ -127,6 +153,48 @@ describe("ApplicationListPanel", () => {
     expect(screen.getByText("Caption writer")).toBeInTheDocument();
   });
 
+  it("duplicates an app from its stored document", async () => {
+    renderPanel(<ApplicationListPanel />);
+
+    await act(async () => {
+      await useSidebarDocumentActionsStore
+        .getState()
+        .onDuplicate?.({ id: "app-1", name: "Poster maker" });
+    });
+
+    expect(getFetch).toHaveBeenCalledWith({ id: "app-1" });
+    await waitFor(() =>
+      expect(createMutateAsync).toHaveBeenCalledWith({
+        name: "Poster maker (copy)",
+        description: "Makes posters",
+        projectId: "default",
+        document: { schemaVersion: 1, ui: { root: {}, content: [] } }
+      })
+    );
+  });
+
+  it("reports a duplicate that fails", async () => {
+    getFetch.mockRejectedValueOnce(new Error("Application not found"));
+    renderPanel(<ApplicationListPanel />);
+
+    await act(async () => {
+      await useSidebarDocumentActionsStore
+        .getState()
+        .onDuplicate?.({ id: "app-1", name: "Poster maker" });
+    });
+
+    await waitFor(() =>
+      expect(
+        useNotificationStore
+          .getState()
+          .notifications.some((n) =>
+            n.content.includes('Could not duplicate "Poster maker"')
+          )
+      ).toBe(true)
+    );
+    expect(createMutateAsync).not.toHaveBeenCalled();
+  });
+
   it("renames an app through the sidebar rename action", async () => {
     const user = userEvent.setup();
     renderPanel(<ApplicationListPanel />);
@@ -141,10 +209,103 @@ describe("ApplicationListPanel", () => {
     await user.clear(input);
     await user.type(input, "Poster studio{Enter}");
 
-    expect(updateMutate).toHaveBeenCalledWith({
-      id: "app-1",
-      name: "Poster studio"
+    expect(updateMutate).toHaveBeenCalledWith(
+      {
+        id: "app-1",
+        name: "Poster studio",
+        baseUpdatedAt: "2026-07-20T10:00:00.000Z"
+      },
+      expect.objectContaining({ onError: expect.any(Function) })
+    );
+  });
+
+  it("tells the user when a rename lost the concurrency check", async () => {
+    const user = userEvent.setup();
+    updateMutate.mockImplementationOnce((_input, options) => {
+      options?.onError?.({
+        message: "Application was modified since last read",
+        data: { code: "CONFLICT" }
+      });
+      return undefined;
     });
+    renderPanel(<ApplicationListPanel />);
+
+    act(() => {
+      useSidebarDocumentActionsStore
+        .getState()
+        .onRename?.({ id: "app-1", name: "Poster maker" });
+    });
+
+    const input = await screen.findByLabelText("App name");
+    await user.clear(input);
+    await user.type(input, "Poster studio{Enter}");
+
+    await waitFor(() =>
+      expect(
+        useNotificationStore
+          .getState()
+          .notifications.some(
+            (n) =>
+              n.type === "error" &&
+              n.content.includes("changed elsewhere") &&
+              n.content.includes("Poster studio")
+          )
+      ).toBe(true)
+    );
+    expect(listInvalidate).toHaveBeenCalled();
+  });
+
+  it("reports a rename that failed for any other reason", async () => {
+    const user = userEvent.setup();
+    updateMutate.mockImplementationOnce((_input, options) => {
+      options?.onError?.({ message: "Network down" });
+      return undefined;
+    });
+    renderPanel(<ApplicationListPanel />);
+
+    act(() => {
+      useSidebarDocumentActionsStore
+        .getState()
+        .onRename?.({ id: "app-1", name: "Poster maker" });
+    });
+
+    const input = await screen.findByLabelText("App name");
+    await user.clear(input);
+    await user.type(input, "Poster studio{Enter}");
+
+    await waitFor(() =>
+      expect(
+        useNotificationStore
+          .getState()
+          .notifications.some((n) => n.content.includes("Network down"))
+      ).toBe(true)
+    );
+  });
+
+  it("reports a delete that the server rejects", async () => {
+    const user = userEvent.setup();
+    deleteMutate.mockImplementationOnce((_input, options) => {
+      options?.onError?.({ message: "Application not found" });
+      return undefined;
+    });
+    renderPanel(<ApplicationListPanel />);
+
+    act(() => {
+      useSidebarDocumentActionsStore
+        .getState()
+        .onDelete?.({ id: "app-1", name: "Poster maker" });
+    });
+    await user.click(await screen.findByRole("button", { name: "Delete" }));
+
+    await waitFor(() =>
+      expect(
+        useNotificationStore
+          .getState()
+          .notifications.some((n) =>
+            n.content.includes('Could not delete "Poster maker"')
+          )
+      ).toBe(true)
+    );
   });
 
   it("deletes only after the confirmation is accepted", async () => {
@@ -161,7 +322,10 @@ describe("ApplicationListPanel", () => {
 
     await user.click(await screen.findByRole("button", { name: "Delete" }));
 
-    expect(deleteMutate).toHaveBeenCalledWith({ id: "app-1" });
+    expect(deleteMutate).toHaveBeenCalledWith(
+      { id: "app-1" },
+      expect.objectContaining({ onError: expect.any(Function) })
+    );
   });
 });
 

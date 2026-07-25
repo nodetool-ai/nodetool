@@ -61,32 +61,74 @@ const state = {
   ]
 };
 
+/** Per-test overrides for the query and mutation results the panel reads. */
+interface Failure {
+  message: string;
+}
+
+const overrides: {
+  versionsError: Failure | null;
+  budgetError: Failure | null;
+  invocationsError: Failure | null;
+  publishError: Failure | null;
+  releaseError: Failure | null;
+  setBudgetError: Failure | null;
+} = {
+  versionsError: null,
+  budgetError: null,
+  invocationsError: null,
+  publishError: null,
+  releaseError: null,
+  setBudgetError: null
+};
+
+const resetOverrides = () => {
+  overrides.versionsError = null;
+  overrides.budgetError = null;
+  overrides.invocationsError = null;
+  overrides.publishError = null;
+  overrides.releaseError = null;
+  overrides.setBudgetError = null;
+};
+
 jest.mock("../../../hooks/useApplications", () => ({
-  useApplicationVersions: () => ({ data: state.versions, isLoading: false }),
+  useApplicationVersions: () => ({
+    data: overrides.versionsError ? undefined : state.versions,
+    isLoading: false,
+    isError: overrides.versionsError !== null,
+    error: overrides.versionsError
+  }),
   useReleasedApplicationVersion: () => ({ data: state.released }),
   usePublishApplication: () => ({
     mutate: publishMutate,
     isPending: false,
-    isError: false,
-    error: null
+    isError: overrides.publishError !== null,
+    error: overrides.publishError
   }),
   useReleaseApplicationVersion: () => ({
     mutate: releaseMutate,
     isPending: false,
-    isError: false,
-    error: null
+    isError: overrides.releaseError !== null,
+    error: overrides.releaseError
   }),
-  useApplicationBudget: () => ({ data: state.budget, isLoading: false }),
+  useApplicationBudget: () => ({
+    data: overrides.budgetError ? undefined : state.budget,
+    isLoading: false,
+    isError: overrides.budgetError !== null,
+    error: overrides.budgetError
+  }),
   useApplicationUsage: () => ({ data: state.usage }),
   useSetApplicationBudget: () => ({
     mutate: setBudgetMutate,
     isPending: false,
-    isError: false,
-    error: null
+    isError: overrides.setBudgetError !== null,
+    error: overrides.setBudgetError
   }),
   useApplicationInvocations: () => ({
-    data: state.invocations,
-    isLoading: false
+    data: overrides.invocationsError ? undefined : state.invocations,
+    isLoading: false,
+    isError: overrides.invocationsError !== null,
+    error: overrides.invocationsError
   })
 }));
 
@@ -101,6 +143,7 @@ const renderPanel = () =>
 
 beforeEach(() => {
   jest.clearAllMocks();
+  resetOverrides();
 });
 
 describe("ApplicationGovernancePanel", () => {
@@ -130,11 +173,13 @@ describe("ApplicationGovernancePanel", () => {
     renderPanel();
 
     const rollbackButtons = screen.getAllByRole("button", {
-      name: "Roll back to this"
+      name: /Roll back to version/
     });
     expect(rollbackButtons).toHaveLength(1);
 
-    await user.click(rollbackButtons[0]);
+    await user.click(
+      screen.getByRole("button", { name: "Roll back to version 1" })
+    );
 
     expect(releaseMutate).toHaveBeenCalledWith({ id: "app-1", version: 1 });
   });
@@ -180,5 +225,75 @@ describe("ApplicationGovernancePanel", () => {
 
     expect(screen.getByText("main")).toBeInTheDocument();
     expect(screen.getByText("$0.0150")).toBeInTheDocument();
+  });
+});
+
+describe("ApplicationGovernancePanel error paths", () => {
+  it("announces a failed publish", () => {
+    overrides.publishError = { message: "No operations to publish" };
+    renderPanel();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Could not publish: No operations to publish"
+    );
+  });
+
+  it("announces a failed rollback", () => {
+    overrides.releaseError = { message: "Application version not found" };
+    renderPanel();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Could not change the release: Application version not found"
+    );
+  });
+
+  it("announces a rejected budget instead of dropping it silently", () => {
+    overrides.setBudgetError = { message: "Budget below current spend" };
+    renderPanel();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Could not save the budget: Budget below current spend"
+    );
+  });
+
+  it("refuses to save a non-numeric ceiling", async () => {
+    const user = userEvent.setup();
+    renderPanel();
+
+    await user.clear(screen.getByLabelText("Max spend (USD)"));
+    await user.type(screen.getByLabelText("Max spend (USD)"), "lots");
+
+    expect(
+      screen.getByText("Enter a number of 0 or more, or leave empty for no limit.")
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save budget" })).toBeDisabled();
+    expect(setBudgetMutate).not.toHaveBeenCalled();
+  });
+
+  it("reports a versions query that failed", () => {
+    overrides.versionsError = { message: "Application not found" };
+    renderPanel();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Could not load versions: Application not found"
+    );
+  });
+
+  it("reports a budget query that failed", () => {
+    overrides.budgetError = { message: "Unauthorized" };
+    renderPanel();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Could not load the budget: Unauthorized"
+    );
+  });
+
+  it("reports an invocations query that failed", () => {
+    overrides.invocationsError = { message: "Ledger unavailable" };
+    renderPanel();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Could not load invocations: Ledger unavailable"
+    );
   });
 });

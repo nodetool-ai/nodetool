@@ -18,11 +18,13 @@ import type { FocusEvent, KeyboardEvent, MouseEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import {
+  isConcurrencyConflict,
   useApplications,
   useCreateApplication,
   useDeleteApplication,
   useUpdateApplication
 } from "../../hooks/useApplications";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -420,6 +422,11 @@ const ApplicationListPanel = () => {
   );
   const updateApplication = useUpdateApplication();
   const deleteApplication = useDeleteApplication();
+  const createApplication = useCreateApplication();
+  const utils = trpc.useUtils();
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const setActions = useSidebarDocumentActionsStore((state) => state.setActions);
   const clearActions = useSidebarDocumentActionsStore(
@@ -451,11 +458,49 @@ const ApplicationListPanel = () => {
       const trimmed = newName.trim();
       const current = (data ?? []).find((app) => app.id === id);
       setEditingId(null);
-      if (trimmed && current && trimmed !== current.name) {
-        updateApplication.mutate({ id, name: trimmed });
+      if (!trimmed || !current || trimmed === current.name) return;
+      // Send the row's updatedAt so the server can reject a rename that would
+      // overwrite an edit made elsewhere since this list was fetched.
+      updateApplication.mutate(
+        { id, name: trimmed, baseUpdatedAt: current.updatedAt },
+        {
+          onError: (error) => {
+            addNotification({
+              type: "error",
+              alert: true,
+              content: isConcurrencyConflict(error)
+                ? `"${current.name}" changed elsewhere — the rename to "${trimmed}" was not saved.`
+                : `Could not rename "${current.name}": ${error.message}`
+            });
+            void utils.applications.list.invalidate();
+          }
+        }
+      );
+    },
+    [addNotification, data, updateApplication, utils]
+  );
+
+  const handleDuplicate = useCallback(
+    async (item: SidebarDocumentItem) => {
+      try {
+        const source = await utils.applications.get.fetch({ id: item.id });
+        await createApplication.mutateAsync({
+          name: `${source.name} (copy)`.substring(0, 200),
+          description: source.description,
+          projectId: source.projectId,
+          document: source.document
+        });
+      } catch (error) {
+        addNotification({
+          type: "error",
+          alert: true,
+          content: `Could not duplicate "${item.name}": ${
+            error instanceof Error ? error.message : "unknown error"
+          }`
+        });
       }
     },
-    [data, updateApplication]
+    [addNotification, createApplication, utils]
   );
 
   const handleRequestDelete = useCallback((item: SidebarDocumentItem) => {
@@ -463,18 +508,31 @@ const ApplicationListPanel = () => {
   }, []);
 
   const handleConfirmDelete = useCallback(() => {
-    if (itemToDelete) {
-      deleteApplication.mutate({ id: itemToDelete.id });
-    }
-  }, [itemToDelete, deleteApplication]);
+    if (!itemToDelete) return;
+    const { id, name } = itemToDelete;
+    deleteApplication.mutate(
+      { id },
+      {
+        onError: (error) => {
+          addNotification({
+            type: "error",
+            alert: true,
+            content: `Could not delete "${name}": ${error.message}`
+          });
+          void utils.applications.list.invalidate();
+        }
+      }
+    );
+  }, [addNotification, itemToDelete, deleteApplication, utils]);
 
   useEffect(() => {
     setActions({
       onRename: (item) => setEditingId(item.id),
+      onDuplicate: (item) => void handleDuplicate(item),
       onDelete: handleRequestDelete
     });
     return () => clearActions();
-  }, [setActions, clearActions, handleRequestDelete]);
+  }, [setActions, clearActions, handleDuplicate, handleRequestDelete]);
 
   return (
     <FlexColumn fullHeight fullWidth gap={0} css={styles(theme)}>
