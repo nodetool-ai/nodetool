@@ -152,13 +152,13 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "Ask questions about your own documents — answers cite their source and refuse to guess.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "chat-with-your-documents",
     "name": "Chat With Your Documents",
     "summary": "Retrieval-augmented Q&A over your own documents. Index a small knowledge base into a vector collection, pull the passages matching a search keyword, and get a Markdown answer that cites its sources and refuses to guess when the answer isn't in the docs. NodeTool's first RAG example. The answer step uses gpt-5-mini (OpenAI key); the collection is configured for Ollama nomic-embed-text embeddings.",
     "featured": false,
     "templateRoute": "/templates/chat-with-your-documents",
-    "screenshot": null,
+    "screenshot": "/apps/chat-with-your-documents.png",
     "tags": [
       "rag",
       "vectorstore",
@@ -374,9 +374,21 @@ export const miniAppEntries: MiniAppEntry[] = [
       {
         "label": "Result",
         "kind": "text"
+      },
+      {
+        "label": "High Priority",
+        "kind": "text"
+      },
+      {
+        "label": "Low Priority",
+        "kind": "text"
+      },
+      {
+        "label": "Medium Priority",
+        "kind": "text"
       }
     ],
-    "widgetCount": 7
+    "widgetCount": 14
   },
   {
     "route": "/apps/data-generator",
@@ -414,6 +426,46 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "widgetCount": 9
+  },
+  {
+    "route": "/apps/directed-film-to-timeline",
+    "title": "Directed Film to Timeline — Free AI Mini App | NodeTool",
+    "description": "Turn a one-line brief into an editable rough cut",
+    "priority": 0.4,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "directed-film-to-timeline",
+    "name": "Directed Film to Timeline",
+    "summary": "Turn a one-line brief into an editable rough cut. A Director agent writes a screenplay of shots, each shot is fanned out into a keyframe prompt, rendered as a still, animated into a clip, then all clips are collected, appended to a timeline sequence, and rendered to a single video you can keep editing.",
+    "featured": false,
+    "templateRoute": "/templates/directed-film-to-timeline",
+    "screenshot": "/apps/directed-film-to-timeline.png",
+    "tags": [
+      "video",
+      "generation",
+      "ai",
+      "timeline",
+      "creative",
+      "director",
+      "storyboard",
+      "example"
+    ],
+    "heading": "Directed Film to Timeline",
+    "tagline": "Turn a one-line brief into an editable rough cut",
+    "buttonLabel": "Run",
+    "inputs": [
+      {
+        "label": "Brief",
+        "kind": "text"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Film",
+        "kind": "text"
+      }
+    ],
+    "widgetCount": 7
   },
   {
     "route": "/apps/flashcard-generator",
@@ -734,13 +786,13 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "One brief, three frontier models, answered side by side.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "model-arena",
     "name": "Model Arena",
     "summary": "One brief, three frontier models, answered side by side. The same prompt fans out to OpenAI, Anthropic, and Google in a single pass, each answering in the same structure — so you compare reasoning, not formatting. Swap the model on any lane to build your own bracket.",
     "featured": false,
     "templateRoute": "/templates/model-arena",
-    "screenshot": null,
+    "screenshot": "/apps/model-arena.png",
     "tags": [
       "comparison",
       "llm",
@@ -1060,13 +1112,13 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "Ask questions about your own notes — fully local, no API keys.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "private-assistant",
     "name": "Private Assistant",
     "summary": "Ask questions about your own notes and documents — fully local, no API keys. Runs end-to-end on a local Ollama model, so the text never leaves your machine. Requires Ollama running with a model pulled (default: llama3.2 — run `ollama pull llama3.2`).",
     "featured": false,
     "templateRoute": "/templates/private-assistant",
-    "screenshot": null,
+    "screenshot": "/apps/private-assistant.png",
     "tags": [
       "local",
       "privacy",
@@ -1209,13 +1261,13 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "The starter pattern: typed inputs fill a prompt, an LLM answers, the output renders.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "prompt-template",
     "name": "Prompt Template",
     "summary": "The starter pattern behind almost every NodeTool workflow: typed inputs fill a reusable prompt template, an LLM answers it, the output renders. Explains a topic for any audience — swap the prompt to reuse the pattern for anything.",
     "featured": false,
     "templateRoute": "/templates/prompt-template",
-    "screenshot": null,
+    "screenshot": "/apps/prompt-template.png",
     "tags": [
       "start",
       "beginner",
@@ -1250,13 +1302,13 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "Give it a topic and audience — the agent searches, browses, and streams back a cited brief.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "research-agent",
     "name": "Research Agent",
     "summary": "Give it a topic and an audience; the agent runs real web searches, opens the best sources, and streams back a cited markdown briefing. Differentiator: genuine multi-step tool use (search + browse) with inline citations — not a single prompt call.",
     "featured": false,
     "templateRoute": "/templates/research-agent",
-    "screenshot": null,
+    "screenshot": "/apps/research-agent.png",
     "tags": [
       "agent",
       "research",
@@ -1385,6 +1437,62 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "widgetCount": 21
+  },
+  {
+    "route": "/apps/script-to-screen",
+    "title": "Script to Screen — Free AI Mini App | NodeTool",
+    "description": "Full production spine: a Director agent turns your brief into a direction document (characters, style bible, shot list, narration, music)",
+    "priority": 0.4,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "script-to-screen",
+    "name": "Script to Screen",
+    "summary": "Full production spine: a Director agent turns your brief into a direction document (characters, style bible, shot list, narration, music). A style frame anchors every keyframe for consistency, keyframes form a cheap storyboard you can approve before video spend, then each shot is animated, cut together, and mixed with voiceover and music.",
+    "featured": false,
+    "templateRoute": "/templates/script-to-screen",
+    "screenshot": "/apps/script-to-screen.png",
+    "tags": [
+      "video",
+      "generation",
+      "ai",
+      "storytelling",
+      "creative",
+      "director",
+      "storyboard",
+      "example"
+    ],
+    "heading": "Script to Screen",
+    "tagline": "Full production spine: a Director agent turns your brief into a direction document (characters, style bible, shot list, narration, music)",
+    "buttonLabel": "Run",
+    "inputs": [
+      {
+        "label": "Brief",
+        "kind": "text"
+      },
+      {
+        "label": "Visual Style",
+        "kind": "text"
+      },
+      {
+        "label": "Shot Count",
+        "kind": "text"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Direction",
+        "kind": "text"
+      },
+      {
+        "label": "Storyboard",
+        "kind": "text"
+      },
+      {
+        "label": "Film",
+        "kind": "text"
+      }
+    ],
+    "widgetCount": 14
   },
   {
     "route": "/apps/social-media-calendar-filler",
@@ -1519,13 +1627,13 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "An orchestrator agent delegates to specialist sub-agents wired in as callable tools.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "workflow-as-a-tool",
     "name": "Workflow As A Tool",
     "summary": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research (Gemini) gathers the facts, Copy Editor (Claude) polishes the draft, and the manager (GPT-5 mini) decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
     "featured": false,
     "templateRoute": "/templates/workflow-as-a-tool",
-    "screenshot": null,
+    "screenshot": "/apps/workflow-as-a-tool.png",
     "tags": [
       "agents",
       "composition",

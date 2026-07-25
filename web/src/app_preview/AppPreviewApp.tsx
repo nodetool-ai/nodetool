@@ -24,6 +24,13 @@ import {
   type PuckData
 } from "@nodetool-ai/app-runtime";
 
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
+
+import { NodeContext } from "../contexts/NodeContext";
+import { WorkflowManagerProvider } from "../contexts/WorkflowManagerContext";
+import { createNodeStore } from "../stores/NodeStore";
+import { useAuth } from "../stores/useAuth";
 import { createAppRuntimeStore } from "../components/appbuilder/runtime/appRuntimeStore";
 import {
   AppRuntimeContext,
@@ -122,6 +129,25 @@ async function mediaSettled(el: HTMLElement): Promise<void> {
   ]);
   await document.fonts.ready;
 }
+
+// Number controls (IntegerProperty/FloatProperty) pause the editor's undo
+// history while dragging, so they need a node store in context the way the real
+// Mini App runtime provides one. Bounds come from the widget's own property, so
+// an empty store is enough — without it the whole tree throws.
+const previewNodeStore = createNodeStore();
+
+// Image controls query the asset API through TanStack Query. There is no
+// backend here, so the client exists only to satisfy the hook — the failed
+// query leaves the picker in its empty state, which is what the demo value
+// paints over anyway.
+const previewQueryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false } }
+});
+
+// The asset viewer that media controls mount refuses to render without a signed
+// -in user. Nothing here talks to Supabase, so a stub id is enough to get past
+// the guard; the asset queries behind it fail and render nothing.
+useAuth.setState({ user: { id: "app-preview" }, state: "logged_in" });
 
 const AppPreviewApp: React.FC = () => {
   const slug = useMemo(
@@ -239,26 +265,36 @@ const AppPreviewApp: React.FC = () => {
   return (
     <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
       <CssBaseline />
-      <AppRuntimeContext.Provider value={runtime}>
-        <Box
-          ref={frameRef}
-          className="app-preview-frame"
-          data-preview-ready={ready ? "true" : "false"}
-          sx={{
-            width: 980,
-            mx: "auto",
-            my: 4,
-            borderRadius: BORDER_RADIUS.lg,
-            overflow: "hidden",
-            border: "1px solid",
-            borderColor: "divider",
-            backgroundColor: "background.default",
-            boxShadow: "0 24px 80px rgba(0,0,0,0.45)"
-          }}
-        >
-          <Render config={appConfig} data={data} />
-        </Box>
-      </AppRuntimeContext.Provider>
+      {/* The asset viewer behind image controls calls useNavigate; nothing in
+          the preview routes anywhere, so an in-memory router is enough. */}
+      <MemoryRouter>
+        <QueryClientProvider client={previewQueryClient}>
+          <WorkflowManagerProvider queryClient={previewQueryClient}>
+            <NodeContext.Provider value={previewNodeStore}>
+              <AppRuntimeContext.Provider value={runtime}>
+                <Box
+                  ref={frameRef}
+                  className="app-preview-frame"
+                  data-preview-ready={ready ? "true" : "false"}
+                  sx={{
+                    width: 980,
+                    mx: "auto",
+                    my: 4,
+                    borderRadius: BORDER_RADIUS.lg,
+                    overflow: "hidden",
+                    border: "1px solid",
+                    borderColor: "divider",
+                    backgroundColor: "background.default",
+                    boxShadow: "0 24px 80px rgba(0,0,0,0.45)"
+                  }}
+                >
+                  <Render config={appConfig} data={data} />
+                </Box>
+              </AppRuntimeContext.Provider>
+            </NodeContext.Provider>
+          </WorkflowManagerProvider>
+        </QueryClientProvider>
+      </MemoryRouter>
     </ThemeProvider>
   );
 };
