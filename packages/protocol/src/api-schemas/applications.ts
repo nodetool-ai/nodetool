@@ -17,7 +17,11 @@ const puckData = z
 const inputMapping = z.union([
   z.object({ from: z.literal("widget") }),
   z.object({ from: z.literal("variable"), variableId: z.string() }),
-  z.object({ from: z.literal("constant"), value: z.unknown() }),
+  // `.optional()` on both sides deliberately: an unknown-typed key infers as
+  // optional on the read type but required on the write type, which makes a
+  // read -> edit -> write round-trip of a document fail to typecheck. The
+  // runtime already treats an absent value as "no param".
+  z.object({ from: z.literal("constant"), value: z.unknown().optional() }),
   z.object({ from: z.literal("resource"), resourceBindingId: z.string() })
 ]);
 
