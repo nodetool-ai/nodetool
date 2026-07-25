@@ -14,6 +14,11 @@ module.exports = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   moduleNameMapper: {
     '^expo-clipboard$': '<rootDir>/__mocks__/expo-clipboard.js',
+    // Shared mini-app runtime core, compiled from source (mirrors metro.config.js).
+    '^@nodetool-ai/app-runtime$':
+      '<rootDir>/../packages/app-runtime/src/index.ts',
+    // That package's source uses ESM `.js` specifiers for its own modules.
+    '^(\\.{1,2}/.+)\\.js$': '$1',
   },
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
