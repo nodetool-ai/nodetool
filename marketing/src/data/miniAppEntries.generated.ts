@@ -452,7 +452,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "heading": "Directed Film to Timeline",
     "tagline": "Turn a one-line brief into an editable rough cut",
-    "buttonLabel": "Run",
+    "buttonLabel": "Direct my film",
     "inputs": [
       {
         "label": "Brief",
@@ -462,10 +462,10 @@ export const miniAppEntries: MiniAppEntry[] = [
     "outputs": [
       {
         "label": "Film",
-        "kind": "text"
+        "kind": "video"
       }
     ],
-    "widgetCount": 7
+    "widgetCount": 8
   },
   {
     "route": "/apps/flashcard-generator",
@@ -1463,7 +1463,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "heading": "Script to Screen",
     "tagline": "Full production spine: a Director agent turns your brief into a direction document (characters, style bible, shot list, narration, music)",
-    "buttonLabel": "Run",
+    "buttonLabel": "Shoot my film",
     "inputs": [
       {
         "label": "Brief",
@@ -1485,14 +1485,14 @@ export const miniAppEntries: MiniAppEntry[] = [
       },
       {
         "label": "Storyboard",
-        "kind": "text"
+        "kind": "image"
       },
       {
         "label": "Film",
-        "kind": "text"
+        "kind": "video"
       }
     ],
-    "widgetCount": 14
+    "widgetCount": 15
   },
   {
     "route": "/apps/social-media-calendar-filler",

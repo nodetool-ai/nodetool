@@ -3,7 +3,7 @@
   "name": "Script to Screen",
   "description": "Full production spine: a Director agent turns your brief into a direction document (characters, style bible, shot list, narration, music). A style frame anchors every keyframe for consistency, keyframes form a cheap storyboard you can approve before video spend, then each shot is animated, cut together, and mixed with voiceover and music.",
   "featured": false,
-  "image": "/app-preview/img/script-to-screen.jpg",
+  "image": null,
   "app_doc": {
     "schemaVersion": 3,
     "ui": {
@@ -60,7 +60,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-run",
-                        "label": "Run",
+                        "label": "Shoot my film",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -85,10 +85,18 @@
                   "title": "Results",
                   "content": [
                     {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Directing, storyboarding & shooting…",
+                        "binding": ""
+                      }
+                    },
+                    {
                       "type": "Heading",
                       "props": {
                         "id": "lbl-direction",
-                        "text": "Direction",
+                        "text": "Direction document",
                         "level": "3"
                       }
                     },
@@ -104,32 +112,35 @@
                       "type": "Heading",
                       "props": {
                         "id": "lbl-storyboard",
-                        "text": "Storyboard",
+                        "text": "Storyboard keyframes",
                         "level": "3"
                       }
                     },
                     {
-                      "type": "Markdown",
+                      "type": "Image",
                       "props": {
                         "id": "out-storyboard",
                         "binding": "op:main/out:storyboard_out",
-                        "text": ""
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
                       }
                     },
                     {
                       "type": "Heading",
                       "props": {
                         "id": "lbl-film",
-                        "text": "Film",
+                        "text": "Finished film",
                         "level": "3"
                       }
                     },
                     {
-                      "type": "Markdown",
+                      "type": "Video",
                       "props": {
                         "id": "out-film",
                         "binding": "op:main/out:film_out",
-                        "text": ""
+                        "height": 320,
+                        "placeholder": "Your video appears here"
                       }
                     }
                   ]
@@ -276,6 +287,13 @@
   "values": {
     "op:main/in:brief": "A lighthouse keeper discovers the beam of her lamp has started bending toward something beneath the waves — and tonight it refuses to point anywhere else.",
     "op:main/in:style": "moody coastal nocturne, sodium-lamp amber against deep blue-black sea, drifting fog, anamorphic lens flares, fine film grain, painterly realism",
-    "op:main/in:shot_count": "5"
+    "op:main/in:shot_count": "5",
+    "op:main/out:direction_out": "## THE BENDING LIGHT\n\n**Logline** — A keeper follows her own beam to the thing it will no longer stop pointing at.\n\n**Characters** — *Mara, 50s, weathered, grey braid under an oilskin hood, brass key on a cord.*\n\n**Style bible** — Sodium amber against blue-black sea. Fog holds the beam. Anamorphic flares, fine grain.\n\n**Shot 1** — VISUAL: Mara on the gallery rail, beam bent hard to starboard | CAMERA: wide, 35mm, low angle | MOTION: slow push in, fog drifting left.",
+    "op:main/out:storyboard_out": {
+      "$demo": "image"
+    },
+    "op:main/out:film_out": {
+      "$demo": "video"
+    }
   }
 }

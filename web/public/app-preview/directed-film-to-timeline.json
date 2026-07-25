@@ -3,7 +3,7 @@
   "name": "Directed Film to Timeline",
   "description": "Turn a one-line brief into an editable rough cut. A Director agent writes a screenplay of shots, each shot is fanned out into a keyframe prompt, rendered as a still, animated into a clip, then all clips are collected, appended to a timeline sequence, and rendered to a single video you can keep editing.",
   "featured": false,
-  "image": "/app-preview/img/directed-film-to-timeline.jpg",
+  "image": null,
   "app_doc": {
     "schemaVersion": 3,
     "ui": {
@@ -44,7 +44,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-run",
-                        "label": "Run",
+                        "label": "Direct my film",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -69,11 +69,20 @@
                   "title": "Results",
                   "content": [
                     {
-                      "type": "Markdown",
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Directing, rendering & cutting…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Video",
                       "props": {
                         "id": "out-film",
                         "binding": "op:main/out:film_out",
-                        "text": ""
+                        "height": 320,
+                        "placeholder": "Your video appears here"
                       }
                     }
                   ]
@@ -142,6 +151,9 @@
     "edges": []
   },
   "values": {
-    "op:main/in:brief": "A lighthouse keeper discovers the beam of her lamp has started bending toward something beneath the waves — and tonight it refuses to point anywhere else."
+    "op:main/in:brief": "A lighthouse keeper discovers the beam of her lamp has started bending toward something beneath the waves — and tonight it refuses to point anywhere else.",
+    "op:main/out:film_out": {
+      "$demo": "video"
+    }
   }
 }

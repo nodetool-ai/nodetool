@@ -411,7 +411,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-run",
-                        "label": "Run",
+                        "label": "Direct my film",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -436,11 +436,20 @@
                   "title": "Results",
                   "content": [
                     {
-                      "type": "Markdown",
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Directing, rendering & cutting…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Video",
                       "props": {
                         "id": "out-film",
                         "binding": "op:main/out:film_out",
-                        "text": ""
+                        "height": 320,
+                        "placeholder": "Your video appears here"
                       }
                     }
                   ]

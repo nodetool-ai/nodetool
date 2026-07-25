@@ -44,6 +44,10 @@
 //   progress true | "Label"                  — a progress bar in the results
 //                                              panel for runs over a few seconds.
 //   featured true                            — hero app (leads the /apps index).
+//   art false                                — this template's card art is an
+//                                              editor-canvas screenshot, not
+//                                              artwork; IMG/VIDEO demos fall
+//                                              back to the abstract gradient.
 //
 // Idempotent: deterministic ids, stable output. Re-run after editing a
 // template or the curation table:  node scripts/generate-template-apps.mjs
@@ -314,6 +318,17 @@ const CURATION = {
         { city: "Coimbra", population: 106000, seaside: false }
       ]
     }
+  },
+  "Directed Film to Timeline": {
+    emoji: "🎞️",
+    button: "Direct my film",
+    art: false,
+    layout: "columns",
+    progress: "Directing, rendering & cutting…",
+    note: "💸 Uses the veo video model — a real run costs credits. Preview shows a sample.",
+    inputs: { Brief: { label: "Your film in one line", multiline: true } },
+    outputs: { film: { widget: "Video", label: "Your rough cut" } },
+    demo: { film: VIDEO }
   },
   "Flashcard Generator": {
     emoji: "🃏",
@@ -722,6 +737,30 @@ const CURATION = {
       article_bodies:
         "**Trail runners vs. hiking boots: what beginners actually need**\n\nYou don't need ankle support. You need to stop buying footwear for a hike you're not doing…",
       hero_images: IMG
+    }
+  },
+  "Script to Screen": {
+    emoji: "🎬",
+    button: "Shoot my film",
+    art: false,
+    layout: "columns",
+    progress: "Directing, storyboarding & shooting…",
+    note: "💸 Uses the veo video model — a real run costs credits. Preview shows a sample.",
+    inputs: {
+      Brief: { label: "Your film in one line", multiline: true },
+      "Visual Style": { label: "Visual style", multiline: true },
+      "Shot Count": { label: "Number of shots" }
+    },
+    outputs: {
+      direction: { widget: "Markdown", label: "Direction document" },
+      storyboard: { widget: "Image", label: "Storyboard keyframes" },
+      film: { widget: "Video", label: "Finished film" }
+    },
+    demo: {
+      direction:
+        "## THE BENDING LIGHT\n\n**Logline** — A keeper follows her own beam to the thing it will no longer stop pointing at.\n\n**Characters** — *Mara, 50s, weathered, grey braid under an oilskin hood, brass key on a cord.*\n\n**Style bible** — Sodium amber against blue-black sea. Fog holds the beam. Anamorphic flares, fine grain.\n\n**Shot 1** — VISUAL: Mara on the gallery rail, beam bent hard to starboard | CAMERA: wide, 35mm, low angle | MOTION: slow push in, fog drifting left.",
+      storyboard: IMG,
+      film: VIDEO
     }
   },
   "Social Media Calendar Filler": {
@@ -1158,7 +1197,7 @@ for (const file of fs.readdirSync(EXAMPLES).filter((f) => f.endsWith(".json")).s
   // Preview bundle for the screenshot rig.
   const art = path.join(ART, `${example.name}.jpg`);
   let image = null;
-  if (fs.existsSync(art)) {
+  if (curated?.art !== false && fs.existsSync(art)) {
     image = `/app-preview/img/${slug}.jpg`;
     fs.copyFileSync(art, path.join(PREVIEW, "img", `${slug}.jpg`));
   }

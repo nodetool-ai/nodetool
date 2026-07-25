@@ -999,7 +999,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-run",
-                        "label": "Run",
+                        "label": "Shoot my film",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -1024,10 +1024,18 @@
                   "title": "Results",
                   "content": [
                     {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Directing, storyboarding & shooting…",
+                        "binding": ""
+                      }
+                    },
+                    {
                       "type": "Heading",
                       "props": {
                         "id": "lbl-direction",
-                        "text": "Direction",
+                        "text": "Direction document",
                         "level": "3"
                       }
                     },
@@ -1043,32 +1051,35 @@
                       "type": "Heading",
                       "props": {
                         "id": "lbl-storyboard",
-                        "text": "Storyboard",
+                        "text": "Storyboard keyframes",
                         "level": "3"
                       }
                     },
                     {
-                      "type": "Markdown",
+                      "type": "Image",
                       "props": {
                         "id": "out-storyboard",
                         "binding": "op:main/out:storyboard_out",
-                        "text": ""
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
                       }
                     },
                     {
                       "type": "Heading",
                       "props": {
                         "id": "lbl-film",
-                        "text": "Film",
+                        "text": "Finished film",
                         "level": "3"
                       }
                     },
                     {
-                      "type": "Markdown",
+                      "type": "Video",
                       "props": {
                         "id": "out-film",
                         "binding": "op:main/out:film_out",
-                        "text": ""
+                        "height": 320,
+                        "placeholder": "Your video appears here"
                       }
                     }
                   ]
