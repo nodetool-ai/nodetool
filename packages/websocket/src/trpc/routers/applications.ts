@@ -34,12 +34,11 @@ import {
 import {
   Application,
   applicationUsage,
-  checkApplicationBudget,
   getApplicationBudget,
   listApplicationVersions,
   listInvocations,
   publishApplication,
-  recordInvocation,
+  reserveInvocation,
   releaseApplicationVersion,
   releasedApplicationVersion,
   setApplicationBudget,
@@ -306,23 +305,21 @@ export const applicationsRouter = router({
     .output(invocationRecord)
     .mutation(async ({ ctx, input }) => {
       await loadOwned(ctx.userId, input.id);
-      const decision = await checkApplicationBudget(
-        input.id,
-        input.estimatedUsd
-      );
+      const release = await releasedApplicationVersion(input.id);
+      // One transaction checks the budget and claims the run against it;
+      // checking and then recording lets concurrent callers all read a total
+      // that excludes each other and all be admitted.
+      const decision = await reserveInvocation({
+        applicationId: input.id,
+        version: release?.version ?? null,
+        invocationId: input.invocationId,
+        operationId: input.operationId,
+        estimatedUsd: input.estimatedUsd
+      });
       if (!decision.allowed) {
         throwApiError(ApiErrorCode.BUDGET_EXCEEDED, decision.reason);
       }
-      const release = await releasedApplicationVersion(input.id);
-      return invocationRecord.parse(
-        await recordInvocation({
-          applicationId: input.id,
-          version: release?.version ?? null,
-          invocationId: input.invocationId,
-          operationId: input.operationId,
-          estimatedUsd: input.estimatedUsd
-        })
-      );
+      return invocationRecord.parse(decision.record);
     }),
 
   /** Close a run out with what it actually cost. */

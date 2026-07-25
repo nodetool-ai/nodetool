@@ -14,7 +14,7 @@
 import { and, eq, gte, sql } from "drizzle-orm";
 
 import { createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getDb, getDbType } from "./db.js";
 import {
   applicationBudgets,
   applicationInvocations
@@ -247,17 +247,24 @@ export async function recordInvocation(input: {
 /**
  * Close out a run with what it actually cost. Until this lands the run keeps
  * counting at its estimate.
+ *
+ * `actualUsd` must be null when nothing measured the run's cost, which is not
+ * the same as measuring it as zero. Only two node families report provider
+ * cost today, so passing 0 for every other run would overwrite its reservation
+ * and hand the spend back — a completed run would free budget it may well have
+ * used. A null leaves `actual_usd` unset, and `applicationUsage` keeps counting
+ * the estimate.
  */
 export async function settleInvocation(
   invocationId: string,
-  actualUsd: number,
+  actualUsd: number | null,
   status: "completed" | "failed" | "cancelled" = "completed"
 ): Promise<InvocationRecord | null> {
   const db = getDb();
   const rows = await db
     .update(applicationInvocations)
     .set({
-      actual_usd: actualUsd,
+      ...(actualUsd == null ? {} : { actual_usd: actualUsd }),
       status,
       settled_at: new Date().toISOString()
     })
@@ -265,6 +272,175 @@ export async function settleInvocation(
     .returning();
   const row = rows[0] as Record<string, unknown> | undefined;
   return row ? toRecord(row) : null;
+}
+
+export type Reservation =
+  | { allowed: true; record: InvocationRecord; usage: ApplicationUsage }
+  | {
+      allowed: false;
+      reason: string;
+      usage: ApplicationUsage;
+      budget: ApplicationBudget;
+    };
+
+/** Values every reserved row carries, independent of which driver writes it. */
+const invocationRow = (input: ReserveInput) => ({
+  id: createTimeOrderedUuid(),
+  application_id: input.applicationId,
+  version: input.version ?? null,
+  invocation_id: input.invocationId,
+  operation_id: input.operationId ?? "",
+  estimated_usd: input.estimatedUsd ?? 0,
+  status: "running",
+  created_at: new Date().toISOString()
+});
+
+const overBudget = (
+  budget: ApplicationBudget,
+  usage: ApplicationUsage,
+  estimatedUsd: number
+): string | null => {
+  if (budget.maxUsd != null && usage.spentUsd + estimatedUsd > budget.maxUsd) {
+    return `This app has spent $${usage.spentUsd.toFixed(4)} of its $${budget.maxUsd.toFixed(2)} ${budget.period} budget; the run would add about $${estimatedUsd.toFixed(4)}.`;
+  }
+  if (
+    budget.maxInvocations != null &&
+    usage.invocations + 1 > budget.maxInvocations
+  ) {
+    return `This app has used ${usage.invocations} of its ${budget.maxInvocations} ${budget.period} runs.`;
+  }
+  return null;
+};
+
+export interface ReserveInput {
+  applicationId: string;
+  version?: number | null;
+  invocationId: string;
+  operationId?: string;
+  estimatedUsd?: number;
+}
+
+/**
+ * Check the budget and claim the run against it in one atomic step.
+ *
+ * `checkApplicationBudget` followed by `recordInvocation` is two statements,
+ * and concurrent runs of the same app interleave between them: each reads a
+ * usage total that does not yet include the others, and every one of them is
+ * admitted. On Postgres — where every statement is a round-trip — that let a
+ * one-run budget admit eight. The check and the ledger write therefore happen
+ * inside a transaction that first locks the app's budget row, which serializes
+ * admissions per app and leaves apps without a budget completely unblocked.
+ */
+export async function reserveInvocation(
+  input: ReserveInput,
+  now = new Date()
+): Promise<Reservation> {
+  const estimatedUsd = input.estimatedUsd ?? 0;
+  const db = getDb();
+
+  // No budget row means unmetered, so there is nothing to serialize on.
+  const configured = await getApplicationBudget(input.applicationId);
+  if (!configured) {
+    const record = await recordInvocation(input);
+    return {
+      allowed: true,
+      record,
+      usage: await applicationUsage(input.applicationId, "total", now)
+    };
+  }
+
+  const decide = (budget: ApplicationBudget, usage: ApplicationUsage) => {
+    const reason = overBudget(budget, usage, estimatedUsd);
+    return reason ? { reason } : null;
+  };
+
+  if (getDbType() === "sqlite") {
+    // better-sqlite3 transactions must be fully synchronous; an async callback
+    // returns a Promise the driver rejects.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return db.transaction((tx: any): Reservation => {
+      const budgetRow = tx
+        .select()
+        .from(applicationBudgets)
+        .where(eq(applicationBudgets.application_id, input.applicationId))
+        .limit(1)
+        .get();
+      const budget = toBudget(budgetRow as Record<string, unknown>);
+      const since = periodStart(budget.period, now);
+      const conditions = [
+        eq(applicationInvocations.application_id, input.applicationId)
+      ];
+      if (since) conditions.push(gte(applicationInvocations.created_at, since));
+      const totals = tx
+        .select({
+          spent: sql<number>`sum(coalesce(${applicationInvocations.actual_usd}, ${applicationInvocations.estimated_usd}))`,
+          count: sql<number>`count(*)`
+        })
+        .from(applicationInvocations)
+        .where(and(...conditions))
+        .get();
+      const usage: ApplicationUsage = {
+        period: budget.period,
+        since,
+        spentUsd: Number(totals?.spent ?? 0),
+        invocations: Number(totals?.count ?? 0)
+      };
+      const refused = decide(budget, usage);
+      if (refused) return { allowed: false, ...refused, usage, budget };
+      const row = tx
+        .insert(applicationInvocations)
+        .values(invocationRow(input))
+        .returning()
+        .get();
+      return {
+        allowed: true,
+        record: toRecord(row as Record<string, unknown>),
+        usage
+      };
+    }) as Reservation;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return db.transaction(async (tx: any): Promise<Reservation> => {
+    // Locking the budget row is what makes the read-then-write atomic: every
+    // other admission for this app waits here until this one has written.
+    const [budgetRow] = await tx
+      .select()
+      .from(applicationBudgets)
+      .where(eq(applicationBudgets.application_id, input.applicationId))
+      .limit(1)
+      .for("update");
+    const budget = toBudget(budgetRow as Record<string, unknown>);
+    const since = periodStart(budget.period, now);
+    const conditions = [
+      eq(applicationInvocations.application_id, input.applicationId)
+    ];
+    if (since) conditions.push(gte(applicationInvocations.created_at, since));
+    const [totals] = await tx
+      .select({
+        spent: sql<number>`sum(coalesce(${applicationInvocations.actual_usd}, ${applicationInvocations.estimated_usd}))`,
+        count: sql<number>`count(*)`
+      })
+      .from(applicationInvocations)
+      .where(and(...conditions));
+    const usage: ApplicationUsage = {
+      period: budget.period,
+      since,
+      spentUsd: Number(totals?.spent ?? 0),
+      invocations: Number(totals?.count ?? 0)
+    };
+    const refused = decide(budget, usage);
+    if (refused) return { allowed: false, ...refused, usage, budget };
+    const [row] = await tx
+      .insert(applicationInvocations)
+      .values(invocationRow(input))
+      .returning();
+    return {
+      allowed: true,
+      record: toRecord(row as Record<string, unknown>),
+      usage
+    };
+  });
 }
 
 /** Recent runs of an application, newest first. */

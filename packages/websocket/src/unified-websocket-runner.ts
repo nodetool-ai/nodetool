@@ -33,10 +33,9 @@ import {
 } from "@nodetool-ai/kernel";
 import {
   Asset,
-  checkApplicationBudget,
   ImageDocument,
   Job,
-  recordInvocation,
+  reserveInvocation,
   settleInvocation,
   Message,
   ModelChangeEvent,
@@ -2225,7 +2224,15 @@ export class UnifiedWebSocketRunner {
     req.job_id = jobId;
     try {
       const estimatedUsd = this.estimateRunCost(req);
-      const decision = await checkApplicationBudget(applicationId, estimatedUsd);
+      // Reserving claims the run against the budget in the same transaction
+      // that checks it, so concurrent runs of one app cannot each read a total
+      // that excludes the others and all be admitted.
+      const decision = await reserveInvocation({
+        applicationId,
+        version: req.application_version ?? null,
+        invocationId: jobId,
+        estimatedUsd
+      });
       if (!decision.allowed) {
         log.warn("Run refused by application budget", {
           applicationId,
@@ -2237,16 +2244,11 @@ export class UnifiedWebSocketRunner {
           status: "failed",
           job_id: jobId,
           workflow_id: req.workflow_id ?? null,
-          error: decision.reason
+          error: decision.reason,
+          error_code: "BUDGET_EXCEEDED"
         });
         return false;
       }
-      await recordInvocation({
-        applicationId,
-        version: req.application_version ?? null,
-        invocationId: jobId,
-        estimatedUsd
-      });
     } catch (err) {
       // A ledger that is unavailable must not take runs down with it; the
       // refusal path above is the only one that blocks.
@@ -2904,11 +2906,14 @@ export class UnifiedWebSocketRunner {
     // Close the app's ledger row at what the run actually cost. Until this
     // lands the run keeps counting against the budget at its estimate, which is
     // the conservative direction: a crash cannot free spend it may have incurred.
+    // Only two node families report provider cost, so an absent total means
+    // "nothing measured this run", not "this run was free" — passing null keeps
+    // the estimate standing rather than handing the spend back.
     if (active.applicationId) {
       try {
         await settleInvocation(
           active.jobId,
-          active.providerCostTotal ?? 0,
+          active.providerCostTotal ?? null,
           active.status === "failed"
             ? "failed"
             : active.status === "cancelled"

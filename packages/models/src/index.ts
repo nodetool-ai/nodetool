@@ -166,6 +166,7 @@ export {
   listInvocations,
   periodStart,
   recordInvocation,
+  reserveInvocation,
   setApplicationBudget,
   settleInvocation
 } from "./application-budget.js";
@@ -174,7 +175,9 @@ export type {
   ApplicationUsage,
   BudgetDecision,
   BudgetPeriod,
-  InvocationRecord
+  InvocationRecord,
+  Reservation,
+  ReserveInput
 } from "./application-budget.js";
 export {
   Script,

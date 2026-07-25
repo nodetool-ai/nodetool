@@ -133,6 +133,13 @@ export interface JobUpdate {
    * fields on the offending nodes instead of showing a node-level banner.
    */
   validation_issues?: ValidationIssue[] | null;
+  /**
+   * Machine-readable reason for a `failed` status, when one exists. Set to
+   * `BUDGET_EXCEEDED` when an app's spend budget refused the run — a websocket
+   * client has no other way to tell that apart from a node crash, since both
+   * arrive as `failed` with prose in `error`. Absent for ordinary failures.
+   */
+  error_code?: string | null;
 }
 
 export interface ValidationIssue {
