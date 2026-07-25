@@ -299,7 +299,7 @@
           "value": 75,
           "description": "Numeric value to evaluate against multiple conditions",
           "min": 0,
-          "max": 100
+          "max": 200
         },
         "ui_properties": {
           "position": {

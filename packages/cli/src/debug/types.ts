@@ -164,6 +164,11 @@ export interface DebugVerdict {
   headline: string;
   /** Human-readable problems found, ordered most-actionable first. */
   issues: string[];
+  /**
+   * Things worth looking at that are not failures — a run cannot decide them
+   * either way. Unlike `issues`, these do not clear `ok`.
+   */
+  warnings?: string[];
 }
 
 export interface DebugReport {

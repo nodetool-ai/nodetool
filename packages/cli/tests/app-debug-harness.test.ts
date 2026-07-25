@@ -135,6 +135,45 @@ describe("runAppDebug", () => {
     expect(report.verdict.issues.join("\n")).toMatch(/never received a value/);
   });
 
+  it("warns rather than fails when the empty widget sits on an untaken branch", async () => {
+    // One `If` fires one handle per run, so the other branch's widget is
+    // legitimately empty. It still gets said out loud: a branch no input can
+    // reach looks identical from inside a single run.
+    const branching = workflowFile({
+      graph: {
+        nodes: [
+          {
+            id: "in1",
+            type: "nodetool.input.StringInput",
+            data: { name: "prompt", value: "hello" }
+          },
+          { id: "gate", type: "nodetool.control.If", data: {} },
+          {
+            id: "out1",
+            type: "nodetool.output.StringOutput",
+            data: { name: "result" }
+          }
+        ],
+        edges: [
+          { id: "e1", source: "in1", target: "gate" },
+          { id: "e2", source: "gate", target: "out1" }
+        ]
+      }
+    });
+    const runOnServer = stubRunner([{ type: "job_update", status: "completed" }]);
+    const report = await runAppDebug(
+      branching,
+      { outDir: mkdtempSync(join(tmpdir(), "app-bundle-")) },
+      deps(runOnServer)
+    );
+
+    expect(report.verdict.ok).toBe(true);
+    expect(report.verdict.issues).not.toContainEqual(
+      expect.stringMatching(/never received a value/)
+    );
+    expect(report.verdict.warnings?.join("\n")).toMatch(/branch that was not taken/);
+  });
+
   it("surfaces run failures and node errors in the verdict", async () => {
     const runOnServer = stubRunner(
       [

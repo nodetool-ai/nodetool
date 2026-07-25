@@ -21,6 +21,7 @@ import type { ServerRunInput, ServerRunOutcome } from "../debug/server-runner.js
 import {
   DEFAULT_OPERATION_ID,
   eventToAction,
+  parseBinding,
   resolveBinding,
   stateKey
 } from "@nodetool-ai/app-runtime";
@@ -97,11 +98,70 @@ function describeStep(step: InteractionStep): string {
   return `change ${step.change}`;
 }
 
+/**
+ * Node types that emit on one of several output handles per run. A widget fed
+ * from one of their branches is *expected* to stay empty whenever the other
+ * branch is taken, so a single run cannot tell "the untaken branch" from "a
+ * branch that can never be taken".
+ */
+const BRANCHING_NODE_TYPES = new Set(["nodetool.control.If"]);
+
+/**
+ * Node ids reachable only through a branching node. Walks forward from every
+ * branch point over the graph's edges.
+ */
+function conditionalNodeIds(graph: DebugGraph): Set<string> {
+  const downstream = new Map<string, string[]>();
+  for (const edge of graph.edges) {
+    const source = typeof edge.source === "string" ? edge.source : null;
+    const target = typeof edge.target === "string" ? edge.target : null;
+    if (!source || !target) continue;
+    const list = downstream.get(source);
+    if (list) list.push(target);
+    else downstream.set(source, [target]);
+  }
+
+  const conditional = new Set<string>();
+  const queue: string[] = [];
+  for (const node of graph.nodes) {
+    const id = typeof node.id === "string" ? node.id : null;
+    const type = typeof node.type === "string" ? node.type : null;
+    if (id && type && BRANCHING_NODE_TYPES.has(type)) queue.push(id);
+  }
+  while (queue.length > 0) {
+    const current = queue.pop() as string;
+    for (const next of downstream.get(current) ?? []) {
+      if (conditional.has(next)) continue;
+      conditional.add(next);
+      queue.push(next);
+    }
+  }
+  return conditional;
+}
+
+/** Node ids keyed by the `name` their data carries, for name-form bindings. */
+function nodeIdsByName(graph: DebugGraph): Map<string, string> {
+  const byName = new Map<string, string>();
+  for (const node of graph.nodes) {
+    const id = typeof node.id === "string" ? node.id : null;
+    // Runner shape carries node props under `properties`; editor JSON uses
+    // `data`, and this runs against both.
+    const props = (node.properties ?? node.data) as
+      | Record<string, unknown>
+      | undefined;
+    const name = typeof props?.name === "string" ? props.name : null;
+    if (id && name && !byName.has(name)) byName.set(name, id);
+  }
+  return byName;
+}
+
 function buildAppVerdict(
   report: Pick<AppDebugReport, "validation" | "interactions" | "runs" | "widgets" | "spec">,
-  ranWorkflow: boolean
+  ranWorkflow: boolean,
+  graph: DebugGraph
 ): DebugVerdict {
   const issues: string[] = [...report.validation.errors];
+  const warnings: string[] = [];
 
   for (const interaction of report.interactions) {
     if (interaction.error) {
@@ -118,12 +178,30 @@ function buildAppVerdict(
     }
   }
   if (ranWorkflow && report.runs.length > 0 && report.runs.every((r) => r.ok)) {
+    const conditional = conditionalNodeIds(graph);
+    const byName = nodeIdsByName(graph);
+    const nodeIds = new Set(
+      graph.nodes.map((n) => (typeof n.id === "string" ? n.id : "")).filter(Boolean)
+    );
     for (const w of report.widgets) {
-      if (w.bindingMode === "read" && w.binding && !w.hasValue) {
-        issues.push(
-          `${w.type} "${w.id}" is bound to "${w.binding}" but never received a value — check the output node emits.`
+      if (w.bindingMode !== "read" || !w.binding || w.hasValue) continue;
+      const ref = parseBinding(w.binding);
+      // A legacy document binds by node name, and `parseBinding` hands the name
+      // back in the `nodeId` slot, so an unrecognised id is retried as a name.
+      const parsed = (ref && "nodeId" in ref ? ref.nodeId : null) ?? w.binding;
+      const nodeId = nodeIds.has(parsed) ? parsed : byName.get(parsed) ?? null;
+      if (nodeId && conditional.has(nodeId)) {
+        // One run takes one branch, so an empty widget here is expected. It is
+        // still worth surfacing: a branch that no input can reach looks exactly
+        // the same, and only running both branches tells them apart.
+        warnings.push(
+          `${w.type} "${w.id}" is bound to "${w.binding}", downstream of a branch that was not taken this run — run the other branch to confirm it can be reached.`
         );
+        continue;
       }
+      issues.push(
+        `${w.type} "${w.id}" is bound to "${w.binding}" but never received a value — check the output node emits.`
+      );
     }
   }
   if (ranWorkflow && report.runs.length === 0 && report.spec && report.spec.widgets.length > 0) {
@@ -133,10 +211,10 @@ function buildAppVerdict(
   const ok = issues.length === 0;
   const headline = ok
     ? report.runs.length > 0
-      ? `App ran clean — ${report.runs.length} run(s), every bound widget received a value.`
+      ? `App ran clean — ${report.runs.length} run(s), every bound widget on a taken branch received a value.`
       : "App wiring is valid (static check only — no run executed)."
     : `App has issues — ${issues[0]}`;
-  return { ok, headline, issues };
+  return { ok, headline, issues, warnings };
 }
 
 export async function runAppDebug(
@@ -379,7 +457,7 @@ export async function runAppDebug(
       });
   }
 
-  report.verdict = buildAppVerdict(report, allowRuns);
+  report.verdict = buildAppVerdict(report, allowRuns, resolved.graph);
 
   await writeFile(join(outDir, "report.json"), JSON.stringify(report, null, 2), "utf8");
   await writeFile(join(outDir, "report.md"), renderAppReportMarkdown(report), "utf8");
