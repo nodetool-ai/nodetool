@@ -22,6 +22,7 @@ import { appConfig } from "./config";
 import PuckAgentBinder from "./PuckAgentBinder";
 import { generateAppData } from "../generateAppDoc";
 import { isRenderableData } from "../appData";
+import { EMPTY_DOC_META, type AppDocMeta } from "../appDocOps";
 import {
   Box,
   Dialog,
@@ -38,6 +39,13 @@ interface PuckAppEditorProps {
   onClose: () => void;
   agentOpen?: boolean;
   onToggleAgent?: () => void;
+  /**
+   * The document's operations, variables, and resources. Puck does not own
+   * them, so the page holds them and the agent tools edit them through
+   * `onMetaChange`.
+   */
+  meta?: AppDocMeta;
+  onMetaChange?: (next: AppDocMeta) => void;
 }
 
 /**
@@ -149,11 +157,17 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
   onChange,
   onClose,
   agentOpen = false,
-  onToggleAgent
+  onToggleAgent,
+  meta = EMPTY_DOC_META,
+  onMetaChange
 }) => {
   const workflowState = useMemo(
-    () => extractWorkflowState(workflow),
-    [workflow]
+    () => extractWorkflowState(workflow, meta.resources),
+    [workflow, meta.resources]
+  );
+  const handleMetaChange = useCallback(
+    (next: AppDocMeta) => onMetaChange?.(next),
+    [onMetaChange]
   );
   const designRuntime = useAppRuntime(workflow, true);
   // Property components resolved by WorkflowInputWidget (AudioProperty) read
@@ -166,7 +180,13 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
       headerActions: () => (
         <>
           {/* Lets the agent's ui_app_* tools drive this editor. Renders nothing. */}
-          <PuckAgentBinder config={appConfig} workflowId={workflow.id} />
+          <PuckAgentBinder
+            config={appConfig}
+            workflowId={workflow.id}
+            meta={meta}
+            onMetaChange={handleMetaChange}
+            workflowState={workflowState}
+          />
           <PreviewWidthToggle value={previewWidth} onChange={setPreviewWidth} />
           <GenerateFromWorkflowButton workflow={workflow} />
           {onToggleAgent && (
@@ -193,7 +213,17 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
         </>
       )
     }),
-    [onClose, onPublish, onToggleAgent, agentOpen, workflow, previewWidth]
+    [
+      onClose,
+      onPublish,
+      onToggleAgent,
+      agentOpen,
+      workflow,
+      previewWidth,
+      meta,
+      handleMetaChange,
+      workflowState
+    ]
   );
 
   return (

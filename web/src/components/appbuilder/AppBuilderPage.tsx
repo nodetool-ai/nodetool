@@ -20,7 +20,8 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import FrontendToolRuntimeSync from "../panels/FrontendToolRuntimeSync";
 import { createEmptyData, createEmptyDocument } from "./appData";
-import { loadAppData, loadAppDocument, toAppDocField } from "./persistence";
+import { EMPTY_DOC_META, type AppDocMeta } from "./appDocOps";
+import { loadAppDocument, toAppDocField } from "./persistence";
 import PuckAppEditor from "./puck/PuckAppEditor";
 import AppBuilderAgentPanel from "./AppBuilderAgentPanel";
 
@@ -40,6 +41,9 @@ const AppBuilderPage: React.FC = () => {
   const queryClient = useQueryClient();
 
   const [data, setData] = useState<Data | null>(null);
+  // Operations, variables, and resources live beside the Puck layout; the
+  // agent's ui_app_* tools edit them, and a save writes them back together.
+  const [meta, setMeta] = useState<AppDocMeta>(EMPTY_DOC_META);
   const [agentOpen, setAgentOpen] = useState(false);
   const toggleAgent = useCallback(() => setAgentOpen((open) => !open), []);
 
@@ -60,7 +64,17 @@ const AppBuilderPage: React.FC = () => {
   // workflow so the agent's workflow tools target it.
   useEffect(() => {
     if (!workflow) return;
-    setData(loadAppData(workflow) ?? createEmptyData());
+    const doc = loadAppDocument(workflow);
+    setData((doc?.ui as Data | undefined) ?? createEmptyData());
+    setMeta(
+      doc
+        ? {
+            operations: doc.operations,
+            resources: doc.resources,
+            variables: doc.variables
+          }
+        : EMPTY_DOC_META
+    );
     setCurrentWorkflowId(workflow.id);
   }, [workflow, setCurrentWorkflowId]);
 
@@ -76,7 +90,10 @@ const AppBuilderPage: React.FC = () => {
           ...workflow,
           app_doc: toAppDocField({
             ...(loadAppDocument(workflow) ?? createEmptyDocument()),
-            ui: nextData
+            ui: nextData,
+            operations: meta.operations,
+            resources: meta.resources,
+            variables: meta.variables
           })
         };
         await saveWorkflow(next);
@@ -92,7 +109,7 @@ const AppBuilderPage: React.FC = () => {
         });
       }
     },
-    [addNotification, queryClient, saveWorkflow, workflow]
+    [addNotification, meta, queryClient, saveWorkflow, workflow]
   );
 
   if (isLoading || (workflow && !data)) {
@@ -158,6 +175,8 @@ const AppBuilderPage: React.FC = () => {
             onClose={handleClose}
             agentOpen={agentOpen}
             onToggleAgent={toggleAgent}
+            meta={meta}
+            onMetaChange={setMeta}
           />
         </Box>
       </FlexColumn>

@@ -5,6 +5,20 @@
  * registers a handler under its workflow id on mount; the tools call
  * {@link getPuckAgentHandler} with that id to read and mutate the app document.
  */
+import type {
+  OperationBinding,
+  ResourceBinding,
+  VariableDeclaration
+} from "@nodetool-ai/app-runtime";
+
+import type {
+  BindingTargets,
+  OperationInput,
+  OperationPatch,
+  ResourceInput,
+  VariableInput,
+  VariablePatch
+} from "../appDocOps";
 import { ComponentSummary } from "./puckDataOps";
 
 export interface PuckComponentType {
@@ -40,6 +54,25 @@ export interface PuckAgentHandler {
   removeComponent: (id: string) => boolean;
   selectComponent: (id: string | null) => void;
   setRootProps: (props: Record<string, unknown>) => void;
+  // The non-UI half of the document: what widgets bind to.
+  listOperations: () => OperationBinding[];
+  addOperation: (input: OperationInput) => OperationBinding;
+  updateOperation: (
+    id: string,
+    patch: OperationPatch
+  ) => OperationBinding | null;
+  removeOperation: (id: string) => boolean;
+  listVariables: () => VariableDeclaration[];
+  declareVariable: (input: VariableInput) => VariableDeclaration;
+  updateVariable: (
+    id: string,
+    patch: VariablePatch
+  ) => VariableDeclaration | null;
+  removeVariable: (id: string) => boolean;
+  listResources: () => ResourceBinding[];
+  addResource: (input: ResourceInput) => ResourceBinding;
+  removeResource: (id: string) => boolean;
+  getBindingTargets: () => BindingTargets;
 }
 
 const handlers = new Map<string, PuckAgentHandler>();

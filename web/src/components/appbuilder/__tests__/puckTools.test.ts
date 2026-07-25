@@ -29,6 +29,41 @@ const stubHandler = (over: Partial<PuckAgentHandler>): PuckAgentHandler => ({
   removeComponent: () => true,
   selectComponent: () => {},
   setRootProps: () => {},
+  listOperations: () => [],
+  addOperation: (input) => ({
+    id: input.id ?? "op",
+    name: input.name ?? "op",
+    workflowId: input.workflowId,
+    inputs: input.inputs ?? {},
+    outputs: input.outputs ?? {},
+    policy: input.policy ?? "replace"
+  }),
+  updateOperation: () => null,
+  removeOperation: () => true,
+  listVariables: () => [],
+  declareVariable: (input) => ({
+    id: input.id ?? "v",
+    name: input.name ?? "v",
+    type: null,
+    scope: input.scope ?? "instance",
+    persist: false
+  }),
+  updateVariable: () => null,
+  removeVariable: () => true,
+  listResources: () => [],
+  addResource: (input) => ({
+    id: input.id ?? "r",
+    name: input.name ?? "r",
+    kind: input.kind,
+    scope: input.scope,
+    operations: input.operations ?? ["read"]
+  }),
+  removeResource: () => true,
+  getBindingTargets: () => ({
+    operations: [],
+    variables: [],
+    resources: []
+  }),
   ...over
 });
 
@@ -103,5 +138,218 @@ describe("ui_app_* tools", () => {
 
     expect(removeB).toHaveBeenCalledWith("widget-1");
     expect(removeA).not.toHaveBeenCalled();
+  });
+});
+
+describe("ui_app_* authoring tools", () => {
+  it("registers a tool for every authoring concept", () => {
+    for (const name of [
+      "ui_app_list_operations",
+      "ui_app_add_operation",
+      "ui_app_update_operation",
+      "ui_app_remove_operation",
+      "ui_app_list_variables",
+      "ui_app_declare_variable",
+      "ui_app_update_variable",
+      "ui_app_remove_variable",
+      "ui_app_list_resources",
+      "ui_app_add_resource",
+      "ui_app_remove_resource",
+      "ui_app_get_binding_targets"
+    ]) {
+      expect(FrontendToolRegistry.has(name)).toBe(true);
+    }
+  });
+
+  it("maps ui_app_add_operation args onto the operation binding", async () => {
+    const addOperation = jest.fn(() => ({
+      id: "translate",
+      name: "Translate",
+      workflowId: "wf-2",
+      inputs: {},
+      outputs: {},
+      policy: "queue" as const
+    }));
+    setPuckAgentHandler(WORKFLOW_ID, stubHandler({ addOperation }));
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_app_add_operation",
+      {
+        workflow_id: WORKFLOW_ID,
+        id: "translate",
+        name: "Translate",
+        target_workflow_id: "wf-2",
+        policy: "queue",
+        inputs: { "node-1": { from: "variable", variableId: "lang" } },
+        outputs: { "node-9": { to: "variable", variableId: "result" } },
+        timeout_ms: 5000
+      },
+      "call-op",
+      ctx
+    )) as { ok: boolean };
+
+    expect(addOperation).toHaveBeenCalledWith({
+      id: "translate",
+      name: "Translate",
+      workflowId: "wf-2",
+      workflowVersion: undefined,
+      policy: "queue",
+      inputs: { "node-1": { from: "variable", variableId: "lang" } },
+      outputs: { "node-9": { to: "variable", variableId: "result" } },
+      timeoutMs: 5000
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("reports a missing operation instead of throwing", async () => {
+    setPuckAgentHandler(WORKFLOW_ID, stubHandler({ updateOperation: () => null }));
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_app_update_operation",
+      { workflow_id: WORKFLOW_ID, id: "nope", name: "x" },
+      "call-op-missing",
+      ctx
+    )) as { ok: boolean; error?: string };
+
+    expect(result).toEqual({ ok: false, error: "No operation with id nope" });
+  });
+
+  it("passes only the fields the caller sent to updateOperation", async () => {
+    const updateOperation = jest.fn(() => null);
+    setPuckAgentHandler(WORKFLOW_ID, stubHandler({ updateOperation }));
+
+    await FrontendToolRegistry.call(
+      "ui_app_update_operation",
+      { workflow_id: WORKFLOW_ID, id: "main", policy: "parallel" },
+      "call-op-patch",
+      ctx
+    );
+
+    expect(updateOperation).toHaveBeenCalledWith("main", {
+      policy: "parallel"
+    });
+  });
+
+  it("declares a variable through the handler", async () => {
+    const declareVariable = jest.fn(() => ({
+      id: "lang",
+      name: "Language",
+      type: { type: "str" },
+      scope: "user" as const,
+      persist: true
+    }));
+    setPuckAgentHandler(WORKFLOW_ID, stubHandler({ declareVariable }));
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_app_declare_variable",
+      {
+        workflow_id: WORKFLOW_ID,
+        id: "lang",
+        name: "Language",
+        type: { type: "str" },
+        default: "en",
+        scope: "user",
+        persist: true
+      },
+      "call-var",
+      ctx
+    )) as { ok: boolean; variable: { id: string } };
+
+    expect(declareVariable).toHaveBeenCalledWith({
+      id: "lang",
+      name: "Language",
+      type: { type: "str" },
+      default: "en",
+      scope: "user",
+      persist: true
+    });
+    expect(result.variable.id).toBe("lang");
+  });
+
+  it("adds a resource binding with its scope split out of the flat args", async () => {
+    const addResource = jest.fn(() => ({
+      id: "shots",
+      name: "Shots",
+      kind: "asset" as const,
+      scope: { projectId: "proj-1" },
+      operations: ["read" as const]
+    }));
+    setPuckAgentHandler(WORKFLOW_ID, stubHandler({ addResource }));
+
+    await FrontendToolRegistry.call(
+      "ui_app_add_resource",
+      {
+        workflow_id: WORKFLOW_ID,
+        name: "Shots",
+        kind: "asset",
+        project_id: "proj-1",
+        operations: ["read", "update"]
+      },
+      "call-res",
+      ctx
+    );
+
+    expect(addResource).toHaveBeenCalledWith({
+      id: undefined,
+      name: "Shots",
+      kind: "asset",
+      scope: { projectId: "proj-1", fixedId: undefined },
+      operations: ["read", "update"]
+    });
+  });
+
+  it("returns the binding targets the handler reports", async () => {
+    setPuckAgentHandler(
+      WORKFLOW_ID,
+      stubHandler({
+        getBindingTargets: () => ({
+          operations: [
+            {
+              operationId: "main",
+              name: "Run",
+              workflowId: WORKFLOW_ID,
+              ioAvailable: true,
+              inputs: [
+                {
+                  nodeId: "n1",
+                  name: "prompt",
+                  label: "Prompt",
+                  binding: "op:main/in:n1"
+                }
+              ],
+              outputs: [],
+              execution: [
+                { field: "running", binding: "op:main/exec#running" }
+              ]
+            }
+          ],
+          variables: [
+            {
+              id: "lang",
+              name: "Language",
+              scope: "instance",
+              persist: false,
+              binding: "var:lang"
+            }
+          ],
+          resources: []
+        })
+      })
+    );
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_app_get_binding_targets",
+      { workflow_id: WORKFLOW_ID },
+      "call-targets",
+      ctx
+    )) as {
+      ok: boolean;
+      operations: { inputs: { binding: string }[] }[];
+      variables: { binding: string }[];
+    };
+
+    expect(result.ok).toBe(true);
+    expect(result.operations[0].inputs[0].binding).toBe("op:main/in:n1");
+    expect(result.variables[0].binding).toBe("var:lang");
   });
 });

@@ -52,6 +52,8 @@ the existing worker path.
 - `appData.ts` — storage model: re-exports the shared `ApplicationDocument`
   parser and the empty-document helpers.
 - `persistence.ts` — load/save the document on `workflow.app_doc`.
+- `appDocOps.ts` — pure edits to the document's operations, variables, and
+  resources, plus the bindable-target report the agent reads.
 - `workflowIO.ts` / `workflowState.ts` — a workflow's bindable surface
   (inputs, outputs, variables).
 - `runtime/` — `appRuntimeStore` (a Zustand wrapper around the shared reducer,
@@ -81,11 +83,23 @@ The builder embeds the same agent chat the other editors use (`AppBuilderAgentPa
 **both** tool sets at once because frontend tools are a global registry:
 
 - `ui_app_*` (this folder's `puck/puckAgentBridge.ts` + `lib/tools/builtin/puck.ts`)
-  read and edit an open Puck document — add/update/remove/select widgets, set the
-  title. Each open editor registers a handler (`PuckAgentBinder`, via `usePuck`
+  author the whole application document, not just its layout:
+  - **layout** — add/update/remove/select widgets, set the title.
+  - **operations** — `list/add/update/remove_operation`, keyed on input and
+    output **node ids**.
+  - **variables** — `list/declare/update/remove_variable`, with the
+    user-scope-only persist rule enforced in `appDocOps.ts`.
+  - **resources** — `list/add/remove_resource`.
+  - **binding inspection** — `ui_app_get_binding_targets` reports every
+    bindable slot with both its display name and the ID-form token to store,
+    so the agent never has to guess a binding.
+
+  Each open editor registers a handler (`PuckAgentBinder`, via `usePuck`
   dispatch) under its workflow id, and every tool takes a required `workflow_id`
   naming which app to act on. The app document lives on `workflow.app_doc`, so the
-  workflow id *is* the app's identity.
+  workflow id *is* the app's identity. Puck owns `ui`; `AppBuilderPage` holds the
+  operations/variables/resources beside it and saves both together
+  (`appDocOps.ts` holds the pure edits).
 - `ui_*` (existing workflow tools) edit the graph. `FrontendToolRuntimeSync`
   (shared with the editor's right panel) is mounted here and the page sets the
   current workflow, so adding Input/Output/SetVariable nodes works — which is what
