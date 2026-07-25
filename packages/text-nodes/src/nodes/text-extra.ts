@@ -2583,6 +2583,10 @@ export class PromptNode extends BaseNode {
   };
 
   static readonly supportsDynamicInputs = true;
+  // Every variable is also forwarded on an output handle of the same name, so
+  // an image used as `{{ var }}` in the text can additionally be wired into a
+  // downstream node that wants the real asset (e.g. reference images).
+  static readonly supportsDynamicOutputs = true;
   static readonly inputFields: string[] = ["prompt"];
 
 
@@ -2619,7 +2623,15 @@ export class PromptNode extends BaseNode {
       await Promise.all(pending);
     }
 
-    return { output: renderTemplate(template, tokenizeAssetVars(props)) };
+    // Pass every variable through on a handle of its own name, carrying the
+    // raw value (an image ref stays an image ref — only the rendered text gets
+    // asset tokens). Keys without an outgoing edge are dropped by the runner.
+    // The rendered text is assigned last so a variable named "output" can't
+    // shadow it.
+    return {
+      ...props,
+      output: renderTemplate(template, tokenizeAssetVars(props))
+    };
   }
 }
 
