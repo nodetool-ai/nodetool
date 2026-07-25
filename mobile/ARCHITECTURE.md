@@ -64,7 +64,11 @@ mobile/
 │   │   ├── SettingsScreen.tsx          # Server configuration
 │   │   └── LoginScreen.tsx             # Supabase / Google sign-in
 │   │
-│   ├── components/          # Reusable components (chat/, properties/, …)
+│   ├── components/          # Reusable components
+│   │   ├── app_runtime/       # Mini-app runtime (renders workflow.app_doc)
+│   │   ├── chat/              # Chat UI
+│   │   ├── graph_editor/      # Chain editor
+│   │   └── outputs/           # Output value rendering
 │   │
 │   ├── services/            # Service layer
 │   │   ├── api.ts             # REST API client (fetch + ApiError/retry/timeout)
@@ -96,6 +100,46 @@ mobile/
 ├── AGENTS.md              # Agent quick reference
 └── ARCHITECTURE.md        # Architecture documentation
 ```
+
+## Mini apps (`src/components/app_runtime/`)
+
+A mini app is the **application document** stored on `workflow.app_doc` — the
+same document the web App Builder authors. Mobile renders it; it does not edit
+it (Puck is a DOM editor).
+
+The semantics come from `@nodetool-ai/app-runtime`, the framework-independent
+core the web runtime, the CLI `app debug` harness, and the eval suites already
+share: document parsing, binding resolution, the four state namespaces, the
+streaming fold, conditions, actions, and the widget catalog. Only the controls
+are native, so an app behaves the same on both clients.
+
+```
+WorkflowAppView      # resolves the document, renders the widget tree
+  useAppRuntime      # the engine: claims invocations, folds messages, dispatches actions
+    appRuntimeStore  # Zustand wrapper around the shared reducer, one per app instance
+    AppRuntimeContext# binding resolution, conditions, formatting
+  widgets.tsx        # one native renderer per WIDGET_CATALOG entry
+    useWidgetRuntime # binds a widget's props to reactive state + events
+```
+
+- **Bindings key on node IDs** (`op:main/in:<nodeId>`), so renaming a node in
+  the editor never breaks an app. Bare names still resolve — that's the legacy
+  `app_doc` form.
+- **Run identity**: the runtime claims the job id of the run it dispatched and
+  drops messages from any other job, so a run started in the chain editor never
+  folds into what the app shows.
+- **No app document?** `generateAppDoc` builds one in memory from the graph's
+  Input/Output nodes, so every workflow is runnable. Mobile never writes it
+  back — authoring is the web builder's job.
+- **Mobile differences**: `Columns` stacks vertically (two columns are unusable
+  at phone width), there is no reactive-subgraph path (no browser worker, so
+  every run is a full server run), and resource widgets have no surface yet —
+  they render a note instead of vanishing.
+
+The shared package is compiled from source rather than from `dist`: see
+`metro.config.js` (bundler), the `paths` entry in `tsconfig.json` (types), and
+`moduleNameMapper` in `jest.config.js` (tests). All three point at
+`packages/app-runtime/src`, so no build step is needed to run the app.
 
 ## Component Architecture
 

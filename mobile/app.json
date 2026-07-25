@@ -47,6 +47,9 @@
       "expo-web-browser",
       "@react-native-google-signin/google-signin",
       "expo-status-bar"
-    ]
+    ],
+    "experiments": {
+      "onDemandFilesystem": false
+    }
   }
 }

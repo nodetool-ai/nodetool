@@ -129,6 +129,10 @@ graph's Input/Output nodes (`generateAppData`). The builder lives at
 `/app-builder/:workflowId`; open it from a workflow's View mode with
 **App Builder**.
 
+The mobile app renders the same documents natively (`mobile/src/components/app_runtime/`)
+on top of the same `@nodetool-ai/app-runtime` core — it runs apps, it does not
+edit them.
+
 An app with its own record opens in the workspace: the app library's tab renders
 `ApplicationSurface`, whose **Design** view is the builder canvas and whose
 **Settings** view is publishing, budgets, and telemetry.
