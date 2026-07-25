@@ -213,6 +213,11 @@ export const beginInvocationInput = z.object({
 export const settleInvocationInput = z.object({
   id: z.string(),
   invocationId: z.string(),
-  actualUsd: z.number().min(0),
+  /**
+   * What the run actually cost, or null when nothing measured it — which is
+   * not the same as measuring it as zero. A zero here overwrites the run's
+   * reservation and hands the spend back; a null leaves the estimate standing.
+   */
+  actualUsd: z.number().min(0).nullable(),
   status: z.enum(["completed", "failed", "cancelled"]).default("completed")
 });

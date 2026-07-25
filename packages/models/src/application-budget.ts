@@ -354,6 +354,13 @@ export async function reserveInvocation(
     return reason ? { reason } : null;
   };
 
+  /** Nothing left to check against — record the run and let it through. */
+  const unmetered = (record: InvocationRecord): Reservation => ({
+    allowed: true,
+    record,
+    usage: { period: "total", since: null, spentUsd: 0, invocations: 0 }
+  });
+
   if (getDbType() === "sqlite") {
     // better-sqlite3 transactions must be fully synchronous; an async callback
     // returns a Promise the driver rejects.
@@ -365,6 +372,16 @@ export async function reserveInvocation(
         .where(eq(applicationBudgets.application_id, input.applicationId))
         .limit(1)
         .get();
+      // The row was there a moment ago and is the thing being locked; if it
+      // went away, the app is unmetered and the run is simply recorded.
+      if (!budgetRow) {
+        const orphan = tx
+          .insert(applicationInvocations)
+          .values(invocationRow(input))
+          .returning()
+          .get();
+        return unmetered(toRecord(orphan as Record<string, unknown>));
+      }
       const budget = toBudget(budgetRow as Record<string, unknown>);
       const since = periodStart(budget.period, now);
       const conditions = [
@@ -410,6 +427,13 @@ export async function reserveInvocation(
       .where(eq(applicationBudgets.application_id, input.applicationId))
       .limit(1)
       .for("update");
+    if (!budgetRow) {
+      const [orphan] = await tx
+        .insert(applicationInvocations)
+        .values(invocationRow(input))
+        .returning();
+      return unmetered(toRecord(orphan as Record<string, unknown>));
+    }
     const budget = toBudget(budgetRow as Record<string, unknown>);
     const since = periodStart(budget.period, now);
     const conditions = [
