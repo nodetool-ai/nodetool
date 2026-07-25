@@ -18,6 +18,7 @@ export * as threadMemories from "./thread-memories.js";
 export * as users from "./users.js";
 export * as sketch from "./sketch.js";
 export * as storyboards from "./storyboards.js";
+export * as applications from "./applications.js";
 export * as timeline from "./timeline.js";
 export * as workflows from "./workflows.js";
 export * as workspace from "./workspace.js";

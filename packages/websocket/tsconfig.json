@@ -12,6 +12,9 @@
       "path": "../agents"
     },
     {
+      "path": "../app-runtime"
+    },
+    {
       "path": "../auth"
     },
     {

@@ -146,6 +146,20 @@ export {
 } from "./storyboard.js";
 export type { StoryboardDocument, StoryboardResponse } from "./storyboard.js";
 export {
+  Application,
+  ApplicationConflictError,
+  deriveCapabilities,
+  publishApplication,
+  listApplicationVersions,
+  releasedApplicationVersion,
+  releaseApplicationVersion
+} from "./application.js";
+export type {
+  ApplicationCapabilities,
+  ApplicationResponse,
+  ApplicationVersionResponse
+} from "./application.js";
+export {
   Script,
   ScriptConflictError,
   emptyScriptDocument,

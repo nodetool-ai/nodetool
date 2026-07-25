@@ -30,13 +30,17 @@ export interface ConditionalProps {
  * able to select what they just configured.
  */
 // Puck's component props are intentionally loose (`DefaultComponents`): it
-// injects `id`/`puck` at render time and our widgets take optional props.
-/* eslint-disable @typescript-eslint/no-explicit-any */
+// injects `id`/`puck` at render time and our widgets take optional props, so
+// the wrapper takes the conditional props it reads plus whatever else travels.
+export type WrappedWidgetProps = ConditionalProps & {
+  /** Puck injects a stable component id on every placed widget. */
+  id: string;
+} & Record<string, unknown>;
+
 export const withConditions = (
-  Widget: React.ComponentType<any>
-): ((props: any) => React.ReactElement) => {
-  /* eslint-enable @typescript-eslint/no-explicit-any */
-  const Wrapped = (props: ConditionalProps): React.ReactElement => {
+  Widget: React.ComponentType<WrappedWidgetProps>
+): ((props: WrappedWidgetProps) => React.ReactElement) => {
+  const Wrapped = (props: WrappedWidgetProps): React.ReactElement => {
     const { designMode } = useAppRuntimeContext();
     const visible = useCondition(props.visibleWhen, true);
     const disabled = useCondition(props.disabledWhen, false);

@@ -1938,5 +1938,71 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_thread_memory_user");
       await db.execute("DROP TABLE IF EXISTS nodetool_thread_memories");
     }
+  },
+
+  // ── Create applications ─────────────────────────────────────────────
+  // Mini apps get their own identity. Before this, an app *was* a workflow
+  // (`workflow.app_doc`), so it could expose exactly one operation and had no
+  // history. An application row owns a UI document plus typed bindings, and
+  // each binding names a workflow.
+  {
+    version: "20260725_000000",
+    name: "create_applications",
+    createsTables: ["applications", "application_versions"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS applications (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          project_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          description TEXT NOT NULL DEFAULT '',
+          document TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_application_user
+        ON applications (user_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_application_project
+        ON applications (project_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_application_updated
+        ON applications (updated_at)
+      `);
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS application_versions (
+          id TEXT PRIMARY KEY,
+          application_id TEXT NOT NULL,
+          version INTEGER NOT NULL,
+          document TEXT NOT NULL,
+          capabilities TEXT NOT NULL,
+          released INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_application_version_app
+        ON application_versions (application_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_application_version_released
+        ON application_versions (released)
+      `);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_application_version_released");
+      await db.execute("DROP INDEX IF EXISTS idx_application_version_app");
+      await db.execute("DROP TABLE IF EXISTS application_versions");
+      await db.execute("DROP INDEX IF EXISTS idx_application_updated");
+      await db.execute("DROP INDEX IF EXISTS idx_application_project");
+      await db.execute("DROP INDEX IF EXISTS idx_application_user");
+      await db.execute("DROP TABLE IF EXISTS applications");
+    }
   }
 ];
