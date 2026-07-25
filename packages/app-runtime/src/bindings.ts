@@ -46,10 +46,17 @@ export type BindingNamespace =
   | "view"
   | "invocations";
 
+/**
+ * Split on the last separator, requiring a non-empty part on both sides. A
+ * missing separator, a leading one, or a trailing one all mean the token is
+ * malformed, so the caller rejects it.
+ */
 const splitLast = (value: string, sep: string): [string, string] | null => {
   const at = value.lastIndexOf(sep);
-  if (at <= 0 || at === value.length - sep.length) return null;
-  return [value.slice(0, at), value.slice(at + sep.length)];
+  if (at <= 0) return null;
+  const tail = value.slice(at + sep.length);
+  if (tail.length === 0) return null;
+  return [value.slice(0, at), tail];
 };
 
 export const namespaceOf = (ref: BindingRef): BindingNamespace => {
