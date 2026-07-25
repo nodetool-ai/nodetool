@@ -76,3 +76,21 @@ export function supportsPlatform(
   return normalizePlatforms(platforms).includes(target);
 }
 
+/**
+ * What running a node does to the world. Reactive execution — a mini-app
+ * slider drag, a live preview in the editor — may traverse "pure" and "read"
+ * nodes only; anything that writes or leaves the system requires an explicit
+ * run. The unset default is "external" (most conservative): a slider must not
+ * be able to resend an email just because nobody classified the node.
+ *
+ *   - "pure"     Output depends only on the inputs. `cacheTtl: "forever"`
+ *                implies this.
+ *   - "read"     Reads external state (a file, an HTTP GET) but changes nothing.
+ *   - "write"    Mutates state the user can observe: a saved asset, a document.
+ *   - "external" Leaves the system: sends mail, posts a message, calls a paid
+ *                generation API.
+ */
+export type NodeEffect = "pure" | "read" | "write" | "external";
+
+/** Effects a reactive run is allowed to execute without an explicit action. */
+export const REACTIVE_EFFECTS: readonly NodeEffect[] = ["pure", "read"];

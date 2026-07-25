@@ -76,6 +76,13 @@ interface WidgetCommon {
   id: string;
   binding?: string;
   events?: AppEvent[];
+  /**
+   * The widget's `format` template, already interpolated by `withConditions`.
+   * Display widgets render it instead of the raw bound value.
+   */
+  formattedValue?: string;
+  /** Set by `withConditions` when the widget's `disabledWhen` holds. */
+  disabled?: boolean;
 }
 
 const useBinding = (
@@ -192,7 +199,8 @@ export const HeadingWidget: React.FC<WidgetCommon & {
   level?: string;
 }> = (props) => {
   const { value } = useBinding(props, "read");
-  const text = value != null ? str(value) : props.text ?? "";
+  const text =
+    props.formattedValue ?? (value != null ? str(value) : props.text ?? "");
   const level = props.level ?? "1";
   const size = level === "1" ? "giant" : "big";
   return (
@@ -206,7 +214,8 @@ export const TextWidget: React.FC<WidgetCommon & { text?: string }> = (
   props
 ) => {
   const { value } = useBinding(props, "read");
-  const text = value != null ? str(value) : props.text ?? "";
+  const text =
+    props.formattedValue ?? (value != null ? str(value) : props.text ?? "");
   return (
     <Text size="normal" sx={{ whiteSpace: "pre-wrap" }}>
       {text}
@@ -218,8 +227,11 @@ export const MarkdownWidget: React.FC<WidgetCommon & { text?: string }> = (
   props
 ) => {
   const { value } = useBinding(props, "read");
-  const parts =
-    value != null ? asItems(value).map(str) : [props.text ?? ""];
+  const parts = props.formattedValue
+    ? [props.formattedValue]
+    : value != null
+      ? asItems(value).map(str)
+      : [props.text ?? ""];
   if (parts.length <= 1) {
     return <MarkdownBlock text={parts[0] ?? ""} />;
   }
@@ -354,7 +366,9 @@ export const OutputWidget: React.FC<WidgetCommon & { placeholder?: string }> = (
   props
 ) => {
   const { value } = useBinding(props, "read");
-  const items = asItems(value).filter((item) => item != null && item !== "");
+  const items = props.formattedValue
+    ? [props.formattedValue]
+    : asItems(value).filter((item) => item != null && item !== "");
   if (items.length === 0) {
     return (
       <Caption color="secondary">{props.placeholder ?? "No result yet"}</Caption>
@@ -378,9 +392,11 @@ export const JsonWidget: React.FC<WidgetCommon> = (props) => {
 export const ProgressWidget: React.FC<WidgetCommon & { label?: string }> = (
   props
 ) => {
-  const { value, runnerState, designMode } = useBinding(props, "read");
-  const isRunning = runnerState === "running" || runnerState === "connecting";
-  const bound = numOr(value, NaN);
+  const { value, runnerState, progress, designMode } = useBinding(props, "read");
+  const isRunning = runnerState === "running";
+  // A widget bound to a numeric output shows that; otherwise the run's own
+  // progress, which the runtime reports as a 0..1 fraction.
+  const bound = numOr(value, progress != null ? progress * 100 : NaN);
   const hasValue = Number.isFinite(bound);
   // Progress belongs to a run in flight: show it only while the run is active,
   // and let it disappear the moment the run finishes. A widget bound to a
@@ -570,7 +586,7 @@ export const ButtonWidget: React.FC<WidgetCommon & {
   color?: string;
 }> = (props) => {
   const { emit, designMode, runnerState } = useBinding(props, "none");
-  const isRunning = runnerState === "running" || runnerState === "connecting";
+  const isRunning = runnerState === "running";
   const showRunning = isRunning && !designMode;
   return (
     <EditorButton

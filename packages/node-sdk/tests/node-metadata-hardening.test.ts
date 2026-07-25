@@ -253,6 +253,7 @@ describe("getNodeMetadata complete shape", () => {
       static readonly modelPacks = [{ pack: "p" }];
       static readonly platforms = ["node", "edge"];
       static readonly metadataOutputTypes = { out: "image" };
+      static readonly effect = "read" as const;
 
       @prop({ type: "str", required: true, default: "hi" })
       declare in: string;
@@ -299,8 +300,27 @@ describe("getNodeMetadata complete shape", () => {
       supports_dynamic_outputs: true,
       auto_save_asset: true,
       model_packs: [{ pack: "p" }],
-      platforms: ["node", "edge"]
+      platforms: ["node", "edge"],
+      effect: "read"
     });
+  });
+
+  it("defaults effect to external and derives pure from a forever cache", () => {
+    class Unclassified extends BaseNode {
+      static readonly nodeType = "pkg.sub.Unclassified";
+      async process() {
+        return {};
+      }
+    }
+    class Deterministic extends BaseNode {
+      static readonly nodeType = "pkg.sub.Deterministic";
+      static readonly cacheTtl = "forever" as const;
+      async process() {
+        return {};
+      }
+    }
+    expect(getNodeMetadata(Unclassified).effect).toBe("external");
+    expect(getNodeMetadata(Deterministic).effect).toBe("pure");
   });
 });
 

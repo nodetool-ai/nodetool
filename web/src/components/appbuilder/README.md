@@ -6,43 +6,60 @@ for Mini App mode.
 
 ## Model
 
-Puck owns the layout/document model; a thin reactive layer connects widgets to
-the workflow:
+Puck owns the layout; the semantics live in `@nodetool-ai/app-runtime`, the
+framework-independent core the web runtime, the CLI `app debug` harness, and the
+`app-tools` evals all share.
 
-- The running app holds a flat **reactive state** dictionary
-  (`Record<string, unknown>`).
-- Workflow **inputs** are state keys (the input node `name`). Input widgets
-  write them; running the workflow feeds them as params.
-- Workflow **outputs** stream into state keys (the output node `name`) as the
-  graph runs — NodeTool's streaming model drives the UI: `output_update` /
-  `chunk` messages land in state and bound widgets re-render live.
-- **Variables** (NodeTool `SetVariable` channels) back any other app state.
-- **Widgets** bind one state key (read for displays, two-way for inputs) and
-  emit **events** (`click` / `change`) that dispatch **actions** (`run`,
-  `cancel`, `setState`, `toggleState`).
+- An app is an **application document**: a Puck UI document plus typed bindings
+  to workflow **operations**, **resources**, and declared **variables**. Nothing
+  in the document computes.
+- The running app holds **four state namespaces** — `inputs`, `outputs`,
+  `variables`, and widget-local `view` — plus the **invocations** it started.
+  Inputs and outputs are keyed `operationId:nodeId`, so two operations over the
+  same workflow never collide.
+- **Run identity**: every streaming message carries a `job_id`. The runtime
+  drops any message from a run it did not start, which is what keeps a second
+  tab, an overlapping run, or a graph-editor run out of the app's values.
+- **Bindings key on node IDs**, never names (`op:main/in:<nodeId>`,
+  `op:main/out:<nodeId>`, `var:<id>`, `view:<componentId>#<prop>`). Renaming a
+  node in the graph editor does not break an app. Bare names still resolve —
+  that is the legacy `app_doc` form and the migration path.
+- **Widgets** bind one slot (read for displays, two-way for inputs) and emit
+  **events** (`click` / `change`) that dispatch **actions** (`run`, `cancel`,
+  `setVariable`, `toggleVariable`, `resourceCommand`, `openResource`).
+- **Logic** is a closed vocabulary: `visibleWhen`, `disabledWhen`, and a
+  `format` template (`{binding|number:2}`). Everything else — derived values,
+  validation, transformation — is a node in the graph.
 
 Bindings always reference something the workflow already declares: inputs bind
 to **Input nodes**, displays to **Output nodes**, and other state to
 **Variables**. Add the node to the workflow first — there are no free-form keys.
 
 UI is the trigger: a button's click runs the workflow; an input's change can run
-it too (reactive "run on change" apps). Eligible graphs run in the browser via
+it too (reactive "run on change" apps). Reactive runs traverse `pure` and `read`
+nodes only (`NodeMetadata.effect`), so a slider cannot resend an email; anything
+else falls back to an explicit full run. Eligible graphs run in the browser via
 the existing worker path.
 
 ## Pieces
 
-- `appData.ts` — storage model: a Puck `Data` document + version. Helpers to
-  create / parse / check.
-- `persistence.ts` — load/save the document on `workflow.settings` (JSON; no
-  backend change).
+- `appData.ts` — storage model: re-exports the shared `ApplicationDocument`
+  parser and the empty-document helpers.
+- `persistence.ts` — load/save the document on `workflow.app_doc`.
 - `workflowIO.ts` / `workflowState.ts` — a workflow's bindable surface
   (inputs, outputs, variables).
-- `runtime/` — `appRuntimeStore` (reactive state), `useAppRuntime` (the engine:
-  wires the streaming runner into state, dispatches actions), `AppRuntimeContext`.
+- `runtime/` — `appRuntimeStore` (a Zustand wrapper around the shared reducer,
+  one store per app instance), `useAppRuntime` (the engine: claims invocations,
+  folds the streaming runner into state, dispatches actions),
+  `AppRuntimeContext` (binding resolution, conditions, formatting),
+  `buildTriggerSubgraph` (reactive subgraph runs + the effect gate).
 - `puck/` — the Puck integration:
   - `config.tsx` — the Puck `Config` (components, root, categories).
   - `widgets.tsx` — widget React components bound to the reactive runtime.
-  - `fields.tsx` — custom binding fields (Input/Output/Variable pickers).
+  - `fields.tsx` — custom binding fields (Input/Output/Variable/condition
+    pickers), which write bindings in their ID form.
+  - `conditionalWidget.tsx` — applies `visibleWhen` / `disabledWhen` / `format`
+    to every widget in one place.
   - `useWidgetRuntime.ts` — binds a widget's props to reactive state + events.
   - `BuilderWorkflowContext.tsx` — supplies the bindable surface to fields.
   - `PuckAppEditor.tsx` — the `<Puck>` editor wrapper.

@@ -7,6 +7,7 @@ import { Workflow } from "../../stores/ApiTypes";
 import { useAppRuntime } from "./runtime/useAppRuntime";
 import {
   AppRuntimeContext,
+  useAppRuntimeContext,
   useRuntimeSelector
 } from "./runtime/AppRuntimeContext";
 import { appConfig } from "./puck/config";
@@ -18,13 +19,25 @@ interface AppRuntimeViewProps {
 }
 
 /**
- * Surfaces a run error from the runtime store as a dismissible banner pinned to
- * the top of the app's scroll container. New runs clear the error themselves; the
- * close button clears it on demand.
+ * Surfaces the active invocation's error as a dismissible banner pinned to the
+ * top of the app's scroll container. Errors belong to an invocation, so the
+ * next run replaces the banner and dismissing it clears the invocation's error.
  */
 const RuntimeErrorBanner: React.FC = () => {
-  const error = useRuntimeSelector((s) => s.error);
-  const setError = useRuntimeSelector((s) => s.setError);
+  const { store, scope } = useAppRuntimeContext();
+  const operationId = scope.defaultOperationId;
+  const invocationId = useRuntimeSelector(
+    (s) => s.activeInvocation[operationId]
+  );
+  const error = useRuntimeSelector((s) =>
+    invocationId ? s.invocations[invocationId]?.error : undefined
+  );
+  const setError = (value: string | null) => {
+    if (!invocationId) return;
+    store
+      .getState()
+      .dispatchEvent({ type: "invocationError", invocationId, error: value ?? "" });
+  };
   if (!error) return null;
   return (
     <Box

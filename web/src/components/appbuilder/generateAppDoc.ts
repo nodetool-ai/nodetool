@@ -9,7 +9,11 @@ import type { Data } from "@puckeditor/core";
 
 import { Workflow } from "../../stores/ApiTypes";
 import { extractWorkflowIO, WorkflowOutputIO } from "./workflowIO";
-import { APP_DATA_VERSION, AppDocument } from "./appData";
+import { AppDocument } from "./appData";
+import {
+  APP_SCHEMA_VERSION,
+  DEFAULT_OPERATION_ID
+} from "@nodetool-ai/app-runtime";
 import type { ComponentNode } from "./puck/puckDataOps";
 
 const slugify = (name: string): string =>
@@ -167,6 +171,18 @@ export const generateAppData = (workflow: Workflow): Data => {
 };
 
 export const generateAppDoc = (workflow: Workflow): AppDocument => ({
-  version: APP_DATA_VERSION,
-  data: generateAppData(workflow)
+  schemaVersion: APP_SCHEMA_VERSION,
+  ui: generateAppData(workflow),
+  operations: [
+    {
+      id: DEFAULT_OPERATION_ID,
+      name: "Run",
+      workflowId: workflow.id,
+      inputs: {},
+      outputs: {},
+      policy: "replace"
+    }
+  ],
+  resources: [],
+  variables: []
 });

@@ -293,6 +293,10 @@ export function getNodeMetadata(
     supports_dynamic_outputs: nodeClass.supportsDynamicOutputs,
     auto_save_asset: nodeClass.autoSaveAsset || undefined,
     cache_ttl: nodeClass.cacheTtl,
+    // `cacheTtl: "forever"` means the output depends only on the inputs, which
+    // is the definition of a pure node — no need to declare both.
+    effect:
+      nodeClass.cacheTtl === "forever" ? "pure" : nodeClass.effect ?? "external",
     primary_output: nodeClass.primaryOutput || undefined,
     model_packs: nodeClass.modelPacks,
     platforms: normalizePlatforms(nodeClass.platforms),

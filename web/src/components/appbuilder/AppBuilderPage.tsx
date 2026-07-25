@@ -19,15 +19,15 @@ import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import FrontendToolRuntimeSync from "../panels/FrontendToolRuntimeSync";
-import { APP_DATA_VERSION, createEmptyData } from "./appData";
-import { loadAppData, toAppDocField } from "./persistence";
+import { createEmptyData, createEmptyDocument } from "./appData";
+import { loadAppData, loadAppDocument, toAppDocField } from "./persistence";
 import PuckAppEditor from "./puck/PuckAppEditor";
 import AppBuilderAgentPanel from "./AppBuilderAgentPanel";
 
 /**
  * Full-page route for the WYSIWYG app builder (`/app-builder/:workflowId`).
  * Fetches the workflow, hands its Puck document to the editor, and persists
- * edits back onto `workflow.settings` on save.
+ * edits back onto `workflow.app_doc` on save.
  */
 const AppBuilderPage: React.FC = () => {
   const { workflowId } = useParams<{ workflowId?: string }>();
@@ -75,8 +75,8 @@ const AppBuilderPage: React.FC = () => {
         const next: Workflow = {
           ...workflow,
           app_doc: toAppDocField({
-            version: APP_DATA_VERSION,
-            data: nextData
+            ...(loadAppDocument(workflow) ?? createEmptyDocument()),
+            ui: nextData
           })
         };
         await saveWorkflow(next);

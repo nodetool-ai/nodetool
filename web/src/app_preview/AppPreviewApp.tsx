@@ -14,8 +14,13 @@ import { Render, type Data } from "@puckeditor/core";
 import { ThemeProvider, CssBaseline } from "@mui/material";
 
 import ThemeNodetool from "../components/themes/ThemeNodetool";
+import { DEFAULT_OPERATION_ID } from "@nodetool-ai/app-runtime";
+
 import { createAppRuntimeStore } from "../components/appbuilder/runtime/appRuntimeStore";
-import { AppRuntimeContext } from "../components/appbuilder/runtime/AppRuntimeContext";
+import {
+  AppRuntimeContext,
+  type AppRuntimeContextValue
+} from "../components/appbuilder/runtime/AppRuntimeContext";
 import { appConfig } from "../components/appbuilder/puck/config";
 import { Box, BORDER_RADIUS } from "../components/ui_primitives";
 import { makeDemoAudio, makeDemoGradient, makeDemoVideo } from "./demoMedia";
@@ -105,25 +110,37 @@ const AppPreviewApp: React.FC = () => {
     };
   }, [slug]);
 
+  // The bundle has no graph, only demo values keyed by the names the widgets
+  // bind to. Declaring each as a variable gives those names something to
+  // resolve against, so the real widgets render the real values with no backend.
   const store = useMemo(
-    () => (values ? createAppRuntimeStore(values) : null),
+    () => (values ? createAppRuntimeStore({ variables: { ...values } }) : null),
     [values]
   );
 
   const runtime = useMemo(
-    () =>
-      store
+    (): AppRuntimeContextValue | null =>
+      store && values
         ? {
             store,
             io: { inputs: [], outputs: [] },
+            scope: {
+              defaultOperationId: DEFAULT_OPERATION_ID,
+              operations: [],
+              variables: Object.keys(values).map((name) => ({
+                id: name,
+                name,
+                scope: "instance" as const,
+                persist: false
+              }))
+            },
             designMode: false,
             dispatch: () => {},
-            setValue: (key: string, value: unknown) =>
-              store.getState().setValue(key, value),
+            write: () => {},
             getNodeProperty: () => undefined
           }
         : null,
-    [store]
+    [store, values]
   );
 
   // Signal readiness for the screenshot script once media has decoded.

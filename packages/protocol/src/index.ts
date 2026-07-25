@@ -20,6 +20,8 @@ export * from "./cloud-profile.js";
 export * from "./agent-protocol.js";
 export {
   type Platform,
+  type NodeEffect,
+  REACTIVE_EFFECTS,
   ALL_PLATFORMS,
   SERVER_PLATFORMS,
   NODE_AND_BROWSER_PLATFORMS,

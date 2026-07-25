@@ -3,7 +3,8 @@ import React from "react";
 import type { Config, ArrayField } from "@puckeditor/core";
 
 import { Box, Text, FlexColumn, SPACING, SPACING_PX } from "../../ui_primitives";
-import { bindingField, variableField } from "./fields";
+import { bindingField, conditionField, variableField } from "./fields";
+import { withConditions } from "./conditionalWidget";
 import {
   HeadingWidget,
   TextWidget,
@@ -34,9 +35,27 @@ import {
 const ACTION_OPTIONS = [
   { label: "Run workflow", value: "run" },
   { label: "Cancel run", value: "cancel" },
-  { label: "Set variable", value: "setState" },
-  { label: "Toggle variable", value: "toggleState" }
+  { label: "Set variable", value: "setVariable" },
+  { label: "Toggle variable", value: "toggleVariable" }
 ];
+
+/**
+ * The three declarative logic props every widget accepts. Conditions and the
+ * format template are the whole logic surface of the app layer — everything
+ * else is a node in the graph.
+ */
+const conditionalFields = ({ format = true }: { format?: boolean } = {}) => ({
+  visibleWhen: conditionField("Visible when"),
+  disabledWhen: conditionField("Disabled when"),
+  ...(format
+    ? {
+        format: {
+          type: "text" as const,
+          label: "Format ({binding} · number:2 · date:short · upper · truncate:80)"
+        }
+      }
+    : {})
+});
 
 const PACE_OPTIONS = [
   { label: "Live", value: "live" },
@@ -97,12 +116,13 @@ const fixedInputEntry = (label: string, kind: FixedInputKind) => ({
   fields: {
     binding: bindingField("write", "Workflow input"),
     label: { type: "text" as const, label: "Label" },
-    events: eventsField("change", { commits: false })
+    events: eventsField("change", { commits: false }),
+    ...conditionalFields({ format: false })
   },
   defaultProps: { binding: "", label: "" },
-  render: (props: FixedInputWidgetProps) => (
+  render: withConditions((props: FixedInputWidgetProps) => (
     <FixedKindInputWidget {...props} kind={kind} />
-  )
+  ))
 });
 
 // `Config` is intentionally loosely typed (DefaultComponents): Puck injects
@@ -204,28 +224,31 @@ export const appConfig: Config = {
             { label: "H3", value: "3" }
           ]
         },
-        binding: bindingField("read")
+        binding: bindingField("read"),
+        ...conditionalFields()
       },
       defaultProps: { text: "Heading", level: "1" },
-      render: (props) => <HeadingWidget {...props} />
+      render: withConditions((props) => <HeadingWidget {...props} />)
     },
     Text: {
       label: "Text",
       fields: {
         text: { type: "textarea", label: "Text" },
-        binding: bindingField("read")
+        binding: bindingField("read"),
+        ...conditionalFields()
       },
       defaultProps: { text: "Text block" },
-      render: (props) => <TextWidget {...props} />
+      render: withConditions((props) => <TextWidget {...props} />)
     },
     Markdown: {
       label: "Markdown",
       fields: {
         text: { type: "textarea", label: "Markdown" },
-        binding: bindingField("read")
+        binding: bindingField("read"),
+        ...conditionalFields()
       },
       defaultProps: { text: "**Markdown** content" },
-      render: (props) => <MarkdownWidget {...props} />
+      render: withConditions((props) => <MarkdownWidget {...props} />)
     },
     Image: {
       label: "Image",
@@ -240,63 +263,69 @@ export const appConfig: Config = {
           ]
         },
         height: { type: "number", label: "Height (px)" },
-        placeholder: { type: "text", label: "Placeholder" }
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields({ format: false })
       },
       defaultProps: { fit: "contain", height: 240, placeholder: "No image" },
-      render: (props) => <ImageWidget {...props} />
+      render: withConditions((props) => <ImageWidget {...props} />)
     },
     Audio: {
       label: "Audio",
       fields: {
         binding: bindingField("read"),
-        placeholder: { type: "text", label: "Placeholder" }
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields({ format: false })
       },
       defaultProps: { placeholder: "No audio yet" },
-      render: (props) => <AudioWidget {...props} />
+      render: withConditions((props) => <AudioWidget {...props} />)
     },
     Video: {
       label: "Video",
       fields: {
         binding: bindingField("read"),
         height: { type: "number", label: "Max height (px)" },
-        placeholder: { type: "text", label: "Placeholder" }
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields({ format: false })
       },
       defaultProps: { height: 320, placeholder: "No video yet" },
-      render: (props) => <VideoWidget {...props} />
+      render: withConditions((props) => <VideoWidget {...props} />)
     },
     Json: {
       label: "JSON",
-      fields: { binding: bindingField("read") },
+      fields: { binding: bindingField("read"), ...conditionalFields() },
       defaultProps: {},
-      render: (props) => <JsonWidget {...props} />
+      render: withConditions((props) => <JsonWidget {...props} />)
     },
     Output: {
       label: "Output",
       fields: {
         binding: bindingField("read"),
-        placeholder: { type: "text", label: "Placeholder" }
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields()
       },
       defaultProps: { placeholder: "Your result appears here" },
-      render: (props) => <OutputWidget {...props} />
+      render: withConditions((props) => <OutputWidget {...props} />)
     },
     Progress: {
       label: "Progress",
       fields: {
         label: { type: "text", label: "Label" },
-        binding: bindingField("read")
+        binding: bindingField("read"),
+        ...conditionalFields({ format: false })
       },
       defaultProps: { label: "" },
-      render: (props) => <ProgressWidget {...props} />
+      render: withConditions((props) => <ProgressWidget {...props} />)
     },
     // ── Inputs ──
     WorkflowInput: {
       label: "Workflow Input",
       fields: {
         binding: bindingField("write", "Workflow input"),
-        events: eventsField("change", { commits: false })
+        events: eventsField("change", { commits: false }),
+        ...conditionalFields({ format: false })
       },
       defaultProps: { binding: "" },
-      render: (props) => <WorkflowInputWidget {...props} />
+      render: withConditions((props) => <WorkflowInputWidget {...props} />)
     },
     TextInput: {
       label: "Text Input",
@@ -312,10 +341,11 @@ export const appConfig: Config = {
             { label: "Yes", value: true }
           ]
         },
-        events: eventsField("change")
+        events: eventsField("change"),
+        ...conditionalFields({ format: false })
       },
       defaultProps: { label: "Text", placeholder: "", multiline: false },
-      render: (props) => <TextInputWidget {...props} />
+      render: withConditions((props) => <TextInputWidget {...props} />)
     },
     NumberInput: {
       label: "Number Input",
@@ -325,10 +355,11 @@ export const appConfig: Config = {
         min: { type: "number", label: "Min" },
         max: { type: "number", label: "Max" },
         step: { type: "number", label: "Step" },
-        events: eventsField("change")
+        events: eventsField("change"),
+        ...conditionalFields({ format: false })
       },
       defaultProps: { label: "Number", min: 0, max: 100, step: 1 },
-      render: (props) => <NumberInputWidget {...props} />
+      render: withConditions((props) => <NumberInputWidget {...props} />)
     },
     Slider: {
       label: "Slider",
@@ -338,20 +369,22 @@ export const appConfig: Config = {
         min: { type: "number", label: "Min" },
         max: { type: "number", label: "Max" },
         step: { type: "number", label: "Step" },
-        events: eventsField("change")
+        events: eventsField("change"),
+        ...conditionalFields({ format: false })
       },
       defaultProps: { label: "Slider", min: 0, max: 100, step: 1 },
-      render: (props) => <SliderWidget {...props} />
+      render: withConditions((props) => <SliderWidget {...props} />)
     },
     Switch: {
       label: "Switch",
       fields: {
         binding: bindingField("write"),
         label: { type: "text", label: "Label" },
-        events: eventsField("change", { commits: false })
+        events: eventsField("change", { commits: false }),
+        ...conditionalFields({ format: false })
       },
       defaultProps: { label: "Toggle" },
-      render: (props) => <SwitchWidget {...props} />
+      render: withConditions((props) => <SwitchWidget {...props} />)
     },
     Select: {
       label: "Select",
@@ -359,13 +392,14 @@ export const appConfig: Config = {
         binding: bindingField("write"),
         label: { type: "text", label: "Label" },
         options: optionsField,
-        events: eventsField("change", { commits: false })
+        events: eventsField("change", { commits: false }),
+        ...conditionalFields({ format: false })
       },
       defaultProps: {
         label: "Select",
         options: [{ value: "Option A" }, { value: "Option B" }]
       },
-      render: (props) => <SelectWidget {...props} />
+      render: withConditions((props) => <SelectWidget {...props} />)
     },
     ImageInput: fixedInputEntry("Image Input", "image"),
     AudioInput: fixedInputEntry("Audio Input", "audio"),
@@ -395,7 +429,8 @@ export const appConfig: Config = {
             { label: "Warning", value: "warning" }
           ]
         },
-        events: eventsField("click")
+        events: eventsField("click"),
+        ...conditionalFields({ format: false })
       },
       defaultProps: {
         label: "Run",
@@ -403,7 +438,7 @@ export const appConfig: Config = {
         color: "primary",
         events: [{ trigger: "click", kind: "run", key: "", value: "" }]
       },
-      render: (props) => <ButtonWidget {...props} />
+      render: withConditions((props) => <ButtonWidget {...props} />)
     },
     // ── Layout ──
     Container: {

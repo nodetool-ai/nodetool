@@ -12,10 +12,10 @@ export {
 export { appConfig } from "./puck/config";
 export {
   type AppDocument,
-  APP_DATA_VERSION,
+  APP_SCHEMA_VERSION,
   createEmptyData,
   createEmptyDocument,
-  parseAppDocument,
+  parseApplicationDocument,
   isRenderableData
 } from "./appData";
 export {

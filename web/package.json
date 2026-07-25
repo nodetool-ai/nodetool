@@ -20,6 +20,7 @@
     "@mui/icons-material": "^7.3.11",
     "@mui/material": "^7.3.11",
     "@mui/x-tree-view": "^7.29.10",
+    "@nodetool-ai/app-runtime": "*",
     "@nodetool-ai/core-nodes": "*",
     "@nodetool-ai/gpu": "*",
     "@nodetool-ai/image-editor": "*",

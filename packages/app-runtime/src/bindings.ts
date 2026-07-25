@@ -46,6 +46,12 @@ export type BindingNamespace =
   | "view"
   | "invocations";
 
+const splitLast = (value: string, sep: string): [string, string] | null => {
+  const at = value.lastIndexOf(sep);
+  if (at <= 0 || at === value.length - sep.length) return null;
+  return [value.slice(0, at), value.slice(at + sep.length)];
+};
+
 export const namespaceOf = (ref: BindingRef): BindingNamespace => {
   switch (ref.kind) {
     case "input":
@@ -82,6 +88,24 @@ export const stateKey = (ref: BindingRef): string => {
   }
 };
 
+/**
+ * Inverse of {@link stateKey} for the `inputs` namespace: `opId:nodeId` or
+ * `opId:nodeId#property`. Lets a runtime walk its input slots and rebuild the
+ * graph overlay a node-property binding drives.
+ */
+export const parseInputStateKey = (
+  key: string
+): { operationId: string; nodeId: string; property?: string } | null => {
+  const colon = key.indexOf(":");
+  if (colon <= 0 || colon === key.length - 1) return null;
+  const operationId = key.slice(0, colon);
+  const rest = key.slice(colon + 1);
+  const parts = splitLast(rest, "#");
+  return parts
+    ? { operationId, nodeId: parts[0], property: parts[1] }
+    : { operationId, nodeId: rest };
+};
+
 export const encodeBinding = (ref: BindingRef): string => {
   switch (ref.kind) {
     case "input":
@@ -115,12 +139,6 @@ export interface BindingScope {
   /** Operation a legacy (name-only) binding resolves against. */
   defaultOperationId: string;
 }
-
-const splitLast = (value: string, sep: string): [string, string] | null => {
-  const at = value.lastIndexOf(sep);
-  if (at <= 0 || at === value.length - sep.length) return null;
-  return [value.slice(0, at), value.slice(at + sep.length)];
-};
 
 const isExecutionField = (value: string): value is ExecutionField =>
   value === "running" || value === "progress" || value === "error";

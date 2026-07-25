@@ -17,6 +17,8 @@ export default {
     // it at module load.
     "^typegpu$": "<rootDir>/src/__mocks__/typegpu.ts",
     "^typegpu/data$": "<rootDir>/src/__mocks__/typegpuData.ts",
+    "^@nodetool-ai/app-runtime$":
+      "<rootDir>/../packages/app-runtime/src/index.ts",
     "^@nodetool-ai/protocol$": "<rootDir>/../packages/protocol/src/index.ts",
     "^@nodetool-ai/protocol/(.*)$": "<rootDir>/../packages/protocol/src/$1",
     "^@nodetool-ai/runtime/zod-schema$":
@@ -115,6 +117,7 @@ export default {
     "tests/smoke/",
     "tests/subgraph-e2e.spec.ts",
     // Shared helpers living inside __tests__ dirs — not suites themselves.
-    "/__tests__/testUtils\\.tsx$"
+    "/__tests__/testUtils\\.tsx$",
+    "/__tests__/testRuntime\\.tsx$"
   ]
 };
