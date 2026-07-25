@@ -36,7 +36,8 @@ interface PuckAppEditorProps {
   data: Data;
   onPublish: (data: Data) => void;
   onChange?: (data: Data) => void;
-  onClose: () => void;
+  /** Omitted when the builder is embedded and there is nowhere to go back to. */
+  onClose?: () => void;
   agentOpen?: boolean;
   onToggleAgent?: () => void;
   /**
@@ -201,14 +202,16 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
               Ask Agent
             </EditorButton>
           )}
-          <EditorButton
-            size="small"
-            variant="text"
-            startIcon={<CloseIcon sx={{ fontSize: 16 }} />}
-            onClick={onClose}
-          >
-            Back
-          </EditorButton>
+          {onClose && (
+            <EditorButton
+              size="small"
+              variant="text"
+              startIcon={<CloseIcon sx={{ fontSize: 16 }} />}
+              onClick={onClose}
+            >
+              Back
+            </EditorButton>
+          )}
           <SaveButton onSave={onPublish} />
         </>
       )

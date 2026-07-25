@@ -1,4 +1,6 @@
 export { default as AppBuilderPage } from "./AppBuilderPage";
+export { default as AppBuilderShell } from "./AppBuilderShell";
+export { default as ApplicationAppBuilder } from "./ApplicationAppBuilder";
 export { default as AppRuntimeView } from "./AppRuntimeView";
 export { default as AppBuilderAgentPanel } from "./AppBuilderAgentPanel";
 export { default as PuckAppEditor } from "./puck/PuckAppEditor";

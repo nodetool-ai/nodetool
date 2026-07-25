@@ -76,7 +76,18 @@ the existing worker path.
   - `BuilderWorkflowContext.tsx` — supplies the bindable surface to fields.
   - `PuckAppEditor.tsx` — the `<Puck>` editor wrapper.
 - `AppRuntimeView.tsx` — the live `<Render>` wrapper (used by app mode).
-- `AppBuilderPage.tsx` — the `/app-builder/:workflowId` route: fetch, edit, save.
+- `AppBuilderShell.tsx` — the editing surface, independent of storage: it seeds
+  Puck from a document, holds the operations/resources/variables beside it, and
+  emits the **whole** document on save.
+- `AppBuilderPage.tsx` — the `/app-builder/:workflowId` route, storing on
+  `workflow.app_doc`.
+- `ApplicationAppBuilder.tsx` — the same shell over an `applications` record:
+  loads with `applications.get`, saves with `applications.update` carrying
+  `baseUpdatedAt`. A lost compare-and-swap raises an alert and a banner with a
+  Reload action; the canvas is never refetched out from under the user.
+
+The two containers are the only difference between the targets — the shell does
+not know which one it is inside.
 
 ## Agent
 
@@ -117,6 +128,10 @@ document when present, otherwise a form/results layout generated from the
 graph's Input/Output nodes (`generateAppData`). The builder lives at
 `/app-builder/:workflowId`; open it from a workflow's View mode with
 **App Builder**.
+
+An app with its own record opens in the workspace: the app library's tab renders
+`ApplicationSurface`, whose **Design** view is the builder canvas and whose
+**Settings** view is publishing, budgets, and telemetry.
 
 ## Publishing
 
