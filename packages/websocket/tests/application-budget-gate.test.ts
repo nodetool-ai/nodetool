@@ -9,6 +9,8 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { unpack } from "msgpackr";
+import falUnitPricingCatalog from "@nodetool-ai/fal-nodes/unit-pricing-catalog";
+import kieUnitPricingCatalog from "@nodetool-ai/kie-nodes/unit-pricing-catalog";
 import {
   UnifiedWebSocketRunner,
   type WebSocketConnection,
@@ -231,5 +233,92 @@ describe("application invocation settlement", () => {
 
     const [record] = await listInvocations(APP);
     expect(record).toMatchObject({ status: "failed", actualUsd: 0.1 });
+  });
+});
+
+/**
+ * What the gate can actually price. Node-type metadata only carries a price for
+ * provider-specific nodes; a generic node (nodetool.image.TextToImage and
+ * friends) picks its model at runtime, so the estimate has to price the
+ * selection. Without that, every generic node was free and no USD budget could
+ * refuse a run.
+ */
+describe("pre-run cost estimate", () => {
+  const firstFalPriced = (): { id: string; unitPrice: number } => {
+    for (const [id, entry] of Object.entries(falUnitPricingCatalog.prices ?? {})) {
+      const price = (entry as { unit_price?: unknown }).unit_price;
+      if (typeof price === "number" && price > 0) return { id, unitPrice: price };
+    }
+    throw new Error("FAL pricing catalog has no priced entry");
+  };
+
+  const firstKiePriced = (): { id: string; unitPrice: number } => {
+    for (const [id, entry] of Object.entries(kieUnitPricingCatalog.prices ?? {})) {
+      const price = (entry as { usd_price?: unknown }).usd_price;
+      if (typeof price === "number" && price > 0) return { id, unitPrice: price };
+    }
+    throw new Error("kie pricing catalog has no USD-priced entry");
+  };
+
+  /** A generic node type exposing a single provider-model property. */
+  const genericMetadata = {
+    properties: [{ name: "model", type: { type: "image_model" } }]
+  };
+
+  const estimate = (
+    nodes: Array<Record<string, unknown>>,
+    metadata: unknown = genericMetadata
+  ): number => {
+    const runner = new UnifiedWebSocketRunner({
+      resolveExecutor: () => undefined as never,
+      getNodeMetadata: () => metadata as never
+    });
+    return (
+      runner as unknown as {
+        estimateRunCost(req: Record<string, unknown>): number;
+      }
+    ).estimateRunCost({ graph: { nodes, edges: [] } });
+  };
+
+  it("prices a FAL model selected on a generic node", () => {
+    const { id, unitPrice } = firstFalPriced();
+    const total = estimate([
+      {
+        id: "n1",
+        type: "nodetool.image.TextToImage",
+        data: { model: { id, provider: "fal_ai" } }
+      }
+    ]);
+    expect(total).toBeCloseTo(unitPrice);
+  });
+
+  it("prices a kie model selected on a generic node", () => {
+    const { id, unitPrice } = firstKiePriced();
+    const total = estimate([
+      {
+        id: "n1",
+        type: "nodetool.image.TextToImage",
+        data: { model: { id, provider: "kie" } }
+      }
+    ]);
+    expect(total).toBeCloseTo(unitPrice);
+  });
+
+  it("counts an unpriced model as zero instead of throwing", () => {
+    expect(
+      estimate([
+        {
+          id: "n1",
+          type: "nodetool.image.TextToImage",
+          data: { model: { id: "no-such/model", provider: "anthropic" } }
+        }
+      ])
+    ).toBe(0);
+  });
+
+  it("counts a node with no model selection as zero", () => {
+    expect(estimate([{ id: "n1", type: "nodetool.text.Concat", data: {} }])).toBe(
+      0
+    );
   });
 });

@@ -30,6 +30,12 @@
       "default": "./dist/index.js"
     },
     "./kie-manifest.json": "./dist/kie-manifest.json",
+    "./unit-pricing-catalog": {
+      "nodetool-dev": "./src/unit-pricing-catalog.ts",
+      "types": "./dist/unit-pricing-catalog.d.ts",
+      "import": "./dist/unit-pricing-catalog.js",
+      "default": "./dist/unit-pricing-catalog.js"
+    },
     "./kie-pricing-api": {
       "nodetool-dev": "./src/kie-pricing-api.ts",
       "types": "./dist/kie-pricing-api.d.ts",

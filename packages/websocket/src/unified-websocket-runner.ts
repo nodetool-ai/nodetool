@@ -50,6 +50,7 @@ import {
   type ThreadMemoryResource
 } from "@nodetool-ai/models";
 import { estimateWorkflowCost } from "@nodetool-ai/node-sdk/cost-estimate";
+import { getModelUnitPrice } from "@nodetool-ai/model-pricing";
 import type {
   ProviderTool,
   Message as ProviderMessage,
@@ -2202,7 +2203,11 @@ export class UnifiedWebSocketRunner {
           type: String(node.type),
           data: (node.data ?? {}) as Record<string, unknown>
         })),
-        getMetadata: (nodeType: string) => this.getNodeMetadata?.(nodeType)
+        getMetadata: (nodeType: string) => this.getNodeMetadata?.(nodeType),
+        // Prices the model picked on a generic node (e.g. a FAL or kie model on
+        // nodetool.image.TextToImage), which node-type metadata alone cannot.
+        // Same lookup the editor's cost preview uses.
+        getModelPrice: getModelUnitPrice
       });
       return Number.isFinite(estimate.total) ? estimate.total : 0;
     } catch (err) {

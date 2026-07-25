@@ -40,6 +40,7 @@
     "packages/elevenlabs-nodes",
     "packages/kie-codegen",
     "packages/kie-nodes",
+    "packages/model-pricing",
     "packages/topaz-nodes",
     "packages/reve-nodes",
     "packages/atlascloud-nodes",

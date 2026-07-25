@@ -50,6 +50,7 @@
     "@nodetool-ai/huggingface": "*",
     "@nodetool-ai/huggingface-nodes": "*",
     "@nodetool-ai/kernel": "*",
+    "@nodetool-ai/model-pricing": "*",
     "@nodetool-ai/models": "*",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/protocol": "*",
