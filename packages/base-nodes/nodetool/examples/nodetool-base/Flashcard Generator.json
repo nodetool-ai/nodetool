@@ -369,8 +369,8 @@
   "required_providers": null,
   "required_models": null,
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Flashcard Generator"
@@ -400,7 +400,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-topic",
-                        "binding": "topic",
+                        "binding": "op:main/in:topic_input",
                         "events": []
                       }
                     },
@@ -408,7 +408,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-num-cards",
-                        "binding": "num_cards",
+                        "binding": "op:main/in:num_cards_input",
                         "events": []
                       }
                     },
@@ -452,7 +452,7 @@
                       "type": "Json",
                       "props": {
                         "id": "out-flashcards",
-                        "binding": "Flashcards"
+                        "binding": "op:main/out:flashcards_output"
                       }
                     }
                   ]
@@ -463,6 +463,18 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
   }
 }

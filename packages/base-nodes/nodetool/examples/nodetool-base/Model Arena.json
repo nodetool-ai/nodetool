@@ -386,8 +386,8 @@
   "html_app": null,
   "etag": null,
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Model Arena"
@@ -417,7 +417,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-brief",
-                        "binding": "brief",
+                        "binding": "op:main/in:brief",
                         "events": []
                       }
                     },
@@ -425,7 +425,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-context",
-                        "binding": "context",
+                        "binding": "op:main/in:context",
                         "events": []
                       }
                     },
@@ -477,7 +477,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-openai",
-                        "binding": "openai",
+                        "binding": "op:main/out:openai_out",
                         "text": ""
                       }
                     },
@@ -493,7 +493,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-anthropic",
-                        "binding": "anthropic",
+                        "binding": "op:main/out:anthropic_out",
                         "text": ""
                       }
                     },
@@ -509,7 +509,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-gemini",
-                        "binding": "gemini",
+                        "binding": "op:main/out:gemini_out",
                         "text": ""
                       }
                     }
@@ -521,6 +521,18 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
   }
 }

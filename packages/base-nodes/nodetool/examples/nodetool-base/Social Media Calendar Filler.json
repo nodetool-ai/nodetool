@@ -512,8 +512,8 @@
   "required_providers": null,
   "required_models": null,
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Social Media Calendar Filler"
@@ -543,7 +543,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-brand-name",
-                        "binding": "brand_name",
+                        "binding": "op:main/in:brand_name",
                         "events": []
                       }
                     },
@@ -551,7 +551,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-monthly-theme",
-                        "binding": "monthly_theme",
+                        "binding": "op:main/in:monthly_theme",
                         "events": []
                       }
                     },
@@ -559,7 +559,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-target-audience",
-                        "binding": "target_audience",
+                        "binding": "op:main/in:target_audience",
                         "events": []
                       }
                     },
@@ -567,7 +567,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-brand-voice",
-                        "binding": "brand_voice",
+                        "binding": "op:main/in:brand_voice",
                         "events": []
                       }
                     },
@@ -575,7 +575,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-posts-per-week",
-                        "binding": "posts_per_week",
+                        "binding": "op:main/in:posts_per_week",
                         "events": []
                       }
                     },
@@ -627,7 +627,7 @@
                       "type": "Json",
                       "props": {
                         "id": "out-content-calendar",
-                        "binding": "content_calendar"
+                        "binding": "op:main/out:output-content-calendar"
                       }
                     },
                     {
@@ -642,7 +642,7 @@
                       "type": "Image",
                       "props": {
                         "id": "out-post-images",
-                        "binding": "post_images",
+                        "binding": "op:main/out:output-post-images",
                         "fit": "contain",
                         "height": 280,
                         "placeholder": "Your result appears here"
@@ -660,7 +660,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-captions",
-                        "binding": "captions",
+                        "binding": "op:main/out:output-captions",
                         "text": ""
                       }
                     }
@@ -672,6 +672,18 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
   }
 }

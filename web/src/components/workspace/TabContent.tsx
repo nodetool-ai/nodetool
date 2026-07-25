@@ -9,6 +9,7 @@ import AudioSurface from "./AudioSurface";
 import TimelineSurface from "./TimelineSurface";
 import StoryboardSurface from "./StoryboardSurface";
 import ScriptSurface from "./ScriptSurface";
+import ApplicationSurface from "./ApplicationSurface";
 import ChatSurface from "./ChatSurface";
 import PageSurface from "./PageSurface";
 import { isPageTabKey } from "./pageTabs";
@@ -50,6 +51,8 @@ const TabContent = ({ tab, active }: TabContentProps) => {
       );
     case "script":
       return <ScriptSurface refId={tab.ref} mode={tab.mode} active={active} />;
+    case "application":
+      return <ApplicationSurface refId={tab.ref} />;
     case "chat":
       return <ChatSurface refId={tab.ref} active={active} />;
     case "page":

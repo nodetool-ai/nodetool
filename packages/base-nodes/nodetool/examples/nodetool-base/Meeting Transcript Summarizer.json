@@ -500,8 +500,8 @@
   "required_providers": null,
   "required_models": null,
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Meeting Transcript Summarizer"
@@ -531,7 +531,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-recording",
-                        "binding": "Recording",
+                        "binding": "op:main/in:recording_input",
                         "events": []
                       }
                     },
@@ -539,7 +539,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-transcript",
-                        "binding": "Transcript",
+                        "binding": "op:main/in:transcript_input",
                         "events": []
                       }
                     },
@@ -591,7 +591,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-transcript",
-                        "binding": "Transcript",
+                        "binding": "op:main/out:transcript_output",
                         "text": ""
                       }
                     },
@@ -607,7 +607,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-summary",
-                        "binding": "Summary",
+                        "binding": "op:main/out:summary_output",
                         "text": ""
                       }
                     },
@@ -623,7 +623,7 @@
                       "type": "Json",
                       "props": {
                         "id": "out-action-items",
-                        "binding": "Action Items"
+                        "binding": "op:main/out:action_items_output"
                       }
                     }
                   ]
@@ -634,6 +634,18 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
   }
 }

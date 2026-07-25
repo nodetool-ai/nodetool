@@ -5,8 +5,8 @@
   "featured": true,
   "image": "/app-preview/img/pokemon-maker.jpg",
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Pokemon Maker"
@@ -36,7 +36,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-animals",
-                        "binding": "animals",
+                        "binding": "op:main/in:2f773f4f-c863-4215-bb89-e8cc09e95472",
                         "events": []
                       }
                     },
@@ -44,7 +44,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-style",
-                        "binding": "style",
+                        "binding": "op:main/in:input-style",
                         "events": []
                       }
                     },
@@ -88,7 +88,7 @@
                       "type": "Image",
                       "props": {
                         "id": "out-pokemon",
-                        "binding": "pokemon",
+                        "binding": "op:main/out:output-pokemon",
                         "fit": "contain",
                         "height": 280,
                         "placeholder": "Your result appears here"
@@ -119,12 +119,98 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "2f773f4f-c863-4215-bb89-e8cc09e95472",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "animals",
+          "description": "Which real animals should the creatures be built from? List two or three, comma-separated — mixing distant species gives the most striking hybrids.",
+          "value": "lion, eagle, koi fish"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 291,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 220,
+          "title": "1️⃣ Animal inspiration",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "input-style",
+        "type": "nodetool.input.SelectInput",
+        "data": {
+          "name": "style",
+          "description": "The art style every creature in the batch is rendered in.",
+          "value": "Classic anime cel-shaded",
+          "options": [
+            "Classic anime cel-shaded",
+            "Glossy 3D render",
+            "Painterly watercolor",
+            "Retro 16-bit pixel art",
+            "Holographic foil trading card"
+          ],
+          "enum_type_name": ""
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 291,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 220,
+          "title": "1️⃣ Art style",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "output-pokemon",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "pokemon"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1783,
+            "y": 149
+          },
+          "selectable": true,
+          "title": "Creature gallery"
+        }
+      }
+    ],
+    "edges": []
   },
   "values": {
-    "animals": "lion, eagle, koi fish",
-    "style": "Classic anime cel-shaded",
-    "pokemon": {
+    "op:main/in:2f773f4f-c863-4215-bb89-e8cc09e95472": "lion, eagle, koi fish",
+    "op:main/in:input-style": "Classic anime cel-shaded",
+    "op:main/out:output-pokemon": {
       "$demo": "image"
     }
   }

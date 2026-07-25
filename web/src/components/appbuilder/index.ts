@@ -1,4 +1,6 @@
 export { default as AppBuilderPage } from "./AppBuilderPage";
+export { default as AppBuilderShell } from "./AppBuilderShell";
+export { default as ApplicationAppBuilder } from "./ApplicationAppBuilder";
 export { default as AppRuntimeView } from "./AppRuntimeView";
 export { default as AppBuilderAgentPanel } from "./AppBuilderAgentPanel";
 export { default as PuckAppEditor } from "./puck/PuckAppEditor";
@@ -12,10 +14,10 @@ export {
 export { appConfig } from "./puck/config";
 export {
   type AppDocument,
-  APP_DATA_VERSION,
+  APP_SCHEMA_VERSION,
   createEmptyData,
   createEmptyDocument,
-  parseAppDocument,
+  parseApplicationDocument,
   isRenderableData
 } from "./appData";
 export {

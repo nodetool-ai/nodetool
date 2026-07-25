@@ -299,7 +299,7 @@
           "value": 75,
           "description": "Numeric value to evaluate against multiple conditions",
           "min": 0,
-          "max": 100
+          "max": 200
         },
         "ui_properties": {
           "position": {
@@ -675,8 +675,8 @@
   "required_providers": null,
   "required_models": null,
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Conditional Logic Engine"
@@ -706,7 +706,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-value",
-                        "binding": "value",
+                        "binding": "op:main/in:3",
                         "events": []
                       }
                     },
@@ -750,7 +750,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-result",
-                        "binding": "Result",
+                        "binding": "op:main/out:result_output",
                         "text": ""
                       }
                     },
@@ -766,7 +766,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-high-priority",
-                        "binding": "high_priority",
+                        "binding": "op:main/out:out_high",
                         "text": ""
                       }
                     },
@@ -782,7 +782,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-low-priority",
-                        "binding": "low_priority",
+                        "binding": "op:main/out:out_low",
                         "text": ""
                       }
                     },
@@ -798,7 +798,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-medium-priority",
-                        "binding": "medium_priority",
+                        "binding": "op:main/out:out_medium",
                         "text": ""
                       }
                     }
@@ -810,6 +810,18 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
   }
 }

@@ -2,10 +2,15 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    // The generated unit-pricing catalog is imported as a module (see
+    // src/unit-pricing-catalog.ts); JSON import attributes need node18+.
+    "module": "nodenext",
+    "moduleResolution": "nodenext"
   },
   "include": [
-    "src"
+    "src",
+    "src/generated/*-unit-pricing.json"
   ],
   "references": [
     {

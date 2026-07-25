@@ -944,8 +944,8 @@
   "required_models": null,
   "html_app": null,
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Script to Screen"
@@ -953,18 +953,10 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🎬 Script to Screen",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "One brief in — a directed, narrated, scored short film out. The direction document and storyboard land first, so you can check the plan before the video spend."
+            "text": "Full production spine: a Director agent turns your brief into a direction document (characters, style bible, shot list, narration, music)"
           }
         },
         {
@@ -976,39 +968,30 @@
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-brief",
-                  "title": "Brief",
+                  "id": "panel-try",
+                  "title": "Try it",
                   "content": [
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-brief",
-                        "binding": "Brief",
-                        "label": "Your film in one or two sentences",
-                        "placeholder": "A lighthouse keeper discovers the beam of her lamp has started bending toward s",
-                        "multiline": true,
+                        "binding": "op:main/in:brief",
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
-                        "id": "in-style",
-                        "binding": "Visual Style",
-                        "label": "Visual style",
-                        "placeholder": "moody coastal nocturne, sodium-lamp amber against deep blue-black sea, drifting",
-                        "multiline": true,
+                        "id": "in-visual-style",
+                        "binding": "op:main/in:style",
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
-                        "id": "in-count",
-                        "binding": "Shot Count",
-                        "label": "Number of shots",
-                        "placeholder": "5",
-                        "multiline": false,
+                        "id": "in-shot-count",
+                        "binding": "op:main/in:shot_count",
                         "events": []
                       }
                     },
@@ -1016,7 +999,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-run",
-                        "label": "Direct my film",
+                        "label": "Shoot my film",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -1031,56 +1014,72 @@
                     }
                   ]
                 }
-              },
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-direction",
-                  "title": "Direction document",
-                  "content": [
-                    {
-                      "type": "Markdown",
-                      "props": {
-                        "id": "out-direction",
-                        "binding": "direction",
-                        "placeholder": "The Director's plan appears here first — title, characters, shot list, narration, music."
-                      }
-                    }
-                  ]
-                }
               }
             ],
             "right": [
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-film",
-                  "title": "Final film",
+                  "id": "panel-results",
+                  "title": "Results",
                   "content": [
                     {
-                      "type": "Video",
+                      "type": "Progress",
                       "props": {
-                        "id": "out-film",
-                        "binding": "film",
-                        "height": 320,
-                        "placeholder": "Your film appears here"
+                        "id": "progress-run",
+                        "label": "Directing, storyboarding & shooting…",
+                        "binding": ""
                       }
-                    }
-                  ]
-                }
-              },
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-storyboard",
-                  "title": "Storyboard",
-                  "content": [
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-direction",
+                        "text": "Direction document",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-direction",
+                        "binding": "op:main/out:direction_out",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-storyboard",
+                        "text": "Storyboard keyframes",
+                        "level": "3"
+                      }
+                    },
                     {
                       "type": "Image",
                       "props": {
                         "id": "out-storyboard",
-                        "binding": "storyboard",
-                        "placeholder": "Keyframes appear here as they render"
+                        "binding": "op:main/out:storyboard_out",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-film",
+                        "text": "Finished film",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-film",
+                        "binding": "op:main/out:film_out",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
                       }
                     }
                   ]
@@ -1091,7 +1090,19 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
   },
   "etag": null
 }

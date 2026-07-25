@@ -488,6 +488,33 @@ const TABLE_COLUMNS: Record<string, Record<string, string>> = {
     height: "integer",
     duration_ms: "integer",
     document: "text",
+    revision: "integer NOT NULL DEFAULT 0",
+    created_at: "text",
+    updated_at: "text"
+  },
+  storyboards: {
+    id: "text",
+    user_id: "text",
+    project_id: "text",
+    name: "text",
+    document: "text",
+    timeline_id: "text",
+    revision: "integer NOT NULL DEFAULT 0",
+    created_at: "text",
+    updated_at: "text"
+  },
+  image_documents: {
+    id: "text",
+    user_id: "text",
+    project_id: "text",
+    workflow_id: "text",
+    name: "text",
+    width: "integer",
+    height: "integer",
+    background_color: "text",
+    document: "text",
+    thumbnail_asset_id: "text",
+    revision: "integer NOT NULL DEFAULT 0",
     created_at: "text",
     updated_at: "text"
   },
@@ -836,6 +863,7 @@ function getCreateSchemaSql(): string {
       "height" integer NOT NULL DEFAULT 1080,
       "duration_ms" integer NOT NULL DEFAULT 0,
       "document" text NOT NULL,
+      "revision" integer NOT NULL DEFAULT 0,
       "created_at" text NOT NULL,
       "updated_at" text NOT NULL
     );
@@ -853,6 +881,7 @@ function getCreateSchemaSql(): string {
       "background_color" text NOT NULL DEFAULT '#ffffff',
       "document" text NOT NULL,
       "thumbnail_asset_id" text,
+      "revision" integer NOT NULL DEFAULT 0,
       "created_at" text NOT NULL,
       "updated_at" text NOT NULL
     );
@@ -971,12 +1000,64 @@ function getCreateSchemaSql(): string {
       "name" text NOT NULL,
       "document" text NOT NULL,
       "timeline_id" text,
+      "revision" integer NOT NULL DEFAULT 0,
       "created_at" text NOT NULL,
       "updated_at" text NOT NULL
     );
     CREATE INDEX IF NOT EXISTS "idx_storyboard_user" ON "storyboards" ("user_id");
     CREATE INDEX IF NOT EXISTS "idx_storyboard_project" ON "storyboards" ("project_id");
     CREATE INDEX IF NOT EXISTS "idx_storyboard_updated" ON "storyboards" ("updated_at");
+
+    CREATE TABLE IF NOT EXISTS "applications" (
+      "id" text PRIMARY KEY NOT NULL,
+      "user_id" text NOT NULL,
+      "project_id" text NOT NULL,
+      "name" text NOT NULL,
+      "description" text NOT NULL DEFAULT '',
+      "document" text NOT NULL,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_application_user" ON "applications" ("user_id");
+    CREATE INDEX IF NOT EXISTS "idx_application_project" ON "applications" ("project_id");
+    CREATE INDEX IF NOT EXISTS "idx_application_updated" ON "applications" ("updated_at");
+
+    CREATE TABLE IF NOT EXISTS "application_versions" (
+      "id" text PRIMARY KEY NOT NULL,
+      "application_id" text NOT NULL,
+      "version" integer NOT NULL,
+      "document" text NOT NULL,
+      "capabilities" text NOT NULL,
+      "released" integer NOT NULL DEFAULT 0,
+      "created_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_application_version_app" ON "application_versions" ("application_id");
+    CREATE INDEX IF NOT EXISTS "idx_application_version_released" ON "application_versions" ("released");
+
+    CREATE TABLE IF NOT EXISTS "application_budgets" (
+      "application_id" text PRIMARY KEY NOT NULL,
+      "period" text NOT NULL DEFAULT 'month',
+      "max_usd" real,
+      "max_invocations" integer,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS "application_invocations" (
+      "id" text PRIMARY KEY NOT NULL,
+      "application_id" text NOT NULL,
+      "version" integer,
+      "invocation_id" text NOT NULL,
+      "operation_id" text NOT NULL DEFAULT '',
+      "estimated_usd" real NOT NULL DEFAULT 0,
+      "actual_usd" real,
+      "status" text NOT NULL DEFAULT 'running',
+      "created_at" text NOT NULL,
+      "settled_at" text
+    );
+    CREATE INDEX IF NOT EXISTS "idx_application_invocation_app" ON "application_invocations" ("application_id");
+    CREATE INDEX IF NOT EXISTS "idx_application_invocation_created" ON "application_invocations" ("created_at");
+    CREATE INDEX IF NOT EXISTS "idx_application_invocation_invocation" ON "application_invocations" ("invocation_id");
 
     CREATE TABLE IF NOT EXISTS "scripts" (
       "id" text PRIMARY KEY NOT NULL,

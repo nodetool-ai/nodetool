@@ -14,9 +14,31 @@ import { Render, type Data } from "@puckeditor/core";
 import { ThemeProvider, CssBaseline } from "@mui/material";
 
 import ThemeNodetool from "../components/themes/ThemeNodetool";
+import {
+  DEFAULT_OPERATION_ID,
+  implicitOperation,
+  namespaceOf,
+  parseBinding,
+  stateKey,
+  type AppInstanceState,
+  type PuckData
+} from "@nodetool-ai/app-runtime";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
+
+import { NodeContext } from "../contexts/NodeContext";
+import { WorkflowManagerProvider } from "../contexts/WorkflowManagerContext";
+import { createNodeStore } from "../stores/NodeStore";
+import { useAuth } from "../stores/useAuth";
 import { createAppRuntimeStore } from "../components/appbuilder/runtime/appRuntimeStore";
-import { AppRuntimeContext } from "../components/appbuilder/runtime/AppRuntimeContext";
+import {
+  AppRuntimeContext,
+  type AppRuntimeContextValue
+} from "../components/appbuilder/runtime/AppRuntimeContext";
 import { appConfig } from "../components/appbuilder/puck/config";
+import { extractWorkflowIO } from "../components/appbuilder/workflowIO";
+import { Workflow } from "../stores/ApiTypes";
 import { Box, BORDER_RADIUS } from "../components/ui_primitives";
 import { makeDemoAudio, makeDemoGradient, makeDemoVideo } from "./demoMedia";
 
@@ -24,7 +46,10 @@ interface PreviewBundle {
   slug: string;
   name: string;
   image: string | null;
-  app_doc: { data: Data };
+  app_doc: { ui: PuckData };
+  /** The template's Input/Output nodes — the surface bindings resolve against. */
+  graph: Workflow["graph"];
+  /** Keyed by the same binding token the widgets carry (`op:main/out:<id>`). */
   values: Record<string, unknown>;
 }
 
@@ -52,6 +77,41 @@ async function resolveDemoValues(bundle: PreviewBundle): Promise<Record<string, 
   return resolved;
 }
 
+/**
+ * Turn binding-keyed demo values into the state slots the widgets read. The
+ * bundle ships no run, but an ID-form binding token parses on its own — so each
+ * value lands in the same namespace a real run would fill.
+ */
+function seedState(values: Record<string, unknown>): Partial<AppInstanceState> {
+  const inputs: AppInstanceState["inputs"] = {};
+  const outputs: AppInstanceState["outputs"] = {};
+  const variables: AppInstanceState["variables"] = {};
+  for (const [binding, value] of Object.entries(values)) {
+    const ref = parseBinding(binding);
+    if (!ref) continue;
+    const key = stateKey(ref);
+    switch (namespaceOf(ref)) {
+      case "outputs":
+        outputs[key] = {
+          value,
+          invocationId: null,
+          status: "done",
+          revision: 1
+        };
+        break;
+      case "inputs":
+        inputs[key] = { value, dirty: false, revision: 1 };
+        break;
+      case "variables":
+        variables[key] = value;
+        break;
+      default:
+        break;
+    }
+  }
+  return { inputs, outputs, variables };
+}
+
 /** Resolves when every <img> and <video> inside `el` has decoded a frame. */
 async function mediaSettled(el: HTMLElement): Promise<void> {
   const images = [...el.querySelectorAll("img")];
@@ -69,6 +129,25 @@ async function mediaSettled(el: HTMLElement): Promise<void> {
   ]);
   await document.fonts.ready;
 }
+
+// Number controls (IntegerProperty/FloatProperty) pause the editor's undo
+// history while dragging, so they need a node store in context the way the real
+// Mini App runtime provides one. Bounds come from the widget's own property, so
+// an empty store is enough — without it the whole tree throws.
+const previewNodeStore = createNodeStore();
+
+// Image controls query the asset API through TanStack Query. There is no
+// backend here, so the client exists only to satisfy the hook — the failed
+// query leaves the picker in its empty state, which is what the demo value
+// paints over anyway.
+const previewQueryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false } }
+});
+
+// The asset viewer that media controls mount refuses to render without a signed
+// -in user. Nothing here talks to Supabase, so a stub id is enough to get past
+// the guard; the asset queries behind it fail and render nothing.
+useAuth.setState({ user: { id: "app-preview" }, state: "logged_in" });
 
 const AppPreviewApp: React.FC = () => {
   const slug = useMemo(
@@ -105,25 +184,54 @@ const AppPreviewApp: React.FC = () => {
     };
   }, [slug]);
 
+  // Demo values are keyed by the same binding token the widgets carry, so each
+  // one seeds the state slot a real run would fill — the real widgets then
+  // render the real values with no backend.
   const store = useMemo(
-    () => (values ? createAppRuntimeStore(values) : null),
+    () => (values ? createAppRuntimeStore(seedState(values)) : null),
     [values]
   );
 
+  // The bundle ships its Input/Output nodes, which is what a WorkflowInput
+  // widget needs to render the control for its node's type.
+  const io = useMemo(
+    () => extractWorkflowIO(bundle ? ({ graph: bundle.graph } as Workflow) : null),
+    [bundle]
+  );
+
   const runtime = useMemo(
-    () =>
-      store
+    (): AppRuntimeContextValue | null =>
+      store && values
         ? {
             store,
-            io: { inputs: [], outputs: [] },
+            io,
+            scope: {
+              defaultOperationId: DEFAULT_OPERATION_ID,
+              operations: [
+                {
+                  operationId: DEFAULT_OPERATION_ID,
+                  inputs: io.inputs.map(({ nodeId, name }) => ({ nodeId, name })),
+                  outputs: io.outputs.map(({ nodeId, name }) => ({
+                    nodeId,
+                    name
+                  })),
+                  nodeIds: io.inputs
+                    .map((i) => i.nodeId)
+                    .concat(io.outputs.map((o) => o.nodeId))
+                }
+              ],
+              variables: []
+            },
+            operation: implicitOperation(""),
+            resources: [],
             designMode: false,
             dispatch: () => {},
-            setValue: (key: string, value: unknown) =>
-              store.getState().setValue(key, value),
+            write: () => {},
+            selectResource: () => {},
             getNodeProperty: () => undefined
           }
         : null,
-    [store]
+    [io, store, values]
   );
 
   // Signal readiness for the screenshot script once media has decoded.
@@ -142,8 +250,11 @@ const AppPreviewApp: React.FC = () => {
   // twice in the marketing frame.
   const data = useMemo((): Data | null => {
     if (!bundle) return null;
-    const d = bundle.app_doc.data;
-    return { ...d, root: { ...d.root, props: { ...d.root?.props, title: "" } } };
+    const d = bundle.app_doc.ui;
+    return {
+      ...d,
+      root: { ...d.root, props: { ...d.root?.props, title: "" } }
+    } as Data;
   }, [bundle]);
 
   if (error) {
@@ -154,26 +265,36 @@ const AppPreviewApp: React.FC = () => {
   return (
     <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
       <CssBaseline />
-      <AppRuntimeContext.Provider value={runtime}>
-        <Box
-          ref={frameRef}
-          className="app-preview-frame"
-          data-preview-ready={ready ? "true" : "false"}
-          sx={{
-            width: 980,
-            mx: "auto",
-            my: 4,
-            borderRadius: BORDER_RADIUS.lg,
-            overflow: "hidden",
-            border: "1px solid",
-            borderColor: "divider",
-            backgroundColor: "background.default",
-            boxShadow: "0 24px 80px rgba(0,0,0,0.45)"
-          }}
-        >
-          <Render config={appConfig} data={data} />
-        </Box>
-      </AppRuntimeContext.Provider>
+      {/* The asset viewer behind image controls calls useNavigate; nothing in
+          the preview routes anywhere, so an in-memory router is enough. */}
+      <MemoryRouter>
+        <QueryClientProvider client={previewQueryClient}>
+          <WorkflowManagerProvider queryClient={previewQueryClient}>
+            <NodeContext.Provider value={previewNodeStore}>
+              <AppRuntimeContext.Provider value={runtime}>
+                <Box
+                  ref={frameRef}
+                  className="app-preview-frame"
+                  data-preview-ready={ready ? "true" : "false"}
+                  sx={{
+                    width: 980,
+                    mx: "auto",
+                    my: 4,
+                    borderRadius: BORDER_RADIUS.lg,
+                    overflow: "hidden",
+                    border: "1px solid",
+                    borderColor: "divider",
+                    backgroundColor: "background.default",
+                    boxShadow: "0 24px 80px rgba(0,0,0,0.45)"
+                  }}
+                >
+                  <Render config={appConfig} data={data} />
+                </Box>
+              </AppRuntimeContext.Provider>
+            </NodeContext.Provider>
+          </WorkflowManagerProvider>
+        </QueryClientProvider>
+      </MemoryRouter>
     </ThemeProvider>
   );
 };

@@ -587,8 +587,8 @@
   "required_providers": null,
   "required_models": null,
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Brand Asset Generator"
@@ -618,7 +618,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-brand-name",
-                        "binding": "brand_name",
+                        "binding": "op:main/in:in_brand_name",
                         "events": []
                       }
                     },
@@ -626,7 +626,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-brand-description",
-                        "binding": "brand_description",
+                        "binding": "op:main/in:in_brand_description",
                         "events": []
                       }
                     },
@@ -634,7 +634,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-tagline",
-                        "binding": "tagline",
+                        "binding": "op:main/in:in_tagline",
                         "events": []
                       }
                     },
@@ -642,7 +642,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-primary-color",
-                        "binding": "primary_color",
+                        "binding": "op:main/in:in_primary_color",
                         "events": []
                       }
                     },
@@ -694,7 +694,7 @@
                       "type": "Image",
                       "props": {
                         "id": "out-social-assets",
-                        "binding": "social_assets",
+                        "binding": "op:main/out:out_assets",
                         "fit": "contain",
                         "height": 280,
                         "placeholder": "Your result appears here"
@@ -712,7 +712,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-brand-brief",
-                        "binding": "brand_brief",
+                        "binding": "op:main/out:out_brief",
                         "text": ""
                       }
                     }
@@ -724,6 +724,18 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
   }
 }

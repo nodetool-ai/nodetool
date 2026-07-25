@@ -5,8 +5,8 @@
   "featured": false,
   "image": "/app-preview/img/product-video-generator.jpg",
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Product Video Generator"
@@ -36,7 +36,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-campaign-brief",
-                        "binding": "campaign_brief",
+                        "binding": "op:main/in:5",
                         "events": []
                       }
                     },
@@ -44,7 +44,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-target-audience",
-                        "binding": "target_audience",
+                        "binding": "op:main/in:6",
                         "events": []
                       }
                     },
@@ -52,7 +52,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-key-features",
-                        "binding": "key_features",
+                        "binding": "op:main/in:7",
                         "events": []
                       }
                     },
@@ -60,7 +60,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-image-input-1",
-                        "binding": "image_input_1",
+                        "binding": "op:main/in:ada8f51f-0155-4178-a07c-9415be82534a",
                         "events": []
                       }
                     },
@@ -104,7 +104,7 @@
                       "type": "Video",
                       "props": {
                         "id": "out-product-video",
-                        "binding": "product_video",
+                        "binding": "op:main/out:output-product-video",
                         "height": 320,
                         "placeholder": "Your video appears here"
                       }
@@ -117,13 +117,135 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "5",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "campaign_brief",
+          "value": "Launch video for the Aurora Trail smart fitness watch, highlighting outdoor adventure tracking.",
+          "description": "Short description of the campaign concept"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": -197
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "1️⃣ Campaign brief",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "6",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "target_audience",
+          "value": "active millennials who enjoy weekend hiking and fitness challenges",
+          "description": "Primary audience for the marketing video"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 83
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "2️⃣ Target audience",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "key_features",
+          "value": "GPS navigation, heart-rate analytics, adaptive coaching, water resistance",
+          "description": "Key product features to highlight"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 363
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "3️⃣ Key features",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ada8f51f-0155-4178-a07c-9415be82534a",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "image_input_1",
+          "value": {
+            "uri": "/api/storage/4a816f674eda4358b8140c50917ae78e.bin",
+            "type": "image"
+          },
+          "description": "Product photo to animate into the launch video"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 643
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "4️⃣ Product image",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "output-product-video",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "product_video"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1763,
+            "y": 357
+          },
+          "selectable": true
+        }
+      }
+    ],
+    "edges": []
   },
   "values": {
-    "campaign_brief": "Launch video for the Aurora Trail smart fitness watch, highlighting outdoor adventure tracking.",
-    "target_audience": "active millennials who enjoy weekend hiking and fitness challenges",
-    "key_features": "GPS navigation, heart-rate analytics, adaptive coaching, water resistance",
-    "product_video": {
+    "op:main/in:5": "Launch video for the Aurora Trail smart fitness watch, highlighting outdoor adventure tracking.",
+    "op:main/in:6": "active millennials who enjoy weekend hiking and fitness challenges",
+    "op:main/in:7": "GPS navigation, heart-rate analytics, adaptive coaching, water resistance",
+    "op:main/out:output-product-video": {
       "$demo": "video"
     }
   }

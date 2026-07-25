@@ -31,7 +31,13 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
-    "./fal-manifest.json": "./dist/fal-manifest.json"
+    "./fal-manifest.json": "./dist/fal-manifest.json",
+    "./unit-pricing-catalog": {
+      "nodetool-dev": "./src/unit-pricing-catalog.ts",
+      "types": "./dist/unit-pricing-catalog.d.ts",
+      "import": "./dist/unit-pricing-catalog.js",
+      "default": "./dist/unit-pricing-catalog.js"
+    }
   },
   "license": "MIT",
   "repository": {

@@ -40,6 +40,7 @@ const SUPPORTS_BOTH_MODES: Record<WorkspaceTabType, boolean> = {
   text: true,
   audio: true,
   chat: false,
+  application: false,
   page: false
 };
 
@@ -65,6 +66,7 @@ const TYPE_GLYPH: Record<WorkspaceTabType, string> = {
   audio: "♪",
   text: "¶",
   chat: "❝",
+  application: "◧",
   page: "☰"
 };
 
@@ -80,6 +82,7 @@ const TYPE_COLOR: Record<WorkspaceTabType, string> = {
   audio: colorForType("audio"),
   text: colorForType("text"),
   chat: colorForType("str"),
+  application: colorForType("any"),
   page: colorForType("any")
 };
 

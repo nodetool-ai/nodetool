@@ -1,4 +1,4 @@
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import type {
   TimelineSequence as TimelineSequenceDoc,
   TimelineTrack,
@@ -72,6 +72,7 @@ export class TimelineSequence extends DBModel {
   declare duration_ms: number;
   declare document: string;
   declare created_at: string;
+  declare revision: number;
   declare updated_at: string;
 
   constructor(data: Record<string, unknown>) {
@@ -85,11 +86,14 @@ export class TimelineSequence extends DBModel {
     this.duration_ms ??= 0;
     this.document ??= JSON.stringify({ tracks: [], clips: [], markers: [] });
     this.created_at ??= now;
+    this.revision ??= 0;
     this.updated_at ??= now;
   }
 
   override beforeSave(): void {
     this.updated_at = nextUpdatedAtAfter(this.updated_at);
+    // Resource refs carry this; every write must move it forward.
+    this.revision = (this.revision ?? 0) + 1;
     const doc = JSON.parse(this.document);
     if (
       !Array.isArray(doc.tracks) ||
@@ -242,6 +246,7 @@ export class TimelineSequence extends DBModel {
       .update(timelineSequences)
       .set({
         document: JSON.stringify(doc),
+        revision: sql`${timelineSequences.revision} + 1`,
         updated_at: now
       })
       .where(
@@ -286,7 +291,7 @@ export class TimelineSequence extends DBModel {
     const now = nextUpdatedAtAfter(expectedUpdatedAt);
     const rows = await db
       .update(timelineSequences)
-      .set({ ...fields, updated_at: now })
+      .set({ ...fields, revision: sql`${timelineSequences.revision} + 1`, updated_at: now })
       .where(
         and(
           eq(timelineSequences.id, id),

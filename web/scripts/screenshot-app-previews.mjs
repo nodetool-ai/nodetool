@@ -59,7 +59,14 @@ try {
   // PLAYWRIGHT_CHROMIUM points at a system Chromium when the pinned
   // playwright browser build isn't installed (e.g. sandboxed CI images).
   const browser = await chromium.launch({
-    executablePath: process.env.PLAYWRIGHT_CHROMIUM || undefined
+    executablePath: process.env.PLAYWRIGHT_CHROMIUM || undefined,
+    // Audio/video input controls enumerate capture devices on mount and paint a
+    // red "device not found" error when the headless box has none. The fake
+    // device satisfies them so the recorder renders its normal idle state.
+    args: [
+      "--use-fake-device-for-media-stream",
+      "--use-fake-ui-for-media-stream"
+    ]
   });
   const page = await browser.newPage({
     viewport: { width: 1120, height: 900 },

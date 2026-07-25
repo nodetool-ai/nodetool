@@ -5,8 +5,8 @@
   "featured": false,
   "image": "/app-preview/img/photo-enhancement-suite.jpg",
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Photo Enhancement Suite"
@@ -36,7 +36,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-photos",
-                        "binding": "photos",
+                        "binding": "op:main/in:10",
                         "events": []
                       }
                     },
@@ -44,7 +44,7 @@
                       "type": "Slider",
                       "props": {
                         "id": "slider-brightness-adjust",
-                        "binding": "brightness_adjust",
+                        "binding": "op:main/in:11",
                         "label": "Brightness",
                         "min": 0.5,
                         "max": 1.5,
@@ -64,7 +64,7 @@
                       "type": "Slider",
                       "props": {
                         "id": "slider-color-boost",
-                        "binding": "color_boost",
+                        "binding": "op:main/in:12",
                         "label": "Color boost",
                         "min": 0,
                         "max": 2,
@@ -120,7 +120,7 @@
                       "type": "Image",
                       "props": {
                         "id": "out-enhanced-photos",
-                        "binding": "enhanced_photos",
+                        "binding": "op:main/out:output-enhanced-photos",
                         "fit": "contain",
                         "height": 280,
                         "placeholder": "Your result appears here"
@@ -134,12 +134,92 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "10",
+        "parent_id": null,
+        "type": "nodetool.input.ImageListInput",
+        "data": {
+          "name": "photos",
+          "value": [],
+          "description": "Photos to enhance. Add one or more images directly — no folder path or upload step required."
+        },
+        "ui_properties": {
+          "title": "Photos to enhance"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "11",
+        "parent_id": null,
+        "type": "nodetool.input.FloatInput",
+        "data": {
+          "name": "brightness_adjust",
+          "value": 1.05,
+          "description": "Brightness adjustment factor",
+          "min": 0.5,
+          "max": 1.5
+        },
+        "ui_properties": {
+          "title": "Brightness factor"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12",
+        "parent_id": null,
+        "type": "nodetool.input.FloatInput",
+        "data": {
+          "name": "color_boost",
+          "value": 1.2,
+          "description": "Color saturation boost factor (1.0 = no change)",
+          "min": 0.5,
+          "max": 2
+        },
+        "ui_properties": {
+          "title": "Color factor"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "output-enhanced-photos",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "enhanced_photos"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 0
+          },
+          "selectable": true
+        }
+      }
+    ],
+    "edges": []
   },
   "values": {
-    "brightness_adjust": 1.05,
-    "color_boost": 1.2,
-    "enhanced_photos": {
+    "op:main/in:11": 1.05,
+    "op:main/in:12": 1.2,
+    "op:main/out:output-enhanced-photos": {
       "$demo": "image"
     }
   }

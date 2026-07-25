@@ -5,8 +5,8 @@
   "featured": false,
   "image": "/app-preview/img/color-boost-video.jpg",
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Color Boost Video"
@@ -36,7 +36,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-source-video",
-                        "binding": "source_video",
+                        "binding": "op:main/in:7074f109-83b1-4864-8e37-17a89fcbf46d",
                         "events": []
                       }
                     },
@@ -44,7 +44,7 @@
                       "type": "Slider",
                       "props": {
                         "id": "slider-grading-intensity",
-                        "binding": "grading_intensity",
+                        "binding": "op:main/in:grading-intensity",
                         "label": "Grading intensity",
                         "min": 0,
                         "max": 1,
@@ -100,7 +100,7 @@
                       "type": "Video",
                       "props": {
                         "id": "out-graded-video",
-                        "binding": "graded_video",
+                        "binding": "op:main/out:output-graded-video",
                         "height": 320,
                         "placeholder": "Your video appears here"
                       }
@@ -113,11 +113,95 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "7074f109-83b1-4864-8e37-17a89fcbf46d",
+        "parent_id": null,
+        "type": "nodetool.input.VideoInput",
+        "data": {
+          "name": "source_video",
+          "description": "The clip to color-grade. Defaults to a short demo clip so Run works immediately.",
+          "value": {
+            "type": "video",
+            "asset_id": "727208e4dbe811ef97c1000071d82eaa",
+            "uri": "http://127.0.0.1:8000/api/storage/727208e4dbe811ef97c1000071d82eaa.mp4"
+          }
+        },
+        "ui_properties": {
+          "title": "1️⃣ Source video",
+          "position": {
+            "x": 50,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "grading-intensity",
+        "parent_id": null,
+        "type": "nodetool.input.FloatInput",
+        "data": {
+          "name": "grading_intensity",
+          "description": "How strong the saturation pass is. 0 = grayscale, 0.5 = the default boost, 1 = maximum, fully saturated look.",
+          "value": 0.5,
+          "min": -1,
+          "max": 1
+        },
+        "ui_properties": {
+          "title": "Grading intensity",
+          "position": {
+            "x": 680,
+            "y": 320
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "output-graded-video",
+        "parent_id": null,
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "graded_video"
+        },
+        "ui_properties": {
+          "title": "6️⃣ Graded output",
+          "position": {
+            "x": 1640,
+            "y": 112
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      }
+    ],
+    "edges": []
   },
   "values": {
-    "grading_intensity": 0.5,
-    "graded_video": {
+    "op:main/in:grading-intensity": 0.5,
+    "op:main/out:output-graded-video": {
       "$demo": "video"
     }
   }

@@ -11,6 +11,9 @@
   ],
   "references": [
     {
+      "path": "../app-runtime"
+    },
+    {
       "path": "../config"
     },
     {

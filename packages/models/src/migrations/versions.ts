@@ -1938,5 +1938,165 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_thread_memory_user");
       await db.execute("DROP TABLE IF EXISTS nodetool_thread_memories");
     }
+  },
+
+  // ── Create applications ─────────────────────────────────────────────
+  // Mini apps get their own identity. Before this, an app *was* a workflow
+  // (`workflow.app_doc`), so it could expose exactly one operation and had no
+  // history. An application row owns a UI document plus typed bindings, and
+  // each binding names a workflow.
+  {
+    version: "20260725_000000",
+    name: "create_applications",
+    createsTables: ["applications", "application_versions"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS applications (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          project_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          description TEXT NOT NULL DEFAULT '',
+          document TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_application_user
+        ON applications (user_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_application_project
+        ON applications (project_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_application_updated
+        ON applications (updated_at)
+      `);
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS application_versions (
+          id TEXT PRIMARY KEY,
+          application_id TEXT NOT NULL,
+          version INTEGER NOT NULL,
+          document TEXT NOT NULL,
+          capabilities TEXT NOT NULL,
+          released INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_application_version_app
+        ON application_versions (application_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_application_version_released
+        ON application_versions (released)
+      `);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_application_version_released");
+      await db.execute("DROP INDEX IF EXISTS idx_application_version_app");
+      await db.execute("DROP TABLE IF EXISTS application_versions");
+      await db.execute("DROP INDEX IF EXISTS idx_application_updated");
+      await db.execute("DROP INDEX IF EXISTS idx_application_project");
+      await db.execute("DROP INDEX IF EXISTS idx_application_user");
+      await db.execute("DROP TABLE IF EXISTS applications");
+    }
+  },
+
+  // ── Add revision to the resource document tables ────────────────────
+  // Mini-app resource bindings hand widgets a `ResourceRef { kind, id,
+  // revision }`. A write carrying a stale revision is rejected, so an
+  // interactive editing widget cannot silently clobber a concurrent edit.
+  {
+    version: "20260725_000001",
+    name: "add_revision_to_resource_documents",
+    createsTables: [],
+    modifiesTables: ["timeline_sequences", "storyboards", "image_documents"],
+    async up(db) {
+      for (const table of [
+        "timeline_sequences",
+        "storyboards",
+        "image_documents"
+      ]) {
+        if (!(await db.columnExists(table, "revision"))) {
+          await db.execute(
+            `ALTER TABLE ${table} ADD COLUMN revision INTEGER NOT NULL DEFAULT 0`
+          );
+        }
+      }
+    },
+    async down(db) {
+      for (const table of [
+        "timeline_sequences",
+        "storyboards",
+        "image_documents"
+      ]) {
+        if (await db.columnExists(table, "revision")) {
+          await db.execute(`ALTER TABLE ${table} DROP COLUMN revision`);
+        }
+      }
+    }
+  },
+
+  // ── Create application budgets and the invocation ledger ────────────
+  // A published app runs on the creator's secrets, so runs are checked against
+  // a hard budget before the job is created and settled from the run's actual
+  // provider cost afterwards. The ledger doubles as release telemetry, keyed by
+  // (application_id, version, invocation_id).
+  {
+    version: "20260725_000002",
+    name: "create_application_budgets",
+    createsTables: ["application_budgets", "application_invocations"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS application_budgets (
+          application_id TEXT PRIMARY KEY,
+          period TEXT NOT NULL DEFAULT 'month',
+          max_usd REAL,
+          max_invocations INTEGER,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS application_invocations (
+          id TEXT PRIMARY KEY,
+          application_id TEXT NOT NULL,
+          version INTEGER,
+          invocation_id TEXT NOT NULL,
+          operation_id TEXT NOT NULL DEFAULT '',
+          estimated_usd REAL NOT NULL DEFAULT 0,
+          actual_usd REAL,
+          status TEXT NOT NULL DEFAULT 'running',
+          created_at TEXT NOT NULL,
+          settled_at TEXT
+        )
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_application_invocation_app
+        ON application_invocations (application_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_application_invocation_created
+        ON application_invocations (created_at)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_application_invocation_invocation
+        ON application_invocations (invocation_id)
+      `);
+    },
+    async down(db) {
+      await db.execute(
+        "DROP INDEX IF EXISTS idx_application_invocation_invocation"
+      );
+      await db.execute("DROP INDEX IF EXISTS idx_application_invocation_created");
+      await db.execute("DROP INDEX IF EXISTS idx_application_invocation_app");
+      await db.execute("DROP TABLE IF EXISTS application_invocations");
+      await db.execute("DROP TABLE IF EXISTS application_budgets");
+    }
   }
 ];

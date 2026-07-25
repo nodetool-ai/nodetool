@@ -3,10 +3,10 @@
   "name": "Workflow As A Tool",
   "description": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research (Gemini) gathers the facts, Copy Editor (Claude) polishes the draft, and the manager (GPT-5 mini) decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
   "featured": false,
-  "image": null,
+  "image": "/app-preview/img/workflow-as-a-tool.jpg",
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Workflow As A Tool"
@@ -36,7 +36,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-topic",
-                        "binding": "topic",
+                        "binding": "op:main/in:topic_input",
                         "events": []
                       }
                     },
@@ -80,7 +80,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-article",
-                        "binding": "article",
+                        "binding": "op:main/out:output-article",
                         "text": ""
                       }
                     }
@@ -92,10 +92,71 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "topic_input",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "topic",
+          "value": "The economics of home solar batteries",
+          "description": "Subject the orchestrator should research and write a short explainer about."
+        },
+        "ui_properties": {
+          "selected": false,
+          "title": "1️⃣ Topic",
+          "position": {
+            "x": 40,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "output-article",
+        "parent_id": null,
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "article"
+        },
+        "ui_properties": {
+          "selected": false,
+          "title": "4️⃣ Final article",
+          "position": {
+            "x": 1240,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": []
   },
   "values": {
-    "topic": "The economics of home solar batteries",
-    "article": "**The quiet rise of local-first software.**\n\nResearch (Gemini) gathered the facts; a Copy Editor (Claude) tightened the prose; the manager stitched them into one draft — a composition no single agent wrote alone."
+    "op:main/in:topic_input": "The economics of home solar batteries",
+    "op:main/out:output-article": "**The quiet rise of local-first software.**\n\nResearch (Gemini) gathered the facts; a Copy Editor (Claude) tightened the prose; the manager stitched them into one draft — a composition no single agent wrote alone."
   }
 }

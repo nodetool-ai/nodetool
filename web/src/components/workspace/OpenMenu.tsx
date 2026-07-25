@@ -5,6 +5,7 @@ import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
+import DashboardCustomizeOutlinedIcon from "@mui/icons-material/DashboardCustomizeOutlined";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import RecordVoiceOverOutlinedIcon from "@mui/icons-material/RecordVoiceOverOutlined";
@@ -23,6 +24,7 @@ import { trpcClient } from "../../trpc/client";
 import { useAssetSearch } from "../../serverState/useAssetSearch";
 import { useCreateTimeline } from "../../hooks/useTimelineSequence";
 import { useCreateStoryboard } from "../../hooks/storyboard/useStoryboards";
+import { useCreateApplication } from "../../hooks/useApplications";
 import { useCreateScript } from "../../hooks/script/useScripts";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -150,6 +152,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
   const createAsset = useAssetStore((state) => state.createAsset);
   const createTimeline = useCreateTimeline();
   const createStoryboard = useCreateStoryboard();
+  const createApplication = useCreateApplication();
   const createScript = useCreateScript();
   const { searchAssets } = useAssetSearch();
 
@@ -244,6 +247,25 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
       console.error("Failed to create storyboard", error);
     }
   }, [createStoryboard, openTab, close]);
+
+  const handleNewApp = useCallback(async () => {
+    try {
+      const created = await createApplication.mutateAsync({
+        name: "Untitled app",
+        description: "",
+        projectId: "default"
+      });
+      openTab({
+        type: "application",
+        ref: created.id,
+        mode: "edit",
+        title: created.name
+      });
+      close();
+    } catch (error) {
+      console.error("Failed to create app", error);
+    }
+  }, [createApplication, openTab, close]);
 
   const handleNewScript = useCallback(async () => {
     try {
@@ -419,6 +441,11 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
               label="New storyboard"
               icon={<DashboardOutlinedIcon fontSize="small" />}
               onClick={() => void handleNewStoryboard()}
+            />
+            <MenuItemPrimitive
+              label="New app"
+              icon={<DashboardCustomizeOutlinedIcon fontSize="small" />}
+              onClick={() => void handleNewApp()}
             />
             <MenuItemPrimitive
               label="New script"

@@ -24,6 +24,8 @@ export type WorkspaceTabType =
   | "model3d"
   | "audio"
   | "text"
+  // Mini apps. `ref` is an application id (trpc.applications.*).
+  | "application"
   // Chat conversations. `ref` is a chat thread id (GlobalChatStore).
   | "chat"
   // App pages (Settings, Costs, Model Manager, …) opened from the logo menu.

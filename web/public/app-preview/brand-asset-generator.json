@@ -5,8 +5,8 @@
   "featured": true,
   "image": "/app-preview/img/brand-asset-generator.jpg",
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Brand Asset Generator"
@@ -36,7 +36,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-brand-name",
-                        "binding": "brand_name",
+                        "binding": "op:main/in:in_brand_name",
                         "events": []
                       }
                     },
@@ -44,7 +44,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-brand-description",
-                        "binding": "brand_description",
+                        "binding": "op:main/in:in_brand_description",
                         "events": []
                       }
                     },
@@ -52,7 +52,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-tagline",
-                        "binding": "tagline",
+                        "binding": "op:main/in:in_tagline",
                         "events": []
                       }
                     },
@@ -60,7 +60,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-primary-color",
-                        "binding": "primary_color",
+                        "binding": "op:main/in:in_primary_color",
                         "events": []
                       }
                     },
@@ -112,7 +112,7 @@
                       "type": "Image",
                       "props": {
                         "id": "out-social-assets",
-                        "binding": "social_assets",
+                        "binding": "op:main/out:out_assets",
                         "fit": "contain",
                         "height": 280,
                         "placeholder": "Your result appears here"
@@ -130,7 +130,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-brand-brief",
-                        "binding": "brand_brief",
+                        "binding": "op:main/out:out_brief",
                         "text": ""
                       }
                     }
@@ -142,15 +142,151 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "in_brand_name",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "brand_name",
+          "value": "Aurora Labs",
+          "description": "The brand name featured on every asset."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 40
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false,
+          "title": "1️⃣ Brand name"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "in_brand_description",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "brand_description",
+          "value": "A climate-tech startup building friendly home-energy tools. Warm, optimistic and human, where nature meets precision engineering.",
+          "description": "One line on what the brand is and how it should feel."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false,
+          "title": "2️⃣ Brand vibe"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "in_tagline",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "tagline",
+          "value": "Power that gives back",
+          "description": "Tagline overlaid on each image and fed to the brief."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 360
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false,
+          "title": "3️⃣ Tagline"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "in_primary_color",
+        "type": "nodetool.input.ColorInput",
+        "data": {
+          "name": "primary_color",
+          "value": {
+            "type": "color",
+            "value": "#2F8F6B"
+          },
+          "description": "Brand color for the name overlay."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 520
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false,
+          "title": "4️⃣ Brand color"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out_assets",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "social_assets"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2420,
+            "y": 100
+          },
+          "selectable": true
+        }
+      },
+      {
+        "id": "out_brief",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "brand_brief"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1080,
+            "y": 600
+          },
+          "selectable": true
+        }
+      }
+    ],
+    "edges": []
   },
   "values": {
-    "brand_name": "Aurora Labs",
-    "brand_description": "A climate-tech startup building friendly home-energy tools. Warm, optimistic and human, where nature meets precision engineering.",
-    "tagline": "Power that gives back",
-    "social_assets": {
+    "op:main/in:in_brand_name": "Aurora Labs",
+    "op:main/in:in_brand_description": "A climate-tech startup building friendly home-energy tools. Warm, optimistic and human, where nature meets precision engineering.",
+    "op:main/in:in_tagline": "Power that gives back",
+    "op:main/out:out_assets": {
       "$demo": "image"
     },
-    "brand_brief": "**Aurora Labs — brand direction.** Warm, optimistic, human. Nature meets precision engineering. Voice: friendly and confident, never corporate. Palette anchored on `#2F8F6B`."
+    "op:main/out:out_brief": "**Aurora Labs — brand direction.** Warm, optimistic, human. Nature meets precision engineering. Voice: friendly and confident, never corporate. Palette anchored on `#2F8F6B`."
   }
 }

@@ -22,7 +22,10 @@ import {
 } from "../serverState/useWorkflow";
 import { subscribeToWorkflowUpdates, unsubscribeFromWorkflowUpdates, setGetNodeStore } from "./workflowUpdates";
 import { disposeWorkflowRunnerStore, getWorkflowRunnerStore } from "./WorkflowRunner";
-import { disposeAppRuntimeStore } from "../components/appbuilder/runtime/appRuntimeStore";
+import {
+  disposeAppRuntimeStore,
+  workflowInstanceId
+} from "../components/appbuilder/runtime/appRuntimeStore";
 import useResultsStore from "./ResultsStore";
 import useErrorStore from "./ErrorStore";
 import useStatusStore from "./StatusStore";
@@ -764,7 +767,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
            }
          }
          disposeWorkflowRunnerStore(workflowId);
-         disposeAppRuntimeStore(workflowId);
+         disposeAppRuntimeStore(workflowInstanceId(workflowId));
 
          // Drop per-workflow keyed entries from singleton stores so they
          // don't accumulate forever in long-lived sessions.

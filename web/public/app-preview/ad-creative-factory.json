@@ -3,10 +3,10 @@
   "name": "Ad Creative Factory",
   "description": "Turn one product photo and one offer into a batch of ready-to-test vertical video ads. A strategist agent plans a persona × angle test matrix, a structured data generator emits one variant row per cell — persona, angle, and spoken hook as separate fields, not a prose blob — and every row's hook becomes a staged product scene, an animated 9:16 clip, and a voiceover mixed on top.",
   "featured": false,
-  "image": null,
+  "image": "/app-preview/img/ad-creative-factory.jpg",
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Ad Creative Factory"
@@ -36,7 +36,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-product-offer",
-                        "binding": "product_offer",
+                        "binding": "op:main/in:brief",
                         "events": []
                       }
                     },
@@ -44,7 +44,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-audience",
-                        "binding": "audience",
+                        "binding": "op:main/in:audience",
                         "events": []
                       }
                     },
@@ -52,7 +52,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-variant-count",
-                        "binding": "variant_count",
+                        "binding": "op:main/in:variant_count",
                         "events": []
                       }
                     },
@@ -60,7 +60,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-product-photo",
-                        "binding": "product_photo",
+                        "binding": "op:main/in:product_photo",
                         "events": []
                       }
                     },
@@ -112,7 +112,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-hooks",
-                        "binding": "hooks",
+                        "binding": "op:main/out:preview_hooks",
                         "text": ""
                       }
                     },
@@ -128,7 +128,7 @@
                       "type": "Video",
                       "props": {
                         "id": "out-finished-ads",
-                        "binding": "finished_ads",
+                        "binding": "op:main/out:preview_ads",
                         "height": 320,
                         "placeholder": "Your video appears here"
                       }
@@ -141,14 +141,169 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "brief",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "product_offer",
+          "value": "Aurora Trail smart fitness watch — launch-week offer: 20% off. GPS navigation, heart-rate analytics, adaptive coaching, water resistance.",
+          "description": "The product and the offer the ads must sell"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 60
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "1️⃣ Product & offer",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "audience",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "audience",
+          "value": "active millennials who hike on weekends and scroll fitness content at night",
+          "description": "Who the ads are for"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 310
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "2️⃣ Audience",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "variant_count",
+        "type": "nodetool.input.IntegerInput",
+        "data": {
+          "name": "variant_count",
+          "value": 6,
+          "description": "How many ad variants to produce",
+          "min": 2,
+          "max": 12
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 560
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "3️⃣ Variant count",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "product_photo",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "product_photo",
+          "value": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "description": "One clean photo of the product — the same shot anchors every variant"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 790
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "4️⃣ Product photo",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "preview_hooks",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "hooks"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1510,
+            "y": 700
+          },
+          "zIndex": 0,
+          "width": 300,
+          "height": 200,
+          "title": "📋 Variant table (persona / angle / hook)",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "preview_ads",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "finished_ads"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3370,
+            "y": 560
+          },
+          "zIndex": 0,
+          "width": 360,
+          "height": 420,
+          "title": "🎯 Finished ads",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": []
   },
   "values": {
-    "product_offer": "Aurora Trail smart fitness watch — launch-week offer: 20% off. GPS navigation, heart-rate analytics, adaptive coaching, water resistance.",
-    "audience": "active millennials who hike on weekends and scroll fitness content at night",
-    "variant_count": 6,
-    "hooks": "1. **“Your watch is lying to you.”** Hard cut to the Aurora Trail's GPS trace.\n2. **“I hiked 14 miles and my phone stayed in my pocket.”**\n3. **“POV: your smartwatch actually coaches you.”**",
-    "finished_ads": {
+    "op:main/in:brief": "Aurora Trail smart fitness watch — launch-week offer: 20% off. GPS navigation, heart-rate analytics, adaptive coaching, water resistance.",
+    "op:main/in:audience": "active millennials who hike on weekends and scroll fitness content at night",
+    "op:main/in:variant_count": 6,
+    "op:main/out:preview_hooks": "1. **“Your watch is lying to you.”** Hard cut to the Aurora Trail's GPS trace.\n2. **“I hiked 14 miles and my phone stayed in my pocket.”**\n3. **“POV: your smartwatch actually coaches you.”**",
+    "op:main/out:preview_ads": {
       "$demo": "video"
     }
   }

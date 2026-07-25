@@ -5,8 +5,8 @@
   "featured": true,
   "image": "/app-preview/img/concept-art-iteration-board.jpg",
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Concept Art Iteration Board"
@@ -36,7 +36,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-creative-brief",
-                        "binding": "creative_brief",
+                        "binding": "op:main/in:10",
                         "events": []
                       }
                     },
@@ -44,7 +44,7 @@
                       "type": "Select",
                       "props": {
                         "id": "in-art-style",
-                        "binding": "art_style",
+                        "binding": "op:main/in:11",
                         "label": "Art style",
                         "options": [
                           {
@@ -70,7 +70,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-mood-keywords",
-                        "binding": "mood_keywords",
+                        "binding": "op:main/in:12",
                         "events": []
                       }
                     },
@@ -78,7 +78,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-variations",
-                        "binding": "variations",
+                        "binding": "op:main/in:num_variations",
                         "events": []
                       }
                     },
@@ -122,7 +122,7 @@
                       "type": "Image",
                       "props": {
                         "id": "out-concept-art",
-                        "binding": "Concept Art",
+                        "binding": "op:main/out:concept_art_output",
                         "fit": "contain",
                         "height": 280,
                         "placeholder": "Your result appears here"
@@ -153,14 +153,142 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "10",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "creative_brief",
+          "value": "An ancient forest guardian: a towering tree-spirit, bark-skinned and moss-cloaked, watching over an enchanted grove. Fantasy RPG character concept.",
+          "description": "The subject to explore, in a sentence or two."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "1️⃣ Brief",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "11",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "art_style",
+          "value": "Painterly digital concept art, dramatic cinematic lighting, rich saturated color, visible brushwork, AAA game key art",
+          "description": "Art style and medium applied to every variation."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 330
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "2️⃣ Style",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "mood_keywords",
+          "value": "mysterious, ancient, powerful, serene, sacred",
+          "description": "Comma-separated mood and atmosphere words."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 610
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "3️⃣ Mood",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "concept_art_output",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "Concept Art"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2440,
+            "y": 95
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Concept Art",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "num_variations",
+        "type": "nodetool.input.IntegerInput",
+        "data": {
+          "name": "variations",
+          "value": 4,
+          "description": "How many concept-art variations to generate in one run.",
+          "min": 2,
+          "max": 8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 830
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "4️⃣ Variations",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": []
   },
   "values": {
-    "creative_brief": "An ancient forest guardian: a towering tree-spirit, bark-skinned and moss-cloaked, watching over an enchanted grove. Fantasy RPG character concept.",
-    "art_style": "Painterly digital concept art, dramatic cinematic lighting, rich saturated color, visible brushwork, AAA game key art",
-    "mood_keywords": "mysterious, ancient, powerful, serene, sacred",
-    "variations": 4,
-    "Concept Art": {
+    "op:main/in:10": "An ancient forest guardian: a towering tree-spirit, bark-skinned and moss-cloaked, watching over an enchanted grove. Fantasy RPG character concept.",
+    "op:main/in:11": "Painterly digital concept art, dramatic cinematic lighting, rich saturated color, visible brushwork, AAA game key art",
+    "op:main/in:12": "mysterious, ancient, powerful, serene, sacred",
+    "op:main/in:num_variations": 4,
+    "op:main/out:concept_art_output": {
       "$demo": "image"
     }
   }

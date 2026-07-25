@@ -3,10 +3,13 @@ import React from "react";
 import { Render, type Data } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
 
+import type { ApplicationDocument } from "@nodetool-ai/app-runtime";
+
 import { Workflow } from "../../stores/ApiTypes";
 import { useAppRuntime } from "./runtime/useAppRuntime";
 import {
   AppRuntimeContext,
+  useAppRuntimeContext,
   useRuntimeSelector
 } from "./runtime/AppRuntimeContext";
 import { appConfig } from "./puck/config";
@@ -15,16 +18,34 @@ import { AlertBanner, Box, SPACING, Z_INDEX } from "../ui_primitives";
 interface AppRuntimeViewProps {
   workflow: Workflow;
   data: Data;
+  /**
+   * The app document, when the workflow carries one. Supplies the operation's
+   * input mappings, declared variables, and resource bindings; without it the
+   * runtime synthesizes a single-operation document from the graph.
+   */
+  document?: ApplicationDocument;
 }
 
 /**
- * Surfaces a run error from the runtime store as a dismissible banner pinned to
- * the top of the app's scroll container. New runs clear the error themselves; the
- * close button clears it on demand.
+ * Surfaces the active invocation's error as a dismissible banner pinned to the
+ * top of the app's scroll container. Errors belong to an invocation, so the
+ * next run replaces the banner and dismissing it clears the invocation's error.
  */
 const RuntimeErrorBanner: React.FC = () => {
-  const error = useRuntimeSelector((s) => s.error);
-  const setError = useRuntimeSelector((s) => s.setError);
+  const { store, scope } = useAppRuntimeContext();
+  const operationId = scope.defaultOperationId;
+  const invocationId = useRuntimeSelector(
+    (s) => s.activeInvocation[operationId]
+  );
+  const error = useRuntimeSelector((s) =>
+    invocationId ? s.invocations[invocationId]?.error : undefined
+  );
+  const setError = (value: string | null) => {
+    if (!invocationId) return;
+    store
+      .getState()
+      .dispatchEvent({ type: "invocationError", invocationId, error: value ?? "" });
+  };
   if (!error) return null;
   return (
     <Box
@@ -48,8 +69,12 @@ const RuntimeErrorBanner: React.FC = () => {
  * runtime context streams workflow outputs into bound widgets and turns widget
  * events into workflow runs.
  */
-const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({ workflow, data }) => {
-  const runtime = useAppRuntime(workflow, false);
+const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
+  workflow,
+  data,
+  document
+}) => {
+  const runtime = useAppRuntime(workflow, false, { document });
   return (
     <AppRuntimeContext.Provider value={runtime}>
       <Box

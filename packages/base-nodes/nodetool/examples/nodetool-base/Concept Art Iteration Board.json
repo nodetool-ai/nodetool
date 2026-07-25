@@ -441,8 +441,8 @@
   "html_app": null,
   "etag": "f0822a809691b6862751bcf5c4642e57",
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Concept Art Iteration Board"
@@ -472,7 +472,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-creative-brief",
-                        "binding": "creative_brief",
+                        "binding": "op:main/in:10",
                         "events": []
                       }
                     },
@@ -480,7 +480,7 @@
                       "type": "Select",
                       "props": {
                         "id": "in-art-style",
-                        "binding": "art_style",
+                        "binding": "op:main/in:11",
                         "label": "Art style",
                         "options": [
                           {
@@ -506,7 +506,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-mood-keywords",
-                        "binding": "mood_keywords",
+                        "binding": "op:main/in:12",
                         "events": []
                       }
                     },
@@ -514,7 +514,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-variations",
-                        "binding": "variations",
+                        "binding": "op:main/in:num_variations",
                         "events": []
                       }
                     },
@@ -558,7 +558,7 @@
                       "type": "Image",
                       "props": {
                         "id": "out-concept-art",
-                        "binding": "Concept Art",
+                        "binding": "op:main/out:concept_art_output",
                         "fit": "contain",
                         "height": 280,
                         "placeholder": "Your result appears here"
@@ -589,6 +589,18 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
   }
 }

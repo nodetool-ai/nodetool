@@ -1,37 +1,37 @@
 /**
- * Headless mirror of the web app runtime (`useAppRuntime` + `appRuntimeStore`):
- * a flat reactive value store, the same message-folding rules for a run's
- * processing stream, and an action dispatcher. The web engine's reactive
- * subgraph runs collapse to full workflow runs here — the headless kernel has
- * no browser worker — which is noted in the report rather than simulated.
+ * Headless driver for the shared app runtime core.
  *
- * Pure except for the injected `runWorkflow`, so it is unit-testable.
+ * The fold rules, the state namespaces, and the action vocabulary all live in
+ * `@nodetool-ai/app-runtime` — the same code the web runtime runs. This file
+ * only supplies what a headless run needs: a workflow executor and the
+ * bookkeeping that turns an awaited run into an invocation.
+ *
+ * The web engine's reactive subgraph runs collapse to full workflow runs here
+ * (the headless kernel has no browser worker), which the report notes rather
+ * than simulates.
  */
-import type { AppEventSpec, AppIO } from "./types.js";
-
-/** Action shape shared with the web runtime (`AppAction`). */
-export type HeadlessAction =
-  | { kind: "run"; from?: string }
-  | { kind: "cancel" }
-  | { kind: "setState"; key: string; value: unknown }
-  | { kind: "toggleState"; key: string };
-
-export const eventToAction = (event: AppEventSpec, from?: string): HeadlessAction => {
-  switch (event.kind) {
-    case "setState":
-      return { kind: "setState", key: event.key ?? "", value: event.value ?? "" };
-    case "toggleState":
-      return { kind: "toggleState", key: event.key ?? "" };
-    case "cancel":
-      return { kind: "cancel" };
-    case "run":
-    default:
-      return { kind: "run", from };
-  }
-};
+import {
+  applyEvent,
+  applyEvents,
+  createInstanceState,
+  messagesToEvents,
+  operationError,
+  readRef,
+  stateKey,
+  type AppAction,
+  type AppInstanceState,
+  type BindingRef,
+  type InvocationState
+} from "@nodetool-ai/app-runtime";
 
 export interface HeadlessRuntimeInit {
-  io: AppIO;
+  operationId: string;
+  /** Output node id → the state key its value lands in. */
+  outputKeyByNodeId: ReadonlyMap<string, string>;
+  /** Input state key → the param name the run protocol expects. */
+  paramNameByInputKey: ReadonlyMap<string, string>;
+  /** Input defaults, keyed by input state key. */
+  defaults: Record<string, unknown>;
   /**
    * Execute the workflow with the given params and return its processing
    * messages. Called once per dispatched `run` action.
@@ -41,119 +41,138 @@ export interface HeadlessRuntimeInit {
   ) => Promise<ReadonlyArray<Record<string, unknown>>>;
 }
 
-const asString = (value: unknown): string =>
-  typeof value === "string" ? value : value == null ? "" : String(value);
-
 export class HeadlessAppRuntime {
-  readonly values: Record<string, unknown> = {};
-  error: string | null = null;
+  state: AppInstanceState = createInstanceState();
   runCount = 0;
 
-  private readonly io: AppIO;
-  private readonly runWorkflow: HeadlessRuntimeInit["runWorkflow"];
-  private readonly outputKeyByNodeId = new Map<string, string>();
+  private readonly init: HeadlessRuntimeInit;
+  private invocationSeq = 0;
 
   constructor(init: HeadlessRuntimeInit) {
-    this.io = init.io;
-    this.runWorkflow = init.runWorkflow;
-    for (const input of init.io.inputs) {
-      if (input.defaultValue !== undefined) {
-        this.values[input.name] = input.defaultValue;
-      }
+    this.init = init;
+    this.state = applyEvent(this.state, {
+      type: "seedInputs",
+      values: init.defaults
+    });
+  }
+
+  /** Last error reported against the operation's active invocation. */
+  get error(): string | null {
+    return operationError(this.state, this.init.operationId) ?? null;
+  }
+
+  /** Write a value through its resolved binding. */
+  write(ref: BindingRef, value: unknown): void {
+    const key = stateKey(ref);
+    switch (ref.kind) {
+      case "variable":
+        this.state = applyEvent(this.state, {
+          type: "setVariable",
+          variableId: ref.variableId,
+          value
+        });
+        break;
+      case "view":
+        this.state = applyEvent(this.state, { type: "setView", key, value });
+        break;
+      default:
+        this.state = applyEvent(this.state, { type: "setInput", key, value });
     }
-    for (const output of init.io.outputs) {
-      this.outputKeyByNodeId.set(output.nodeId, output.name);
+  }
+
+  read(ref: BindingRef | null): unknown {
+    if (!ref) return undefined;
+    const key = stateKey(ref);
+    switch (ref.kind) {
+      case "output":
+        return this.state.outputs[key]?.value;
+      case "variable":
+        return this.state.variables[key];
+      case "view":
+        return this.state.view[key];
+      case "execution":
+        return readRef(this.state, {
+          source: "execution",
+          operationId: ref.operationId,
+          field: ref.field
+        });
+      default:
+        return this.state.inputs[key]?.value;
     }
   }
 
-  setValue(key: string, value: unknown): void {
-    this.values[key] = value;
-  }
-
-  toggleValue(key: string): void {
-    this.values[key] = !this.values[key];
-  }
-
-  /** Params for a run: every bound input's current value (mirror of `run()`). */
+  /** Params for a run: every bound input's current value, keyed by node name. */
   collectParams(): Record<string, unknown> {
     const params: Record<string, unknown> = {};
-    for (const input of this.io.inputs) {
-      const value = this.values[input.name];
-      if (value !== undefined) params[input.name] = value;
+    for (const [key, name] of this.init.paramNameByInputKey) {
+      const value = this.state.inputs[key]?.value;
+      if (value !== undefined) params[name] = value;
     }
     return params;
   }
 
-  /**
-   * Fold a run's processing messages into the value store, using the same
-   * rules as the web handler: `output_update` replaces (or appends streamed
-   * text), `chunk` appends text, node/job errors land in `error`.
-   */
-  applyMessages(messages: ReadonlyArray<Record<string, unknown>>): void {
-    for (const msg of messages) {
-      switch (msg.type) {
-        case "output_update": {
-          const nodeId = typeof msg.node_id === "string" ? msg.node_id : "";
-          const key =
-            this.outputKeyByNodeId.get(nodeId) ??
-            (typeof msg.node_name === "string" ? msg.node_name : undefined) ??
-            (typeof msg.output_name === "string" ? msg.output_name : undefined);
-          if (!key) break;
-          // Absent disposition appends (protocol default); only explicit "replace" replaces.
-          if (msg.disposition !== "replace" && typeof msg.value === "string") {
-            this.values[key] = asString(this.values[key]) + msg.value;
-          } else {
-            this.values[key] = msg.value;
-          }
-          break;
-        }
-        case "chunk": {
-          if (msg.content_type && msg.content_type !== "text") break;
-          const nodeId = typeof msg.node_id === "string" ? msg.node_id : "";
-          const key = this.outputKeyByNodeId.get(nodeId);
-          if (!key) break;
-          this.values[key] = asString(this.values[key]) + asString(msg.content);
-          break;
-        }
-        case "node_update": {
-          if (typeof msg.error === "string" && msg.error) this.error = msg.error;
-          break;
-        }
-        case "job_update": {
-          if (msg.status === "failed" && typeof msg.error === "string" && msg.error) {
-            this.error = msg.error;
-          }
-          break;
-        }
-        default:
-          break;
-      }
-    }
-  }
-
   /** Dispatch one action; a `run` executes the workflow and folds its stream. */
-  async dispatch(action: HeadlessAction): Promise<void> {
+  async dispatch(action: AppAction): Promise<void> {
     switch (action.kind) {
       case "run": {
-        for (const output of this.io.outputs) {
-          delete this.values[output.name];
-        }
-        this.error = null;
+        this.invocationSeq += 1;
+        const invocation: InvocationState = {
+          id: `headless-${this.invocationSeq}`,
+          operationId: action.operationId,
+          status: "running",
+          // Deterministic, so two harness runs produce identical reports.
+          startedAt: this.invocationSeq
+        };
+        this.state = applyEvent(this.state, {
+          type: "runStarted",
+          invocation,
+          outputKeys: [...this.init.outputKeyByNodeId.values()]
+        });
         this.runCount += 1;
-        const messages = await this.runWorkflow(this.collectParams());
-        this.applyMessages(messages);
+        const messages = await this.init.runWorkflow(this.collectParams());
+        // The headless runner awaits the whole stream, so every message belongs
+        // to the invocation just started; stamp it where the server did not.
+        const stamped = messages.map((message) => ({
+          ...message,
+          job_id: message.job_id ?? invocation.id
+        }));
+        this.state = applyEvents(
+          this.state,
+          messagesToEvents(stamped, {
+            resolveInvocation: (jobId: string | null | undefined) =>
+              jobId ? this.state.invocations[jobId] ?? null : null,
+            outputKey: (_operationId: string, nodeId: string) =>
+              this.init.outputKeyByNodeId.get(nodeId) ?? null
+          })
+        );
+        this.state = applyEvent(this.state, {
+          type: "invocationStatus",
+          invocationId: invocation.id,
+          status:
+            this.state.invocations[invocation.id]?.status === "failed"
+              ? "failed"
+              : "completed"
+        });
         break;
       }
-      case "setState":
-        this.setValue(action.key, action.value);
+      case "setVariable":
+        this.state = applyEvent(this.state, {
+          type: "setVariable",
+          variableId: action.variableId,
+          value: action.value
+        });
         break;
-      case "toggleState":
-        this.toggleValue(action.key);
+      case "toggleVariable":
+        this.state = applyEvent(this.state, {
+          type: "toggleVariable",
+          variableId: action.variableId
+        });
         break;
       case "cancel":
-        // Headless runs are awaited to completion; nothing in flight to cancel.
-        break;
-      default:
+      case "resourceCommand":
+      case "openResource":
+        // Headless runs are awaited to completion and have no resource
+        // providers attached; the harness records the action and moves on.
         break;
     }
   }

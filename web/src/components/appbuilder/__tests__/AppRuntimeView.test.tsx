@@ -8,7 +8,11 @@ import mockTheme from "../../../__mocks__/themeMock";
 import AppRuntimeView from "../AppRuntimeView";
 import { Workflow } from "../../../stores/ApiTypes";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
-import { getAppRuntimeStore } from "../runtime/appRuntimeStore";
+import {
+  disposeAppRuntimeStore,
+  getAppRuntimeStore,
+  workflowInstanceId
+} from "../runtime/appRuntimeStore";
 
 const workflow = {
   id: "wf-puck-runtime",
@@ -35,6 +39,9 @@ const data: Data = {
   zones: {}
 };
 
+const instance = workflowInstanceId(workflow.id);
+const store = () => getAppRuntimeStore(instance);
+
 const renderView = () =>
   render(
     <ThemeProvider theme={mockTheme}>
@@ -42,67 +49,81 @@ const renderView = () =>
     </ThemeProvider>
   );
 
+/** Register a run and make it the operation's active invocation. */
+const startRun = (id: string) =>
+  act(() =>
+    store().getState().dispatchEvent({
+      type: "runStarted",
+      invocation: {
+        id,
+        operationId: "main",
+        status: "running",
+        startedAt: 1
+      },
+      outputKeys: []
+    })
+  );
+
+beforeEach(() => {
+  disposeAppRuntimeStore(instance);
+});
+
 describe("AppRuntimeView (Puck Render)", () => {
   it("renders widgets from the Puck document", () => {
     renderView();
     expect(screen.getAllByText("Reactive App").length).toBeGreaterThan(0);
   });
 
-  it("reactively updates a bound widget when a streamed output arrives", async () => {
+  it("displays a value that landed in the bound output's slot", async () => {
+    startRun("job-1");
+    act(() =>
+      store().getState().dispatchEvent({
+        type: "outputValue",
+        key: "main:out1",
+        invocationId: "job-1",
+        value: "Hello from the graph",
+        disposition: "replace"
+      })
+    );
     renderView();
-
-    act(() => {
-      globalWebSocketManager.deliverLocal({
-        type: "output_update",
-        workflow_id: workflow.id,
-        node_id: "out1",
-        node_name: "result",
-        output_name: "result",
-        output_type: "string",
-        value: "Hello from the graph"
-      } as unknown as Parameters<typeof globalWebSocketManager.deliverLocal>[0]);
-    });
 
     await waitFor(() =>
       expect(screen.getByText("Hello from the graph")).toBeInTheDocument()
     );
   });
 
-  it("concatenates streamed text appends into one string", async () => {
-    // The runtime store is a singleton keyed by workflow id — drop any value a
-    // prior test folded so this run starts from an empty "result".
-    act(() => getAppRuntimeStore(workflow.id).getState().clearOutputs(["result"]));
+  it("ignores a streamed output from a run this app did not start", async () => {
     renderView();
 
-    const append = (value: string) =>
-      act(() => {
-        globalWebSocketManager.deliverLocal({
-          type: "output_update",
-          workflow_id: workflow.id,
-          node_id: "out1",
-          node_name: "result",
-          output_name: "result",
-          output_type: "string",
-          disposition: "append",
-          value
-        } as unknown as Parameters<
-          typeof globalWebSocketManager.deliverLocal
-        >[0]);
-      });
+    act(() => {
+      globalWebSocketManager.deliverLocal({
+        type: "output_update",
+        workflow_id: workflow.id,
+        job_id: "someone-elses-job",
+        node_id: "out1",
+        node_name: "result",
+        output_name: "result",
+        output_type: "string",
+        value: "Contamination from another tab"
+      } as unknown as Parameters<typeof globalWebSocketManager.deliverLocal>[0]);
+    });
 
-    append("Hel");
-    append("lo");
-
-    // Concatenated to "Hello" — not split into separate "Hel"/"lo" parts.
     await waitFor(() =>
-      expect(screen.getByText("Hello")).toBeInTheDocument()
+      expect(
+        screen.queryByText("Contamination from another tab")
+      ).not.toBeInTheDocument()
     );
   });
 
-  it("surfaces a run error as a dismissible banner", async () => {
-    act(() => {
-      getAppRuntimeStore(workflow.id).getState().setError("Boom: model failed");
-    });
+  it("surfaces the active invocation's error as a dismissible banner", async () => {
+    startRun("job-err");
+    act(() =>
+      store().getState().dispatchEvent({
+        type: "invocationError",
+        invocationId: "job-err",
+        error: "Boom: model failed"
+      })
+    );
     renderView();
 
     const alert = await screen.findByRole("alert");

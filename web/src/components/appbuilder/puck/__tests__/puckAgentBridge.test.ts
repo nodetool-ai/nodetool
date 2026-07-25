@@ -13,7 +13,19 @@ const makeMockHandler = (): PuckAgentHandler => ({
   updateComponent: jest.fn(),
   removeComponent: jest.fn(),
   selectComponent: jest.fn(),
-  setRootProps: jest.fn()
+  setRootProps: jest.fn(),
+  listOperations: jest.fn(),
+  addOperation: jest.fn(),
+  updateOperation: jest.fn(),
+  removeOperation: jest.fn(),
+  listVariables: jest.fn(),
+  declareVariable: jest.fn(),
+  updateVariable: jest.fn(),
+  removeVariable: jest.fn(),
+  listResources: jest.fn(),
+  addResource: jest.fn(),
+  removeResource: jest.fn(),
+  getBindingTargets: jest.fn()
 });
 
 describe("puckAgentBridge", () => {

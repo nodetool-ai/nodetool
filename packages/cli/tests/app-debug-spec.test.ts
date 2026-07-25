@@ -5,6 +5,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { extractAppIO, parseAppSpec, validateApp } from "../src/app-debug/app-spec.js";
+import type { AppIO } from "../src/app-debug/types.js";
 import type { DebugGraph } from "../src/debug/types.js";
 
 const widget = (
@@ -23,16 +24,27 @@ const graph = (nodes: Array<Record<string, unknown>>): DebugGraph => ({
   edges: []
 });
 
+const EMPTY_IO: AppIO = { inputs: [], outputs: [], variables: [], nodeIds: [] };
+
+const demoIO = extractAppIO(
+  graph([
+    { id: "in1", type: "nodetool.input.StringInput", properties: { name: "prompt" } },
+    { id: "in2", type: "nodetool.input.IntegerInput", properties: { name: "count" } },
+    { id: "out1", type: "nodetool.output.StringOutput", properties: { name: "result" } },
+    { id: "var1", type: "nodetool.variable.SetVariable", properties: { name: "dark" } }
+  ])
+);
+
 describe("parseAppSpec", () => {
   it("rejects a missing app_doc with a clear issue", () => {
-    const { spec, issues } = parseAppSpec(null);
+    const { spec, issues } = parseAppSpec(null, EMPTY_IO);
     expect(spec).toBeNull();
     expect(issues[0]).toMatch(/no app_doc/);
   });
 
   it("accepts a JSON-string app_doc", () => {
     const doc = JSON.stringify(appDoc([widget("Text", "Text-1")]));
-    const { spec, issues } = parseAppSpec(doc);
+    const { spec, issues } = parseAppSpec(doc, demoIO);
     expect(issues).toEqual([]);
     expect(spec?.widgets.map((w) => w.type)).toEqual(["Text"]);
   });
@@ -51,7 +63,7 @@ describe("parseAppSpec", () => {
       ],
       "My App"
     );
-    const { spec } = parseAppSpec(doc);
+    const { spec } = parseAppSpec(doc, demoIO);
     expect(spec?.title).toBe("My App");
     const byId = Object.fromEntries(spec!.widgets.map((w) => [w.id, w]));
     expect(Object.keys(byId)).toHaveLength(4);
@@ -60,7 +72,8 @@ describe("parseAppSpec", () => {
       slot: "left",
       bindingMode: "write",
       binding: "prompt",
-      stateKey: "prompt"
+      stateKey: "main:in1",
+      canonicalBinding: "op:main/in:in1"
     });
     expect(byId["Markdown-1"]).toMatchObject({
       parentId: "Columns-1",
@@ -68,17 +81,25 @@ describe("parseAppSpec", () => {
       bindingMode: "read"
     });
     expect(byId["Button-1"].events).toEqual([
-      { trigger: "click", kind: "run", key: undefined, value: undefined }
+      {
+        trigger: "click",
+        kind: "run",
+        key: undefined,
+        value: undefined,
+        operationId: undefined,
+        resourceBindingId: undefined,
+        command: undefined
+      }
     ]);
   });
 
-  it("falls back to the widget id as state key for an unbound write widget", () => {
-    const { spec } = parseAppSpec(appDoc([widget("Slider", "Slider-9")]));
-    expect(spec?.widgets[0].stateKey).toBe("Slider-9");
+  it("gives an unbound write widget its own view-scoped state key", () => {
+    const { spec } = parseAppSpec(appDoc([widget("Slider", "Slider-9")]), demoIO);
+    expect(spec?.widgets[0].stateKey).toBe("Slider-9:value");
   });
 
   it("flags an empty app", () => {
-    const { spec, issues } = parseAppSpec(appDoc([]));
+    const { spec, issues } = parseAppSpec(appDoc([]), EMPTY_IO);
     expect(spec?.widgets).toEqual([]);
     expect(issues.join(" ")).toMatch(/no widgets/);
   });
@@ -129,7 +150,8 @@ describe("validateApp", () => {
         widget("Button", "Button-1", {
           events: [{ trigger: "click", kind: "run" }]
         })
-      ])
+      ]),
+      io
     );
     const result = validateApp(spec!, io);
     expect(result.errors).toEqual([]);
@@ -147,17 +169,19 @@ describe("validateApp", () => {
             { trigger: "click", kind: "toggleState", key: "ghost" }
           ]
         })
-      ])
+      ]),
+      io
     );
     const { errors } = validateApp(spec!, io);
-    expect(errors.join("\n")).toMatch(/no input node with that name/);
+    expect(errors.join("\n")).toMatch(/no input node or node property/);
     expect(errors.join("\n")).toMatch(/no output or variable/);
     expect(errors.join("\n")).toMatch(/no SetVariable node/);
   });
 
   it("flags an app that can never run and warns on undisplayed outputs", () => {
     const { spec } = parseAppSpec(
-      appDoc([widget("TextInput", "TextInput-1", { binding: "prompt" })])
+      appDoc([widget("TextInput", "TextInput-1", { binding: "prompt" })]),
+      io
     );
     const { errors, warnings } = validateApp(spec!, io);
     expect(errors.join("\n")).toMatch(/never execute the workflow/);
@@ -165,7 +189,7 @@ describe("validateApp", () => {
   });
 
   it("flags unknown widget types", () => {
-    const { spec } = parseAppSpec(appDoc([widget("Bogus", "Bogus-1")]));
+    const { spec } = parseAppSpec(appDoc([widget("Bogus", "Bogus-1")]), io);
     const { errors } = validateApp(spec!, io);
     expect(errors.join("\n")).toMatch(/unknown widget type/);
   });
@@ -176,7 +200,8 @@ describe("validateApp", () => {
         widget("Switch", "Switch-1"),
         widget("Button", "Button-1", { events: [{ trigger: "click", kind: "run" }] }),
         widget("Markdown", "Markdown-1", { binding: "result" })
-      ])
+      ]),
+      io
     );
     const { warnings } = validateApp(spec!, io);
     expect(warnings.join("\n")).toMatch(/local UI state/);

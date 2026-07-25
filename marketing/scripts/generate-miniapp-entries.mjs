@@ -94,17 +94,34 @@ function flatten(content, out = []) {
   return out;
 }
 
-/** Map a bound input name → kind via the workflow graph's input node type. */
+/**
+ * The node a widget binding addresses. Bindings are ID-based
+ * (`op:main/in:<nodeId>`, `op:main/out:<nodeId>`, `op:main/prop:<nodeId>#<prop>`);
+ * a bare name is the legacy form and still matches a node's `name`.
+ */
+function nodeForBinding(graph, binding) {
+  if (!binding) return null;
+  const nodes = graph?.nodes ?? [];
+  const id = /^op:[^/]+\/(?:in|out|prop):(.+)$/.exec(binding)?.[1]?.split("#")[0];
+  if (id) return nodes.find((n) => n.id === id) ?? null;
+  return nodes.find((n) => n.data?.name === binding) ?? null;
+}
+
+/** Map a bound input widget → kind via its input node's type. */
 function inputKindFromGraph(graph, binding) {
-  const node = (graph?.nodes ?? []).find(
-    (n) => (n.type ?? "").startsWith("nodetool.input.") && n.data?.name === binding,
-  );
-  const bare = (node?.type ?? "").replace(/^nodetool\.input\./, "");
-  return INPUT_NODE_KIND[bare] ?? "text";
+  const node = nodeForBinding(graph, binding);
+  const type = (node?.type ?? "").startsWith("nodetool.input.") ? node.type : "";
+  return INPUT_NODE_KIND[type.replace(/^nodetool\.input\./, "")] ?? "text";
+}
+
+/** The human label for a bound widget: the node's name, else the raw binding. */
+function bindingLabel(graph, binding) {
+  const node = nodeForBinding(graph, binding);
+  return humanize(node?.data?.name || node?.id || binding);
 }
 
 function distillApp(appDoc, name, graph) {
-  const widgets = flatten(appDoc?.data?.content);
+  const widgets = flatten((appDoc?.ui ?? appDoc?.data)?.content);
   const headingWidget = widgets.find((w) => w.type === "Heading" && w.props?.level === "1");
   const taglineWidget = widgets.find((w) => w.type === "Text" && !w.props?.binding);
   const button = widgets.find((w) => w.type === "Button");
@@ -112,7 +129,7 @@ function distillApp(appDoc, name, graph) {
   const inputs = widgets
     .filter((w) => WRITE_WIDGETS.has(w.type))
     .map((w) => ({
-      label: w.props?.label || humanize(w.props?.binding ?? ""),
+      label: w.props?.label || bindingLabel(graph, w.props?.binding),
       kind:
         w.type === "WorkflowInput"
           ? inputKindFromGraph(graph, w.props?.binding)
@@ -132,7 +149,10 @@ function distillApp(appDoc, name, graph) {
     const key = String(w.props.binding);
     if (seen.has(key)) continue;
     seen.add(key);
-    outputs.push({ label: humanize(key), kind: OUTPUT_KIND[w.type] ?? "text" });
+    outputs.push({
+      label: bindingLabel(graph, key),
+      kind: OUTPUT_KIND[w.type] ?? "text",
+    });
   }
 
   return {

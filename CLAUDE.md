@@ -65,7 +65,7 @@ work immediately. Slash commands: `/serve`, `/verify`, `/onboard`. See
 ## Architecture
 
 ```
-packages/           # 55 npm workspace packages (TypeScript backend)
+packages/           # 58 npm workspace packages (TypeScript backend)
   protocol/         # Shared message types — base dependency for everything
   config/           # Configuration loading, logging
   security/         # Secret storage, encryption
@@ -82,6 +82,8 @@ packages/           # 55 npm workspace packages (TypeScript backend)
   websocket/        # Fastify HTTP + WebSocket server (main API, port 7777)
   cli/              # nodetool CLI
   vectorstore/      # SQLite-vec for RAG
+  app-runtime/      # Mini-app document, bindings, instance state, streaming fold
+  model-pricing/    # Unit price for a selected FAL/kie model (web + runner)
   ...
 
 web/                # React 19 + Vite + MUI + Zustand + ReactFlow

@@ -186,8 +186,8 @@
   "html_app": null,
   "etag": "401c49fd798bf06e9cc964974b0783ff",
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Image To Audio Story"
@@ -217,7 +217,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-image",
-                        "binding": "image",
+                        "binding": "op:main/in:1",
                         "events": []
                       }
                     },
@@ -261,7 +261,7 @@
                       "type": "Audio",
                       "props": {
                         "id": "out-narration",
-                        "binding": "narration",
+                        "binding": "op:main/out:output-narration",
                         "placeholder": "Your audio appears here"
                       }
                     }
@@ -273,6 +273,18 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
   }
 }

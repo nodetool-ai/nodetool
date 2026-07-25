@@ -27,7 +27,8 @@ const emptyState: WorkflowState = {
   inputs: [],
   outputs: [],
   variables: [],
-  nodes: []
+  nodes: [],
+    resources: []
 };
 
 // Minimal stand-in for the props Puck passes to a custom field's render.
@@ -63,7 +64,8 @@ describe("binding fields", () => {
       ],
       outputs: [],
       variables: [],
-      nodes: []
+      nodes: [],
+    resources: []
     });
     expect(screen.queryByText(/Add an Input node/i)).not.toBeInTheDocument();
     expect(

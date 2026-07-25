@@ -2,10 +2,11 @@
   "slug": "script-to-screen",
   "name": "Script to Screen",
   "description": "Full production spine: a Director agent turns your brief into a direction document (characters, style bible, shot list, narration, music). A style frame anchors every keyframe for consistency, keyframes form a cheap storyboard you can approve before video spend, then each shot is animated, cut together, and mixed with voiceover and music.",
+  "featured": false,
   "image": null,
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Script to Screen"
@@ -13,18 +14,10 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🎬 Script to Screen",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "One brief in — a directed, narrated, scored short film out. The direction document and storyboard land first, so you can check the plan before the video spend."
+            "text": "Full production spine: a Director agent turns your brief into a direction document (characters, style bible, shot list, narration, music)"
           }
         },
         {
@@ -36,39 +29,30 @@
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-brief",
-                  "title": "Brief",
+                  "id": "panel-try",
+                  "title": "Try it",
                   "content": [
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-brief",
-                        "binding": "Brief",
-                        "label": "Your film in one or two sentences",
-                        "placeholder": "A lighthouse keeper discovers the beam of her lamp has started bending toward s",
-                        "multiline": true,
+                        "binding": "op:main/in:brief",
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
-                        "id": "in-style",
-                        "binding": "Visual Style",
-                        "label": "Visual style",
-                        "placeholder": "moody coastal nocturne, sodium-lamp amber against deep blue-black sea, drifting",
-                        "multiline": true,
+                        "id": "in-visual-style",
+                        "binding": "op:main/in:style",
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
-                        "id": "in-count",
-                        "binding": "Shot Count",
-                        "label": "Number of shots",
-                        "placeholder": "5",
-                        "multiline": false,
+                        "id": "in-shot-count",
+                        "binding": "op:main/in:shot_count",
                         "events": []
                       }
                     },
@@ -76,7 +60,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-run",
-                        "label": "Direct my film",
+                        "label": "Shoot my film",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -91,56 +75,72 @@
                     }
                   ]
                 }
-              },
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-direction",
-                  "title": "Direction document",
-                  "content": [
-                    {
-                      "type": "Markdown",
-                      "props": {
-                        "id": "out-direction",
-                        "binding": "direction",
-                        "placeholder": "The Director's plan appears here first — title, characters, shot list, narration, music."
-                      }
-                    }
-                  ]
-                }
               }
             ],
             "right": [
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-film",
-                  "title": "Final film",
+                  "id": "panel-results",
+                  "title": "Results",
                   "content": [
                     {
-                      "type": "Video",
+                      "type": "Progress",
                       "props": {
-                        "id": "out-film",
-                        "binding": "film",
-                        "height": 320,
-                        "placeholder": "Your film appears here"
+                        "id": "progress-run",
+                        "label": "Directing, storyboarding & shooting…",
+                        "binding": ""
                       }
-                    }
-                  ]
-                }
-              },
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-storyboard",
-                  "title": "Storyboard",
-                  "content": [
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-direction",
+                        "text": "Direction document",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-direction",
+                        "binding": "op:main/out:direction_out",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-storyboard",
+                        "text": "Storyboard keyframes",
+                        "level": "3"
+                      }
+                    },
                     {
                       "type": "Image",
                       "props": {
                         "id": "out-storyboard",
-                        "binding": "storyboard",
-                        "placeholder": "Keyframes appear here as they render"
+                        "binding": "op:main/out:storyboard_out",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-film",
+                        "text": "Finished film",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-film",
+                        "binding": "op:main/out:film_out",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
                       }
                     }
                   ]
@@ -151,11 +151,149 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "brief",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "Brief",
+          "value": "A lighthouse keeper discovers the beam of her lamp has started bending toward something beneath the waves — and tonight it refuses to point anywhere else."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 40,
+            "y": 60
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "1️⃣ Brief",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "style",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "Visual Style",
+          "value": "moody coastal nocturne, sodium-lamp amber against deep blue-black sea, drifting fog, anamorphic lens flares, fine film grain, painterly realism"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 40,
+            "y": 320
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "2️⃣ Visual style",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "shot_count",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "Shot Count",
+          "value": "5"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 40,
+            "y": 580
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "3️⃣ Shot count",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "direction_out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "direction"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1160,
+            "y": -60
+          },
+          "title": "📋 Direction document",
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "storyboard_out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "storyboard"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2880,
+            "y": 80
+          },
+          "title": "🖼️ Storyboard — approve before video spend",
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "film_out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "film"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4350,
+            "y": 560
+          },
+          "title": "🎬 Final film",
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": []
   },
   "values": {
-    "Brief": "A lighthouse keeper discovers the beam of her lamp has started bending toward something beneath the waves — and tonight it refuses to point anywhere else.",
-    "Visual Style": "moody coastal nocturne, sodium-lamp amber against deep blue-black sea, drifting fog, anamorphic lens flares, fine film grain, painterly realism",
-    "Shot Count": "5"
+    "op:main/in:brief": "A lighthouse keeper discovers the beam of her lamp has started bending toward something beneath the waves — and tonight it refuses to point anywhere else.",
+    "op:main/in:style": "moody coastal nocturne, sodium-lamp amber against deep blue-black sea, drifting fog, anamorphic lens flares, fine film grain, painterly realism",
+    "op:main/in:shot_count": "5",
+    "op:main/out:direction_out": "## THE BENDING LIGHT\n\n**Logline** — A keeper follows her own beam to the thing it will no longer stop pointing at.\n\n**Characters** — *Mara, 50s, weathered, grey braid under an oilskin hood, brass key on a cord.*\n\n**Style bible** — Sodium amber against blue-black sea. Fog holds the beam. Anamorphic flares, fine grain.\n\n**Shot 1** — VISUAL: Mara on the gallery rail, beam bent hard to starboard | CAMERA: wide, 35mm, low angle | MOTION: slow push in, fog drifting left.",
+    "op:main/out:storyboard_out": {
+      "$demo": "image"
+    },
+    "op:main/out:film_out": {
+      "$demo": "video"
+    }
   }
 }

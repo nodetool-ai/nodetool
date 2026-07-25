@@ -15,6 +15,12 @@ export const imageDocuments = pgTable(
     background_color: text("background_color").notNull().default("#ffffff"),
     document: jsonText<ImageDocumentData>()("document").notNull(),
     thumbnail_asset_id: text("thumbnail_asset_id"),
+    /**
+     * Monotonic write counter. Resource providers hand it out inside a
+     * `ResourceRef` and reject a write whose ref is behind — optimistic
+     * concurrency for interactive editing widgets.
+     */
+    revision: integer("revision").notNull().default(0),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

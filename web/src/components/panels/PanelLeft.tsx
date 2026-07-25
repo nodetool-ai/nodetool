@@ -25,6 +25,10 @@ import StoryboardListPanel, {
   CreateStoryboardButton
 } from "../storyboard/StoryboardListPanel";
 import ScriptListPanel, { CreateScriptButton } from "../script/ScriptListPanel";
+import ApplicationListPanel, {
+  CreateApplicationButton,
+  CreateApplicationFromWorkflowButton
+} from "../applications/ApplicationListPanel";
 import HistoryTilesPanel from "../node_menu/HistoryTilesPanel";
 import FavoritesTiles from "../node_menu/FavoritesTiles";
 import QuickAccessSidebar from "../node_menu/QuickAccessSidebar";
@@ -489,6 +493,29 @@ const PanelContent = memo(function PanelContent({
             <PanelHeadline title="Scripts" actions={<CreateScriptButton />} />
           )}
           <ScriptListPanel />
+        </FlexColumn>
+      )}
+      {activeView === "apps" && (
+        <FlexColumn
+          className="application-list-container"
+          fullWidth
+          fullHeight
+          sx={{
+            overflow: "hidden"
+          }}
+        >
+          {!isMobile && (
+            <PanelHeadline
+              title="Apps"
+              actions={
+                <>
+                  <CreateApplicationFromWorkflowButton />
+                  <CreateApplicationButton />
+                </>
+              }
+            />
+          )}
+          <ApplicationListPanel />
         </FlexColumn>
       )}
       {activeView === "settings" && currentWorkflow && (

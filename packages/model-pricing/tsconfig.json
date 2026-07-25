@@ -1,0 +1,25 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "dist",
+    "tests"
+  ],
+  "references": [
+    {
+      "path": "../fal-nodes"
+    },
+    {
+      "path": "../kie-nodes"
+    },
+    {
+      "path": "../node-sdk"
+    }
+  ]
+}

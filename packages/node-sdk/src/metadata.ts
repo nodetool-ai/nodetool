@@ -1,5 +1,6 @@
 import type {
   InputMode,
+  NodeEffect,
   OutputCorrelation,
   Platform
 } from "@nodetool-ai/protocol";
@@ -109,6 +110,12 @@ export interface NodeMetadata {
    * docs/superpowers/specs/2026-06-27-run-subgraph-caching.md §4.
    */
   cache_ttl?: number | "forever";
+  /**
+   * What running the node does to the world. Reactive runs (mini-app sliders,
+   * live previews) traverse "pure" and "read" only. Absent is treated as
+   * "external". See `BaseNode.effect`.
+   */
+  effect?: NodeEffect;
   /**
    * Names the output slot carrying the node's primary generation (persisted
    * value + content-card preview). Absent falls back to the first output.

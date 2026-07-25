@@ -27,6 +27,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@nodetool-ai/app-runtime": "*",
     "@nodetool-ai/config": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/security": "*",

@@ -5,8 +5,8 @@
   "featured": false,
   "image": "/app-preview/img/image-to-video-animation.jpg",
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Image to Video Animation"
@@ -36,7 +36,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-scene-prompt",
-                        "binding": "scene_prompt",
+                        "binding": "op:main/in:4",
                         "events": []
                       }
                     },
@@ -44,7 +44,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-motion-prompt",
-                        "binding": "motion_prompt",
+                        "binding": "op:main/in:6",
                         "events": []
                       }
                     },
@@ -52,7 +52,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-duration-prompt",
-                        "binding": "duration_prompt",
+                        "binding": "op:main/in:7",
                         "events": []
                       }
                     },
@@ -60,7 +60,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-negative-prompt",
-                        "binding": "negative_prompt",
+                        "binding": "op:main/in:8",
                         "events": []
                       }
                     },
@@ -104,7 +104,7 @@
                       "type": "Video",
                       "props": {
                         "id": "out-animation",
-                        "binding": "animation",
+                        "binding": "op:main/out:output-animation",
                         "height": 320,
                         "placeholder": "Your video appears here"
                       }
@@ -117,14 +117,129 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "4",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "scene_prompt",
+          "value": "Moody twilight ocean scene with cinematic lighting",
+          "description": "High-level description of the mood, setting, and visual tone"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 483
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1️⃣ Scene prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "6",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "motion_prompt",
+          "value": "Slow dolly push toward the horizon as waves shimmer with reflective highlights",
+          "description": "Movement cues that the animation should follow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 80,
+            "y": 255
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Motion prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "duration_prompt",
+          "value": "8 second dramatic reveal",
+          "description": "Short descriptor for pacing and clip duration"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 160,
+            "y": 39
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Duration prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "8",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "negative_prompt",
+          "value": "no watermarks, no text overlays, no jump cuts, no warped anatomy",
+          "description": "Elements to avoid in the generated video"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Negative prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "output-animation",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "animation"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1320,
+            "y": 165
+          },
+          "selectable": true
+        }
+      }
+    ],
+    "edges": []
   },
   "values": {
-    "scene_prompt": "Moody twilight ocean scene with cinematic lighting",
-    "motion_prompt": "Slow dolly push toward the horizon as waves shimmer with reflective highlights",
-    "duration_prompt": "8 second dramatic reveal",
-    "negative_prompt": "no watermarks, no text overlays, no jump cuts, no warped anatomy",
-    "animation": {
+    "op:main/in:4": "Moody twilight ocean scene with cinematic lighting",
+    "op:main/in:6": "Slow dolly push toward the horizon as waves shimmer with reflective highlights",
+    "op:main/in:7": "8 second dramatic reveal",
+    "op:main/in:8": "no watermarks, no text overlays, no jump cuts, no warped anatomy",
+    "op:main/out:output-animation": {
       "$demo": "video"
     }
   }

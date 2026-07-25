@@ -1,6 +1,7 @@
 import type {
   InputMode,
   NodeDescriptor,
+  NodeEffect,
   OutputCorrelation,
   Platform
 } from "@nodetool-ai/protocol";
@@ -75,6 +76,7 @@ export type NodeClass = {
   supportsDynamicOutputs?: boolean;
   autoSaveAsset: boolean;
   cacheTtl?: number | "forever";
+  effect?: NodeEffect;
   primaryOutput?: string;
   modelPacks?: unknown[];
   /**
@@ -225,6 +227,19 @@ export abstract class BaseNode {
    * node to never-cache. See docs/superpowers/specs/2026-06-27-run-subgraph-caching.md §4.
    */
   static readonly cacheTtl: number | "forever" | undefined = undefined;
+  /**
+   * What running this node does to the world, which decides whether a reactive
+   * run (a slider drag, an input change in a mini app) may execute it without
+   * an explicit action:
+   *   "pure"     — output depends only on inputs; safe to re-run at any rate
+   *   "read"     — reads external state but changes nothing
+   *   "write"    — mutates state the user can observe (a file, a document)
+   *   "external" — leaves the system (sends mail, calls a paid API)
+   * Reactive runs traverse "pure" and "read" only. The default is the
+   * conservative "external", so a node nobody has classified never fires off a
+   * slider drag. `cacheTtl: "forever"` implies "pure".
+   */
+  static readonly effect: NodeEffect = "external";
   /**
    * Names the output slot that carries this node's "primary" generation — the
    * value persisted as its saved generation and previewed by the content card.

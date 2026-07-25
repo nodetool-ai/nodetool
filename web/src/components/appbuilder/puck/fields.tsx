@@ -7,15 +7,21 @@ import {
   SelectField,
   Caption,
   FlexColumn,
-  Autocomplete
+  Autocomplete,
+  TextInput
 } from "../../ui_primitives";
 import type { AutocompleteOption } from "../../ui_primitives";
 import useMetadataStore from "../../../stores/MetadataStore";
 import type { Property } from "../../../stores/ApiTypes";
 import {
-  makeNodePropertyBinding,
-  parseNodePropertyBinding
-} from "../nodeBinding";
+  DEFAULT_OPERATION_ID,
+  encodeBinding,
+  parseBinding,
+  resolveBinding,
+  type BindingMode,
+  type BindingScope,
+  type ConditionProps
+} from "@nodetool-ai/app-runtime";
 import {
   computeAutofillProps,
   NUMERIC_WIDGET_DEFAULTS,
@@ -23,11 +29,29 @@ import {
   type NumericBindingTarget
 } from "../bindingAutofill";
 import { getSlotFields, updateComponentProps } from "./puckDataOps";
-import { useBuilderWorkflow } from "./BuilderWorkflowContext";
+import {
+  useBuilderBindingScope,
+  useBuilderWorkflow
+} from "./BuilderWorkflowContext";
 import type { WorkflowInputIO } from "../workflowIO";
 
 type Option = { label: string; value: string };
 const NONE: Option = { label: "— none —", value: "" };
+
+/**
+ * Normalize a stored binding to its ID form. Documents written before ID-based
+ * bindings store names; the picker resolves them once so the stored value
+ * matches an option, and writes back the ID form on the next edit.
+ */
+const canonicalBinding = (
+  value: string,
+  scope: BindingScope,
+  mode: BindingMode
+): string => {
+  if (!value) return "";
+  const ref = resolveBinding(value, scope, mode);
+  return ref ? encodeBinding(ref) : value;
+};
 
 const Picker: React.FC<{
   label: string;
@@ -90,14 +114,25 @@ const ReadBindingPicker: React.FC<{
   onChange: (value: string) => void;
 }> = ({ label, value, readOnly, onChange }) => {
   const { outputs, variables } = useBuilderWorkflow();
+  const scope = useBuilderBindingScope();
   const options: Option[] = [
-    ...outputs.map((o) => ({ label: `output · ${o.label}`, value: o.name })),
-    ...variables.map((v) => ({ label: `variable · ${v}`, value: v }))
+    ...outputs.map((o) => ({
+      label: `output · ${o.label}`,
+      value: encodeBinding({
+        kind: "output",
+        operationId: DEFAULT_OPERATION_ID,
+        nodeId: o.nodeId
+      })
+    })),
+    ...variables.map((v) => ({
+      label: `variable · ${v}`,
+      value: encodeBinding({ kind: "variable", variableId: v })
+    }))
   ];
   return (
     <Picker
       label={label}
-      value={value}
+      value={canonicalBinding(value, scope, "read")}
       options={options}
       emptyHint="Add an Output node or Set Variable node to the workflow."
       readOnly={readOnly}
@@ -160,13 +195,18 @@ const WriteBindingPicker: React.FC<{
   onChange: (value: string) => void;
 }> = ({ label, value, readOnly, onChange }) => {
   const { inputs, nodes } = useBuilderWorkflow();
+  const scope = useBuilderBindingScope();
   const getMetadata = useMetadataStore((s) => s.getMetadata);
   const getPuck = useGetPuck();
 
   const options = useMemo<BindingOption[]>(() => {
     const inputOptions: BindingOption[] = inputs.map((input) => ({
       label: `input · ${input.label}`,
-      value: input.name,
+      value: encodeBinding({
+        kind: "input",
+        operationId: DEFAULT_OPERATION_ID,
+        nodeId: input.nodeId
+      }),
       group: INPUTS_GROUP,
       rowLabel: input.label,
       target: numericTargetFromInput(input)
@@ -202,7 +242,12 @@ const WriteBindingPicker: React.FC<{
         const rowLabel = prop.title || prop.name;
         nodeOptions.push({
           label: `${group} · ${rowLabel}`,
-          value: makeNodePropertyBinding(node.id, prop.name),
+          value: encodeBinding({
+            kind: "nodeProperty",
+            operationId: DEFAULT_OPERATION_ID,
+            nodeId: node.id,
+            property: prop.name
+          }),
           group,
           rowLabel,
           target: numericTargetFromProperty(prop)
@@ -214,18 +259,20 @@ const WriteBindingPicker: React.FC<{
   }, [inputs, nodes, getMetadata]);
 
   const { selectedOption, resolvedOptions } = useMemo(() => {
-    const found = options.find((o) => o.value === value) ?? null;
+    const canonical = canonicalBinding(value, scope, "write");
+    const found = options.find((o) => o.value === canonical) ?? null;
     if (!value || found) {
       return { selectedOption: found, resolvedOptions: options };
     }
     // Stale binding (target node/input removed): keep it legible and selectable.
-    const parsed = parseNodePropertyBinding(value);
-    const label = parsed
-      ? `${parsed.nodeId.slice(0, 6)} · ${parsed.property}`
-      : `input · ${value}`;
+    const parsed = parseBinding(canonical);
+    const label =
+      parsed?.kind === "nodeProperty"
+        ? `${parsed.nodeId.slice(0, 6)} · ${parsed.property}`
+        : `input · ${value}`;
     const orphan: BindingOption = {
       label,
-      value,
+      value: canonical,
       group: "Unavailable",
       rowLabel: label
     };
@@ -233,7 +280,7 @@ const WriteBindingPicker: React.FC<{
       selectedOption: orphan,
       resolvedOptions: [orphan, ...options]
     };
-  }, [options, value]);
+  }, [options, scope, value]);
 
   const applyBinding = (option: BindingOption | null) => {
     const nextBinding = option?.value ?? "";
@@ -319,12 +366,172 @@ const VariablePicker: React.FC<{
   onChange: (value: string) => void;
 }> = ({ label, value, readOnly, onChange }) => {
   const { variables } = useBuilderWorkflow();
+  const scope = useBuilderBindingScope();
+  return (
+    <Picker
+      label={label}
+      value={canonicalBinding(value, scope, "read")}
+      options={variables.map((v) => ({
+        label: v,
+        value: encodeBinding({ kind: "variable", variableId: v })
+      }))}
+      emptyHint="Add a Set Variable node to the workflow to create app state."
+      readOnly={readOnly}
+      onChange={onChange}
+    />
+  );
+};
+
+const CONDITION_OPS: Option[] = [
+  { label: "is not empty", value: "notEmpty" },
+  { label: "is empty", value: "empty" },
+  { label: "equals", value: "eq" },
+  { label: "does not equal", value: "neq" },
+  { label: "is greater than", value: "gt" },
+  { label: "is less than", value: "lt" }
+];
+
+/** Operators that compare against a literal, so the value box is meaningful. */
+const OPS_WITH_VALUE = new Set(["eq", "neq", "gt", "lt"]);
+
+/**
+ * Condition field: a state reference, an operator, and (for comparisons) a
+ * literal. This plus the `format` template is the whole logic vocabulary the
+ * app layer offers — anything more expressive belongs in the graph.
+ */
+export const conditionField = (
+  label: string
+): CustomField<ConditionProps> => ({
+  type: "custom",
+  label,
+  render: ({ value, onChange, readOnly }) => (
+    <ConditionEditor
+      label={label}
+      value={value ?? {}}
+      readOnly={readOnly}
+      onChange={onChange}
+    />
+  )
+});
+
+const ConditionEditor: React.FC<{
+  label: string;
+  value: ConditionProps;
+  readOnly?: boolean;
+  onChange: (value: ConditionProps) => void;
+}> = ({ label, value, readOnly, onChange }) => {
+  const { inputs, outputs, variables } = useBuilderWorkflow();
+  const scope = useBuilderBindingScope();
+  const options: Option[] = [
+    ...outputs.map((o) => ({
+      label: `output · ${o.label}`,
+      value: encodeBinding({
+        kind: "output",
+        operationId: DEFAULT_OPERATION_ID,
+        nodeId: o.nodeId
+      })
+    })),
+    ...inputs.map((i) => ({
+      label: `input · ${i.label}`,
+      value: encodeBinding({
+        kind: "input",
+        operationId: DEFAULT_OPERATION_ID,
+        nodeId: i.nodeId
+      })
+    })),
+    ...variables.map((v) => ({
+      label: `variable · ${v}`,
+      value: encodeBinding({ kind: "variable", variableId: v })
+    })),
+    {
+      label: "run · is running",
+      value: encodeBinding({
+        kind: "execution",
+        operationId: DEFAULT_OPERATION_ID,
+        field: "running"
+      })
+    },
+    {
+      label: "run · error",
+      value: encodeBinding({
+        kind: "execution",
+        operationId: DEFAULT_OPERATION_ID,
+        field: "error"
+      })
+    }
+  ];
+  const op = value.op ?? "notEmpty";
+  return (
+    <FlexColumn gap={0.5}>
+      <Picker
+        label={label}
+        value={canonicalBinding(value.binding ?? "", scope, "none")}
+        options={options}
+        emptyHint="Add an Input, Output, or Set Variable node to condition on."
+        readOnly={readOnly}
+        onChange={(binding) => onChange({ ...value, binding })}
+      />
+      {value.binding ? (
+        <>
+          <SelectField
+            label="Condition"
+            value={op}
+            options={CONDITION_OPS}
+            disabled={readOnly}
+            onChange={(next) => onChange({ ...value, op: next })}
+          />
+          {OPS_WITH_VALUE.has(op) ? (
+            <TextInput
+              label="Value"
+              value={value.value ?? ""}
+              disabled={readOnly}
+              onChange={(event) =>
+                onChange({ ...value, value: event.target.value })
+              }
+            />
+          ) : null}
+        </>
+      ) : null}
+    </FlexColumn>
+  );
+};
+
+/**
+ * Resource binding field: pick one of the resource collections the app
+ * document declares. The bindings themselves are authored on the application
+ * record, not per widget — a widget only names which one it drives.
+ */
+export const resourceBindingField = (
+  label = "Resource"
+): CustomField<string> => ({
+  type: "custom",
+  label,
+  render: ({ value, onChange, readOnly }) => (
+    <ResourceBindingPicker
+      label={label}
+      value={value ?? ""}
+      readOnly={readOnly}
+      onChange={onChange}
+    />
+  )
+});
+
+const ResourceBindingPicker: React.FC<{
+  label: string;
+  value: string;
+  readOnly?: boolean;
+  onChange: (value: string) => void;
+}> = ({ label, value, readOnly, onChange }) => {
+  const { resources } = useBuilderWorkflow();
   return (
     <Picker
       label={label}
       value={value}
-      options={variables.map((v) => ({ label: v, value: v }))}
-      emptyHint="Add a Set Variable node to the workflow to create app state."
+      options={resources.map((r) => ({
+        label: `${r.kind} · ${r.name}`,
+        value: r.id
+      }))}
+      emptyHint="Add a resource binding to the app to connect a collection."
       readOnly={readOnly}
       onChange={onChange}
     />

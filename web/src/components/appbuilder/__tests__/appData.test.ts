@@ -1,9 +1,9 @@
 import {
   createEmptyData,
   createEmptyDocument,
-  parseAppDocument,
+  parseApplicationDocument,
   isRenderableData,
-  APP_DATA_VERSION
+  APP_SCHEMA_VERSION
 } from "../appData";
 
 describe("appData", () => {
@@ -15,30 +15,44 @@ describe("appData", () => {
 
   it("creates a document with a title in root props", () => {
     const doc = createEmptyDocument("My App");
-    expect(doc.version).toBe(APP_DATA_VERSION);
-    expect(doc.data.root.props?.title).toBe("My App");
+    expect(doc.schemaVersion).toBe(APP_SCHEMA_VERSION);
+    expect(doc.ui.root.props?.title).toBe("My App");
+    expect(doc.operations).toEqual([]);
   });
 
-  describe("parseAppDocument", () => {
+  describe("parseApplicationDocument", () => {
     it("returns null for non-documents", () => {
-      expect(parseAppDocument(null)).toBeNull();
-      expect(parseAppDocument("x")).toBeNull();
-      expect(parseAppDocument({})).toBeNull();
-      expect(parseAppDocument({ data: { root: {} } })).toBeNull(); // no content array
+      expect(parseApplicationDocument(null)).toBeNull();
+      expect(parseApplicationDocument("x")).toBeNull();
+      expect(parseApplicationDocument({})).toBeNull();
+      expect(parseApplicationDocument({ data: { root: {} } })).toBeNull();
     });
 
-    it("parses a valid Puck document", () => {
-      const doc = parseAppDocument({
-        version: 99,
-        data: {
-          root: { props: {} },
-          content: [{ type: "Text", props: { id: "t1", text: "hi" } }],
-          zones: {}
-        }
-      });
+    it("lifts a legacy document into one operation on the host workflow", () => {
+      const doc = parseApplicationDocument(
+        {
+          version: 2,
+          data: {
+            root: { props: {} },
+            content: [{ type: "Text", props: { id: "t1", text: "hi" } }],
+            zones: {}
+          }
+        },
+        { hostWorkflowId: "wf1" }
+      );
       expect(doc).not.toBeNull();
-      expect(doc!.version).toBe(APP_DATA_VERSION);
-      expect(doc!.data.content).toHaveLength(1);
+      expect(doc!.schemaVersion).toBe(APP_SCHEMA_VERSION);
+      expect(doc!.ui.content).toHaveLength(1);
+      expect(doc!.operations[0]).toMatchObject({ workflowId: "wf1" });
+    });
+
+    it("refuses a document written by a newer schema", () => {
+      expect(
+        parseApplicationDocument({
+          schemaVersion: 99,
+          ui: { root: { props: {} }, content: [] }
+        })
+      ).toBeNull();
     });
   });
 

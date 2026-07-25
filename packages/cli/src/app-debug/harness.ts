@@ -18,8 +18,15 @@ import type {
   ServerRunReport
 } from "../debug/types.js";
 import type { ServerRunInput, ServerRunOutcome } from "../debug/server-runner.js";
-import { extractAppIO, parseAppSpec, validateApp } from "./app-spec.js";
-import { HeadlessAppRuntime, eventToAction } from "./runtime.js";
+import {
+  DEFAULT_OPERATION_ID,
+  eventToAction,
+  parseBinding,
+  resolveBinding,
+  stateKey
+} from "@nodetool-ai/app-runtime";
+import { bindingScopeFor, extractAppIO, parseAppSpec, validateApp } from "./app-spec.js";
+import { HeadlessAppRuntime } from "./runtime.js";
 import { renderAppReportMarkdown } from "./markdown.js";
 import type {
   AppDebugOptions,
@@ -91,11 +98,70 @@ function describeStep(step: InteractionStep): string {
   return `change ${step.change}`;
 }
 
+/**
+ * Node types that emit on one of several output handles per run. A widget fed
+ * from one of their branches is *expected* to stay empty whenever the other
+ * branch is taken, so a single run cannot tell "the untaken branch" from "a
+ * branch that can never be taken".
+ */
+const BRANCHING_NODE_TYPES = new Set(["nodetool.control.If"]);
+
+/**
+ * Node ids reachable only through a branching node. Walks forward from every
+ * branch point over the graph's edges.
+ */
+function conditionalNodeIds(graph: DebugGraph): Set<string> {
+  const downstream = new Map<string, string[]>();
+  for (const edge of graph.edges) {
+    const source = typeof edge.source === "string" ? edge.source : null;
+    const target = typeof edge.target === "string" ? edge.target : null;
+    if (!source || !target) continue;
+    const list = downstream.get(source);
+    if (list) list.push(target);
+    else downstream.set(source, [target]);
+  }
+
+  const conditional = new Set<string>();
+  const queue: string[] = [];
+  for (const node of graph.nodes) {
+    const id = typeof node.id === "string" ? node.id : null;
+    const type = typeof node.type === "string" ? node.type : null;
+    if (id && type && BRANCHING_NODE_TYPES.has(type)) queue.push(id);
+  }
+  while (queue.length > 0) {
+    const current = queue.pop() as string;
+    for (const next of downstream.get(current) ?? []) {
+      if (conditional.has(next)) continue;
+      conditional.add(next);
+      queue.push(next);
+    }
+  }
+  return conditional;
+}
+
+/** Node ids keyed by the `name` their data carries, for name-form bindings. */
+function nodeIdsByName(graph: DebugGraph): Map<string, string> {
+  const byName = new Map<string, string>();
+  for (const node of graph.nodes) {
+    const id = typeof node.id === "string" ? node.id : null;
+    // Runner shape carries node props under `properties`; editor JSON uses
+    // `data`, and this runs against both.
+    const props = (node.properties ?? node.data) as
+      | Record<string, unknown>
+      | undefined;
+    const name = typeof props?.name === "string" ? props.name : null;
+    if (id && name && !byName.has(name)) byName.set(name, id);
+  }
+  return byName;
+}
+
 function buildAppVerdict(
   report: Pick<AppDebugReport, "validation" | "interactions" | "runs" | "widgets" | "spec">,
-  ranWorkflow: boolean
+  ranWorkflow: boolean,
+  graph: DebugGraph
 ): DebugVerdict {
   const issues: string[] = [...report.validation.errors];
+  const warnings: string[] = [];
 
   for (const interaction of report.interactions) {
     if (interaction.error) {
@@ -112,12 +178,30 @@ function buildAppVerdict(
     }
   }
   if (ranWorkflow && report.runs.length > 0 && report.runs.every((r) => r.ok)) {
+    const conditional = conditionalNodeIds(graph);
+    const byName = nodeIdsByName(graph);
+    const nodeIds = new Set(
+      graph.nodes.map((n) => (typeof n.id === "string" ? n.id : "")).filter(Boolean)
+    );
     for (const w of report.widgets) {
-      if (w.bindingMode === "read" && w.binding && !w.hasValue) {
-        issues.push(
-          `${w.type} "${w.id}" is bound to "${w.binding}" but never received a value — check the output node emits.`
+      if (w.bindingMode !== "read" || !w.binding || w.hasValue) continue;
+      const ref = parseBinding(w.binding);
+      // A legacy document binds by node name, and `parseBinding` hands the name
+      // back in the `nodeId` slot, so an unrecognised id is retried as a name.
+      const parsed = (ref && "nodeId" in ref ? ref.nodeId : null) ?? w.binding;
+      const nodeId = nodeIds.has(parsed) ? parsed : byName.get(parsed) ?? null;
+      if (nodeId && conditional.has(nodeId)) {
+        // One run takes one branch, so an empty widget here is expected. It is
+        // still worth surfacing: a branch that no input can reach looks exactly
+        // the same, and only running both branches tells them apart.
+        warnings.push(
+          `${w.type} "${w.id}" is bound to "${w.binding}", downstream of a branch that was not taken this run — run the other branch to confirm it can be reached.`
         );
+        continue;
       }
+      issues.push(
+        `${w.type} "${w.id}" is bound to "${w.binding}" but never received a value — check the output node emits.`
+      );
     }
   }
   if (ranWorkflow && report.runs.length === 0 && report.spec && report.spec.widgets.length > 0) {
@@ -127,10 +211,10 @@ function buildAppVerdict(
   const ok = issues.length === 0;
   const headline = ok
     ? report.runs.length > 0
-      ? `App ran clean — ${report.runs.length} run(s), every bound widget received a value.`
+      ? `App ran clean — ${report.runs.length} run(s), every bound widget on a taken branch received a value.`
       : "App wiring is valid (static check only — no run executed)."
     : `App has issues — ${issues[0]}`;
-  return { ok, headline, issues };
+  return { ok, headline, issues, warnings };
 }
 
 export async function runAppDebug(
@@ -157,8 +241,8 @@ export async function runAppDebug(
     );
   }
 
-  const { spec, issues: parseIssues } = parseAppSpec(resolved.appDoc);
   const io = extractAppIO(resolved.graph);
+  const { spec, issues: parseIssues } = parseAppSpec(resolved.appDoc, io);
   const validation = spec
     ? validateApp(spec, io)
     : { errors: [], warnings: [] };
@@ -214,11 +298,55 @@ export async function runAppDebug(
       return outcome.rawMessages as unknown as ReadonlyArray<Record<string, unknown>>;
     };
 
-    const runtime = new HeadlessAppRuntime({ io, runWorkflow });
-    for (const [key, value] of Object.entries(
-      { ...resolved.fileParams, ...(options.params ?? {}) }
-    )) {
-      runtime.setValue(key, value);
+    const scope = bindingScopeFor(io);
+    const inputKey = (nodeId: string) =>
+      stateKey({ kind: "input", operationId: DEFAULT_OPERATION_ID, nodeId });
+    const outputKeyByNodeId = new Map(
+      io.outputs.map((o) => [
+        o.nodeId,
+        stateKey({
+          kind: "output",
+          operationId: DEFAULT_OPERATION_ID,
+          nodeId: o.nodeId
+        })
+      ])
+    );
+    const paramNameByInputKey = new Map(
+      io.inputs.map((i) => [inputKey(i.nodeId), i.name])
+    );
+    const defaults: Record<string, unknown> = {};
+    for (const input of io.inputs) {
+      if (input.defaultValue !== undefined) {
+        defaults[inputKey(input.nodeId)] = input.defaultValue;
+      }
+    }
+
+    const runtime = new HeadlessAppRuntime({
+      operationId: DEFAULT_OPERATION_ID,
+      outputKeyByNodeId,
+      paramNameByInputKey,
+      defaults,
+      runWorkflow
+    });
+
+    /** Write a value addressed by name (a param, or an `--interact` set step). */
+    const writeByName = (name: string, value: unknown): boolean => {
+      const ref =
+        resolveBinding(name, scope, "write") ?? resolveBinding(name, scope, "read");
+      if (!ref) return false;
+      runtime.write(ref, value);
+      return true;
+    };
+
+    for (const [key, value] of Object.entries({
+      ...resolved.fileParams,
+      ...(options.params ?? {})
+    })) {
+      if (!writeByName(key, value)) {
+        report.validation.warnings.push(
+          `Param "${key}" matches no input, output, or variable in the workflow.`
+        );
+      }
     }
 
     const steps = options.interact ?? defaultInteractions(spec);
@@ -232,8 +360,11 @@ export async function runAppDebug(
       report.interactions.push(record);
 
       if ("set" in step) {
-        runtime.setValue(step.set.key, step.set.value);
-        record.actions.push(`set ${step.set.key}`);
+        if (writeByName(step.set.key, step.set.value)) {
+          record.actions.push(`set ${step.set.key}`);
+        } else {
+          record.error = `"${step.set.key}" matches no input, output, or variable.`;
+        }
         continue;
       }
 
@@ -244,32 +375,41 @@ export async function runAppDebug(
         continue;
       }
       if ("change" in step && step.value !== undefined) {
-        if (found.stateKey) runtime.setValue(found.stateKey, step.value);
+        if (found.ref) runtime.write(found.ref, step.value);
         record.actions.push(`set ${found.stateKey ?? found.id}`);
       }
-      // A run from a bound write widget carries its input name; the web engine
+      // A run from a bound write widget carries its binding; the web engine
       // would run just that input's downstream subgraph — headless, both paths
       // are a full authoritative run.
-      const from = found.bindingMode === "write" ? found.binding ?? undefined : undefined;
+      const from =
+        found.bindingMode === "write" ? found.canonicalBinding ?? undefined : undefined;
+      const eventCtx = {
+        defaultOperationId: DEFAULT_OPERATION_ID,
+        resolveVariableId: (key: string | undefined) => {
+          const ref = resolveBinding(key, scope, "read");
+          return ref?.kind === "variable" ? ref.variableId : null;
+        },
+        from
+      };
       for (const event of found.events) {
         if (event.trigger !== trigger) continue;
-        const action = eventToAction(event, from);
-        if (action.kind === "run") {
-          if (!allowRuns) {
-            record.actions.push("run (skipped — --no-run)");
-            continue;
-          }
-          record.runIndex = report.runs.length;
-          record.actions.push("run");
-          await runtime.dispatch(action);
-        } else {
-          record.actions.push(
-            action.kind === "setState" || action.kind === "toggleState"
-              ? `${action.kind} ${action.key}`
-              : action.kind
-          );
-          await runtime.dispatch(action);
+        const action = eventToAction(event, eventCtx);
+        if (!action) {
+          record.error =
+            record.error ?? `event "${event.kind}" is incomplete — nothing to dispatch.`;
+          continue;
         }
+        if (action.kind === "run" && !allowRuns) {
+          record.actions.push("run (skipped — --no-run)");
+          continue;
+        }
+        if (action.kind === "run") record.runIndex = report.runs.length;
+        record.actions.push(
+          action.kind === "setVariable" || action.kind === "toggleVariable"
+            ? `${action.kind} ${action.variableId}`
+            : action.kind
+        );
+        await runtime.dispatch(action);
       }
       if (record.actions.length === 0) {
         record.error = `widget has no "${trigger}" events to fire.`;
@@ -277,11 +417,34 @@ export async function runAppDebug(
       if (runtime.error) record.error = record.error ?? runtime.error;
     }
 
-    report.values = previewValue(runtime.values) as Record<string, unknown>;
+    // The report reads better keyed by the names an author recognizes than by
+    // the runtime's namespaced state keys.
+    const values: Record<string, unknown> = {};
+    for (const input of io.inputs) {
+      const value = runtime.read({
+        kind: "input",
+        operationId: DEFAULT_OPERATION_ID,
+        nodeId: input.nodeId
+      });
+      if (value !== undefined) values[input.name] = value;
+    }
+    for (const output of io.outputs) {
+      const value = runtime.read({
+        kind: "output",
+        operationId: DEFAULT_OPERATION_ID,
+        nodeId: output.nodeId
+      });
+      if (value !== undefined) values[output.name] = value;
+    }
+    for (const [variableId, value] of Object.entries(runtime.state.variables)) {
+      if (value !== undefined) values[variableId] = value;
+    }
+    report.values = previewValue(values) as Record<string, unknown>;
+
     report.widgets = spec.widgets
       .filter((w) => w.bindingMode !== "layout")
       .map((w) => {
-        const value = w.stateKey ? runtime.values[w.stateKey] : undefined;
+        const value = runtime.read(w.ref);
         return {
           id: w.id,
           type: w.type,
@@ -294,7 +457,7 @@ export async function runAppDebug(
       });
   }
 
-  report.verdict = buildAppVerdict(report, allowRuns);
+  report.verdict = buildAppVerdict(report, allowRuns, resolved.graph);
 
   await writeFile(join(outDir, "report.json"), JSON.stringify(report, null, 2), "utf8");
   await writeFile(join(outDir, "report.md"), renderAppReportMarkdown(report), "utf8");

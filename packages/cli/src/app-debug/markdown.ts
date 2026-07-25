@@ -37,9 +37,13 @@ export function renderAppReportMarkdown(report: AppDebugReport): string {
     lines.push("", "## Issues");
     for (const issue of report.verdict.issues) lines.push(`- ${issue}`);
   }
-  if (report.validation.warnings.length > 0) {
+  const warnings = [
+    ...report.validation.warnings,
+    ...(report.verdict.warnings ?? [])
+  ];
+  if (warnings.length > 0) {
     lines.push("", "## Warnings");
-    for (const warning of report.validation.warnings) lines.push(`- ${warning}`);
+    for (const warning of warnings) lines.push(`- ${warning}`);
   }
 
   if (report.interactions.length > 0) {

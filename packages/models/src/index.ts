@@ -146,6 +146,40 @@ export {
 } from "./storyboard.js";
 export type { StoryboardDocument, StoryboardResponse } from "./storyboard.js";
 export {
+  Application,
+  ApplicationConflictError,
+  deriveCapabilities,
+  publishApplication,
+  listApplicationVersions,
+  releasedApplicationVersion,
+  releaseApplicationVersion
+} from "./application.js";
+export type {
+  ApplicationCapabilities,
+  ApplicationResponse,
+  ApplicationVersionResponse
+} from "./application.js";
+export {
+  applicationUsage,
+  checkApplicationBudget,
+  getApplicationBudget,
+  listInvocations,
+  periodStart,
+  recordInvocation,
+  reserveInvocation,
+  setApplicationBudget,
+  settleInvocation
+} from "./application-budget.js";
+export type {
+  ApplicationBudget,
+  ApplicationUsage,
+  BudgetDecision,
+  BudgetPeriod,
+  InvocationRecord,
+  Reservation,
+  ReserveInput
+} from "./application-budget.js";
+export {
   Script,
   ScriptConflictError,
   emptyScriptDocument,

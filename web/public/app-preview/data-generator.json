@@ -5,8 +5,8 @@
   "featured": false,
   "image": "/app-preview/img/data-generator.jpg",
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Data Generator"
@@ -36,7 +36,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-topic",
-                        "binding": "topic",
+                        "binding": "op:main/in:topic_input",
                         "events": []
                       }
                     },
@@ -44,7 +44,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-row-count",
-                        "binding": "row_count",
+                        "binding": "op:main/in:row_count_input",
                         "events": []
                       }
                     },
@@ -88,7 +88,7 @@
                       "type": "Json",
                       "props": {
                         "id": "out-generated-data",
-                        "binding": "generated_data"
+                        "binding": "op:main/out:data_output"
                       }
                     }
                   ]
@@ -99,12 +99,98 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "topic_input",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "topic",
+          "value": "fresh vegetables, each with its typical color",
+          "description": "What kind of data to generate — a topic or dataset description"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 54,
+            "y": 20
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1️⃣ Topic"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "row_count_input",
+        "parent_id": null,
+        "type": "nodetool.input.IntegerInput",
+        "data": {
+          "name": "row_count",
+          "value": 8,
+          "min": 3,
+          "max": 30,
+          "description": "How many rows to generate"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 54,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2️⃣ Row count"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "data_output",
+        "parent_id": null,
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "generated_data"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1122,
+            "y": 20
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "5️⃣ View table",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": []
   },
   "values": {
-    "topic": "fresh vegetables, each with its typical color",
-    "row_count": 8,
-    "generated_data": [
+    "op:main/in:topic_input": "fresh vegetables, each with its typical color",
+    "op:main/in:row_count_input": 8,
+    "op:main/out:data_output": [
       {
         "city": "Lisbon",
         "population": 545000,

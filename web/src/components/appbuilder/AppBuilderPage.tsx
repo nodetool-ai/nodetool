@@ -1,33 +1,28 @@
-/** @jsxImportSource @emotion/react */
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Data } from "@puckeditor/core";
 
 import {
   Box,
-  FlexRow,
   FlexColumn,
+  FlexRow,
   LoadingSpinner,
   Text,
   Caption,
   AlertBanner,
-  BORDER_RADIUS,
   SPACING
 } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import FrontendToolRuntimeSync from "../panels/FrontendToolRuntimeSync";
-import { APP_DATA_VERSION, createEmptyData } from "./appData";
-import { loadAppData, toAppDocField } from "./persistence";
-import PuckAppEditor from "./puck/PuckAppEditor";
-import AppBuilderAgentPanel from "./AppBuilderAgentPanel";
+import { createEmptyDocument, type AppDocument } from "./appData";
+import { loadAppDocument, toAppDocField } from "./persistence";
+import AppBuilderShell from "./AppBuilderShell";
 
 /**
- * Full-page route for the WYSIWYG app builder (`/app-builder/:workflowId`).
- * Fetches the workflow, hands its Puck document to the editor, and persists
- * edits back onto `workflow.settings` on save.
+ * Full-page route for the WYSIWYG app builder (`/app-builder/:workflowId`) —
+ * the legacy target: the document lives on `workflow.app_doc`. Editing an
+ * `applications` record goes through `ApplicationAppBuilder` instead.
  */
 const AppBuilderPage: React.FC = () => {
   const { workflowId } = useParams<{ workflowId?: string }>();
@@ -35,13 +30,8 @@ const AppBuilderPage: React.FC = () => {
 
   const fetchWorkflow = useWorkflowManager((s) => s.fetchWorkflow);
   const saveWorkflow = useWorkflowManager((s) => s.saveWorkflow);
-  const setCurrentWorkflowId = useWorkflowManager((s) => s.setCurrentWorkflowId);
   const addNotification = useNotificationStore((s) => s.addNotification);
   const queryClient = useQueryClient();
-
-  const [data, setData] = useState<Data | null>(null);
-  const [agentOpen, setAgentOpen] = useState(false);
-  const toggleAgent = useCallback(() => setAgentOpen((open) => !open), []);
 
   const {
     data: workflow,
@@ -56,28 +46,22 @@ const AppBuilderPage: React.FC = () => {
     retry: false
   });
 
-  // Seed the editor once the workflow is fetched, and make it the current
-  // workflow so the agent's workflow tools target it.
-  useEffect(() => {
-    if (!workflow) return;
-    setData(loadAppData(workflow) ?? createEmptyData());
-    setCurrentWorkflowId(workflow.id);
-  }, [workflow, setCurrentWorkflowId]);
+  const document = useMemo(
+    () => (workflow ? loadAppDocument(workflow) ?? createEmptyDocument() : null),
+    [workflow]
+  );
 
   const handleClose = useCallback(() => {
     navigate(-1);
   }, [navigate]);
 
   const handleSave = useCallback(
-    async (nextData: Data) => {
+    async (document: AppDocument) => {
       if (!workflow) return;
       try {
         const next: Workflow = {
           ...workflow,
-          app_doc: toAppDocField({
-            version: APP_DATA_VERSION,
-            data: nextData
-          })
+          app_doc: toAppDocField(document)
         };
         await saveWorkflow(next);
         queryClient.setQueryData(["workflow", workflow.id], next);
@@ -95,7 +79,7 @@ const AppBuilderPage: React.FC = () => {
     [addNotification, queryClient, saveWorkflow, workflow]
   );
 
-  if (isLoading || (workflow && !data)) {
+  if (isLoading) {
     return (
       <FlexColumn
         align="center"
@@ -107,7 +91,7 @@ const AppBuilderPage: React.FC = () => {
     );
   }
 
-  if (error || !workflow || !data) {
+  if (error || !workflow || !document) {
     return (
       <FlexColumn
         align="center"
@@ -123,10 +107,14 @@ const AppBuilderPage: React.FC = () => {
   }
 
   return (
-    <FlexRow gap={0} sx={{ width: "100%", height: "100%", minHeight: 0 }}>
-      {/* Syncs workflow tools to this workflow so the agent can edit the graph. */}
-      <FrontendToolRuntimeSync />
-      <FlexColumn sx={{ flex: 1, minWidth: 0, height: "100%", minHeight: 0 }}>
+    <AppBuilderShell
+      key={workflow.id}
+      document={document}
+      workflow={workflow}
+      agentWorkflowId={workflow.id}
+      onSave={(document) => void handleSave(document)}
+      onClose={handleClose}
+      header={
         <FlexRow
           align="center"
           justify="space-between"
@@ -150,33 +138,8 @@ const AppBuilderPage: React.FC = () => {
             Bind widgets to workflow inputs and outputs, then save.
           </Caption>
         </FlexRow>
-        <Box sx={{ flex: 1, minHeight: 0 }}>
-          <PuckAppEditor
-            workflow={workflow}
-            data={data}
-            onPublish={handleSave}
-            onClose={handleClose}
-            agentOpen={agentOpen}
-            onToggleAgent={toggleAgent}
-          />
-        </Box>
-      </FlexColumn>
-      {agentOpen && (
-        <Box
-          sx={{
-            width: { xs: "min(100vw, 360px)", lg: 420 },
-            flexShrink: 0,
-            height: "100%",
-            borderLeft: "1px solid",
-            borderColor: "divider",
-            overflow: "hidden",
-            borderTopLeftRadius: BORDER_RADIUS.lg
-          }}
-        >
-          <AppBuilderAgentPanel workflowId={workflow.id} />
-        </Box>
-      )}
-    </FlexRow>
+      }
+    />
   );
 };
 
