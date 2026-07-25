@@ -70,8 +70,11 @@ Follow the sibling-editor pattern (`timeline_sequences`, `storyboards`,
 `image_documents`: entity table + JSON `document` column + tRPC router +
 per-instance web store + agent bridge).
 
+Table names follow the sibling tables' unprefixed convention (`storyboards`,
+`timeline_sequences`), not the older `nodetool_`-prefixed one.
+
 ```
-nodetool_applications
+applications
   id            text pk
   user_id       text
   project_id    text          -- project-scoped, like storyboards
@@ -80,7 +83,7 @@ nodetool_applications
   document      text (json)   -- ApplicationDocument, schema-versioned
   created_at / updated_at
 
-nodetool_application_versions
+application_versions
   id             text pk
   application_id text
   version        integer       -- monotonic per application
@@ -247,8 +250,10 @@ CLI), not just apps.
 ### State model
 
 One store per open app instance (a factory like `TimelineInstance.tsx`, not
-today's process-global `Map` keyed by workflow ID — which also fixes the
-never-called `disposeAppRuntimeStore` leak). Inside it, four namespaced maps
+today's process-global `Map` keyed by workflow ID, which shares one store
+across every context that opens the same workflow; its disposal is tied to
+workflow removal in `WorkflowManagerStore`, not to closing an app). Inside it,
+four namespaced maps
 instead of one flat `Record<string, unknown>`:
 
 ```ts
