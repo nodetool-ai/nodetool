@@ -6,6 +6,7 @@
 import React from "react";
 import {
   DEFAULT_OPERATION_ID,
+  implicitOperation,
   type AppInstanceState,
   type BindingScope
 } from "@nodetool-ai/app-runtime";
@@ -51,6 +52,8 @@ export const makeTestRuntime = (
     store,
     io: { inputs: [], outputs: [] },
     scope: TEST_SCOPE,
+    operation: implicitOperation("wf1"),
+    resources: [],
     designMode: false,
     dispatch: jest.fn(),
     write: jest.fn((ref, next) => {
@@ -75,6 +78,7 @@ export const makeTestRuntime = (
         });
       }
     }),
+    selectResource: jest.fn(),
     getNodeProperty: jest.fn(),
     ...overrides
   };

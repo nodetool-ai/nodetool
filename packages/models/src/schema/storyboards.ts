@@ -1,4 +1,4 @@
-import { sqliteTable, text, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 
 export const storyboards = sqliteTable(
   "storyboards",
@@ -10,6 +10,12 @@ export const storyboards = sqliteTable(
     document: text("document").notNull(),
     /** Timeline sequence this board was assembled into, if any. */
     timeline_id: text("timeline_id"),
+    /**
+     * Monotonic write counter. Resource providers hand it out inside a
+     * `ResourceRef` and reject a write whose ref is behind — optimistic
+     * concurrency for interactive editing widgets.
+     */
+    revision: integer("revision").notNull().default(0),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

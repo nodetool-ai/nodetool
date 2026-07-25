@@ -2004,5 +2004,99 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_application_user");
       await db.execute("DROP TABLE IF EXISTS applications");
     }
+  },
+
+  // ── Add revision to the resource document tables ────────────────────
+  // Mini-app resource bindings hand widgets a `ResourceRef { kind, id,
+  // revision }`. A write carrying a stale revision is rejected, so an
+  // interactive editing widget cannot silently clobber a concurrent edit.
+  {
+    version: "20260725_000001",
+    name: "add_revision_to_resource_documents",
+    createsTables: [],
+    modifiesTables: ["timeline_sequences", "storyboards", "image_documents"],
+    async up(db) {
+      for (const table of [
+        "timeline_sequences",
+        "storyboards",
+        "image_documents"
+      ]) {
+        if (!(await db.columnExists(table, "revision"))) {
+          await db.execute(
+            `ALTER TABLE ${table} ADD COLUMN revision INTEGER NOT NULL DEFAULT 0`
+          );
+        }
+      }
+    },
+    async down(db) {
+      for (const table of [
+        "timeline_sequences",
+        "storyboards",
+        "image_documents"
+      ]) {
+        if (await db.columnExists(table, "revision")) {
+          await db.execute(`ALTER TABLE ${table} DROP COLUMN revision`);
+        }
+      }
+    }
+  },
+
+  // ── Create application budgets and the invocation ledger ────────────
+  // A published app runs on the creator's secrets, so runs are checked against
+  // a hard budget before the job is created and settled from the run's actual
+  // provider cost afterwards. The ledger doubles as release telemetry, keyed by
+  // (application_id, version, invocation_id).
+  {
+    version: "20260725_000002",
+    name: "create_application_budgets",
+    createsTables: ["application_budgets", "application_invocations"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS application_budgets (
+          application_id TEXT PRIMARY KEY,
+          period TEXT NOT NULL DEFAULT 'month',
+          max_usd REAL,
+          max_invocations INTEGER,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS application_invocations (
+          id TEXT PRIMARY KEY,
+          application_id TEXT NOT NULL,
+          version INTEGER,
+          invocation_id TEXT NOT NULL,
+          operation_id TEXT NOT NULL DEFAULT '',
+          estimated_usd REAL NOT NULL DEFAULT 0,
+          actual_usd REAL,
+          status TEXT NOT NULL DEFAULT 'running',
+          created_at TEXT NOT NULL,
+          settled_at TEXT
+        )
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_application_invocation_app
+        ON application_invocations (application_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_application_invocation_created
+        ON application_invocations (created_at)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_application_invocation_invocation
+        ON application_invocations (invocation_id)
+      `);
+    },
+    async down(db) {
+      await db.execute(
+        "DROP INDEX IF EXISTS idx_application_invocation_invocation"
+      );
+      await db.execute("DROP INDEX IF EXISTS idx_application_invocation_created");
+      await db.execute("DROP INDEX IF EXISTS idx_application_invocation_app");
+      await db.execute("DROP TABLE IF EXISTS application_invocations");
+      await db.execute("DROP TABLE IF EXISTS application_budgets");
+    }
   }
 ];

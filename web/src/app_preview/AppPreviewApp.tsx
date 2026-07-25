@@ -14,7 +14,10 @@ import { Render, type Data } from "@puckeditor/core";
 import { ThemeProvider, CssBaseline } from "@mui/material";
 
 import ThemeNodetool from "../components/themes/ThemeNodetool";
-import { DEFAULT_OPERATION_ID } from "@nodetool-ai/app-runtime";
+import {
+  DEFAULT_OPERATION_ID,
+  implicitOperation
+} from "@nodetool-ai/app-runtime";
 
 import { createAppRuntimeStore } from "../components/appbuilder/runtime/appRuntimeStore";
 import {
@@ -134,9 +137,12 @@ const AppPreviewApp: React.FC = () => {
                 persist: false
               }))
             },
+            operation: implicitOperation(""),
+            resources: [],
             designMode: false,
             dispatch: () => {},
             write: () => {},
+            selectResource: () => {},
             getNodeProperty: () => undefined
           }
         : null,

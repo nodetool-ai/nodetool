@@ -27,6 +27,12 @@ framework-independent core the web runtime, the CLI `app debug` harness, and the
 - **Widgets** bind one slot (read for displays, two-way for inputs) and emit
   **events** (`click` / `change`) that dispatch **actions** (`run`, `cancel`,
   `setVariable`, `toggleVariable`, `resourceCommand`, `openResource`).
+- **Resource bindings** name a collection (a kind plus a project or a pinned
+  id) rather than a document. A picker chooses a member; the chosen
+  `ResourceRef` carries the document's `revision`, and the server rejects a
+  write whose ref is behind. Entity data is never copied into the app store —
+  widgets read it through TanStack Query, and the store holds refs and
+  selection only.
 - **Logic** is a closed vocabulary: `visibleWhen`, `disabledWhen`, and a
   `format` template (`{binding|number:2}`). Everything else — derived values,
   validation, transformation — is a node in the graph.
@@ -60,6 +66,8 @@ the existing worker path.
     pickers), which write bindings in their ID form.
   - `conditionalWidget.tsx` — applies `visibleWhen` / `disabledWhen` / `format`
     to every widget in one place.
+  - `ResourcePickerWidget.tsx` — chooses a member of a bound resource
+    collection through the `resources` provider router.
   - `useWidgetRuntime.ts` — binds a widget's props to reactive state + events.
   - `BuilderWorkflowContext.tsx` — supplies the bindable surface to fields.
   - `PuckAppEditor.tsx` — the `<Puck>` editor wrapper.
@@ -93,3 +101,18 @@ document when present, otherwise a form/results layout generated from the
 graph's Input/Output nodes (`generateAppData`). The builder lives at
 `/app-builder/:workflowId`; open it from a workflow's View mode with
 **App Builder**.
+
+## Publishing
+
+An app's own record (`applications`) carries the document; publishing writes an
+immutable `application_versions` snapshot with a capability summary **derived**
+from its bindings — the workflows it may invoke and the resource kinds it
+touches. Rollback moves the release pointer.
+
+A released app runs on the creator's secrets, so runs are metered: the server
+checks the app's budget (`applications.beginInvocation`) before the job is
+created, refusing with a typed `BUDGET_EXCEEDED` error rather than letting a run
+reach a provider, and settles the ledger row at the run's actual cost afterwards.
+An unsettled run keeps counting at its estimate, so a crash cannot free spend it
+may already have incurred. The same ledger is the release telemetry, keyed by
+`(applicationId, version, invocationId)`.

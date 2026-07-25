@@ -14,15 +14,19 @@
  */
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
-  DEFAULT_OPERATION_ID,
+  implicitOperation,
+  mergeVariables,
   messageToEvents,
-  parseInputStateKey,
   resolveBinding,
+  resolveOperationParams,
   stateKey,
   type AppAction,
+  type ApplicationDocument,
   type BindingRef,
   type BindingScope,
-  type InvocationState
+  type InvocationState,
+  type OperationBinding,
+  type ResourceRef
 } from "@nodetool-ai/app-runtime";
 
 import { Workflow } from "../../../stores/ApiTypes";
@@ -50,42 +54,69 @@ import { AppRuntimeContextValue } from "./AppRuntimeContext";
 
 const now = (): number => Date.now();
 
+export interface AppRuntimeOptions {
+  /**
+   * The app document, when the app has one. A legacy app running straight off
+   * a workflow gets a synthesized single-operation document instead, so both
+   * shapes take one code path.
+   */
+  document?: ApplicationDocument;
+  /** Open a resource in its own editor. The runtime only knows which one. */
+  onOpenResource?: (resourceBindingId: string, ref: ResourceRef) => void;
+  /** Run a provider command (upload, delete, …) against a resource binding. */
+  onResourceCommand?: (
+    resourceBindingId: string,
+    command: string,
+    ref: ResourceRef | undefined
+  ) => void | Promise<void>;
+}
+
 export const useAppRuntime = (
   workflow: Workflow | undefined,
-  designMode: boolean
+  designMode: boolean,
+  options: AppRuntimeOptions = {}
 ): AppRuntimeContextValue => {
+  const { document, onOpenResource, onResourceCommand } = options;
   const io = useMemo(() => extractWorkflowIO(workflow), [workflow]);
   const workflowId = workflow?.id;
+
+  // The operation a widget's run targets. Multi-operation apps arrive with the
+  // application entity; until then every app has exactly one.
+  const operation: OperationBinding = useMemo(
+    () => document?.operations[0] ?? implicitOperation(workflowId ?? ""),
+    [document, workflowId]
+  );
 
   // Everything a stored binding string can resolve against. Legacy documents
   // bind by name; the scope turns those names into node IDs once, here, so a
   // later rename in the graph editor is invisible to the app.
   const scope: BindingScope = useMemo(
     () => ({
-      defaultOperationId: DEFAULT_OPERATION_ID,
+      defaultOperationId: operation.id,
       operations: [
         {
-          operationId: DEFAULT_OPERATION_ID,
+          operationId: operation.id,
           inputs: io.inputs.map(({ nodeId, name }) => ({ nodeId, name })),
           outputs: io.outputs.map(({ nodeId, name }) => ({ nodeId, name })),
           nodeIds: (workflow?.graph?.nodes ?? []).map((n) => n.id),
           variableNames: extractVariableNames(workflow)
         }
       ],
-      variables: []
+      variables: mergeVariables(
+        document?.variables ?? [],
+        extractVariableNames(workflow)
+      )
     }),
-    [io, workflow]
+    [document, io, workflow]
   );
 
   const inputKey = useCallback(
-    (nodeId: string) =>
-      stateKey({ kind: "input", operationId: DEFAULT_OPERATION_ID, nodeId }),
-    []
+    (nodeId: string) => stateKey({ kind: "input", operationId: operation.id, nodeId }),
+    [operation.id]
   );
   const outputKey = useCallback(
-    (nodeId: string) =>
-      stateKey({ kind: "output", operationId: DEFAULT_OPERATION_ID, nodeId }),
-    []
+    (nodeId: string) => stateKey({ kind: "output", operationId: operation.id, nodeId }),
+    [operation.id]
   );
 
   // A design canvas gets an ephemeral store: widget writes there must not leak
@@ -126,6 +157,9 @@ export const useAppRuntime = (
   // Invocations this app started, by job id. A streaming message for anything
   // else is not ours — that is the whole cross-run contamination fix.
   const ownedRef = useRef(new Map<string, InvocationState>());
+  // The resource each binding currently points at. A picker widget sets one;
+  // an operation input mapped `from: "resource"` passes it to the run.
+  const resourceRefsRef = useRef(new Map<string, ResourceRef>());
   // Messages that arrived between dispatching a run and learning its job id.
   const pendingRef = useRef<MsgpackData[]>([]);
   const awaitingJobRef = useRef(0);
@@ -157,7 +191,7 @@ export const useAppRuntime = (
     (jobId: string, clearOutputs: boolean) => {
       const invocation: InvocationState = {
         id: jobId,
-        operationId: DEFAULT_OPERATION_ID,
+        operationId: operation.id,
         status: "running",
         startedAt: now()
       };
@@ -173,7 +207,7 @@ export const useAppRuntime = (
       pendingRef.current = [];
       for (const message of buffered) foldRef.current(message);
     },
-    [io.outputs, outputKey, store]
+    [io.outputs, operation.id, outputKey, store]
   );
 
   useEffect(() => {
@@ -224,11 +258,18 @@ export const useAppRuntime = (
   const run = useCallback(async () => {
     if (!workflow || designMode) return;
     const state = store.getState();
-    const params: Record<string, unknown> = {};
-    for (const input of io.inputs) {
-      const value = state.inputs[inputKey(input.nodeId)]?.value;
-      if (value !== undefined) params[input.name] = value;
-    }
+    // Bindings key on node IDs; the run protocol wants names. That translation
+    // happens here, at the execution boundary, which is why a graph rename
+    // never touches the app document.
+    const params = resolveOperationParams({
+      operation,
+      state,
+      inputNodeIds: io.inputs.map((input) => input.nodeId),
+      inputName: (nodeId) =>
+        io.inputs.find((input) => input.nodeId === nodeId)?.name,
+      resourceRef: (resourceBindingId) =>
+        resourceRefsRef.current.get(resourceBindingId)
+    });
 
     // Node-property bindings overlay their live widget values onto the graph
     // before the run, so a slider bound to e.g. a model's `strength` drives the
@@ -254,7 +295,7 @@ export const useAppRuntime = (
       const message = error instanceof Error ? error.message : "Run failed";
       const failed: InvocationState = {
         id: `failed-${now()}`,
-        operationId: DEFAULT_OPERATION_ID,
+        operationId: operation.id,
         status: "failed",
         error: message,
         startedAt: now()
@@ -266,7 +307,7 @@ export const useAppRuntime = (
     } finally {
       awaitingJobRef.current -= 1;
     }
-  }, [claimInvocation, designMode, inputKey, io.inputs, runnerStore, store, workflow]);
+  }, [claimInvocation, designMode, io.inputs, operation, runnerStore, store, workflow]);
 
   const cancel = useCallback(async () => {
     await runnerStore.getState().cancel();
@@ -428,12 +469,33 @@ export const useAppRuntime = (
             .getState()
             .dispatchEvent({ type: "toggleVariable", variableId: action.variableId });
           break;
-        default:
-          // Resource actions arrive with P4; nothing to dispatch yet.
+        case "openResource": {
+          // Opening a resource in its own editor is the host app's job — the
+          // runtime only knows which binding was asked for.
+          const ref =
+            action.ref ?? resourceRefsRef.current.get(action.resourceBindingId);
+          if (ref) onOpenResource?.(action.resourceBindingId, ref);
+          break;
+        }
+        case "resourceCommand":
+          void onResourceCommand?.(
+            action.resourceBindingId,
+            action.command,
+            resourceRefsRef.current.get(action.resourceBindingId)
+          );
           break;
       }
     },
-    [cancel, designMode, reactiveRun, run, scope, store]
+    [
+      cancel,
+      designMode,
+      onOpenResource,
+      onResourceCommand,
+      reactiveRun,
+      run,
+      scope,
+      store
+    ]
   );
 
   const getNodeProperty = useCallback(
@@ -448,8 +510,38 @@ export const useAppRuntime = (
     [workflow]
   );
 
+  const selectResource = useCallback(
+    (resourceBindingId: string, ref: ResourceRef | null) => {
+      if (ref) resourceRefsRef.current.set(resourceBindingId, ref);
+      else resourceRefsRef.current.delete(resourceBindingId);
+    },
+    []
+  );
+
   return useMemo(
-    () => ({ store, io, scope, designMode, dispatch, write, getNodeProperty }),
-    [store, io, scope, designMode, dispatch, write, getNodeProperty]
+    () => ({
+      store,
+      io,
+      scope,
+      operation,
+      resources: document?.resources ?? [],
+      designMode,
+      dispatch,
+      write,
+      selectResource,
+      getNodeProperty
+    }),
+    [
+      store,
+      io,
+      scope,
+      operation,
+      document,
+      designMode,
+      dispatch,
+      write,
+      selectResource,
+      getNodeProperty
+    ]
   );
 };

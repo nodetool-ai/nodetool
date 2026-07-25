@@ -3,6 +3,8 @@ import React from "react";
 import { Render, type Data } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
 
+import type { ApplicationDocument } from "@nodetool-ai/app-runtime";
+
 import { Workflow } from "../../stores/ApiTypes";
 import { useAppRuntime } from "./runtime/useAppRuntime";
 import {
@@ -16,6 +18,12 @@ import { AlertBanner, Box, SPACING, Z_INDEX } from "../ui_primitives";
 interface AppRuntimeViewProps {
   workflow: Workflow;
   data: Data;
+  /**
+   * The app document, when the workflow carries one. Supplies the operation's
+   * input mappings, declared variables, and resource bindings; without it the
+   * runtime synthesizes a single-operation document from the graph.
+   */
+  document?: ApplicationDocument;
 }
 
 /**
@@ -61,8 +69,12 @@ const RuntimeErrorBanner: React.FC = () => {
  * runtime context streams workflow outputs into bound widgets and turns widget
  * events into workflow runs.
  */
-const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({ workflow, data }) => {
-  const runtime = useAppRuntime(workflow, false);
+const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
+  workflow,
+  data,
+  document
+}) => {
+  const runtime = useAppRuntime(workflow, false, { document });
   return (
     <AppRuntimeContext.Provider value={runtime}>
       <Box

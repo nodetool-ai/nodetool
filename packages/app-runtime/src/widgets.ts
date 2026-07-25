@@ -83,6 +83,12 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
     trigger: "change",
     commits: false
   },
+  ResourcePicker: {
+    label: "Resource Picker",
+    mode: "write",
+    trigger: "change",
+    commits: false
+  },
   // Actions
   Button: { label: "Button", mode: "action", trigger: "click" },
   // Layout

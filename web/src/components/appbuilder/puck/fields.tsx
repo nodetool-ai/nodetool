@@ -495,3 +495,45 @@ const ConditionEditor: React.FC<{
     </FlexColumn>
   );
 };
+
+/**
+ * Resource binding field: pick one of the resource collections the app
+ * document declares. The bindings themselves are authored on the application
+ * record, not per widget — a widget only names which one it drives.
+ */
+export const resourceBindingField = (
+  label = "Resource"
+): CustomField<string> => ({
+  type: "custom",
+  label,
+  render: ({ value, onChange, readOnly }) => (
+    <ResourceBindingPicker
+      label={label}
+      value={value ?? ""}
+      readOnly={readOnly}
+      onChange={onChange}
+    />
+  )
+});
+
+const ResourceBindingPicker: React.FC<{
+  label: string;
+  value: string;
+  readOnly?: boolean;
+  onChange: (value: string) => void;
+}> = ({ label, value, readOnly, onChange }) => {
+  const { resources } = useBuilderWorkflow();
+  return (
+    <Picker
+      label={label}
+      value={value}
+      options={resources.map((r) => ({
+        label: `${r.kind} · ${r.name}`,
+        value: r.id
+      }))}
+      emptyHint="Add a resource binding to the app to connect a collection."
+      readOnly={readOnly}
+      onChange={onChange}
+    />
+  );
+};

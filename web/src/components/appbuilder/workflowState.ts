@@ -6,6 +6,8 @@
  *  - nodes → every graph node, so write widgets can bind straight to any
  *    node property (see nodeBinding.ts)
  */
+import type { ResourceBinding } from "@nodetool-ai/app-runtime";
+
 import { Workflow } from "../../stores/ApiTypes";
 import {
   SET_VARIABLE_NODE_TYPE,
@@ -28,13 +30,16 @@ export interface WorkflowState {
   outputs: WorkflowOutputIO[];
   variables: string[];
   nodes: BindableGraphNode[];
+  /** Resource collections the app document declares, for widget pickers. */
+  resources: ResourceBinding[];
 }
 
 const EMPTY: WorkflowState = {
   inputs: [],
   outputs: [],
   variables: [],
-  nodes: []
+  nodes: [],
+  resources: []
 };
 
 /** Read a SetVariable node's name from either the API (flat) or editor shape. */
@@ -79,7 +84,8 @@ export const extractBindableNodes = (
 };
 
 export const extractWorkflowState = (
-  workflow?: Workflow | null
+  workflow?: Workflow | null,
+  resources: ResourceBinding[] = []
 ): WorkflowState => {
   if (!workflow) return EMPTY;
   const io = extractWorkflowIO(workflow);
@@ -87,6 +93,7 @@ export const extractWorkflowState = (
     inputs: io.inputs,
     outputs: io.outputs,
     variables: extractVariableNames(workflow),
-    nodes: extractBindableNodes(workflow)
+    nodes: extractBindableNodes(workflow),
+    resources
   };
 };

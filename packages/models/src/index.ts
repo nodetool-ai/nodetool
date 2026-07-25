@@ -160,6 +160,23 @@ export type {
   ApplicationVersionResponse
 } from "./application.js";
 export {
+  applicationUsage,
+  checkApplicationBudget,
+  getApplicationBudget,
+  listInvocations,
+  periodStart,
+  recordInvocation,
+  setApplicationBudget,
+  settleInvocation
+} from "./application-budget.js";
+export type {
+  ApplicationBudget,
+  ApplicationUsage,
+  BudgetDecision,
+  BudgetPeriod,
+  InvocationRecord
+} from "./application-budget.js";
+export {
   Script,
   ScriptConflictError,
   emptyScriptDocument,

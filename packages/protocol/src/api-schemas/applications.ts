@@ -154,3 +154,61 @@ export const patchApplicationInput = z
     message: "At least one field must be provided"
   });
 export type PatchApplicationInput = z.infer<typeof patchApplicationInput>;
+
+// ── Budgets and release telemetry ───────────────────────────────────────────
+
+export const budgetPeriod = z.enum(["day", "month", "total"]);
+
+export const applicationBudget = z.object({
+  applicationId: z.string(),
+  period: budgetPeriod,
+  /** Null means no ceiling of that kind. */
+  maxUsd: z.number().nullable(),
+  maxInvocations: z.number().nullable(),
+  updatedAt: z.string()
+});
+export type ApplicationBudgetSchema = z.infer<typeof applicationBudget>;
+
+export const applicationUsage = z.object({
+  period: budgetPeriod,
+  since: z.string().nullable(),
+  /** Settled cost plus the estimate of anything still in flight. */
+  spentUsd: z.number(),
+  invocations: z.number()
+});
+
+export const setApplicationBudgetInput = z.object({
+  id: z.string(),
+  period: budgetPeriod.optional(),
+  maxUsd: z.number().nullable().optional(),
+  maxInvocations: z.number().nullable().optional()
+});
+
+export const invocationRecord = z.object({
+  id: z.string(),
+  applicationId: z.string(),
+  version: z.number().nullable(),
+  invocationId: z.string(),
+  operationId: z.string(),
+  estimatedUsd: z.number(),
+  actualUsd: z.number().nullable(),
+  status: z.string(),
+  createdAt: z.string(),
+  settledAt: z.string().nullable()
+});
+export type InvocationRecordSchema = z.infer<typeof invocationRecord>;
+
+export const beginInvocationInput = z.object({
+  id: z.string(),
+  invocationId: z.string(),
+  operationId: z.string().default(""),
+  /** Pre-run estimate from `@nodetool-ai/node-sdk`'s cost-estimate. */
+  estimatedUsd: z.number().min(0).default(0)
+});
+
+export const settleInvocationInput = z.object({
+  id: z.string(),
+  invocationId: z.string(),
+  actualUsd: z.number().min(0),
+  status: z.enum(["completed", "failed", "cancelled"]).default("completed")
+});

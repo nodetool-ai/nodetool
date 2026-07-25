@@ -16,6 +16,12 @@ export const timelineSequences = pgTable(
     height: integer("height").notNull().default(1080),
     duration_ms: integer("duration_ms").notNull().default(0),
     document: jsonText<TimelineDocument>()("document").notNull(),
+    /**
+     * Monotonic write counter. Resource providers hand it out inside a
+     * `ResourceRef` and reject a write whose ref is behind — optimistic
+     * concurrency for interactive editing widgets.
+     */
+    revision: integer("revision").notNull().default(0),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

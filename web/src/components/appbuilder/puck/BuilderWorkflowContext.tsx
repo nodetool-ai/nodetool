@@ -15,7 +15,8 @@ const BuilderWorkflowContext = createContext<WorkflowState>({
   inputs: [],
   outputs: [],
   variables: [],
-  nodes: []
+  nodes: [],
+  resources: []
 });
 
 export const BuilderWorkflowProvider: React.FC<{

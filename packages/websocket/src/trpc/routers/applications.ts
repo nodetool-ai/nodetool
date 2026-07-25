@@ -16,6 +16,13 @@
  *   versions (query)    — ApplicationVersionResponse[]
  *   release  (mutation) — ApplicationVersionResponse (publish or rollback)
  *   released (query)    — ApplicationVersionResponse | null
+ *
+ * Spend governance, for apps published to people other than their author:
+ *   budget/setBudget       — the app-scoped ceiling
+ *   usage                  — spend in the budget's current window
+ *   beginInvocation        — check the budget, then record the run
+ *   settleInvocation       — close the run out at its actual cost
+ *   invocations            — the release telemetry ledger
  */
 
 import { z } from "zod";
@@ -26,18 +33,31 @@ import {
 } from "@nodetool-ai/app-runtime";
 import {
   Application,
+  applicationUsage,
+  checkApplicationBudget,
+  getApplicationBudget,
   listApplicationVersions,
+  listInvocations,
   publishApplication,
+  recordInvocation,
   releaseApplicationVersion,
-  releasedApplicationVersion
+  releasedApplicationVersion,
+  setApplicationBudget,
+  settleInvocation
 } from "@nodetool-ai/models";
 import { Workflow } from "@nodetool-ai/models";
 import {
+  applicationBudget,
   applicationListItem,
   applicationResponse,
+  applicationUsage as applicationUsageSchema,
   applicationVersionResponse,
+  beginInvocationInput,
   createApplicationInput,
-  patchApplicationInput
+  invocationRecord,
+  patchApplicationInput,
+  setApplicationBudgetInput,
+  settleInvocationInput
 } from "@nodetool-ai/protocol/api-schemas/applications.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
@@ -233,6 +253,90 @@ export const applicationsRouter = router({
       await loadOwned(ctx.userId, input.id);
       const version = await releasedApplicationVersion(input.id);
       return version ? applicationVersionResponse.parse(version) : null;
+    }),
+
+  budget: protectedProcedure
+    .input(idInput)
+    .output(applicationBudget.nullable())
+    .query(async ({ ctx, input }) => {
+      await loadOwned(ctx.userId, input.id);
+      const budget = await getApplicationBudget(input.id);
+      return budget ? applicationBudget.parse(budget) : null;
+    }),
+
+  setBudget: protectedProcedure
+    .input(setApplicationBudgetInput)
+    .output(applicationBudget)
+    .mutation(async ({ ctx, input }) => {
+      await loadOwned(ctx.userId, input.id);
+      const saved = await setApplicationBudget(input.id, {
+        period: input.period,
+        maxUsd: input.maxUsd,
+        maxInvocations: input.maxInvocations
+      });
+      return applicationBudget.parse(saved);
+    }),
+
+  usage: protectedProcedure
+    .input(idInput)
+    .output(applicationUsageSchema)
+    .query(async ({ ctx, input }) => {
+      await loadOwned(ctx.userId, input.id);
+      const budget = await getApplicationBudget(input.id);
+      return applicationUsageSchema.parse(
+        await applicationUsage(input.id, budget?.period ?? "total")
+      );
+    }),
+
+  invocations: protectedProcedure
+    .input(idInput)
+    .output(z.array(invocationRecord))
+    .query(async ({ ctx, input }) => {
+      await loadOwned(ctx.userId, input.id);
+      const records = await listInvocations(input.id);
+      return records.map((r) => invocationRecord.parse(r));
+    }),
+
+  /**
+   * Reserve budget for a run. Call this before creating the job: an
+   * over-budget run must fail with a typed error rather than reach a provider.
+   */
+  beginInvocation: protectedProcedure
+    .input(beginInvocationInput)
+    .output(invocationRecord)
+    .mutation(async ({ ctx, input }) => {
+      await loadOwned(ctx.userId, input.id);
+      const decision = await checkApplicationBudget(
+        input.id,
+        input.estimatedUsd
+      );
+      if (!decision.allowed) {
+        throwApiError(ApiErrorCode.BUDGET_EXCEEDED, decision.reason);
+      }
+      const release = await releasedApplicationVersion(input.id);
+      return invocationRecord.parse(
+        await recordInvocation({
+          applicationId: input.id,
+          version: release?.version ?? null,
+          invocationId: input.invocationId,
+          operationId: input.operationId,
+          estimatedUsd: input.estimatedUsd
+        })
+      );
+    }),
+
+  /** Close a run out with what it actually cost. */
+  settleInvocation: protectedProcedure
+    .input(settleInvocationInput)
+    .output(invocationRecord.nullable())
+    .mutation(async ({ ctx, input }) => {
+      await loadOwned(ctx.userId, input.id);
+      const settled = await settleInvocation(
+        input.invocationId,
+        input.actualUsd,
+        input.status
+      );
+      return settled ? invocationRecord.parse(settled) : null;
     }),
 
   release: protectedProcedure

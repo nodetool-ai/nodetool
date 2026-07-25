@@ -18,7 +18,10 @@ import {
   type BindingMode,
   type BindingRef,
   type BindingScope,
-  type ConditionProps
+  type ConditionProps,
+  type OperationBinding,
+  type ResourceBinding,
+  type ResourceRef
 } from "@nodetool-ai/app-runtime";
 
 import { WorkflowIO } from "../workflowIO";
@@ -29,11 +32,20 @@ export interface AppRuntimeContextValue {
   io: WorkflowIO;
   /** Everything a stored binding string can resolve against. */
   scope: BindingScope;
+  /** The operation a widget's `run` targets. */
+  operation: OperationBinding;
+  /** Resource collections the app is bound to. */
+  resources: ReadonlyArray<ResourceBinding>;
   /** In the builder's design surface, events are inert (no workflow runs). */
   designMode: boolean;
   dispatch: (action: AppAction) => void;
   /** Write a value through a resolved binding. */
   write: (ref: BindingRef, value: unknown) => void;
+  /**
+   * Point a resource binding at a resource. A picker widget calls this; an
+   * operation input mapped `from: "resource"` passes the ref to the run.
+   */
+  selectResource: (resourceBindingId: string, ref: ResourceRef | null) => void;
   /**
    * Current value of a graph node's property (saved data, else metadata
    * default) — the display fallback for node-property bindings the user hasn't

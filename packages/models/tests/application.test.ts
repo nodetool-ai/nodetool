@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { createEmptyDocument } from "@nodetool-ai/app-runtime";
 
-import { getRawDb, initTestDb } from "../src/db.js";
+import { initTestDb } from "../src/db.js";
 import {
   Application,
   deriveCapabilities,
@@ -41,27 +41,6 @@ const createApp = (
 describe("Application model", () => {
   beforeEach(() => {
     initTestDb();
-    getRawDb().exec(`
-      CREATE TABLE IF NOT EXISTS applications (
-        id TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        project_id TEXT NOT NULL,
-        name TEXT NOT NULL,
-        description TEXT NOT NULL DEFAULT '',
-        document TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      );
-      CREATE TABLE IF NOT EXISTS application_versions (
-        id TEXT PRIMARY KEY,
-        application_id TEXT NOT NULL,
-        version INTEGER NOT NULL,
-        document TEXT NOT NULL,
-        capabilities TEXT NOT NULL,
-        released INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT NOT NULL
-      );
-    `);
   });
 
   it("round-trips the document through the row", async () => {
@@ -108,27 +87,6 @@ describe("Application model", () => {
 describe("application releases", () => {
   beforeEach(() => {
     initTestDb();
-    getRawDb().exec(`
-      CREATE TABLE IF NOT EXISTS applications (
-        id TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        project_id TEXT NOT NULL,
-        name TEXT NOT NULL,
-        description TEXT NOT NULL DEFAULT '',
-        document TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      );
-      CREATE TABLE IF NOT EXISTS application_versions (
-        id TEXT PRIMARY KEY,
-        application_id TEXT NOT NULL,
-        version INTEGER NOT NULL,
-        document TEXT NOT NULL,
-        capabilities TEXT NOT NULL,
-        released INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT NOT NULL
-      );
-    `);
   });
 
   it("publishes monotonic versions and moves the release pointer", async () => {

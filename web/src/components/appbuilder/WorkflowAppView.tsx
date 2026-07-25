@@ -21,7 +21,7 @@ import { usePanelStore } from "../../stores/PanelStore";
 import { NodeContext } from "../../contexts/NodeContext";
 import { TOOLBAR_WIDTH } from "../../config/constants";
 import AppRuntimeView from "./AppRuntimeView";
-import { loadAppData, toAppDocField } from "./persistence";
+import { loadAppData, loadAppDocument, toAppDocField } from "./persistence";
 import { isRenderableData } from "./appData";
 import { generateAppDoc } from "./generateAppDoc";
 
@@ -137,7 +137,11 @@ const WorkflowAppView: React.FC<WorkflowAppViewProps> = ({
         )}
         {workflow && appData && (
           <Box sx={{ height: "100%", width: "100%" }}>
-            <AppRuntimeView workflow={workflow} data={appData} />
+            <AppRuntimeView
+              workflow={workflow}
+              data={appData}
+              document={loadAppDocument(workflow) ?? undefined}
+            />
           </Box>
         )}
         {workflow && !appData && (

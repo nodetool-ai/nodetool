@@ -11,6 +11,7 @@
 export * from "./document.js";
 export * from "./bindings.js";
 export * from "./state.js";
+export * from "./operations.js";
 export * from "./fold.js";
 export * from "./conditions.js";
 export * from "./actions.js";

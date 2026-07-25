@@ -3,7 +3,12 @@ import React from "react";
 import type { Config, ArrayField } from "@puckeditor/core";
 
 import { Box, Text, FlexColumn, SPACING, SPACING_PX } from "../../ui_primitives";
-import { bindingField, conditionField, variableField } from "./fields";
+import {
+  bindingField,
+  conditionField,
+  resourceBindingField,
+  variableField
+} from "./fields";
 import { withConditions } from "./conditionalWidget";
 import {
   HeadingWidget,
@@ -25,6 +30,7 @@ import {
   ColumnsWidget,
   DividerWidget
 } from "./widgets";
+import { ResourcePickerWidget } from "./ResourcePickerWidget";
 import {
   WorkflowInputWidget,
   FixedKindInputWidget,
@@ -185,6 +191,7 @@ export const appConfig: Config = {
         "Slider",
         "Switch",
         "Select",
+        "ResourcePicker",
         "ImageInput",
         "AudioInput",
         "VideoInput",
@@ -400,6 +407,16 @@ export const appConfig: Config = {
         options: [{ value: "Option A" }, { value: "Option B" }]
       },
       render: withConditions((props) => <SelectWidget {...props} />)
+    },
+    ResourcePicker: {
+      label: "Resource Picker",
+      fields: {
+        resourceBindingId: resourceBindingField(),
+        label: { type: "text", label: "Label" },
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: { resourceBindingId: "", label: "" },
+      render: withConditions((props) => <ResourcePickerWidget {...props} />)
     },
     ImageInput: fixedInputEntry("Image Input", "image"),
     AudioInput: fixedInputEntry("Audio Input", "audio"),
