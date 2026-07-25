@@ -48,11 +48,19 @@ npm run electron:dev # Electron dev (auto-rebuilds native modules)
 - Python 3.11+ with conda (optional, for Python nodes)
 
 ```bash
-# First-time setup
+# First-time setup — start.sh does all of it, then starts the server
+./start.sh           # API on :7777   (full | web | check | doctor)
+
+# Or by hand:
 nvm use              # Reads .nvmrc, activates Node 22.22.1
 npm install          # Install all workspace dependencies
 npm run build:packages  # Build backend packages
 ```
+
+In Claude Code **web** sessions, `.claude/hooks/session-start.sh` installs
+dependencies before the session starts, so `npm run typecheck`/`lint`/`test`
+work immediately. Slash commands: `/serve`, `/verify`, `/onboard`. See
+[.claude/README.md](.claude/README.md).
 
 ## Architecture
 
