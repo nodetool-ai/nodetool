@@ -5,8 +5,8 @@
   "featured": false,
   "image": "/app-preview/img/transcribe-audio.jpg",
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Transcribe Audio"
@@ -36,7 +36,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-audio",
-                        "binding": "audio",
+                        "binding": "op:main/in:7",
                         "events": []
                       }
                     },
@@ -80,7 +80,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-transcript",
-                        "binding": "transcript",
+                        "binding": "op:main/out:output-transcript",
                         "text": ""
                       }
                     }
@@ -92,9 +92,65 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "7",
+        "parent_id": null,
+        "type": "nodetool.input.AudioInput",
+        "data": {
+          "name": "audio",
+          "description": "Audio clip with speech to transcribe (any common format)",
+          "value": {}
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1️⃣ Audio input"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "output-transcript",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "transcript"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 79
+          },
+          "width": 260,
+          "title": "3️⃣ Transcript",
+          "selectable": true
+        }
+      }
+    ],
+    "edges": []
   },
   "values": {
-    "transcript": "“Welcome back to the show. **[00:00:02]** Today we're talking about why the best product demos tell a story **[00:00:07]** instead of listing features…”"
+    "op:main/out:output-transcript": "“Welcome back to the show. **[00:00:02]** Today we're talking about why the best product demos tell a story **[00:00:07]** instead of listing features…”"
   }
 }

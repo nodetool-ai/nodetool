@@ -5,8 +5,8 @@
   "featured": false,
   "image": "/app-preview/img/movie-trailer-generator.jpg",
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Movie Trailer Generator"
@@ -36,7 +36,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-logline",
-                        "binding": "Logline",
+                        "binding": "op:main/in:logline",
                         "events": []
                       }
                     },
@@ -44,7 +44,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-visual-style",
-                        "binding": "Visual Style",
+                        "binding": "op:main/in:style",
                         "events": []
                       }
                     },
@@ -52,7 +52,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-shot-count",
-                        "binding": "Shot Count",
+                        "binding": "op:main/in:shot_count",
                         "events": []
                       }
                     },
@@ -96,7 +96,7 @@
                       "type": "Video",
                       "props": {
                         "id": "out-trailer",
-                        "binding": "trailer",
+                        "binding": "op:main/out:output-trailer",
                         "height": 320,
                         "placeholder": "Your video appears here"
                       }
@@ -109,13 +109,108 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "logline",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "Logline",
+          "value": "A getaway driver speeds onto a bridge as it starts to collapse — and the only way out is to outrun the gap."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 69
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "1️⃣ Logline",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "style",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "Visual Style",
+          "value": "high-contrast daylight, dust and sparks, handheld telephoto, motion blur, hard sun, blown-out sky, gritty"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 373
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "2️⃣ Visual style",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "shot_count",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "Shot Count",
+          "value": "6"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 619
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "3️⃣ Shot count",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "output-trailer",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "trailer"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3505,
+            "y": 534
+          },
+          "title": "8️⃣ Trailer output",
+          "selectable": true
+        }
+      }
+    ],
+    "edges": []
   },
   "values": {
-    "Logline": "A getaway driver speeds onto a bridge as it starts to collapse — and the only way out is to outrun the gap.",
-    "Visual Style": "high-contrast daylight, dust and sparks, handheld telephoto, motion blur, hard sun, blown-out sky, gritty",
-    "Shot Count": "6",
-    "trailer": {
+    "op:main/in:logline": "A getaway driver speeds onto a bridge as it starts to collapse — and the only way out is to outrun the gap.",
+    "op:main/in:style": "high-contrast daylight, dust and sparks, handheld telephoto, motion blur, hard sun, blown-out sky, gritty",
+    "op:main/in:shot_count": "6",
+    "op:main/out:output-trailer": {
       "$demo": "video"
     }
   }

@@ -235,8 +235,8 @@
   "required_providers": null,
   "required_models": null,
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Private Assistant"
@@ -266,7 +266,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-document",
-                        "binding": "document",
+                        "binding": "op:main/in:document_input",
                         "events": []
                       }
                     },
@@ -274,7 +274,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-question",
-                        "binding": "question",
+                        "binding": "op:main/in:question_input",
                         "events": []
                       }
                     },
@@ -282,7 +282,7 @@
                       "type": "Select",
                       "props": {
                         "id": "in-tone",
-                        "binding": "tone",
+                        "binding": "op:main/in:tone_input",
                         "label": "Answer tone",
                         "options": [
                           {
@@ -344,7 +344,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-answer",
-                        "binding": "answer",
+                        "binding": "op:main/out:output-answer",
                         "text": ""
                       }
                     }
@@ -356,6 +356,18 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
   }
 }

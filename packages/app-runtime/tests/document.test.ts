@@ -57,6 +57,28 @@ describe("parseApplicationDocument", () => {
     ]);
   });
 
+  it("binds a workflow-less operation to the host workflow", () => {
+    // What a shipped template carries: it has no workflow id until installed.
+    const doc = parseApplicationDocument(
+      {
+        schemaVersion: 3,
+        ui: puck,
+        operations: [
+          {
+            id: DEFAULT_OPERATION_ID,
+            name: "Run",
+            workflowId: "",
+            inputs: {},
+            outputs: {},
+            policy: "replace"
+          }
+        ]
+      },
+      { hostWorkflowId: "wf-installed" }
+    );
+    expect(doc?.operations[0].workflowId).toBe("wf-installed");
+  });
+
   it("refuses a document written by a newer schema", () => {
     expect(
       parseApplicationDocument({ schemaVersion: 99, ui: puck })

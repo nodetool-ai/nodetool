@@ -5,8 +5,8 @@
   "featured": false,
   "image": "/app-preview/img/research-paper-summarizer.jpg",
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Research Paper Summarizer"
@@ -36,7 +36,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-topic",
-                        "binding": "topic",
+                        "binding": "op:main/in:topic",
                         "events": []
                       }
                     },
@@ -80,7 +80,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-summary",
-                        "binding": "Summary",
+                        "binding": "op:main/out:summary_output",
                         "text": ""
                       }
                     }
@@ -92,10 +92,69 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "topic",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "topic",
+          "value": "attention",
+          "description": "Keyword to search for among paper entries in the curated transformer paper index (case-sensitive substring match against README lines)."
+        },
+        "ui_properties": {
+          "title": "1️⃣ Topic",
+          "position": {
+            "x": 0,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "summary_output",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "Summary"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 5260,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Summary",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": []
   },
   "values": {
-    "topic": "attention",
-    "Summary": "**Attention Is All You Need — in plain terms:** the paper replaces recurrence entirely with attention, trains 10× faster, and sets new translation records. The trick: let every word look at every other word at once."
+    "op:main/in:topic": "attention",
+    "op:main/out:summary_output": "**Attention Is All You Need — in plain terms:** the paper replaces recurrence entirely with attention, trains 10× faster, and sets new translation records. The trick: let every word look at every other word at once."
   }
 }

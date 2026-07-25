@@ -5,8 +5,8 @@
   "featured": false,
   "image": "/app-preview/img/flashcard-generator.jpg",
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Flashcard Generator"
@@ -36,7 +36,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-topic",
-                        "binding": "topic",
+                        "binding": "op:main/in:topic_input",
                         "events": []
                       }
                     },
@@ -44,7 +44,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-num-cards",
-                        "binding": "num_cards",
+                        "binding": "op:main/in:num_cards_input",
                         "events": []
                       }
                     },
@@ -88,7 +88,7 @@
                       "type": "Json",
                       "props": {
                         "id": "out-flashcards",
-                        "binding": "Flashcards"
+                        "binding": "op:main/out:flashcards_output"
                       }
                     }
                   ]
@@ -99,12 +99,97 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "topic_input",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "topic",
+          "value": "Python Programming",
+          "description": "Enter the topic you want to study"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 76,
+            "y": 171
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1️⃣ Topic"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "num_cards_input",
+        "parent_id": null,
+        "type": "nodetool.input.IntegerInput",
+        "data": {
+          "name": "num_cards",
+          "value": 5,
+          "min": 3,
+          "max": 15,
+          "description": "How many flashcards to generate"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 76,
+            "y": 291
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2️⃣ Card count"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "flashcards_output",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "Flashcards"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1140,
+            "y": 65
+          },
+          "zIndex": 0,
+          "width": 260,
+          "title": "Flashcards",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": []
   },
   "values": {
-    "topic": "Python Programming",
-    "num_cards": 5,
-    "Flashcards": [
+    "op:main/in:topic_input": "Python Programming",
+    "op:main/in:num_cards_input": 5,
+    "op:main/out:flashcards_output": [
       {
         "front": "What does len() return for a dict?",
         "back": "The number of keys."

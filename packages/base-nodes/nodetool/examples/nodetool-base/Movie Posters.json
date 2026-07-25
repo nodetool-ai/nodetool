@@ -659,8 +659,8 @@
   "html_app": null,
   "etag": "c20ab9c0d0a33c79c4ec768459e5a0aa",
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Movie Posters"
@@ -690,7 +690,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-movie-title",
-                        "binding": "Movie Title",
+                        "binding": "op:main/in:movie_title_input",
                         "events": []
                       }
                     },
@@ -698,7 +698,7 @@
                       "type": "Select",
                       "props": {
                         "id": "in-genre",
-                        "binding": "Genre",
+                        "binding": "op:main/in:genre_input",
                         "label": "Genre",
                         "options": [
                           {
@@ -736,7 +736,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-visual-style",
-                        "binding": "Visual Style",
+                        "binding": "op:main/in:style_input",
                         "events": []
                       }
                     },
@@ -780,7 +780,7 @@
                       "type": "Image",
                       "props": {
                         "id": "out-poster",
-                        "binding": "Poster",
+                        "binding": "op:main/out:poster_output",
                         "fit": "contain",
                         "height": 280,
                         "placeholder": "Your result appears here"
@@ -794,6 +794,18 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
   }
 }

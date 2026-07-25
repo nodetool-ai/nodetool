@@ -707,8 +707,8 @@
   "html_app": null,
   "etag": null,
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "SEO Content Engine"
@@ -738,7 +738,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-business",
-                        "binding": "business",
+                        "binding": "op:main/in:business",
                         "events": []
                       }
                     },
@@ -746,7 +746,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-audience-and-seeds",
-                        "binding": "audience_and_seeds",
+                        "binding": "op:main/in:seeds",
                         "events": []
                       }
                     },
@@ -754,7 +754,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-article-count",
-                        "binding": "article_count",
+                        "binding": "op:main/in:article_count",
                         "events": []
                       }
                     },
@@ -806,7 +806,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-content-plan",
-                        "binding": "content_plan",
+                        "binding": "op:main/out:preview_plan",
                         "text": ""
                       }
                     },
@@ -822,7 +822,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-article-titles",
-                        "binding": "article_titles",
+                        "binding": "op:main/out:preview_titles",
                         "text": ""
                       }
                     },
@@ -838,7 +838,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-meta-descriptions",
-                        "binding": "meta_descriptions",
+                        "binding": "op:main/out:preview_meta",
                         "text": ""
                       }
                     },
@@ -854,7 +854,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-keywords",
-                        "binding": "keywords",
+                        "binding": "op:main/out:preview_keywords",
                         "text": ""
                       }
                     },
@@ -870,7 +870,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-article-bodies",
-                        "binding": "article_bodies",
+                        "binding": "op:main/out:preview_bodies",
                         "text": ""
                       }
                     },
@@ -886,7 +886,7 @@
                       "type": "Image",
                       "props": {
                         "id": "out-hero-images",
-                        "binding": "hero_images",
+                        "binding": "op:main/out:preview_heroes",
                         "fit": "contain",
                         "height": 280,
                         "placeholder": "Your result appears here"
@@ -900,6 +900,18 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
   }
 }

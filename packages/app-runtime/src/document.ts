@@ -133,14 +133,19 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isPuckData = (value: unknown): value is PuckData =>
   isRecord(value) && isRecord(value.root) && Array.isArray(value.content);
 
-const parseOperation = (value: unknown): OperationBinding | null => {
+const parseOperation = (
+  value: unknown,
+  hostWorkflowId?: string
+): OperationBinding | null => {
   if (!isRecord(value)) return null;
   const { id, name, workflowId, policy } = value;
   if (typeof id !== "string" || typeof workflowId !== "string") return null;
   return {
     id,
     name: typeof name === "string" ? name : id,
-    workflowId,
+    // A document that ships without a workflow — a template, which has no id
+    // until it is installed — binds to whatever workflow hosts it.
+    workflowId: workflowId || hostWorkflowId || "",
     workflowVersion:
       typeof value.workflowVersion === "number" ? value.workflowVersion : undefined,
     inputs: isRecord(value.inputs)
@@ -242,7 +247,7 @@ export const parseApplicationDocument = (
       ui: value.ui,
       operations: Array.isArray(value.operations)
         ? value.operations
-            .map(parseOperation)
+            .map((op) => parseOperation(op, options.hostWorkflowId))
             .filter((op): op is OperationBinding => op !== null)
         : [],
       resources: Array.isArray(value.resources)

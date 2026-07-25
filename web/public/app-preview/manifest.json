@@ -45,6 +45,11 @@
     "featured": false
   },
   {
+    "slug": "directed-film-to-timeline",
+    "name": "Directed Film to Timeline",
+    "featured": false
+  },
+  {
     "slug": "flashcard-generator",
     "name": "Flashcard Generator",
     "featured": false
@@ -151,7 +156,8 @@
   },
   {
     "slug": "script-to-screen",
-    "name": "Script to Screen"
+    "name": "Script to Screen",
+    "featured": false
   },
   {
     "slug": "social-media-calendar-filler",

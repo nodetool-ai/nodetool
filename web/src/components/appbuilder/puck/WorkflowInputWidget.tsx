@@ -31,7 +31,10 @@ import ASRModelSelect from "../../properties/ASRModelSelect";
 import EmbeddingModelSelect from "../../properties/EmbeddingModelSelect";
 import { NodeContext } from "../../../contexts/NodeContext";
 import { AppEvent } from "../types";
-import { useAppRuntimeContext } from "../runtime/AppRuntimeContext";
+import {
+  useAppRuntimeContext,
+  useBindingRef
+} from "../runtime/AppRuntimeContext";
 import {
   createPropertyForInput,
   MODEL_INPUT_KINDS,
@@ -198,6 +201,7 @@ export const WorkflowInputWidget: React.FC<WorkflowInputWidgetProps> = (
   props
 ) => {
   const { io } = useAppRuntimeContext();
+  const ref = useBindingRef(props.binding, "write");
   const { value, setValue, emit } = useWidgetRuntime({
     id: props.id,
     bindingMode: "write",
@@ -205,9 +209,14 @@ export const WorkflowInputWidget: React.FC<WorkflowInputWidgetProps> = (
     events: props.events
   });
 
+  // The binding resolves to a node ID; a legacy document's bare name resolves
+  // through the scope, and only a scope-less surface falls back to the name.
   const input = useMemo(
-    () => io.inputs.find((i) => i.name === props.binding),
-    [io.inputs, props.binding]
+    () =>
+      ref?.kind === "input"
+        ? io.inputs.find((i) => i.nodeId === ref.nodeId)
+        : io.inputs.find((i) => i.name === props.binding),
+    [io.inputs, props.binding, ref]
   );
 
   if (!input) {

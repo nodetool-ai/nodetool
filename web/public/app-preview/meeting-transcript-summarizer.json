@@ -5,8 +5,8 @@
   "featured": false,
   "image": "/app-preview/img/meeting-transcript-summarizer.jpg",
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Meeting Transcript Summarizer"
@@ -36,7 +36,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-recording",
-                        "binding": "Recording",
+                        "binding": "op:main/in:recording_input",
                         "events": []
                       }
                     },
@@ -44,7 +44,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-transcript",
-                        "binding": "Transcript",
+                        "binding": "op:main/in:transcript_input",
                         "events": []
                       }
                     },
@@ -96,7 +96,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-transcript",
-                        "binding": "Transcript",
+                        "binding": "op:main/out:transcript_output",
                         "text": ""
                       }
                     },
@@ -112,7 +112,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-summary",
-                        "binding": "Summary",
+                        "binding": "op:main/out:summary_output",
                         "text": ""
                       }
                     },
@@ -128,7 +128,7 @@
                       "type": "Json",
                       "props": {
                         "id": "out-action-items",
-                        "binding": "Action Items"
+                        "binding": "op:main/out:action_items_output"
                       }
                     }
                   ]
@@ -139,12 +139,140 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "recording_input",
+        "parent_id": null,
+        "type": "nodetool.input.AudioInput",
+        "data": {
+          "name": "Recording",
+          "description": "A meeting recording to transcribe. Leave empty if you paste a transcript below instead.",
+          "value": {
+            "uri": "https://app.nodetool.ai/examples/remove_silence.mp3",
+            "type": "audio"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 40
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "1️⃣ Recording (optional)",
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "transcript_input",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "Transcript",
+          "description": "Already have a transcript? Paste it here to skip transcription entirely.",
+          "value": "",
+          "line_mode": "multiline"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "1️⃣ Or paste a transcript (optional)",
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "transcript_output",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "Transcript"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1100,
+            "y": 560
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Transcript",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "summary_output",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "Summary"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1450,
+            "y": 40
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Summary",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "action_items_output",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "Action Items"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1800,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Action Items",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": []
   },
   "values": {
-    "Transcript": "“…okay so if we're all aligned, let's lock Friday for the pricing page. Jonas, can you take the trial-expiry bug before Wednesday?…”",
-    "Summary": "**Decisions**\n- Ship the pricing page Friday\n- Maya owns the launch email",
-    "Action Items": [
+    "op:main/in:transcript_input": "",
+    "op:main/out:summary_output": "**Decisions**\n- Ship the pricing page Friday\n- Maya owns the launch email",
+    "op:main/out:transcript_output": "“…okay so if we're all aligned, let's lock Friday for the pricing page. Jonas, can you take the trial-expiry bug before Wednesday?…”",
+    "op:main/out:action_items_output": [
       {
         "owner": "Jonas",
         "task": "Fix the trial-expiry bug",

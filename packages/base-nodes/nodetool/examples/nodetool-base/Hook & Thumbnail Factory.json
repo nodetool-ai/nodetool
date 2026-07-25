@@ -497,8 +497,8 @@
   "required_models": null,
   "html_app": null,
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Hook & Thumbnail Factory"
@@ -528,7 +528,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-video-topic",
-                        "binding": "Video Topic",
+                        "binding": "op:main/in:input_topic",
                         "events": []
                       }
                     },
@@ -536,7 +536,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-target-audience",
-                        "binding": "Target Audience",
+                        "binding": "op:main/in:input_audience",
                         "events": []
                       }
                     },
@@ -544,7 +544,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-number-of-hooks",
-                        "binding": "Number of Hooks",
+                        "binding": "op:main/in:input_count",
                         "events": []
                       }
                     },
@@ -596,7 +596,7 @@
                       "type": "Image",
                       "props": {
                         "id": "out-thumbnail-gallery",
-                        "binding": "thumbnail_gallery",
+                        "binding": "op:main/out:output_gallery",
                         "fit": "contain",
                         "height": 280,
                         "placeholder": "Your result appears here"
@@ -631,7 +631,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-hooks",
-                        "binding": "hooks",
+                        "binding": "op:main/out:preview_hooks",
                         "text": ""
                       }
                     },
@@ -647,7 +647,7 @@
                       "type": "Image",
                       "props": {
                         "id": "out-thumbnail",
-                        "binding": "thumbnail",
+                        "binding": "op:main/out:preview_thumb",
                         "fit": "contain",
                         "height": 280,
                         "placeholder": "Your result appears here"
@@ -661,6 +661,18 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
   }
 }

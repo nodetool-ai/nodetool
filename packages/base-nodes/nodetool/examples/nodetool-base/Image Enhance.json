@@ -271,8 +271,8 @@
   "html_app": null,
   "etag": "beed9be1513b27ac2a666e8faa1e254d",
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Image Enhance"
@@ -302,7 +302,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-image",
-                        "binding": "image",
+                        "binding": "op:main/in:0c458df1-e2b2-4662-a9aa-00f2ceaae799",
                         "events": []
                       }
                     },
@@ -310,7 +310,7 @@
                       "type": "Slider",
                       "props": {
                         "id": "slider-denoise-node-radius",
-                        "binding": "node:denoise-node#radius",
+                        "binding": "op:main/prop:denoise-node#radius",
                         "label": "Denoise",
                         "min": 0,
                         "max": 16,
@@ -330,7 +330,7 @@
                       "type": "Slider",
                       "props": {
                         "id": "slider-tone-node-brightness",
-                        "binding": "node:tone-node#brightness",
+                        "binding": "op:main/prop:tone-node#brightness",
                         "label": "Brightness",
                         "min": -1,
                         "max": 1,
@@ -350,7 +350,7 @@
                       "type": "Slider",
                       "props": {
                         "id": "slider-tone-node-contrast",
-                        "binding": "node:tone-node#contrast",
+                        "binding": "op:main/prop:tone-node#contrast",
                         "label": "Contrast",
                         "min": 0,
                         "max": 4,
@@ -370,7 +370,7 @@
                       "type": "Slider",
                       "props": {
                         "id": "slider-color-node-saturation",
-                        "binding": "node:color-node#saturation",
+                        "binding": "op:main/prop:color-node#saturation",
                         "label": "Saturation",
                         "min": 0,
                         "max": 4,
@@ -390,7 +390,7 @@
                       "type": "Slider",
                       "props": {
                         "id": "slider-sharpen-node-amount",
-                        "binding": "node:sharpen-node#amount",
+                        "binding": "op:main/prop:sharpen-node#amount",
                         "label": "Sharpen",
                         "min": 0,
                         "max": 4,
@@ -446,7 +446,7 @@
                       "type": "Image",
                       "props": {
                         "id": "out-enhanced-image",
-                        "binding": "enhanced_image",
+                        "binding": "op:main/out:output-enhanced-image",
                         "fit": "contain",
                         "height": 280,
                         "placeholder": "Your result appears here"
@@ -460,6 +460,18 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
   }
 }

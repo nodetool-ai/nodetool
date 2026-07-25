@@ -5,8 +5,8 @@
   "featured": false,
   "image": "/app-preview/img/conditional-logic-engine.jpg",
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Conditional Logic Engine"
@@ -36,7 +36,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-value",
-                        "binding": "value",
+                        "binding": "op:main/in:3",
                         "events": []
                       }
                     },
@@ -80,7 +80,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-result",
-                        "binding": "Result",
+                        "binding": "op:main/out:result_output",
                         "text": ""
                       }
                     },
@@ -96,7 +96,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-high-priority",
-                        "binding": "high_priority",
+                        "binding": "op:main/out:out_high",
                         "text": ""
                       }
                     },
@@ -112,7 +112,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-low-priority",
-                        "binding": "low_priority",
+                        "binding": "op:main/out:out_low",
                         "text": ""
                       }
                     },
@@ -128,7 +128,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-medium-priority",
-                        "binding": "medium_priority",
+                        "binding": "op:main/out:out_medium",
                         "text": ""
                       }
                     }
@@ -140,10 +140,116 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "3",
+        "type": "nodetool.input.IntegerInput",
+        "data": {
+          "name": "value",
+          "value": 75,
+          "description": "Numeric value to evaluate against multiple conditions",
+          "min": 0,
+          "max": 100
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 453
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false,
+          "title": "1️⃣ Input value"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "result_output",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "Result"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2460,
+            "y": 401
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Result",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out_high",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "high_priority"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1710,
+            "y": 120
+          },
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "out_low",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "low_priority"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1030,
+            "y": 180
+          },
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "out_medium",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "medium_priority"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1710,
+            "y": 280
+          },
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      }
+    ],
+    "edges": []
   },
   "values": {
-    "value": 75,
-    "Result": "**75** → routed to the *high* branch: “Excellent — above the 70 threshold.”"
+    "op:main/in:3": 75,
+    "op:main/out:result_output": "**75** → routed to the *high* branch: “Excellent — above the 70 threshold.”"
   }
 }

@@ -5,8 +5,8 @@
   "featured": true,
   "image": "/app-preview/img/product-mockup-generator.jpg",
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Product Mockup Generator"
@@ -36,7 +36,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-product-image",
-                        "binding": "product_image",
+                        "binding": "op:main/in:5",
                         "events": []
                       }
                     },
@@ -44,7 +44,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-product-name",
-                        "binding": "product_name",
+                        "binding": "op:main/in:10",
                         "events": []
                       }
                     },
@@ -52,7 +52,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-product-description",
-                        "binding": "product_description",
+                        "binding": "op:main/in:11",
                         "events": []
                       }
                     },
@@ -60,7 +60,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-target-audience",
-                        "binding": "target_audience",
+                        "binding": "op:main/in:12",
                         "events": []
                       }
                     },
@@ -68,7 +68,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-num-scenes",
-                        "binding": "num_scenes",
+                        "binding": "op:main/in:13",
                         "events": []
                       }
                     },
@@ -120,7 +120,7 @@
                       "type": "Image",
                       "props": {
                         "id": "out-mockup",
-                        "binding": "mockup",
+                        "binding": "op:main/out:output-mockup",
                         "fit": "contain",
                         "height": 280,
                         "placeholder": "Your result appears here"
@@ -138,7 +138,7 @@
                       "type": "Image",
                       "props": {
                         "id": "out-scene",
-                        "binding": "scene",
+                        "binding": "op:main/out:output-scene",
                         "fit": "contain",
                         "height": 280,
                         "placeholder": "Your result appears here"
@@ -152,17 +152,180 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "5",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "product_image",
+          "value": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "description": "The product image to place in scenes"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1340,
+            "y": 509
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false,
+          "title": "3️⃣ Product image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "10",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "product_name",
+          "value": "Premium Wireless Headphones",
+          "description": "Name of the product"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 130
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false,
+          "title": "1️⃣ Product name"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "11",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "product_description",
+          "value": "Sleek, modern over-ear wireless headphones with active noise cancellation. Matte black finish with brushed-silver accents and memory-foam ear cushions.",
+          "description": "Brief product description for context"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 827
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false,
+          "title": "5️⃣ Product description"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "target_audience",
+          "value": "Tech-savvy professionals, music enthusiasts, and remote workers",
+          "description": "Target customer demographic"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 583
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false,
+          "title": "4️⃣ Target audience"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13",
+        "type": "nodetool.input.IntegerInput",
+        "data": {
+          "name": "num_scenes",
+          "value": 6,
+          "description": "Number of scene variations to generate",
+          "min": 2,
+          "max": 12
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 367
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false,
+          "title": "2️⃣ Scene count"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "output-mockup",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "mockup"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2620,
+            "y": 479
+          },
+          "selectable": true
+        }
+      },
+      {
+        "id": "output-scene",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "scene"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2000,
+            "y": 0
+          },
+          "selectable": true
+        }
+      }
+    ],
+    "edges": []
   },
   "values": {
-    "product_name": "Premium Wireless Headphones",
-    "product_description": "Sleek, modern over-ear wireless headphones with active noise cancellation. Matte black finish with brushed-silver accents and memory-foam ear cushions.",
-    "target_audience": "Tech-savvy professionals, music enthusiasts, and remote workers",
-    "num_scenes": 6,
-    "mockup": {
+    "op:main/in:10": "Premium Wireless Headphones",
+    "op:main/in:11": "Sleek, modern over-ear wireless headphones with active noise cancellation. Matte black finish with brushed-silver accents and memory-foam ear cushions.",
+    "op:main/in:12": "Tech-savvy professionals, music enthusiasts, and remote workers",
+    "op:main/in:13": 6,
+    "op:main/out:output-mockup": {
       "$demo": "image"
     },
-    "scene": {
+    "op:main/out:output-scene": {
       "$demo": "image"
     }
   }

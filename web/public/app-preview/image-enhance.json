@@ -5,8 +5,8 @@
   "featured": true,
   "image": "/app-preview/img/image-enhance.jpg",
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Image Enhance"
@@ -36,7 +36,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-image",
-                        "binding": "image",
+                        "binding": "op:main/in:0c458df1-e2b2-4662-a9aa-00f2ceaae799",
                         "events": []
                       }
                     },
@@ -44,7 +44,7 @@
                       "type": "Slider",
                       "props": {
                         "id": "slider-denoise-node-radius",
-                        "binding": "node:denoise-node#radius",
+                        "binding": "op:main/prop:denoise-node#radius",
                         "label": "Denoise",
                         "min": 0,
                         "max": 16,
@@ -64,7 +64,7 @@
                       "type": "Slider",
                       "props": {
                         "id": "slider-tone-node-brightness",
-                        "binding": "node:tone-node#brightness",
+                        "binding": "op:main/prop:tone-node#brightness",
                         "label": "Brightness",
                         "min": -1,
                         "max": 1,
@@ -84,7 +84,7 @@
                       "type": "Slider",
                       "props": {
                         "id": "slider-tone-node-contrast",
-                        "binding": "node:tone-node#contrast",
+                        "binding": "op:main/prop:tone-node#contrast",
                         "label": "Contrast",
                         "min": 0,
                         "max": 4,
@@ -104,7 +104,7 @@
                       "type": "Slider",
                       "props": {
                         "id": "slider-color-node-saturation",
-                        "binding": "node:color-node#saturation",
+                        "binding": "op:main/prop:color-node#saturation",
                         "label": "Saturation",
                         "min": 0,
                         "max": 4,
@@ -124,7 +124,7 @@
                       "type": "Slider",
                       "props": {
                         "id": "slider-sharpen-node-amount",
-                        "binding": "node:sharpen-node#amount",
+                        "binding": "op:main/prop:sharpen-node#amount",
                         "label": "Sharpen",
                         "min": 0,
                         "max": 4,
@@ -180,7 +180,7 @@
                       "type": "Image",
                       "props": {
                         "id": "out-enhanced-image",
-                        "binding": "enhanced_image",
+                        "binding": "op:main/out:output-enhanced-image",
                         "fit": "contain",
                         "height": 280,
                         "placeholder": "Your result appears here"
@@ -194,15 +194,74 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "0c458df1-e2b2-4662-a9aa-00f2ceaae799",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "value": {
+            "type": "image",
+            "asset_id": "31cadd9e065711f1818000006beef284",
+            "uri": "/api/storage/31cadd9e065711f1818000006beef284.png"
+          },
+          "name": "image",
+          "description": "The photo to enhance. Ships with a demo image so Run works immediately — drop in your own JPEG or PNG to edit it."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1,
+            "y": 71
+          },
+          "zIndex": 0,
+          "width": 260,
+          "selectable": true,
+          "bypassed": false,
+          "title": "1️⃣ Source photo"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "output-enhanced-image",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "enhanced_image"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1420,
+            "y": 100
+          },
+          "selectable": true,
+          "title": "Enhanced image"
+        }
+      }
+    ],
+    "edges": []
   },
   "values": {
-    "node:denoise-node#radius": 0,
-    "node:tone-node#brightness": 0.05,
-    "node:tone-node#contrast": 1.15,
-    "node:color-node#saturation": 1.2,
-    "node:sharpen-node#amount": 1,
-    "enhanced_image": {
+    "op:main/prop:denoise-node#radius": 0,
+    "op:main/prop:tone-node#brightness": 0.05,
+    "op:main/prop:tone-node#contrast": 1.15,
+    "op:main/prop:color-node#saturation": 1.2,
+    "op:main/prop:sharpen-node#amount": 1,
+    "op:main/out:output-enhanced-image": {
       "$demo": "image"
     }
   }

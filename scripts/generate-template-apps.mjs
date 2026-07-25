@@ -16,6 +16,14 @@
 //     web/public/app-preview/img/<slug>.jpg for image demos. Stale bundles for
 //     retired/merged templates are pruned.
 //
+// The generated `app_doc` is an ApplicationDocument (packages/app-runtime):
+// `{ schemaVersion, ui, operations, resources, variables }`, with one `main`
+// operation the widgets bind to. Its `workflowId` is empty because a template
+// has no id until it is installed — the runtime fills it from the host
+// workflow on load. Bindings are ID-based (`op:main/in:<nodeId>`,
+// `op:main/out:<nodeId>`, `op:main/prop:<nodeId>#<prop>`), so renaming an
+// Input or Output node in the graph editor never breaks a shipped app.
+//
 // Per-template presentation is data, not code: extend the CURATION entry, not
 // this file. Supported hint keys:
 //   emoji, tagline, button, note           — copy
@@ -793,8 +801,35 @@ const humanize = (name) =>
     .replace(/\b\w/g, (c) => c.toUpperCase())
     .trim();
 
-// Encode a node-property binding the way the app runtime reads it (nodeBinding.ts).
-const nodePropertyBinding = (nodeId, property) => `node:${nodeId}#${property}`;
+// ── Bindings ─────────────────────────────────────────────────────────────────
+// Widget bindings are ID-based (packages/app-runtime/src/bindings.ts): they key
+// on node IDs under the app's single operation, so renaming an Input or Output
+// node in the graph editor can never break a shipped template's app.
+const OPERATION_ID = "main"; // DEFAULT_OPERATION_ID in @nodetool-ai/app-runtime
+const APP_SCHEMA_VERSION = 3;
+
+const inputBinding = (nodeId) => `op:${OPERATION_ID}/in:${nodeId}`;
+const outputBinding = (nodeId) => `op:${OPERATION_ID}/out:${nodeId}`;
+const nodePropertyBinding = (nodeId, property) =>
+  `op:${OPERATION_ID}/prop:${nodeId}#${property}`;
+
+const isOutputNode = (n) =>
+  n.type.includes(".output.") || n.type.endsWith("base_node.Preview");
+
+/** name → node id, for the graph's Input and Output nodes. */
+function bindingIndex(graph) {
+  const inputs = new Map();
+  const outputs = new Map();
+  for (const n of graph.nodes) {
+    if (n.type.startsWith("nodetool.input.")) {
+      const name = n.data?.name;
+      if (name) inputs.set(name, n.id);
+    } else if (isOutputNode(n)) {
+      outputs.set(n.data?.name || n.id, n.id);
+    }
+  }
+  return { inputs, outputs };
+}
 
 // Every plain input renders as a WorkflowInput widget: the app runtime resolves
 // the right control (text/number/media picker/model select) from the InputNode's
@@ -808,7 +843,7 @@ function widgetForInput(node, curated) {
       type: "Select",
       props: {
         id: `in-${slugify(name)}`,
-        binding: name,
+        binding: inputBinding(node.id),
         label: sel.label ?? humanize(name),
         options: (sel.options ?? []).map((v) => ({ value: v })),
         events: sel.run
@@ -819,16 +854,16 @@ function widgetForInput(node, curated) {
   }
   return {
     type: "WorkflowInput",
-    props: { id: `in-${slugify(name)}`, binding: name, events: [] }
+    props: { id: `in-${slugify(name)}`, binding: inputBinding(node.id), events: [] }
   };
 }
 
 // A slider drives either a node property (node + property) or a workflow input
 // (input). Dragging dispatches a run; pace decides whether that fires live or on
 // release. Ranges come straight from the curation entry.
-function sliderWidget(entry) {
+function sliderWidget(entry, index) {
   const binding = entry.input
-    ? entry.input
+    ? inputBinding(index.inputs.get(entry.input))
     : nodePropertyBinding(entry.node, entry.property);
   const idBase = entry.input ?? `${entry.node}-${entry.property}`;
   return {
@@ -847,10 +882,10 @@ function sliderWidget(entry) {
   };
 }
 
-function widgetForOutput(name, spec) {
+function widgetForOutput(name, nodeId, spec) {
   const id = `out-${slugify(name)}`;
   const widget = spec?.widget ?? "Markdown";
-  const base = { id, binding: name };
+  const base = { id, binding: outputBinding(nodeId) };
   if (widget === "Image") return { type: "Image", props: { ...base, fit: "contain", height: 280, placeholder: "Your result appears here" } };
   if (widget === "Video") return { type: "Video", props: { ...base, height: 320, placeholder: "Your video appears here" } };
   if (widget === "Audio") return { type: "Audio", props: { ...base, placeholder: "Your audio appears here" } };
@@ -864,12 +899,19 @@ function buildAppDoc(example, curated) {
   const tagline = curated?.tagline ?? example.description?.split(/\.\s/)[0] ?? "";
   const button = curated?.button ?? "Run";
 
+  const index = bindingIndex(graph);
   const inputNodes = graph.nodes.filter((n) => n.type.startsWith("nodetool.input."));
-  const outputNodes = graph.nodes.filter(
-    (n) => n.type.includes(".output.") || n.type.endsWith("base_node.Preview")
-  );
+  const outputNodes = graph.nodes.filter(isOutputNode);
 
   const sliders = curated?.sliders ?? [];
+  for (const s of sliders) {
+    if (s.input && !index.inputs.has(s.input)) {
+      throw new Error(`${name}: slider input "${s.input}" has no Input node`);
+    }
+    if (s.node && !graph.nodes.some((n) => n.id === s.node)) {
+      throw new Error(`${name}: slider node "${s.node}" not in graph`);
+    }
+  }
   // A slider bound to a workflow input replaces that input's default widget.
   const sliderInputs = new Set(sliders.filter((s) => s.input).map((s) => s.input));
 
@@ -878,7 +920,7 @@ function buildAppDoc(example, curated) {
     .map((n) => widgetForInput(n, curated))
     .filter(Boolean);
 
-  const tryItems = [...inputWidgets, ...sliders.map(sliderWidget)];
+  const tryItems = [...inputWidgets, ...sliders.map((s) => sliderWidget(s, index))];
   tryItems.push({
     type: "Button",
     props: {
@@ -916,7 +958,7 @@ function buildAppDoc(example, curated) {
         props: { id: `lbl-${slugify(outName)}`, text: label, level: "3" }
       });
     }
-    resultItems.push(widgetForOutput(outName, spec));
+    resultItems.push(widgetForOutput(outName, n.id, spec));
     // An append-disposition gallery gets a "Make another" run button beneath it.
     if (curated?.gallery && curated.gallery.output === outName) {
       resultItems.push({
@@ -950,13 +992,28 @@ function buildAppDoc(example, curated) {
     props: { id: "cols-main", gap: 24, left: [tryPanel], right: [resultsPanel] }
   });
 
+  // The application document: the UI plus the one operation its widgets bind
+  // to. `workflowId` is empty because a template has no id until it is
+  // installed — the runtime fills it in from the host workflow on load.
   return {
-    version: 2,
-    data: {
+    schemaVersion: APP_SCHEMA_VERSION,
+    ui: {
       root: { props: { title: name } },
       content,
       zones: {}
-    }
+    },
+    operations: [
+      {
+        id: OPERATION_ID,
+        name: "Run",
+        workflowId: "",
+        inputs: {},
+        outputs: {},
+        policy: "replace"
+      }
+    ],
+    resources: [],
+    variables: []
   };
 }
 
@@ -1033,7 +1090,10 @@ function augmentOutputs(example) {
 
 const MEDIA_INPUT = /(Image|Audio|Video|Document|DataFrame|Dataframe|FilePath|FolderPath|Folder|RealtimeAudio)Input$/;
 
+// Preview values are keyed by the SAME binding token the widgets carry, so the
+// preview page can seed each one into the right state namespace without a graph.
 function demoValues(example, curated) {
+  const index = bindingIndex(example.graph);
   const values = {};
   // Inputs: the template defaults double as inviting demo values.
   for (const n of example.graph.nodes) {
@@ -1043,23 +1103,31 @@ function demoValues(example, curated) {
     const v = n.data?.value;
     if (!name || v === undefined || v === null) continue;
     if (typeof v === "object") continue;
-    values[name] = v;
+    values[inputBinding(n.id)] = v;
   }
   // Slider seeds: a node-property slider shows its default in the preview.
   for (const s of curated?.sliders ?? []) {
     if (s.default === undefined) continue;
-    const key = s.input ?? nodePropertyBinding(s.node, s.property);
+    const key = s.input
+      ? inputBinding(index.inputs.get(s.input))
+      : nodePropertyBinding(s.node, s.property);
     values[key] = s.default;
   }
   for (const [key, v] of Object.entries(curated?.demo ?? {})) {
     if (key === "__first") {
-      const firstOut = example.graph.nodes.find(
-        (n) => n.type.includes(".output.") || n.type.endsWith("base_node.Preview")
-      );
-      if (firstOut) values[firstOut.data?.name || firstOut.id] = v;
+      const firstOut = example.graph.nodes.find(isOutputNode);
+      if (firstOut) values[outputBinding(firstOut.id)] = v;
       continue;
     }
-    values[key] = v;
+    const nodeId = index.outputs.get(key) ?? index.inputs.get(key);
+    if (!nodeId) {
+      throw new Error(
+        `${example.name}: demo value "${key}" matches no Input or Output node`
+      );
+    }
+    values[
+      index.outputs.has(key) ? outputBinding(nodeId) : inputBinding(nodeId)
+    ] = v;
   }
   return values;
 }
@@ -1101,6 +1169,14 @@ for (const file of fs.readdirSync(EXAMPLES).filter((f) => f.endsWith(".json")).s
     featured: Boolean(curated?.featured),
     image,
     app_doc: example.app_doc,
+    // The Input/Output nodes only: enough for the preview page to resolve each
+    // binding's node the way the real runtime does, without shipping the graph.
+    graph: {
+      nodes: example.graph.nodes.filter(
+        (n) => n.type.startsWith("nodetool.input.") || isOutputNode(n)
+      ),
+      edges: []
+    },
     values: demoValues(example, curated)
   };
   fs.writeFileSync(

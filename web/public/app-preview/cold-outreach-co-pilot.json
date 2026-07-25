@@ -5,8 +5,8 @@
   "featured": false,
   "image": "/app-preview/img/cold-outreach-co-pilot.jpg",
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Cold Outreach Co-Pilot"
@@ -36,7 +36,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-prospect-company",
-                        "binding": "Prospect / Company",
+                        "binding": "op:main/in:input_prospect",
                         "events": []
                       }
                     },
@@ -44,7 +44,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-your-offer",
-                        "binding": "Your Offer",
+                        "binding": "op:main/in:input_offer",
                         "events": []
                       }
                     },
@@ -96,7 +96,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-company-summary",
-                        "binding": "company_summary",
+                        "binding": "op:main/out:preview_summary",
                         "text": ""
                       }
                     },
@@ -112,7 +112,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-pain-points",
-                        "binding": "pain_points",
+                        "binding": "op:main/out:preview_pain",
                         "text": ""
                       }
                     },
@@ -128,7 +128,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-subject",
-                        "binding": "subject",
+                        "binding": "op:main/out:preview_subject",
                         "text": ""
                       }
                     },
@@ -144,7 +144,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-body",
-                        "binding": "body",
+                        "binding": "op:main/out:preview_body",
                         "text": ""
                       }
                     },
@@ -160,7 +160,7 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-follow-up",
-                        "binding": "follow_up",
+                        "binding": "op:main/out:preview_followup",
                         "text": ""
                       }
                     }
@@ -172,15 +172,207 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "input_prospect",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "Prospect / Company",
+          "description": "The person or company to research and reach out to.",
+          "value": "AtlasCloud"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 403
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "1️⃣ Prospect",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "input_offer",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "Your Offer",
+          "description": "What you sell and the outcome it drives.",
+          "value": "We build NodeTool - a Creative AI workspace."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 649
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "2️⃣ Your offer",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "preview_summary",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "company_summary"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1146,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 403,
+          "height": 225,
+          "title": "🏢 Company summary",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "preview_pain",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "pain_points"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1146,
+            "y": 715
+          },
+          "zIndex": 0,
+          "width": 565,
+          "height": 360,
+          "title": "🩹 Pain points",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "preview_subject",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "subject"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1146,
+            "y": 1165
+          },
+          "zIndex": 0,
+          "width": 530,
+          "height": 120,
+          "title": "📌 Subject line",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "preview_body",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "body"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1146,
+            "y": 1310
+          },
+          "zIndex": 0,
+          "width": 530,
+          "height": 300,
+          "title": "✉️ Email body",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "preview_followup",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "follow_up"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1146,
+            "y": 1635
+          },
+          "zIndex": 0,
+          "width": 530,
+          "height": 180,
+          "title": "⏰ Follow-up",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2b621362-7cda-402f-b266-11b3f6089c5f",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "chunk"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1146,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 400,
+          "height": 300,
+          "title": "🔴 Agent thinking (live)",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": []
   },
   "values": {
-    "Prospect / Company": "AtlasCloud",
-    "Your Offer": "We build NodeTool - a Creative AI workspace.",
-    "company_summary": "**AtlasCloud** — Series B infra startup, ~120 people. Just launched a managed Postgres product; hiring 8 platform engineers.",
-    "pain_points": "- Docs mention manual failover runbooks\n- Careers page hints at on-call fatigue\n- CTO tweeted about “yak-shaving in CI” last week",
-    "subject": "that CI yak-shave your CTO tweeted about",
-    "body": "Hi Sara — saw Marcus's thread on CI pipelines eating platform time. We build NodeTool, a visual AI workspace teams use to automate exactly that class of glue work…",
-    "follow_up": "Circling back — happy to send a 2-minute Loom of the failover runbook automation if it's useful."
+    "op:main/in:input_prospect": "AtlasCloud",
+    "op:main/in:input_offer": "We build NodeTool - a Creative AI workspace.",
+    "op:main/out:preview_summary": "**AtlasCloud** — Series B infra startup, ~120 people. Just launched a managed Postgres product; hiring 8 platform engineers.",
+    "op:main/out:preview_pain": "- Docs mention manual failover runbooks\n- Careers page hints at on-call fatigue\n- CTO tweeted about “yak-shaving in CI” last week",
+    "op:main/out:preview_subject": "that CI yak-shave your CTO tweeted about",
+    "op:main/out:preview_body": "Hi Sara — saw Marcus's thread on CI pipelines eating platform time. We build NodeTool, a visual AI workspace teams use to automate exactly that class of glue work…",
+    "op:main/out:preview_followup": "Circling back — happy to send a 2-minute Loom of the failover runbook automation if it's useful."
   }
 }

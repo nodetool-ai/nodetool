@@ -370,8 +370,8 @@
   "required_providers": null,
   "required_models": null,
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Photo Enhancement Suite"
@@ -401,7 +401,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-photos",
-                        "binding": "photos",
+                        "binding": "op:main/in:10",
                         "events": []
                       }
                     },
@@ -409,7 +409,7 @@
                       "type": "Slider",
                       "props": {
                         "id": "slider-brightness-adjust",
-                        "binding": "brightness_adjust",
+                        "binding": "op:main/in:11",
                         "label": "Brightness",
                         "min": 0.5,
                         "max": 1.5,
@@ -429,7 +429,7 @@
                       "type": "Slider",
                       "props": {
                         "id": "slider-color-boost",
-                        "binding": "color_boost",
+                        "binding": "op:main/in:12",
                         "label": "Color boost",
                         "min": 0,
                         "max": 2,
@@ -485,7 +485,7 @@
                       "type": "Image",
                       "props": {
                         "id": "out-enhanced-photos",
-                        "binding": "enhanced_photos",
+                        "binding": "op:main/out:output-enhanced-photos",
                         "fit": "contain",
                         "height": 280,
                         "placeholder": "Your result appears here"
@@ -499,6 +499,18 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
   }
 }

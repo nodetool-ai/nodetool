@@ -249,8 +249,8 @@
   "package_name": "nodetool-base",
   "path": null,
   "app_doc": {
-    "version": 2,
-    "data": {
+    "schemaVersion": 3,
+    "ui": {
       "root": {
         "props": {
           "title": "Color Boost Video"
@@ -280,7 +280,7 @@
                       "type": "WorkflowInput",
                       "props": {
                         "id": "in-source-video",
-                        "binding": "source_video",
+                        "binding": "op:main/in:7074f109-83b1-4864-8e37-17a89fcbf46d",
                         "events": []
                       }
                     },
@@ -288,7 +288,7 @@
                       "type": "Slider",
                       "props": {
                         "id": "slider-grading-intensity",
-                        "binding": "grading_intensity",
+                        "binding": "op:main/in:grading-intensity",
                         "label": "Grading intensity",
                         "min": 0,
                         "max": 1,
@@ -344,7 +344,7 @@
                       "type": "Video",
                       "props": {
                         "id": "out-graded-video",
-                        "binding": "graded_video",
+                        "binding": "op:main/out:output-graded-video",
                         "height": 320,
                         "placeholder": "Your video appears here"
                       }
@@ -357,6 +357,18 @@
         }
       ],
       "zones": {}
-    }
+    },
+    "operations": [
+      {
+        "id": "main",
+        "name": "Run",
+        "workflowId": "",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": []
   }
 }
