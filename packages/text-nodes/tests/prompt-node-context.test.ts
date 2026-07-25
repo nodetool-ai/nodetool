@@ -102,6 +102,39 @@ describe("PromptNode asset variables", () => {
   });
 });
 
+describe("PromptNode variable pass-through", () => {
+  it("forwards each variable on an output handle of the same name", async () => {
+    const image = { type: "image", uri: "asset://abc.png" };
+    const node = new PromptNode();
+    node.assign({ prompt: "Describe {{ img }} for {{ who }}" });
+    node.setDynamic("img", image);
+    node.setDynamic("who", "kids");
+
+    const result = await node.process();
+
+    expect(result.output).toBe("Describe asset://abc.png for kids");
+    // The pass-through carries the raw ref, not the asset:// token.
+    expect(result.img).toEqual(image);
+    expect(result.who).toBe("kids");
+  });
+
+  it("forwards a value resolved from a variable channel", async () => {
+    const ctx = ctxWith("subject", "a dragon");
+    const node = new PromptNode();
+    node.assign({ prompt: "Describe {{ subject }}" });
+
+    expect((await node.process(ctx)).subject).toBe("a dragon");
+  });
+
+  it("does not let a variable named output shadow the rendered text", async () => {
+    const node = new PromptNode();
+    node.assign({ prompt: "{{ output }}!" });
+    node.setDynamic("output", "hello");
+
+    expect((await node.process()).output).toBe("hello!");
+  });
+});
+
 describe("TemplateTextNode asset variables", () => {
   it("expands an asset-ref variable into its asset:// token", async () => {
     const node = new TemplateTextNode();
