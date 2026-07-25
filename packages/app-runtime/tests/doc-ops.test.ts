@@ -33,6 +33,22 @@ describe("operations", () => {
     expect(EMPTY_DOC_META.operations).toHaveLength(0);
   });
 
+  it("collapses separator runs and trims the edges", () => {
+    const { operation } = addOperation(EMPTY_DOC_META, {
+      name: "  Hello -- World!  ",
+      workflowId: "wf-1"
+    });
+    expect(operation.id).toBe("hello_world");
+  });
+
+  it("falls back when a name has nothing to slug", () => {
+    const { operation } = addOperation(EMPTY_DOC_META, {
+      name: "***",
+      workflowId: "wf-1"
+    });
+    expect(operation.id).toBe("item");
+  });
+
   it("suffixes a derived id that is already taken", () => {
     const first = addOperation(EMPTY_DOC_META, {
       name: "Run",

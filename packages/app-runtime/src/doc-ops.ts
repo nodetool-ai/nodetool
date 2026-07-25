@@ -65,12 +65,23 @@ export interface ResourceInput {
   operations?: ResourceOperation[];
 }
 
+/**
+ * Splitting on runs of non-alphanumerics drops the leading and trailing ones as
+ * empty fields, so no second pass is needed to trim them.
+ *
+ * The previous form substituted first and then trimmed with `/^_+|_+$/`, which
+ * CodeQL reports as polynomial on user input. That was a false positive — the
+ * substitution collapses every run to one character, so the trim never sees
+ * more than a single leading or trailing `_` — but this form is equivalent, one
+ * pass instead of two, and does not carry the shape that trips the scanner.
+ */
 const slug = (value: string): string =>
   value
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
+    .join("_");
 
 /** `base`, or `base_2`, `base_3`… until it is free. */
 const uniqueId = (base: string, taken: ReadonlySet<string>): string => {
