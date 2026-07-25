@@ -4,6 +4,7 @@
     { "path": "packages/gpu" },
     { "path": "packages/protocol" },
     { "path": "packages/timeline" },
+    { "path": "packages/app-runtime" },
     { "path": "packages/image-editor" },
     { "path": "packages/config" },
     { "path": "packages/docker" },

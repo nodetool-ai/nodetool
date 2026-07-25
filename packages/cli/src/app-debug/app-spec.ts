@@ -1,46 +1,33 @@
 /**
- * Pure app-spec layer: parse a workflow's `app_doc` (a Puck document) into a
- * flat widget list, extract the graph's bindable surface, and statically
- * validate the wiring between the two.
+ * Pure app-spec layer: parse a workflow's app document into a flat widget
+ * list, extract the graph's bindable surface, and statically validate the
+ * wiring between the two.
  *
- * Mirrors the web app-builder's semantics (see
- * `web/src/components/appbuilder/`): write widgets bind to input-node names,
- * read widgets bind to output-node names or SetVariable names, and
- * setState/toggleState events target SetVariable names. Kept dependency-free so
- * it is unit-testable under the CLI's stubbed vitest setup.
+ * The semantics — widget catalog, document parsing, binding resolution — come
+ * from `@nodetool-ai/app-runtime`, so this harness checks the same rules the
+ * web runtime enforces instead of a copy that drifts away from it.
  */
+import {
+  DEFAULT_OPERATION_ID,
+  encodeBinding,
+  parseApplicationDocument,
+  resolveBinding,
+  stateKey,
+  widgetMode,
+  WIDGET_CATALOG,
+  type BindingMode,
+  type BindingRef,
+  type BindingScope
+} from "@nodetool-ai/app-runtime";
+
 import type { DebugGraph } from "../debug/types.js";
 import type {
   AppEventSpec,
   AppIO,
   AppSpec,
   AppValidation,
-  AppWidgetSpec,
-  WidgetBindingMode
+  AppWidgetSpec
 } from "./types.js";
-
-/** Widget catalog: how each Puck component type participates in the runtime. */
-export const WIDGET_MODES: Record<string, WidgetBindingMode> = {
-  Heading: "read",
-  Text: "read",
-  Markdown: "read",
-  Image: "read",
-  Audio: "read",
-  Video: "read",
-  Json: "read",
-  Output: "read",
-  Progress: "read",
-  WorkflowInput: "write",
-  TextInput: "write",
-  NumberInput: "write",
-  Slider: "write",
-  Switch: "write",
-  Select: "write",
-  Button: "action",
-  Container: "layout",
-  Columns: "layout",
-  Divider: "layout"
-};
 
 const SET_VARIABLE_NODE_TYPE = "nodetool.variable.SetVariable";
 
@@ -63,52 +50,76 @@ const parseEvents = (raw: unknown): AppEventSpec[] => {
   for (const item of raw) {
     if (!isRecord(item)) continue;
     const trigger = item.trigger === "change" ? "change" : "click";
-    const kind =
-      item.kind === "cancel" || item.kind === "setState" || item.kind === "toggleState"
-        ? item.kind
-        : "run";
     events.push({
       trigger,
-      kind,
+      kind: str(item.kind) ?? "run",
       // The builder stores "" for unset key/value — normalize to undefined.
       key: str(item.key) || undefined,
-      value: str(item.value) || undefined
+      value: str(item.value) || undefined,
+      operationId: str(item.operationId) || undefined,
+      resourceBindingId: str(item.resourceBindingId) || undefined,
+      command: str(item.command) || undefined
     });
   }
   return events;
 };
 
+/** The binding scope a single-workflow app resolves against. */
+export function bindingScopeFor(io: AppIO): BindingScope {
+  return {
+    defaultOperationId: DEFAULT_OPERATION_ID,
+    operations: [
+      {
+        operationId: DEFAULT_OPERATION_ID,
+        inputs: io.inputs.map(({ nodeId, name }) => ({ nodeId, name })),
+        outputs: io.outputs.map(({ nodeId, name }) => ({ nodeId, name })),
+        nodeIds: io.nodeIds,
+        variableNames: io.variables
+      }
+    ],
+    variables: []
+  };
+}
+
+const modeToBindingMode = (mode: AppWidgetSpec["bindingMode"]): BindingMode =>
+  mode === "write" ? "write" : mode === "read" ? "read" : "none";
+
 /**
- * Parse an `app_doc` value (object or JSON string) into an {@link AppSpec}.
- * Slot children are discovered structurally — any prop that is an array of
- * `{type, props}` objects — so new layout widgets keep working unmodified.
+ * Parse an app document (object or JSON string) into an {@link AppSpec},
+ * resolving every widget binding to a node-ID reference against the live
+ * graph. Slot children are discovered from the widget catalog, falling back to
+ * a structural scan so a new layout widget keeps working before the catalog
+ * knows about it.
  */
-export function parseAppSpec(appDoc: unknown): {
-  spec: AppSpec | null;
-  issues: string[];
-} {
+export function parseAppSpec(
+  appDoc: unknown,
+  io: AppIO
+): { spec: AppSpec | null; issues: string[] } {
   if (appDoc == null) {
-    return { spec: null, issues: ["Workflow has no app_doc — build the app in the App Builder first."] };
+    return {
+      spec: null,
+      issues: ["Workflow has no app_doc — build the app in the App Builder first."]
+    };
   }
-  let doc: unknown = appDoc;
-  if (typeof doc === "string") {
+  let raw: unknown = appDoc;
+  if (typeof raw === "string") {
     try {
-      doc = JSON.parse(doc);
+      raw = JSON.parse(raw);
     } catch {
       return { spec: null, issues: ["app_doc is a string but not valid JSON."] };
     }
   }
-  if (!isRecord(doc) || !isRecord(doc.data)) {
-    return { spec: null, issues: ["app_doc is not a valid app document (missing `data`)."] };
-  }
-  const data = doc.data;
-  if (!isRecord(data.root) || !Array.isArray(data.content)) {
-    return { spec: null, issues: ["app_doc.data is not a valid Puck document (missing `root`/`content`)."] };
+  const document = parseApplicationDocument(raw, { hostWorkflowId: "self" });
+  if (!document) {
+    return {
+      spec: null,
+      issues: ["app_doc is not a valid application document (no `ui`/`data`)."]
+    };
   }
 
   const issues: string[] = [];
-  const version = typeof doc.version === "number" ? doc.version : 0;
-  const rootProps = isRecord(data.root.props) ? data.root.props : {};
+  const scope = bindingScopeFor(io);
+  const rootProps = isRecord(document.ui.root.props) ? document.ui.root.props : {};
   const title = str(rootProps.title);
 
   const widgets: AppWidgetSpec[] = [];
@@ -116,33 +127,44 @@ export function parseAppSpec(appDoc: unknown): {
     for (const item of items) {
       if (!isPuckNode(item)) continue;
       const id = str(item.props.id) ?? `${item.type}-${widgets.length}`;
-      const bindingMode = WIDGET_MODES[item.type] ?? "unknown";
-      const binding = str(item.props.binding);
+      const bindingMode = widgetMode(item.type);
+      const binding = str(item.props.binding) || null;
+      const ref: BindingRef | null = binding
+        ? resolveBinding(binding, scope, modeToBindingMode(bindingMode))
+        : bindingMode === "write"
+          ? // An unbound write widget still holds its own value — as widget-local
+            // view state, which cannot collide with a workflow input.
+            { kind: "view", componentId: id, prop: "value" }
+          : null;
       widgets.push({
         id,
         type: item.type,
         bindingMode,
-        binding: binding || null,
-        stateKey: binding || (bindingMode === "write" ? id : null),
+        binding,
+        ref,
+        stateKey: ref ? stateKey(ref) : null,
+        canonicalBinding: ref ? encodeBinding(ref) : null,
         label: str(item.props.label) ?? str(item.props.text) ?? null,
         events: parseEvents(item.props.events),
         parentId,
         slot
       });
+      const slots = WIDGET_CATALOG[item.type]?.slots;
       for (const [prop, value] of Object.entries(item.props)) {
+        if (slots && !slots.includes(prop)) continue;
         if (Array.isArray(value) && value.some(isPuckNode)) {
           walk(value, id, prop);
         }
       }
     }
   };
-  walk(data.content, null, null);
+  walk(document.ui.content, null, null);
 
   if (widgets.length === 0) {
     issues.push("The app document has no widgets — nothing to render or run.");
   }
 
-  return { spec: { version, title, widgets }, issues };
+  return { spec: { version: document.schemaVersion, title, widgets }, issues };
 }
 
 /** Read a node property from the kernel graph shape (`properties`, not `data`). */
@@ -189,17 +211,21 @@ export function extractAppIO(graph: DebugGraph): AppIO {
   return io;
 }
 
+const VARIABLE_EVENT_KINDS = new Set([
+  "setVariable",
+  "toggleVariable",
+  "setState",
+  "toggleState"
+]);
+
 /** Statically check the app's wiring against the workflow's bindable surface. */
 export function validateApp(spec: AppSpec, io: AppIO): AppValidation {
   const errors: string[] = [];
   const warnings: string[] = [];
-  const inputNames = new Set(io.inputs.map((i) => i.name));
-  const outputNames = new Set(io.outputs.map((o) => o.name));
-  const variableNames = new Set(io.variables);
-  const nodeIds = new Set(io.nodeIds);
+  const scope = bindingScopeFor(io);
 
   let hasRunTrigger = false;
-  const boundOutputs = new Set<string>();
+  const displayedOutputs = new Set<string>();
 
   for (const w of spec.widgets) {
     const where = `${w.type} "${w.id}"`;
@@ -207,39 +233,22 @@ export function validateApp(spec: AppSpec, io: AppIO): AppValidation {
       errors.push(`${where}: unknown widget type — not in the app-builder catalog.`);
       continue;
     }
-    if (w.binding) {
-      // `node:<id>#<prop>` write bindings target a graph node's property
-      // directly (the web runtime overlays the value before the run).
-      const nodeBinding = /^node:(.+)#[^#]+$/.exec(w.binding);
-      if (w.bindingMode === "write" && nodeBinding) {
-        if (!nodeIds.has(nodeBinding[1])) {
-          errors.push(
-            `${where}: bound to node property "${w.binding}" but the workflow has no node with id "${nodeBinding[1]}".`
-          );
-        }
-      } else if (w.bindingMode === "write" && !inputNames.has(w.binding)) {
-        errors.push(
-          `${where}: bound to input "${w.binding}" but the workflow has no input node with that name.`
-        );
-      }
-      if (w.bindingMode === "read") {
-        if (outputNames.has(w.binding) || variableNames.has(w.binding)) {
-          boundOutputs.add(w.binding);
-        } else {
-          errors.push(
-            `${where}: bound to "${w.binding}" but the workflow has no output or variable with that name.`
-          );
-        }
-      }
-    } else if (w.bindingMode === "write") {
+    if (w.binding && !w.ref) {
+      errors.push(
+        w.bindingMode === "write"
+          ? `${where}: bound to "${w.binding}" but the workflow has no input node or node property that resolves it.`
+          : `${where}: bound to "${w.binding}" but the workflow has no output or variable with that name.`
+      );
+    } else if (!w.binding && w.bindingMode === "write") {
       warnings.push(`${where}: not bound to an input — its value stays local UI state.`);
     }
+    if (w.ref?.kind === "output") displayedOutputs.add(w.ref.nodeId);
 
     for (const event of w.events) {
       if (event.kind === "run") hasRunTrigger = true;
       if (
-        (event.kind === "setState" || event.kind === "toggleState") &&
-        (!event.key || !variableNames.has(event.key))
+        VARIABLE_EVENT_KINDS.has(event.kind) &&
+        !resolveBinding(event.key, scope, "read")
       ) {
         errors.push(
           `${where}: ${event.kind} targets variable "${event.key ?? ""}" but the workflow has no SetVariable node with that name.`
@@ -254,10 +263,8 @@ export function validateApp(spec: AppSpec, io: AppIO): AppValidation {
     );
   }
   for (const output of io.outputs) {
-    if (!boundOutputs.has(output.name)) {
-      warnings.push(
-        `Workflow output "${output.name}" is not displayed by any widget.`
-      );
+    if (!displayedOutputs.has(output.nodeId)) {
+      warnings.push(`Workflow output "${output.name}" is not displayed by any widget.`);
     }
   }
 

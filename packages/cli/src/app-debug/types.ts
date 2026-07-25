@@ -10,36 +10,40 @@
  * Everything lands in a single `AppDebugReport` an agent can act on directly.
  */
 import type {
+  AppEvent,
+  BindingRef,
+  WidgetBindingMode as SharedWidgetBindingMode
+} from "@nodetool-ai/app-runtime";
+
+import type {
   DebugTargetInfo,
   DebugVerdict,
   ServerRunReport
 } from "../debug/types.js";
 
-/** How a widget participates in the reactive layer (mirrors the web catalog). */
-export type WidgetBindingMode = "read" | "write" | "action" | "layout" | "unknown";
+/** How a widget participates in the reactive layer (from the shared catalog). */
+export type WidgetBindingMode = SharedWidgetBindingMode | "unknown";
 
-/** A widget event as stored in Puck props (mirror of the web `AppEvent`). */
-export interface AppEventSpec {
-  trigger: "click" | "change";
-  kind: "run" | "cancel" | "setState" | "toggleState";
-  /** Variable name for setState/toggleState. */
-  key?: string;
-  /** Literal value for setState. */
-  value?: string;
-}
+/** A widget event as stored in Puck props. Structurally the shared `AppEvent`. */
+export type AppEventSpec = AppEvent;
 
 /** One placed widget, flattened out of the Puck document tree. */
 export interface AppWidgetSpec {
   id: string;
   type: string;
   bindingMode: WidgetBindingMode;
-  /** The input/output/variable name the widget is bound to, if any. */
+  /** The binding exactly as stored in the document, if any. */
   binding: string | null;
   /**
-   * Reactive state key, resolved the way the web runtime does: the binding,
-   * or the widget id for an unbound write widget (local-only state).
+   * The binding resolved against the live graph. Null when a stored binding
+   * names something the workflow no longer has — which is a validation error,
+   * not a silent no-op.
    */
+  ref: BindingRef | null;
+  /** Namespaced state key of {@link ref} (`opId:nodeId`, a variable id, …). */
   stateKey: string | null;
+  /** {@link ref} re-encoded in ID form — what a migrated document should store. */
+  canonicalBinding: string | null;
   label: string | null;
   events: AppEventSpec[];
   parentId: string | null;

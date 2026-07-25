@@ -101,7 +101,7 @@ describe("runAppDebug", () => {
     );
 
     expect(report.verdict.ok).toBe(true);
-    expect(report.app).toEqual({ version: 2, title: "Demo App", widgetCount: 3 });
+    expect(report.app).toEqual({ version: 3, title: "Demo App", widgetCount: 3 });
     expect(runOnServer).toHaveBeenCalledOnce();
     expect(runOnServer.mock.calls[0][0].params).toEqual({ prompt: "what is it?" });
 
@@ -216,23 +216,33 @@ describe("runAppDebug", () => {
 
 describe("defaultInteractions", () => {
   it("falls back to an on-change run input when there is no run button", () => {
-    const { spec } = parseAppSpec({
-      version: 2,
-      data: {
-        root: { props: {} },
-        content: [
-          {
-            type: "Slider",
-            props: {
-              id: "Slider-1",
-              binding: "count",
-              events: [{ trigger: "change", kind: "run", key: "", value: "" }]
+    const { spec } = parseAppSpec(
+      {
+        version: 2,
+        data: {
+          root: { props: {} },
+          content: [
+            {
+              type: "Slider",
+              props: {
+                id: "Slider-1",
+                binding: "count",
+                events: [{ trigger: "change", kind: "run", key: "", value: "" }]
+              }
             }
-          }
+          ],
+          zones: {}
+        }
+      },
+      {
+        inputs: [
+          { nodeId: "in1", nodeType: "nodetool.input.IntegerInput", name: "count" }
         ],
-        zones: {}
+        outputs: [],
+        variables: [],
+        nodeIds: ["in1"]
       }
-    });
+    );
     expect(defaultInteractions(spec!)).toEqual([
       { change: "Slider-1", value: undefined }
     ]);

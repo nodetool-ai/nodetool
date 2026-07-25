@@ -18,8 +18,14 @@ import type {
   ServerRunReport
 } from "../debug/types.js";
 import type { ServerRunInput, ServerRunOutcome } from "../debug/server-runner.js";
-import { extractAppIO, parseAppSpec, validateApp } from "./app-spec.js";
-import { HeadlessAppRuntime, eventToAction } from "./runtime.js";
+import {
+  DEFAULT_OPERATION_ID,
+  eventToAction,
+  resolveBinding,
+  stateKey
+} from "@nodetool-ai/app-runtime";
+import { bindingScopeFor, extractAppIO, parseAppSpec, validateApp } from "./app-spec.js";
+import { HeadlessAppRuntime } from "./runtime.js";
 import { renderAppReportMarkdown } from "./markdown.js";
 import type {
   AppDebugOptions,
@@ -157,8 +163,8 @@ export async function runAppDebug(
     );
   }
 
-  const { spec, issues: parseIssues } = parseAppSpec(resolved.appDoc);
   const io = extractAppIO(resolved.graph);
+  const { spec, issues: parseIssues } = parseAppSpec(resolved.appDoc, io);
   const validation = spec
     ? validateApp(spec, io)
     : { errors: [], warnings: [] };
@@ -214,11 +220,55 @@ export async function runAppDebug(
       return outcome.rawMessages as unknown as ReadonlyArray<Record<string, unknown>>;
     };
 
-    const runtime = new HeadlessAppRuntime({ io, runWorkflow });
-    for (const [key, value] of Object.entries(
-      { ...resolved.fileParams, ...(options.params ?? {}) }
-    )) {
-      runtime.setValue(key, value);
+    const scope = bindingScopeFor(io);
+    const inputKey = (nodeId: string) =>
+      stateKey({ kind: "input", operationId: DEFAULT_OPERATION_ID, nodeId });
+    const outputKeyByNodeId = new Map(
+      io.outputs.map((o) => [
+        o.nodeId,
+        stateKey({
+          kind: "output",
+          operationId: DEFAULT_OPERATION_ID,
+          nodeId: o.nodeId
+        })
+      ])
+    );
+    const paramNameByInputKey = new Map(
+      io.inputs.map((i) => [inputKey(i.nodeId), i.name])
+    );
+    const defaults: Record<string, unknown> = {};
+    for (const input of io.inputs) {
+      if (input.defaultValue !== undefined) {
+        defaults[inputKey(input.nodeId)] = input.defaultValue;
+      }
+    }
+
+    const runtime = new HeadlessAppRuntime({
+      operationId: DEFAULT_OPERATION_ID,
+      outputKeyByNodeId,
+      paramNameByInputKey,
+      defaults,
+      runWorkflow
+    });
+
+    /** Write a value addressed by name (a param, or an `--interact` set step). */
+    const writeByName = (name: string, value: unknown): boolean => {
+      const ref =
+        resolveBinding(name, scope, "write") ?? resolveBinding(name, scope, "read");
+      if (!ref) return false;
+      runtime.write(ref, value);
+      return true;
+    };
+
+    for (const [key, value] of Object.entries({
+      ...resolved.fileParams,
+      ...(options.params ?? {})
+    })) {
+      if (!writeByName(key, value)) {
+        report.validation.warnings.push(
+          `Param "${key}" matches no input, output, or variable in the workflow.`
+        );
+      }
     }
 
     const steps = options.interact ?? defaultInteractions(spec);
@@ -232,8 +282,11 @@ export async function runAppDebug(
       report.interactions.push(record);
 
       if ("set" in step) {
-        runtime.setValue(step.set.key, step.set.value);
-        record.actions.push(`set ${step.set.key}`);
+        if (writeByName(step.set.key, step.set.value)) {
+          record.actions.push(`set ${step.set.key}`);
+        } else {
+          record.error = `"${step.set.key}" matches no input, output, or variable.`;
+        }
         continue;
       }
 
@@ -244,32 +297,41 @@ export async function runAppDebug(
         continue;
       }
       if ("change" in step && step.value !== undefined) {
-        if (found.stateKey) runtime.setValue(found.stateKey, step.value);
+        if (found.ref) runtime.write(found.ref, step.value);
         record.actions.push(`set ${found.stateKey ?? found.id}`);
       }
-      // A run from a bound write widget carries its input name; the web engine
+      // A run from a bound write widget carries its binding; the web engine
       // would run just that input's downstream subgraph — headless, both paths
       // are a full authoritative run.
-      const from = found.bindingMode === "write" ? found.binding ?? undefined : undefined;
+      const from =
+        found.bindingMode === "write" ? found.canonicalBinding ?? undefined : undefined;
+      const eventCtx = {
+        defaultOperationId: DEFAULT_OPERATION_ID,
+        resolveVariableId: (key: string | undefined) => {
+          const ref = resolveBinding(key, scope, "read");
+          return ref?.kind === "variable" ? ref.variableId : null;
+        },
+        from
+      };
       for (const event of found.events) {
         if (event.trigger !== trigger) continue;
-        const action = eventToAction(event, from);
-        if (action.kind === "run") {
-          if (!allowRuns) {
-            record.actions.push("run (skipped — --no-run)");
-            continue;
-          }
-          record.runIndex = report.runs.length;
-          record.actions.push("run");
-          await runtime.dispatch(action);
-        } else {
-          record.actions.push(
-            action.kind === "setState" || action.kind === "toggleState"
-              ? `${action.kind} ${action.key}`
-              : action.kind
-          );
-          await runtime.dispatch(action);
+        const action = eventToAction(event, eventCtx);
+        if (!action) {
+          record.error =
+            record.error ?? `event "${event.kind}" is incomplete — nothing to dispatch.`;
+          continue;
         }
+        if (action.kind === "run" && !allowRuns) {
+          record.actions.push("run (skipped — --no-run)");
+          continue;
+        }
+        if (action.kind === "run") record.runIndex = report.runs.length;
+        record.actions.push(
+          action.kind === "setVariable" || action.kind === "toggleVariable"
+            ? `${action.kind} ${action.variableId}`
+            : action.kind
+        );
+        await runtime.dispatch(action);
       }
       if (record.actions.length === 0) {
         record.error = `widget has no "${trigger}" events to fire.`;
@@ -277,11 +339,34 @@ export async function runAppDebug(
       if (runtime.error) record.error = record.error ?? runtime.error;
     }
 
-    report.values = previewValue(runtime.values) as Record<string, unknown>;
+    // The report reads better keyed by the names an author recognizes than by
+    // the runtime's namespaced state keys.
+    const values: Record<string, unknown> = {};
+    for (const input of io.inputs) {
+      const value = runtime.read({
+        kind: "input",
+        operationId: DEFAULT_OPERATION_ID,
+        nodeId: input.nodeId
+      });
+      if (value !== undefined) values[input.name] = value;
+    }
+    for (const output of io.outputs) {
+      const value = runtime.read({
+        kind: "output",
+        operationId: DEFAULT_OPERATION_ID,
+        nodeId: output.nodeId
+      });
+      if (value !== undefined) values[output.name] = value;
+    }
+    for (const [variableId, value] of Object.entries(runtime.state.variables)) {
+      if (value !== undefined) values[variableId] = value;
+    }
+    report.values = previewValue(values) as Record<string, unknown>;
+
     report.widgets = spec.widgets
       .filter((w) => w.bindingMode !== "layout")
       .map((w) => {
-        const value = w.stateKey ? runtime.values[w.stateKey] : undefined;
+        const value = runtime.read(w.ref);
         return {
           id: w.id,
           type: w.type,

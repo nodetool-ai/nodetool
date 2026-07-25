@@ -5,6 +5,7 @@
     "packages/protocol",
     "packages/gpu",
     "packages/timeline",
+    "packages/app-runtime",
     "packages/image-editor",
     "packages/kernel",
     "packages/runtime",
