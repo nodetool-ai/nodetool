@@ -3,8 +3,6 @@ import { StyleSheet } from 'react-native';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { makeClipVersion } from '@nodetool-ai/timeline';
-
 import TimelineViewerScreen from '../TimelineViewerScreen';
 import type { RootStackParamList } from '../../navigation/types';
 import { resetDocumentStores } from '../../documents/documentStore';
