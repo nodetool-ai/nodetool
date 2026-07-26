@@ -11,6 +11,11 @@ import PuckAppEditor from "./puck/PuckAppEditor";
 import AppBuilderAgentPanel from "./AppBuilderAgentPanel";
 
 export interface AppBuilderShellProps {
+  /**
+   * The application being edited. This is the app's identity: the agent's
+   * `ui_app_*` tools address this editor by it.
+   */
+  applicationId: string;
   /** The document to edit. Seeded once — remount (via `key`) to reseed. */
   document: AppDocument;
   /** The workflow whose inputs, outputs, and nodes bindings may reference. */
@@ -34,10 +39,11 @@ export interface AppBuilderShellProps {
  * `meta` (the agent's `ui_app_*` tools edit them). A save always emits the
  * whole document, so no part of it can be dropped by saving another.
  *
- * Two containers supply the storage: `AppBuilderPage` (a workflow's `app_doc`)
- * and `ApplicationAppBuilder` (an `applications` record).
+ * The storage is supplied by `ApplicationAppBuilder` (an `applications`
+ * record).
  */
 const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
+  applicationId,
   document,
   workflow,
   agentWorkflowId,
@@ -108,6 +114,7 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
         {banner}
         <Box sx={{ flex: 1, minHeight: 0 }}>
           <PuckAppEditor
+            applicationId={applicationId}
             workflow={workflow}
             data={data}
             onPublish={handleSave}
@@ -131,7 +138,10 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
             borderTopLeftRadius: BORDER_RADIUS.lg
           }}
         >
-          <AppBuilderAgentPanel workflowId={agentWorkflowId} />
+          <AppBuilderAgentPanel
+            applicationId={applicationId}
+            workflowId={agentWorkflowId}
+          />
         </Box>
       )}
     </FlexRow>

@@ -151,9 +151,9 @@ export interface AppBridgeInitialState {
   /** Operations, variables, and resources the document starts with. */
   meta?: AppDocMeta;
   /**
-   * Id of the workflow this app document hangs off. `ui_app_get_binding_targets`
-   * reports node-level targets only for operations pointing at it, mirroring an
-   * editor that has loaded exactly its own workflow.
+   * Id of the host workflow this editor has loaded — NOT the app's identity.
+   * `ui_app_get_binding_targets` reports node-level targets only for operations
+   * pointing at it, mirroring an editor that has loaded exactly one workflow.
    */
   workflowId?: string;
   /** Bindable surface of that host workflow: its input/output nodes and channels. */
@@ -246,10 +246,10 @@ function tool(
   };
 }
 
-const workflowIdParam = z
+const applicationIdParam = z
   .string()
   .describe(
-    "Id of the workflow whose app document to operate on. The open app " +
+    "Id of the application whose app document to operate on. The open app " +
       "builders are listed in the ui_context block."
   );
 
@@ -293,10 +293,10 @@ const resourceKind = z
  * Build an in-memory App Builder bridge whose tools share the `ui_app_*`
  * contract but run headlessly against a plain document tree (no Puck editor).
  *
- * A single app is modeled: every tool takes a `workflow_id` (mirroring the real
- * tools), which is accepted but not used to disambiguate — the bridge holds one
- * document. Passing an unknown id is not an error, matching how a scored run
- * only cares about the resulting document.
+ * A single app is modeled: every tool takes an `application_id` (mirroring the
+ * real tools), which is accepted but not used to disambiguate — the bridge
+ * holds one document. Passing an unknown id is not an error, matching how a
+ * scored run only cares about the resulting document.
  */
 export function createAppToolBridge(
   initial: AppBridgeInitialState = {}
@@ -351,13 +351,13 @@ export function createAppToolBridge(
   const tools: HeadlessTool[] = [
     tool(
       "ui_app_get_snapshot",
-      "Read a workflow's open App Builder: every placed widget (id, type, props, " +
+      "Read an open App Builder: every placed widget (id, type, props, " +
         "parent), the selected widget, the page title, and the available widget " +
         "types. Call this first to see what's on the page before editing.",
-      z.object({ workflow_id: workflowIdParam }),
-      async ({ workflow_id }) => ({
+      z.object({ application_id: applicationIdParam }),
+      async ({ application_id }) => ({
         ok: true,
-        workflowId: workflow_id,
+        applicationId: application_id,
         rootProps: title !== null ? { title } : {},
         selectedId,
         componentTypes: Object.keys(WIDGET_TYPES),
@@ -370,7 +370,7 @@ export function createAppToolBridge(
       "List the widget types the App Builder supports and their fields (props). " +
         "Use this to learn valid `type` values and which props each widget accepts " +
         "(e.g. label, binding, events).",
-      z.object({ workflow_id: workflowIdParam }),
+      z.object({ application_id: applicationIdParam }),
       async () => ({
         ok: true,
         types: Object.entries(WIDGET_TYPES).map(([type, def]) => ({
@@ -394,7 +394,7 @@ export function createAppToolBridge(
         "workflow tools. To nest inside a Panel or Columns widget, pass parent_id " +
         "(and slot: 'content' | 'left' | 'right').",
       z.object({
-        workflow_id: workflowIdParam,
+        application_id: applicationIdParam,
         type: z
           .string()
           .describe("Widget type, e.g. 'Heading', 'TextInput', 'Button'."),
@@ -418,7 +418,7 @@ export function createAppToolBridge(
           .optional()
           .describe("Insertion index within the target list.")
       }),
-      async ({ workflow_id: _wf, type, props, parent_id, slot, index }) => {
+      async ({ application_id: _app, type, props, parent_id, slot, index }) => {
         // The real tool/handler doesn't validate `type` — Puck inserts whatever
         // string it's given — so the bridge stays permissive too. An unknown
         // type just has no slots (SLOT_FIELDS lookup defaults to []).
@@ -475,7 +475,7 @@ export function createAppToolBridge(
       "Merge props into an existing widget (e.g. set its binding, label, or " +
         "events). The widget's id cannot be changed.",
       z.object({
-        workflow_id: workflowIdParam,
+        application_id: applicationIdParam,
         id: z
           .string()
           .describe(
@@ -483,7 +483,7 @@ export function createAppToolBridge(
           ),
         props: z.record(z.string(), z.unknown()).describe("Props to merge.")
       }),
-      async ({ workflow_id: _wf, id, props }) => {
+      async ({ application_id: _app, id, props }) => {
         let found = false;
         content = mapTree(content, (n) => {
           if (n.props.id !== id) return n;
@@ -504,12 +504,12 @@ export function createAppToolBridge(
       "ui_app_remove_component",
       "Remove a widget (and anything nested inside it) from the app.",
       z.object({
-        workflow_id: workflowIdParam,
+        application_id: applicationIdParam,
         id: z
           .string()
           .describe("Widget id to remove — a component inside the app.")
       }),
-      async ({ workflow_id: _wf, id }) => {
+      async ({ application_id: _app, id }) => {
         let removed = false;
         content = mapTree(content, (n) => {
           if (n.props.id === id) {
@@ -536,7 +536,7 @@ export function createAppToolBridge(
       "Select a widget so its properties show in the inspector (or pass null to " +
         "clear the selection).",
       z.object({
-        workflow_id: workflowIdParam,
+        application_id: applicationIdParam,
         id: z
           .string()
           .nullable()
@@ -545,7 +545,7 @@ export function createAppToolBridge(
             "Widget id to select — a component inside the app. Null or omitted clears the selection."
           )
       }),
-      async ({ workflow_id: _wf, id }) => {
+      async ({ application_id: _app, id }) => {
         const wanted = (id as string | null | undefined) ?? null;
         // Mirror the real editor: selecting an unknown id clears the
         // selection (Puck's selector lookup returns null for it).
@@ -562,10 +562,10 @@ export function createAppToolBridge(
       "ui_app_set_title",
       "Set the app's page title (shown at the top of the app).",
       z.object({
-        workflow_id: workflowIdParam,
+        application_id: applicationIdParam,
         title: z.string()
       }),
-      async ({ workflow_id: _wf, title: next }) => {
+      async ({ application_id: _app, title: next }) => {
         title = next as string;
         return { ok: true, title };
       }
@@ -578,7 +578,7 @@ export function createAppToolBridge(
       "List the app's operation bindings: each one names a workflow the app can " +
         "run, with its input and output mappings and its concurrency policy. " +
         "Widget bindings address an operation by id (op:<opId>/in:<nodeId>).",
-      z.object({ workflow_id: workflowIdParam }),
+      z.object({ application_id: applicationIdParam }),
       async () => ({ ok: true, operations: meta.operations })
     ),
 
@@ -590,7 +590,7 @@ export function createAppToolBridge(
         "ui_app_get_binding_targets. An input with no mapping takes its bound " +
         "widget's value; an output with no mapping displays.",
       z.object({
-        workflow_id: workflowIdParam,
+        application_id: applicationIdParam,
         id: z
           .string()
           .optional()
@@ -636,7 +636,7 @@ export function createAppToolBridge(
       "Change an operation binding. Input and output mappings merge per node id, " +
         "so one input can be remapped without restating the others.",
       z.object({
-        workflow_id: workflowIdParam,
+        application_id: applicationIdParam,
         id: z.string().describe("Operation id to update."),
         name: z.string().optional(),
         target_workflow_id: z
@@ -695,10 +695,10 @@ export function createAppToolBridge(
       "Remove an operation binding. Widgets still bound to it (op:<opId>/...) " +
         "stop resolving, so re-bind or remove them too.",
       z.object({
-        workflow_id: workflowIdParam,
+        application_id: applicationIdParam,
         id: z.string().describe("Operation id to remove.")
       }),
-      async ({ workflow_id: _wf, id }) => {
+      async ({ application_id: _app, id }) => {
         const result = removeOperation(meta, id as string);
         meta = result.meta;
         return { ok: result.removed, removed_id: result.removed ? id : null };
@@ -711,7 +711,7 @@ export function createAppToolBridge(
       "ui_app_list_variables",
       "List the app's declared variables — the app state widgets read and write " +
         "and operation outputs can land in. Widgets bind to one as var:<id>.",
-      z.object({ workflow_id: workflowIdParam }),
+      z.object({ application_id: applicationIdParam }),
       async () => ({ ok: true, variables: meta.variables })
     ),
 
@@ -720,7 +720,7 @@ export function createAppToolBridge(
       "Declare an app variable. Only user-scoped variables may persist — " +
         "`persist` is forced false on an instance-scoped one.",
       z.object({
-        workflow_id: workflowIdParam,
+        application_id: applicationIdParam,
         id: z
           .string()
           .optional()
@@ -756,7 +756,7 @@ export function createAppToolBridge(
       "Change a declared variable. Narrowing the scope to 'instance' clears " +
         "`persist`, since only user-scoped variables may persist.",
       z.object({
-        workflow_id: workflowIdParam,
+        application_id: applicationIdParam,
         id: z.string().describe("Variable id to update."),
         name: z.string().optional(),
         type: z
@@ -794,10 +794,10 @@ export function createAppToolBridge(
       "ui_app_remove_variable",
       "Remove a declared variable. Widgets bound to var:<id> stop resolving.",
       z.object({
-        workflow_id: workflowIdParam,
+        application_id: applicationIdParam,
         id: z.string().describe("Variable id to remove.")
       }),
-      async ({ workflow_id: _wf, id }) => {
+      async ({ application_id: _app, id }) => {
         const result = removeVariable(meta, id as string);
         meta = result.meta;
         return { ok: result.removed, removed_id: result.removed ? id : null };
@@ -810,7 +810,7 @@ export function createAppToolBridge(
       "ui_app_list_resources",
       "List the app's resource bindings — the document collections its pickers " +
         "and resource actions may reach.",
-      z.object({ workflow_id: workflowIdParam }),
+      z.object({ application_id: applicationIdParam }),
       async () => ({ ok: true, resources: meta.resources })
     ),
 
@@ -821,7 +821,7 @@ export function createAppToolBridge(
         "document (fixed_id); one of the two is required. `operations` is what the " +
         "app may do with it, defaulting to read-only.",
       z.object({
-        workflow_id: workflowIdParam,
+        application_id: applicationIdParam,
         id: z
           .string()
           .optional()
@@ -859,10 +859,10 @@ export function createAppToolBridge(
       "Remove a resource binding. Pickers and resource actions pointing at it " +
         "stop resolving.",
       z.object({
-        workflow_id: workflowIdParam,
+        application_id: applicationIdParam,
         id: z.string().describe("Resource binding id to remove.")
       }),
-      async ({ workflow_id: _wf, id }) => {
+      async ({ application_id: _app, id }) => {
         const result = removeResource(meta, id as string);
         meta = result.meta;
         return { ok: result.removed, removed_id: result.removed ? id : null };
@@ -881,7 +881,7 @@ export function createAppToolBridge(
         "Call this before binding a widget instead of guessing a name. An " +
         "operation over a workflow this editor has not loaded reports " +
         "ioAvailable: false and no node lists.",
-      z.object({ workflow_id: workflowIdParam }),
+      z.object({ application_id: applicationIdParam }),
       async () => ({
         ok: true,
         ...bindingTargets(meta, hostWorkflowId, hostWorkflow)
@@ -909,7 +909,7 @@ function countByType(state: AppBridgeFinalState, type: string): number {
 
 const APP_SYSTEM_PROMPT = `You are an assistant building a mini web app in the App Builder through UI tools.
 
-The app is a tree of widgets bound to a workflow. Use the ui_app_* tools:
+The app is a tree of widgets bound to one or more workflows. Every ui_app_* tool takes the \`application_id\` of the app you are editing — the id named in the objective, never a workflow id. Use the ui_app_* tools:
 - Call ui_app_get_snapshot first to see the placed widgets, the page title, and the available widget types.
 - Call ui_app_list_component_types to learn valid widget \`type\` values and their props.
 - Add widgets with ui_app_add_component. To nest inside a Panel (Container) or Columns widget, pass parent_id and slot ('content', 'left', or 'right').
@@ -936,7 +936,7 @@ export const APP_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AppBridgeFinalState>
       description:
         "Set the page title, then add a heading, a text input, and a run button",
       objective:
-        "Build a simple app: set the page title to 'Ask the AI', add a Heading, add a TextInput for the prompt, and add a Button to run the workflow.",
+        "Build a simple app (application_id 'app-1'): set the page title to 'Ask the AI', add a Heading, add a TextInput for the prompt, and add a Button to run the workflow.",
       createBridge: () => createAppToolBridge(),
       systemPrompt: APP_SYSTEM_PROMPT,
       expect: {
@@ -979,7 +979,7 @@ export const APP_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AppBridgeFinalState>
         }),
       systemPrompt: APP_SYSTEM_PROMPT,
       userPrompt:
-        "Objective: The app has one empty Panel (a Container widget with id 'panel-1'). Add a Text widget inside that Panel's content slot so it is nested within the panel, not at the top level.",
+        "Objective: The app (application_id 'app-1') has one empty Panel (a Container widget with id 'panel-1'). Add a Text widget inside that Panel's content slot so it is nested within the panel, not at the top level.",
       expect: {
         requiredTools: ["ui_app_add_component"],
         noErrorResults: true,
@@ -1023,7 +1023,7 @@ export const APP_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AppBridgeFinalState>
         }),
       systemPrompt: APP_SYSTEM_PROMPT,
       userPrompt:
-        "Objective: The app has a Button (id 'btn-1') and a leftover Text widget (id 'text-1'). Change the Button's label to 'Submit', and remove the Text widget.",
+        "Objective: The app (application_id 'app-1') has a Button (id 'btn-1') and a leftover Text widget (id 'text-1'). Change the Button's label to 'Submit', and remove the Text widget.",
       expect: {
         requiredTools: ["ui_app_update_component", "ui_app_remove_component"],
         noErrorResults: true,
@@ -1067,7 +1067,7 @@ export const APP_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AppBridgeFinalState>
         }),
       systemPrompt: APP_SYSTEM_PROMPT,
       userPrompt:
-        "Objective: App 'wf-app' has a TextInput (id 'input-1') and a Text widget (id 'text-1'), both unbound. " +
+        "Objective: App 'app-1' (application_id 'app-1') has a TextInput (id 'input-1') and a Text widget (id 'text-1'), both unbound. " +
         "Bind the TextInput to the workflow's prompt input node and the Text widget to its answer output node. " +
         "Look the tokens up with ui_app_get_binding_targets — do not guess them.",
       expect: {
@@ -1113,7 +1113,7 @@ export const APP_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AppBridgeFinalState>
         }),
       systemPrompt: APP_SYSTEM_PROMPT,
       userPrompt:
-        "Objective: App 'wf-app' has a Switch widget (id 'switch-1') for a dark-mode preference. " +
+        "Objective: App 'app-1' (application_id 'app-1') has a Switch widget (id 'switch-1') for a dark-mode preference. " +
         "Declare a variable with id 'dark_mode' that is scoped to the user and persists across sessions, " +
         "then bind the Switch to it.",
       expect: {

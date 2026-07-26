@@ -357,7 +357,7 @@ describe("CreateApplicationFromWorkflowButton", () => {
     renderPanel(<CreateApplicationFromWorkflowButton />);
 
     await user.click(
-      screen.getByRole("button", { name: "New app from workflow" })
+      screen.getByRole("button", { name: "Create app from workflow" })
     );
     await user.click(await screen.findByRole("button", { name: "Render poster" }));
 

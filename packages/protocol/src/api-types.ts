@@ -690,8 +690,8 @@ export interface UiDocumentRef {
   type: UiSurfaceType;
   /**
    * The document's id: `image_documents.id` for sketch, `timeline_sequences.id`
-   * for timeline, `storyboards.id`, `scripts.id`, and the workflow id for both
-   * `workflow` and `app` (the app document lives on `workflows.app_doc`).
+   * for timeline, `storyboards.id`, `scripts.id`, `workflows.id` for
+   * `workflow`, and `applications.id` for `app`.
    */
   id: string;
   title?: string | null;

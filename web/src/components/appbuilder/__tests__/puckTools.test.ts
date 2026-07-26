@@ -3,15 +3,15 @@ import { FrontendToolRegistry } from "../../../lib/tools/frontendTools";
 import "../../../lib/tools/builtin/puck";
 import {
   setPuckAgentHandler,
-  listOpenPuckWorkflowIds,
+  listOpenPuckApplicationIds,
   PuckAgentHandler
 } from "../puck/puckAgentBridge";
 
-const WORKFLOW_ID = "wf-1";
+const APP_ID = "app-1";
 
 const stubHandler = (over: Partial<PuckAgentHandler>): PuckAgentHandler => ({
   getSnapshot: () => ({
-    workflowId: WORKFLOW_ID,
+    applicationId: APP_ID,
     rootProps: {},
     selectedId: null,
     componentTypes: [],
@@ -70,7 +70,7 @@ const stubHandler = (over: Partial<PuckAgentHandler>): PuckAgentHandler => ({
 const ctx = { getState: () => ({}) as unknown as FrontendToolState };
 
 afterEach(() => {
-  for (const id of listOpenPuckWorkflowIds()) setPuckAgentHandler(id, null);
+  for (const id of listOpenPuckApplicationIds()) setPuckAgentHandler(id, null);
 });
 
 describe("ui_app_* tools", () => {
@@ -97,11 +97,11 @@ describe("ui_app_* tools", () => {
       parentId: null,
       slot: null
     }));
-    setPuckAgentHandler(WORKFLOW_ID, stubHandler({ addComponent }));
+    setPuckAgentHandler(APP_ID, stubHandler({ addComponent }));
 
     const result = (await FrontendToolRegistry.call(
       "ui_app_add_component",
-      { workflow_id: WORKFLOW_ID, type: "Button", props: { label: "Go" } },
+      { application_id: APP_ID, type: "Button", props: { label: "Go" } },
       "call-1",
       ctx
     )) as { ok: boolean };
@@ -112,26 +112,26 @@ describe("ui_app_* tools", () => {
     expect(result.ok).toBe(true);
   });
 
-  it("throws a helpful error when no app builder is open for the workflow", async () => {
+  it("throws a helpful error when no app builder is open for the application", async () => {
     await expect(
       FrontendToolRegistry.call(
         "ui_app_get_snapshot",
-        { workflow_id: WORKFLOW_ID },
+        { application_id: APP_ID },
         "call-2",
         ctx
       )
-    ).rejects.toThrow(/No app builder is open for workflow "wf-1"/);
+    ).rejects.toThrow(/No app builder is open for application "app-1"/);
   });
 
-  it("routes each tool to the handler for the requested workflow", async () => {
+  it("routes each tool to the handler for the requested application", async () => {
     const removeA = jest.fn(() => true);
     const removeB = jest.fn(() => true);
-    setPuckAgentHandler("wf-a", stubHandler({ removeComponent: removeA }));
-    setPuckAgentHandler("wf-b", stubHandler({ removeComponent: removeB }));
+    setPuckAgentHandler("app-a", stubHandler({ removeComponent: removeA }));
+    setPuckAgentHandler("app-b", stubHandler({ removeComponent: removeB }));
 
     await FrontendToolRegistry.call(
       "ui_app_remove_component",
-      { workflow_id: "wf-b", id: "widget-1" },
+      { application_id: "app-b", id: "widget-1" },
       "call-3",
       ctx
     );
@@ -170,12 +170,12 @@ describe("ui_app_* authoring tools", () => {
       outputs: {},
       policy: "queue" as const
     }));
-    setPuckAgentHandler(WORKFLOW_ID, stubHandler({ addOperation }));
+    setPuckAgentHandler(APP_ID, stubHandler({ addOperation }));
 
     const result = (await FrontendToolRegistry.call(
       "ui_app_add_operation",
       {
-        workflow_id: WORKFLOW_ID,
+        application_id: APP_ID,
         id: "translate",
         name: "Translate",
         target_workflow_id: "wf-2",
@@ -202,11 +202,11 @@ describe("ui_app_* authoring tools", () => {
   });
 
   it("reports a missing operation instead of throwing", async () => {
-    setPuckAgentHandler(WORKFLOW_ID, stubHandler({ updateOperation: () => null }));
+    setPuckAgentHandler(APP_ID, stubHandler({ updateOperation: () => null }));
 
     const result = (await FrontendToolRegistry.call(
       "ui_app_update_operation",
-      { workflow_id: WORKFLOW_ID, id: "nope", name: "x" },
+      { application_id: APP_ID, id: "nope", name: "x" },
       "call-op-missing",
       ctx
     )) as { ok: boolean; error?: string };
@@ -216,11 +216,11 @@ describe("ui_app_* authoring tools", () => {
 
   it("passes only the fields the caller sent to updateOperation", async () => {
     const updateOperation = jest.fn(() => null);
-    setPuckAgentHandler(WORKFLOW_ID, stubHandler({ updateOperation }));
+    setPuckAgentHandler(APP_ID, stubHandler({ updateOperation }));
 
     await FrontendToolRegistry.call(
       "ui_app_update_operation",
-      { workflow_id: WORKFLOW_ID, id: "main", policy: "parallel" },
+      { application_id: APP_ID, id: "main", policy: "parallel" },
       "call-op-patch",
       ctx
     );
@@ -238,12 +238,12 @@ describe("ui_app_* authoring tools", () => {
       scope: "user" as const,
       persist: true
     }));
-    setPuckAgentHandler(WORKFLOW_ID, stubHandler({ declareVariable }));
+    setPuckAgentHandler(APP_ID, stubHandler({ declareVariable }));
 
     const result = (await FrontendToolRegistry.call(
       "ui_app_declare_variable",
       {
-        workflow_id: WORKFLOW_ID,
+        application_id: APP_ID,
         id: "lang",
         name: "Language",
         type: { type: "str" },
@@ -274,12 +274,12 @@ describe("ui_app_* authoring tools", () => {
       scope: { projectId: "proj-1" },
       operations: ["read" as const]
     }));
-    setPuckAgentHandler(WORKFLOW_ID, stubHandler({ addResource }));
+    setPuckAgentHandler(APP_ID, stubHandler({ addResource }));
 
     await FrontendToolRegistry.call(
       "ui_app_add_resource",
       {
-        workflow_id: WORKFLOW_ID,
+        application_id: APP_ID,
         name: "Shots",
         kind: "asset",
         project_id: "proj-1",
@@ -300,14 +300,14 @@ describe("ui_app_* authoring tools", () => {
 
   it("returns the binding targets the handler reports", async () => {
     setPuckAgentHandler(
-      WORKFLOW_ID,
+      APP_ID,
       stubHandler({
         getBindingTargets: () => ({
           operations: [
             {
               operationId: "main",
               name: "Run",
-              workflowId: WORKFLOW_ID,
+              workflowId: "wf-2",
               ioAvailable: true,
               inputs: [
                 {
@@ -339,7 +339,7 @@ describe("ui_app_* authoring tools", () => {
 
     const result = (await FrontendToolRegistry.call(
       "ui_app_get_binding_targets",
-      { workflow_id: WORKFLOW_ID },
+      { application_id: APP_ID },
       "call-targets",
       ctx
     )) as {

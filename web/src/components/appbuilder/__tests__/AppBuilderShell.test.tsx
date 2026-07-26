@@ -138,6 +138,7 @@ const document: AppDocument = {
 const renderShell = (onSave = jest.fn()) => {
   render(
     <AppBuilderShell
+      applicationId="app-1"
       document={document}
       workflow={workflow}
       agentWorkflowId="wf-1"
@@ -196,6 +197,7 @@ describe("AppBuilderShell", () => {
   it("hides the agent when no workflow is bound", () => {
     render(
       <AppBuilderShell
+        applicationId="app-1"
         document={document}
         workflow={workflow}
         onSave={jest.fn()}

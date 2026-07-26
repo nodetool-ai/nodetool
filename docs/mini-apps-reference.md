@@ -266,7 +266,10 @@ dropped.
 
 ## Agent tools
 
-The builder agent edits the open document through these frontend tools:
+The builder agent edits the open document through these frontend tools. Every
+one takes an `application_id` — the app's own id, listed in the `ui_context`
+block. A workflow id is never accepted; the workflows an app runs are named by
+`target_workflow_id` on its operations.
 
 | Area | Tools |
 | --- | --- |

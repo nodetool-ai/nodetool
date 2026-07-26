@@ -15,7 +15,7 @@ import {
 import isEqual from "../../utils/isEqual";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { trpcClient } from "../../trpc/client";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListView from "./WorkflowListView";
 import SharedWithMeSection from "./SharedWithMeSection";
@@ -169,7 +169,6 @@ const WorkflowList = () => {
   }, [onDeselect]);
 
   const navigate = useNavigate();
-  const location = useLocation();
   const copyWorkflow = useWorkflowManager((state) => state.copy);
   const createWorkflow = useWorkflowManager((state) => state.create);
   const updateWorkflow = useWorkflowManager((state) => state.updateWorkflow);
@@ -178,15 +177,10 @@ const WorkflowList = () => {
 
   const handleOpenWorkflow = useCallback(
     (workflow: Workflow) => {
-      if (location.pathname.startsWith("/apps/")) {
-        navigate("/apps/" + workflow.id);
-        usePanelStore.getState().setVisibility(false);
-      } else {
-        navigate("/editor/" + workflow.id);
-        usePanelStore.getState().setVisibility(false);
-      }
+      navigate("/editor/" + workflow.id);
+      usePanelStore.getState().setVisibility(false);
     },
-    [navigate, location.pathname]
+    [navigate]
   );
 
   // Memoize workflow name lookup map to avoid recalculating on every duplicateWorkflow call

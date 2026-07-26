@@ -52,7 +52,7 @@ function createScriptedProvider(script: ScriptedCall[]): BaseProvider {
   } as unknown as BaseProvider;
 }
 
-const WF = "wf-under-test";
+const APP = "app-under-test";
 
 // --- createAppToolBridge -----------------------------------------------------
 
@@ -90,24 +90,24 @@ describe("createAppToolBridge", () => {
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
 
     await byName["ui_app_add_component"].execute({
-      workflow_id: WF,
+      application_id: APP,
       type: "Heading"
     });
     await byName["ui_app_add_component"].execute({
-      workflow_id: WF,
+      application_id: APP,
       type: "TextInput"
     });
 
     const snap = (await byName["ui_app_get_snapshot"].execute({
-      workflow_id: WF
+      application_id: APP
     })) as {
       ok: boolean;
-      workflowId: string;
+      applicationId: string;
       components: { type: string; parentId: string | null }[];
     };
     expect(snap.ok).toBe(true);
-    // Snapshot carries the workflow id, matching the real getSnapshot shape.
-    expect(snap.workflowId).toBe(WF);
+    // Snapshot carries the application id, matching the real getSnapshot shape.
+    expect(snap.applicationId).toBe(APP);
     expect(snap.components.map((c) => c.type)).toEqual(["Heading", "TextInput"]);
     expect(snap.components.every((c) => c.parentId === null)).toBe(true);
 
@@ -122,7 +122,7 @@ describe("createAppToolBridge", () => {
     const bridge = createAppToolBridge();
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
     const listed = (await byName["ui_app_list_component_types"].execute({
-      workflow_id: WF
+      application_id: APP
     })) as {
       types: { type: string; fields: { name: string; type: string }[] }[];
     };
@@ -140,7 +140,7 @@ describe("createAppToolBridge", () => {
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
 
     const added = (await byName["ui_app_add_component"].execute({
-      workflow_id: WF,
+      application_id: APP,
       type: "Text",
       parent_id: "panel-1",
       slot: "content"
@@ -162,7 +162,7 @@ describe("createAppToolBridge", () => {
     // The real puckDataOps.addComponent leaves the tree unchanged for an
     // unknown parent and still returns ok:true, echoing the caller's slot.
     const added = (await byName["ui_app_add_component"].execute({
-      workflow_id: WF,
+      application_id: APP,
       type: "Text",
       parent_id: "does-not-exist",
       slot: "content"
@@ -192,7 +192,7 @@ describe("createAppToolBridge", () => {
 
     expect(bridge.finalState().components).toHaveLength(2);
     const result = (await byName["ui_app_remove_component"].execute({
-      workflow_id: WF,
+      application_id: APP,
       id: "panel-1"
     })) as { ok: boolean; removed_id: string | null };
     expect(result.ok).toBe(true);
@@ -206,7 +206,7 @@ describe("createAppToolBridge", () => {
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
 
     await byName["ui_app_update_component"].execute({
-      workflow_id: WF,
+      application_id: APP,
       id: "btn-1",
       props: { label: "Submit", id: "hacked" }
     });
@@ -220,7 +220,7 @@ describe("createAppToolBridge", () => {
     const bridge = createAppToolBridge();
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
     const result = (await byName["ui_app_update_component"].execute({
-      workflow_id: WF,
+      application_id: APP,
       id: "nope",
       props: { label: "x" }
     })) as { ok: boolean; error?: string };
@@ -234,7 +234,7 @@ describe("createAppToolBridge", () => {
     // The real tool/handler doesn't validate type — Puck inserts any string —
     // so the bridge must not error on an unrecognized type.
     const added = (await byName["ui_app_add_component"].execute({
-      workflow_id: WF,
+      application_id: APP,
       type: "NotAWidget"
     })) as { ok: boolean; component: { type: string } };
     expect(added.ok).toBe(true);
@@ -249,13 +249,13 @@ describe("createAppToolBridge", () => {
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
 
     await byName["ui_app_select_component"].execute({
-      workflow_id: WF,
+      application_id: APP,
       id: "btn-1"
     });
     expect(bridge.finalState().selectedId).toBe("btn-1");
 
     await byName["ui_app_select_component"].execute({
-      workflow_id: WF,
+      application_id: APP,
       id: "does-not-exist"
     });
     expect(bridge.finalState().selectedId).toBeNull();
@@ -274,14 +274,14 @@ describe("createAppToolBridge", () => {
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
 
     await byName["ui_app_select_component"].execute({
-      workflow_id: WF,
+      application_id: APP,
       id: "text-1"
     });
     expect(bridge.finalState().selectedId).toBe("text-1");
 
     // Removing the panel drops the nested Text too, so the selection must clear.
     await byName["ui_app_remove_component"].execute({
-      workflow_id: WF,
+      application_id: APP,
       id: "panel-1"
     });
     expect(bridge.finalState().components).toHaveLength(0);
@@ -296,7 +296,7 @@ describe("createAppToolBridge", () => {
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
 
     await byName["ui_app_add_component"].execute({
-      workflow_id: WF,
+      application_id: APP,
       type: "Heading"
     });
     const ids = bridge.finalState().components.map((c) => c.id);
@@ -309,12 +309,12 @@ describe("createAppToolBridge", () => {
     const bridge = createAppToolBridge();
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
     await byName["ui_app_set_title"].execute({
-      workflow_id: WF,
+      application_id: APP,
       title: "My App"
     });
     expect(bridge.finalState().title).toBe("My App");
     const snap = (await byName["ui_app_get_snapshot"].execute({
-      workflow_id: WF
+      application_id: APP
     })) as { rootProps: { title?: string } };
     expect(snap.rootProps.title).toBe("My App");
   });
@@ -331,7 +331,7 @@ describe("createAppToolBridge document meta", () => {
     const byName = bridgeTools(bridge);
 
     const added = (await byName["ui_app_add_operation"].execute({
-      workflow_id: WF,
+      application_id: APP,
       name: "Translate Title",
       target_workflow_id: "wf-app",
       inputs: { "in-1": { from: "widget" } }
@@ -343,13 +343,13 @@ describe("createAppToolBridge document meta", () => {
 
     // Mappings merge per node id, so one input can be remapped alone.
     await byName["ui_app_update_operation"].execute({
-      workflow_id: WF,
+      application_id: APP,
       id: "translate_title",
       policy: "queue",
       inputs: { "in-2": { from: "constant", value: 7 } }
     });
     const listed = (await byName["ui_app_list_operations"].execute({
-      workflow_id: WF
+      application_id: APP
     })) as { operations: { id: string; policy: string; inputs: object }[] };
     expect(listed.operations).toHaveLength(1);
     expect(listed.operations[0].policy).toBe("queue");
@@ -359,7 +359,7 @@ describe("createAppToolBridge document meta", () => {
     });
 
     const removed = (await byName["ui_app_remove_operation"].execute({
-      workflow_id: WF,
+      application_id: APP,
       id: "translate_title"
     })) as { ok: boolean; removed_id: string | null };
     expect(removed.ok).toBe(true);
@@ -369,7 +369,7 @@ describe("createAppToolBridge document meta", () => {
   it("update_operation returns an error result for an unknown id", async () => {
     const byName = bridgeTools(createAppToolBridge());
     const result = (await byName["ui_app_update_operation"].execute({
-      workflow_id: WF,
+      application_id: APP,
       id: "nope",
       policy: "parallel"
     })) as { ok: boolean; error?: string };
@@ -382,7 +382,7 @@ describe("createAppToolBridge document meta", () => {
     const byName = bridgeTools(bridge);
 
     const instance = (await byName["ui_app_declare_variable"].execute({
-      workflow_id: WF,
+      application_id: APP,
       id: "draft",
       scope: "instance",
       persist: true
@@ -390,7 +390,7 @@ describe("createAppToolBridge document meta", () => {
     expect(instance.variable.persist).toBe(false);
 
     const user = (await byName["ui_app_declare_variable"].execute({
-      workflow_id: WF,
+      application_id: APP,
       id: "theme",
       scope: "user",
       persist: true
@@ -399,18 +399,18 @@ describe("createAppToolBridge document meta", () => {
 
     // Narrowing the scope clears persist, the same rule the parser enforces.
     const narrowed = (await byName["ui_app_update_variable"].execute({
-      workflow_id: WF,
+      application_id: APP,
       id: "theme",
       scope: "instance"
     })) as { variable: { persist: boolean } };
     expect(narrowed.variable.persist).toBe(false);
 
     await byName["ui_app_remove_variable"].execute({
-      workflow_id: WF,
+      application_id: APP,
       id: "draft"
     });
     const listed = (await byName["ui_app_list_variables"].execute({
-      workflow_id: WF
+      application_id: APP
     })) as { variables: { id: string }[] };
     expect(listed.variables.map((v) => v.id)).toEqual(["theme"]);
     expect(bridge.finalState().variables.map((v) => v.id)).toEqual(["theme"]);
@@ -421,7 +421,7 @@ describe("createAppToolBridge document meta", () => {
     const byName = bridgeTools(bridge);
 
     const added = (await byName["ui_app_add_resource"].execute({
-      workflow_id: WF,
+      application_id: APP,
       name: "Shots",
       kind: "timeline",
       project_id: "proj-1"
@@ -433,7 +433,7 @@ describe("createAppToolBridge document meta", () => {
     expect(bridge.finalState().resources).toHaveLength(1);
 
     await byName["ui_app_remove_resource"].execute({
-      workflow_id: WF,
+      application_id: APP,
       id: "shots"
     });
     expect(bridge.finalState().resources).toEqual([]);
@@ -443,7 +443,7 @@ describe("createAppToolBridge document meta", () => {
     const byName = bridgeTools(createAppToolBridge());
     await expect(
       byName["ui_app_add_resource"].execute({
-        workflow_id: WF,
+        application_id: APP,
         kind: "asset"
       })
     ).rejects.toThrow(/needs a scope/);
@@ -461,7 +461,7 @@ describe("createAppToolBridge document meta", () => {
       })
     );
     const targets = (await byName["ui_app_get_binding_targets"].execute({
-      workflow_id: WF
+      application_id: APP
     })) as {
       operations: {
         operationId: string;
@@ -492,12 +492,12 @@ describe("createAppToolBridge document meta", () => {
       })
     );
     await byName["ui_app_add_operation"].execute({
-      workflow_id: WF,
+      application_id: APP,
       id: "other",
       target_workflow_id: "wf-elsewhere"
     });
     const targets = (await byName["ui_app_get_binding_targets"].execute({
-      workflow_id: WF
+      application_id: APP
     })) as {
       operations: { ioAvailable: boolean; inputs: unknown[] }[];
     };
@@ -513,10 +513,10 @@ describe("createAppToolBridge document meta", () => {
 describe("APP_TOOL_LOOP_CASES", () => {
   it("build-form: title + heading + text input + button passes", async () => {
     const script: ScriptedCall[] = [
-      { name: "ui_app_set_title", args: { workflow_id: WF, title: "Ask the AI" } },
-      { name: "ui_app_add_component", args: { workflow_id: WF, type: "Heading" } },
-      { name: "ui_app_add_component", args: { workflow_id: WF, type: "TextInput" } },
-      { name: "ui_app_add_component", args: { workflow_id: WF, type: "Button" } }
+      { name: "ui_app_set_title", args: { application_id: APP, title: "Ask the AI" } },
+      { name: "ui_app_add_component", args: { application_id: APP, type: "Heading" } },
+      { name: "ui_app_add_component", args: { application_id: APP, type: "TextInput" } },
+      { name: "ui_app_add_component", args: { application_id: APP, type: "Button" } }
     ];
     const report = await runToolLoopEval({
       provider: createScriptedProvider(script),
@@ -530,11 +530,11 @@ describe("APP_TOOL_LOOP_CASES", () => {
 
   it("nest-in-panel: nesting a Text inside the seeded Panel passes", async () => {
     const script: ScriptedCall[] = [
-      { name: "ui_app_get_snapshot", args: { workflow_id: WF } },
+      { name: "ui_app_get_snapshot", args: { application_id: APP } },
       {
         name: "ui_app_add_component",
         args: {
-          workflow_id: WF,
+          application_id: APP,
           type: "Text",
           parent_id: "panel-1",
           slot: "content"
@@ -555,9 +555,9 @@ describe("APP_TOOL_LOOP_CASES", () => {
     const script: ScriptedCall[] = [
       {
         name: "ui_app_update_component",
-        args: { workflow_id: WF, id: "btn-1", props: { label: "Submit" } }
+        args: { application_id: APP, id: "btn-1", props: { label: "Submit" } }
       },
-      { name: "ui_app_remove_component", args: { workflow_id: WF, id: "text-1" } }
+      { name: "ui_app_remove_component", args: { application_id: APP, id: "text-1" } }
     ];
     const report = await runToolLoopEval({
       provider: createScriptedProvider(script),
@@ -571,11 +571,11 @@ describe("APP_TOOL_LOOP_CASES", () => {
 
   it("bind-widgets-to-workflow: binding both widgets to the looked-up tokens passes", async () => {
     const script: ScriptedCall[] = [
-      { name: "ui_app_get_binding_targets", args: { workflow_id: WF } },
+      { name: "ui_app_get_binding_targets", args: { application_id: APP } },
       {
         name: "ui_app_update_component",
         args: {
-          workflow_id: WF,
+          application_id: APP,
           id: "input-1",
           props: { binding: "op:main/in:in-1" }
         }
@@ -583,7 +583,7 @@ describe("APP_TOOL_LOOP_CASES", () => {
       {
         name: "ui_app_update_component",
         args: {
-          workflow_id: WF,
+          application_id: APP,
           id: "text-1",
           props: { binding: "op:main/out:out-1" }
         }
@@ -604,7 +604,7 @@ describe("APP_TOOL_LOOP_CASES", () => {
       {
         name: "ui_app_declare_variable",
         args: {
-          workflow_id: WF,
+          application_id: APP,
           id: "dark_mode",
           name: "Dark mode",
           scope: "user",
@@ -614,7 +614,7 @@ describe("APP_TOOL_LOOP_CASES", () => {
       {
         name: "ui_app_update_component",
         args: {
-          workflow_id: WF,
+          application_id: APP,
           id: "switch-1",
           props: { binding: "var:dark_mode" }
         }

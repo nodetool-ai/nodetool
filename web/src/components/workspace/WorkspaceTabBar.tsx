@@ -9,8 +9,6 @@ import React, {
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useNavigate } from "react-router-dom";
-import DashboardCustomizeIcon from "@mui/icons-material/DashboardCustomize";
 
 import {
   useWorkspaceTabsStore,
@@ -30,7 +28,7 @@ import WorkspaceTabItem from "./WorkspaceTabItem";
 
 /** Whether a document type supports both View and Edit (vs view-only). */
 const SUPPORTS_BOTH_MODES: Record<WorkspaceTabType, boolean> = {
-  workflow: true,
+  workflow: false,
   image: true,
   sketch: false,
   timeline: true,
@@ -242,26 +240,6 @@ const styles = (theme: Theme) =>
       }
     },
 
-    "& .app-builder-button": {
-      WebkitAppRegion: "no-drag",
-      display: "flex",
-      alignItems: "center",
-      gap: getSpacingPx(SPACING.xs),
-      flexShrink: 0,
-      border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: BORDER_RADIUS.sm,
-      background: "transparent",
-      color: theme.vars.palette.text.secondary,
-      cursor: "pointer",
-      fontSize: "var(--fontSizeSmaller)",
-      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`,
-      "& svg": { width: "16px", height: "16px" },
-      "&:hover": {
-        color: theme.vars.palette.text.primary,
-        backgroundColor: theme.vars.palette.action.hover
-      }
-    },
-
     "& .right-actions": {
       WebkitAppRegion: "no-drag",
       display: "flex",
@@ -301,7 +279,6 @@ const styles = (theme: Theme) =>
         padding: `0 ${getSpacingPx(SPACING.md)}`
       },
       "& .new-tab .new-tab-label": { display: "none" },
-      "& .app-builder-button .app-builder-label": { display: "none" },
       "& .mode-toggle": {
         padding: `0 ${getSpacingPx(SPACING.sm)}`
       }
@@ -310,7 +287,6 @@ const styles = (theme: Theme) =>
 
 const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   const theme = useTheme();
-  const navigate = useNavigate();
   const tabBarStyles = useMemo(() => styles(theme), [theme]);
   const tabs = useWorkspaceTabsStore((state) => state.tabs);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
@@ -587,7 +563,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
             className={activeTab.mode === "view" ? "on" : ""}
             onClick={() => setMode(activeTab.id, "view")}
           >
-            {activeTab.type === "workflow" ? "App" : "View"}
+            View
           </button>
           <button
             type="button"
@@ -597,17 +573,6 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
             Edit
           </button>
         </div>
-      )}
-
-      {activeTab && activeTab.type === "workflow" && (
-        <button
-          type="button"
-          className="app-builder-button"
-          onClick={() => navigate(`/app-builder/${activeTab.ref}`)}
-        >
-          <DashboardCustomizeIcon />
-          <span className="app-builder-label">App Builder</span>
-        </button>
       )}
 
       <div className="right-actions">

@@ -1,7 +1,7 @@
 /**
  * Storage model for an app: an {@link ApplicationDocument} — a Puck UI
- * document plus operation, resource, and variable bindings — persisted on the
- * first-class `workflow.app_doc` field.
+ * document plus operation, resource, and variable bindings — persisted in the
+ * `applications` table.
  *
  * Parsing branches on `schemaVersion`: a legacy `{ version, data }` document is
  * lifted into the current shape with one operation bound to the host workflow.

@@ -739,9 +739,7 @@ const PanelLeft: React.FC = () => {
     })
   );
 
-  const isStandaloneMode =
-    location.pathname.startsWith("/standalone-chat") ||
-    location.pathname.startsWith("/miniapp");
+  const isStandaloneMode = location.pathname.startsWith("/standalone-chat");
   // The rail owns the app menu (logo) only in the unified workspace shell;
   // legacy routes still carry it in their own header.
   const isWorkspace = location.pathname.startsWith("/workspace");
