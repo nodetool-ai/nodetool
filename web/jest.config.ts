@@ -123,7 +123,7 @@ export default {
     "tests/debug-harness/",
     "tests/visual/",
     "tests/smoke/",
-    "tests/subgraph-e2e.spec.ts",
+    "tests/journeys/",
     // Shared helpers living inside __tests__ dirs — not suites themselves.
     "/__tests__/testUtils\\.tsx$",
     "/__tests__/testRuntime\\.tsx$"
