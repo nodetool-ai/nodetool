@@ -110,6 +110,13 @@ export interface HttpApiOptions {
   examplesDir?: string;
   examplesAssetsFallbackDir?: string;
   /**
+   * Path to the directory of shipped example app bundles (e.g.
+   * `packages/base-nodes/nodetool/examples/apps`). Defaults to the `apps`
+   * sibling of {@link examplesDir}, which is where both the monorepo and the
+   * packaged backend put them.
+   */
+  exampleAppsDir?: string;
+  /**
    * Root directories that hold per-package constant assets, laid out as
    * `<root>/<package-name>/<file>`. Served (read-only, public) at
    * `/api/assets/packages/<package-name>/<file>` and referenced from workflows

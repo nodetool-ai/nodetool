@@ -1,0 +1,1219 @@
+{
+  "schemaVersion": 1,
+  "name": "Meeting Room",
+  "description": "Transcribe a recording, summarize it into notes and action items, then ask follow-up questions of the transcript on a local model.",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {
+          "title": "Meeting Room"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "🎧 Meeting Room",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "Recording in, minutes out — then question the transcript."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "🎙️ Transcription uses FAL Whisper and the summary uses OpenAI. The follow-up questions run on a local Ollama model, so they cost nothing."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-the-recording",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-recording",
+                  "title": "The recording",
+                  "content": [
+                    {
+                      "type": "AudioInput",
+                      "props": {
+                        "id": "in-transcribe-audio",
+                        "binding": "op:transcribe/in:7",
+                        "label": "Meeting recording",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "operationId": "transcribe",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-transcribe",
+                        "label": "Transcribe",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "transcribe",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-recording-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-transcribe",
+                        "binding": "op:transcribe/exec#progress",
+                        "label": "Transcribing…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-transcript",
+                        "text": "Transcript",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-transcript",
+                        "binding": "var:transcript",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-the-minutes",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-minutes",
+                  "title": "The minutes",
+                  "content": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-summarize",
+                        "label": "Summarize the meeting",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "summarize",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-minutes-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-summarize",
+                        "binding": "op:summarize/exec#progress",
+                        "label": "Writing the minutes…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-summarize-summary",
+                        "text": "Meeting notes",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-summarize-summary",
+                        "binding": "op:summarize/out:summary_output",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-summarize-action-items",
+                        "text": "Action items",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Table",
+                      "props": {
+                        "id": "out-summarize-action-items",
+                        "binding": "op:summarize/out:action_items_output"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-summarize-transcript",
+                        "text": "Transcript used",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-summarize-transcript",
+                        "binding": "op:summarize/out:transcript_output",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-ask-the-transcript",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-ask-the-transcript",
+                  "title": "Ask the transcript",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-ask-question",
+                        "binding": "op:ask/in:question_input",
+                        "label": "Your question",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "in-ask-tone",
+                        "binding": "op:ask/in:tone_input",
+                        "label": "Answer tone",
+                        "options": [
+                          {
+                            "value": "concise and neutral"
+                          },
+                          {
+                            "value": "friendly and warm"
+                          },
+                          {
+                            "value": "professional"
+                          },
+                          {
+                            "value": "detailed and thorough"
+                          },
+                          {
+                            "value": "plain and simple"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-ask",
+                        "label": "Ask locally",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "ask",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-ask-the-transcript-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-ask",
+                        "binding": "op:ask/exec#progress",
+                        "label": "Thinking locally…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-ask-answer",
+                        "text": "Answer",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-ask-answer",
+                        "binding": "op:ask/out:output-answer",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "transcribe",
+        "name": "Transcribe",
+        "workflowId": "transcribe",
+        "inputs": {},
+        "outputs": {
+          "output-transcript": {
+            "to": "variable",
+            "variableId": "transcript"
+          }
+        },
+        "policy": "replace"
+      },
+      {
+        "id": "summarize",
+        "name": "Summarize",
+        "workflowId": "summarize",
+        "inputs": {
+          "transcript_input": {
+            "from": "variable",
+            "variableId": "transcript"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      },
+      {
+        "id": "ask",
+        "name": "Ask",
+        "workflowId": "assistant",
+        "inputs": {
+          "document_input": {
+            "from": "variable",
+            "variableId": "transcript"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "transcript",
+        "name": "Transcript",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "",
+        "scope": "instance",
+        "persist": false
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "transcribe",
+      "name": "Transcribe Audio",
+      "description": "Instant Whisper transcription: drop in an audio clip, get a clean text transcript back — one step, auto-runs on upload.",
+      "sourceId": "nodetool-base/Transcribe Audio",
+      "graph": {
+        "nodes": [
+          {
+            "id": "5",
+            "parent_id": null,
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# 🎙️ Transcribe Audio\n\nDrop in an audio clip and Whisper converts the speech to text. One node, one output — the app runs itself the moment you upload.\n\n**Pipeline:** Audio → Transcribe → Transcript\n\n**Try this:** swap the ASR model, or set a language code to skip auto-detection."
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": -421,
+                "y": 18
+              },
+              "zIndex": 0,
+              "width": 280,
+              "height": 373,
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "7",
+            "parent_id": null,
+            "type": "nodetool.input.AudioInput",
+            "data": {
+              "name": "audio",
+              "description": "Audio clip with speech to transcribe (any common format)",
+              "value": {}
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 50,
+                "y": 50
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1️⃣ Audio input"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "c5191702-2a3c-440d-b3af-2db20e74a369",
+            "parent_id": null,
+            "type": "nodetool.text.AutomaticSpeechRecognition",
+            "data": {
+              "model": {
+                "type": "asr_model",
+                "provider": "fal_ai",
+                "id": "openai/whisper-large-v3",
+                "name": "Whisper Large v3",
+                "path": null
+              }
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 360,
+                "y": 79
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "2️⃣ Transcribe"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-transcript",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "transcript"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 680,
+                "y": 79
+              },
+              "width": 260,
+              "title": "3️⃣ Transcript",
+              "selectable": true
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "8f80e8d4-86f2-4324-84bc-d375d11bc89a",
+            "source": "7",
+            "sourceHandle": "output",
+            "target": "c5191702-2a3c-440d-b3af-2db20e74a369",
+            "targetHandle": "audio",
+            "ui_properties": {
+              "className": "audio"
+            }
+          },
+          {
+            "id": "edge-output-transcript",
+            "source": "c5191702-2a3c-440d-b3af-2db20e74a369",
+            "sourceHandle": "text",
+            "target": "output-transcript",
+            "targetHandle": "value",
+            "ui_properties": null
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    },
+    {
+      "key": "summarize",
+      "name": "Meeting Transcript Summarizer",
+      "description": "Summarize a meeting from a recording or a pasted transcript — either input works, and action items come back as structured rows instead of another paragraph to scan.",
+      "sourceId": "nodetool-base/Meeting Transcript Summarizer",
+      "graph": {
+        "nodes": [
+          {
+            "id": "comment_intro",
+            "parent_id": null,
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# 📄 Meeting Transcript Summarizer\n\nTurn a meeting into clean notes and a to-do list — from either a recording or an already-typed transcript.\n\n**Pipeline:** Recording OR Transcript → (transcribe if needed) → merge → Summarize + Extract action items\n\nOnly one of the two inputs is required. If you paste a transcript, Whisper is skipped entirely — that's why this replaces the old 'Summarize Audio' template rather than sitting next to it.\n\n**Try this:** paste minutes from a call instead of uploading audio, or ask for action items grouped by owner."
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 30,
+                "y": -260
+              },
+              "zIndex": 0,
+              "width": 520,
+              "height": 210,
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "recording_input",
+            "parent_id": null,
+            "type": "nodetool.input.AudioInput",
+            "data": {
+              "name": "Recording",
+              "description": "A meeting recording to transcribe. Leave empty if you paste a transcript below instead.",
+              "value": {
+                "uri": "https://app.nodetool.ai/examples/remove_silence.mp3",
+                "type": "audio"
+              }
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 50,
+                "y": 40
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "1️⃣ Recording (optional)",
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "transcript_input",
+            "parent_id": null,
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "Transcript",
+              "description": "Already have a transcript? Paste it here to skip transcription entirely.",
+              "value": "",
+              "line_mode": "multiline"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 50,
+                "y": 300
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "1️⃣ Or paste a transcript (optional)",
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "asr",
+            "parent_id": null,
+            "type": "nodetool.text.AutomaticSpeechRecognition",
+            "data": {
+              "model": {
+                "type": "asr_model",
+                "provider": "fal_ai",
+                "id": "openai/whisper-large-v3",
+                "name": "Whisper Large v3",
+                "path": null
+              }
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 400,
+                "y": 40
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "2️⃣ Transcribe recording"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "is_transcript_empty",
+            "parent_id": null,
+            "type": "nodetool.text.IsEmpty",
+            "data": {
+              "trim_whitespace": true
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 400,
+                "y": 300
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "Check: transcript pasted?"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "use_transcribed_audio",
+            "parent_id": null,
+            "type": "nodetool.control.If",
+            "data": {},
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 750,
+                "y": 40
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "3️⃣ Use transcribed audio (if no paste)"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "use_pasted_transcript",
+            "parent_id": null,
+            "type": "nodetool.control.If",
+            "data": {},
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 750,
+                "y": 300
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "3️⃣ Use pasted transcript (if any)"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "summarizer",
+            "parent_id": null,
+            "type": "nodetool.agents.Summarizer",
+            "data": {
+              "model": {
+                "type": "language_model",
+                "provider": "openai",
+                "id": "gpt-5-mini",
+                "name": "GPT-5 mini",
+                "path": null,
+                "supported_tasks": []
+              },
+              "system_prompt": "You are an expert meeting-notes writer. You will be given a raw meeting transcript.\n\nWrite a summary in Markdown with this exact structure:\n## Overview\nOne or two sentences on what the meeting was about and its outcome.\n\n## Key discussion points\n- Bullet list of the main topics and decisions, most important first.\n\n## Open questions\n- Anything left unresolved or needing follow-up. Write \"None\" if there aren't any.\n\nRules:\n- Base every statement strictly on the transcript — never invent names, numbers, or decisions.\n- Keep it to about 150 words total.\n- Do not repeat action items here; those are extracted separately.",
+              "context_window": 8192
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 1100,
+                "y": 40
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "4️⃣ Summarize"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "action_items_prompt",
+            "parent_id": null,
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "Read this meeting transcript and list every action item mentioned:\n\n{{TRANSCRIPT}}\n\nFor each action item capture who owns it and any deadline mentioned. If nothing was assigned to anyone, use \"Unassigned\". If no deadline was mentioned, use \"Not specified\". If the transcript has no action items at all, return zero rows."
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 1100,
+                "y": 300
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "4️⃣ Build action-item prompt"
+            },
+            "dynamic_properties": {
+              "TRANSCRIPT": ""
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "action_items_generator",
+            "parent_id": null,
+            "type": "nodetool.generators.DataGenerator",
+            "data": {
+              "model": {
+                "type": "language_model",
+                "provider": "openai",
+                "id": "gpt-5-mini",
+                "name": "GPT-5 mini",
+                "path": null,
+                "supported_tasks": []
+              },
+              "input_text": "",
+              "max_tokens": 4096,
+              "columns": {
+                "type": "record_type",
+                "columns": [
+                  {
+                    "name": "action",
+                    "data_type": "string",
+                    "description": "The task or action item, phrased as a clear next step"
+                  },
+                  {
+                    "name": "owner",
+                    "data_type": "string",
+                    "description": "Person or team responsible, or 'Unassigned' if not stated"
+                  },
+                  {
+                    "name": "due_date",
+                    "data_type": "string",
+                    "description": "Deadline mentioned in the meeting, or 'Not specified'"
+                  }
+                ]
+              }
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 1450,
+                "y": 300
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "5️⃣ Extract action items"
+            },
+            "dynamic_properties": {}
+          },
+          {
+            "id": "transcript_output",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "Transcript"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1100,
+                "y": 560
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "Transcript",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "summary_output",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "Summary"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1450,
+                "y": 40
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "Summary",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "action_items_output",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "Action Items"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1800,
+                "y": 300
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "Action Items",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "transcript_join",
+            "type": "nodetool.text.Join",
+            "data": {
+              "separator": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1030,
+                "y": 40
+              },
+              "selectable": true
+            },
+            "dynamic_properties": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "e_recording_to_asr",
+            "source": "recording_input",
+            "sourceHandle": "output",
+            "target": "asr",
+            "targetHandle": "audio",
+            "ui_properties": {
+              "className": "audio"
+            }
+          },
+          {
+            "id": "e_transcript_to_isempty",
+            "source": "transcript_input",
+            "sourceHandle": "output",
+            "target": "is_transcript_empty",
+            "targetHandle": "text",
+            "ui_properties": {
+              "className": "str"
+            }
+          },
+          {
+            "id": "e_isempty_to_audio_condition",
+            "source": "is_transcript_empty",
+            "sourceHandle": "output",
+            "target": "use_transcribed_audio",
+            "targetHandle": "condition",
+            "ui_properties": {
+              "className": "bool"
+            }
+          },
+          {
+            "id": "e_isempty_to_transcript_condition",
+            "source": "is_transcript_empty",
+            "sourceHandle": "output",
+            "target": "use_pasted_transcript",
+            "targetHandle": "condition",
+            "ui_properties": {
+              "className": "bool"
+            }
+          },
+          {
+            "id": "e_asr_to_audio_branch_value",
+            "source": "asr",
+            "sourceHandle": "text",
+            "target": "use_transcribed_audio",
+            "targetHandle": "value",
+            "ui_properties": {
+              "className": "str"
+            }
+          },
+          {
+            "id": "e_transcript_to_manual_branch_value",
+            "source": "transcript_input",
+            "sourceHandle": "output",
+            "target": "use_pasted_transcript",
+            "targetHandle": "value",
+            "ui_properties": {
+              "className": "str"
+            }
+          },
+          {
+            "id": "e_audio_branch_to_summarizer",
+            "source": "use_transcribed_audio",
+            "sourceHandle": "if_true",
+            "target": "transcript_join",
+            "targetHandle": "strings",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_manual_branch_to_summarizer",
+            "source": "use_pasted_transcript",
+            "sourceHandle": "if_false",
+            "target": "transcript_join",
+            "targetHandle": "strings",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_action_prompt_to_generator",
+            "source": "action_items_prompt",
+            "sourceHandle": "output",
+            "target": "action_items_generator",
+            "targetHandle": "prompt",
+            "ui_properties": {
+              "className": "str"
+            }
+          },
+          {
+            "id": "e_summarizer_to_summary_out",
+            "source": "summarizer",
+            "sourceHandle": "text",
+            "target": "summary_output",
+            "targetHandle": "value",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_generator_to_action_items_out",
+            "source": "action_items_generator",
+            "sourceHandle": "dataframe",
+            "target": "action_items_output",
+            "targetHandle": "value",
+            "ui_properties": {
+              "className": "dataframe"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "101",
+            "source": "transcript_join",
+            "sourceHandle": "output",
+            "target": "action_items_prompt",
+            "targetHandle": "TRANSCRIPT",
+            "ui_properties": null
+          },
+          {
+            "id": "102",
+            "source": "transcript_join",
+            "sourceHandle": "output",
+            "target": "summarizer",
+            "targetHandle": "text",
+            "ui_properties": null
+          },
+          {
+            "id": "103",
+            "source": "transcript_join",
+            "sourceHandle": "output",
+            "target": "transcript_output",
+            "targetHandle": "value",
+            "ui_properties": null
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    },
+    {
+      "key": "assistant",
+      "name": "Private Assistant",
+      "description": "Ask questions about your own notes and documents — fully local, no API keys. Runs end-to-end on a local Ollama model, so the text never leaves your machine. Requires Ollama running with a model pulled (default: llama3.2 — run `ollama pull llama3.2`).",
+      "sourceId": "nodetool-base/Private Assistant",
+      "graph": {
+        "nodes": [
+          {
+            "id": "comment-intro",
+            "parent_id": null,
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# 🔒 Private Assistant\n\nA fully local Q&A assistant. Paste your own notes, ask a question, and a local **Ollama** model answers — grounded only in your text. No API key, no cloud call: the document never leaves your machine.\n\n**Pipeline:** Document + question + tone → prompt template → local Ollama agent (answers only from the document) → Markdown answer.\n\n**Setup:** install [Ollama](https://ollama.com), then `ollama pull llama3.2`. Swap the model on the agent node for anything you have pulled (qwen2.5, gemma3, gpt-oss, …).\n\n**Try this:** paste a real doc into the Document input and ask something only it can answer — the assistant refuses to guess beyond the text."
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 60,
+                "y": -240
+              },
+              "zIndex": 0,
+              "width": 560,
+              "height": 240,
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "document_input",
+            "parent_id": null,
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "document",
+              "value": "Team sync — Thursday\n- Launch date moved to March 14 (was March 7) to finish the accessibility fixes.\n- Priya owns the onboarding rewrite; first draft due Monday.\n- Budget: $8k left for Q1, reserved for the usability study.\n- Open risk: the billing migration hasn't been tested on staging yet.\n- Decision: ship the mobile app in the second wave, not at launch.",
+              "description": "The private text the assistant may read — meeting notes, a doc, an email thread. This is the ONLY source the model is allowed to answer from; nothing is sent to the cloud."
+            },
+            "ui_properties": {
+              "selected": false,
+              "title": "1️⃣ Document",
+              "position": {
+                "x": 60,
+                "y": 80
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "question_input",
+            "parent_id": null,
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "question",
+              "value": "When do we launch, and what's the biggest open risk?",
+              "description": "What to ask about the document. The assistant answers only from the text above and says so when the answer isn't there."
+            },
+            "ui_properties": {
+              "selected": false,
+              "title": "2️⃣ Question",
+              "position": {
+                "x": 60,
+                "y": 360
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "tone_input",
+            "parent_id": null,
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "tone",
+              "value": "concise and neutral",
+              "description": "The answer's voice — e.g. \"concise and neutral\", \"friendly\", \"executive summary\". Parametrized so the app can expose it as a control."
+            },
+            "ui_properties": {
+              "selected": false,
+              "title": "3️⃣ Tone",
+              "position": {
+                "x": 60,
+                "y": 600
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "prompt_template",
+            "parent_id": null,
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "Tone: {{ tone }}\n\nDocument (the only source you may use):\n\"\"\"\n{{ document }}\n\"\"\"\n\nQuestion: {{ question }}\n\nAnswer the question using only the document above."
+            },
+            "ui_properties": {
+              "selected": false,
+              "title": "4️⃣ Build the prompt",
+              "position": {
+                "x": 440,
+                "y": 220
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true
+            },
+            "dynamic_properties": {
+              "document": null,
+              "question": null,
+              "tone": null
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "assistant",
+            "parent_id": null,
+            "type": "nodetool.agents.Agent",
+            "data": {
+              "model": {
+                "type": "language_model",
+                "provider": "ollama",
+                "id": "llama3.2",
+                "name": "Llama 3.2",
+                "path": null,
+                "supported_tasks": []
+              },
+              "mode": "loop",
+              "tools": [],
+              "max_tokens": 4096,
+              "prompt": "",
+              "system": "You are a private, on-device assistant. You run entirely on the user's own machine through a local Ollama model — nothing the user gives you ever leaves their computer.\n\nRules\n- Answer using ONLY the information in the provided document. Do not add outside knowledge or assumptions.\n- If the document does not contain the answer, say so plainly (\"The notes don't cover that.\"). Never guess or invent facts, names, dates, or numbers.\n- Match the requested tone.\n- Format the answer as clean Markdown: a direct one-line answer first, then supporting detail or a short bullet list only when it genuinely helps.\n- Be concise. No preamble, no restating the question, no sign-off."
+            },
+            "ui_properties": {
+              "selected": false,
+              "title": "5️⃣ Local Ollama assistant",
+              "position": {
+                "x": 820,
+                "y": 220
+              },
+              "zIndex": 0,
+              "width": 320,
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-answer",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "answer"
+            },
+            "ui_properties": {
+              "selected": false,
+              "title": "6️⃣ Answer",
+              "position": {
+                "x": 1220,
+                "y": 220
+              },
+              "width": 300,
+              "selectable": true
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge-document",
+            "source": "document_input",
+            "sourceHandle": "output",
+            "target": "prompt_template",
+            "targetHandle": "document",
+            "ui_properties": null
+          },
+          {
+            "id": "edge-question",
+            "source": "question_input",
+            "sourceHandle": "output",
+            "target": "prompt_template",
+            "targetHandle": "question",
+            "ui_properties": null
+          },
+          {
+            "id": "edge-tone",
+            "source": "tone_input",
+            "sourceHandle": "output",
+            "target": "prompt_template",
+            "targetHandle": "tone",
+            "ui_properties": null
+          },
+          {
+            "id": "edge-prompt-agent",
+            "source": "prompt_template",
+            "sourceHandle": "output",
+            "target": "assistant",
+            "targetHandle": "prompt",
+            "ui_properties": null
+          },
+          {
+            "id": "edge-answer",
+            "source": "assistant",
+            "sourceHandle": "text",
+            "target": "output-answer",
+            "targetHandle": "value",
+            "ui_properties": null
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    }
+  ]
+}

@@ -22,6 +22,7 @@ import {
 import {
   Application,
   Workflow,
+  createStableUuid,
   createTimeOrderedUuid,
   releasedApplicationRelease
 } from "@nodetool-ai/models";
@@ -170,13 +171,28 @@ export function registerAppsCommands(program: Command): void {
           if (!bundle) {
             throw new Error(`Not a valid application bundle: ${bundleFile}`);
           }
+          // A workflow carrying a `sourceId` gets a row id derived from it, so
+          // importing two bundles that ship the same workflow — two example
+          // apps binding one template — reuses the row instead of duplicating
+          // it. Without a `sourceId` every import creates fresh workflows.
           const result = applyBundle(bundle, {
-            newWorkflowId: createTimeOrderedUuid
+            newWorkflowId: (workflow) =>
+              workflow.sourceId
+                ? createStableUuid(LOCAL_USER_ID, workflow.sourceId)
+                : createTimeOrderedUuid()
           });
 
           // Workflows first, so the app never references a row that does not
           // exist yet.
+          let reused = 0;
           for (const workflow of result.workflows) {
+            if (
+              workflow.sourceId &&
+              (await Workflow.find(LOCAL_USER_ID, workflow.id))
+            ) {
+              reused += 1;
+              continue;
+            }
             await Workflow.create<Workflow>({
               id: workflow.id,
               user_id: LOCAL_USER_ID,
@@ -195,7 +211,8 @@ export function registerAppsCommands(program: Command): void {
           });
 
           console.error(
-            `  imported app '${app.name}' with ${result.workflows.length} workflow(s)`
+            `  imported app '${app.name}' with ${result.workflows.length} workflow(s)` +
+              (reused > 0 ? ` (${reused} already present, reused)` : "")
           );
           if (opts.json) {
             asJson({

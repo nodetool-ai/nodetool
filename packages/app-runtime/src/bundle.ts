@@ -41,6 +41,14 @@ export interface BundledWorkflow {
   description?: string;
   graph: BundleGraph;
   /**
+   * A stable identity for this workflow across installs. An importer that
+   * already has the workflow this names reuses it rather than creating a
+   * duplicate row — which is how two shipped example apps can bind the same
+   * template and end up sharing one workflow. Absent on a hand-exported
+   * bundle, which always creates fresh workflows.
+   */
+  sourceId?: string;
+  /**
    * What the release pinned for this workflow: the workflow version written
    * at publish time and the hash of the graph frozen with it. Both null for a
    * draft export, which pins nothing.
@@ -74,6 +82,8 @@ export interface BundleWorkflowSource {
   workflowId: string;
   name: string;
   description?: string;
+  /** See {@link BundledWorkflow.sourceId}. */
+  sourceId?: string;
   graph: BundleGraph;
   version?: number | null;
   graphHash?: string | null;
@@ -152,6 +162,9 @@ export const bundleFromApplication = (
       ...(workflow.description === undefined
         ? {}
         : { description: workflow.description }),
+      ...(workflow.sourceId === undefined
+        ? {}
+        : { sourceId: workflow.sourceId }),
       graph: workflow.graph,
       version: workflow.version ?? null,
       graphHash: workflow.graphHash ?? null
@@ -236,6 +249,9 @@ const parseWorkflow = (value: unknown): BundledWorkflow | null => {
     name: typeof name === "string" ? name : key,
     ...(typeof value.description === "string"
       ? { description: value.description }
+      : {}),
+    ...(typeof value.sourceId === "string" && value.sourceId.length > 0
+      ? { sourceId: value.sourceId }
       : {}),
     graph,
     version: typeof value.version === "number" ? value.version : null,

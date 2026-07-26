@@ -1,0 +1,853 @@
+{
+  "schemaVersion": 1,
+  "name": "Research Desk",
+  "description": "A research agent, a Hacker News reader, and an RSS digest all take the same topic and stream into their own panel.",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {
+          "title": "Research Desk"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "🕵️ Research Desk",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "One topic, three sources, three briefings side by side."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "🔑 Needs an OpenAI key. All three briefings run in parallel from one button."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-your-topic",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-your-topic",
+                  "title": "Your topic",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-topic",
+                        "binding": "var:topic",
+                        "label": "Research topic",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "in-brief-audience",
+                        "binding": "op:brief/in:input-audience",
+                        "label": "Who is it for?",
+                        "options": [
+                          {
+                            "value": "engineers"
+                          },
+                          {
+                            "value": "executives"
+                          },
+                          {
+                            "value": "a general audience"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-digest-feed-url",
+                        "binding": "op:digest/in:input-feed-url",
+                        "label": "RSS feed",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-brief-pulse-digest",
+                        "label": "Run the desk",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "brief",
+                            "key": "",
+                            "value": ""
+                          },
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "pulse",
+                            "key": "",
+                            "value": ""
+                          },
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "digest",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-your-topic-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-brief",
+                        "binding": "op:brief/exec#progress",
+                        "label": "Searching & browsing sources…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-brief-brief",
+                        "text": "Research brief",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-brief-brief",
+                        "binding": "op:brief/out:output-brief",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-the-pulse",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-pulse",
+                  "title": "The pulse",
+                  "content": []
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-pulse-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-pulse",
+                        "binding": "op:pulse/exec#progress",
+                        "label": "Reading the front page…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-pulse-analysis",
+                        "text": "Hacker News",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-pulse-analysis",
+                        "binding": "op:pulse/out:output-analysis",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-digest",
+                        "binding": "op:digest/exec#progress",
+                        "label": "Reading your feed…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-digest-summary",
+                        "text": "Feed digest",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-digest-summary",
+                        "binding": "op:digest/out:output-summary",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "brief",
+        "name": "Brief",
+        "workflowId": "research",
+        "inputs": {
+          "input-topic": {
+            "from": "variable",
+            "variableId": "topic"
+          }
+        },
+        "outputs": {},
+        "policy": "parallel"
+      },
+      {
+        "id": "pulse",
+        "name": "Pulse",
+        "workflowId": "hn",
+        "inputs": {
+          "topic_input": {
+            "from": "variable",
+            "variableId": "topic"
+          }
+        },
+        "outputs": {},
+        "policy": "parallel"
+      },
+      {
+        "id": "digest",
+        "name": "Digest",
+        "workflowId": "rss",
+        "inputs": {},
+        "outputs": {},
+        "policy": "parallel"
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "topic",
+        "name": "Topic",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "on-device language models",
+        "scope": "user",
+        "persist": true
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "research",
+      "name": "Research Agent",
+      "description": "Give it a topic and an audience; the agent runs real web searches, opens the best sources, and streams back a cited markdown briefing. Differentiator: genuine multi-step tool use (search + browse) with inline citations — not a single prompt call.",
+      "sourceId": "nodetool-base/Research Agent",
+      "graph": {
+        "nodes": [
+          {
+            "id": "comment-intro",
+            "parent_id": null,
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# 🔎 Research Agent\n\nType a topic, name the audience, and get back a sourced briefing. The agent breaks the topic into questions, runs Google searches, opens the best pages with the browser tool to verify details, then streams a markdown brief with inline [n] citations.\n\n**Graph:** topic + audience → compose objective → research agent (search + browse) → streaming brief\n\n**Why a graph, not a chat box:** the two inputs are composed into a structured research objective, and the agent's tool loop (search → browse → cross-check) runs on every Run with the same rigor. Swap the model or add tools without rewriting a prompt.\n\nNeeds an OpenAI key for the default model. Search + browse tools run against the open web."
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": -480,
+                "y": 40
+              },
+              "zIndex": 0,
+              "width": 420,
+              "height": 320,
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "input-topic",
+            "parent_id": null,
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "topic",
+              "value": "Small language models running on-device in 2026",
+              "description": "What to research — a subject, question, or claim to investigate.",
+              "line_mode": "multi_line"
+            },
+            "ui_properties": {
+              "title": "1️⃣ Topic",
+              "position": {
+                "x": 40,
+                "y": 60
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "input-audience",
+            "parent_id": null,
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "audience",
+              "value": "a technical product team deciding whether to adopt on-device models",
+              "description": "Who the brief is for — sets the depth, framing, and what to emphasize.",
+              "line_mode": "multi_line"
+            },
+            "ui_properties": {
+              "title": "2️⃣ Audience",
+              "position": {
+                "x": 40,
+                "y": 300
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "compose-objective",
+            "parent_id": null,
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "Research the topic below and write a briefing document for the stated audience.\n\nTOPIC: {{ topic }}\nAUDIENCE: {{ audience }}\n\nMethod:\n1. Break the topic into 3–5 concrete research questions.\n2. Use google_search to find authoritative, recent sources for each question.\n3. Use the browser tool to open the most promising results and pull out specifics — facts, figures, dates, direct quotes. Do not rely on search snippets alone.\n4. Cross-check every claim against at least two sources before stating it as fact.\n\nWrite the answer as a single markdown document with:\n- A `#` title naming the topic.\n- A **TL;DR** section: 3–4 bullet takeaways written for the audience.\n- Themed `##` sections covering the key findings, in a logical order.\n- A final **Sources** section: a numbered list of every URL you actually opened, as markdown links.\n\nCitations:\n- Put an inline [n] marker after any specific claim, matching the numbered entry in Sources.\n- Tailor depth and framing to the AUDIENCE.\n- Keep the tone neutral and precise, no filler. If sources disagree, say so and note which you trust more and why."
+            },
+            "ui_properties": {
+              "title": "3️⃣ Compose research objective",
+              "position": {
+                "x": 400,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 340,
+              "selectable": true
+            },
+            "dynamic_properties": {
+              "topic": "Small language models running on-device in 2026",
+              "audience": "a technical product team deciding whether to adopt on-device models"
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "research-agent",
+            "parent_id": null,
+            "type": "nodetool.agents.Agent",
+            "data": {
+              "model": {
+                "type": "language_model",
+                "provider": "openai",
+                "id": "gpt-5-mini",
+                "name": "GPT-5 mini",
+                "path": null,
+                "supported_tasks": []
+              },
+              "mode": "loop",
+              "system": "You are a research analyst. You produce accurate, well-sourced briefings for a specific audience.\n\nYou have two tools:\n- google_search: find sources on the open web.\n- browser: open a URL and read its full content.\n\nMethod:\n- Search first, then open the best results with the browser to verify details — never state a fact from a search snippet alone.\n- Prefer primary sources and recent, reputable material.\n- Every factual claim must trace to a page you actually opened.\n- When evidence is thin or sources conflict, say so plainly instead of guessing.\n\nOutput: a single markdown document. Use inline [n] citation markers tied to a numbered Sources list. Write it as you go so the reader sees progress.",
+              "prompt": "",
+              "tools": [
+                {
+                  "type": "tool_name",
+                  "name": "google_search"
+                },
+                {
+                  "type": "tool_name",
+                  "name": "browser"
+                }
+              ],
+              "image": [],
+              "audio": [],
+              "history": [],
+              "thread_id": "",
+              "max_tokens": 100000
+            },
+            "ui_properties": {
+              "title": "4️⃣ Research agent (search + browse)",
+              "position": {
+                "x": 800,
+                "y": 60
+              },
+              "zIndex": 0,
+              "width": 320,
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-brief",
+            "parent_id": null,
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "brief"
+            },
+            "ui_properties": {
+              "title": "5️⃣ Cited brief",
+              "position": {
+                "x": 1180,
+                "y": 60
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "e-topic-compose",
+            "source": "input-topic",
+            "sourceHandle": "output",
+            "target": "compose-objective",
+            "targetHandle": "topic",
+            "ui_properties": {
+              "className": "str"
+            }
+          },
+          {
+            "id": "e-audience-compose",
+            "source": "input-audience",
+            "sourceHandle": "output",
+            "target": "compose-objective",
+            "targetHandle": "audience",
+            "ui_properties": {
+              "className": "str"
+            }
+          },
+          {
+            "id": "e-compose-agent",
+            "source": "compose-objective",
+            "sourceHandle": "output",
+            "target": "research-agent",
+            "targetHandle": "prompt",
+            "ui_properties": {
+              "className": "str"
+            }
+          },
+          {
+            "id": "e-agent-output",
+            "source": "research-agent",
+            "sourceHandle": "text",
+            "target": "output-brief",
+            "targetHandle": "value",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    },
+    {
+      "key": "hn",
+      "name": "Hacker News Agent",
+      "description": "Scrape the Hacker News front page and get a topic-filtered digest written directly as Markdown — no separate formatting step.",
+      "sourceId": "nodetool-base/Hacker News Agent",
+      "graph": {
+        "nodes": [
+          {
+            "id": "comment-intro",
+            "parent_id": null,
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# 📰 Hacker News Agent\n\nAn agent scrapes the Hacker News front page, prioritizes posts matching your topic, and writes the digest straight to Markdown.\n\n**Pipeline:** Topic + instructions → HN agent (writes Markdown directly, no post-processing step) → output\n\n**Try this:** change the topic to steer coverage, or broaden it to cover the whole front page."
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 80,
+                "y": -200
+              },
+              "zIndex": 0,
+              "width": 460,
+              "height": 180,
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "topic_input",
+            "parent_id": null,
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "topic",
+              "value": "AI and developer tools",
+              "description": "Focus area for the digest. Posts matching this topic are prioritized; if none match, the agent falls back to the top general front-page posts."
+            },
+            "ui_properties": {
+              "selected": false,
+              "title": "1️⃣ Topic",
+              "position": {
+                "x": 80,
+                "y": 300
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "3",
+            "parent_id": null,
+            "type": "nodetool.agents.Agent",
+            "data": {
+              "model": {
+                "type": "language_model",
+                "provider": "openai",
+                "id": "gpt-5-mini",
+                "name": "GPT-5 mini",
+                "path": null,
+                "supported_tasks": []
+              },
+              "tools": [
+                {
+                  "type": "tool_name",
+                  "name": "google_search"
+                },
+                {
+                  "type": "tool_name",
+                  "name": "browser"
+                }
+              ],
+              "max_tokens": 100000,
+              "prompt": "",
+              "system": "You are a Hacker News analyst.\n\nGoal\n- Research the current Hacker News front page and write a single Markdown digest.\n- Use tools to gather real data — never invent posts, comments, or authors.\n\nTools Available\n- google_search: Search the web for information\n- browser: Navigate to URLs and extract page content\n\nWorkflow\n1. Open https://news.ycombinator.com/ and select the posts described in the task instructions (topic focus and count).\n2. For each selected post, open its discussion thread with the browser tool and extract the top comments.\n3. Write the final answer as Markdown text — one `##` heading per post, a link, and a bulleted comment list. Do not wrap the answer in JSON.\n\nOutput\n- Call the digest tool exactly once with the finished Markdown in the `digest_markdown` field.\n- Keep it scannable: a one-line overview at the top, then one section per post, no filler.\n",
+              "mode": "plan"
+            },
+            "ui_properties": {
+              "title": "2️⃣ Scrape & write digest",
+              "position": {
+                "x": 440,
+                "y": 80
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {
+              "digest_markdown": {
+                "type": "str",
+                "optional": false,
+                "values": null,
+                "type_args": [],
+                "type_name": null
+              }
+            }
+          },
+          {
+            "id": "4",
+            "parent_id": null,
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "\nScrape the front page of https://news.ycombinator.com/ and write a themed Markdown digest.\n\nTopic focus: {{ topic }}\n- Prioritize front-page posts related to this topic.\n- If none match, cover the top general front-page posts instead and say so in the overview.\n\nTasks:\n1) Identify the top 5 relevant posts (topic matches first, then highest-ranked).\n2) For each post:\n   - Fetch the discussion thread with the browser tool.\n   - Extract the top 3 comments by score or prominence, with author and text.\n3) Write the final answer as Markdown with this structure:\n\n# Hacker News Digest: {{ topic }}\n\n<1-2 sentence overview of the themes across the selected posts>\n\n## <post title>\n<post url>\n\n**Top comments:**\n- **<author>:** <comment text>\n- **<author>:** <comment text>\n- **<author>:** <comment text>\n\n(repeat the \"## <post title>\" section once per post)\n"
+            },
+            "ui_properties": {
+              "title": "1️⃣ Research instructions",
+              "position": {
+                "x": 80,
+                "y": 80
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true
+            },
+            "dynamic_properties": {
+              "topic": null
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-analysis",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "analysis"
+            },
+            "ui_properties": {
+              "title": "3️⃣ Digest",
+              "position": {
+                "x": 800,
+                "y": 80
+              },
+              "selectable": true
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge-topic",
+            "source": "topic_input",
+            "sourceHandle": "output",
+            "target": "4",
+            "targetHandle": "topic",
+            "ui_properties": null
+          },
+          {
+            "id": "1",
+            "source": "4",
+            "sourceHandle": "output",
+            "target": "3",
+            "targetHandle": "prompt",
+            "ui_properties": null
+          },
+          {
+            "id": "edge-output-analysis",
+            "source": "3",
+            "sourceHandle": "digest_markdown",
+            "target": "output-analysis",
+            "targetHandle": "value",
+            "ui_properties": null
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    },
+    {
+      "key": "rss",
+      "name": "Summarize RSS",
+      "description": "Turn any RSS feed into a topic-grouped digest — point it at a new URL and get headlines organized by theme, not a flat list.",
+      "sourceId": "nodetool-base/Summarize RSS",
+      "graph": {
+        "nodes": [
+          {
+            "id": "comment-intro",
+            "parent_id": null,
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# 📡 Summarize RSS\n\nFetch an RSS feed, gather the headlines, and produce a digest grouped by topic.\n\n**Pipeline:** Feed URL (input) → fetch RSS feed → collect titles → group + summarize by topic\n\n**Try this:** swap the feed URL for any other RSS feed to get a fresh digest."
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 266,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 460,
+              "height": 180,
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "input-feed-url",
+            "parent_id": null,
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "feed_url",
+              "description": "The RSS feed to fetch and summarize.",
+              "value": "https://feeds.bbci.co.uk/news/world/europe/rss.xml"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 20,
+                "y": 403
+              },
+              "zIndex": 0,
+              "width": 220,
+              "title": "1️⃣ Feed URL",
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "3fd0dc61-7a0f-4a2d-900a-cbbbd35ddfcc",
+            "parent_id": null,
+            "type": "lib.rss.FetchRSSFeed",
+            "data": {
+              "url": "https://feeds.bbci.co.uk/news/world/europe/rss.xml"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 286,
+                "y": 403
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "2️⃣ Fetch RSS feed"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "98cc0ca5-7361-44d7-9e74-c47c0def5aeb",
+            "parent_id": null,
+            "type": "nodetool.text.Collect",
+            "data": {
+              "separator": "---"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 596,
+                "y": 460
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "3️⃣ Collect titles"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "0659612a-1a3b-471b-b397-6ec97e33882f",
+            "parent_id": null,
+            "type": "nodetool.agents.Summarizer",
+            "data": {
+              "system_prompt": "You are a news editor producing a topic-grouped digest from a list of raw headlines separated by '---'.\n\nFollow these steps:\n1. Read every headline and infer its topic (e.g. Politics, Conflict & Security, Economy, Science & Health, Culture, Other).\n2. Group headlines under 2-6 topic sections — merge sparse topics into \"Other\" rather than creating single-headline sections.\n3. Do not invent facts, dates, or details beyond what the headline states.\n4. Keep each headline to one line; do not summarize sentences, only organize them.\n\nOutput format (Markdown):\n## <Topic>\n- <headline>\n- <headline>\n\nRepeat one section per topic. Aim for approximately {self.max_tokens} tokens.",
+              "model": {
+                "type": "language_model",
+                "provider": "openai",
+                "id": "gpt-5-mini",
+                "name": "GPT-5 mini",
+                "path": null,
+                "supported_tasks": []
+              },
+              "max_tokens": 1000
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 906,
+                "y": 329
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "4️⃣ Group + summarize by topic"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-summary",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "summary"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1226,
+                "y": 329
+              },
+              "selectable": true
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge-feed-url",
+            "source": "input-feed-url",
+            "sourceHandle": "output",
+            "target": "3fd0dc61-7a0f-4a2d-900a-cbbbd35ddfcc",
+            "targetHandle": "url",
+            "ui_properties": {
+              "className": "str"
+            }
+          },
+          {
+            "id": "291768e5-6f8f-4c37-b3e7-00a466d48aea",
+            "source": "3fd0dc61-7a0f-4a2d-900a-cbbbd35ddfcc",
+            "sourceHandle": "title",
+            "target": "98cc0ca5-7361-44d7-9e74-c47c0def5aeb",
+            "targetHandle": "input_item",
+            "ui_properties": {
+              "className": "str"
+            }
+          },
+          {
+            "id": "b0699d6a-7cea-48d5-8b49-ddc36aa3bac0",
+            "source": "98cc0ca5-7361-44d7-9e74-c47c0def5aeb",
+            "sourceHandle": "output",
+            "target": "0659612a-1a3b-471b-b397-6ec97e33882f",
+            "targetHandle": "text",
+            "ui_properties": {
+              "className": "str"
+            }
+          },
+          {
+            "id": "edge-output-summary",
+            "source": "0659612a-1a3b-471b-b397-6ec97e33882f",
+            "sourceHandle": "text",
+            "target": "output-summary",
+            "targetHandle": "value",
+            "ui_properties": null
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    }
+  ]
+}

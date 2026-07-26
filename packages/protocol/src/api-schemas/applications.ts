@@ -206,6 +206,14 @@ export const bundledWorkflow = z.object({
   name: z.string(),
   description: z.string().optional(),
   graph,
+  /**
+   * A stable identity for this workflow across installs. An importer that
+   * already has the workflow this names reuses it instead of creating a
+   * duplicate row, which is what lets two shipped example apps bind the same
+   * template. Absent on a hand-exported bundle, which always creates fresh
+   * workflows.
+   */
+  sourceId: z.string().optional(),
   /** What the release pinned; null for a draft export, which pins nothing. */
   version: z.number().nullable().default(null),
   graphHash: z.string().nullable().default(null)

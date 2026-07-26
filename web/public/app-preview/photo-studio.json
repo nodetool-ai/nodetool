@@ -1,0 +1,514 @@
+{
+  "slug": "photo-studio",
+  "name": "Photo Studio",
+  "emoji": "📸",
+  "description": "A live photo editor and a batch retoucher behind one surface. The single-photo grade is pure GPU filters, so it runs with no API key at all.",
+  "tagline": "Drag five sliders and watch the photo re-render — then run the same grade over a whole folder.",
+  "note": "✨ `Enhance` is GPU-only and needs no keys. `Batch` adds a FAL grading pass, so it needs a FAL key.",
+  "featured": true,
+  "image": "/app-preview/img/photo-studio.jpg",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {
+          "title": "Photo Studio"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "📸 Photo Studio",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "Drag five sliders and watch the photo re-render — then run the same grade over a whole folder."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "✨ `Enhance` is GPU-only and needs no keys. `Batch` adds a FAL grading pass, so it needs a FAL key."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-one-photo",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-one-photo",
+                  "title": "One photo",
+                  "content": [
+                    {
+                      "type": "ImageInput",
+                      "props": {
+                        "id": "in-sourceimage",
+                        "binding": "var:sourceImage",
+                        "label": "Your photo",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-enhance-denoise-node-radius",
+                        "binding": "op:enhance/prop:denoise-node#radius",
+                        "label": "Denoise",
+                        "min": 0,
+                        "max": 16,
+                        "step": 0.5,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "operationId": "enhance",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-enhance-tone-node-brightness",
+                        "binding": "op:enhance/prop:tone-node#brightness",
+                        "label": "Brightness",
+                        "min": -1,
+                        "max": 1,
+                        "step": 0.05,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "operationId": "enhance",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-enhance-tone-node-contrast",
+                        "binding": "op:enhance/prop:tone-node#contrast",
+                        "label": "Contrast",
+                        "min": 0,
+                        "max": 4,
+                        "step": 0.05,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "operationId": "enhance",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-enhance-color-node-saturation",
+                        "binding": "op:enhance/prop:color-node#saturation",
+                        "label": "Saturation",
+                        "min": 0,
+                        "max": 4,
+                        "step": 0.05,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "operationId": "enhance",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-enhance-sharpen-node-amount",
+                        "binding": "op:enhance/prop:sharpen-node#amount",
+                        "label": "Sharpen",
+                        "min": 0,
+                        "max": 4,
+                        "step": 0.05,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "operationId": "enhance",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-enhance",
+                        "label": "Enhance my photo",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "enhance",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-one-photo-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-enhance",
+                        "binding": "op:enhance/exec#progress",
+                        "label": "Running the filter chain…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-enhance-enhanced-image",
+                        "text": "Enhanced photo",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-enhance-enhanced-image",
+                        "binding": "op:enhance/out:output-enhanced-image",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-a-whole-set",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-a-whole-set",
+                  "title": "A whole set",
+                  "content": [
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-batch-photos",
+                        "binding": "op:batch/in:10",
+                        "label": "Your photos",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-batch-brightness-adjust",
+                        "binding": "op:batch/in:11",
+                        "label": "Brightness",
+                        "min": 0.5,
+                        "max": 1.5,
+                        "step": 0.05,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-batch-color-boost",
+                        "binding": "op:batch/in:12",
+                        "label": "Color boost",
+                        "min": 0,
+                        "max": 2,
+                        "step": 0.05,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-batch",
+                        "label": "Enhance my photos",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "batch",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-a-whole-set-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-batch",
+                        "binding": "op:batch/exec#progress",
+                        "label": "Retouching each photo…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-batch-enhanced-photos",
+                        "text": "Enhanced photos",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-batch-enhanced-photos",
+                        "binding": "op:batch/out:output-enhanced-photos",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "enhance",
+        "name": "Enhance",
+        "workflowId": "enhance",
+        "inputs": {
+          "0c458df1-e2b2-4662-a9aa-00f2ceaae799": {
+            "from": "variable",
+            "variableId": "sourceImage"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      },
+      {
+        "id": "batch",
+        "name": "Batch",
+        "workflowId": "batch",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "sourceImage",
+        "name": "Source photo",
+        "type": {
+          "type": "image",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "enhance",
+      "name": "Image Enhance",
+      "graph": {
+        "nodes": [
+          {
+            "id": "0c458df1-e2b2-4662-a9aa-00f2ceaae799",
+            "type": "nodetool.input.ImageInput",
+            "data": {
+              "value": {
+                "type": "image",
+                "asset_id": "31cadd9e065711f1818000006beef284",
+                "uri": "/api/storage/31cadd9e065711f1818000006beef284.png"
+              },
+              "name": "image",
+              "description": "The photo to enhance. Ships with a demo image so Run works immediately — drop in your own JPEG or PNG to edit it."
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 1,
+                "y": 71
+              },
+              "zIndex": 0,
+              "width": 260,
+              "selectable": true,
+              "bypassed": false,
+              "title": "1️⃣ Source photo"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-enhanced-image",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "enhanced_image"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1420,
+                "y": 100
+              },
+              "selectable": true,
+              "title": "Enhanced image"
+            }
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "batch",
+      "name": "Photo Enhancement Suite",
+      "graph": {
+        "nodes": [
+          {
+            "id": "10",
+            "parent_id": null,
+            "type": "nodetool.input.ImageListInput",
+            "data": {
+              "name": "photos",
+              "value": [],
+              "description": "Photos to enhance. Add one or more images directly — no folder path or upload step required."
+            },
+            "ui_properties": {
+              "title": "Photos to enhance"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "11",
+            "parent_id": null,
+            "type": "nodetool.input.FloatInput",
+            "data": {
+              "name": "brightness_adjust",
+              "value": 1.05,
+              "description": "Brightness adjustment factor",
+              "min": 0.5,
+              "max": 1.5
+            },
+            "ui_properties": {
+              "title": "Brightness factor"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "12",
+            "parent_id": null,
+            "type": "nodetool.input.FloatInput",
+            "data": {
+              "name": "color_boost",
+              "value": 1.2,
+              "description": "Color saturation boost factor (1.0 = no change)",
+              "min": 0.5,
+              "max": 2
+            },
+            "ui_properties": {
+              "title": "Color factor"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-enhanced-photos",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "enhanced_photos"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 320,
+                "y": 0
+              },
+              "selectable": true
+            }
+          }
+        ],
+        "edges": []
+      }
+    }
+  ],
+  "values": {
+    "op:enhance/prop:denoise-node#radius": 0,
+    "op:enhance/prop:tone-node#brightness": 0.05,
+    "op:enhance/prop:tone-node#contrast": 1.15,
+    "op:enhance/prop:color-node#saturation": 1.2,
+    "op:enhance/prop:sharpen-node#amount": 1,
+    "op:enhance/out:output-enhanced-image": {
+      "$demo": "image"
+    },
+    "op:batch/in:11": 1.05,
+    "op:batch/in:12": 1.2,
+    "op:batch/out:output-enhanced-photos": {
+      "$demo": "image"
+    }
+  }
+}

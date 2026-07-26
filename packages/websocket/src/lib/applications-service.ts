@@ -20,6 +20,7 @@ import {
 import {
   Application,
   Workflow,
+  createStableUuid,
   createTimeOrderedUuid,
   releasedApplicationRelease
 } from "@nodetool-ai/models";
@@ -264,6 +265,15 @@ export async function exportApplicationBundle(
  *
  * Workflows are written first so the app never references a row that does not
  * exist yet.
+ *
+ * **Dedupe rule.** A carried workflow that declares a `sourceId` gets a row id
+ * derived from that source and the importing user, so importing the same
+ * source twice lands on the same row: the second import reuses what the first
+ * created rather than duplicating it. That is what keeps two example apps
+ * binding the same template — Photo Studio and Concept Studio both bind Image
+ * Enhance — down to one workflow. A workflow with no `sourceId` (a
+ * hand-exported bundle) always gets a fresh id, so importing a colleague's app
+ * never silently attaches to a workflow you already have.
  */
 export async function importApplicationBundle(
   userId: string,
@@ -273,9 +283,17 @@ export async function importApplicationBundle(
   if (!bundle) {
     throwApiError(ApiErrorCode.INVALID_INPUT, "Invalid application bundle");
   }
-  const result = applyBundle(bundle, { newWorkflowId: createTimeOrderedUuid });
+  const result = applyBundle(bundle, {
+    newWorkflowId: (workflow) =>
+      workflow.sourceId
+        ? createStableUuid(userId, workflow.sourceId)
+        : createTimeOrderedUuid()
+  });
 
   for (const workflow of result.workflows) {
+    if (workflow.sourceId && (await Workflow.find(userId, workflow.id))) {
+      continue;
+    }
     await Workflow.create<Workflow>({
       id: workflow.id,
       user_id: userId,

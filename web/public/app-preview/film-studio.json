@@ -1,0 +1,708 @@
+{
+  "slug": "film-studio",
+  "name": "Film Studio",
+  "emoji": "🎬",
+  "description": "The showcase run: one brief drives a directed short, an editable rough cut, and the poster that sells it.",
+  "tagline": "Brief → direction → storyboard → cut → key art.",
+  "note": "💸 This app spends real money — Veo 3.1 video and Replicate MusicGen. Run it once, deliberately.",
+  "featured": true,
+  "image": "/app-preview/img/film-studio.jpg",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {
+          "title": "Film Studio"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "🎬 Film Studio",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "Brief → direction → storyboard → cut → key art."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "💸 This app spends real money — Veo 3.1 video and Replicate MusicGen. Run it once, deliberately."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-the-film",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-film",
+                  "title": "The film",
+                  "content": [
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note",
+                        "text": "💸 Each run of Produce or Rough cut uses Veo and Replicate credits."
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-brief",
+                        "binding": "var:brief",
+                        "label": "Your film in one line",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-style",
+                        "binding": "var:style",
+                        "label": "Visual style",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-produce-shot-count",
+                        "binding": "op:produce/in:shot_count",
+                        "label": "Number of shots",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-produce",
+                        "label": "Shoot my film",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "produce",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-cut",
+                        "label": "Give me the rough cut",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "cut",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-film-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-produce",
+                        "binding": "op:produce/exec#progress",
+                        "label": "Directing, storyboarding & shooting…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-produce-direction",
+                        "text": "Direction document",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-produce-direction",
+                        "binding": "op:produce/out:direction_out",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-produce-storyboard",
+                        "text": "Storyboard keyframes",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-produce-storyboard",
+                        "binding": "op:produce/out:storyboard_out",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-produce-film",
+                        "text": "Finished film",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-produce-film",
+                        "binding": "op:produce/out:film_out",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    },
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-cut",
+                        "binding": "op:cut/exec#progress",
+                        "label": "Cutting the timeline…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-cut-film",
+                        "text": "Editable rough cut",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-cut-film",
+                        "binding": "op:cut/out:film_out",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-key-art",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-key-art",
+                  "title": "Key art",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-poster-movie-title",
+                        "binding": "op:poster/in:movie_title_input",
+                        "label": "Movie title",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "in-poster-genre",
+                        "binding": "op:poster/in:genre_input",
+                        "label": "Genre",
+                        "options": [
+                          {
+                            "value": "Sci-Fi Thriller"
+                          },
+                          {
+                            "value": "Action"
+                          },
+                          {
+                            "value": "Horror"
+                          },
+                          {
+                            "value": "Fantasy"
+                          },
+                          {
+                            "value": "Neo-noir"
+                          },
+                          {
+                            "value": "Romance"
+                          },
+                          {
+                            "value": "Comedy"
+                          },
+                          {
+                            "value": "Drama"
+                          },
+                          {
+                            "value": "Documentary"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-poster",
+                        "label": "Make my poster",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "poster",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-key-art-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-poster",
+                        "binding": "op:poster/exec#progress",
+                        "label": "Designing your poster…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-poster-poster",
+                        "text": "Your poster",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-poster-poster",
+                        "binding": "op:poster/out:poster_output",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "produce",
+        "name": "Produce",
+        "workflowId": "script",
+        "inputs": {
+          "brief": {
+            "from": "variable",
+            "variableId": "brief"
+          },
+          "style": {
+            "from": "variable",
+            "variableId": "style"
+          }
+        },
+        "outputs": {},
+        "policy": "queue",
+        "timeoutMs": 1800000
+      },
+      {
+        "id": "cut",
+        "name": "Rough cut",
+        "workflowId": "timeline",
+        "inputs": {
+          "brief": {
+            "from": "variable",
+            "variableId": "brief"
+          }
+        },
+        "outputs": {},
+        "policy": "queue",
+        "timeoutMs": 1800000
+      },
+      {
+        "id": "poster",
+        "name": "Poster",
+        "workflowId": "posters",
+        "inputs": {
+          "style_input": {
+            "from": "variable",
+            "variableId": "style"
+          }
+        },
+        "outputs": {},
+        "policy": "queue"
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "brief",
+        "name": "Brief",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "A lighthouse keeper follows her own beam to the thing it will no longer stop pointing at.",
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "style",
+        "name": "Visual style",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "Anamorphic, sodium amber against blue-black sea, fine grain",
+        "scope": "instance",
+        "persist": false
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "script",
+      "name": "Script to Screen",
+      "graph": {
+        "nodes": [
+          {
+            "id": "brief",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "Brief",
+              "value": "A lighthouse keeper discovers the beam of her lamp has started bending toward something beneath the waves — and tonight it refuses to point anywhere else."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 40,
+                "y": 60
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "1️⃣ Brief",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "style",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "Visual Style",
+              "value": "moody coastal nocturne, sodium-lamp amber against deep blue-black sea, drifting fog, anamorphic lens flares, fine film grain, painterly realism"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 40,
+                "y": 320
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "2️⃣ Visual style",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "shot_count",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "Shot Count",
+              "value": "5"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 40,
+                "y": 580
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "3️⃣ Shot count",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "direction_out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "direction"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1160,
+                "y": -60
+              },
+              "title": "📋 Direction document",
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "storyboard_out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "storyboard"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 2880,
+                "y": 80
+              },
+              "title": "🖼️ Storyboard — approve before video spend",
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "film_out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "film"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 4350,
+                "y": 560
+              },
+              "title": "🎬 Final film",
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "timeline",
+      "name": "Directed Film to Timeline",
+      "graph": {
+        "nodes": [
+          {
+            "id": "brief",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "Brief",
+              "value": "A lighthouse keeper discovers the beam of her lamp has started bending toward something beneath the waves — and tonight it refuses to point anywhere else."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 40,
+                "y": 100
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "1️⃣ Brief",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "film_out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "film"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 2830,
+                "y": 180
+              },
+              "title": "🎬 Rough cut",
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "posters",
+      "name": "Movie Posters",
+      "graph": {
+        "nodes": [
+          {
+            "id": "movie_title_input",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "value": "Singularity",
+              "name": "Movie Title"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 279,
+                "y": 50
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "Movie title",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "genre_input",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "value": "Sci-Fi Thriller",
+              "name": "Genre"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 279,
+                "y": 330
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "Genre",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "style_input",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "value": "Neo-noir, high-contrast, cinematic",
+              "name": "Visual Style"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 279,
+                "y": 610
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "Visual style",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "poster_output",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "Poster"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 3200,
+                "y": 187
+              },
+              "zIndex": 0,
+              "width": 320,
+              "title": "Poster",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    }
+  ],
+  "values": {
+    "op:produce/in:shot_count": "5",
+    "op:produce/out:direction_out": "## THE BENDING LIGHT\n\n**Logline** — A keeper follows her own beam to the thing it will no longer stop pointing at.",
+    "op:produce/out:storyboard_out": {
+      "$demo": "image"
+    },
+    "op:produce/out:film_out": {
+      "$demo": "video"
+    },
+    "op:poster/in:movie_title_input": "Singularity",
+    "op:poster/in:genre_input": "Sci-Fi Thriller",
+    "op:poster/out:poster_output": {
+      "$demo": "image"
+    },
+    "var:brief": "A lighthouse keeper follows her own beam to the thing it will no longer stop pointing at.",
+    "var:style": "Anamorphic, sodium amber against blue-black sea, fine grain"
+  }
+}

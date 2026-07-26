@@ -14,6 +14,9 @@
  *   GET    /api/applications/:id/released-document  → ApplicationReleaseResponse | null
  *   GET    /api/applications/:id/export-bundle      → ApplicationBundle (download)
  *   POST   /api/applications/import-bundle          → ApplicationResponse
+ *   GET    /api/applications/examples               → ExampleAppSummary[]
+ *   GET    /api/applications/examples/:slug         → ApplicationBundle
+ *   POST   /api/applications/examples/:slug/install → ApplicationResponse
  */
 
 import type { FastifyPluginAsync } from "fastify";
@@ -25,6 +28,13 @@ import {
   importApplicationBundleInput
 } from "@nodetool-ai/protocol/api-schemas/applications.js";
 import { bridge } from "../lib/bridge.js";
+import { ApiErrorCode } from "../error-codes.js";
+import { throwApiError } from "../trpc/error-formatter.js";
+import {
+  getExampleAppBundle,
+  installExampleApp,
+  listExampleApps
+} from "../lib/example-apps.js";
 import { getUserId, type HttpApiOptions } from "../http-api.js";
 import {
   createApplication,
@@ -128,6 +138,42 @@ const applicationsRoutes: FastifyPluginAsync<RouteOptions> = async (
           await readJsonBody(request)
         );
         return importApplicationBundle(userIdOf(request), input);
+      })
+    );
+  });
+
+  // Shipped example apps. Listing and reading one needs no user — they are
+  // files on disk; installing one goes through the normal bundle import.
+  app.get("/api/applications/examples", async (req, reply) => {
+    await bridge(req, reply, () =>
+      respond(async () => listExampleApps(apiOptions))
+    );
+  });
+
+  app.get("/api/applications/examples/:slug", async (req, reply) => {
+    const { slug } = req.params as { slug: string };
+    await bridge(req, reply, () =>
+      respond(async () => {
+        const bundle = getExampleAppBundle(apiOptions, slug);
+        if (!bundle) {
+          throwApiError(ApiErrorCode.NOT_FOUND, `No example app named "${slug}"`);
+        }
+        return bundle;
+      })
+    );
+  });
+
+  app.post("/api/applications/examples/:slug/install", async (req, reply) => {
+    const { slug } = req.params as { slug: string };
+    await bridge(req, reply, (request) =>
+      respond(async () => {
+        const body = (await readJsonBody(request)) as { projectId?: string };
+        return installExampleApp(
+          userIdOf(request),
+          apiOptions,
+          slug,
+          body.projectId
+        );
       })
     );
   });

@@ -208,3 +208,34 @@ describe("parseApplicationBundle", () => {
     expect(bundle?.app.operations).toEqual([]);
   });
 });
+
+describe("sourceId", () => {
+  it("round-trips a workflow's stable identity", () => {
+    const bundle = bundleFromApplication(
+      { name: "Studio", document: document() },
+      [
+        {
+          workflowId: "wf-1",
+          name: "Image Enhance",
+          sourceId: "nodetool-base/Image Enhance",
+          graph: graphFor("n1")
+        }
+      ]
+    );
+    expect(bundle.workflows[0]?.sourceId).toBe("nodetool-base/Image Enhance");
+
+    const reparsed = parseApplicationBundle(JSON.parse(JSON.stringify(bundle)));
+    expect(reparsed?.workflows[0]?.sourceId).toBe("nodetool-base/Image Enhance");
+  });
+
+  it("leaves it off a workflow that declares none", () => {
+    const bundle = bundleFromApplication({ name: "Studio", document: document() }, [
+      { workflowId: "wf-1", name: "Ad hoc", graph: graphFor("n1") }
+    ]);
+    expect(bundle.workflows[0]).not.toHaveProperty("sourceId");
+    expect(
+      parseApplicationBundle({ app: document(), workflows: [{ key: "k", graph: graphFor("n1"), sourceId: "" }] })
+        ?.workflows[0]
+    ).not.toHaveProperty("sourceId");
+  });
+});

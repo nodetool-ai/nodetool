@@ -54,6 +54,7 @@ export {
   DBModel,
   ModelObserver,
   ModelChangeEvent,
+  createStableUuid,
   createTimeOrderedUuid,
   computeEtag
 } from "./base-model.js";

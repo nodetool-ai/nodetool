@@ -1,0 +1,1197 @@
+{
+  "schemaVersion": 1,
+  "name": "Product Launch Kit",
+  "description": "Stage a product photo into lifestyle mockups, then — deliberately, because it costs real money — turn the same photo into a launch video.",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {
+          "title": "Product Launch Kit"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "📦 Product Launch Kit",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "One product photo in, mockups and a launch video out."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "💸 Mockups need OpenAI and FAL. The launch video runs on Veo and costs credits per run, so it has its own button."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-your-product",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-your-product",
+                  "title": "Your product",
+                  "content": [
+                    {
+                      "type": "ImageInput",
+                      "props": {
+                        "id": "in-productphoto",
+                        "binding": "var:productPhoto",
+                        "label": "Product photo",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-audience",
+                        "binding": "var:audience",
+                        "label": "Who is it for?",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-mockups-product-name",
+                        "binding": "op:mockups/in:10",
+                        "label": "Product name",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-mockups-product-description",
+                        "binding": "op:mockups/in:11",
+                        "label": "Describe the product",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "NumberInput",
+                      "props": {
+                        "id": "in-mockups-num-scenes",
+                        "binding": "op:mockups/in:13",
+                        "label": "How many scenes?",
+                        "min": 1,
+                        "max": 6,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-mockups",
+                        "label": "Generate mockups",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "mockups",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-your-product-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-mockups",
+                        "binding": "op:mockups/exec#progress",
+                        "label": "Staging your mockups…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-mockups-mockup",
+                        "text": "Mockups",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-mockups-mockup",
+                        "binding": "op:mockups/out:output-mockup",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-mockups-scene",
+                        "text": "Shot list",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-mockups-scene",
+                        "binding": "op:mockups/out:output-scene",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-launch-video",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-launch-video",
+                  "title": "Launch video",
+                  "content": [
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note",
+                        "text": "💸 One run of this uses the Veo video model and costs credits."
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-video-campaign-brief",
+                        "binding": "op:video/in:5",
+                        "label": "Campaign brief",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-video-key-features",
+                        "binding": "op:video/in:7",
+                        "label": "Key features",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-video",
+                        "label": "Generate the launch video",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "video",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-launch-video-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-video",
+                        "binding": "op:video/exec#progress",
+                        "label": "Producing your spot…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-video-product-video",
+                        "text": "Launch video",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-video-product-video",
+                        "binding": "op:video/out:output-product-video",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "mockups",
+        "name": "Mockups",
+        "workflowId": "mockups",
+        "inputs": {
+          "5": {
+            "from": "variable",
+            "variableId": "productPhoto"
+          },
+          "12": {
+            "from": "variable",
+            "variableId": "audience"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      },
+      {
+        "id": "video",
+        "name": "Launch video",
+        "workflowId": "video",
+        "inputs": {
+          "6": {
+            "from": "variable",
+            "variableId": "audience"
+          },
+          "ada8f51f-0155-4178-a07c-9415be82534a": {
+            "from": "variable",
+            "variableId": "productPhoto"
+          }
+        },
+        "outputs": {},
+        "policy": "queue",
+        "timeoutMs": 900000
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "productPhoto",
+        "name": "Product photo",
+        "type": {
+          "type": "image",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "audience",
+        "name": "Target audience",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "people who hike on weekends",
+        "scope": "instance",
+        "persist": false
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "mockups",
+      "name": "Product Mockup Generator",
+      "description": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then each scene is rendered with FLUX and finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
+      "sourceId": "nodetool-base/Product Mockup Generator",
+      "graph": {
+        "edges": [
+          {
+            "id": "1",
+            "source": "5",
+            "sourceHandle": "output",
+            "target": "4",
+            "targetHandle": "image"
+          },
+          {
+            "id": "2",
+            "source": "10",
+            "sourceHandle": "output",
+            "target": "9",
+            "targetHandle": "name"
+          },
+          {
+            "id": "3",
+            "source": "11",
+            "sourceHandle": "output",
+            "target": "9",
+            "targetHandle": "description"
+          },
+          {
+            "id": "4",
+            "source": "12",
+            "sourceHandle": "output",
+            "target": "9",
+            "targetHandle": "audience"
+          },
+          {
+            "id": "5",
+            "source": "13",
+            "sourceHandle": "output",
+            "target": "9",
+            "targetHandle": "count"
+          },
+          {
+            "id": "6",
+            "source": "9",
+            "sourceHandle": "output",
+            "target": "8",
+            "targetHandle": "prompt"
+          },
+          {
+            "id": "7",
+            "source": "8",
+            "sourceHandle": "text",
+            "target": "7",
+            "targetHandle": "scenes"
+          },
+          {
+            "id": "8",
+            "source": "10",
+            "sourceHandle": "output",
+            "target": "7",
+            "targetHandle": "name"
+          },
+          {
+            "id": "9",
+            "source": "11",
+            "sourceHandle": "output",
+            "target": "7",
+            "targetHandle": "description"
+          },
+          {
+            "id": "10",
+            "source": "7",
+            "sourceHandle": "output",
+            "target": "6",
+            "targetHandle": "prompt"
+          },
+          {
+            "id": "11",
+            "source": "6",
+            "sourceHandle": "item",
+            "target": "4",
+            "targetHandle": "prompt"
+          },
+          {
+            "id": "12",
+            "source": "4",
+            "sourceHandle": "output",
+            "target": "3",
+            "targetHandle": "image"
+          },
+          {
+            "id": "13",
+            "source": "3",
+            "sourceHandle": "output",
+            "target": "2",
+            "targetHandle": "image"
+          },
+          {
+            "id": "15",
+            "source": "6",
+            "sourceHandle": "item",
+            "target": "15",
+            "targetHandle": "prompt"
+          },
+          {
+            "id": "edge-output-mockup",
+            "source": "2",
+            "sourceHandle": "output",
+            "target": "output-mockup",
+            "targetHandle": "value",
+            "ui_properties": null
+          },
+          {
+            "id": "edge-output-scene",
+            "source": "15",
+            "sourceHandle": "output",
+            "target": "output-scene",
+            "targetHandle": "value",
+            "ui_properties": null
+          }
+        ],
+        "nodes": [
+          {
+            "id": "comment-intro",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# 🖼️ Product Mockup Generator\n\nOne product photo in, a coordinated set of lifestyle mockups out.\n\n**Why the extra stages:** a single image prompt gives you one look. Here an art-director agent first invents *distinct* scene concepts from the product brief (studio, lifestyle, flat-lay, outdoor…), a second prompt turns each concept into a photography-grade image prompt, and a list generator splits them so every scene renders in parallel.\n\n**Two outputs per scene:** a pure text-to-image render (the *scene*), and an image-to-image pass that composites your real product photo into it (the *mockup*), finished with a brightness/contrast polish.\n\n**Try this:** raise the scene count, or change the target audience to shift the whole shot list."
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 0,
+                "y": -220
+              },
+              "zIndex": 0,
+              "width": 460,
+              "height": 180,
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "2",
+            "type": "lib.image.color.BrightnessContrast",
+            "data": {
+              "brightness": 0,
+              "contrast": 1.1
+            },
+            "ui_properties": {
+              "position": {
+                "x": 2300,
+                "y": 479
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false,
+              "title": "©️ Final color adjust → mockup"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "3",
+            "type": "lib.image.color.BrightnessContrast",
+            "data": {
+              "brightness": 0.025,
+              "contrast": 1.05
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1990,
+                "y": 479
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false,
+              "title": "🅱️ Brightness / contrast polish"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "4",
+            "type": "nodetool.image.ImageToImage",
+            "data": {
+              "model": {
+                "type": "image_model",
+                "provider": "huggingface_fal_ai",
+                "id": "fal-ai/flux/schnell",
+                "name": "FLUX.1 Schnell",
+                "path": null,
+                "supported_tasks": []
+              },
+              "negative_prompt": "",
+              "strength": 0.65,
+              "guidance_scale": 7.5,
+              "num_inference_steps": 30,
+              "target_width": 1200,
+              "target_height": 1200,
+              "seed": -1,
+              "scheduler": "",
+              "safety_check": true
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1680,
+                "y": 388
+              },
+              "zIndex": 0,
+              "width": 384,
+              "selectable": true,
+              "bypassed": false,
+              "height": 400,
+              "title": "🅰️ Composite product into scene (image-to-image)"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "5",
+            "type": "nodetool.input.ImageInput",
+            "data": {
+              "name": "product_image",
+              "value": {
+                "type": "image",
+                "uri": "",
+                "asset_id": null,
+                "data": null,
+                "metadata": null
+              },
+              "description": "The product image to place in scenes"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1340,
+                "y": 509
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false,
+              "title": "3️⃣ Product image"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "6",
+            "type": "nodetool.generators.ListGenerator",
+            "data": {
+              "model": {
+                "type": "language_model",
+                "provider": "openai",
+                "id": "gpt-5-mini",
+                "name": "GPT-5 mini",
+                "path": null,
+                "supported_tasks": []
+              },
+              "input_text": "",
+              "max_tokens": 100000
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1340,
+                "y": 205
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false,
+              "title": "9️⃣ Split into per-scene prompts"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "7",
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "\nConvert these scene concepts into image generation prompts.\n\nScene Concepts: {{ scenes }}\nProduct: {{ name }} - {{ description }}\n\nFor each scene, create a detailed image prompt that:\n- Describes the complete scene with the product\n- Specifies lighting (soft, dramatic, natural, studio)\n- Includes realistic shadows and reflections\n- Mentions surface materials and textures\n- Uses professional product photography style\n\nOutput format: One complete prompt per line, no numbering.\nMake each prompt suitable for high-quality product photography.\n"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1030,
+                "y": 155
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false,
+              "title": "8️⃣ Build image prompt"
+            },
+            "dynamic_properties": {
+              "scenes": "Studio shot on a matte black surface with soft key lighting; lifestyle scene on a wooden desk beside a laptop",
+              "name": "Premium Wireless Headphones",
+              "description": "Sleek, modern over-ear wireless headphones with active noise cancellation. Matte black finish with brushed-silver accents and memory-foam ear cushions."
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "8",
+            "type": "nodetool.agents.Agent",
+            "data": {
+              "model": {
+                "type": "language_model",
+                "provider": "openai",
+                "id": "gpt-5-mini",
+                "name": "GPT-5 mini",
+                "path": null,
+                "supported_tasks": []
+              },
+              "system": "You are a professional product photographer and commercial art director.\n\nFrom a product brief you invent distinct, sales-ready photography scene concepts. Follow these rules:\n- Make every concept visibly different in setting, lighting, and mood — no two should read as the same shot.\n- Stay faithful to the product's real materials, colors, and features; never invent capabilities you were not given.\n- Ground each concept for the stated target audience.\n- Be concrete and shootable: name the environment, the light, the props, the camera angle, and the atmosphere.\n\nReturn only the scene concepts, one complete concept per line, no numbering or commentary.",
+              "image": {
+                "type": "image",
+                "uri": "",
+                "asset_id": null,
+                "data": null,
+                "metadata": null
+              },
+              "audio": {
+                "type": "audio",
+                "uri": "",
+                "asset_id": null,
+                "data": null,
+                "metadata": null
+              },
+              "history": [],
+              "thread_id": "",
+              "max_tokens": 100000
+            },
+            "ui_properties": {
+              "position": {
+                "x": 670,
+                "y": 254
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false,
+              "title": "7️⃣ Scene concept agent"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "9",
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "\nYou are a product photography director.\n\nProduct: {{ name }}\nDescription: {{ description }}\nTarget Audience: {{ audience }}\n\nCreate {{ count }} unique scene concepts for product photography mockups.\n\nInclude a variety of settings:\n- Studio shots (clean backgrounds, professional lighting)\n- Lifestyle scenes (product in use)\n- Environmental/outdoor settings\n- Flat lay compositions\n- Detail/close-up angles\n\nFor each scene, describe:\n1. Setting/environment\n2. Lighting style\n3. Props and complementary elements\n4. Mood/atmosphere\n5. Camera angle suggestion\n\nOutput format: Return each complete scene description on a separate line, no numbering.\n"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 360,
+                "y": 281
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false,
+              "title": "6️⃣ Build scene prompt"
+            },
+            "dynamic_properties": {
+              "name": "Premium Wireless Headphones",
+              "description": "Sleek, modern over-ear wireless headphones with active noise cancellation. Matte black finish with brushed-silver accents and memory-foam ear cushions.",
+              "audience": "Tech-savvy professionals, music enthusiasts, and remote workers",
+              "count": "6"
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "10",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "product_name",
+              "value": "Premium Wireless Headphones",
+              "description": "Name of the product"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 130
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false,
+              "title": "1️⃣ Product name"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "11",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "product_description",
+              "value": "Sleek, modern over-ear wireless headphones with active noise cancellation. Matte black finish with brushed-silver accents and memory-foam ear cushions.",
+              "description": "Brief product description for context"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 827
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false,
+              "title": "5️⃣ Product description"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "12",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "target_audience",
+              "value": "Tech-savvy professionals, music enthusiasts, and remote workers",
+              "description": "Target customer demographic"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 583
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false,
+              "title": "4️⃣ Target audience"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "13",
+            "type": "nodetool.input.IntegerInput",
+            "data": {
+              "name": "num_scenes",
+              "value": 6,
+              "description": "Number of scene variations to generate",
+              "min": 2,
+              "max": 12
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 367
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false,
+              "title": "2️⃣ Scene count"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "15",
+            "type": "nodetool.image.TextToImage",
+            "data": {
+              "model": {
+                "type": "image_model",
+                "provider": "huggingface_fal_ai",
+                "id": "fal-ai/flux/schnell",
+                "name": "FLUX.1 Schnell",
+                "path": null,
+                "supported_tasks": []
+              },
+              "negative_prompt": "",
+              "width": 1200,
+              "height": 1200,
+              "guidance_scale": 7,
+              "num_inference_steps": 25,
+              "seed": -1,
+              "safety_check": true
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1680,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 384,
+              "selectable": true,
+              "bypassed": false,
+              "height": 400,
+              "title": "🔟 Render scene (text-to-image)"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-mockup",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "mockup"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 2620,
+                "y": 479
+              },
+              "selectable": true
+            }
+          },
+          {
+            "id": "output-scene",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "scene"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 2000,
+                "y": 0
+              },
+              "selectable": true
+            }
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    },
+    {
+      "key": "video",
+      "name": "Product Video Generator",
+      "description": "Turn a campaign brief, audience, features, and a product photo into a realistic 16:9 launch video — an agent writes the motion prompt, then Veo animates the shot. Cost note: Veo is a paid per-second video model, so this run costs noticeably more than an image-only template.",
+      "sourceId": "nodetool-base/Product Video Generator",
+      "graph": {
+        "edges": [
+          {
+            "id": "01ff2dd6-973b-486d-aa3d-49047690ac60",
+            "source": "5",
+            "sourceHandle": "output",
+            "target": "4",
+            "targetHandle": "brief",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "1bf29f21-70b9-46e1-895b-b0270b558090",
+            "source": "6",
+            "sourceHandle": "output",
+            "target": "4",
+            "targetHandle": "audience",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "be968faa-0e7b-416f-b129-23e742d264bc",
+            "source": "7",
+            "sourceHandle": "output",
+            "target": "4",
+            "targetHandle": "features",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "prompt-to-agent",
+            "source": "4",
+            "sourceHandle": "output",
+            "target": "3",
+            "targetHandle": "prompt",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "68208701-a9b9-4f60-8666-9deed353a089",
+            "source": "ada8f51f-0155-4178-a07c-9415be82534a",
+            "sourceHandle": "output",
+            "target": "3",
+            "targetHandle": "image",
+            "ui_properties": {
+              "className": "image"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "cba6ce0e-77cb-4f46-89f1-926d790d4d39",
+            "source": "3",
+            "sourceHandle": "text",
+            "target": "97f03868-da4f-4604-b57e-5f2118847956",
+            "targetHandle": "prompt",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "12e3b210-b6b1-4503-9edf-7980c3613d23",
+            "source": "ada8f51f-0155-4178-a07c-9415be82534a",
+            "sourceHandle": "output",
+            "target": "97f03868-da4f-4604-b57e-5f2118847956",
+            "targetHandle": "image",
+            "ui_properties": {
+              "className": "image"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "edge-output-product-video",
+            "source": "97f03868-da4f-4604-b57e-5f2118847956",
+            "sourceHandle": "output",
+            "target": "output-product-video",
+            "targetHandle": "value",
+            "ui_properties": null
+          }
+        ],
+        "nodes": [
+          {
+            "id": "comment-1",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# 🎬 AI Product Launch Video Generator\n\nTurn a campaign brief and product image into a cinematic launch clip. A prompt node combines your inputs, an agent writes an image-to-video prompt, then an Image-to-Video model animates the product shot.\n\n**Pipeline:** Brief + Audience + Features + Image → Build prompt → Write video prompt (agent) → Animate video\n\n**Try this:** choose a language model and video model, then swap the product image or rewrite the agent's system prompt for a different tone.\n\n**Cost note:** the animation step runs on Veo 3.1, a paid per-second video model — each run costs noticeably more than an image-only template."
+            },
+            "ui_properties": {
+              "position": {
+                "x": -460,
+                "y": -247
+              },
+              "zIndex": 0,
+              "width": 437,
+              "height": 340,
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "4",
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "Using the text and image inputs, write a video prompt for a single 16:9 product shot. Give clear instructions on the animations and movements in the video.\n\nRules:\n- Present tense, visually concrete; one clear camera move and one primary subject action.\n- Include: subject, setting, time-of-day, camera language (framing, angle, lens, movement), composition cues, lighting, 3–5 color anchors, atmosphere/texture, and realistic motion cues.\n- Emphasize the product and key features naturally within the scene for the target audience and tone.\n- Finish with constraints: no on-screen text, no logos, no watermarks, no glitches, no distorted anatomy.\n\nInputs:\n- Campaign brief: {{ brief }}\n- Target audience: {{ audience }}\n- Key features: {{ features }}"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 390,
+                "y": -7
+              },
+              "zIndex": 0,
+              "width": 486,
+              "height": 567,
+              "title": "5️⃣ Build prompt",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {
+              "brief": "Launch video for the Aurora Trail smart fitness watch, highlighting outdoor adventure tracking.",
+              "audience": "active millennials who enjoy weekend hiking and fitness challenges",
+              "features": "GPS navigation, heart-rate analytics, adaptive coaching, water resistance"
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "3",
+            "type": "nodetool.agents.Agent",
+            "data": {
+              "model": {
+                "type": "language_model",
+                "provider": "openai",
+                "id": "gpt-5-mini",
+                "name": "GPT-5 mini",
+                "path": null,
+                "supported_tasks": []
+              },
+              "system": "You are a prompt engineer specializing in image-to-video generation models.\n\nTask: read the campaign brief, target audience, and key features, then rewrite them as a single production-ready image-to-video prompt for the attached product photo.\n\nOutput format: plain text, one paragraph, no markdown, no headers, no lists, no preamble. Return only the finished prompt.",
+              "audio": {
+                "type": "audio",
+                "uri": "",
+                "asset_id": null,
+                "data": null
+              },
+              "history": [],
+              "thread_id": null,
+              "max_tokens": 100000
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 936,
+                "y": 308
+              },
+              "zIndex": 0,
+              "width": 457,
+              "height": 429,
+              "title": "6️⃣ Write video prompt",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "5",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "campaign_brief",
+              "value": "Launch video for the Aurora Trail smart fitness watch, highlighting outdoor adventure tracking.",
+              "description": "Short description of the campaign concept"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 50,
+                "y": -197
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "1️⃣ Campaign brief",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "6",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "target_audience",
+              "value": "active millennials who enjoy weekend hiking and fitness challenges",
+              "description": "Primary audience for the marketing video"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 50,
+                "y": 83
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "2️⃣ Target audience",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "7",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "key_features",
+              "value": "GPS navigation, heart-rate analytics, adaptive coaching, water resistance",
+              "description": "Key product features to highlight"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 50,
+                "y": 363
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "3️⃣ Key features",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "ada8f51f-0155-4178-a07c-9415be82534a",
+            "type": "nodetool.input.ImageInput",
+            "data": {
+              "name": "image_input_1",
+              "value": {
+                "uri": "/api/storage/4a816f674eda4358b8140c50917ae78e.bin",
+                "type": "image"
+              },
+              "description": "Product photo to animate into the launch video"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 50,
+                "y": 643
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "4️⃣ Product image",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "97f03868-da4f-4604-b57e-5f2118847956",
+            "type": "nodetool.video.ImageToVideo",
+            "data": {
+              "model": {
+                "type": "video_model",
+                "provider": "gemini",
+                "id": "veo-3.1-generate-preview",
+                "name": "Veo 3.1 Preview",
+                "path": null,
+                "supported_tasks": []
+              },
+              "negative_prompt": "",
+              "aspect_ratio": "16:9",
+              "resolution": "720p",
+              "duration": 8,
+              "timeout_seconds": 0
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 1443,
+                "y": 357
+              },
+              "zIndex": 0,
+              "width": 739,
+              "height": 453,
+              "title": "7️⃣ Animate product video",
+              "selectable": true,
+              "bypassed": false,
+              "selected_generation": "2059791e2f4e44e29db7d3424ab0ee18"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-product-video",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "product_video"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1763,
+                "y": 357
+              },
+              "selectable": true
+            }
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    }
+  ]
+}
