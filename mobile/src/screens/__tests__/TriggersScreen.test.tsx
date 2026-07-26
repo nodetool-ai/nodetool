@@ -170,6 +170,23 @@ describe('TriggersScreen', () => {
     expect(screen.getByText('2 armed of 2 · 1 failing')).toBeTruthy();
   });
 
+  it('says a trigger stopped itself, and how to restart it', () => {
+    loadedWith([
+      {
+        ...brokenTrigger,
+        enabled: false,
+        disabled_reason: 'failures',
+        consecutive_failures: 5,
+      },
+    ]);
+    renderScreen();
+
+    expect(screen.getByText('Stopped')).toBeTruthy();
+    expect(
+      screen.getByText('Disabled after 5 consecutive failures. Arm it again to retry.'),
+    ).toBeTruthy();
+  });
+
   it('disarms an armed trigger only after confirmation', () => {
     jest.spyOn(Alert, 'alert');
     loadedWith([scheduleTrigger]);

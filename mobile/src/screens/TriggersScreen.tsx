@@ -29,6 +29,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { describeTriggerDisabledReason } from '@nodetool-ai/protocol';
+
 import { RootStackParamList } from '../navigation/types';
 import { trpc } from '../trpc/client';
 import { useTheme } from '../hooks/useTheme';
@@ -52,6 +54,13 @@ export interface TriggerRow {
   enabled: boolean;
   last_fired_at: string | null;
   last_error: string | null;
+  /**
+   * Why the dispatcher disarmed this registration, if it did. A trigger that
+   * stopped on its own is the reason to open this screen at all, so it sorts
+   * first and says so on the card.
+   */
+  disabled_reason?: string | null;
+  consecutive_failures?: number | null;
   next_fire_at?: string | null;
   interval_seconds?: number | null;
 }
@@ -92,6 +101,8 @@ export function toTriggerRow(raw: unknown): TriggerRow | null {
     enabled: enabled === true,
     last_fired_at: readString(raw, 'last_fired_at'),
     last_error: readString(raw, 'last_error'),
+    disabled_reason: readString(raw, 'disabled_reason'),
+    consecutive_failures: readNumber(raw, 'consecutive_failures'),
     next_fire_at: readString(raw, 'next_fire_at'),
     interval_seconds: readNumber(raw, 'interval_seconds'),
   };
@@ -114,6 +125,11 @@ export function mergeTriggerRows(
     byId.set(row.id, row);
   }
   return [...byId.values()].sort((a, b) => {
+    // A trigger that stopped on its own outranks one that merely failed: the
+    // second is still running, the first has silently stopped automating.
+    if (!!a.disabled_reason !== !!b.disabled_reason) {
+      return a.disabled_reason ? -1 : 1;
+    }
     if (!!a.last_error !== !!b.last_error) {
       return a.last_error ? -1 : 1;
     }
@@ -295,12 +311,23 @@ export default function TriggersScreen({ navigation }: Props) {
   const renderItem = ({ item }: { item: TriggerRow }) => {
     const workflowName =
       workflowNames[item.workflow_id] ?? `Workflow ${item.workflow_id.substring(0, 8)}`;
-    const stateColor = item.last_error
-      ? colors.error
-      : item.enabled
-        ? colors.success
-        : colors.textTertiary;
-    const stateText = item.last_error ? 'Failing' : item.enabled ? 'Armed' : 'Disarmed';
+    const stoppedBecause = describeTriggerDisabledReason(
+      item.disabled_reason,
+      item.consecutive_failures ?? 0,
+    );
+    const stateColor =
+      stoppedBecause || item.last_error
+        ? colors.error
+        : item.enabled
+          ? colors.success
+          : colors.textTertiary;
+    const stateText = stoppedBecause
+      ? 'Stopped'
+      : item.last_error
+        ? 'Failing'
+        : item.enabled
+          ? 'Armed'
+          : 'Disarmed';
     const countdown = item.enabled ? formatCountdown(item.next_fire_at) : null;
     const interval = formatInterval(item.interval_seconds);
     const busy = pendingId === item.id;
@@ -355,6 +382,15 @@ export default function TriggersScreen({ navigation }: Props) {
             </View>
           ) : null}
         </View>
+
+        {stoppedBecause ? (
+          <View style={[styles.errorBox, { backgroundColor: colors.error + '14' }]}>
+            <Ionicons name="hand-left-outline" size={13} color={colors.error} />
+            <Text style={[styles.errorText, { color: colors.error }]} numberOfLines={3}>
+              {stoppedBecause} Arm it again to retry.
+            </Text>
+          </View>
+        ) : null}
 
         {item.last_error ? (
           <View style={[styles.errorBox, { backgroundColor: colors.error + '14' }]}>

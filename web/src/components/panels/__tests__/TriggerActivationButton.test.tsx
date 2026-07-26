@@ -53,6 +53,8 @@ interface RegistrationOverrides {
   webhook_secret?: string | null;
   next_fire_at?: string | null;
   interval_seconds?: number | null;
+  disabled_reason?: string | null;
+  consecutive_failures?: number;
 }
 
 const registration = (overrides: RegistrationOverrides = {}) => ({
@@ -354,6 +356,57 @@ describe("TriggerActivationButton", () => {
     ).toBeInTheDocument();
     const region = await openPopover();
     expect(within(region).getByText(/connection refused/i)).toBeInTheDocument();
+  });
+
+  it("explains a trigger the dispatcher gave up on", async () => {
+    mockNodeState.nodes = [
+      { id: "n1", type: "nodetool.triggers.IntervalTrigger" }
+    ];
+    mockUseWorkflowTriggers.mockReturnValue(
+      withData([
+        registration({
+          kind: "schedule",
+          enabled: false,
+          disabled_reason: "failures",
+          consecutive_failures: 5,
+          last_error: "connection refused"
+        })
+      ])
+    );
+
+    renderWithTheme(<TriggerActivationButton />);
+    // An auto-disabled trigger reads as plain "Inactive" without this — the
+    // same state as one the user switched off.
+    expect(
+      screen.getByRole("button", {
+        name: "Triggers: inactive, disabled automatically"
+      })
+    ).toBeInTheDocument();
+
+    const region = await openPopover();
+    expect(
+      within(region).getByText(/disabled after 5 consecutive failures/i)
+    ).toBeInTheDocument();
+    expect(within(region).getByText("Stopped")).toBeInTheDocument();
+  });
+
+  it("does not explain a stop the user made themselves", async () => {
+    mockNodeState.nodes = [
+      { id: "n1", type: "nodetool.triggers.IntervalTrigger" }
+    ];
+    mockUseWorkflowTriggers.mockReturnValue(
+      withData([
+        registration({ kind: "schedule", enabled: false, disabled_reason: null })
+      ])
+    );
+
+    renderWithTheme(<TriggerActivationButton />);
+    const region = await openPopover();
+    const row = within(region).getByRole("group", {
+      name: "Schedule trigger n1"
+    });
+    expect(within(row).getByText("Inactive")).toBeInTheDocument();
+    expect(within(row).queryByText(/disabled after/i)).toBeNull();
   });
 
   describe("schedule cadence", () => {

@@ -23,7 +23,9 @@ const running = (
   overrides: Partial<{
     id: string;
     workflow_id: string;
+    enabled: boolean;
     last_error: string | null;
+    disabled_reason: string | null;
   }> = {}
 ) => ({
   id: "reg-1",
@@ -80,6 +82,24 @@ describe("WorkflowTriggerIndicator", () => {
     expect(
       screen.getByRole("img", {
         name: "Trigger armed — last run failed: connection refused"
+      })
+    ).toBeInTheDocument();
+  });
+
+  it("says a trigger stopped itself, which armed-and-failing does not cover", () => {
+    mockUseRunningTriggers.mockReturnValue({
+      data: [
+        running({
+          enabled: false,
+          disabled_reason: "failures",
+          last_error: "connection refused"
+        })
+      ]
+    });
+    renderIndicator();
+    expect(
+      screen.getByRole("img", {
+        name: "Disabled after 5 consecutive failures."
       })
     ).toBeInTheDocument();
   });

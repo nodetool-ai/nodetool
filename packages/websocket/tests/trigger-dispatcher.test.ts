@@ -472,7 +472,7 @@ describe("trigger dispatcher", () => {
       )) as TriggerRegistration;
     }
 
-    it.each(["webhook", "manual", "file_watch"])(
+    it.each(["webhook", "manual"])(
       "stamps the fire time on a delivered %s dispatch",
       async (kind) => {
         const registration = await makeRegistration({ kind });
@@ -500,18 +500,23 @@ describe("trigger dispatcher", () => {
       expect(updated.last_error).toBe("run failed: boom");
     });
 
-    it("leaves a schedule registration's cursor alone — the scheduler owns it", async () => {
-      // Moving it here would push the next sweep's due instant out by however
-      // long the dispatch took.
-      const cursor = "2026-01-01T00:00:00.000Z";
-      const registration = await makeRegistration({ kind: "schedule" });
-      registration.last_fired_at = cursor;
-      await registration.save();
+    it.each(["schedule", "file_watch"])(
+      "leaves a %s registration's fire time alone — its adapter stamped it",
+      async (kind) => {
+        // The scheduler's sweep and the file watcher both stamp at delivery.
+        // Re-stamping here would push a schedule's next due instant out by
+        // however long the dispatch took, and cost the file watcher a second
+        // write per event for a timestamp it already has.
+        const stamped = "2026-01-01T00:00:00.000Z";
+        const registration = await makeRegistration({ kind });
+        registration.last_fired_at = stamped;
+        await registration.save();
 
-      const updated = await dispatchOnce(registration);
+        const updated = await dispatchOnce(registration);
 
-      expect(updated.last_fired_at).toBe(cursor);
-    });
+        expect(updated.last_fired_at).toBe(stamped);
+      }
+    );
 
     it("does not stamp an event dropped by the skip policy", async () => {
       const registration = await makeRegistration({
@@ -549,6 +554,81 @@ describe("trigger dispatcher", () => {
         registration.id
       )) as TriggerRegistration;
       expect(delivered.last_fired_at).not.toBeNull();
+    });
+  });
+
+  describe("operational safety", () => {
+    it("passes the first-run params to the run", async () => {
+      await makeRegistration();
+      await storeInput(store, "in-1");
+
+      const startJob = vi.fn(async () => okJob("job-1"));
+      await createTriggerDispatcher({ store, startJob }).runOnce();
+
+      expect(startJob.mock.calls[0][0]).toMatchObject({
+        params: { last_fired_at: null, is_first_run: true }
+      });
+    });
+
+    it("disables a registration whose runs keep failing", async () => {
+      const registration = await makeRegistration();
+      const dispatcher = createTriggerDispatcher({
+        store,
+        startJob: async () => ({
+          jobId: "job-1",
+          status: "failed" as const,
+          error: "boom"
+        })
+      });
+
+      for (let i = 0; i < 5; i++) {
+        await storeInput(store, `in-${i}`);
+        await dispatcher.runOnce();
+      }
+
+      const updated = (await TriggerRegistration.get(
+        registration.id
+      )) as TriggerRegistration;
+      expect(updated.enabled).toBe(0);
+      expect(updated.disabled_reason).toBe("failures");
+      expect(updated.last_error).toBe("run failed: boom");
+    });
+
+    it("drops the event and disables an expired registration without running it", async () => {
+      const registration = await makeRegistration();
+      registration.expires_at = new Date(Date.now() - 1000).toISOString();
+      await registration.save();
+      await storeInput(store, "in-1");
+
+      const startJob = vi.fn(async () => okJob("job-1"));
+      await createTriggerDispatcher({ store, startJob }).runOnce();
+
+      expect(startJob).not.toHaveBeenCalled();
+      // Processed, or it would redeliver against a dead registration forever.
+      expect(await isProcessed("in-1")).toBe(true);
+      const updated = (await TriggerRegistration.get(
+        registration.id
+      )) as TriggerRegistration;
+      expect(updated.enabled).toBe(0);
+      expect(updated.disabled_reason).toBe("expired");
+    });
+
+    it("counts a successful run and clears a stale failure streak", async () => {
+      const registration = await makeRegistration();
+      registration.consecutive_failures = 2;
+      await registration.save();
+      await storeInput(store, "in-1");
+
+      await createTriggerDispatcher({
+        store,
+        startJob: async () => okJob("job-1")
+      }).runOnce();
+
+      const updated = (await TriggerRegistration.get(
+        registration.id
+      )) as TriggerRegistration;
+      expect(updated.run_count).toBe(1);
+      expect(updated.consecutive_failures).toBe(0);
     });
   });
 

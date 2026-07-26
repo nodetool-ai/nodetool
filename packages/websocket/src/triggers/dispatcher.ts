@@ -41,15 +41,15 @@
  *
  * ## Who writes `last_fired_at`
  *
- * For `schedule` registrations the column is the scheduler's due-computation
- * cursor (`scheduler.ts`): it is stamped the moment the tick is delivered, and
- * moving it again at dispatch time would shift the schedule. So the dispatcher
- * leaves schedule rows alone.
+ * A kind whose ingestion adapter runs in this process stamps the column when
+ * it delivers the event: `schedule` (where the column doubles as the
+ * scheduler's due-computation cursor, so moving it again here would shift the
+ * schedule) and `file_watch`. The dispatcher leaves those rows alone.
  *
- * Every other kind has no such owner, and leaving the column untouched made a
- * webhook that had been delivering all week still report "Never" in the editor.
- * For those kinds the dispatcher stamps it on a delivered dispatch — the same
- * write that records the run's outcome in `last_error`.
+ * `webhook` and `manual` arrive from outside and have no such owner, and
+ * leaving the column untouched made a webhook that had been delivering all
+ * week still report "Never" in the editor. For those the dispatcher stamps it
+ * on a delivered dispatch — the same write that records the run's outcome.
  */
 
 import { createLogger } from "@nodetool-ai/config";
@@ -68,12 +68,27 @@ import {
   type StartHeadlessJobOptions
 } from "../headless-job-runner.js";
 import { SCHEDULE_KIND } from "./schedule-timing.js";
+import {
+  checkTriggerBounds,
+  disableTrigger,
+  settleTriggerOutcome,
+  triggerRunParams
+} from "./settle.js";
 
 // Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
 const log = createLogger("nodetool.websocket.triggers.dispatcher");
 
 const DEFAULT_POLL_INTERVAL_MS = 15_000;
 const DEFAULT_BATCH_SIZE = 100;
+
+/**
+ * Kinds whose in-process ingestion adapter already stamps `last_fired_at` at
+ * delivery time (see the module docs). The dispatcher stamps every other kind.
+ */
+const ADAPTER_STAMPS_FIRED_AT: ReadonlySet<string> = new Set([
+  SCHEDULE_KIND,
+  "file_watch"
+]);
 
 /**
  * How a registration handles an event that arrives while one of its runs is
@@ -123,7 +138,7 @@ export interface StartDispatcherOptions extends TriggerDispatcherOptions {
 /** What a single input's dispatch settled as. */
 export type DispatchOutcome =
   | { status: "dispatched"; jobId: string }
-  | { status: "skipped" };
+  | { status: "skipped"; reason: string };
 
 /** Stops the poll timer; also carries `notify`/`drain` for adapters and tests. */
 export interface DispatcherHandle {
@@ -249,9 +264,7 @@ export class TriggerDispatcher {
       ? await existing
       : await this.dispatchStoredInput(inputId);
     if (settled.status !== "dispatched") {
-      throw new Error(
-        `dispatch skipped: a run is already in flight for input ${inputId}`
-      );
+      throw new Error(`dispatch skipped: ${settled.reason}`);
     }
     return { jobId: settled.jobId };
   }
@@ -339,7 +352,10 @@ export class TriggerDispatcher {
           inputId: input.inputId,
           registrationId: registration.id
         });
-        return { status: "skipped" };
+        return {
+          status: "skipped",
+          reason: `a run is already in flight for input ${input.inputId}`
+        };
       }
       state.running += 1;
       try {
@@ -372,6 +388,22 @@ export class TriggerDispatcher {
     registration: TriggerRegistration,
     policy: ConcurrencyPolicy
   ): Promise<DispatchOutcome> {
+    const nowMs = Date.now();
+    const gate = checkTriggerBounds(registration, nowMs);
+    if (!gate.allowed) {
+      // Exhausted: drop the event rather than leave it to redeliver forever,
+      // and disarm so the next one never gets this far.
+      await this.emitReceived(input, registration, policy, false);
+      await this.store.markProcessed(input.inputId);
+      disableTrigger(registration, gate.reason);
+      await registration.save();
+      log.info("Trigger registration disabled before dispatch", {
+        registrationId: registration.id,
+        reason: gate.reason
+      });
+      return { status: "skipped", reason: `registration ${gate.reason}` };
+    }
+
     await this.emitReceived(input, registration, policy, true);
 
     let job: DispatchedJob;
@@ -379,6 +411,7 @@ export class TriggerDispatcher {
       job = await this.startJob({
         workflowId: registration.workflow_id,
         userId: registration.user_id,
+        params: triggerRunParams(registration, nowMs),
         triggerEvent: {
           node_id: input.nodeId,
           payload: input.payload,
@@ -388,9 +421,14 @@ export class TriggerDispatcher {
       });
     } catch (err) {
       // The run was never accepted: leave the input unprocessed so the next
-      // tick redelivers it.
+      // tick redelivers it. It still counts as a failure — a registration
+      // whose workflow has gone missing redelivers forever otherwise.
       const error = err instanceof Error ? err : new Error(String(err));
-      await this.recordError(registration, `dispatch failed: ${error.message}`);
+      await this.settle(
+        registration,
+        `dispatch failed: ${error.message}`,
+        nowMs
+      );
       log.warn(
         `Trigger dispatch failed for input ${input.inputId} (registration ${registration.id})`,
         error
@@ -401,11 +439,12 @@ export class TriggerDispatcher {
     // Accepted — mark processed only now (see the crash-window note above).
     await this.store.markProcessed(input.inputId);
 
-    await this.recordDelivered(
+    await this.settle(
       registration,
       job.status === "failed"
         ? `run failed: ${job.error ?? "unknown error"}`
-        : null
+        : null,
+      nowMs
     );
 
     log.info("Trigger input dispatched", {
@@ -446,31 +485,31 @@ export class TriggerDispatcher {
     }
   }
 
-  private async recordError(
-    registration: TriggerRegistration,
-    message: string
-  ): Promise<void> {
-    registration.last_error = message;
-    await registration.save();
-  }
-
   /**
-   * Record the outcome of a delivered event: the run's error (or `null` to
-   * clear a stale one) plus, for every kind the scheduler does not own, the
-   * fire time the editor shows as "Last fired".
+   * Record what the run did to the registration: its outcome, the failure
+   * counters, and — for the kinds no ingestion adapter stamps — the fire time
+   * the editor shows as "Last fired".
    */
-  private async recordDelivered(
+  private async settle(
     registration: TriggerRegistration,
-    error: string | null
+    error: string | null,
+    nowMs: number
   ): Promise<void> {
-    const stampsFiredAt = registration.kind !== SCHEDULE_KIND;
-    if (!stampsFiredAt && registration.last_error === error) return;
-
-    if (stampsFiredAt) {
-      registration.last_fired_at = new Date().toISOString();
-    }
-    registration.last_error = error;
+    const stampFiredAt = !ADAPTER_STAMPS_FIRED_AT.has(registration.kind);
+    const disabled = settleTriggerOutcome(registration, {
+      error,
+      stampFiredAt,
+      firedAt: new Date(nowMs).toISOString()
+    });
     await registration.save();
+
+    if (disabled) {
+      log.info("Trigger registration disabled", {
+        registrationId: registration.id,
+        reason: disabled,
+        error
+      });
+    }
   }
 }
 

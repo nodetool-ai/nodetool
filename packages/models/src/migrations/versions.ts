@@ -2120,5 +2120,36 @@ export const migrations: MigrationDef[] = [
       // SQLite cannot drop a column on older engines; the column is nullable
       // and unread by prior code, so leaving it is harmless.
     }
+  },
+
+  // ── Operational safety columns on trigger_registrations ────────────
+  // A trigger that fails every time used to keep firing forever. These
+  // columns hold the counters the dispatcher settles against so it can
+  // disarm a registration and say why (PRD O1), plus the two bounds a
+  // registration may carry (F8).
+  {
+    version: "20260726_000001",
+    name: "add_trigger_registration_safety_columns",
+    createsTables: [],
+    modifiesTables: ["trigger_registrations"],
+    async up(db) {
+      if (!(await db.tableExists("trigger_registrations"))) return;
+      const columns: Array<[string, string]> = [
+        ["disabled_reason", "TEXT"],
+        ["consecutive_failures", "INTEGER NOT NULL DEFAULT 0"],
+        ["run_count", "INTEGER NOT NULL DEFAULT 0"],
+        ["expires_at", "TEXT"],
+        ["max_runs", "INTEGER"]
+      ];
+      for (const [name, type] of columns) {
+        if (await db.columnExists("trigger_registrations", name)) continue;
+        await db.execute(
+          `ALTER TABLE trigger_registrations ADD COLUMN ${name} ${type}`
+        );
+      }
+    },
+    async down() {
+      // no-op: SQLite cannot drop columns portably, and leaving them is inert.
+    }
   }
 ];
