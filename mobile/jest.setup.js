@@ -186,8 +186,10 @@ jest.mock('expo-speech-recognition', () => ({
     getSupportedLocales: jest.fn().mockResolvedValue({ locales: ['en-US'] }),
     isRecognitionAvailable: jest.fn().mockReturnValue(true),
   },
+  // A bare no-op: a test that needs native events installs its own
+  // implementation to capture listeners. Rendering the composer without one
+  // still works — the mic just never transitions.
   useSpeechRecognitionEvent: jest.fn(),
-  addSpeechRecognitionListener: jest.fn(() => ({ remove: jest.fn() })),
 }));
 
 // Mock @sentry/react-native (no crash SDK in Jest)
