@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   implicitOperation,
+  initialVariableValues,
   mergeVariables,
   outputVariableTargets,
   resolveOperationParams
@@ -93,5 +94,25 @@ describe("mergeVariables", () => {
     expect(merged).toHaveLength(2);
     expect(merged[0]).toMatchObject({ id: "v1", persist: true });
     expect(merged[1]).toMatchObject({ id: "dark", scope: "instance" });
+  });
+});
+
+describe("initialVariableValues", () => {
+  it("returns only the variables that declare a default", () => {
+    expect(
+      initialVariableValues([
+        { id: "v1", name: "tone", scope: "instance", persist: false, default: "warm" },
+        { id: "v2", name: "count", scope: "instance", persist: false, default: 0 },
+        { id: "v3", name: "note", scope: "instance", persist: false }
+      ])
+    ).toEqual({ v1: "warm", v2: 0 });
+  });
+
+  it("is empty when nothing declares one", () => {
+    expect(
+      initialVariableValues([
+        { id: "v1", name: "tone", scope: "instance", persist: false }
+      ])
+    ).toEqual({});
   });
 });

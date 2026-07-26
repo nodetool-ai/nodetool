@@ -49,3 +49,11 @@ describe("widget catalog", () => {
     expect(WIDGET_CATALOG.Divider.slots).toBeUndefined();
   });
 });
+
+describe("Table", () => {
+  it("is a read widget, so it binds an output slot", () => {
+    expect(WIDGET_CATALOG.Table).toEqual({ label: "Table", mode: "read" });
+    expect(widgetMode("Table")).toBe("read");
+    expect(isKnownWidget("Table")).toBe(true);
+  });
+});

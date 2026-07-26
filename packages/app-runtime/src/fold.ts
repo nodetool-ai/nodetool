@@ -10,8 +10,13 @@
  * instance did not start is dropped: that is how a second tab, an overlapping
  * run, or a run started in the graph editor stops contaminating the app's
  * values.
+ *
+ * A node's value can land in two places at once: the output slot a display
+ * widget reads, and — when the operation maps that output `to: "variable"` —
+ * an app variable. Both get the same value, streamed chunks accumulating the
+ * same way in each.
  */
-import type { AppStateEvent, InvocationState } from "./state.js";
+import type { AppStateEvent, Disposition, InvocationState } from "./state.js";
 
 export interface FoldContext {
   /**
@@ -24,6 +29,11 @@ export interface FoldContext {
   ) => InvocationState | null;
   /** The output state key for a node within an operation, or null if unbound. */
   outputKey: (operationId: string, nodeId: string) => string | null;
+  /**
+   * The variable a node's output writes, or null when it writes none. Built
+   * from `outputVariableTargets` of the running operation.
+   */
+  outputVariable?: (operationId: string, nodeId: string) => string | null;
 }
 
 const str = (value: unknown): string =>
@@ -46,6 +56,72 @@ export const errorText = (value: unknown): string => {
   return "";
 };
 
+/**
+ * Fan one node value out to whatever it is wired to: the display slot, the
+ * variable, or both. Neither wired means the message carries nothing this app
+ * shows.
+ */
+const valueEvents = (
+  ctx: FoldContext,
+  invocation: InvocationState,
+  nodeId: string,
+  value: unknown,
+  disposition: Disposition,
+  done: boolean
+): AppStateEvent[] => {
+  const key = ctx.outputKey(invocation.operationId, nodeId);
+  const variableId = ctx.outputVariable?.(invocation.operationId, nodeId) ?? null;
+  const events: AppStateEvent[] = [];
+  if (key) {
+    events.push({
+      type: "outputValue",
+      key,
+      invocationId: invocation.id,
+      value,
+      disposition,
+      done
+    });
+  }
+  if (variableId) {
+    events.push({
+      type: "setVariable",
+      variableId,
+      value,
+      disposition,
+      invocationId: invocation.id
+    });
+  }
+  return events;
+};
+
+/** A short human-readable label for what a streaming run is doing right now. */
+const activityLabel = (
+  type: string,
+  message: Record<string, unknown>
+): string => {
+  switch (type) {
+    case "tool_call_update": {
+      const note = str(message.message).trim();
+      return note || str(message.name).trim();
+    }
+    case "planning_update": {
+      const phase = str(message.phase).trim();
+      const status = str(message.status).trim();
+      return phase && status ? `${phase}: ${status}` : phase || status;
+    }
+    case "task_update": {
+      const step = message.step as Record<string, unknown> | null | undefined;
+      const task = message.task as Record<string, unknown> | null | undefined;
+      const stepName = str(step?.name).trim();
+      const taskTitle = str(task?.title).trim() || str(task?.name).trim();
+      if (stepName && taskTitle) return `${taskTitle}: ${stepName}`;
+      return stepName || taskTitle || str(message.event).replace(/_/g, " ");
+    }
+    default:
+      return "";
+  }
+};
+
 const TERMINAL_JOB_STATUS: Record<string, InvocationState["status"]> = {
   completed: "completed",
   failed: "failed",
@@ -60,6 +136,10 @@ const TERMINAL_JOB_STATUS: Record<string, InvocationState["status"]> = {
  * `output_update` follows the protocol default: an absent `disposition`
  * appends (older servers omit it on streamed chunks); only an explicit
  * `"replace"` replaces.
+ *
+ * `tool_call_update`, `planning_update`, and `task_update` carry no value —
+ * they become the invocation's activity label, which is all an app can show of
+ * an agent's work in progress.
  */
 export const messageToEvents = (
   message: Record<string, unknown>,
@@ -74,39 +154,28 @@ export const messageToEvents = (
   if (!invocation) return [];
 
   switch (type) {
-    case "output_update": {
-      const nodeId = str(message.node_id);
-      const key = ctx.outputKey(invocation.operationId, nodeId);
-      if (!key) return [];
-      return [
-        {
-          type: "outputValue",
-          key,
-          invocationId: invocation.id,
-          value: message.value,
-          disposition: message.disposition === "replace" ? "replace" : "append",
-          done: message.done === true
-        }
-      ];
-    }
+    case "output_update":
+      return valueEvents(
+        ctx,
+        invocation,
+        str(message.node_id),
+        message.value,
+        message.disposition === "replace" ? "replace" : "append",
+        message.done === true
+      );
 
     case "chunk": {
       // Only text chunks fold into a display value; audio/video chunks are
       // consumed by their own players.
       if (message.content_type && message.content_type !== "text") return [];
-      const nodeId = str(message.node_id);
-      const key = ctx.outputKey(invocation.operationId, nodeId);
-      if (!key) return [];
-      return [
-        {
-          type: "outputValue",
-          key,
-          invocationId: invocation.id,
-          value: str(message.content),
-          disposition: "append",
-          done: message.done === true
-        }
-      ];
+      return valueEvents(
+        ctx,
+        invocation,
+        str(message.node_id),
+        str(message.content),
+        "append",
+        message.done === true
+      );
     }
 
     case "node_progress": {
@@ -127,6 +196,24 @@ export const messageToEvents = (
       if (!error) return [];
       return [
         { type: "invocationError", invocationId: invocation.id, error }
+      ];
+    }
+
+    case "error": {
+      const error = errorText(message.message) || errorText(message.error);
+      if (!error) return [];
+      return [
+        { type: "invocationError", invocationId: invocation.id, error }
+      ];
+    }
+
+    case "tool_call_update":
+    case "planning_update":
+    case "task_update": {
+      const label = activityLabel(type, message);
+      if (!label) return [];
+      return [
+        { type: "invocationActivity", invocationId: invocation.id, label }
       ];
     }
 

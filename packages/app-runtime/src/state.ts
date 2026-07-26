@@ -11,6 +11,12 @@
  *
  * Every function here is pure. The React store, the CLI harness, and the eval
  * suites all drive the same reducer.
+ *
+ * Beside the four value namespaces the state carries what a run reports about
+ * itself: invocation status/progress/error, and `activity` — the latest
+ * human-readable label a streaming agent emitted (the tool it is calling, the
+ * planning phase it is in, the task step it is on). Without it an app over an
+ * agent workflow shows a spinner and nothing else.
  */
 
 export type InvocationStatus =
@@ -59,6 +65,14 @@ export interface AppInstanceState {
   invocations: Record<string, InvocationState>;
   /** Most recent invocation per operation id. */
   activeInvocation: Record<string, string>;
+  /** Keyed by invocation id: the latest activity label the run reported. */
+  activity: Record<string, string>;
+  /**
+   * Keyed by variable id: the invocation whose stream last appended to it.
+   * Bookkeeping for streamed output→variable writes, so a second run starts a
+   * fresh value instead of appending to the previous run's.
+   */
+  variableWriters: Record<string, string>;
 }
 
 export const createInstanceState = (): AppInstanceState => ({
@@ -67,7 +81,9 @@ export const createInstanceState = (): AppInstanceState => ({
   variables: {},
   view: {},
   invocations: {},
-  activeInvocation: {}
+  activeInvocation: {},
+  activity: {},
+  variableWriters: {}
 });
 
 /** How a streamed value combines with what the slot already holds. */
@@ -76,8 +92,25 @@ export type Disposition = "append" | "replace";
 export type AppStateEvent =
   /** Seed values that have not been set yet (defaults); never clobbers. */
   | { type: "seedInputs"; values: Record<string, unknown> }
+  /**
+   * Seed declared variable defaults (or a restored user-scoped value) into any
+   * variable that has none yet; never clobbers, same as `seedInputs`.
+   */
+  | { type: "seedVariables"; values: Record<string, unknown> }
   | { type: "setInput"; key: string; value: unknown; dirty?: boolean }
-  | { type: "setVariable"; variableId: string; value: unknown }
+  | {
+      type: "setVariable";
+      variableId: string;
+      value: unknown;
+      /**
+       * "append" accumulates the way an output slot does, so a streamed output
+       * mapped to a variable builds up instead of flickering one chunk at a
+       * time. Defaults to "replace" — a widget writing a variable overwrites.
+       */
+      disposition?: Disposition;
+      /** The run doing the appending; a new run restarts the accumulation. */
+      invocationId?: string;
+    }
   | { type: "toggleVariable"; variableId: string }
   | { type: "setView"; key: string; value: unknown }
   /** Validate → snapshot → create invocation → mark outputs pending, atomically. */
@@ -95,6 +128,8 @@ export type AppStateEvent =
   | { type: "invocationProgress"; invocationId: string; progress?: number }
   /** A node reported an error; the run may still be in flight. */
   | { type: "invocationError"; invocationId: string; error: string }
+  /** The run reported what it is doing right now (tool, phase, step). */
+  | { type: "invocationActivity"; invocationId: string; label: string }
   | {
       type: "outputValue";
       key: string;
@@ -113,7 +148,7 @@ const asString = (value: unknown): string =>
  * streamed string must render as one Markdown block, not N), while structured
  * items collect into a list — one entry per emitted item.
  */
-const appendValue = (previous: unknown, next: unknown): unknown => {
+export const appendValue = (previous: unknown, next: unknown): unknown => {
   if (typeof next === "string") return asString(previous) + next;
   if (previous === undefined) return next;
   if (Array.isArray(previous)) return [...previous, next];
@@ -136,6 +171,17 @@ export const applyEvent = (
       return changed ? { ...state, inputs } : state;
     }
 
+    case "seedVariables": {
+      let changed = false;
+      const variables = { ...state.variables };
+      for (const [id, value] of Object.entries(event.values)) {
+        if (value === undefined || variables[id] !== undefined) continue;
+        variables[id] = value;
+        changed = true;
+      }
+      return changed ? { ...state, variables } : state;
+    }
+
     case "setInput": {
       const previous = state.inputs[event.key];
       return {
@@ -151,11 +197,34 @@ export const applyEvent = (
       };
     }
 
-    case "setVariable":
+    case "setVariable": {
+      if (event.disposition !== "append") {
+        const { [event.variableId]: _dropped, ...variableWriters } =
+          state.variableWriters;
+        return {
+          ...state,
+          variables: { ...state.variables, [event.variableId]: event.value },
+          variableWriters
+        };
+      }
+      const writer = state.variableWriters[event.variableId];
+      const sameRun = event.invocationId !== undefined && writer === event.invocationId;
+      const previous = sameRun ? state.variables[event.variableId] : undefined;
       return {
         ...state,
-        variables: { ...state.variables, [event.variableId]: event.value }
+        variables: {
+          ...state.variables,
+          [event.variableId]: appendValue(previous, event.value)
+        },
+        variableWriters:
+          event.invocationId === undefined
+            ? state.variableWriters
+            : {
+                ...state.variableWriters,
+                [event.variableId]: event.invocationId
+              }
       };
+    }
 
     case "toggleVariable":
       return {
@@ -238,6 +307,15 @@ export const applyEvent = (
       };
     }
 
+    case "invocationActivity": {
+      if (!state.invocations[event.invocationId]) return state;
+      if (state.activity[event.invocationId] === event.label) return state;
+      return {
+        ...state,
+        activity: { ...state.activity, [event.invocationId]: event.label }
+      };
+    }
+
     case "outputValue": {
       // Run identity is the whole point: a message from an invocation this
       // instance did not start, or from one superseded by a newer run on the
@@ -285,13 +363,19 @@ export const invocationsOf = (
     .filter((i) => i.operationId === operationId)
     .sort((a, b) => b.startedAt - a.startedAt);
 
+export const isLiveInvocation = (invocation: InvocationState): boolean =>
+  invocation.status === "pending" || invocation.status === "running";
+
+/** Invocations of an operation that have not settled yet, newest first. */
+export const liveInvocations = (
+  state: AppInstanceState,
+  operationId: string
+): InvocationState[] => invocationsOf(state, operationId).filter(isLiveInvocation);
+
 export const isOperationRunning = (
   state: AppInstanceState,
   operationId: string
-): boolean =>
-  invocationsOf(state, operationId).some(
-    (i) => i.status === "pending" || i.status === "running"
-  );
+): boolean => liveInvocations(state, operationId).length > 0;
 
 /** Aggregate progress of the operation's active invocation, if any. */
 export const operationProgress = (
@@ -308,4 +392,13 @@ export const operationError = (
 ): string | undefined => {
   const id = state.activeInvocation[operationId];
   return id ? state.invocations[id]?.error : undefined;
+};
+
+/** What the operation's active invocation last reported it was doing. */
+export const operationActivity = (
+  state: AppInstanceState,
+  operationId: string
+): string | undefined => {
+  const id = state.activeInvocation[operationId];
+  return id ? state.activity[id] : undefined;
 };

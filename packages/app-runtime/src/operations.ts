@@ -85,6 +85,23 @@ export const outputVariableTargets = (
   );
 
 /**
+ * The declared defaults an instance starts from: variable id → `default`, for
+ * every variable that declares one. Feed it to the `seedVariables` event, which
+ * never clobbers — so a restored user-scoped value, seeded first, wins over the
+ * document's default.
+ */
+export const initialVariableValues = (
+  variables: ReadonlyArray<VariableDeclaration>
+): Record<string, unknown> => {
+  const values: Record<string, unknown> = {};
+  for (const variable of variables) {
+    if (variable.default === undefined) continue;
+    values[variable.id] = variable.default;
+  }
+  return values;
+};
+
+/**
  * The operation a legacy single-workflow app runs: every input takes its bound
  * widget's value, every output displays. Lets one code path serve both a
  * document with explicit operations and one imported from `workflow.app_doc`.

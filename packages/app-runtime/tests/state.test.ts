@@ -6,6 +6,8 @@ import {
   createInstanceState,
   invocationsOf,
   isOperationRunning,
+  liveInvocations,
+  operationActivity,
   operationError,
   operationProgress
 } from "../src/state.js";
@@ -106,5 +108,162 @@ describe("invocations", () => {
         status: "failed"
       })
     ).toBe(state);
+  });
+});
+
+describe("seedVariables", () => {
+  it("seeds only variables that have no value yet", () => {
+    let state = applyEvent(createInstanceState(), {
+      type: "setVariable",
+      variableId: "tone",
+      value: "user picked"
+    });
+    state = applyEvent(state, {
+      type: "seedVariables",
+      values: { tone: "default", count: 3 }
+    });
+    expect(state.variables.tone).toBe("user picked");
+    expect(state.variables.count).toBe(3);
+  });
+
+  it("skips undefined defaults and returns the same object when nothing changes", () => {
+    const state = applyEvent(createInstanceState(), {
+      type: "seedVariables",
+      values: { tone: undefined }
+    });
+    expect(state.variables).toEqual({});
+    expect(applyEvent(state, { type: "seedVariables", values: {} })).toBe(state);
+  });
+
+  it("keeps a value seeded first, which is how a restored user value wins", () => {
+    let state = applyEvent(createInstanceState(), {
+      type: "seedVariables",
+      values: { tone: "restored" }
+    });
+    state = applyEvent(state, {
+      type: "seedVariables",
+      values: { tone: "document default" }
+    });
+    expect(state.variables.tone).toBe("restored");
+  });
+});
+
+describe("appended variables", () => {
+  const running = (id: string) =>
+    applyEvent(createInstanceState(), {
+      type: "runStarted",
+      invocation: { id, operationId: "main", status: "running", startedAt: 1 },
+      outputKeys: []
+    });
+
+  it("accumulates chunks of one run and restarts on the next", () => {
+    let state = applyEvents(running("j1"), [
+      { type: "setVariable", variableId: "draft", value: "Hel", disposition: "append", invocationId: "j1" },
+      { type: "setVariable", variableId: "draft", value: "lo", disposition: "append", invocationId: "j1" }
+    ]);
+    expect(state.variables.draft).toBe("Hello");
+
+    state = applyEvent(state, {
+      type: "setVariable",
+      variableId: "draft",
+      value: "Bye",
+      disposition: "append",
+      invocationId: "j2"
+    });
+    expect(state.variables.draft).toBe("Bye");
+  });
+
+  it("collects structured items into a list", () => {
+    const state = applyEvents(running("j1"), [
+      { type: "setVariable", variableId: "rows", value: { a: 1 }, disposition: "append", invocationId: "j1" },
+      { type: "setVariable", variableId: "rows", value: { a: 2 }, disposition: "append", invocationId: "j1" }
+    ]);
+    expect(state.variables.rows).toEqual([{ a: 1 }, { a: 2 }]);
+  });
+
+  it("lets a plain write replace an accumulated value", () => {
+    let state = applyEvent(running("j1"), {
+      type: "setVariable",
+      variableId: "draft",
+      value: "streamed",
+      disposition: "append",
+      invocationId: "j1"
+    });
+    state = applyEvent(state, {
+      type: "setVariable",
+      variableId: "draft",
+      value: "typed"
+    });
+    expect(state.variables.draft).toBe("typed");
+    expect(state.variableWriters.draft).toBeUndefined();
+  });
+});
+
+describe("activity", () => {
+  const running = applyEvent(createInstanceState(), {
+    type: "runStarted",
+    invocation: { id: "j1", operationId: "main", status: "running", startedAt: 1 },
+    outputKeys: []
+  });
+
+  it("records the latest label per invocation", () => {
+    const state = applyEvents(running, [
+      { type: "invocationActivity", invocationId: "j1", label: "Planning" },
+      { type: "invocationActivity", invocationId: "j1", label: "web_search" }
+    ]);
+    expect(state.activity.j1).toBe("web_search");
+    expect(operationActivity(state, "main")).toBe("web_search");
+  });
+
+  it("ignores an invocation this instance did not start", () => {
+    expect(
+      applyEvent(running, {
+        type: "invocationActivity",
+        invocationId: "other",
+        label: "leak"
+      })
+    ).toBe(running);
+  });
+
+  it("clears on reset", () => {
+    const state = applyEvents(running, [
+      { type: "invocationActivity", invocationId: "j1", label: "Planning" },
+      { type: "reset" }
+    ]);
+    expect(state.activity).toEqual({});
+    expect(state.variableWriters).toEqual({});
+  });
+});
+
+describe("liveInvocations", () => {
+  const withRuns = applyEvents(createInstanceState(), [
+    {
+      type: "runStarted",
+      invocation: { id: "j1", operationId: "main", status: "running", startedAt: 1 },
+      outputKeys: []
+    },
+    {
+      type: "runStarted",
+      invocation: { id: "j2", operationId: "main", status: "pending", startedAt: 2 },
+      outputKeys: []
+    },
+    {
+      type: "runStarted",
+      invocation: { id: "j3", operationId: "other", status: "running", startedAt: 3 },
+      outputKeys: []
+    }
+  ]);
+
+  it("returns an operation's unsettled runs, newest first", () => {
+    expect(liveInvocations(withRuns, "main").map((i) => i.id)).toEqual(["j2", "j1"]);
+  });
+
+  it("drops settled runs", () => {
+    const state = applyEvents(withRuns, [
+      { type: "invocationStatus", invocationId: "j1", status: "completed" },
+      { type: "invocationStatus", invocationId: "j2", status: "cancelled" }
+    ]);
+    expect(liveInvocations(state, "main")).toEqual([]);
+    expect(isOperationRunning(state, "main")).toBe(false);
   });
 });

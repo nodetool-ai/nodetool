@@ -143,3 +143,122 @@ describe("event to action", () => {
     ).toEqual({ kind: "resourceCommand", resourceBindingId: "r1", command: "upload" });
   });
 });
+
+describe("added condition ops", () => {
+  const listState = applyEvents(createInstanceState(), [
+    { type: "setVariable", variableId: "dark", value: ["red", "blue"] }
+  ]);
+
+  it("mirrors gt/lt with inclusive bounds", () => {
+    const gte = parseCondition({ binding: "count", op: "gte", value: "5" }, scope, "write");
+    expect(gte && evaluateCondition(state, gte)).toBe(true);
+    const lte = parseCondition({ binding: "count", op: "lte", value: "5" }, scope, "write");
+    expect(lte && evaluateCondition(state, lte)).toBe(true);
+    const tooHigh = parseCondition({ binding: "count", op: "lte", value: "4" }, scope, "write");
+    expect(tooHigh && evaluateCondition(state, tooHigh)).toBe(false);
+  });
+
+  it("refuses a numeric comparison against a non-number", () => {
+    const gte = parseCondition({ binding: "result", op: "gte", value: "1" }, scope);
+    expect(gte && evaluateCondition(state, gte)).toBe(false);
+  });
+
+  it("matches a substring of a string value", () => {
+    const yes = parseCondition({ binding: "result", op: "contains", value: "streamed" }, scope);
+    expect(yes && evaluateCondition(state, yes)).toBe(true);
+    const no = parseCondition({ binding: "result", op: "contains", value: "absent" }, scope);
+    expect(no && evaluateCondition(state, no)).toBe(false);
+  });
+
+  it("matches a member of an array value", () => {
+    const yes = parseCondition({ binding: "dark", op: "contains", value: "blue" }, scope);
+    expect(yes && evaluateCondition(listState, yes)).toBe(true);
+    const no = parseCondition({ binding: "dark", op: "contains", value: "green" }, scope);
+    expect(no && evaluateCondition(listState, no)).toBe(false);
+  });
+
+  it("keeps the operators a closed vocabulary", () => {
+    expect(parseCondition({ binding: "result", op: "gte" }, scope)?.op).toBe("gte");
+    expect(parseCondition({ binding: "result", op: "regex" }, scope)?.op).toBe("notEmpty");
+  });
+});
+
+describe("added format filters", () => {
+  const listState = applyEvents(createInstanceState(), [
+    { type: "setVariable", variableId: "dark", value: ["red", "blue"] }
+  ]);
+
+  it("lowercases", () => {
+    expect(formatTemplate("{result|lower}", state, scope)).toBe(
+      "a long piece of streamed text"
+    );
+  });
+
+  it("joins an array, comma-separated by default", () => {
+    expect(formatTemplate("{dark|join}", listState, scope)).toBe("red, blue");
+    expect(formatTemplate("{dark|join:/}", listState, scope)).toBe("red/blue");
+  });
+
+  it("renders a non-array join as the value itself", () => {
+    expect(formatTemplate("{result|join}", state, scope)).toBe(
+      "a long piece of streamed text"
+    );
+  });
+});
+
+describe("activity binding", () => {
+  const runningState = applyEvents(createInstanceState(), [
+    {
+      type: "runStarted",
+      invocation: { id: "j1", operationId: "main", status: "running", startedAt: 1 },
+      outputKeys: []
+    },
+    { type: "invocationActivity", invocationId: "j1", label: "web_search" }
+  ]);
+
+  it("resolves op:main/exec#activity and reads the label", () => {
+    const condition = parseCondition(
+      { binding: "op:main/exec#activity", op: "notEmpty" },
+      scope
+    );
+    expect(condition?.ref).toEqual({
+      source: "execution",
+      operationId: "main",
+      field: "activity"
+    });
+    expect(condition && evaluateCondition(runningState, condition)).toBe(true);
+    expect(
+      readRef(runningState, {
+        source: "execution",
+        operationId: "main",
+        field: "activity"
+      })
+    ).toBe("web_search");
+  });
+
+  it("interpolates the activity label into a format template", () => {
+    expect(
+      formatTemplate("{op:main/exec#activity}", runningState, scope)
+    ).toBe("web_search");
+  });
+});
+
+describe("cancel by invocation", () => {
+  it("passes an explicit invocation through", () => {
+    expect(
+      eventToAction(
+        { trigger: "click", kind: "cancel", invocationId: "j7" },
+        { defaultOperationId: "main", resolveVariableId: () => null }
+      )
+    ).toEqual({ kind: "cancel", operationId: "main", invocationId: "j7" });
+  });
+
+  it("omits it when the event names none, so the latest run is cancelled", () => {
+    expect(
+      eventToAction(
+        { trigger: "click", kind: "cancel" },
+        { defaultOperationId: "main", resolveVariableId: () => null }
+      )
+    ).toEqual({ kind: "cancel", operationId: "main" });
+  });
+});
