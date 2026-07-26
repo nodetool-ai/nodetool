@@ -29,12 +29,98 @@ export interface TriggerInput {
 }
 
 /**
+ * Storage backend for trigger inputs.
+ *
+ * Methods may answer synchronously (the in-memory store) or asynchronously (a
+ * database-backed store), so callers written against the interface must await.
+ * The kernel stays store-agnostic: DB-backed implementations live in the
+ * server package, which is the only layer allowed to depend on the models.
+ */
+export interface TriggerInputStore {
+  /** Store an input; false when one with the same inputId already exists. */
+  insertIfAbsent(input: TriggerInput): boolean | Promise<boolean>;
+  /** Unprocessed inputs for a (run, node), oldest first. */
+  findUnprocessed(
+    runId: string,
+    nodeId: string,
+    limit?: number
+  ): TriggerInput[] | Promise<TriggerInput[]>;
+  /** Mark an input processed. Unknown ids are a no-op. */
+  markProcessed(inputId: string): void | Promise<void>;
+  /** Drop processed inputs older than the cutoff; returns how many went. */
+  cleanupProcessed(
+    runId: string,
+    nodeId: string,
+    olderThanHours?: number
+  ): number | Promise<number>;
+}
+
+/**
+ * In-memory trigger input store — the default, and all a single-process run
+ * needs. Beyond the interface it exposes the synchronous lookups
+ * `TriggerWakeupService` needs to keep its own API synchronous.
+ */
+export class MemoryTriggerInputStore implements TriggerInputStore {
+  // Stryker disable next-line ArrayDeclaration: a non-empty seed is equivalent — a bogus entry matches no runId/nodeId/inputId and is excluded by every query/filter
+  private _inputs: TriggerInput[] = [];
+
+  has(inputId: string): boolean {
+    return this._inputs.some((i) => i.inputId === inputId);
+  }
+
+  insertIfAbsent(input: TriggerInput): boolean {
+    if (this.has(input.inputId)) return false;
+    this._inputs.push(input);
+    return true;
+  }
+
+  findUnprocessed(runId: string, nodeId: string, limit = 100): TriggerInput[] {
+    return this._inputs
+      .filter((i) => i.runId === runId && i.nodeId === nodeId && !i.processed)
+      .slice(0, limit);
+  }
+
+  markProcessed(inputId: string): void {
+    const input = this._inputs.find((i) => i.inputId === inputId);
+    if (input) {
+      input.processed = true;
+      input.processedAt = new Date();
+    }
+  }
+
+  cleanupProcessed(runId: string, nodeId: string, olderThanHours = 24): number {
+    const cutoff = Date.now() - olderThanHours * 60 * 60 * 1000;
+    const before = this._inputs.length;
+    this._inputs = this._inputs.filter(
+      (i) =>
+        !(
+          i.runId === runId &&
+          i.nodeId === nodeId &&
+          i.processed &&
+          i.processedAt &&
+          i.processedAt.getTime() < cutoff
+        )
+    );
+    return before - this._inputs.length;
+  }
+
+  /** Whether any input (processed or not) remains for a (run, node). */
+  hasInputsFor(runId: string, nodeId: string): boolean {
+    return this._inputs.some((i) => i.runId === runId && i.nodeId === nodeId);
+  }
+
+  /** Drop every input belonging to a run. */
+  deleteRun(runId: string): void {
+    this._inputs = this._inputs.filter((i) => i.runId !== runId);
+  }
+}
+
+/**
  * Service for delivering trigger events and waking suspended workflows.
  * Stores trigger inputs durably and coordinates wakeup.
  */
 export class TriggerWakeupService {
-  // Stryker disable next-line ArrayDeclaration: a non-empty seed is equivalent — a bogus entry matches no runId/nodeId/inputId and is excluded by every query/filter
-  private _inputs: TriggerInput[] = [];
+  private _store = new MemoryTriggerInputStore();
   private _inboxStore: DurableInboxStore;
   /**
    * One DurableInbox per (runId, nodeId). DurableInbox.append() serializes its
@@ -82,8 +168,10 @@ export class TriggerWakeupService {
   }): Promise<boolean> {
     // Idempotency check — against both the committed marker and any delivery
     // of the same inputId whose durable append is still in flight.
-    const existing = this._inputs.find((i) => i.inputId === opts.inputId);
-    if (existing || this._inflightInputIds.has(opts.inputId)) {
+    if (
+      this._store.has(opts.inputId) ||
+      this._inflightInputIds.has(opts.inputId)
+    ) {
       // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.debug("Trigger input already exists (idempotent)", {
         inputId: opts.inputId
@@ -119,7 +207,7 @@ export class TriggerWakeupService {
       this._inflightInputIds.delete(opts.inputId);
     }
 
-    this._inputs.push(input);
+    this._store.insertIfAbsent(input);
 
     // Stryker disable next-line StringLiteral,ObjectLiteral,ConditionalExpression: diagnostic log args only (the cursor spread only affects log fields)
     log.info("Stored trigger input", {
@@ -137,41 +225,23 @@ export class TriggerWakeupService {
    * Get pending (unprocessed) trigger inputs for a node.
    */
   getPendingInputs(runId: string, nodeId: string, limit = 100): TriggerInput[] {
-    return this._inputs
-      .filter((i) => i.runId === runId && i.nodeId === nodeId && !i.processed)
-      .slice(0, limit);
+    return this._store.findUnprocessed(runId, nodeId, limit);
   }
 
   /**
    * Mark a trigger input as processed.
    */
   markProcessed(inputId: string): void {
-    const input = this._inputs.find((i) => i.inputId === inputId);
-    if (input) {
-      input.processed = true;
-      input.processedAt = new Date();
-      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
-      log.debug("Marked trigger input as processed", { inputId });
-    }
+    this._store.markProcessed(inputId);
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+    log.debug("Marked trigger input as processed", { inputId });
   }
 
   /**
    * Clean up processed trigger inputs older than specified hours.
    */
   cleanupProcessed(runId: string, nodeId: string, olderThanHours = 24): number {
-    const cutoff = Date.now() - olderThanHours * 60 * 60 * 1000;
-    const before = this._inputs.length;
-    this._inputs = this._inputs.filter(
-      (i) =>
-        !(
-          i.runId === runId &&
-          i.nodeId === nodeId &&
-          i.processed &&
-          i.processedAt &&
-          i.processedAt.getTime() < cutoff
-        )
-    );
-    const removed = before - this._inputs.length;
+    const removed = this._store.cleanupProcessed(runId, nodeId, olderThanHours);
     // Stryker disable next-line ConditionalExpression,EqualityOperator,BlockStatement: the guard only gates a diagnostic log; `removed` is returned regardless
     if (removed > 0) {
       // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
@@ -184,10 +254,7 @@ export class TriggerWakeupService {
     // Evict the cached DurableInbox once no inputs remain for this (run, node),
     // otherwise _inboxes grows by one entry per run for the process lifetime
     // (runId is unique per run) even after cleanupProcessed purges the inputs.
-    const hasRemaining = this._inputs.some(
-      (i) => i.runId === runId && i.nodeId === nodeId
-    );
-    if (!hasRemaining) {
+    if (!this._store.hasInputsFor(runId, nodeId)) {
       this._inboxes.delete(JSON.stringify([runId, nodeId]));
     }
     return removed;
@@ -199,7 +266,7 @@ export class TriggerWakeupService {
    * service does not accumulate per-run state indefinitely.
    */
   disposeRun(runId: string): void {
-    this._inputs = this._inputs.filter((i) => i.runId !== runId);
+    this._store.deleteRun(runId);
     for (const key of [...this._inboxes.keys()]) {
       const [keyRunId] = JSON.parse(key) as [string, string];
       if (keyRunId === runId) {

@@ -74,4 +74,9 @@ export {
   type DurableInboxStore,
   type DurableMessage
 } from "./durable-inbox.js";
-export { TriggerWakeupService, type TriggerInput } from "./trigger-wakeup.js";
+export {
+  TriggerWakeupService,
+  MemoryTriggerInputStore,
+  type TriggerInput,
+  type TriggerInputStore
+} from "./trigger-wakeup.js";

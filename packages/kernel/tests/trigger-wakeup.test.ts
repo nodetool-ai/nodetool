@@ -1,6 +1,95 @@
 import { describe, it, expect, vi } from "vitest";
-import { TriggerWakeupService } from "../src/trigger-wakeup.js";
+import {
+  MemoryTriggerInputStore,
+  TriggerWakeupService,
+  type TriggerInput,
+  type TriggerInputStore
+} from "../src/trigger-wakeup.js";
 import { MemoryDurableInboxStore } from "../src/durable-inbox.js";
+
+function makeInput(overrides: Partial<TriggerInput> = {}): TriggerInput {
+  return {
+    runId: "r1",
+    nodeId: "n1",
+    inputId: "i1",
+    payload: { a: 1 },
+    processed: false,
+    createdAt: new Date(),
+    ...overrides
+  };
+}
+
+describe("MemoryTriggerInputStore", () => {
+  it("satisfies TriggerInputStore", () => {
+    const store: TriggerInputStore = new MemoryTriggerInputStore();
+    expect(typeof store.insertIfAbsent).toBe("function");
+    expect(typeof store.findUnprocessed).toBe("function");
+    expect(typeof store.markProcessed).toBe("function");
+    expect(typeof store.cleanupProcessed).toBe("function");
+  });
+
+  it("insertIfAbsent returns false for a duplicate inputId", () => {
+    const store = new MemoryTriggerInputStore();
+    expect(store.insertIfAbsent(makeInput())).toBe(true);
+    expect(store.insertIfAbsent(makeInput({ payload: { a: 2 } }))).toBe(false);
+    expect(store.findUnprocessed("r1", "n1")).toHaveLength(1);
+    expect(store.findUnprocessed("r1", "n1")[0].payload).toEqual({ a: 1 });
+  });
+
+  it("findUnprocessed filters by (run, node) and honors the limit", () => {
+    const store = new MemoryTriggerInputStore();
+    store.insertIfAbsent(makeInput({ inputId: "a" }));
+    store.insertIfAbsent(makeInput({ inputId: "b" }));
+    store.insertIfAbsent(makeInput({ inputId: "c", nodeId: "n2" }));
+    store.insertIfAbsent(makeInput({ inputId: "d", runId: "r2" }));
+
+    expect(store.findUnprocessed("r1", "n1").map((i) => i.inputId)).toEqual([
+      "a",
+      "b"
+    ]);
+    expect(store.findUnprocessed("r1", "n1", 1)).toHaveLength(1);
+    expect(store.findUnprocessed("r1", "n2").map((i) => i.inputId)).toEqual([
+      "c"
+    ]);
+  });
+
+  it("markProcessed excludes the input and ignores unknown ids", () => {
+    const store = new MemoryTriggerInputStore();
+    store.insertIfAbsent(makeInput({ inputId: "a" }));
+    store.insertIfAbsent(makeInput({ inputId: "b" }));
+    store.markProcessed("a");
+    expect(() => store.markProcessed("nope")).not.toThrow();
+    expect(store.findUnprocessed("r1", "n1").map((i) => i.inputId)).toEqual([
+      "b"
+    ]);
+  });
+
+  it("cleanupProcessed removes only old processed inputs and reports the count", async () => {
+    const store = new MemoryTriggerInputStore();
+    store.insertIfAbsent(makeInput({ inputId: "old" }));
+    store.insertIfAbsent(makeInput({ inputId: "pending" }));
+    store.markProcessed("old");
+    await new Promise((r) => setTimeout(r, 2));
+
+    expect(store.cleanupProcessed("r1", "n1", 0)).toBe(1);
+    expect(store.cleanupProcessed("r1", "n1", 0)).toBe(0);
+    expect(store.hasInputsFor("r1", "n1")).toBe(true);
+    expect(store.findUnprocessed("r1", "n1").map((i) => i.inputId)).toEqual([
+      "pending"
+    ]);
+  });
+
+  it("deleteRun drops a run's inputs and clears hasInputsFor", () => {
+    const store = new MemoryTriggerInputStore();
+    store.insertIfAbsent(makeInput({ inputId: "a" }));
+    store.insertIfAbsent(makeInput({ inputId: "b", runId: "r2" }));
+    store.deleteRun("r1");
+    expect(store.hasInputsFor("r1", "n1")).toBe(false);
+    expect(store.hasInputsFor("r2", "n1")).toBe(true);
+    // The idempotency marker went with it — the same id can be stored again.
+    expect(store.insertIfAbsent(makeInput({ inputId: "a" }))).toBe(true);
+  });
+});
 
 describe("TriggerWakeupService", () => {
   it("deliverTriggerInput() stores input and returns true", async () => {

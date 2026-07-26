@@ -912,6 +912,17 @@ export interface RunJobRequest {
   application_id?: string | null;
   /** Released version the run executes against; absent for a draft run. */
   application_version?: number | null;
+  /**
+   * Wake-up payload for a trigger-driven run: the trigger node whose event
+   * started this job, the durable input's id (for idempotent ack), and the
+   * event payload itself. Present only for runs started by the trigger
+   * dispatcher; absent for interactive/live-test runs.
+   */
+  trigger_event?: {
+    node_id: string;
+    payload: unknown;
+    input_id: string;
+  } | null;
 }
 
 export interface ResourceLimits {
