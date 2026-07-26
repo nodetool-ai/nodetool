@@ -7,6 +7,7 @@
  */
 
 import {
+  applyContentCardBody,
   BaseNode,
   classifyFields,
   classNameToTitle,
@@ -348,17 +349,14 @@ export function createReplicateNodeClass(
       value: true,
       configurable: true
     });
-    // Media generators render as a content card. Metadata-driven equivalent of
-    // the frontend's old "replicate.* namespace + media output" heuristic.
-    Object.defineProperty(ReplicateNodeClass, "body", {
-      value: "content_card",
-      configurable: true
-    });
   }
   Object.defineProperty(ReplicateNodeClass, "metadataOutputTypes", {
     value: { output: spec.outputType === "dict" ? "any" : spec.outputType },
     configurable: true
   });
+  // Preview-forward body for anything the editor can display — the media
+  // generators plus the text-output models (captioners, transcribers, LLMs).
+  applyContentCardBody(ReplicateNodeClass);
 
   // Compute and set field classification
   const { inlineFields, inputFields } = computeFieldClassification(spec.inputFields);

@@ -10,6 +10,7 @@
  */
 
 import {
+  applyContentCardBody,
   BaseNode,
   classifyFields,
   classNameToTitle,
@@ -700,6 +701,9 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
     value: { output: spec.outputType },
     configurable: true
   });
+  // Every AtlasCloud model generates an image or a video — preview it in the
+  // node body.
+  applyContentCardBody(AtlasNodeClass);
 
   const { inlineFields, inputFields } = computeFieldClassification(spec.fields);
   Object.defineProperty(AtlasNodeClass, "inlineFields", {
