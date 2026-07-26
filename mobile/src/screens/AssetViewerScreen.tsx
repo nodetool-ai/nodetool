@@ -23,6 +23,7 @@ import { trpc } from '../trpc/client';
 import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../hooks/useTheme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { saveMediaToLibrary, saveableMediaKind } from '../utils/saveMedia';
 
 type AssetViewerScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'AssetViewer'>;
@@ -67,6 +68,7 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState('');
   const [isSavingRename, setIsSavingRename] = useState(false);
+  const [isSavingToLibrary, setIsSavingToLibrary] = useState(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [audioPosition, setAudioPosition] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
@@ -207,7 +209,33 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
         title: asset.name,
       });
     } catch (error: unknown) {
-      console.error('Share failed:', error);
+      const msg = error instanceof Error ? error.message : 'Failed to share asset';
+      Alert.alert('Share failed', msg);
+    }
+  }, [asset]);
+
+  const handleSaveToLibrary = useCallback(async () => {
+    const downloadUrl = apiService.resolveUrl(asset?.get_url);
+    if (!asset || !downloadUrl) {return;}
+    setIsSavingToLibrary(true);
+    try {
+      const kind = await saveMediaToLibrary({
+        url: downloadUrl,
+        contentType: asset.content_type || '',
+        name: asset.name,
+      });
+      Alert.alert(
+        'Saved',
+        kind === 'video'
+          ? 'Video saved to your photo library.'
+          : 'Image saved to your photo library.'
+      );
+    } catch (error: unknown) {
+      const msg =
+        error instanceof Error ? error.message : 'Could not save this asset.';
+      Alert.alert('Save failed', msg);
+    } finally {
+      setIsSavingToLibrary(false);
     }
   }, [asset]);
 
@@ -251,6 +279,7 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
   const isVideo = contentType.startsWith('video/');
   const isAudio = contentType.startsWith('audio/');
   const url = apiService.resolveUrl(asset.get_url);
+  const canSaveToLibrary = url != null && saveableMediaKind(contentType) != null;
 
   return (
     <ScrollView
@@ -357,6 +386,38 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
           <Ionicons name="create-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
           <Text style={styles.actionButtonText}>Rename</Text>
         </TouchableOpacity>
+        {canSaveToLibrary && (
+          <TouchableOpacity
+            style={[
+              styles.actionButtonOutline,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              isSavingToLibrary && styles.actionButtonDisabled,
+            ]}
+            onPress={handleSaveToLibrary}
+            disabled={isSavingToLibrary}
+            accessibilityRole="button"
+            accessibilityLabel="Save to photo library"
+            accessibilityState={{ disabled: isSavingToLibrary, busy: isSavingToLibrary }}
+          >
+            {isSavingToLibrary ? (
+              <ActivityIndicator
+                color={colors.text}
+                size="small"
+                style={{ marginRight: 6 }}
+              />
+            ) : (
+              <Ionicons
+                name="download-outline"
+                size={18}
+                color={colors.text}
+                style={{ marginRight: 6 }}
+              />
+            )}
+            <Text style={[styles.actionButtonOutlineText, { color: colors.text }]}>
+              {isSavingToLibrary ? 'Saving…' : 'Save'}
+            </Text>
+          </TouchableOpacity>
+        )}
         {url && (
           <TouchableOpacity
             style={[styles.actionButtonOutline, { backgroundColor: colors.surface, borderColor: colors.border }]}
@@ -636,6 +697,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
+  },
+  actionButtonDisabled: {
+    opacity: 0.6,
   },
   actionButtonOutlineText: {
     fontSize: 15,
