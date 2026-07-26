@@ -19,7 +19,8 @@ jest.mock("../../trpc/client", () => ({
   trpcClient: {
     jobs: {
       triggerStart: { mutate: jest.fn() },
-      triggerStop: { mutate: jest.fn() }
+      triggerStop: { mutate: jest.fn() },
+      triggersRunning: { query: jest.fn() }
     },
     triggers: {
       listByWorkflow: { query: jest.fn() },
@@ -28,13 +29,30 @@ jest.mock("../../trpc/client", () => ({
   }
 }));
 
+const mockAddNotification = jest.fn();
+jest.mock("../../stores/NotificationStore", () => ({
+  __esModule: true,
+  useNotificationStore: (selector: (s: unknown) => unknown) =>
+    selector({ addNotification: mockAddNotification })
+}));
+
+// Default: no VITE_API_URL, i.e. local dev behind the Vite proxy.
+jest.mock("../../stores/BASE_URL", () => ({
+  __esModule: true,
+  BASE_URL: "",
+  withApiBase: (url: string) => url
+}));
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { trpcClient } from "../../trpc/client";
 import {
   useWorkflowTriggers,
+  useRunningTriggers,
   useSetTriggerEnabled,
   useFireTrigger,
-  webhookDeliveryUrl
+  webhookDeliveryUrl,
+  runningTriggersQueryKey,
+  triggerErrorMessage
 } from "../useTriggers";
 
 const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>;
@@ -43,9 +61,22 @@ const mockUseQueryClient = useQueryClient as jest.MockedFunction<
   typeof useQueryClient
 >;
 
+interface MutationConfig<TVars> {
+  mutationFn: (vars: TVars) => Promise<unknown>;
+  onSuccess: () => void;
+  onError: (error: unknown, variables: TVars) => void;
+}
+
+const mutationConfig = <TVars,>(): MutationConfig<TVars> =>
+  mockUseMutation.mock.calls[0][0] as unknown as MutationConfig<TVars>;
+
 describe("triggersQueryKey", () => {
   it("is hierarchical and scoped to the workflow", () => {
     expect(triggersQueryKey("wf-1")).toEqual(["triggers", "wf-1"]);
+  });
+
+  it("keeps the cross-workflow running list off any workflow id", () => {
+    expect(runningTriggersQueryKey).toEqual(["triggers", "by-user", "running"]);
   });
 });
 
@@ -55,6 +86,7 @@ describe("useWorkflowTriggers", () => {
     mockUseQuery.mockReturnValue({
       data: undefined,
       isLoading: false,
+      isError: false,
       error: null
     } as unknown as ReturnType<typeof useQuery>);
   });
@@ -113,6 +145,49 @@ describe("useWorkflowTriggers", () => {
   });
 });
 
+describe("useRunningTriggers", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false
+    } as unknown as ReturnType<typeof useQuery>);
+  });
+
+  it("uses one shared key so a list of cards makes a single request", () => {
+    renderHook(() => useRunningTriggers());
+    renderHook(() => useRunningTriggers());
+    for (const call of mockUseQuery.mock.calls) {
+      expect(call[0]).toEqual(
+        expect.objectContaining({ queryKey: runningTriggersQueryKey })
+      );
+    }
+  });
+
+  it("returns the caller's enabled registrations across all workflows", async () => {
+    const triggers = [
+      {
+        id: "reg-1",
+        workflow_id: "wf-1",
+        node_id: "n1",
+        kind: "schedule",
+        enabled: true,
+        last_fired_at: null,
+        last_error: null
+      }
+    ];
+    (trpcClient.jobs.triggersRunning.query as jest.Mock).mockResolvedValue({
+      triggers
+    });
+    renderHook(() => useRunningTriggers());
+    const { queryFn } = mockUseQuery.mock.calls[0][0] as unknown as {
+      queryFn: () => Promise<unknown>;
+    };
+    expect(await queryFn()).toEqual(triggers);
+  });
+});
+
 describe("useSetTriggerEnabled", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -120,10 +195,10 @@ describe("useSetTriggerEnabled", () => {
 
   it("calls triggerStart when enabling", () => {
     renderHook(() => useSetTriggerEnabled("wf-1"));
-    const { mutationFn } = mockUseMutation.mock.calls[0][0] as {
-      mutationFn: (opts: { id: string; enabled: boolean }) => Promise<unknown>;
-    };
-    mutationFn({ id: "reg-1", enabled: true });
+    mutationConfig<{ id: string; enabled: boolean }>().mutationFn({
+      id: "reg-1",
+      enabled: true
+    });
     expect(trpcClient.jobs.triggerStart.mutate).toHaveBeenCalledWith({
       id: "reg-1"
     });
@@ -132,26 +207,75 @@ describe("useSetTriggerEnabled", () => {
 
   it("calls triggerStop when disabling", () => {
     renderHook(() => useSetTriggerEnabled("wf-1"));
-    const { mutationFn } = mockUseMutation.mock.calls[0][0] as {
-      mutationFn: (opts: { id: string; enabled: boolean }) => Promise<unknown>;
-    };
-    mutationFn({ id: "reg-1", enabled: false });
+    mutationConfig<{ id: string; enabled: boolean }>().mutationFn({
+      id: "reg-1",
+      enabled: false
+    });
     expect(trpcClient.jobs.triggerStop.mutate).toHaveBeenCalledWith({
       id: "reg-1"
     });
     expect(trpcClient.jobs.triggerStart.mutate).not.toHaveBeenCalled();
   });
 
-  it("invalidates the workflow's triggers query on success", () => {
+  it("invalidates the workflow's triggers query and the running list on success", () => {
     const invalidateQueries = jest.fn();
     mockUseQueryClient.mockReturnValue({
       invalidateQueries
     } as unknown as ReturnType<typeof useQueryClient>);
     renderHook(() => useSetTriggerEnabled("wf-1"));
-    const { onSuccess } = mockUseMutation.mock.calls[0][0] as {
-      onSuccess: () => void;
-    };
-    onSuccess();
+    mutationConfig().onSuccess();
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: triggersQueryKey("wf-1")
+    });
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: runningTriggersQueryKey
+    });
+  });
+
+  it("notifies the user when arming a registration is rejected", () => {
+    mockUseQueryClient.mockReturnValue({
+      invalidateQueries: jest.fn()
+    } as unknown as ReturnType<typeof useQueryClient>);
+    renderHook(() => useSetTriggerEnabled("wf-1"));
+    mutationConfig<{ id: string; enabled: boolean }>().onError(
+      new Error("Trigger registration not found"),
+      { id: "reg-1", enabled: true }
+    );
+    expect(mockAddNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "error",
+        content: expect.stringContaining("Could not activate trigger")
+      })
+    );
+    expect(mockAddNotification.mock.calls[0][0].content).toContain(
+      "Trigger registration not found"
+    );
+  });
+
+  it("says 'deactivate' when the failing call was a disable", () => {
+    mockUseQueryClient.mockReturnValue({
+      invalidateQueries: jest.fn()
+    } as unknown as ReturnType<typeof useQueryClient>);
+    renderHook(() => useSetTriggerEnabled("wf-1"));
+    mutationConfig<{ id: string; enabled: boolean }>().onError(
+      new Error("forbidden"),
+      { id: "reg-1", enabled: false }
+    );
+    expect(mockAddNotification.mock.calls[0][0].content).toContain(
+      "Could not deactivate trigger"
+    );
+  });
+
+  it("refetches after a failure so the UI does not show a state the server rejected", () => {
+    const invalidateQueries = jest.fn();
+    mockUseQueryClient.mockReturnValue({
+      invalidateQueries
+    } as unknown as ReturnType<typeof useQueryClient>);
+    renderHook(() => useSetTriggerEnabled("wf-1"));
+    mutationConfig<{ id: string; enabled: boolean }>().onError(new Error("x"), {
+      id: "reg-1",
+      enabled: true
+    });
     expect(invalidateQueries).toHaveBeenCalledWith({
       queryKey: triggersQueryKey("wf-1")
     });
@@ -165,24 +289,62 @@ describe("useFireTrigger", () => {
 
   it("calls triggers.fire with the registration id and payload", () => {
     renderHook(() => useFireTrigger("wf-1"));
-    const { mutationFn } = mockUseMutation.mock.calls[0][0] as {
-      mutationFn: (opts: {
-        registrationId: string;
-        payload?: unknown;
-      }) => Promise<unknown>;
-    };
-    mutationFn({ registrationId: "reg-1", payload: { hello: 1 } });
+    mutationConfig<{ registrationId: string; payload?: unknown }>().mutationFn({
+      registrationId: "reg-1",
+      payload: { hello: 1 }
+    });
     expect(trpcClient.triggers.fire.mutate).toHaveBeenCalledWith({
       registrationId: "reg-1",
       payload: { hello: 1 }
     });
   });
+
+  it("surfaces the dispatcher-disabled error instead of failing silently", () => {
+    renderHook(() => useFireTrigger("wf-1"));
+    mutationConfig<{ registrationId: string }>().onError(
+      new Error("trigger dispatcher not started"),
+      { registrationId: "reg-1" }
+    );
+    expect(mockAddNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "error",
+        content:
+          "Could not fire trigger: trigger dispatcher not started"
+      })
+    );
+  });
+});
+
+describe("triggerErrorMessage", () => {
+  it("reads an Error message, a bare string, and falls back otherwise", () => {
+    expect(triggerErrorMessage(new Error("boom"))).toBe("boom");
+    expect(triggerErrorMessage("boom")).toBe("boom");
+    expect(triggerErrorMessage(null)).toBe("Unknown error");
+  });
 });
 
 describe("webhookDeliveryUrl", () => {
-  it("builds the POST /api/webhooks/:token URL from the current origin", () => {
+  afterEach(() => {
+    jest.resetModules();
+  });
+
+  it("falls back to the page origin when BASE_URL is empty (Vite proxy dev)", () => {
     expect(webhookDeliveryUrl("tok-1")).toBe(
       `${window.location.origin}/api/webhooks/tok-1`
+    );
+  });
+
+  it("uses the configured API base on desktop and hosted builds", () => {
+    jest.resetModules();
+    jest.doMock("../../stores/BASE_URL", () => ({
+      __esModule: true,
+      BASE_URL: "https://api.nodetool.ai",
+      withApiBase: (url: string) => `https://api.nodetool.ai${url}`
+    }));
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require("../useTriggers") as typeof import("../useTriggers");
+    expect(mod.webhookDeliveryUrl("tok-1")).toBe(
+      "https://api.nodetool.ai/api/webhooks/tok-1"
     );
   });
 });

@@ -11,6 +11,7 @@ import { relativeTime } from "../../utils/formatDateAndTime";
 import StarIcon from "@mui/icons-material/Star";
 import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../config/constants";
 import { FavoriteButton, FlexColumn, FlexRow, Text, Tooltip, Checkbox, Box, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { WorkflowTriggerIndicator } from "./WorkflowTriggerIndicator";
 
 // Single-click on the row opens the workflow. Double-clicking the name renames
 // it inline instead, so the open is deferred briefly to let a following
@@ -326,6 +327,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
         </Box>
       </Box>
       <Box className="date-container">
+        <WorkflowTriggerIndicator workflowId={workflow.id} />
         {isFavorite && <StarIcon className="favorite-indicator" sx={{ fontSize: "var(--fontSizeNormal)", color: "warning.main" }} />}
         {!hideDate && (
           <Text
