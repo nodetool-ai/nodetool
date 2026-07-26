@@ -40,5 +40,7 @@ export type RootStackParamList = {
   Secrets: undefined;
   Collections: undefined;
   Jobs: undefined;
+  /** One job: status, timing, cost, error, and its outputs. */
+  JobDetail: { jobId: string };
   Threads: undefined;
 };

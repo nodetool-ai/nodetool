@@ -14,6 +14,7 @@ import {
 } from './WorkflowRunner';
 import { webSocketService } from '../services/WebSocketService';
 import { useAuthStore } from './AuthStore';
+import { notifyRunFinished } from '../services/notifications';
 import type { Workflow } from '../types/workflow';
 
 jest.mock('../services/WebSocketService', () => ({
@@ -28,6 +29,10 @@ jest.mock('../services/api', () => ({
   apiService: {
     getApiHost: jest.fn().mockReturnValue('http://localhost:7777'),
   },
+}));
+
+jest.mock('../services/notifications', () => ({
+  notifyRunFinished: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock('./AuthStore', () => ({
@@ -214,6 +219,47 @@ describe('WorkflowRunner', () => {
       expect(store.getState().state).toBe('error');
       handler({ type: 'job_update', status: 'running' });
       expect(store.getState().state).toBe('error');
+    });
+  });
+
+  describe('run-finished notifications', () => {
+    const mockNotify = notifyRunFinished as jest.MockedFunction<typeof notifyRunFinished>;
+
+    it('notifies on completion with the job id and workflow name', async () => {
+      const { handler } = await bootStore();
+      handler({ type: 'job_update', job_id: 'job-7', status: 'completed' });
+      expect(mockNotify).toHaveBeenCalledWith({
+        jobId: 'job-7',
+        workflowName: 'Test',
+        outcome: 'completed',
+        error: undefined,
+      });
+    });
+
+    it('notifies on failure with the error text', async () => {
+      const { handler } = await bootStore();
+      handler({ type: 'job_update', job_id: 'job-7', status: 'failed', error: 'boom' });
+      expect(mockNotify).toHaveBeenCalledWith(
+        expect.objectContaining({ outcome: 'failed', error: 'boom' })
+      );
+    });
+
+    it('notifies on cancellation', async () => {
+      const { handler } = await bootStore();
+      handler({ type: 'job_update', job_id: 'job-7', status: 'cancelled' });
+      expect(mockNotify).toHaveBeenCalledWith(
+        expect.objectContaining({ outcome: 'cancelled' })
+      );
+    });
+
+    it('stays quiet for non-terminal updates and when there is no job id', async () => {
+      const { handler } = await bootStore();
+      handler({ type: 'job_update', job_id: 'job-7', status: 'running' });
+      expect(mockNotify).not.toHaveBeenCalled();
+
+      const { handler: bare } = await bootStore();
+      bare({ type: 'job_update', status: 'completed' });
+      expect(mockNotify).not.toHaveBeenCalled();
     });
   });
 

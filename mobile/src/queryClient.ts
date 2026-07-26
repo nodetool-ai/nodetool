@@ -1,4 +1,24 @@
-import { QueryClient } from '@tanstack/react-query';
+import { QueryClient, onlineManager } from '@tanstack/react-query';
+import NetInfo from '@react-native-community/netinfo';
+import { isOnlineState } from './hooks/useNetworkStatus';
+
+/**
+ * How long a persisted cache entry stays usable after a cold start. Queries
+ * must outlive this in memory too, otherwise React Query garbage-collects them
+ * before they are ever written back — hence `gcTime === PERSIST_MAX_AGE`.
+ */
+export const PERSIST_MAX_AGE = 24 * 60 * 60_000;
+
+/**
+ * Teach React Query about connectivity so queries *pause* while offline
+ * instead of failing, and resume (with `refetchOnReconnect`) when the network
+ * returns. Without this, RN's `onlineManager` assumes the app is always online.
+ */
+onlineManager.setEventListener((setOnline) =>
+  NetInfo.addEventListener((state) => {
+    setOnline(isOnlineState(state));
+  })
+);
 
 /**
  * Pull an HTTP status code off an error, if one is present.
@@ -44,7 +64,9 @@ export const queryClient = new QueryClient({
       // Treat data as fresh for 30s so navigating between screens doesn't
       // refetch everything; the WebSocket and pull-to-refresh keep things live.
       staleTime: 30_000,
-      gcTime: 5 * 60_000,
+      // Matches the persisted cache's max age: a query dropped from memory
+      // sooner would never make it into the AsyncStorage snapshot.
+      gcTime: PERSIST_MAX_AGE,
       retry: shouldRetry,
       retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30_000),
       // Mobile networks drop constantly; refetch when connectivity returns.
@@ -55,3 +77,37 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+/**
+ * Query-key segments that must never reach AsyncStorage.
+ *
+ * The secrets router (`trpc.settings.secrets.list`, keyed as
+ * `[['settings','secrets','list'], …]`) returns API-key metadata; writing it to
+ * unencrypted device storage would outlive the session for no benefit — the
+ * screen is useless offline anyway.
+ */
+const NON_PERSISTED_KEY_SEGMENTS = new Set(['secrets', 'secret']);
+
+/** Collect the string segments of a query key, including tRPC's nested path array. */
+function keySegments(queryKey: readonly unknown[]): string[] {
+  const segments: string[] = [];
+  for (const part of queryKey) {
+    if (typeof part === 'string') {
+      segments.push(part);
+    } else if (Array.isArray(part)) {
+      for (const nested of part) {
+        if (typeof nested === 'string') {
+          segments.push(nested);
+        }
+      }
+    }
+  }
+  return segments;
+}
+
+/** True when a query is safe to write to the on-device cache. */
+export function isPersistableQueryKey(queryKey: readonly unknown[]): boolean {
+  return !keySegments(queryKey).some((segment) =>
+    NON_PERSISTED_KEY_SEGMENTS.has(segment)
+  );
+}
