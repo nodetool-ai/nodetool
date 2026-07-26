@@ -22,13 +22,12 @@ import {
   type FitLevel,
   type OnboardingModel
 } from "./onboardingCatalog";
-import type { UnifiedModel } from "../../../stores/ApiTypes";
 
 interface OnboardingModelRowProps {
   entry: OnboardingModel;
   fit: FitLevel;
   downloaded: boolean;
-  onDownload: (model: UnifiedModel) => void;
+  onDownload: (entry: OnboardingModel) => void;
 }
 
 const FIT_COLOR: Record<
@@ -53,8 +52,8 @@ const OnboardingModelRow: React.FC<OnboardingModelRowProps> = ({
   const engine = getEngine(entry.engine);
 
   const handleDownload = useCallback(() => {
-    onDownload(entry.model);
-  }, [onDownload, entry.model]);
+    onDownload(entry);
+  }, [onDownload, entry]);
 
   return (
     <FlexColumn
