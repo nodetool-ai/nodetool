@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { initTestDb, ModelObserver, Workflow, TriggerRegistration } from "@nodetool-ai/models";
 import type { Workflow as WorkflowModel } from "@nodetool-ai/models";
@@ -188,6 +189,24 @@ describe("syncRegistrations", () => {
     expect(config.webhook_secret_hash).not.toBe("");
     // The hash must not simply be the plaintext prop value.
     expect(config.webhook_secret_hash).not.toBe(config.secret);
+  });
+
+  it("keeps the plaintext webhook secret so a sender can authenticate", async () => {
+    const wf = await makeWorkflow([
+      triggerNode("n1", "nodetool.triggers.WebhookTrigger", { path: "/hook" })
+    ]);
+
+    const [row] = await syncRegistrations(wf, { enabled: true });
+
+    const config = row.config_json as Record<string, unknown>;
+    const secret = config.webhook_secret;
+    expect(typeof secret).toBe("string");
+    expect(secret).not.toBe("");
+    // The ingestion route compares sha256 digests, so the retrievable secret
+    // has to be the preimage of the stored hash or nothing can ever deliver.
+    expect(createHash("sha256").update(secret as string).digest("hex")).toBe(
+      config.webhook_secret_hash
+    );
   });
 
   it("keeps the webhook token and secret hash stable across re-syncs with no prop change", async () => {

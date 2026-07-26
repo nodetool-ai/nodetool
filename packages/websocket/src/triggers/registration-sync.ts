@@ -33,7 +33,11 @@ export const TRIGGER_KIND_BY_NODE_TYPE: Readonly<Record<string, TriggerKind>> =
 /** Keys `syncRegistrations` writes into a webhook registration's `config_json`
  * that are not part of the node's own property snapshot — stripped out
  * before diffing so token/secret rotation doesn't happen on every save. */
-const WEBHOOK_BOOKKEEPING_KEYS = ["webhook_token", "webhook_secret_hash"] as const;
+const WEBHOOK_BOOKKEEPING_KEYS = [
+  "webhook_token",
+  "webhook_secret",
+  "webhook_secret_hash"
+] as const;
 
 export interface SyncRegistrationsOptions {
   /**
@@ -71,8 +75,15 @@ function generateWebhookToken(): string {
   return randomBytes(24).toString("hex");
 }
 
-function generateWebhookSecretHash(): string {
-  return hashSecret(randomBytes(32).toString("hex"));
+/**
+ * The shared secret a sender puts in `x-webhook-secret`. It is kept in
+ * plaintext because the user has to read it back to configure the sending
+ * system — there is no show-once channel — and stored next to its digest so
+ * the ingestion route can compare hashes in constant time without rehashing
+ * per request.
+ */
+function generateWebhookSecret(): string {
+  return randomBytes(32).toString("hex");
 }
 
 function stripWebhookBookkeeping(
@@ -159,13 +170,14 @@ export async function syncRegistrations(
       const webhookToken =
         (previousConfig?.webhook_token as string | undefined) ??
         generateWebhookToken();
-      const webhookSecretHash =
-        (previousConfig?.webhook_secret_hash as string | undefined) ??
-        generateWebhookSecretHash();
+      const webhookSecret =
+        (previousConfig?.webhook_secret as string | undefined) ??
+        generateWebhookSecret();
       config = {
         ...config,
         webhook_token: webhookToken,
-        webhook_secret_hash: webhookSecretHash
+        webhook_secret: webhookSecret,
+        webhook_secret_hash: hashSecret(webhookSecret)
       };
     }
 

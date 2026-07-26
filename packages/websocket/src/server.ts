@@ -787,6 +787,9 @@ app.addHook("onRequest", async (req, reply) => {
     pathname.startsWith("/api/assets/packages/") ||
     pathname === "/api/nodes/metadata" ||
     pathname.startsWith("/api/kie/webhook") ||
+    // Trigger webhooks authenticate on their own, per registration secret
+    // (packages/websocket/src/triggers/webhook-route.ts) — no session exists.
+    pathname.startsWith("/api/webhooks/") ||
     isPublicWorkflowMetadataRequest(pathname, req.method)
   ) {
     return;
