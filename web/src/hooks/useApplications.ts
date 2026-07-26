@@ -80,6 +80,17 @@ export const useApplicationVersions = (id: string | null | undefined) =>
 export const useReleasedApplicationVersion = (id: string | null | undefined) =>
   trpc.applications.released.useQuery({ id: id ?? "" }, { enabled: !!id });
 
+/**
+ * What a published app should actually run: the released snapshot's document
+ * plus the workflow graphs it pinned. Null when nothing is released, which is
+ * the signal to fall back to the mutable draft.
+ */
+export const useReleasedApplicationDocument = (id: string | null | undefined) =>
+  trpc.applications.releasedDocument.useQuery(
+    { id: id ?? "" },
+    { enabled: !!id }
+  );
+
 export const usePublishApplication = () => {
   const utils = trpc.useUtils();
   return trpc.applications.publish.useMutation({

@@ -152,12 +152,15 @@ export {
   publishApplication,
   listApplicationVersions,
   releasedApplicationVersion,
+  releasedApplicationRelease,
   releaseApplicationVersion
 } from "./application.js";
 export type {
   ApplicationCapabilities,
+  ApplicationReleaseResponse,
   ApplicationResponse,
-  ApplicationVersionResponse
+  ApplicationVersionResponse,
+  PinnedWorkflow
 } from "./application.js";
 export {
   applicationUsage,

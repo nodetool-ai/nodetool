@@ -53,6 +53,8 @@ export interface AppEvent {
   value?: string;
   /** Which operation a run/cancel targets; defaults to the app's main one. */
   operationId?: string;
+  /** Cancel one specific run rather than the operation's latest. */
+  invocationId?: string;
   /** Resource binding id for resourceCommand/openResource. */
   resourceBindingId?: string;
   /** Command name for resourceCommand. */
@@ -101,7 +103,8 @@ export const eventToAction = (
     case "cancel":
       return {
         kind: "cancel",
-        operationId: event.operationId ?? ctx.defaultOperationId
+        operationId: event.operationId ?? ctx.defaultOperationId,
+        ...(event.invocationId ? { invocationId: event.invocationId } : {})
       };
     case "resourceCommand": {
       const command = event.command ?? "";

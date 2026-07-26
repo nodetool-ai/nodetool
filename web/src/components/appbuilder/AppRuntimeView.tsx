@@ -24,6 +24,13 @@ interface AppRuntimeViewProps {
    * runtime synthesizes a single-operation document from the graph.
    */
   document?: ApplicationDocument;
+  /** The application record this app belongs to (budget + release metering). */
+  application?: { id: string; version?: number };
+  /**
+   * Workflow graphs the caller already has, by id — the graphs a release
+   * pinned. An operation whose workflow is here runs that exact graph.
+   */
+  workflowOverrides?: Record<string, Workflow>;
 }
 
 /**
@@ -72,9 +79,15 @@ const RuntimeErrorBanner: React.FC = () => {
 const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
   workflow,
   data,
-  document
+  document,
+  application,
+  workflowOverrides
 }) => {
-  const runtime = useAppRuntime(workflow, false, { document });
+  const runtime = useAppRuntime(workflow, false, {
+    document,
+    application,
+    workflowOverrides
+  });
   return (
     <AppRuntimeContext.Provider value={runtime}>
       <Box

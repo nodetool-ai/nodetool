@@ -4,7 +4,13 @@
  * surface, and statically validating the wiring.
  */
 import { describe, expect, it } from "vitest";
-import { extractAppIO, parseAppSpec, validateApp } from "../src/app-debug/app-spec.js";
+import {
+  extractAppIO,
+  operationSpec,
+  parseAppSpec,
+  validateApp,
+  type AppContext
+} from "../src/app-debug/app-spec.js";
 import type { AppIO } from "../src/app-debug/types.js";
 import type { DebugGraph } from "../src/debug/types.js";
 
@@ -188,10 +194,56 @@ describe("validateApp", () => {
     expect(warnings.join("\n")).toMatch(/"result" is not displayed/);
   });
 
+  it("accepts every display widget in the shared catalog, including Table", () => {
+    const { spec } = parseAppSpec(
+      appDoc([
+        widget("Table", "Table-1", { binding: "result" }),
+        widget("Button", "Button-1", { events: [{ trigger: "click", kind: "run" }] })
+      ]),
+      io
+    );
+    expect(spec?.widgets[0].bindingMode).toBe("read");
+    expect(validateApp(spec!, io).errors).toEqual([]);
+  });
+
   it("flags unknown widget types", () => {
     const { spec } = parseAppSpec(appDoc([widget("Bogus", "Bogus-1")]), io);
     const { errors } = validateApp(spec!, io);
     expect(errors.join("\n")).toMatch(/unknown widget type/);
+  });
+
+  it("flags operation mappings keyed on nodes the workflow does not have", () => {
+    const context: AppContext = {
+      defaultOperationId: "main",
+      variables: [],
+      resources: [],
+      operations: [
+        operationSpec(
+          {
+            id: "main",
+            name: "Run",
+            workflowId: "wf1",
+            inputs: { ghostIn: { from: "widget" }, in1: { from: "constant", value: undefined } },
+            outputs: { ghostOut: { to: "display" } },
+            policy: "replace"
+          },
+          io,
+          null
+        )
+      ]
+    };
+    const { spec } = parseAppSpec(
+      appDoc([
+        widget("Markdown", "Markdown-1", { binding: "result" }),
+        widget("Button", "Button-1", { events: [{ trigger: "click", kind: "run" }] })
+      ]),
+      io,
+      context
+    );
+    const { errors, warnings } = validateApp(spec!, io, context);
+    expect(errors.join("\n")).toMatch(/input mapping for node "ghostIn"/);
+    expect(errors.join("\n")).toMatch(/output mapping for node "ghostOut"/);
+    expect(warnings.join("\n")).toMatch(/constant with no value/);
   });
 
   it("warns on an unbound write widget (local-only state)", () => {

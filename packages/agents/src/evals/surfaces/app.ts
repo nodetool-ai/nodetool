@@ -876,7 +876,8 @@ export function createAppToolBridge(
       "List everything a widget can bind to, with the exact token to store in " +
         "its `binding` prop: each operation's input and output nodes " +
         "(op:<opId>/in:<nodeId>, op:<opId>/out:<nodeId>), its execution fields " +
-        "(op:<opId>/exec#running|progress|error), and every variable (var:<id>). " +
+        "(op:<opId>/exec#running|progress|error|activity), and every variable " +
+        "(var:<id>). " +
         "Call this before binding a widget instead of guessing a name. An " +
         "operation over a workflow this editor has not loaded reports " +
         "ioAvailable: false and no node lists.",
@@ -916,7 +917,7 @@ The app is a tree of widgets bound to a workflow. Use the ui_app_* tools:
 - Set the page title with ui_app_set_title.
 
 Widgets are wired to workflow runs through the document's operations, variables, and resources:
-- ui_app_get_binding_targets lists every slot a widget can bind to and the exact token to put in its \`binding\` prop (op:<opId>/in:<nodeId>, op:<opId>/out:<nodeId>, op:<opId>/exec#running|progress|error, var:<id>). Call it before binding instead of guessing.
+- ui_app_get_binding_targets lists every slot a widget can bind to and the exact token to put in its \`binding\` prop (op:<opId>/in:<nodeId>, op:<opId>/out:<nodeId>, op:<opId>/exec#running|progress|error|activity, var:<id>). Call it before binding instead of guessing.
 - ui_app_list_operations / ui_app_add_operation / ui_app_update_operation / ui_app_remove_operation manage which workflows the app runs and how their inputs and outputs are mapped.
 - ui_app_list_variables / ui_app_declare_variable / ui_app_update_variable / ui_app_remove_variable manage app state. Only user-scoped variables may persist.
 - ui_app_list_resources / ui_app_add_resource / ui_app_remove_resource manage the document collections the app may reach.

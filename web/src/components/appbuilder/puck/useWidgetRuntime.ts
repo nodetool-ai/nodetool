@@ -12,6 +12,7 @@ import {
   encodeBinding,
   eventToAction,
   isOperationRunning,
+  operationActivity,
   operationProgress,
   resolveBinding,
   type AppEvent,
@@ -49,6 +50,12 @@ export interface WidgetRuntime {
   runnerState: RuntimeRunnerState;
   /** Fractional progress of the app's active run, when it reports any. */
   progress: number | undefined;
+  /**
+   * What the run this widget watches last reported it was doing — the tool an
+   * agent is calling, the planning phase, the task step. Undefined when the run
+   * reports nothing but a spinner.
+   */
+  activity: string | undefined;
 }
 
 interface UseWidgetRuntimeParams {
@@ -65,7 +72,7 @@ export const useWidgetRuntime = ({
   binding,
   events
 }: UseWidgetRuntimeParams): WidgetRuntime => {
-  const { designMode, dispatch, write, getNodeProperty, scope } =
+  const { designMode, dispatch, write, getNodeProperty, operations, scope } =
     useAppRuntimeContext();
 
   const boundRef = useBindingRef(binding, bindingMode);
@@ -88,11 +95,22 @@ export const useWidgetRuntime = ({
       ? getNodeProperty(boundRef.nodeId, boundRef.property)
       : storedValue;
 
-  const operationId = scope.defaultOperationId;
+  // A widget reports on the operation its own events drive, so a button wired
+  // to the second operation shows that operation's run, not operation 0's.
+  const operationId = useMemo(() => {
+    const named = (events ?? []).find(
+      (event) =>
+        (event.kind === "run" || event.kind === "cancel") &&
+        event.operationId &&
+        operations.some((operation) => operation.id === event.operationId)
+    )?.operationId;
+    return named ?? scope.defaultOperationId;
+  }, [events, operations, scope.defaultOperationId]);
   const runnerState = useRuntimeSelector((s) =>
     isOperationRunning(s, operationId) ? "running" : "idle"
   );
   const progress = useRuntimeSelector((s) => operationProgress(s, operationId));
+  const activity = useRuntimeSelector((s) => operationActivity(s, operationId));
 
   const setValue = useCallback(
     (next: unknown) => {
@@ -166,5 +184,5 @@ export const useWidgetRuntime = ({
     [dispatch, events, from, scope]
   );
 
-  return { value, setValue, emit, designMode, runnerState, progress };
+  return { value, setValue, emit, designMode, runnerState, progress, activity };
 };

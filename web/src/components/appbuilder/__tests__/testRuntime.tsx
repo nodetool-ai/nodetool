@@ -53,6 +53,7 @@ export const makeTestRuntime = (
     io: { inputs: [], outputs: [] },
     scope: TEST_SCOPE,
     operation: implicitOperation("wf1"),
+    operations: [implicitOperation("wf1")],
     resources: [],
     designMode: false,
     dispatch: jest.fn(),

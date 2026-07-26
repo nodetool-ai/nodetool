@@ -108,7 +108,7 @@ describe("runAppDebug", () => {
     expect(report.interactions).toHaveLength(1);
     expect(report.interactions[0]).toMatchObject({
       step: "click Button-1",
-      actions: ["run"],
+      actions: ["run main"],
       runIndex: 0,
       error: null
     });
@@ -250,6 +250,415 @@ describe("runAppDebug", () => {
     expect(report.spec).toBeNull();
     expect(report.verdict.ok).toBe(false);
     expect(report.verdict.issues.join("\n")).toMatch(/no app_doc/);
+  });
+});
+
+/** A v3 app document: explicit operations, variables, and ID-form bindings. */
+const v3File = (over: {
+  operations?: unknown[];
+  variables?: unknown[];
+  resources?: unknown[];
+  content?: unknown[];
+}): string => {
+  const dir = mkdtempSync(join(tmpdir(), "app-debug-v3-"));
+  const file = join(dir, "workflow.json");
+  writeFileSync(
+    file,
+    JSON.stringify({
+      id: "wf1",
+      graph: {
+        nodes: [
+          {
+            id: "in1",
+            type: "nodetool.input.StringInput",
+            data: { name: "prompt", value: "hello" }
+          },
+          { id: "out1", type: "nodetool.output.StringOutput", data: { name: "result" } }
+        ],
+        edges: []
+      },
+      app_doc: {
+        schemaVersion: 3,
+        ui: {
+          root: { props: { title: "V3 App" } },
+          content: over.content ?? [
+            {
+              type: "Markdown",
+              props: { id: "Markdown-1", binding: "op:main/out:out1" }
+            },
+            {
+              type: "Button",
+              props: {
+                id: "Button-1",
+                label: "Run",
+                events: [{ trigger: "click", kind: "run" }]
+              }
+            }
+          ],
+          zones: {}
+        },
+        operations: over.operations ?? [
+          { id: "main", name: "Run", workflowId: "", inputs: {}, outputs: {}, policy: "replace" }
+        ],
+        variables: over.variables ?? [],
+        resources: over.resources ?? []
+      }
+    }),
+    "utf8"
+  );
+  return file;
+};
+
+const ANSWER = [
+  { type: "output_update", node_id: "out1", output_name: "output", value: "the answer" },
+  { type: "job_update", status: "completed" }
+];
+
+const outDir = () => mkdtempSync(join(tmpdir(), "app-bundle-"));
+
+describe("runAppDebug — operations", () => {
+  const twoOperations = [
+    { id: "main", name: "Run", workflowId: "", inputs: {}, outputs: {}, policy: "replace" },
+    { id: "polish", name: "Polish", workflowId: "", inputs: {}, outputs: {}, policy: "replace" }
+  ];
+
+  it("runs a named operation and keeps its values under its own key", async () => {
+    const runOnServer = stubRunner(ANSWER);
+    const dir = outDir();
+    const report = await runAppDebug(
+      v3File({
+        operations: twoOperations,
+        content: [
+          { type: "Markdown", props: { id: "Markdown-1", binding: "op:polish/out:out1" } },
+          {
+            type: "Button",
+            props: { id: "Button-1", events: [{ trigger: "click", kind: "run" }] }
+          },
+          {
+            type: "Button",
+            props: {
+              id: "Button-2",
+              events: [{ trigger: "click", kind: "run", operationId: "polish" }]
+            }
+          }
+        ]
+      }),
+      { interact: [{ run: "polish" }], outDir: dir },
+      deps(runOnServer)
+    );
+
+    expect(report.verdict.ok).toBe(true);
+    expect(report.interactions[0]).toMatchObject({ step: "run polish", runIndex: 0 });
+    expect(report.invocations).toHaveLength(1);
+    expect(report.invocations[0]).toMatchObject({
+      operationId: "polish",
+      decision: "start",
+      status: "completed"
+    });
+    expect(report.values["polish.result"]).toBe("the answer");
+    expect(report.values.result).toBeUndefined();
+    expect(readFileSync(join(dir, "report.md"), "utf8")).toContain("## Invocations");
+  });
+
+  it("clicking a widget dispatches to the operation its event names", async () => {
+    const runOnServer = stubRunner(ANSWER);
+    const report = await runAppDebug(
+      v3File({
+        operations: twoOperations,
+        content: [
+          { type: "Markdown", props: { id: "Markdown-1", binding: "op:polish/out:out1" } },
+          {
+            type: "Button",
+            props: { id: "Button-1", events: [{ trigger: "click", kind: "run" }] }
+          },
+          {
+            type: "Button",
+            props: {
+              id: "Button-2",
+              events: [{ trigger: "click", kind: "run", operationId: "polish" }]
+            }
+          }
+        ]
+      }),
+      { interact: [{ click: "Button-2" }], outDir: outDir() },
+      deps(runOnServer)
+    );
+    expect(report.interactions[0].actions).toEqual(["run polish"]);
+    expect(report.invocations[0].operationId).toBe("polish");
+  });
+
+  it("cancels an operation's live invocation", async () => {
+    const runOnServer = vi.fn(() => new Promise<ServerRunOutcome>(() => {}));
+    const report = await runAppDebug(
+      v3File({
+        operations: [
+          {
+            id: "main",
+            name: "Run",
+            workflowId: "",
+            inputs: {},
+            outputs: {},
+            policy: "replace",
+            timeoutMs: 5
+          }
+        ]
+      }),
+      { interact: [{ click: "Button-1" }, { cancel: "main" }], outDir: outDir() },
+      deps(runOnServer as never)
+    );
+    expect(report.interactions[1].actions[0]).toMatch(/cancel main \(headless-1\)/);
+    expect(report.invocations[0].status).toBe("cancelled");
+  });
+
+  it("reports a run that outlived the operation's timeout", async () => {
+    const runOnServer = vi.fn(() => new Promise<ServerRunOutcome>(() => {}));
+    const report = await runAppDebug(
+      v3File({
+        operations: [
+          {
+            id: "main",
+            name: "Run",
+            workflowId: "",
+            inputs: {},
+            outputs: {},
+            policy: "replace",
+            timeoutMs: 5
+          }
+        ]
+      }),
+      { outDir: outDir() },
+      deps(runOnServer as never)
+    );
+    expect(report.invocations[0].timedOutMs).toBe(5);
+    expect(report.verdict.issues.join("\n")).toMatch(
+      /did not finish within its 5ms timeout/
+    );
+    expect(report.verdict.issues.join("\n")).not.toMatch(/never executed/);
+  });
+
+  it("flags an operation whose workflow is not in the database", async () => {
+    const report = await runAppDebug(
+      v3File({
+        operations: [
+          { id: "main", name: "Run", workflowId: "", inputs: {}, outputs: {}, policy: "replace" },
+          {
+            id: "other",
+            name: "Other",
+            workflowId: "missing-wf",
+            inputs: {},
+            outputs: {},
+            policy: "replace"
+          }
+        ]
+      }),
+      { outDir: outDir() },
+      deps(stubRunner(ANSWER))
+    );
+    expect(report.verdict.issues.join("\n")).toMatch(/not in the local database/);
+  });
+});
+
+describe("runAppDebug — variables", () => {
+  const draft = {
+    id: "draft",
+    name: "draft",
+    scope: "instance",
+    persist: false
+  };
+
+  it("fans an output mapped to a variable into the variable and reports it", async () => {
+    const report = await runAppDebug(
+      v3File({
+        operations: [
+          {
+            id: "main",
+            name: "Run",
+            workflowId: "",
+            inputs: {},
+            outputs: { out1: { to: "variable", variableId: "draft" } },
+            policy: "replace"
+          }
+        ],
+        variables: [draft],
+        content: [
+          { type: "Markdown", props: { id: "Markdown-1", binding: "var:draft" } },
+          {
+            type: "Button",
+            props: { id: "Button-1", events: [{ trigger: "click", kind: "run" }] }
+          }
+        ]
+      }),
+      { outDir: outDir() },
+      deps(stubRunner(ANSWER))
+    );
+    expect(report.verdict.ok).toBe(true);
+    expect(report.variables).toEqual({ draft: "the answer" });
+    expect(report.widgets[0]).toMatchObject({ id: "Markdown-1", value: "the answer" });
+  });
+
+  it("seeds a declared variable default before the first run", async () => {
+    const report = await runAppDebug(
+      v3File({
+        variables: [{ ...draft, default: "seeded" }],
+        content: [
+          { type: "Markdown", props: { id: "Markdown-1", binding: "op:main/out:out1" } },
+          { type: "Text", props: { id: "Text-1", binding: "var:draft" } },
+          {
+            type: "Button",
+            props: { id: "Button-1", events: [{ trigger: "click", kind: "run" }] }
+          }
+        ]
+      }),
+      { outDir: outDir() },
+      deps(stubRunner(ANSWER))
+    );
+    expect(report.variables.draft).toBe("seeded");
+  });
+
+  it("flags an output that writes a variable the app never declares", async () => {
+    const report = await runAppDebug(
+      v3File({
+        operations: [
+          {
+            id: "main",
+            name: "Run",
+            workflowId: "",
+            inputs: {},
+            outputs: { out1: { to: "variable", variableId: "ghost" } },
+            policy: "replace"
+          }
+        ]
+      }),
+      { outDir: outDir() },
+      deps(stubRunner(ANSWER))
+    );
+    expect(report.verdict.issues.join("\n")).toMatch(
+      /writes variable "ghost", which the app does not declare/
+    );
+  });
+
+  it("flags an input that reads a variable the app never declares", async () => {
+    const report = await runAppDebug(
+      v3File({
+        operations: [
+          {
+            id: "main",
+            name: "Run",
+            workflowId: "",
+            inputs: { in1: { from: "variable", variableId: "ghost" } },
+            outputs: {},
+            policy: "replace"
+          }
+        ]
+      }),
+      { outDir: outDir() },
+      deps(stubRunner(ANSWER))
+    );
+    expect(report.verdict.issues.join("\n")).toMatch(
+      /reads variable "ghost", which the app does not declare/
+    );
+  });
+
+  it("flags an input that reads a resource binding the app never declares", async () => {
+    const report = await runAppDebug(
+      v3File({
+        operations: [
+          {
+            id: "main",
+            name: "Run",
+            workflowId: "",
+            inputs: { in1: { from: "resource", resourceBindingId: "ghost" } },
+            outputs: {},
+            policy: "replace"
+          }
+        ]
+      }),
+      { outDir: outDir() },
+      deps(stubRunner(ANSWER))
+    );
+    expect(report.verdict.issues.join("\n")).toMatch(
+      /reads resource binding "ghost", which the app does not declare/
+    );
+  });
+
+  it("warns that a persisted instance-scoped variable was downgraded", async () => {
+    const report = await runAppDebug(
+      v3File({ variables: [{ ...draft, persist: true }] }),
+      { outDir: outDir() },
+      deps(stubRunner(ANSWER))
+    );
+    expect(report.validation.warnings.join("\n")).toMatch(/downgraded to in-memory/);
+  });
+});
+
+describe("runAppDebug — execution bindings", () => {
+  it("flags a widget bound to an operation the app never declares", async () => {
+    const report = await runAppDebug(
+      v3File({
+        content: [
+          { type: "Markdown", props: { id: "Markdown-1", binding: "op:main/out:out1" } },
+          { type: "Text", props: { id: "Text-1", binding: "op:ghost/exec#activity" } },
+          {
+            type: "Button",
+            props: { id: "Button-1", events: [{ trigger: "click", kind: "run" }] }
+          }
+        ]
+      }),
+      { outDir: outDir() },
+      deps(stubRunner(ANSWER))
+    );
+    expect(report.verdict.issues.join("\n")).toMatch(
+      /declares no operation "ghost"/
+    );
+  });
+
+  it("flags an activity display for an operation no widget can run", async () => {
+    const report = await runAppDebug(
+      v3File({
+        operations: [
+          { id: "main", name: "Run", workflowId: "", inputs: {}, outputs: {}, policy: "replace" },
+          { id: "polish", name: "Polish", workflowId: "", inputs: {}, outputs: {}, policy: "replace" }
+        ],
+        content: [
+          { type: "Markdown", props: { id: "Markdown-1", binding: "op:main/out:out1" } },
+          { type: "Text", props: { id: "Text-1", binding: "op:polish/exec#activity" } },
+          {
+            type: "Button",
+            props: { id: "Button-1", events: [{ trigger: "click", kind: "run" }] }
+          }
+        ]
+      }),
+      { outDir: outDir() },
+      deps(stubRunner(ANSWER))
+    );
+    expect(report.verdict.issues.join("\n")).toMatch(/shows its execution state/);
+  });
+
+  it("reports the activity labels a streaming run emitted", async () => {
+    const report = await runAppDebug(
+      v3File({
+        content: [
+          { type: "Markdown", props: { id: "Markdown-1", binding: "op:main/out:out1" } },
+          { type: "Text", props: { id: "Text-1", binding: "op:main/exec#activity" } },
+          {
+            type: "Button",
+            props: { id: "Button-1", events: [{ trigger: "click", kind: "run" }] }
+          }
+        ]
+      }),
+      { outDir: outDir() },
+      deps(
+        stubRunner([
+          { type: "tool_call_update", name: "search", message: "searching the web" },
+          ...ANSWER
+        ])
+      )
+    );
+    expect(report.verdict.ok).toBe(true);
+    expect(report.activity.map((a) => a.label)).toEqual(["searching the web"]);
+    expect(report.widgets.find((w) => w.id === "Text-1")?.value).toBe(
+      "searching the web"
+    );
   });
 });
 

@@ -2,9 +2,12 @@ import React from "react";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Data } from "@puckeditor/core";
 
 import mockTheme from "../../../__mocks__/themeMock";
+import type { ApplicationDocument } from "@nodetool-ai/app-runtime";
+
 import AppRuntimeView from "../AppRuntimeView";
 import { Workflow } from "../../../stores/ApiTypes";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
@@ -42,11 +45,13 @@ const data: Data = {
 const instance = workflowInstanceId(workflow.id);
 const store = () => getAppRuntimeStore(instance);
 
-const renderView = () =>
+const renderView = (document?: ApplicationDocument) =>
   render(
-    <ThemeProvider theme={mockTheme}>
-      <AppRuntimeView workflow={workflow} data={data} />
-    </ThemeProvider>
+    <QueryClientProvider client={new QueryClient()}>
+      <ThemeProvider theme={mockTheme}>
+        <AppRuntimeView workflow={workflow} data={data} document={document} />
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 
 /** Register a run and make it the operation's active invocation. */
@@ -113,6 +118,23 @@ describe("AppRuntimeView (Puck Render)", () => {
         screen.queryByText("Contamination from another tab")
       ).not.toBeInTheDocument()
     );
+  });
+
+  it("applies the theme the document selects", () => {
+    renderView({
+      schemaVersion: 3,
+      ui: data as unknown as ApplicationDocument["ui"],
+      operations: [],
+      resources: [],
+      variables: [],
+      theme: { id: "centered" }
+    });
+    // The "centered" theme caps the content column; the default does not.
+    const css = Array.from(document.querySelectorAll("style"))
+      .flatMap((el) => Array.from(el.sheet?.cssRules ?? []))
+      .map((rule) => rule.cssText)
+      .join("");
+    expect(css).toMatch(/max-width:\s*720px/);
   });
 
   it("surfaces the active invocation's error as a dismissible banner", async () => {

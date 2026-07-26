@@ -64,6 +64,8 @@ const stateWith = (values: Record<string, unknown> = {}): AppRuntimeState =>
     view: {},
     invocations: {},
     activeInvocation: {},
+    activity: {},
+    variableWriters: {},
     dispatchEvent: () => {}
   }) as AppInstanceState as AppRuntimeState;
 

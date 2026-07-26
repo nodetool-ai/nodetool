@@ -2098,5 +2098,27 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP TABLE IF EXISTS application_invocations");
       await db.execute("DROP TABLE IF EXISTS application_budgets");
     }
+  },
+
+  // ── Pin the graphs an application release runs ──────────────────────
+  // A release used to copy the draft document and nothing else, so it ran
+  // whatever the workflow happened to hold at run time. Publishing now freezes
+  // each referenced workflow's graph onto the snapshot.
+  {
+    version: "20260726_000000",
+    name: "add_workflow_graphs_to_application_versions",
+    createsTables: [],
+    modifiesTables: ["application_versions"],
+    async up(db) {
+      if (!(await db.columnExists("application_versions", "workflow_graphs"))) {
+        await db.execute(
+          "ALTER TABLE application_versions ADD COLUMN workflow_graphs TEXT"
+        );
+      }
+    },
+    async down() {
+      // SQLite cannot drop a column on older engines; the column is nullable
+      // and unread by prior code, so leaving it is harmless.
+    }
   }
 ];
