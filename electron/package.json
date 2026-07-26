@@ -58,12 +58,14 @@
   },
   "dependencies": {
     "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/websocket": "*",
     "@trpc/client": "^11.17.0",
     "better-sqlite3": "^12.11.1",
     "bufferutil": "^4.1.0",
     "electron-log": "^5.4.4",
     "electron-updater": "^6.8.9",
     "js-yaml": "^5.2.2",
+    "msgpackr": "^1.12.1",
     "node-llama-cpp": "^3.0.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
@@ -71,9 +73,7 @@
     "sqlite-vec": "^0.1.9",
     "ws": "^8.21.0",
     "zod": "^4.4.3",
-    "zustand": "^5.0.14",
-    "@nodetool-ai/websocket": "*",
-    "msgpackr": "^1.12.1"
+    "zustand": "^5.0.14"
   },
   "overrides": {
     "minimatch": ">=3.1.4",
