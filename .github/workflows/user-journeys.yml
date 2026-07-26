@@ -1,0 +1,82 @@
+name: User Journeys
+
+# Nightly and on demand — deliberately NOT a pull-request gate.
+#
+# The journey suite drives whole flows through a real browser (build a graph and
+# run it, send a chat message, run a mini app, browse the library), so it is
+# slower and has more moving parts than the page-load smoke suite. Running it
+# nightly first lets it prove it is stable before it is allowed to block a
+# merge. Promote it to `pull_request` once it has a clean streak.
+on:
+  schedule:
+    # 03:30 UTC daily.
+    - cron: "30 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  journeys:
+    name: Drive the app the way a user does
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # Report failures without failing the workflow run, so a flaky night does
+    # not page anyone while the suite is still earning trust. Remove this when
+    # promoting the suite to a required check.
+    continue-on-error: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build workspace packages
+        # The seeded backend (tests/globalSetup.ts) imports @nodetool-ai/* via
+        # the `development` export condition, which resolves to each package's
+        # compiled dist/. Build them first.
+        run: npm run build:packages
+
+      - name: Type-check journey suite
+        working-directory: web
+        run: npm run typecheck:journeys
+
+      - name: Install Playwright Chromium browser
+        # mesa-vulkan-drivers ships lavapipe (CPU Vulkan ICD) so headless
+        # Chromium can acquire a WebGPU adapter on GPU-less runners.
+        working-directory: web
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mesa-vulkan-drivers
+          npx playwright install --with-deps chromium
+
+      - name: Run user-journey suite
+        working-directory: web
+        env:
+          CI: "true"
+          # Deterministic test-only master key committed in tests/globalSetup.ts.
+          # Never use in production.
+          SECRETS_MASTER_KEY: "U0NSRUVOU0hPVF9URVNUX0tFWV9ET19OT1RfVVNFISE="
+        run: npm run test:journeys
+
+      - name: Upload journey report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: user-journeys-report
+          path: |
+            web/playwright-report/
+            web/test-results/
+          retention-days: 14

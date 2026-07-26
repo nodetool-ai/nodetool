@@ -32,7 +32,7 @@ export default defineConfig({
   /* The E2E workflow runner and the visual-regression suite each have their
      own config + project selection; exclude them from this (documentation
      screenshot) config so `npx playwright test` doesn't pick them up. */
-  testIgnore: ["**/e2e-runner/**", "**/visual/**"],
+  testIgnore: ["**/e2e-runner/**", "**/visual/**", "**/journeys/**"],
 
   /* Maximum time one test can run */
   timeout: 60_000,
