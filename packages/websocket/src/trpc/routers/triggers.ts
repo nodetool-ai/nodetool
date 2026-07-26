@@ -5,6 +5,10 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { getTriggerWakeupService, dispatchInput } from "../../triggers/dispatcher.js";
+import {
+  nextFireAtIso,
+  scheduleIntervalSeconds
+} from "../../triggers/schedule-timing.js";
 
 const fireInput = z.object({
   registrationId: z.string(),
@@ -22,6 +26,12 @@ const listByWorkflowInput = z.object({ workflowId: z.string() });
  *
  * `config_json` is not returned wholesale: only the webhook token and secret
  * are surfaced, and the stored digest is never sent.
+ *
+ * `next_fire_at` and `interval_seconds` are derived, not stored: both come
+ * from `schedule-timing.ts`, the same helper the scheduler sweep schedules
+ * from. They are non-null only for a `schedule` registration, and
+ * `next_fire_at` additionally only while it is enabled — a disabled schedule
+ * has no next fire.
  */
 function toEditorRegistration(reg: TriggerRegistration) {
   const config = (reg.config_json ?? {}) as Record<string, unknown>;
@@ -34,6 +44,8 @@ function toEditorRegistration(reg: TriggerRegistration) {
     enabled: reg.enabled === 1,
     last_fired_at: reg.last_fired_at ?? null,
     last_error: reg.last_error ?? null,
+    next_fire_at: nextFireAtIso(reg),
+    interval_seconds: scheduleIntervalSeconds(reg),
     webhook_token: isWebhook
       ? ((config.webhook_token as string | undefined) ?? null)
       : null,

@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RootStackParamList } from '../navigation/types';
 import { type JobResponse } from '../services/api';
@@ -25,6 +26,8 @@ import type { ThemeColors } from '../utils/theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Jobs'>;
+  /** Optional: arriving from a trigger card narrows the list to one workflow. */
+  route?: RouteProp<RootStackParamList, 'Jobs'>;
 };
 
 export type StatusVariant = 'running' | 'completed' | 'failed' | 'cancelled' | 'queued' | 'unknown';
@@ -83,7 +86,7 @@ export function formatRelative(iso: string | null | undefined): string {
   return new Date(iso).toLocaleDateString();
 }
 
-export default function JobsScreen({ navigation }: Props) {
+export default function JobsScreen({ navigation, route }: Props) {
   const { colors, shadows } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -94,7 +97,7 @@ export default function JobsScreen({ navigation }: Props) {
     isRefetching,
     error,
     refetch,
-  } = trpc.jobs.list.useQuery({ limit: 100 });
+  } = trpc.jobs.list.useQuery({ limit: 100, workflow_id: route?.params?.workflowId });
   const jobs = useMemo(() => (jobsData?.jobs ?? []) as JobResponse[], [jobsData]);
   const loadError = error ? error.message || 'Failed to load jobs' : null;
 

@@ -101,6 +101,7 @@ mobile/
 │   │   ├── ChatScreen.tsx           # AI Chat screen
 │   │   ├── AssetsScreen.tsx         # Asset browser
 │   │   ├── JobsScreen.tsx           # Job history
+│   │   ├── TriggersScreen.tsx       # Trigger monitoring + arm/disarm
 │   │   ├── LanguageModelSelectionScreen.tsx # Model picker
 │   │   ├── SettingsScreen.tsx       # Server settings
 │   │   └── LoginScreen.tsx          # Supabase / Google sign-in

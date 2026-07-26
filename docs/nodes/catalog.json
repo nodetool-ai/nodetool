@@ -25111,7 +25111,7 @@
         {
           "name": "max_events",
           "type": "int",
-          "description": "Maximum number of events to process (0 = unlimited)",
+          "description": "File events to emit before the node stops (0 = unlimited). Applies only while the node runs in the editor; the file-watch adapter keeps firing an activated trigger regardless.",
           "required": false,
           "default": 0
         },
@@ -25199,7 +25199,7 @@
         {
           "name": "max_events",
           "type": "int",
-          "description": "Maximum number of events to process (0 = unlimited)",
+          "description": "Ticks to emit before the node stops (0 = unlimited). Applies only while the node runs in the editor; the scheduler keeps firing an activated trigger regardless.",
           "required": false,
           "default": 0
         },
@@ -25270,21 +25270,21 @@
         {
           "name": "max_events",
           "type": "int",
-          "description": "Maximum number of events to process (0 = unlimited)",
+          "description": "Events to process before the node stops listening (0 = unlimited). Applies only while the node listens in a running workflow; a fired trigger starts its own run and emits exactly one event.",
           "required": false,
           "default": 0
         },
         {
           "name": "name",
           "type": "str",
-          "description": "Name for this trigger (used in API calls)",
+          "description": "Name for this trigger, emitted on the source output",
           "required": false,
           "default": "manual_trigger"
         },
         {
           "name": "timeout_seconds",
           "type": "float",
-          "description": "Timeout waiting for events (None = wait forever)",
+          "description": "How long to wait for the next event before stopping (empty = wait forever). Applies only while the node listens in a running workflow.",
           "required": false,
           "default": null
         }
@@ -25353,52 +25353,7 @@
       "title": "Webhook Trigger",
       "namespace": "nodetool.triggers",
       "description": "",
-      "inputs": [
-        {
-          "name": "max_events",
-          "type": "int",
-          "description": "Maximum number of events to process (0 = unlimited)",
-          "required": false,
-          "default": 0
-        },
-        {
-          "name": "port",
-          "type": "int",
-          "description": "Port to listen on for webhook requests",
-          "required": false,
-          "default": 8080
-        },
-        {
-          "name": "path",
-          "type": "str",
-          "description": "URL path to listen on",
-          "required": false,
-          "default": "/webhook"
-        },
-        {
-          "name": "host",
-          "type": "str",
-          "description": "Host address to bind to. Use '0.0.0.0' to listen on all interfaces.",
-          "required": false,
-          "default": "127.0.0.1"
-        },
-        {
-          "name": "methods",
-          "type": "list[str]",
-          "description": "HTTP methods to accept",
-          "required": false,
-          "default": [
-            "POST"
-          ]
-        },
-        {
-          "name": "secret",
-          "type": "str",
-          "description": "Optional secret for validating requests (checks X-Webhook-Secret header)",
-          "required": false,
-          "default": ""
-        }
-      ],
+      "inputs": [],
       "outputs": [
         {
           "name": "body",

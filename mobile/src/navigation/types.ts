@@ -44,7 +44,10 @@ export type RootStackParamList = {
   };
   Secrets: undefined;
   Collections: undefined;
-  Jobs: undefined;
+  /** Job history, optionally narrowed to one workflow. */
+  Jobs: { workflowId?: string } | undefined;
+  /** Trigger monitoring: what is armed, what fired, what broke. */
+  Triggers: undefined;
   /** One job: status, timing, cost, error, and its outputs. */
   JobDetail: { jobId: string };
   Threads: undefined;

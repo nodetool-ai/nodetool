@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -16,6 +16,7 @@ jest.mock("../../../contexts/NodeContext", () => ({
 
 const mockUseWorkflowTriggers = jest.fn();
 const mockSetTriggerEnabledMutate = jest.fn();
+const mockSetTriggerEnabledMutateAsync = jest.fn();
 const mockFireTriggerMutate = jest.fn();
 
 jest.mock("../../../serverState/useTriggers", () => {
@@ -26,6 +27,7 @@ jest.mock("../../../serverState/useTriggers", () => {
       mockUseWorkflowTriggers(...args),
     useSetTriggerEnabled: () => ({
       mutate: mockSetTriggerEnabledMutate,
+      mutateAsync: mockSetTriggerEnabledMutateAsync,
       isPending: false
     }),
     useFireTrigger: () => ({
@@ -40,10 +42,48 @@ import TriggerActivationButton from "../TriggerActivationButton";
 const renderWithTheme = (ui: React.ReactElement) =>
   render(<ThemeProvider theme={mockTheme}>{ui}</ThemeProvider>);
 
+interface RegistrationOverrides {
+  id?: string;
+  node_id?: string;
+  kind?: string;
+  enabled?: boolean;
+  last_fired_at?: string | null;
+  last_error?: string | null;
+  webhook_token?: string | null;
+  webhook_secret?: string | null;
+  next_fire_at?: string | null;
+  interval_seconds?: number | null;
+}
+
+const registration = (overrides: RegistrationOverrides = {}) => ({
+  id: "reg-1",
+  workflow_id: "wf-1",
+  node_id: "n1",
+  kind: "manual",
+  enabled: false,
+  last_fired_at: null,
+  last_error: null,
+  webhook_token: null,
+  webhook_secret: null,
+  ...overrides
+});
+
+const withData = (data: unknown[]) => ({
+  data,
+  isLoading: false,
+  isError: false
+});
+
+const openPopover = async () => {
+  await userEvent.click(screen.getByRole("button", { name: /^triggers:/i }));
+  return screen.findByRole("region", { name: /trigger status/i });
+};
+
 beforeEach(() => {
   jest.clearAllMocks();
   mockNodeState.nodes = [];
-  mockUseWorkflowTriggers.mockReturnValue({ data: [] });
+  mockSetTriggerEnabledMutateAsync.mockResolvedValue(undefined);
+  mockUseWorkflowTriggers.mockReturnValue(withData([]));
 });
 
 describe("TriggerActivationButton", () => {
@@ -64,155 +104,231 @@ describe("TriggerActivationButton", () => {
     );
   });
 
-  it("shows an inactive status and a disabled switch before the workflow has ever been saved", async () => {
-    mockNodeState.nodes = [
-      { id: "n1", type: "nodetool.triggers.WebhookTrigger" }
-    ];
-    mockUseWorkflowTriggers.mockReturnValue({ data: [] });
-
-    renderWithTheme(<TriggerActivationButton />);
-    await userEvent.click(screen.getByRole("button", { name: /trigger status/i }));
-
-    const region = await screen.findByRole("region", { name: /trigger status/i });
-    expect(within(region).getAllByText("Inactive").length).toBeGreaterThan(0);
-    const toggle = within(region).getByRole("switch", {
-      name: "Workflow active"
+  describe("loading, error, and empty are told apart", () => {
+    beforeEach(() => {
+      mockNodeState.nodes = [
+        { id: "n1", type: "nodetool.triggers.WebhookTrigger" }
+      ];
     });
-    expect(toggle).not.toBeChecked();
-    expect(toggle).toBeDisabled();
+
+    it("says it is still checking while the query is in flight", async () => {
+      mockUseWorkflowTriggers.mockReturnValue({
+        data: undefined,
+        isLoading: true,
+        isError: false
+      });
+      renderWithTheme(<TriggerActivationButton />);
+      const region = await openPopover();
+      expect(
+        within(region).getByText(/checking trigger status/i)
+      ).toBeInTheDocument();
+      expect(
+        within(region).getByRole("switch", { name: "Workflow active" })
+      ).toBeDisabled();
+      expect(within(region).queryByText(/save the workflow first/i)).toBeNull();
+    });
+
+    it("does not blame an unsaved workflow for a failed request", async () => {
+      mockUseWorkflowTriggers.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true
+      });
+      renderWithTheme(<TriggerActivationButton />);
+      const region = await openPopover();
+      expect(
+        within(region).getAllByText(/could not load trigger status/i).length
+      ).toBeGreaterThan(0);
+      expect(within(region).queryByText(/save the workflow first/i)).toBeNull();
+      expect(within(region).getByText("Unavailable")).toBeInTheDocument();
+    });
+
+    it("shows an unregistered status and a disabled switch when the workflow has no registrations", async () => {
+      mockUseWorkflowTriggers.mockReturnValue(withData([]));
+      renderWithTheme(<TriggerActivationButton />);
+      const region = await openPopover();
+      expect(
+        within(region).getByText(/save the workflow first/i)
+      ).toBeInTheDocument();
+      const toggle = within(region).getByRole("switch", {
+        name: "Workflow active"
+      });
+      expect(toggle).not.toBeChecked();
+      expect(toggle).toBeDisabled();
+    });
   });
 
   it("arms a cold (never-enabled) registration when the toggle is switched on", async () => {
     mockNodeState.nodes = [
       { id: "n1", type: "nodetool.triggers.ManualTrigger" }
     ];
-    mockUseWorkflowTriggers.mockReturnValue({
-      data: [
-        {
-          id: "reg-1",
-          workflow_id: "wf-1",
-          node_id: "n1",
-          kind: "manual",
-          enabled: false,
-          last_fired_at: null,
-          last_error: null,
-          webhook_token: null,
-          webhook_secret: null
-        }
-      ]
-    });
+    mockUseWorkflowTriggers.mockReturnValue(withData([registration()]));
 
     renderWithTheme(<TriggerActivationButton />);
-    await userEvent.click(screen.getByRole("button", { name: /trigger status/i }));
-
-    const region = await screen.findByRole("region", { name: /trigger status/i });
+    const region = await openPopover();
     const toggle = within(region).getByRole("switch", {
       name: "Workflow active"
     });
-    // Disabled but discoverable — a registration row exists even though it
-    // has never been enabled, so the toggle is interactive.
     expect(toggle).not.toBeChecked();
     expect(toggle).not.toBeDisabled();
 
     await userEvent.click(toggle);
-    expect(mockSetTriggerEnabledMutate).toHaveBeenCalledWith({
-      id: "reg-1",
-      enabled: true
-    });
+    await waitFor(() =>
+      expect(mockSetTriggerEnabledMutateAsync).toHaveBeenCalledWith({
+        id: "reg-1",
+        enabled: true
+      })
+    );
   });
 
   it("shows an active status and lets the user deactivate an armed trigger", async () => {
     mockNodeState.nodes = [
       { id: "n1", type: "nodetool.triggers.WebhookTrigger" }
     ];
-    mockUseWorkflowTriggers.mockReturnValue({
-      data: [
-        {
-          id: "reg-1",
-          workflow_id: "wf-1",
-          node_id: "n1",
+    mockUseWorkflowTriggers.mockReturnValue(
+      withData([
+        registration({
           kind: "webhook",
           enabled: true,
           last_fired_at: "2026-07-20T00:00:00.000Z",
-          last_error: null,
           webhook_token: "tok-1",
           webhook_secret: "sec-1"
-        }
-      ]
-    });
+        })
+      ])
+    );
 
     renderWithTheme(<TriggerActivationButton />);
-    await userEvent.click(screen.getByRole("button", { name: /trigger status/i }));
-
-    const region = await screen.findByRole("region", { name: /trigger status/i });
+    const region = await openPopover();
     const toggle = within(region).getByRole("switch", {
       name: "Workflow active"
     });
     expect(toggle).toBeChecked();
 
     await userEvent.click(toggle);
-    expect(mockSetTriggerEnabledMutate).toHaveBeenCalledWith({
-      id: "reg-1",
-      enabled: false
+    await waitFor(() =>
+      expect(mockSetTriggerEnabledMutateAsync).toHaveBeenCalledWith({
+        id: "reg-1",
+        enabled: false
+      })
+    );
+  });
+
+  describe("aggregate state across several registrations", () => {
+    beforeEach(() => {
+      mockNodeState.nodes = [
+        { id: "n1", type: "nodetool.triggers.WebhookTrigger" },
+        { id: "n2", type: "nodetool.triggers.IntervalTrigger" }
+      ];
+      mockUseWorkflowTriggers.mockReturnValue(
+        withData([
+          registration({
+            id: "reg-1",
+            node_id: "n1",
+            kind: "webhook",
+            enabled: true
+          }),
+          registration({
+            id: "reg-2",
+            node_id: "n2",
+            kind: "schedule",
+            enabled: false
+          })
+        ])
+      );
     });
+
+    it("does not claim 'Active' when only some registrations are armed", async () => {
+      renderWithTheme(<TriggerActivationButton />);
+      const region = await openPopover();
+      expect(within(region).getByText("Partly active")).toBeInTheDocument();
+      expect(
+        within(region).getByRole("switch", { name: "Workflow active" })
+      ).not.toBeChecked();
+    });
+
+    it("puts the mixed state in the toolbar button's accessible name", () => {
+      renderWithTheme(<TriggerActivationButton />);
+      expect(
+        screen.getByRole("button", { name: "Triggers: partly active" })
+      ).toBeInTheDocument();
+    });
+
+    it("arms only the registrations that are still off", async () => {
+      renderWithTheme(<TriggerActivationButton />);
+      const region = await openPopover();
+      await userEvent.click(
+        within(region).getByRole("switch", { name: "Workflow active" })
+      );
+      await waitFor(() =>
+        expect(mockSetTriggerEnabledMutateAsync).toHaveBeenCalledTimes(1)
+      );
+      expect(mockSetTriggerEnabledMutateAsync).toHaveBeenCalledWith({
+        id: "reg-2",
+        enabled: true
+      });
+    });
+
+    it("toggles one registration without touching the other", async () => {
+      renderWithTheme(<TriggerActivationButton />);
+      const region = await openPopover();
+      const scheduleRow = within(region).getByRole("group", {
+        name: "Schedule trigger n2"
+      });
+      await userEvent.click(
+        within(scheduleRow).getByRole("switch", { name: "Enabled" })
+      );
+      expect(mockSetTriggerEnabledMutate).toHaveBeenCalledTimes(1);
+      expect(mockSetTriggerEnabledMutate).toHaveBeenCalledWith({
+        id: "reg-2",
+        enabled: true
+      });
+    });
+  });
+
+  it("names the toolbar button after the armed state", () => {
+    mockNodeState.nodes = [
+      { id: "n1", type: "nodetool.triggers.ManualTrigger" }
+    ];
+    mockUseWorkflowTriggers.mockReturnValue(
+      withData([registration({ enabled: true })])
+    );
+    renderWithTheme(<TriggerActivationButton />);
+    expect(
+      screen.getByRole("button", { name: "Triggers: active" })
+    ).toBeInTheDocument();
   });
 
   it("fires an armed trigger via the Fire now button", async () => {
     mockNodeState.nodes = [
       { id: "n1", type: "nodetool.triggers.ManualTrigger" }
     ];
-    mockUseWorkflowTriggers.mockReturnValue({
-      data: [
-        {
-          id: "reg-1",
-          workflow_id: "wf-1",
-          node_id: "n1",
-          kind: "manual",
-          enabled: true,
-          last_fired_at: null,
-          last_error: null,
-          webhook_token: null,
-          webhook_secret: null
-        }
-      ]
-    });
+    mockUseWorkflowTriggers.mockReturnValue(
+      withData([registration({ enabled: true })])
+    );
 
     renderWithTheme(<TriggerActivationButton />);
-    await userEvent.click(screen.getByRole("button", { name: /trigger status/i }));
-
-    const region = await screen.findByRole("region", { name: /trigger status/i });
-    await userEvent.click(within(region).getByRole("button", { name: /fire now/i }));
+    const region = await openPopover();
+    await userEvent.click(
+      within(region).getByRole("button", { name: /fire now/i })
+    );
     expect(mockFireTriggerMutate).toHaveBeenCalledWith({
       registrationId: "reg-1"
     });
   });
 
-  it("disables Fire now for a registration that isn't enabled", async () => {
+  it("disables Fire now and the row switch when there is no registration yet", async () => {
     mockNodeState.nodes = [
       { id: "n1", type: "nodetool.triggers.ManualTrigger" }
     ];
-    mockUseWorkflowTriggers.mockReturnValue({
-      data: [
-        {
-          id: "reg-1",
-          workflow_id: "wf-1",
-          node_id: "n1",
-          kind: "manual",
-          enabled: false,
-          last_fired_at: null,
-          last_error: null,
-          webhook_token: null,
-          webhook_secret: null
-        }
-      ]
-    });
+    mockUseWorkflowTriggers.mockReturnValue(withData([]));
 
     renderWithTheme(<TriggerActivationButton />);
-    await userEvent.click(screen.getByRole("button", { name: /trigger status/i }));
-
-    const region = await screen.findByRole("region", { name: /trigger status/i });
+    const region = await openPopover();
     expect(
       within(region).getByRole("button", { name: /fire now/i })
+    ).toBeDisabled();
+    expect(
+      within(region).getByRole("switch", { name: "Enabled" })
     ).toBeDisabled();
   });
 
@@ -220,56 +336,95 @@ describe("TriggerActivationButton", () => {
     mockNodeState.nodes = [
       { id: "n1", type: "nodetool.triggers.IntervalTrigger" }
     ];
-    mockUseWorkflowTriggers.mockReturnValue({
-      data: [
-        {
-          id: "reg-1",
-          workflow_id: "wf-1",
-          node_id: "n1",
+    mockUseWorkflowTriggers.mockReturnValue(
+      withData([
+        registration({
           kind: "schedule",
           enabled: true,
-          last_fired_at: null,
-          last_error: "connection refused",
-          webhook_token: null,
-          webhook_secret: null
-        }
-      ]
-    });
+          last_error: "connection refused"
+        })
+      ])
+    );
 
     renderWithTheme(<TriggerActivationButton />);
-    await userEvent.click(screen.getByRole("button", { name: /trigger status/i }));
+    // Checked before opening: the popover is a modal, so it hides the rest of
+    // the tree from the accessibility API.
+    expect(
+      screen.getByRole("button", { name: "Triggers: active, last run failed" })
+    ).toBeInTheDocument();
+    const region = await openPopover();
+    expect(within(region).getByText(/connection refused/i)).toBeInTheDocument();
+  });
 
-    expect(await screen.findByText(/connection refused/i)).toBeInTheDocument();
+  describe("schedule cadence", () => {
+    beforeEach(() => {
+      mockNodeState.nodes = [
+        { id: "n1", type: "nodetool.triggers.IntervalTrigger" }
+      ];
+      jest.useFakeTimers().setSystemTime(Date.parse("2026-07-26T12:00:00.000Z"));
+    });
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it("shows the interval and the countdown to the next fire", async () => {
+      mockUseWorkflowTriggers.mockReturnValue(
+        withData([
+          registration({
+            kind: "schedule",
+            enabled: true,
+            interval_seconds: 300,
+            next_fire_at: "2026-07-26T12:04:00.000Z"
+          })
+        ])
+      );
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      renderWithTheme(<TriggerActivationButton />);
+      await user.click(screen.getByRole("button", { name: /^triggers:/i }));
+      const region = await screen.findByRole("region", {
+        name: /trigger status/i
+      });
+      expect(
+        within(region).getByText("Runs every 5m — next in 4m")
+      ).toBeInTheDocument();
+    });
+
+    it("shows nothing rather than 'Invalid Date' when the server omits the fields", async () => {
+      mockUseWorkflowTriggers.mockReturnValue(
+        withData([registration({ kind: "schedule", enabled: true })])
+      );
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      renderWithTheme(<TriggerActivationButton />);
+      await user.click(screen.getByRole("button", { name: /^triggers:/i }));
+      const region = await screen.findByRole("region", {
+        name: /trigger status/i
+      });
+      expect(within(region).queryByText(/runs every/i)).toBeNull();
+      expect(within(region).queryByText(/invalid date/i)).toBeNull();
+      expect(within(region).getByText("Last fired: Never")).toBeInTheDocument();
+    });
   });
 
   it("shows the webhook delivery URL, masks the secret, and reveals it on demand", async () => {
     mockNodeState.nodes = [
       { id: "n1", type: "nodetool.triggers.WebhookTrigger" }
     ];
-    mockUseWorkflowTriggers.mockReturnValue({
-      data: [
-        {
-          id: "reg-1",
-          workflow_id: "wf-1",
-          node_id: "n1",
+    mockUseWorkflowTriggers.mockReturnValue(
+      withData([
+        registration({
           kind: "webhook",
           enabled: true,
-          last_fired_at: null,
-          last_error: null,
           webhook_token: "tok-1",
           webhook_secret: "sec-1"
-        }
-      ]
-    });
+        })
+      ])
+    );
 
     renderWithTheme(<TriggerActivationButton />);
-    await userEvent.click(screen.getByRole("button", { name: /trigger status/i }));
-
-    const region = await screen.findByRole("region", { name: /trigger status/i });
-    const urlInput = within(region).getByDisplayValue(
-      `${window.location.origin}/api/webhooks/tok-1`
-    ) as HTMLInputElement;
-    expect(urlInput).toBeInTheDocument();
+    const region = await openPopover();
+    expect(
+      within(region).getByDisplayValue(/\/api\/webhooks\/tok-1$/)
+    ).toBeInTheDocument();
 
     const secretInput = within(region).getByDisplayValue(
       "sec-1"

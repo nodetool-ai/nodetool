@@ -619,7 +619,9 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         </Tooltip>
       )}
 
-      {!isMobile && <TriggerActivationButton />}
+      {/* Shown at every width: arming and disarming a trigger is the whole
+          point of the feature, and a phone browser needs it too. */}
+      <TriggerActivationButton />
 
       <Tooltip
         title="Workflow actions"

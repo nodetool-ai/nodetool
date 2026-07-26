@@ -39,9 +39,17 @@
  * delivery. Dropping an event is worse than repeating one, and marking first
  * would turn any crash before acceptance into a silently lost event.
  *
- * `last_fired_at` is intentionally *not* written here: the scheduler owns that
- * column as its due-computation cursor (`scheduler.ts`), and moving it at
- * dispatch time would shift the schedule.
+ * ## Who writes `last_fired_at`
+ *
+ * For `schedule` registrations the column is the scheduler's due-computation
+ * cursor (`scheduler.ts`): it is stamped the moment the tick is delivered, and
+ * moving it again at dispatch time would shift the schedule. So the dispatcher
+ * leaves schedule rows alone.
+ *
+ * Every other kind has no such owner, and leaving the column untouched made a
+ * webhook that had been delivering all week still report "Never" in the editor.
+ * For those kinds the dispatcher stamps it on a delivered dispatch — the same
+ * write that records the run's outcome in `last_error`.
  */
 
 import { createLogger } from "@nodetool-ai/config";
@@ -59,6 +67,7 @@ import {
   type HeadlessJobStatus,
   type StartHeadlessJobOptions
 } from "../headless-job-runner.js";
+import { SCHEDULE_KIND } from "./schedule-timing.js";
 
 // Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
 const log = createLogger("nodetool.websocket.triggers.dispatcher");
@@ -392,14 +401,12 @@ export class TriggerDispatcher {
     // Accepted — mark processed only now (see the crash-window note above).
     await this.store.markProcessed(input.inputId);
 
-    if (job.status === "failed") {
-      await this.recordError(
-        registration,
-        `run failed: ${job.error ?? "unknown error"}`
-      );
-    } else {
-      await this.clearError(registration);
-    }
+    await this.recordDelivered(
+      registration,
+      job.status === "failed"
+        ? `run failed: ${job.error ?? "unknown error"}`
+        : null
+    );
 
     log.info("Trigger input dispatched", {
       inputId: input.inputId,
@@ -447,9 +454,22 @@ export class TriggerDispatcher {
     await registration.save();
   }
 
-  private async clearError(registration: TriggerRegistration): Promise<void> {
-    if (registration.last_error === null) return;
-    registration.last_error = null;
+  /**
+   * Record the outcome of a delivered event: the run's error (or `null` to
+   * clear a stale one) plus, for every kind the scheduler does not own, the
+   * fire time the editor shows as "Last fired".
+   */
+  private async recordDelivered(
+    registration: TriggerRegistration,
+    error: string | null
+  ): Promise<void> {
+    const stampsFiredAt = registration.kind !== SCHEDULE_KIND;
+    if (!stampsFiredAt && registration.last_error === error) return;
+
+    if (stampsFiredAt) {
+      registration.last_fired_at = new Date().toISOString();
+    }
+    registration.last_error = error;
     await registration.save();
   }
 }

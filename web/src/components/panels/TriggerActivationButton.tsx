@@ -3,9 +3,10 @@
  * Editor toolbar control for arming a workflow's trigger nodes.
  *
  * Renders nothing for a workflow whose graph has no trigger nodes. For a
- * workflow that does, it shows an Active/Inactive toggle plus a per-trigger
- * status row (kind, last fired, last error, "Fire now") and, for a webhook
- * trigger, its delivery URL and shared secret.
+ * workflow that does, it shows an aggregate Active/Partly active/Inactive
+ * toggle plus a per-trigger row (kind, its own enable switch, schedule, last
+ * fired, last error, "Fire now") and, for a webhook trigger, its delivery URL
+ * and shared secret.
  *
  * Backed by `triggers.listByWorkflow`
  * (`packages/websocket/src/trpc/routers/triggers.ts`), which returns every
@@ -29,7 +30,8 @@ import {
   TextInput,
   CopyButton,
   SPACING,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  getSpacingPx
 } from "../ui_primitives";
 import BoltIcon from "@mui/icons-material/Bolt";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -46,17 +48,71 @@ import {
   TRIGGER_KIND_BY_NODE_TYPE,
   isTriggerNodeType
 } from "../../utils/triggerNodeTypes";
+import { formatSchedule } from "../../utils/triggerSchedule";
+
+/** Stable empty fallback, so a pending query doesn't hand every render a new
+ * array identity and re-create the callbacks that close over it. */
+const NO_REGISTRATIONS: readonly TriggerRegistrationStatus[] = [];
 
 interface TriggerNodeSummary {
   nodeId: string;
   kind: string;
 }
 
+/** Aggregate of every registration behind the workflow-level switch. */
+type ActivationState =
+  | "loading"
+  | "error"
+  | "unregistered"
+  | "inactive"
+  | "mixed"
+  | "active";
+
+const KIND_LABELS: Readonly<Record<string, string>> = {
+  webhook: "Webhook",
+  schedule: "Schedule",
+  file_watch: "File watch",
+  manual: "Manual"
+};
+
+const kindLabel = (kind: string): string => KIND_LABELS[kind] ?? kind;
+
 const formatLastFired = (iso: string | null): string => {
   if (!iso) return "Never";
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
   return date.toLocaleString();
+};
+
+/** Text on the workflow-level switch — honest about what we actually know. */
+const SWITCH_DESCRIPTIONS: Readonly<Record<ActivationState, string>> = {
+  loading: "Checking trigger status…",
+  error: "Could not load trigger status. Check your connection and retry.",
+  unregistered:
+    "Save the workflow first — activation needs a saved trigger registration.",
+  inactive: "Listens for events and starts a run per event.",
+  mixed: "Some triggers are armed. Turn this on to arm the rest.",
+  active: "Listens for events and starts a run per event."
+};
+
+const STATUS_LABELS: Readonly<Record<ActivationState, string>> = {
+  loading: "Loading",
+  error: "Unavailable",
+  unregistered: "Not registered",
+  inactive: "Inactive",
+  mixed: "Partly active",
+  active: "Active"
+};
+
+const STATUS_KINDS: Readonly<
+  Record<ActivationState, "success" | "error" | "warning" | "pending" | "default">
+> = {
+  loading: "pending",
+  error: "error",
+  unregistered: "default",
+  inactive: "default",
+  mixed: "warning",
+  active: "success"
 };
 
 interface WebhookDeliveryDetailsProps {
@@ -128,9 +184,12 @@ const TriggerActivationButton: React.FC = () => {
   );
   const hasTriggerNodes = triggerNodes.length > 0;
 
-  const { data: registrations = [] } = useWorkflowTriggers(workflowId, {
-    enabled: hasTriggerNodes
-  });
+  const {
+    data: registrations,
+    isLoading,
+    isError
+  } = useWorkflowTriggers(workflowId, { enabled: hasTriggerNodes });
+  const rows = registrations ?? NO_REGISTRATIONS;
   const setTriggerEnabled = useSetTriggerEnabled(workflowId);
   const fireTrigger = useFireTrigger(workflowId);
 
@@ -141,18 +200,45 @@ const TriggerActivationButton: React.FC = () => {
   );
   const handleClose = useCallback(() => setAnchorEl(null), []);
 
-  const isActive = registrations.some((r) => r.enabled);
-  const canToggle = registrations.length > 0;
+  const enabledCount = rows.filter((r) => r.enabled).length;
+  const state: ActivationState = isLoading
+    ? "loading"
+    : isError
+      ? "error"
+      : rows.length === 0
+        ? "unregistered"
+        : enabledCount === 0
+          ? "inactive"
+          : enabledCount === rows.length
+            ? "active"
+            : "mixed";
+  const hasError = rows.some((r) => r.last_error);
+  const canToggle = state !== "loading" && state !== "error" && rows.length > 0;
 
   const handleToggle = useCallback(
-    (nextActive: boolean) => {
-      for (const reg of registrations) {
-        if (reg.enabled !== nextActive) {
-          setTriggerEnabled.mutate({ id: reg.id, enabled: nextActive });
+    async (nextActive: boolean) => {
+      // Sequential, not a parallel fan-out: each call invalidates the same
+      // query key, and a failure part-way through must not stop the rest.
+      for (const reg of rows.filter((r) => r.enabled !== nextActive)) {
+        try {
+          await setTriggerEnabled.mutateAsync({
+            id: reg.id,
+            enabled: nextActive
+          });
+        } catch {
+          // The mutation's onError already told the user. Keep going so one
+          // rejected registration doesn't strand the others.
         }
       }
     },
-    [registrations, setTriggerEnabled]
+    [rows, setTriggerEnabled]
+  );
+
+  const handleRowToggle = useCallback(
+    (registrationId: string, nextEnabled: boolean) => {
+      setTriggerEnabled.mutate({ id: registrationId, enabled: nextEnabled });
+    },
+    [setTriggerEnabled]
   );
 
   const handleFire = useCallback(
@@ -166,14 +252,22 @@ const TriggerActivationButton: React.FC = () => {
     return null;
   }
 
+  const buttonState =
+    hasError && (state === "active" || state === "mixed")
+      ? `${STATUS_LABELS[state].toLowerCase()}, last run failed`
+      : STATUS_LABELS[state].toLowerCase();
+  const buttonLabel = `Triggers: ${buttonState}`;
+
   return (
     <>
       <ToolbarIconButton
         className="composer-action"
         icon={<BoltIcon />}
-        tooltip={isActive ? "Trigger active" : "Trigger inactive"}
+        tooltip={buttonLabel}
         onClick={handleOpen}
-        ariaLabel="Trigger status"
+        active={state === "active" || state === "mixed"}
+        variant={hasError || state === "error" ? "error" : "default"}
+        ariaLabel={buttonLabel}
       />
       <Popover
         open={Boolean(anchorEl)}
@@ -184,28 +278,30 @@ const TriggerActivationButton: React.FC = () => {
         <FlexColumn
           gap={SPACING.lg}
           padding={SPACING.xl}
-          sx={{ width: "360px" }}
+          sx={{
+            // Full 360px on a desktop toolbar; inset by one panel gutter on a
+            // phone, where the popover would otherwise overflow the viewport.
+            width: `min(360px, calc(100vw - ${getSpacingPx(SPACING.xxxl)}))`
+          }}
           role="region"
           aria-label="Trigger status"
         >
           <FlexRow justify="space-between" align="center">
             <Text size="big">Triggers</Text>
             <StatusIndicator
-              status={isActive ? "success" : "default"}
-              label={isActive ? "Active" : "Inactive"}
+              status={STATUS_KINDS[state]}
+              label={STATUS_LABELS[state]}
               size="small"
             />
           </FlexRow>
 
           <LabeledSwitch
             label="Workflow active"
-            description={
-              canToggle
-                ? "Listens for events and starts a run per event."
-                : "Save the workflow first — activation needs a saved trigger registration."
-            }
-            checked={isActive}
-            onChange={handleToggle}
+            description={SWITCH_DESCRIPTIONS[state]}
+            checked={state === "active"}
+            onChange={(next) => {
+              void handleToggle(next);
+            }}
             disabled={!canToggle}
             id="trigger-activation-switch"
           />
@@ -214,26 +310,52 @@ const TriggerActivationButton: React.FC = () => {
 
           <FlexColumn gap={SPACING.md}>
             {triggerNodes.map(({ nodeId, kind }) => {
-              const reg: TriggerRegistrationStatus | undefined =
-                registrations.find((r) => r.node_id === nodeId);
+              const reg: TriggerRegistrationStatus | undefined = rows.find(
+                (r) => r.node_id === nodeId
+              );
+              const schedule =
+                kind === "schedule"
+                  ? formatSchedule(reg?.interval_seconds, reg?.next_fire_at)
+                  : null;
               return (
                 <FlexColumn
                   key={nodeId}
                   gap={SPACING.xs}
+                  role="group"
+                  aria-label={`${kindLabel(kind)} trigger ${nodeId}`}
                   sx={{
                     borderRadius: BORDER_RADIUS.md,
                     padding: SPACING.md
                   }}
                 >
                   <FlexRow justify="space-between" align="center">
-                    <Label>{kind}</Label>
+                    <Label>{kindLabel(kind)}</Label>
                     <StatusIndicator
                       status={reg?.enabled ? "success" : "pending"}
                       label={reg?.enabled ? "Active" : "Inactive"}
                       size="small"
                     />
                   </FlexRow>
-                  <Caption>Last fired: {formatLastFired(reg?.last_fired_at ?? null)}</Caption>
+                  <LabeledSwitch
+                    size="small"
+                    label="Enabled"
+                    checked={Boolean(reg?.enabled)}
+                    disabled={!reg}
+                    onChange={(next) => reg && handleRowToggle(reg.id, next)}
+                    id={`trigger-enabled-${nodeId}`}
+                  />
+                  {isLoading && <Caption>Checking status…</Caption>}
+                  {isError && (
+                    <Caption color="error">
+                      Could not load trigger status.
+                    </Caption>
+                  )}
+                  {schedule && <Caption>{schedule}</Caption>}
+                  {!isLoading && !isError && (
+                    <Caption>
+                      Last fired: {formatLastFired(reg?.last_fired_at ?? null)}
+                    </Caption>
+                  )}
                   {reg?.last_error && (
                     <Caption color="error">Last error: {reg.last_error}</Caption>
                   )}

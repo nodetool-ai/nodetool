@@ -64,6 +64,7 @@ describe('linking', () => {
       'Assets',
       'AssetViewer',
       'Jobs',
+      'Triggers',
       'JobDetail',
       'Collections',
       'Settings',

@@ -22,6 +22,7 @@ import SecretsScreen from './src/screens/SecretsScreen';
 import CollectionsScreen from './src/screens/CollectionsScreen';
 import JobsScreen from './src/screens/JobsScreen';
 import JobDetailScreen from './src/screens/JobDetailScreen';
+import TriggersScreen from './src/screens/TriggersScreen';
 import ThreadsScreen from './src/screens/ThreadsScreen';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { OfflineBanner } from './src/components/OfflineBanner';
@@ -195,6 +196,11 @@ export default function App() {
                   name="Jobs"
                   component={JobsScreen}
                   options={{ title: 'Jobs' }}
+                />
+                <Stack.Screen
+                  name="Triggers"
+                  component={TriggersScreen}
+                  options={{ title: 'Triggers' }}
                 />
                 <Stack.Screen
                   name="JobDetail"

@@ -6,8 +6,6 @@ import type {
 } from "@nodetool-ai/node-sdk";
 import * as fs from "fs";
 import * as path from "path";
-import * as http from "http";
-import { URL } from "url";
 import {
   FileWatchDebouncer,
   shouldEmitFileWatchEvent
@@ -19,7 +17,9 @@ const MIN_WAIT_SECONDS = 0.001;
 
 /** View a trigger-event payload as a record; non-objects yield {}. */
 function payloadRecord(payload: unknown): Record<string, unknown> {
-  return payload !== null && typeof payload === "object" && !Array.isArray(payload)
+  return payload !== null &&
+    typeof payload === "object" &&
+    !Array.isArray(payload)
     ? (payload as Record<string, unknown>)
     : {};
 }
@@ -34,7 +34,7 @@ function numberOr(value: unknown, fallback: number): number {
 
 /**
  * Async queue used by trigger nodes to receive events from external sources
- * (HTTP handlers, file watchers, etc.) and yield them in genProcess().
+ * (file watchers, etc.) and yield them in genProcess().
  */
 class AsyncQueue<T> {
   private _buffer: T[] = [];
@@ -175,7 +175,8 @@ export class ManualTriggerNode extends BaseNode {
     type: "int",
     default: 0,
     title: "Max Events",
-    description: "Maximum number of events to process (0 = unlimited)",
+    description:
+      "Events to process before the node stops listening (0 = unlimited). Applies only while the node listens in a running workflow; a fired trigger starts its own run and emits exactly one event.",
     min: 0
   })
   declare max_events: any;
@@ -184,7 +185,7 @@ export class ManualTriggerNode extends BaseNode {
     type: "str",
     default: "manual_trigger",
     title: "Name",
-    description: "Name for this trigger (used in API calls)"
+    description: "Name for this trigger, emitted on the source output"
   })
   declare name: any;
 
@@ -192,7 +193,8 @@ export class ManualTriggerNode extends BaseNode {
     type: "float",
     default: null,
     title: "Timeout Seconds",
-    description: "Timeout waiting for events (None = wait forever)",
+    description:
+      "How long to wait for the next event before stopping (empty = wait forever). Applies only while the node listens in a running workflow.",
     min: 0
   })
   declare timeout_seconds: any;
@@ -292,7 +294,7 @@ export class IntervalTriggerNode extends BaseNode {
     "    - Periodic data collection or polling\n" +
     "    - Scheduled batch processing\n" +
     "    - Heartbeat or time-based automation";
-  static readonly inlineFields = [];
+  static readonly inlineFields = ["interval_seconds"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     tick: "int",
@@ -309,7 +311,8 @@ export class IntervalTriggerNode extends BaseNode {
     type: "int",
     default: 0,
     title: "Max Events",
-    description: "Maximum number of events to process (0 = unlimited)",
+    description:
+      "Ticks to emit before the node stops (0 = unlimited). Applies only while the node runs in the editor; the scheduler keeps firing an activated trigger regardless.",
     min: 0
   })
   declare max_events: any;
@@ -436,20 +439,24 @@ export class IntervalTriggerNode extends BaseNode {
 }
 
 // ---------------------------------------------------------------------------
-// WebhookTriggerNode — starts an HTTP server and yields on each request
+// WebhookTriggerNode — emits the event delivered by the server webhook route
 // ---------------------------------------------------------------------------
 
 export class WebhookTriggerNode extends BaseNode {
   static readonly nodeType = "nodetool.triggers.WebhookTrigger";
   static readonly title = "Webhook Trigger";
   static readonly description =
-    "Start an HTTP server and emit each incoming webhook request as an event.\n" +
-    "    trigger, webhook, http, server, api, request, integration\n\n" +
+    "Run the workflow whenever an HTTP request arrives at its webhook URL.\n" +
+    "    trigger, webhook, http, api, request, integration\n\n" +
     "    Use cases:\n" +
     "    - Receive notifications from external services\n" +
     "    - Build API endpoints that trigger workflows\n" +
-    "    - Integrate with third-party webhook providers";
-  static readonly inlineFields = ["path"];
+    "    - Integrate with third-party webhook providers\n\n" +
+    "    The node has nothing to configure: activating the workflow creates the\n" +
+    "    registration that owns the delivery URL and the shared secret. Both are\n" +
+    "    shown in the workflow's trigger panel; send the secret in the\n" +
+    "    x-webhook-secret header.";
+  static readonly inlineFields = [];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     body: "any",
@@ -463,59 +470,6 @@ export class WebhookTriggerNode extends BaseNode {
   };
 
   static readonly isTrigger = true;
-
-  @prop({
-    type: "int",
-    default: 0,
-    title: "Max Events",
-    description: "Maximum number of events to process (0 = unlimited)",
-    min: 0
-  })
-  declare max_events: any;
-
-  @prop({
-    type: "int",
-    default: 8080,
-    title: "Port",
-    description: "Port to listen on for webhook requests",
-    min: 1,
-    max: 65535
-  })
-  declare port: any;
-
-  @prop({
-    type: "str",
-    default: "/webhook",
-    title: "Path",
-    description: "URL path to listen on"
-  })
-  declare path: any;
-
-  @prop({
-    type: "str",
-    default: "127.0.0.1",
-    title: "Host",
-    description:
-      "Host address to bind to. Use '0.0.0.0' to listen on all interfaces."
-  })
-  declare host: any;
-
-  @prop({
-    type: "list[str]",
-    default: ["POST"],
-    title: "Methods",
-    description: "HTTP methods to accept"
-  })
-  declare methods: any;
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "Secret",
-    description:
-      "Optional secret for validating requests (checks X-Webhook-Secret header)"
-  })
-  declare secret: any;
 
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -537,112 +491,13 @@ export class WebhookTriggerNode extends BaseNode {
     await outputs.emit("headers", payloadRecord(p.headers));
     await outputs.emit("query", payloadRecord(p.query));
     await outputs.emit("method", stringOr(p.method, "POST"));
-    await outputs.emit(
-      "path",
-      stringOr(p.path, String(this.path ?? "/webhook"))
-    );
+    await outputs.emit("path", stringOr(p.path, ""));
     await outputs.emit(
       "timestamp",
       stringOr(p.timestamp, new Date().toISOString())
     );
     await outputs.emit("source", stringOr(p.source, "webhook"));
     await outputs.emit("event_type", "webhook");
-  }
-
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
-    const port = Number(this.port ?? 8080);
-    const webhookPath = String(this.path ?? "/webhook");
-    const host = String(this.host ?? "127.0.0.1");
-    const allowedMethods = (
-      Array.isArray(this.methods) ? this.methods : ["POST"]
-    ).map((m: string) => m.toUpperCase());
-    const secret = String(this.secret ?? "");
-    const maxEvents = Number(this.max_events ?? 0);
-
-    const queue = new AsyncQueue<Record<string, unknown>>();
-
-    const server = http.createServer(async (req, res) => {
-      const reqUrl = new URL(req.url ?? "/", `http://${host}:${port}`);
-
-      if (reqUrl.pathname !== webhookPath) {
-        res.writeHead(404, { "Content-Type": "text/plain" });
-        res.end("Not Found");
-        return;
-      }
-
-      const method = (req.method ?? "GET").toUpperCase();
-      if (!allowedMethods.includes(method)) {
-        res.writeHead(405, { "Content-Type": "text/plain" });
-        res.end(`Method ${method} not allowed`);
-        return;
-      }
-
-      if (secret) {
-        const provided = req.headers["x-webhook-secret"] ?? "";
-        if (provided !== secret) {
-          res.writeHead(401, { "Content-Type": "text/plain" });
-          res.end("Invalid secret");
-          return;
-        }
-      }
-
-      const chunks: Buffer[] = [];
-      for await (const chunk of req) {
-        chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
-      }
-      const rawBody = Buffer.concat(chunks).toString("utf-8");
-
-      let body: unknown = rawBody;
-      const contentType = req.headers["content-type"] ?? "";
-      if (contentType.includes("application/json")) {
-        try {
-          body = JSON.parse(rawBody);
-        } catch {
-          // keep raw string
-        }
-      }
-
-      const query: Record<string, string> = {};
-      reqUrl.searchParams.forEach((v, k) => {
-        query[k] = v;
-      });
-
-      queue.push({
-        body,
-        headers: { ...req.headers },
-        query,
-        method,
-        path: reqUrl.pathname,
-        timestamp: new Date().toISOString(),
-        source: req.socket.remoteAddress ?? "",
-        event_type: "webhook"
-      });
-
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ status: "accepted" }));
-    });
-
-    await new Promise<void>((resolve, reject) => {
-      server.on("error", reject);
-      server.listen(port, host, () => resolve());
-    });
-
-    let eventsProcessed = 0;
-    try {
-      while (true) {
-        const event = await queue.get();
-        if (event === null) break;
-
-        yield event;
-
-        eventsProcessed++;
-        if (maxEvents > 0 && eventsProcessed >= maxEvents) break;
-      }
-    } finally {
-      await new Promise<void>((resolve) => {
-        server.close(() => resolve());
-      });
-    }
   }
 }
 
@@ -676,7 +531,8 @@ export class FileWatchTriggerNode extends BaseNode {
     type: "int",
     default: 0,
     title: "Max Events",
-    description: "Maximum number of events to process (0 = unlimited)",
+    description:
+      "File events to emit before the node stops (0 = unlimited). Applies only while the node runs in the editor; the file-watch adapter keeps firing an activated trigger regardless.",
     min: 0
   })
   declare max_events: any;

@@ -52,6 +52,25 @@ describe("isTrigger flag", () => {
   });
 });
 
+describe("WebhookTriggerNode configuration", () => {
+  it("exposes no properties — the URL and secret belong to the registration", () => {
+    // The delivery URL (`POST /api/webhooks/:token`) and the `x-webhook-secret`
+    // value are generated per registration by the server. Node-level port /
+    // host / path / methods / secret props would be a second, dead source of
+    // truth for the same two facts.
+    expect(new WebhookTriggerNode({}).serialize()).toEqual({});
+  });
+
+  it("does not override genProcess with its own HTTP server", () => {
+    expect(
+      Object.getOwnPropertyDescriptor(
+        WebhookTriggerNode.prototype,
+        "genProcess"
+      )
+    ).toBeUndefined();
+  });
+});
+
 describe("WebhookTriggerNode.emitTriggerEvent", () => {
   it("maps a webhook payload onto body/headers/query/method/path slots", async () => {
     const node = new WebhookTriggerNode({});
@@ -201,8 +220,10 @@ describe("emitTriggerEvent emits only declared output slots", () => {
       await make().emitTriggerEvent(event("n", payload), outputs);
       const declared = Object.keys(cls.metadataOutputTypes ?? {});
       for (const slot of emitted.keys()) {
-        expect(declared, `${cls.nodeType} emitted undeclared slot "${slot}"`)
-          .toContain(slot);
+        expect(
+          declared,
+          `${cls.nodeType} emitted undeclared slot "${slot}"`
+        ).toContain(slot);
       }
       expect(emitted.has("bogus_slot")).toBe(false);
     });
