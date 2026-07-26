@@ -294,21 +294,21 @@ const aggregators: ProviderEntry[] = [
     byokEnv: "ATLASCLOUD_API_KEY",
     accent: "amber",
     tagline:
-      "Run AtlasCloud's image and video models in a visual AI workflow — Seedance, GPT-Image and more, called with your own key at AtlasCloud's price.",
+      "Run AtlasCloud's chat, image and video models in a visual AI workflow — DeepSeek, Seedance, GPT-Image and more, called with your own key at AtlasCloud's price.",
     blurb: [
-      "AtlasCloud serves image and video generation models through a single API. NodeTool exposes each AtlasCloud model as a node you can compose with the rest of your graph.",
+      "AtlasCloud serves chat, image and video models through a single API. NodeTool exposes each image and video model as a node, and AtlasCloud's LLMs appear in the regular model picker alongside every other chat provider.",
       "Wire an AtlasCloud image model into a video model, add an upscaler, and you have a repeatable pipeline you can re-run and share. Swapping AtlasCloud for another provider is a single node change.",
       "AtlasCloud is BYOK: NodeTool calls it with your `ATLASCLOUD_API_KEY` at their list price. The catalog below comes from AtlasCloud's node manifest.",
     ],
-    strengths: ["Image", "Video"],
+    strengths: ["Chat", "Image", "Video"],
     faq: [
       {
         q: "How do I use AtlasCloud in NodeTool?",
-        a: "Store your key as `ATLASCLOUD_API_KEY` in NodeTool settings. AtlasCloud nodes then call the API directly.",
+        a: "Store your key as `ATLASCLOUD_API_KEY` in NodeTool settings. AtlasCloud nodes then call the API directly, and its chat models show up in the model picker.",
       },
       {
         q: "Which AtlasCloud models are supported?",
-        a: "The image and video models in AtlasCloud's node manifest, each a separate node. See the catalog below.",
+        a: "Every chat model AtlasCloud lists on its OpenAI-compatible endpoint, plus the image and video models in AtlasCloud's node manifest. See the catalog below.",
       },
       {
         q: "Does NodeTool add a markup?",
