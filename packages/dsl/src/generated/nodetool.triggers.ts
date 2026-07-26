@@ -60,12 +60,6 @@ export function intervalTrigger(inputs: IntervalTriggerInputs): DslNode<Interval
 
 // Webhook Trigger — nodetool.triggers.WebhookTrigger
 export interface WebhookTriggerInputs {
-  max_events?: Connectable<number>;
-  port?: Connectable<number>;
-  path?: Connectable<string>;
-  host?: Connectable<string>;
-  methods?: Connectable<string[]>;
-  secret?: Connectable<string>;
 }
 
 export interface WebhookTriggerOutputs {
@@ -79,8 +73,8 @@ export interface WebhookTriggerOutputs {
   event_type: string;
 }
 
-export function webhookTrigger(inputs: WebhookTriggerInputs): DslNode<WebhookTriggerOutputs> {
-  return createNode("nodetool.triggers.WebhookTrigger", inputs as Record<string, unknown>, { outputNames: ["body", "headers", "query", "method", "path", "timestamp", "source", "event_type"], streaming: true });
+export function webhookTrigger(inputs?: WebhookTriggerInputs): DslNode<WebhookTriggerOutputs> {
+  return createNode("nodetool.triggers.WebhookTrigger", (inputs ?? {}) as Record<string, unknown>, { outputNames: ["body", "headers", "query", "method", "path", "timestamp", "source", "event_type"] });
 }
 
 // File Watch Trigger — nodetool.triggers.FileWatchTrigger
