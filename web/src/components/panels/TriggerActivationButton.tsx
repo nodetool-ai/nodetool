@@ -50,6 +50,10 @@ import {
 } from "../../utils/triggerNodeTypes";
 import { formatSchedule } from "../../utils/triggerSchedule";
 
+/** Stable empty fallback, so a pending query doesn't hand every render a new
+ * array identity and re-create the callbacks that close over it. */
+const NO_REGISTRATIONS: readonly TriggerRegistrationStatus[] = [];
+
 interface TriggerNodeSummary {
   nodeId: string;
   kind: string;
@@ -185,7 +189,7 @@ const TriggerActivationButton: React.FC = () => {
     isLoading,
     isError
   } = useWorkflowTriggers(workflowId, { enabled: hasTriggerNodes });
-  const rows = registrations ?? [];
+  const rows = registrations ?? NO_REGISTRATIONS;
   const setTriggerEnabled = useSetTriggerEnabled(workflowId);
   const fireTrigger = useFireTrigger(workflowId);
 
