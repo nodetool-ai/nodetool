@@ -1,7 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
 import { useNodeFocus } from "../useNodeFocus";
 import { useNodeFocusStore } from "../../stores/NodeFocusStore";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 
 jest.mock("../../contexts/NodeContext");
 jest.mock("../../stores/NodeFocusStore");
@@ -40,6 +40,9 @@ describe("useNodeFocus", () => {
         });
       }
       return { nodes: mockNodes, setSelectedNodes: mockSetSelectedNodes };
+    });
+    (useNodeStoreRef as jest.Mock).mockReturnValue({
+      getState: () => ({ nodes: mockNodes }),
     });
     (useNodeFocusStore as any).mockImplementation((selector: any) => {
       if (typeof selector === "function") {

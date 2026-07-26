@@ -342,7 +342,7 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     toggleMiniMap();
   }, [toggleMiniMap]);
 
-  return {
+  return useMemo(() => ({
     handleRun,
     handleStop,
     handlePause,
@@ -360,5 +360,23 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     isSuspended,
     queuePosition,
     pendingRunCount
-  };
+  }), [
+    handleRun,
+    handleStop,
+    handlePause,
+    handleResume,
+    handleSave,
+    handleDownload,
+    handleAutoLayout,
+    handleRunAsApp,
+    handleEditWorkflow,
+    handleToggleNodeMenu,
+    handleToggleTrace,
+    handleToggleMiniMap,
+    isWorkflowRunning,
+    isPaused,
+    isSuspended,
+    queuePosition,
+    pendingRunCount
+  ]);
 };
