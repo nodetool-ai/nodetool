@@ -193,9 +193,16 @@ const safeParse = (value: string): unknown => {
 export function parseAppSpec(
   appDoc: unknown,
   io: AppIO,
-  context?: AppContext
+  context?: AppContext,
+  /**
+   * The document the target loader already parsed. Passed in so an application
+   * or bundle target is not re-parsed as if it were a `workflow.app_doc` —
+   * `appDoc` stays the raw stored value, which is what the persist-downgrade
+   * check needs to see.
+   */
+  preparsed?: { document: ApplicationDocument | null; issue: string | null }
 ): { spec: AppSpec | null; issues: string[]; warnings: string[] } {
-  const { document, issue } = parseAppDocument(appDoc);
+  const { document, issue } = preparsed ?? parseAppDocument(appDoc);
   if (!document) return { spec: null, issues: [issue ?? ""], warnings: [] };
 
   const issues: string[] = [];

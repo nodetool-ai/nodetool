@@ -9,23 +9,31 @@
 
 import { z } from "zod";
 import {
+  applyBundle,
+  bundleFromApplication,
   createEmptyDocument,
+  parseApplicationBundle,
   parseApplicationDocument,
-  type ApplicationDocument
+  type ApplicationDocument,
+  type BundleWorkflowSource
 } from "@nodetool-ai/app-runtime";
 import {
   Application,
   Workflow,
+  createTimeOrderedUuid,
   releasedApplicationRelease
 } from "@nodetool-ai/models";
 import {
+  applicationBundle,
   applicationReleaseResponse,
   applicationResponse,
   patchApplicationInput,
+  type ApplicationBundleSchema,
   type ApplicationListItem,
   type ApplicationReleaseResponse,
   type ApplicationResponse,
-  type CreateApplicationInput
+  type CreateApplicationInput,
+  type ImportApplicationBundleInput
 } from "@nodetool-ai/protocol/api-schemas/applications.js";
 import { ApiErrorCode } from "../error-codes.js";
 import { throwApiError } from "../trpc/error-formatter.js";
@@ -193,6 +201,100 @@ export async function deleteApplication(
   const app = await loadOwnedApplication(userId, id);
   await app.delete();
   return { ok: true as const };
+}
+
+/**
+ * Export an app as an {@link ApplicationBundle}: the document plus the full
+ * graph of every workflow its operations bind, with the operations rewritten
+ * to bundle-local keys.
+ *
+ * With `released`, the bundle carries the released snapshot and the graphs the
+ * release pinned, so a published app exports reproducibly; otherwise it carries
+ * the draft and the workflows' live graphs. A workflow an operation binds but
+ * that no longer exists is left out — the operation keeps its raw id, so the
+ * broken link stays visible instead of silently disappearing.
+ */
+export async function exportApplicationBundle(
+  userId: string,
+  id: string,
+  options: { released?: boolean } = {}
+): Promise<ApplicationBundleSchema> {
+  const app = await loadOwnedApplication(userId, id);
+  const release = options.released
+    ? await releasedApplicationRelease(id)
+    : null;
+  if (options.released && !release) {
+    throwApiError(ApiErrorCode.NOT_FOUND, "Application has no released version");
+  }
+  const document = release ? release.document : app.toDocument();
+  const pinned = new Map(
+    (release?.workflows ?? []).map((entry) => [entry.workflowId, entry])
+  );
+
+  const sources: BundleWorkflowSource[] = [];
+  const seen = new Set<string>();
+  for (const operation of document.operations) {
+    if (seen.has(operation.workflowId)) continue;
+    seen.add(operation.workflowId);
+    const pin = pinned.get(operation.workflowId);
+    const workflow = await Workflow.find(userId, operation.workflowId);
+    const graph = pin?.graph ?? workflow?.getGraph();
+    if (!graph) continue;
+    sources.push({
+      workflowId: operation.workflowId,
+      name: workflow?.name ?? operation.name,
+      description: workflow?.description ?? "",
+      graph,
+      version: pin?.version ?? null,
+      graphHash: pin?.graphHash ?? null
+    });
+  }
+
+  return applicationBundle.parse(
+    bundleFromApplication(
+      { name: app.name, description: app.description, document },
+      sources
+    )
+  );
+}
+
+/**
+ * Import an {@link ApplicationBundle}: create a workflow row per carried
+ * workflow, then the application with its operations pointing at the new ids.
+ *
+ * Workflows are written first so the app never references a row that does not
+ * exist yet.
+ */
+export async function importApplicationBundle(
+  userId: string,
+  input: ImportApplicationBundleInput
+): Promise<ApplicationResponse> {
+  const bundle = parseApplicationBundle(input.bundle);
+  if (!bundle) {
+    throwApiError(ApiErrorCode.INVALID_INPUT, "Invalid application bundle");
+  }
+  const result = applyBundle(bundle, { newWorkflowId: createTimeOrderedUuid });
+
+  for (const workflow of result.workflows) {
+    await Workflow.create<Workflow>({
+      id: workflow.id,
+      user_id: userId,
+      name: workflow.name,
+      description: workflow.description ?? "",
+      access: "private",
+      graph: workflow.graph
+    });
+  }
+
+  const app = new Application({
+    user_id: userId,
+    project_id: input.projectId,
+    name: result.app.name,
+    description: result.app.description,
+    document: JSON.stringify(result.app.document)
+  });
+  await app.save();
+  return applicationResponse.parse(app.toResponse());
 }
 
 /**

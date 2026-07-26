@@ -20,8 +20,12 @@ export interface DebugGraph {
 export interface DebugTargetInfo {
   /** Original CLI argument (id, path/to/file.json, or path/to/file.ts). */
   ref: string;
-  /** How `ref` was interpreted. */
-  source: "id" | "json" | "dsl";
+  /**
+   * How `ref` was interpreted. `application` and `bundle` only occur for app
+   * targets: an application row read from the database, and an
+   * `ApplicationBundle` JSON file.
+   */
+  source: "id" | "json" | "dsl" | "application" | "bundle";
   /** Workflow id when known (DB id, or `id`/`workflow_id` field in a file). */
   workflowId: string | null;
   nodeCount: number;

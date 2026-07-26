@@ -309,17 +309,23 @@ graph overview in one call). The browser surface is exposed in `web/` as
 
 ### nodetool app debug (App-Builder Debug Harness)
 
-Runs an app-builder mini app (the Puck document on `workflow.app_doc`)
-**headlessly** for agent debugging: validates every widget binding against the
-workflow's inputs/outputs/variables, simulates the app the way the web runtime
-does (seed input defaults, apply params, click the Run button or a scripted
-interaction sequence), executes the workflow on the kernel runner, folds the
-streamed messages into the app's reactive values, and reports each widget's
-final state plus a verdict. Accepts a workflow id or a JSON file carrying
-`graph` + `app_doc`.
+Runs a mini app **headlessly** for agent debugging: validates every widget
+binding against the workflow's inputs/outputs/variables, simulates the app the
+way the web runtime does (seed input defaults, apply params, click the Run
+button or a scripted interaction sequence), executes the workflow on the kernel
+runner, folds the streamed messages into the app's reactive values, and reports
+each widget's final state plus a verdict.
+
+Three target kinds, all producing the same report: an **application id** (read
+straight from the applications table, no server), an **ApplicationBundle JSON
+file** (the app plus the full graphs of the workflows it binds — operations
+reference bundle keys, so it runs without touching the database), and — legacy
+— a **workflow id or workflow JSON file** carrying `graph` + `app_doc`, whose
+document is lifted onto the host workflow.
 
 ```bash
-npm run dev:nodetool -- app debug <workflow_id>
+npm run dev:nodetool -- app debug <application_id>
+npm run dev:nodetool -- app debug my.app.json          # ApplicationBundle file
 npm run dev:nodetool -- app debug workflow.json --params '{"prompt":"hi"}'
 npm run dev:nodetool -- app debug <id> --no-run       # static wiring check only
 npm run dev:nodetool -- app debug <id> --json         # full AppDebugReport for agents

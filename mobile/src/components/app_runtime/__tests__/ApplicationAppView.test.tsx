@@ -1,10 +1,14 @@
 /**
- * End-to-end check of the mobile app runtime: a saved app document renders as
- * native widgets, a Run button turns widget values into run params, and the
+ * End-to-end check of the mobile app runtime: an application document renders
+ * as native widgets, a Run button turns widget values into run params, and the
  * streamed messages of that run fold into the bound display widget.
  */
 import React from "react";
 import { fireEvent, render, screen, act } from "@testing-library/react-native";
+import {
+  parseApplicationDocument,
+  type ApplicationDocument,
+} from "@nodetool-ai/app-runtime";
 
 import type { Workflow } from "../../../types/workflow";
 
@@ -51,8 +55,9 @@ jest.mock("../../../services/api", () => ({
   },
 }));
 
-import WorkflowAppView from "../WorkflowAppView";
+import ApplicationAppView from "../ApplicationAppView";
 
+/** The document as the applications API serves it — no workflow involved. */
 const appDoc = {
   schemaVersion: 3,
   ui: {
@@ -104,12 +109,14 @@ const appDoc = {
   variables: [],
 };
 
-const makeWorkflow = (id: string, appDocValue?: unknown): Workflow =>
+const document = parseApplicationDocument(appDoc) as ApplicationDocument;
+
+/** The workflow an operation binds — never carrying an app document itself. */
+const makeWorkflow = (id: string): Workflow =>
   ({
     id,
     name: "Greeter",
     description: "",
-    app_doc: appDocValue,
     graph: {
       nodes: [
         {
@@ -134,7 +141,7 @@ const emit = (message: Record<string, unknown>) => {
   });
 };
 
-describe("WorkflowAppView", () => {
+describe("ApplicationAppView", () => {
   beforeEach(() => {
     mockHandlers.clear();
     mockRun.mockClear();
@@ -142,8 +149,13 @@ describe("WorkflowAppView", () => {
     mockRunnerState.job_id = null;
   });
 
-  it("renders the saved app document", () => {
-    render(<WorkflowAppView workflow={makeWorkflow("wf-render", appDoc)} />);
+  it("renders the application document", () => {
+    render(
+      <ApplicationAppView
+        document={document}
+        workflow={makeWorkflow("wf-render")}
+      />
+    );
 
     expect(screen.getByText("Greeter")).toBeTruthy();
     expect(screen.getByText("Try it")).toBeTruthy();
@@ -152,7 +164,12 @@ describe("WorkflowAppView", () => {
   });
 
   it("sends the widget's value as a name-keyed run param", async () => {
-    render(<WorkflowAppView workflow={makeWorkflow("wf-run", appDoc)} />);
+    render(
+      <ApplicationAppView
+        document={document}
+        workflow={makeWorkflow("wf-run")}
+      />
+    );
 
     fireEvent.changeText(screen.getByDisplayValue(""), "hello");
     await act(async () => {
@@ -165,7 +182,12 @@ describe("WorkflowAppView", () => {
   });
 
   it("folds the run's streamed output into the bound display widget", async () => {
-    render(<WorkflowAppView workflow={makeWorkflow("wf-stream", appDoc)} />);
+    render(
+      <ApplicationAppView
+        document={document}
+        workflow={makeWorkflow("wf-stream")}
+      />
+    );
 
     await act(async () => {
       fireEvent.press(screen.getByText("Run"));
@@ -190,7 +212,12 @@ describe("WorkflowAppView", () => {
   });
 
   it("drops messages from a run it did not start", async () => {
-    render(<WorkflowAppView workflow={makeWorkflow("wf-foreign", appDoc)} />);
+    render(
+      <ApplicationAppView
+        document={document}
+        workflow={makeWorkflow("wf-foreign")}
+      />
+    );
 
     emit({
       type: "output_update",
@@ -202,12 +229,19 @@ describe("WorkflowAppView", () => {
     expect(screen.queryByText("leaked")).toBeNull();
   });
 
-  it("generates an app from the graph when the workflow has none", () => {
-    render(<WorkflowAppView workflow={makeWorkflow("wf-generated")} />);
+  it("falls back to the app's name when the document has no title", () => {
+    const untitled: ApplicationDocument = {
+      ...document,
+      ui: { ...document.ui, root: { props: {} } },
+    };
+    render(
+      <ApplicationAppView
+        document={untitled}
+        workflow={makeWorkflow("wf-untitled")}
+        title="Published app"
+      />
+    );
 
-    expect(screen.getByText("Try it")).toBeTruthy();
-    expect(screen.getByText("Results")).toBeTruthy();
-    expect(screen.getByText("prompt")).toBeTruthy();
-    expect(screen.getByText("Run")).toBeTruthy();
+    expect(screen.getByText("Published app")).toBeTruthy();
   });
 });

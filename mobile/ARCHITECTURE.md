@@ -55,6 +55,8 @@ mobile/
 │   │   ├── GraphEditorScreen.tsx       # Chain-based graph editor
 │   │   ├── ChatScreen.tsx              # AI chat interface
 │   │   ├── DocumentsScreen.tsx         # Document browser (all kinds, no tabs)
+│   │   ├── AppsScreen.tsx              # Mini-app browser
+│   │   ├── AppScreen.tsx               # One mini app, run natively
 │   │   ├── StoryboardEditorScreen.tsx  # Storyboard editor
 │   │   ├── ScriptEditorScreen.tsx      # Script editor (cast, sections, lines)
 │   │   ├── TimelineViewerScreen.tsx    # Timeline: viewer, agent-editable
@@ -73,7 +75,7 @@ mobile/
 │   ├── documents/           # Document layer (kinds, load/save, agent bridge, ui_* tools)
 │   │
 │   ├── components/          # Reusable components
-│   │   ├── app_runtime/       # Mini-app runtime (renders workflow.app_doc)
+│   │   ├── app_runtime/       # Mini-app runtime (renders an application document)
 │   │   ├── chat/              # Chat UI
 │   │   ├── graph_editor/      # Chain editor
 │   │   └── outputs/           # Output value rendering
@@ -111,9 +113,16 @@ mobile/
 
 ## Mini apps (`src/components/app_runtime/`)
 
-A mini app is the **application document** stored on `workflow.app_doc` — the
-same document the web App Builder authors. Mobile renders it; it does not edit
-it (Puck is a DOM editor).
+A mini app is an **application** — its own resource on the server, with the
+document the web App Builder authors, operations that bind workflows by id, and
+a released snapshot once it is published. Mobile reads them over
+`/api/applications/*` (the REST door onto the service tRPC serves the web
+client) and renders them; it does not edit them (Puck is a DOM editor).
+
+`AppsScreen` lists the apps, `AppScreen` opens one — the same one-per-screen
+model the documents browser uses. A workflow is never presented as an app: the
+graph editor edits graphs, and nothing generates an app document for a workflow
+that has none.
 
 The semantics come from `@nodetool-ai/app-runtime`, the framework-independent
 core the web runtime, the CLI `app debug` harness, and the eval suites already
@@ -122,7 +131,8 @@ streaming fold, conditions, actions, and the widget catalog. Only the controls
 are native, so an app behaves the same on both clients.
 
 ```
-WorkflowAppView      # resolves the document, renders the widget tree
+useApplications      # React Query over /api/applications: list, draft, release
+ApplicationAppView   # renders the document's widget tree
   useAppRuntime      # the engine: claims invocations, folds messages, dispatches actions
     appRuntimeStore  # Zustand wrapper around the shared reducer, one per app instance
     AppRuntimeContext# binding resolution, conditions, formatting
@@ -130,9 +140,13 @@ WorkflowAppView      # resolves the document, renders the widget tree
     useWidgetRuntime # binds a widget's props to reactive state + events
 ```
 
+- **Published beats draft.** `useApplicationApp` prefers the released snapshot,
+  which pins the graph each operation runs, so a published app needs no workflow
+  request. An unpublished app falls back to the draft document plus the live
+  workflow.
 - **Bindings key on node IDs** (`op:main/in:<nodeId>`), so renaming a node in
   the editor never breaks an app. Bare names still resolve — that's the legacy
-  `app_doc` form.
+  document form.
 - **Run identity**: the runtime claims the job id of the run it dispatched and
   drops messages from any other job, so a run started in the chain editor never
   folds into what the app shows.
@@ -142,8 +156,8 @@ WorkflowAppView      # resolves the document, renders the widget tree
   fails the invocation with a timeout error.
 - **Variables**: declared defaults seed the instance at open, and `scope: "user"`
   + `persist: true` variables survive a restart — stored in AsyncStorage by
-  `variablePersistence.ts` under `app-runtime:variables:app:<workflowId>`, so two
-  apps never share a slot. Restoring runs before defaults are seeded (seeding
+  `variablePersistence.ts` under `app-runtime:variables:app:<applicationId>`, so
+  two apps never share a slot. Restoring runs before defaults are seeded (seeding
   never clobbers), and instance-scoped and view values are never written.
 - **Outputs can write variables**: an operation output mapped `to: "variable"`
   lands in that variable as well as in its display slot, streamed chunks
@@ -154,9 +168,6 @@ WorkflowAppView      # resolves the document, renders the widget tree
   that one. Mobile holds one workflow per app screen: when a document's
   operations name several workflows, the ones bound elsewhere refuse to run with
   a visible error rather than running the loaded graph under another name.
-- **No app document?** `generateAppDoc` builds one in memory from the graph's
-  Input/Output nodes, so every workflow is runnable. Mobile never writes it
-  back — authoring is the web builder's job.
 - **Mobile differences**: `Columns` stacks vertically (two columns are unusable
   at phone width), there is no reactive-subgraph path (no browser worker, so
   every run is a full server run), and `ResourcePicker`/`ResourceGallery`

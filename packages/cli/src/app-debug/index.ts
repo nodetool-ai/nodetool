@@ -10,6 +10,13 @@ export {
   bindingScopeFor
 } from "./app-spec.js";
 export type { AppContext } from "./app-spec.js";
+export { resolveAppTarget } from "./app-target.js";
+export type {
+  AppApplicationRecord,
+  AppTargetDeps,
+  AppWorkflowRecord,
+  ResolvedAppTarget
+} from "./app-target.js";
 export { HeadlessAppRuntime, effectiveTimeoutMs } from "./runtime.js";
 export { renderAppReportMarkdown } from "./markdown.js";
 export type * from "./types.js";

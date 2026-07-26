@@ -1,7 +1,6 @@
-export { default as WorkflowAppView, resolveAppDocument } from "./WorkflowAppView";
+export { default as ApplicationAppView } from "./ApplicationAppView";
 export { useAppRuntime } from "./useAppRuntime";
 export { AppRuntimeContext, useAppRuntimeContext } from "./AppRuntimeContext";
-export { generateAppDoc, generateAppData } from "./generateAppDoc";
 export { useOpenResource } from "./useOpenResource";
 export type { OpenResource } from "./useOpenResource";
 export {

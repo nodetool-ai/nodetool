@@ -18,6 +18,11 @@ import {
   exportWorkflowBundle,
   importWorkflowBundle
 } from "../../utils/workflowBundle";
+import {
+  exportApplicationBundle,
+  importApplicationBundle
+} from "../../utils/applicationBundle";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { useWorkflowShareDialogStore } from "../../stores/WorkflowShareDialogStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { create } from "zustand";
@@ -576,6 +581,96 @@ const PanelCommands = memo(function PanelCommands() {
   );
 });
 
+/**
+ * App bundle commands, mirroring the workflow bundle ones. An app bundle is
+ * one JSON file carrying the app plus the graph of every workflow it binds, so
+ * export needs an app tab open and import creates both the workflows and the
+ * app, then opens it.
+ */
+const AppCommands = memo(function AppCommands() {
+  const executeAndClose = useCommandMenu((state) => state.executeAndClose);
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
+  const queryClient = useQueryClient();
+  const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  const applicationId = useWorkspaceTabsStore((state) => {
+    const tab = state.tabs.find((t) => t.id === state.activeTabId);
+    return tab?.type === "application" ? tab.ref : null;
+  });
+  const applicationName = useWorkspaceTabsStore((state) => {
+    const tab = state.tabs.find((t) => t.id === state.activeTabId);
+    return tab?.type === "application" ? tab.title : "";
+  });
+  const appBundleInputRef = useRef<HTMLInputElement>(null);
+
+  const exportApp = useCallback(async () => {
+    if (!applicationId) return;
+    try {
+      await exportApplicationBundle(applicationId, applicationName || "app");
+    } catch (error) {
+      addNotification({
+        type: "error",
+        alert: true,
+        content: `Failed to export app bundle: ${error instanceof Error ? error.message : "Unknown error"}`
+      });
+    }
+  }, [applicationId, applicationName, addNotification]);
+
+  const pickAppBundle = useCallback(() => {
+    appBundleInputRef.current?.click();
+  }, []);
+
+  const handleAppBundleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const app = await importApplicationBundle(file);
+        await queryClient.invalidateQueries({ queryKey: ["applications"] });
+        await queryClient.invalidateQueries({ queryKey: ["workflows"] });
+        openTab({ type: "application", ref: app.id, title: app.name });
+        addNotification({
+          type: "success",
+          alert: true,
+          content: `Imported app "${app.name}"`
+        });
+      } catch (error) {
+        addNotification({
+          type: "error",
+          alert: true,
+          content: `Failed to import app bundle: ${error instanceof Error ? error.message : "Unknown error"}`
+        });
+      }
+      if (appBundleInputRef.current) appBundleInputRef.current.value = "";
+    },
+    [queryClient, openTab, addNotification]
+  );
+
+  return (
+    <>
+      <input
+        ref={appBundleInputRef}
+        type="file"
+        accept=".json,application/json"
+        aria-label="Import app bundle file"
+        style={{ display: "none" }}
+        onChange={handleAppBundleFileChange}
+      />
+      <Command.Group heading="App">
+        {applicationId && (
+          <Command.Item onSelect={() => executeAndClose(exportApp)}>
+            <FolderZipRoundedIcon /> Export App as Bundle (.app.json)
+          </Command.Item>
+        )}
+        <Command.Item onSelect={() => executeAndClose(pickAppBundle)}>
+          <FolderZipRoundedIcon /> Import App from Bundle (.app.json)
+        </Command.Item>
+      </Command.Group>
+    </>
+  );
+});
+
 const OpenWorkflowCommands = memo(function OpenWorkflowCommands() {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   const navigate = useNavigate();
@@ -689,6 +784,7 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
         <Command.List>
           <Command.Empty>No results found.</Command.Empty>
           <WorkflowCommands />
+          <AppCommands />
           <EditCommands undo={undo} redo={redo} />
           <LayoutCommands />
           <ViewCommands />

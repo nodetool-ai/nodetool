@@ -5,17 +5,17 @@
  * - New workflow (no params)
  * - Edit existing workflow (workflowId param)
  *
- * Includes a toggle to switch between the chain editor and the mini app runner.
+ * A workflow is not an app: mini apps are their own resource, browsed in
+ * `AppsScreen` and run in `AppScreen`. This screen only edits the graph.
  */
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   ActivityIndicator,
   StyleSheet,
   Alert,
-  FlatList,
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
@@ -27,19 +27,14 @@ import { trpc } from "../trpc/client";
 import { ChainEditor } from "../components/graph_editor/ChainEditor";
 import { FloatingToolbar } from "../components/graph_editor/FloatingToolbar";
 import { Workflow } from "../types/miniapp";
-import { useWorkflowRunner } from "../stores/WorkflowRunner";
-import { WorkflowAppView } from "../components/app_runtime";
 
 type Props = NativeStackScreenProps<RootStackParamList, "GraphEditor">;
 
-type ViewMode = "editor" | "runner";
-
 const GraphEditorScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { colors, shadows } = useTheme();
+  const { colors } = useTheme();
   const workflowId = route.params?.workflowId;
   const [loading, setLoading] = useState(!!workflowId);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>("editor");
   const [workflow, setWorkflow] = useState<Workflow | null>(null);
 
   const loadWorkflowToStore = useGraphEditorStore((s) => s.loadWorkflow);
@@ -102,10 +97,6 @@ const GraphEditorScreen: React.FC<Props> = ({ route, navigation }) => {
     loadWorkflowToStore,
   ]);
 
-  const handleToggleView = useCallback(() => {
-    setViewMode((m) => (m === "editor" ? "runner" : "editor"));
-  }, []);
-
   useEffect(() => {
     const title = workflow?.name || "Workflow Editor";
     navigation.setOptions({ title });
@@ -159,106 +150,11 @@ const GraphEditorScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <View style={editorStyles.flex}>
-      {viewMode === "runner" && workflowId && workflow ? (
-        <MiniAppRunner workflowId={workflowId} workflow={workflow} />
-      ) : (
-        <ChainEditor />
-      )}
-      <FloatingToolbar
-        workflowId={workflowId}
-        viewMode={viewMode}
-        onToggleView={handleToggleView}
-      />
+      <ChainEditor />
+      <FloatingToolbar workflowId={workflowId} />
     </View>
   );
 };
-
-/**
- * The mini app for this workflow: its saved app document rendered with native
- * widgets, plus the execution log while a run is in flight.
- */
-function MiniAppRunner({
-  workflowId,
-  workflow,
-}: {
-  workflowId: string;
-  workflow: Workflow;
-}) {
-  const { colors } = useTheme();
-
-  const runnerStore = useWorkflowRunner(workflowId);
-  const state = runnerStore((s) => s.state);
-  const statusMessage = runnerStore((s) => s.statusMessage);
-  const logs = runnerStore((s) => s.logs);
-  const cleanup = runnerStore((s) => s.cleanup);
-
-  const isRunning = state === "running" || state === "connecting";
-
-  useEffect(() => {
-    return () => {
-      cleanup();
-    };
-  }, [cleanup]);
-
-  return (
-    <View style={runnerStyles.container}>
-      <View style={runnerStyles.appSurface}>
-        <WorkflowAppView workflow={workflow} />
-      </View>
-      {isRunning && (
-        <View
-          style={[
-            runnerStyles.logPanel,
-            { backgroundColor: colors.inputBg, borderColor: colors.border },
-          ]}
-        >
-          {statusMessage ? (
-            <Text style={[runnerStyles.statusText, { color: colors.primary }]}>
-              {statusMessage}
-            </Text>
-          ) : null}
-          <FlatList
-            data={logs}
-            keyExtractor={(_item: string, index: number) => `log-${index}`}
-            renderItem={({ item: log }: { item: string }) => (
-              <Text
-                style={[runnerStyles.terminalText, { color: colors.textSecondary }]}
-              >
-                <Text style={{ color: colors.primary }}>{"> "}</Text>
-                {log}
-              </Text>
-            )}
-          />
-        </View>
-      )}
-    </View>
-  );
-}
-
-const runnerStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  appSurface: {
-    flex: 1,
-  },
-  logPanel: {
-    height: 160,
-    padding: 12,
-    borderTopWidth: 1,
-  },
-  statusText: {
-    fontSize: 13,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  terminalText: {
-    fontFamily: "monospace",
-    fontSize: 12,
-    marginBottom: 4,
-    lineHeight: 18,
-  },
-});
 
 const editorStyles = StyleSheet.create({
   flex: {

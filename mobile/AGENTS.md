@@ -52,7 +52,8 @@ read the comment at the top of `metro.config.js` before changing any of it.
   workflow/job messages; `WebSocketManager` is the per-connection chat socket.
 - **Auth**: Supabase + Google Sign-In (`stores/AuthStore.ts`, `services/supabase.ts`).
 - **UI**: React Native core components with `StyleSheet` (no MUI / web primitives here).
-- **Mini apps**: `components/app_runtime/` renders `workflow.app_doc` with native widgets on
+- **Mini apps**: `components/app_runtime/` renders an application document (fetched over
+  `/api/applications/*` by `hooks/useApplications.ts`) with native widgets on
   top of `@nodetool-ai/app-runtime` — the same core the web runtime and the CLI `app debug`
   harness use. See [ARCHITECTURE.md § Mini apps](ARCHITECTURE.md#mini-apps-srccomponentsapp_runtime).
 - **Documents**: `documents/` + the document screens open storyboards, scripts, timelines,

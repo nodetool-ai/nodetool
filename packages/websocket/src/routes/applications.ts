@@ -12,19 +12,26 @@
  *   PATCH  /api/applications/:id                    → ApplicationResponse
  *   DELETE /api/applications/:id                    → { ok: true }
  *   GET    /api/applications/:id/released-document  → ApplicationReleaseResponse | null
+ *   GET    /api/applications/:id/export-bundle      → ApplicationBundle (download)
+ *   POST   /api/applications/import-bundle          → ApplicationResponse
  */
 
 import type { FastifyPluginAsync } from "fastify";
 import { TRPCError } from "@trpc/server";
 import { getHTTPStatusCodeFromError } from "@trpc/server/http";
 import { ZodError } from "zod";
-import { createApplicationInput } from "@nodetool-ai/protocol/api-schemas/applications.js";
+import {
+  createApplicationInput,
+  importApplicationBundleInput
+} from "@nodetool-ai/protocol/api-schemas/applications.js";
 import { bridge } from "../lib/bridge.js";
 import { getUserId, type HttpApiOptions } from "../http-api.js";
 import {
   createApplication,
   deleteApplication,
+  exportApplicationBundle,
   getApplication,
+  importApplicationBundle,
   listApplications,
   releasedApplicationDocument,
   updateApplication,
@@ -110,6 +117,42 @@ const applicationsRoutes: FastifyPluginAsync<RouteOptions> = async (
     await bridge(req, reply, (request) =>
       respond(() => releasedApplicationDocument(userIdOf(request), id))
     );
+  });
+
+  // Static routes before the parametric ones so `import-bundle` is never read
+  // as an application id.
+  app.post("/api/applications/import-bundle", async (req, reply) => {
+    await bridge(req, reply, (request) =>
+      respond(async () => {
+        const input = importApplicationBundleInput.parse(
+          await readJsonBody(request)
+        );
+        return importApplicationBundle(userIdOf(request), input);
+      })
+    );
+  });
+
+  app.get("/api/applications/:id/export-bundle", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    await bridge(req, reply, async (request) => {
+      const params = new URL(request.url).searchParams;
+      const released =
+        params.get("released") === "1" || params.get("released") === "true";
+      const response = await respond(() =>
+        exportApplicationBundle(userIdOf(request), id, { released })
+      );
+      if (!response.ok) return response;
+      const bundle = (await response.clone().json()) as { name?: string };
+      const fileName =
+        (bundle.name ?? "application").replace(/[^A-Za-z0-9._-]+/g, "_") ||
+        "application";
+      const headers = new Headers(response.headers);
+      headers.set(
+        "content-disposition",
+        `attachment; filename="${fileName}.app.json"`
+      );
+      return new Response(response.body, { status: response.status, headers });
+    });
   });
 
   app.route({
