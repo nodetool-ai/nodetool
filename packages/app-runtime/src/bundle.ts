@@ -89,7 +89,10 @@ const slugify = (name: string): string =>
   name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    // The collapse above leaves at most one dash at each end, so single-character
+    // anchors suffice — `/^-+|-+$/` backtracks polynomially on dash-heavy names.
+    .replace(/^-/, "")
+    .replace(/-$/, "");
 
 /** A readable, collision-free key per workflow, stable for a given input order. */
 const assignKeys = (workflows: readonly BundleWorkflowSource[]): Map<string, string> => {
