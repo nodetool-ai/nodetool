@@ -89,6 +89,17 @@ jest.mock("../puck/PuckAppEditor", () => ({
       <button type="button" onClick={() => onPublish(EDITED_UI)}>
         Save
       </button>
+      <button
+        type="button"
+        onClick={() =>
+          onPublish({
+            ...EDITED_UI,
+            root: { props: { ...EDITED_UI.root.props, theme: "card" } }
+          } as unknown as Data)
+        }
+      >
+        Save with theme
+      </button>
       {onToggleAgent && (
         <button type="button" onClick={onToggleAgent}>
           Ask Agent
@@ -154,6 +165,17 @@ describe("AppBuilderShell", () => {
       resources: EDITED_META.resources,
       variables: EDITED_META.variables
     });
+  });
+
+  it("writes the theme the author picked on the root back to the document", async () => {
+    const user = userEvent.setup();
+    const onSave = renderShell();
+
+    await user.click(screen.getByRole("button", { name: "Save with theme" }));
+
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({ theme: { id: "card" } })
+    );
   });
 
   it("points the agent's workflow tools at the bound workflow", () => {

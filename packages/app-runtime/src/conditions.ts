@@ -8,10 +8,20 @@
  * revision path is to adopt CEL or JSONLogic in the `Condition` and `format`
  * slots — not to grow a language in this file.
  */
-import type { BindingRef, BindingScope, BindingMode } from "./bindings.js";
+import type {
+  BindingRef,
+  BindingScope,
+  BindingMode,
+  ExecutionField
+} from "./bindings.js";
 import { resolveBinding, stateKey } from "./bindings.js";
 import type { AppInstanceState } from "./state.js";
-import { isOperationRunning, operationError, operationProgress } from "./state.js";
+import {
+  isOperationRunning,
+  operationActivity,
+  operationError,
+  operationProgress
+} from "./state.js";
 
 export type StateRef =
   | { source: "variable"; variableId: string }
@@ -20,7 +30,7 @@ export type StateRef =
   | {
       source: "execution";
       operationId: string;
-      field: "running" | "progress" | "error";
+      field: ExecutionField;
     };
 
 export type ConditionOp =
@@ -28,6 +38,9 @@ export type ConditionOp =
   | "neq"
   | "gt"
   | "lt"
+  | "gte"
+  | "lte"
+  | "contains"
   | "empty"
   | "notEmpty";
 
@@ -49,6 +62,9 @@ const CONDITION_OPS: ReadonlySet<string> = new Set([
   "neq",
   "gt",
   "lt",
+  "gte",
+  "lte",
+  "contains",
   "empty",
   "notEmpty"
 ]);
@@ -132,6 +148,8 @@ export const readRef = (
           return operationProgress(state, ref.operationId);
         case "error":
           return operationError(state, ref.operationId);
+        case "activity":
+          return operationActivity(state, ref.operationId);
       }
   }
 };
@@ -161,6 +179,20 @@ const coerceLike = (value: unknown, sample: unknown): unknown => {
   return value;
 };
 
+/**
+ * The numeric comparisons all read the same: a non-numeric actual value never
+ * satisfies one, and the stored literal is coerced from its Puck string form.
+ */
+const compareNumeric = (
+  actual: unknown,
+  value: unknown,
+  compare: (a: number, b: number) => boolean
+): boolean => {
+  const expected = Number(coerceLike(value, 0));
+  if (typeof actual !== "number" || Number.isNaN(expected)) return false;
+  return compare(actual, expected);
+};
+
 export const evaluateCondition = (
   state: AppInstanceState,
   condition: Condition
@@ -175,17 +207,24 @@ export const evaluateCondition = (
       return actual === coerceLike(condition.value, actual);
     case "neq":
       return actual !== coerceLike(condition.value, actual);
-    case "gt": {
-      const expected = Number(coerceLike(condition.value, 0));
-      return typeof actual === "number" && !Number.isNaN(expected)
-        ? actual > expected
-        : false;
-    }
-    case "lt": {
-      const expected = Number(coerceLike(condition.value, 0));
-      return typeof actual === "number" && !Number.isNaN(expected)
-        ? actual < expected
-        : false;
+    case "gt":
+      return compareNumeric(actual, condition.value, (a, b) => a > b);
+    case "lt":
+      return compareNumeric(actual, condition.value, (a, b) => a < b);
+    case "gte":
+      return compareNumeric(actual, condition.value, (a, b) => a >= b);
+    case "lte":
+      return compareNumeric(actual, condition.value, (a, b) => a <= b);
+    case "contains": {
+      if (typeof actual === "string") {
+        return actual.includes(
+          condition.value == null ? "" : String(condition.value)
+        );
+      }
+      if (Array.isArray(actual)) {
+        return actual.some((item) => item === coerceLike(condition.value, item));
+      }
+      return false;
     }
   }
 };
@@ -208,6 +247,13 @@ const FILTERS: Record<string, (value: unknown, arg?: string) => string> = {
     return arg === "short" ? date.toLocaleDateString() : date.toLocaleString();
   },
   upper: (value) => String(value ?? "").toUpperCase(),
+  lower: (value) => String(value ?? "").toLowerCase(),
+  join: (value, arg) => {
+    const separator = arg === undefined ? ", " : arg;
+    return Array.isArray(value)
+      ? value.map((item) => (item == null ? "" : String(item))).join(separator)
+      : String(value ?? "");
+  },
   truncate: (value, arg) => {
     const text = String(value ?? "");
     const limit = Number(arg);

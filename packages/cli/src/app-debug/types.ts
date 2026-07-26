@@ -12,6 +12,12 @@
 import type {
   AppEvent,
   BindingRef,
+  InputMapping,
+  OperationPolicy,
+  OutputMapping,
+  ResourceKind,
+  RunDecision,
+  VariableDeclaration,
   WidgetBindingMode as SharedWidgetBindingMode
 } from "@nodetool-ai/app-runtime";
 
@@ -50,10 +56,36 @@ export interface AppWidgetSpec {
   slot: string | null;
 }
 
+/** One declared operation, with the workflow surface it resolved against. */
+export interface AppOperationSpec {
+  id: string;
+  name: string;
+  workflowId: string;
+  policy: OperationPolicy;
+  timeoutMs: number | null;
+  /** Input node id → where its value comes from. */
+  inputs: Record<string, InputMapping>;
+  /** Output node id → where its value lands. */
+  outputs: Record<string, OutputMapping>;
+  /** The operation's bindable surface, or null when its workflow is missing. */
+  io: AppIO | null;
+  /** Why the operation cannot run (workflow not found), else null. */
+  unavailable: string | null;
+}
+
+export interface AppResourceSpec {
+  id: string;
+  name: string;
+  kind: ResourceKind;
+}
+
 export interface AppSpec {
   version: number;
   title: string | null;
   widgets: AppWidgetSpec[];
+  operations: AppOperationSpec[];
+  variables: VariableDeclaration[];
+  resources: AppResourceSpec[];
 }
 
 /** The bindable surface of the workflow graph (kernel shape). */
@@ -92,12 +124,18 @@ export interface AppValidation {
  *  - `set`    — write a reactive value directly (no events fire)
  *  - `change` — set a write widget's value, then fire its `change` events
  *  - `click`  — fire a widget's `click` events
+ *  - `run`    — run one operation by id, without going through a widget
+ *  - `cancel` — cancel an operation's live invocations
  * Widgets are referenced by component id, unique type, or unique label.
+ * `set` resolves against the default operation unless `operationId` says
+ * otherwise.
  */
 export type InteractionStep =
-  | { set: { key: string; value: unknown } }
+  | { set: { key: string; value: unknown; operationId?: string } }
   | { click: string }
-  | { change: string; value: unknown };
+  | { change: string; value: unknown }
+  | { run: string }
+  | { cancel: string };
 
 /** What actually happened when a step executed. */
 export interface InteractionRecord {
@@ -107,6 +145,24 @@ export interface InteractionRecord {
   /** Index into `runs` when the step triggered a workflow run. */
   runIndex: number | null;
   error: string | null;
+}
+
+/** One simulated invocation: what policy said, what the run did. */
+export interface AppInvocationReport {
+  id: string;
+  operationId: string;
+  status: string;
+  /** What `decideRun` said about starting this invocation. */
+  decision: RunDecision["kind"];
+  /** Invocations the decision named — cancelled (replace) or waited on (queue). */
+  decisionTargets: string[];
+  /** Index into `runs`, or null when the run never started. */
+  runIndex: number | null;
+  /** The timeout that elapsed, when the harness stopped waiting. */
+  timedOutMs: number | null;
+  error: string | null;
+  /** Every activity label the run reported, in order. */
+  activity: string[];
 }
 
 /** A widget's resolved value after the simulation settled. */
@@ -133,6 +189,15 @@ export interface AppDebugReport {
   runs: ServerRunReport[];
   /** Final reactive values (preview-safe), keyed by input/output/variable name. */
   values: Record<string, unknown>;
+  /**
+   * Final variable values (preview-safe), keyed by variable id — including the
+   * ones an operation output wrote.
+   */
+  variables: Record<string, unknown>;
+  /** Every invocation the simulation started, in order. */
+  invocations: AppInvocationReport[];
+  /** The activity labels the runs reported, in order. */
+  activity: Array<{ invocationId: string; operationId: string; label: string }>;
   widgets: AppWidgetState[];
   verdict: DebugVerdict;
   bundleDir: string | null;
@@ -152,6 +217,9 @@ export interface AppDebugOptions {
   run?: boolean;
   /** Bundle output directory. When omitted a timestamped dir is generated. */
   outDir?: string;
-  /** Per-run timeout, ms. */
+  /**
+   * Per-run timeout, ms. An operation's own `timeoutMs` also applies; when both
+   * are set the shorter one wins, so `--timeout` is always a ceiling.
+   */
   timeoutMs?: number;
 }

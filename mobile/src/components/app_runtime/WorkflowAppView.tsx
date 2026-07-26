@@ -41,9 +41,18 @@ export const resolveAppDocument = (
  */
 const RuntimeError: React.FC = () => {
   const { colors } = useTheme();
+  // With several operations the banner belongs to whichever of their active
+  // runs failed most recently.
   const error = useRuntimeSelector((s) => {
-    const invocationId = Object.values(s.activeInvocation)[0];
-    return invocationId ? s.invocations[invocationId]?.error : undefined;
+    let latest: { startedAt: number; error: string } | undefined;
+    for (const invocationId of Object.values(s.activeInvocation)) {
+      const invocation = s.invocations[invocationId];
+      if (!invocation?.error) {continue;}
+      if (!latest || invocation.startedAt > latest.startedAt) {
+        latest = { startedAt: invocation.startedAt, error: invocation.error };
+      }
+    }
+    return latest?.error;
   });
   if (!error) {return null;}
   return (

@@ -40,6 +40,13 @@ export const applicationVersions = sqliteTable(
     document: text("document").notNull(),
     /** Workflows the release may invoke, derived at publish time. */
     capabilities: text("capabilities").notNull(),
+    /**
+     * The graph of every workflow the release invokes, as it stood at publish
+     * time, keyed by workflow id. The release runs these rather than the live
+     * graphs, so editing a workflow cannot change what shipped. Null on
+     * snapshots published before releases pinned anything.
+     */
+    workflow_graphs: text("workflow_graphs"),
     released: integer("released").notNull(),
     created_at: text("created_at").notNull()
   },

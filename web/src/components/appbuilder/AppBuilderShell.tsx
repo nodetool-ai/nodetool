@@ -47,10 +47,20 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
   onClose
 }) => {
   const setCurrentWorkflowId = useWorkflowManager((s) => s.setCurrentWorkflowId);
-  // Puck owns the layout after mount, so this is the seed only.
-  const [data] = useState<Data>(
-    () => (document.ui as Data | undefined) ?? createEmptyData()
-  );
+  // Puck owns the layout after mount, so this is the seed only. The document's
+  // theme is seeded onto the root so the author edits it as a root field, and
+  // the save below writes the choice back to `document.theme`.
+  const [data] = useState<Data>(() => {
+    const seeded = (document.ui as Data | undefined) ?? createEmptyData();
+    if (!document.theme) return seeded;
+    return {
+      ...seeded,
+      root: {
+        ...seeded.root,
+        props: { theme: document.theme.id, ...(seeded.root?.props ?? {}) }
+      }
+    };
+  });
   const [meta, setMeta] = useState<AppDocMeta>(() => ({
     operations: document.operations,
     resources: document.resources,
@@ -66,12 +76,24 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
 
   const handleSave = useCallback(
     (nextData: Data) => {
+      const rootProps = nextData.root?.props as
+        | Record<string, unknown>
+        | undefined;
+      // The author's pick wins; a root that never carried the field at all
+      // (a surface that does not edit it) leaves the document's theme alone.
+      const themeId = rootProps && "theme" in rootProps ? rootProps.theme : null;
       onSave({
         ...document,
         ui: nextData,
         operations: meta.operations,
         resources: meta.resources,
-        variables: meta.variables
+        variables: meta.variables,
+        theme:
+          themeId === null
+            ? document.theme
+            : typeof themeId === "string" && themeId
+              ? { id: themeId }
+              : undefined
       });
     },
     [document, meta, onSave]

@@ -2,6 +2,7 @@ import { memo, useCallback, useState, type MouseEvent } from "react";
 
 import ApplicationGovernancePanel from "../applications/ApplicationGovernancePanel";
 import ApplicationAppBuilder from "../appbuilder/ApplicationAppBuilder";
+import ApplicationRunView from "../appbuilder/ApplicationRunView";
 import { useApplication } from "../../hooks/useApplications";
 import {
   Box,
@@ -21,7 +22,7 @@ export interface ApplicationSurfaceProps {
   refId: string;
 }
 
-type ApplicationView = "design" | "settings";
+type ApplicationView = "design" | "run" | "settings";
 
 /**
  * Workspace surface for a mini app: the WYSIWYG canvas over the app's own
@@ -84,12 +85,15 @@ const ApplicationSurface = ({ refId }: ApplicationSurfaceProps) => {
           aria-label="App view"
         >
           <ToggleOption value="design">Design</ToggleOption>
+          <ToggleOption value="run">Run</ToggleOption>
           <ToggleOption value="settings">Settings</ToggleOption>
         </ToggleGroup>
       </FlexRow>
       <Box sx={{ flex: 1, minHeight: 0 }}>
         {view === "design" ? (
           <ApplicationAppBuilder applicationId={application.id} />
+        ) : view === "run" ? (
+          <ApplicationRunView applicationId={application.id} />
         ) : (
           <ScrollArea fullHeight>
             <FlexColumn gap={SPACING.lg} padding={SPACING.xl} fullWidth>

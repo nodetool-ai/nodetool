@@ -35,6 +35,7 @@ import {
   Asset,
   ImageDocument,
   Job,
+  releasedApplicationVersion,
   reserveInvocation,
   settleInvocation,
   Message,
@@ -2229,12 +2230,20 @@ export class UnifiedWebSocketRunner {
     req.job_id = jobId;
     try {
       const estimatedUsd = this.estimateRunCost(req);
+      // The client says whether this is a release run or a draft run; the
+      // server says which release. Taking the number from the client would let
+      // a run bill itself to a version it never executed, and the ledger is
+      // also the release telemetry.
+      const version =
+        req.application_version == null
+          ? null
+          : ((await releasedApplicationVersion(applicationId))?.version ?? null);
       // Reserving claims the run against the budget in the same transaction
       // that checks it, so concurrent runs of one app cannot each read a total
       // that excludes the others and all be admitted.
       const decision = await reserveInvocation({
         applicationId,
-        version: req.application_version ?? null,
+        version,
         invocationId: jobId,
         estimatedUsd
       });

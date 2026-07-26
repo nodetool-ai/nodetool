@@ -268,7 +268,12 @@ export const removeResource = (
 
 /* ----------------------------------------------------------- binding targets */
 
-const EXECUTION_FIELDS: ExecutionField[] = ["running", "progress", "error"];
+const EXECUTION_FIELDS: ExecutionField[] = [
+  "running",
+  "progress",
+  "error",
+  "activity"
+];
 
 /**
  * The bindable surface of a workflow graph, as much of it as

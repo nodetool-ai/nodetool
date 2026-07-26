@@ -223,6 +223,7 @@ const AppPreviewApp: React.FC = () => {
               variables: []
             },
             operation: implicitOperation(""),
+            operations: [implicitOperation("")],
             resources: [],
             designMode: false,
             dispatch: () => {},

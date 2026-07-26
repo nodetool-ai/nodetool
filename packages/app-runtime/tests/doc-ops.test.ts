@@ -203,7 +203,8 @@ describe("bindingTargets", () => {
     expect(targets.operations[0].execution.map((e) => e.binding)).toEqual([
       "op:main/exec#running",
       "op:main/exec#progress",
-      "op:main/exec#error"
+      "op:main/exec#error",
+      "op:main/exec#activity"
     ]);
   });
 

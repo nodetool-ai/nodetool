@@ -32,8 +32,12 @@ export interface AppRuntimeContextValue {
   io: WorkflowIO;
   /** Everything a stored binding string can resolve against. */
   scope: BindingScope;
-  /** The operation a widget's `run` targets. */
+  /** The operation a widget's `run` targets when it names none. */
   operation: OperationBinding;
+  /** Every operation the app binds, in document order. */
+  operations: ReadonlyArray<OperationBinding>;
+  /** The named theme the document selects, when it selects one. */
+  theme?: string;
   /** Resource collections the app is bound to. */
   resources: ReadonlyArray<ResourceBinding>;
   /** In the builder's design surface, events are inert (no workflow runs). */

@@ -34,6 +34,8 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
   Audio: { label: "Audio", mode: "read" },
   Video: { label: "Video", mode: "read" },
   Json: { label: "JSON", mode: "read" },
+  // Lays out an array value as rows — what a run that emits N results needs.
+  Table: { label: "Table", mode: "read" },
   Output: { label: "Output", mode: "read" },
   Progress: { label: "Progress", mode: "read" },
   // Inputs

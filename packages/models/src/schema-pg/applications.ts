@@ -31,6 +31,7 @@ export const applicationVersions = pgTable(
     version: integer("version").notNull(),
     document: jsonText<ApplicationDocument>()("document").notNull(),
     capabilities: jsonText<ApplicationCapabilities>()("capabilities").notNull(),
+    workflow_graphs: text("workflow_graphs"),
     released: integer("released").notNull(),
     created_at: text("created_at").notNull()
   },

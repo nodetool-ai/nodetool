@@ -33,7 +33,7 @@ export function registerAppCommands(program: Command): void {
     .option("--params <json>", "Reactive values applied before interactions, keyed by input name")
     .option(
       "--interact <json>",
-      'Scripted interaction steps, e.g. \'[{"set":{"key":"prompt","value":"hi"}},{"click":"Button-1"}]\''
+      'Scripted interaction steps: set, change, click, run (by operation id), cancel — e.g. \'[{"set":{"key":"prompt","value":"hi"}},{"run":"main"}]\''
     )
     .option("--no-run", "Static wiring check only — never execute the workflow")
     .option(
@@ -104,6 +104,14 @@ function printAppSummary(report: {
   validation: { warnings: string[] };
   app: { title: string | null; widgetCount: number } | null;
   runs: Array<{ status: string; summary: { counts: { errored: number } } }>;
+  invocations: Array<{
+    id: string;
+    operationId: string;
+    status: string;
+    decision: string;
+    timedOutMs: number | null;
+  }>;
+  variables: Record<string, unknown>;
   widgets: Array<{
     id: string;
     type: string;
@@ -125,6 +133,15 @@ function printAppSummary(report: {
       `  run ${i + 1}: ${run.status} (${run.summary.counts.errored} node error(s))`
     );
   });
+  for (const inv of report.invocations) {
+    const state =
+      inv.timedOutMs != null ? `timed out after ${inv.timedOutMs}ms` : inv.status;
+    console.log(`  ${inv.operationId} (${inv.decision}): ${state}`);
+  }
+  const variables = Object.keys(report.variables);
+  if (variables.length > 0) {
+    console.log(`  variables: ${variables.join(", ")}`);
+  }
   const bound = report.widgets.filter((w) => w.bindingMode === "read" && w.binding);
   if (bound.length > 0) {
     const filled = bound.filter((w) => w.hasValue).length;

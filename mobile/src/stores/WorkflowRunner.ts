@@ -61,7 +61,11 @@ export type WorkflowRunner = {
 
   ensureConnection: () => Promise<void>;
   cleanup: () => void;
-  cancel: () => Promise<void>;
+  /**
+   * Cancel a run. Defaults to the runner's current job; an app that keeps
+   * several invocations of one workflow in flight passes the job it means.
+   */
+  cancel: (jobId?: string) => Promise<void>;
   resume: () => Promise<void>;
 };
 
@@ -213,22 +217,26 @@ export const createWorkflowRunnerStore = (
       );
     },
 
-    cancel: async () => {
-      const { job_id } = get();
-      if (job_id && workflowId) {
+    cancel: async (jobId?: string) => {
+      const target = jobId ?? get().job_id;
+      if (target && workflowId) {
         await webSocketService.send(
           {
             type: "cancel_job",
             command: "cancel_job",
             data: {
-              job_id,
+              job_id: target,
               workflow_id: workflowId,
             },
           },
           "/ws"
         );
       }
-      set({ state: "cancelled", statusMessage: "Cancelled" });
+      // Only the run the store is tracking changes its state; cancelling one of
+      // several app invocations must not report the whole runner as cancelled.
+      if (!jobId || jobId === get().job_id) {
+        set({ state: "cancelled", statusMessage: "Cancelled" });
+      }
     },
 
     resume: async () => {

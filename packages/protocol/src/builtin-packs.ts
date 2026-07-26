@@ -116,7 +116,7 @@ export const BUILTIN_NODE_PACKS: readonly BuiltinNodePack[] = [
     id: "atlascloud",
     name: "AtlasCloud",
     description:
-      "Seedance video and GPT Image / Nano Banana image generation on AtlasCloud.",
+      "Image and video generation on AtlasCloud — GPT Image, Nano Banana, Seedream, Seedance, Veo, Kling, Wan.",
     namespaces: ["atlascloud"]
   },
   {
