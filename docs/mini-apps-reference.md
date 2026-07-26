@@ -148,9 +148,9 @@ binding renders as the empty string.
 
 ## Document schema
 
-`workflow.app_doc` holds an `ApplicationDocument`. Schema version 3 is current;
-version 1 and 2 documents are lifted to 3 on load, with one implicit `main`
-operation bound to the host workflow.
+An application row holds one `ApplicationDocument` in its `document` column.
+Schema version 3 is current; version 1 and 2 documents are lifted to 3 on load,
+with one implicit `main` operation bound to the workflow they came from.
 
 ```ts
 interface ApplicationDocument {
@@ -196,6 +196,10 @@ interface OperationBinding {
 | `replace` | Cancel the live runs, then start. The default. |
 | `queue` | Wait for them to settle, then start. |
 
+An operation's `workflowId` points at a workflow the app binds. Several
+operations may point at the same one with different mappings, and an app that
+binds three workflows declares three operations.
+
 ### Variables
 
 ```ts
@@ -224,6 +228,26 @@ interface ResourceBinding {
   operations: ("read" | "create" | "update" | "delete")[];
 }
 ```
+
+## ApplicationBundle
+
+The portable form of an app: the document plus the full graph of every workflow
+it binds, in one JSON file. Export, import, and the shipped example apps all use
+it.
+
+```ts
+interface ApplicationBundle {
+  schemaVersion: number;        // 1
+  app: ApplicationDocument;     // operations reference workflows[].key
+  workflows: { key: string; name: string; graph: Graph }[];
+}
+```
+
+Inside a bundle each `OperationBinding.workflowId` holds a bundle-local `key`
+rather than a real id. Import creates the workflows and rewrites the keys to the
+new ids, the same indirection `.nodetool` workflow bundles use for `bundle://`
+asset refs. A bundle exported from a released app carries the pinned graphs, so
+it reproduces what that release ran.
 
 ## Instance state
 
@@ -255,8 +279,8 @@ The builder agent edits the open document through these frontend tools:
 ## CLI
 
 ```bash
-npm run dev:nodetool -- app debug <workflow_id>
-npm run dev:nodetool -- app debug workflow.json --params '{"prompt":"hi"}'
+npm run dev:nodetool -- app debug <application_id>
+npm run dev:nodetool -- app debug my-app.json --params '{"prompt":"hi"}'
 npm run dev:nodetool -- app debug <id> --no-run    # static wiring check
 npm run dev:nodetool -- app debug <id> --json      # full AppDebugReport
 

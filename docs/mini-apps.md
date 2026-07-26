@@ -1,18 +1,20 @@
 ---
 layout: page
 title: "Mini Apps"
-description: "What Mini Apps are, which problems they solve, and how the app document, bindings, and runtime fit together."
+description: "What Mini Apps are, where they live, and how the app document, bindings, and runtime fit together."
 ---
 
-A Mini App is a workflow with a face on it. The graph stays where it is; the app
-puts a form in front of it, runs it on a click or a change, and streams the
-outputs back into widgets. Nobody using the app sees a node.
+A Mini App is a face over one or more workflows. The graphs stay where they are;
+the app puts a form in front of them, runs them on a click or a change, and
+streams the outputs back into widgets. Nobody using the app sees a node.
 
-Every workflow can be a Mini App. Open a workflow, switch the tab to **App**,
-and NodeTool renders a form built from the graph's Input and Output nodes. Click
-**App Builder** and you replace that generated form with a layout you design.
+An app is its own resource, not a mode of a workflow. It has an id, a name, a
+version history, releases, and a spend budget, none of which belong on a graph.
+You create one from the **Apps** panel in the left sidebar and open it as its own
+workspace tab. Workflows the app binds are listed under **Linked workflows** on
+that tab and open as ordinary workflow tabs when you ask for them.
 
-- **[Building Mini Apps](mini-apps-guide.md)** — recipes for eight app shapes,
+- **[Building Mini Apps](mini-apps-guide.md)** — recipes for nine app shapes,
   each built step by step.
 - **[Mini App Reference](mini-apps-reference.md)** — widgets, binding tokens,
   actions, conditions, format filters, and the document schema.
@@ -34,7 +36,7 @@ Concretely, apps solve these:
 | The workflow has 40 nodes and 3 things worth changing | Only those 3 get widgets. Everything else stays fixed in the graph. |
 | A run takes 90 seconds and looks frozen | Bind a Progress widget and an activity label to the operation's execution state. |
 | The result is a stream, not a value | Display widgets accumulate streamed chunks; text concatenates, structured items collect into a list. |
-| One screen needs two different workflows | Declare two operations. Each has its own inputs, outputs, state, and Run button. |
+| One screen drives several workflows | Declare an operation per workflow. Each has its own inputs, outputs, state, and Run button. |
 | A step needs review before the next one | Operation A writes an app variable, a widget shows it, a second button runs operation B reading that variable. |
 | A parameter should re-run the workflow as you drag it | A slider bound to a node property with a `change` event and `release` pacing. |
 | The same tool is used daily with the same settings | A user-scoped variable with `persist: true` remembers the setting across sessions. |
@@ -43,22 +45,49 @@ When **not** to build one: a workflow you run once, a pipeline driven by another
 program (use the [Workflow API](workflow-api.md)), or an open-ended task with no
 fixed shape (use [Chat](global-chat.md) instead).
 
-## Where apps run
+## Where apps live
+
+Each app is a row in the `applications` table: name, description, project, and
+the `ApplicationDocument` it renders. Nothing about an app is stored on a
+workflow, and opening a workflow never produces an app.
 
 | Surface | How to get there |
 | --- | --- |
-| Workspace tab | Open a workflow, toggle the tab mode to **App**. |
-| Standalone page | `/miniapp/:workflowId` — the app with no editor chrome around it. |
-| App Builder | `/app-builder/:workflowId`, or the **App Builder** button in the tab bar. |
-| Headless | `nodetool app debug <workflow_id>` runs the app without a browser. See [Debugging](#debugging-an-app). |
+| Apps panel | Left sidebar → **Apps**. Every app you own, plus **New app** and **New app from workflow**. |
+| App tab | Click an app in the panel. One workspace tab per app, with **Design**, **Run**, and **Settings**. |
+| Linked workflows | The menu on the app tab. Lists the workflows the app's operations bind; clicking one opens a workflow tab. |
+| Headless | `nodetool app debug <application_id>`. See [Debugging an app](#debugging-an-app). |
 
-Mobile renders the same documents. Apps run wherever the workflow runs — the
-desktop app, a self-hosted server, or NodeTool Cloud.
+Apps run wherever their workflows run: the desktop app, a self-hosted server, or
+NodeTool Cloud. Mobile opens a published app as its own screen, one app per
+screen.
 
-Sharing a Mini App means sharing the workflow that carries it. A workflow share
-link (`/share/:token`) hands the recipient the graph *and* its app document, so
-they open it in App mode and it works. There is no public, unauthenticated app
-host.
+### Creating an app
+
+Two ways, both deliberate:
+
+- **New app** starts from an empty document. Add an operation, pick the workflow
+  it runs, place widgets.
+- **New app from workflow** scaffolds a document whose single operation is bound
+  to the workflow you picked, with a widget per Input and Output node. It is a
+  one-way copy: the app is a separate resource from that moment on, and editing
+  either side does not touch the other.
+
+There is no automatic app. A workflow without an app is just a workflow.
+
+### Publishing and sharing
+
+**Publish** snapshots the document as a version and pins the graph of every
+workflow the app binds, so a released app keeps running the graphs it was
+released with while you go on editing the drafts. Budgets cap what a published
+app may spend, and each run is metered against them.
+
+An **ApplicationBundle** is the portable form: one JSON document carrying the app
+plus the full graph of every workflow it binds. Export a bundle, hand it over,
+import it, and the recipient gets a working app together with its workflows.
+Inside the bundle each operation names a bundle-local workflow key, and import
+rewrites those keys to the ids of the workflows it creates. Shipped example apps
+are bundles installed through the same path.
 
 ## How a Mini App works
 
@@ -71,41 +100,42 @@ ApplicationDocument            (what you author)
   variables    declared app state slots
   resources    typed handles to assets, timelines, storyboards, sketches
         │
-        │  bindings resolve against the live graph
+        │  bindings resolve against the live graphs
         ▼
 AppInstanceState               (what one open app holds)
   inputs · outputs · variables · view · invocations
         │
         │  streaming fold: run messages → state events
         ▼
-Workflow run                   (where all the logic lives)
+Workflow runs                  (where all the logic lives)
 ```
 
 The document is configuration. Nothing in it branches, loops, or calls a
-provider — that is the graph's job. This is deliberate: logic in the graph is
+provider; that is the graph's job. This is deliberate: logic in the graph is
 testable, cacheable, and visible to the agent, and logic in the app layer is
 none of those.
 
 ### The app document
 
-`ApplicationDocument` lives on `workflow.app_doc` and carries four collections
-plus a schema version (currently 3):
+The `document` column of an application row holds an `ApplicationDocument`, four
+collections plus a schema version (currently 3):
 
 - **`ui`** — the Puck layout: which widgets are placed where, and what each one
   is bound to.
 - **`operations`** — named bindings to workflows. An operation has an id, a
   workflow id, an optional pinned version, per-input and per-output mappings, a
-  concurrency policy, and an optional timeout. The same workflow can be bound
-  twice with different mappings (`translateTitle`, `translateBody`).
+  concurrency policy, and an optional timeout. One app can bind several
+  workflows, and the same workflow twice with different mappings
+  (`translateTitle`, `translateBody`).
 - **`variables`** — declared app state slots, each with a type, a default, a
   scope (`instance` or `user`), and whether it persists.
 - **`resources`** — typed handles to an asset, timeline, storyboard, or sketch,
   scoped to a project or pinned to one document, with the operations the app may
   perform on it.
 
-An app with no explicit operations still runs: a legacy or generated document
-gets one implicit `main` operation bound to its host workflow, where every input
-takes its bound widget's value and every output displays.
+Operations are what make an app more than a form over one graph. A transcribe
+app can bind a transcription workflow, a summarizer, and a translator, and drive
+all three from one screen.
 
 ### Bindings
 
@@ -121,10 +151,11 @@ var:<variableId>                 a declared app variable
 view:<componentId>#<prop>        widget-local state, never persisted
 ```
 
-Bindings key on node **IDs**, not names. Renaming an Input node in the graph
-editor cannot break an app. Names are still accepted and resolved against the
-live graph, which is how documents written before ID bindings keep working; the
-editor rewrites them to the ID form when it can, and reports the ones it cannot.
+Bindings carry the operation id, so two operations that share a workflow never
+read each other's values. They key on node **IDs**, not names, so renaming an
+Input node in the graph editor cannot break an app. Names are still accepted and
+resolved against the live graph, which is how older documents keep working; the
+editor rewrites them to the ID form when it can and reports the ones it cannot.
 
 How a bare name resolves depends on how the widget uses it. A write widget looks
 for an Input node, a read widget looks for an Output node and then a variable,
@@ -146,8 +177,8 @@ collides:
 | `view` | `componentId:prop` | Widget-local state. Never persisted. |
 | `invocations` | job id | Status, progress, error, and activity label per run. |
 
-Keying inputs and outputs by operation *and* node means two operations that
-share a workflow never overwrite each other.
+Keying inputs and outputs by operation *and* node is what lets one app run
+several workflows without their values overwriting each other.
 
 The reducer is pure, and the web runtime, the CLI harness, and the eval suites
 all drive the same one. What you see in `nodetool app debug` is what the browser
@@ -165,13 +196,14 @@ does.
    its mapping: the bound widget (the default), a variable, a constant, or the
    currently selected resource. Node IDs become the names the run protocol
    wants, which is why a graph rename never reaches the document.
-4. The invocation is created, its output slots go `pending`, and the run starts.
+4. The invocation is created, its output slots go `pending`, and the run starts
+   on the operation's workflow.
 5. Run messages fold into state events. Every message is matched to an
    invocation by `job_id`; a message from a job this instance did not start is
    dropped. That is what keeps a second tab, an overlapping run, or a run
-   launched from the graph editor from contaminating what the app shows.
-6. Values land in their output slot, and — when the operation maps that output
-   `to: "variable"` — in an app variable too. Streamed strings concatenate;
+   launched from a workflow tab from contaminating what the app shows.
+6. Values land in their output slot, and, when the operation maps that output
+   `to: "variable"`, in an app variable too. Streamed strings concatenate;
    structured items collect into a list. A new run starts a fresh value rather
    than appending to the previous one's.
 
@@ -207,15 +239,16 @@ in a node and bind a widget to the output.
 ## Debugging an app
 
 `nodetool app debug` runs the whole app headlessly: it validates every binding
-against the workflow's inputs, outputs, and variables, seeds input defaults,
-applies params, clicks the run trigger (or a scripted interaction sequence),
-executes on the kernel runner, folds the streamed messages, and reports each
-widget's final state.
+against each operation's workflow, seeds input defaults, applies params, clicks
+the run trigger (or a scripted interaction sequence), executes on the kernel
+runner, folds the streamed messages, and reports each widget's final state. It
+runs every declared operation, not only the first.
 
 ```bash
-npm run dev:nodetool -- app debug <workflow_id>
-npm run dev:nodetool -- app debug <workflow_id> --no-run   # wiring check only
-npm run dev:nodetool -- app debug <workflow_id> --json     # full report
+npm run dev:nodetool -- app debug <application_id>
+npm run dev:nodetool -- app debug my-app.json      # an ApplicationBundle file
+npm run dev:nodetool -- app debug <id> --no-run    # wiring check only
+npm run dev:nodetool -- app debug <id> --json      # full report
 ```
 
 The verdict catches app-level failures a workflow-only run cannot: a binding to
@@ -227,7 +260,7 @@ Two things it does not simulate: `visibleWhen`/`disabledWhen`/`format` (a widget
 hidden by a condition is reported as if visible), and `from: "resource"` inputs,
 which have no provider outside the browser.
 
-For the workflow underneath, `nodetool validate` is the cheap pre-flight and
+For a workflow underneath, `nodetool validate` is the cheap pre-flight and
 `nodetool debug` is the full run. See [Workflow Debugging](workflow-debugging.md).
 
 ## Related
@@ -235,5 +268,5 @@ For the workflow underneath, `nodetool validate` is the cheap pre-flight and
 - [Building Mini Apps](mini-apps-guide.md) — recipes per use case
 - [Mini App Reference](mini-apps-reference.md) — widgets, bindings, schema
 - [App Builder](app-builder.md) — the editor
-- [Workflow Editor](workflow-editor.md) — building the graph underneath
+- [Workflow Editor](workflow-editor.md) — building the graphs underneath
 - [Key Concepts](key-concepts.md) — how workflows, assets, and apps fit together

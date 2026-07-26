@@ -46,13 +46,13 @@ Conversational AI with multi-thread history, an always-on agent loop, tools, and
 
 Docs: [Chat](global-chat.md)
 
-### Mini-Apps — `/apps/:workflowId?`
+### Mini-Apps — the Apps panel
 
-Run saved workflows through simplified form UIs. Mini-apps can also be launched as standalone frameless windows from the desktop tray.
+Apps are their own resource, listed in the **Apps** panel in the left sidebar and opened as workspace tabs. Each one runs one or more workflows behind a form. Apps can also be launched as standalone frameless windows from the desktop tray.
 
 ![Mini-App Page](assets/screenshots/mini-app-page.png)
 
-Docs: [Mini-Apps](mobile-app.md#mini-apps) · [Electron Mini-App Window](electron-views.md#mini-app-window)
+Docs: [Mini Apps](mini-apps.md) · [Electron Mini-App Window](electron-views.md#mini-app-window)
 
 ### Asset Explorer — `/assets`
 
