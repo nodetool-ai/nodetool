@@ -98,7 +98,9 @@ A Mini-App hides the graph and exposes inputs and outputs only — a form anyone
 2. Click **Mini-App** in the toolbar.
 3. Fill the inputs and run. Same workflow, no graph.
 
-Custom UI? See [App Builder](app-builder.md).
+Custom UI? See [Mini Apps](mini-apps.md) for what apps solve and how they work,
+[Building Mini Apps](mini-apps-guide.md) for recipes, and
+[App Builder](app-builder.md) for the editor.
 
 ---
 
