@@ -134,8 +134,8 @@ Twenty-one scenarios were run against the design. These are the ones that shaped
 - **F2.** Schedules are expressed as a fixed interval or a cron expression with an IANA timezone.
 - **F3.** A run may return a `next_fire_at` that overrides its schedule for the following fire.
 - **F4.** A registration carries a JSON `state` blob. It is passed to the run as a param and written back from the run's `state` output whenever the run produces one, regardless of run status.
-- **F5.** Every run receives `last_fired_at`, `now`, and `is_first_run` as params.
-- **F6.** `POST /api/triggers/:token` inserts an event and returns `202` with the run id. Auth is per registration: shared token, HMAC-SHA256 over the raw body, or none.
+- **F5.** Every run receives `last_fired_at`, `now`, and `is_first_run` as params. `last_fired_at` is the last *successful* fire, so a failed occurrence's window is re-covered; `is_first_run` stays true until the first success.
+- **F6.** `POST /api/triggers/:token` inserts an event and returns `202` with the event id, plus the run id when the run was dispatched inline. A duplicate delivery returns `200` with the original ids; a disabled or expired registration returns `410`. Auth is per registration: shared token, HMAC-SHA256 over the raw body, or none.
 - **F7.** Rows sharing a `serialize_key` run one at a time. Poll registrations default to their own id.
 - **F8.** A registration may set `expires_at` and `max_runs`.
 - **F9.** Secrets resolve `<secret_scope>/<key>` before falling back to `<key>`.
@@ -147,7 +147,7 @@ Twenty-one scenarios were run against the design. These are the ones that shaped
 
 - **O1.** After N consecutive failures (default 5) a registration disables itself and retains the last error.
 - **O2.** Retries back off exponentially, capped by `max_attempts` (default 3).
-- **O3.** A registration may set `max_usd` per period. Exceeding it disables the registration rather than skipping a run silently.
+- **O3.** A registration may set `max_usd` per period. The check runs before dispatch as well as after settle, and exceeding it disables the registration rather than skipping a run silently.
 - **O4.** Cost records carry `registration_id` so spend groups by trigger and by tag.
 - **O5.** Dispatch goes through the existing job queue and inherits `MAX_CONCURRENT_JOBS` and `MAX_CONCURRENT_RUNS_PER_WORKFLOW`.
 - **O6.** Saving a workflow that a registration depends on validates the `state` input/output contract and warns when it breaks.
