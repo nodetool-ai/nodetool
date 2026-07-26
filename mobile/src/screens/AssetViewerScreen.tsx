@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ActivityIndicator,
-  Image,
+  Animated,
+  PanResponder,
   ScrollView,
   TouchableOpacity,
   Alert,
@@ -13,6 +14,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Share,
+  type LayoutChangeEvent,
+  type NativeTouchEvent,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Video, ResizeMode, Audio } from 'expo-av';
@@ -24,6 +27,275 @@ import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../hooks/useTheme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { saveMediaToLibrary, saveableMediaKind } from '../utils/saveMedia';
+import { hapticImpact, hapticNotification } from '../utils/haptics';
+
+/** Fit-to-frame. The image can never be smaller than the preview box. */
+export const MIN_ZOOM_SCALE = 1;
+export const MAX_ZOOM_SCALE = 4;
+/** Where a double-tap lands when the image is currently at fit. */
+const DOUBLE_TAP_ZOOM_SCALE = 2;
+const DOUBLE_TAP_WINDOW_MS = 280;
+/** A press that moves less than this (in dp) still counts as a tap. */
+const TAP_SLOP = 16;
+/** Below this the image is at fit and pans are pinned to the frame. */
+const ZOOM_EPSILON = 0.01;
+
+/** Distance between the first two active touches, 0 for a single finger. */
+export function touchDistance(
+  touches: readonly Pick<NativeTouchEvent, 'pageX' | 'pageY'>[]
+): number {
+  if (touches.length < 2) {return 0;}
+  const [a, b] = touches;
+  return Math.hypot(a.pageX - b.pageX, a.pageY - b.pageY);
+}
+
+export function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+/**
+ * How far the image may travel along one axis before its edge would leave the
+ * frame. At fit (and below) the answer is zero, which is what keeps a
+ * zoomed-out image from being flung off-screen.
+ */
+export function maxTranslation(containerSize: number, scale: number): number {
+  return Math.max(0, (containerSize * (scale - MIN_ZOOM_SCALE)) / 2);
+}
+
+export function clampTranslation(
+  value: number,
+  containerSize: number,
+  scale: number
+): number {
+  const limit = maxTranslation(containerSize, scale);
+  return clamp(value, -limit, limit);
+}
+
+type ZoomableImageProps = {
+  uri: string;
+  accessibilityLabel: string;
+  onZoomChange: (isZoomed: boolean) => void;
+};
+
+/**
+ * Pinch-to-zoom / pan / double-tap image, built on core RN only (`Animated` +
+ * `PanResponder`) — no gesture-handler or reanimated in this app's tree.
+ *
+ * The live transform is written straight onto `Animated.Value`s with
+ * `setValue` during the gesture; only the double-tap and the snap-back at
+ * gesture end are actual animations. Gesture bookkeeping lives in a mutable ref
+ * so a moving finger never triggers a React render.
+ */
+function ZoomableImage({ uri, accessibilityLabel, onZoomChange }: ZoomableImageProps) {
+  const scale = useRef(new Animated.Value(MIN_ZOOM_SCALE)).current;
+  const translateX = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
+
+  const onZoomChangeRef = useRef(onZoomChange);
+  onZoomChangeRef.current = onZoomChange;
+
+  const gesture = useRef({
+    scale: MIN_ZOOM_SCALE,
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+    pinchStartDistance: 0,
+    pinchStartScale: MIN_ZOOM_SCALE,
+    /** gestureState delta at the last re-baseline (touch count change). */
+    panBaseDx: 0,
+    panBaseDy: 0,
+    /** Translation at the last re-baseline. */
+    panOriginX: 0,
+    panOriginY: 0,
+    touchCount: 0,
+    didPinch: false,
+    lastTapAt: 0,
+    reportedZoomed: false,
+  }).current;
+
+  const panResponder = useMemo(() => {
+    const write = () => {
+      scale.setValue(gesture.scale);
+      translateX.setValue(gesture.x);
+      translateY.setValue(gesture.y);
+    };
+
+    const clampToFrame = () => {
+      gesture.x = clampTranslation(gesture.x, gesture.width, gesture.scale);
+      gesture.y = clampTranslation(gesture.y, gesture.height, gesture.scale);
+    };
+
+    const reportZoom = () => {
+      const isZoomed = gesture.scale > MIN_ZOOM_SCALE + ZOOM_EPSILON;
+      if (isZoomed !== gesture.reportedZoomed) {
+        gesture.reportedZoomed = isZoomed;
+        onZoomChangeRef.current(isZoomed);
+      }
+    };
+
+    const rebaseline = (dx: number, dy: number) => {
+      gesture.panBaseDx = dx;
+      gesture.panBaseDy = dy;
+      gesture.panOriginX = gesture.x;
+      gesture.panOriginY = gesture.y;
+    };
+
+    const animateTo = (nextScale: number, nextX: number, nextY: number) => {
+      gesture.scale = nextScale;
+      gesture.x = nextX;
+      gesture.y = nextY;
+      clampToFrame();
+      reportZoom();
+      // JS-driven on purpose: the same values are written with `setValue`
+      // every frame of a gesture, and a value that has been handed to the
+      // native driver can no longer be driven from JS.
+      Animated.parallel([
+        Animated.spring(scale, { toValue: gesture.scale, useNativeDriver: false, friction: 8 }),
+        Animated.spring(translateX, { toValue: gesture.x, useNativeDriver: false, friction: 8 }),
+        Animated.spring(translateY, { toValue: gesture.y, useNativeDriver: false, friction: 8 }),
+      ]).start();
+    };
+
+    /** Double-tap: back to fit when zoomed, otherwise zoom in on the tap. */
+    const handleDoubleTap = (locationX: number, locationY: number) => {
+      hapticImpact('light');
+      if (gesture.scale > MIN_ZOOM_SCALE + ZOOM_EPSILON) {
+        animateTo(MIN_ZOOM_SCALE, 0, 0);
+        return;
+      }
+      // Keep the tapped point under the finger as the image grows.
+      const focalX = locationX - gesture.width / 2;
+      const focalY = locationY - gesture.height / 2;
+      const ratio = DOUBLE_TAP_ZOOM_SCALE / gesture.scale;
+      animateTo(
+        DOUBLE_TAP_ZOOM_SCALE,
+        gesture.x - focalX * (ratio - 1),
+        gesture.y - focalY * (ratio - 1)
+      );
+    };
+
+    return PanResponder.create({
+      // Claim the touch so double-taps register; the parent ScrollView is
+      // disabled while zoomed so vertical scrolling still works at fit.
+      onStartShouldSetPanResponder: () => true,
+      // `evt` is optional-chained because RTL probes this predicate with no
+      // event to decide whether a node accepts fired events.
+      onMoveShouldSetPanResponder: (evt) =>
+        (evt?.nativeEvent?.touches?.length ?? 0) > 1 ||
+        gesture.scale > MIN_ZOOM_SCALE + ZOOM_EPSILON,
+      onPanResponderTerminationRequest: () => false,
+
+      onPanResponderGrant: () => {
+        gesture.touchCount = 0;
+        gesture.didPinch = false;
+        gesture.pinchStartDistance = 0;
+        rebaseline(0, 0);
+      },
+
+      onPanResponderMove: (evt, gestureState) => {
+        const touches = evt.nativeEvent.touches;
+        if (touches.length !== gesture.touchCount) {
+          gesture.touchCount = touches.length;
+          gesture.pinchStartDistance = 0;
+          rebaseline(gestureState.dx, gestureState.dy);
+        }
+
+        if (touches.length > 1) {
+          const distance = touchDistance(touches);
+          if (distance <= 0) {return;}
+          if (gesture.pinchStartDistance === 0) {
+            gesture.pinchStartDistance = distance;
+            gesture.pinchStartScale = gesture.scale;
+            return;
+          }
+          gesture.didPinch = true;
+          gesture.scale = clamp(
+            (gesture.pinchStartScale * distance) / gesture.pinchStartDistance,
+            MIN_ZOOM_SCALE,
+            MAX_ZOOM_SCALE
+          );
+          clampToFrame();
+          write();
+          reportZoom();
+          return;
+        }
+
+        if (gesture.scale <= MIN_ZOOM_SCALE + ZOOM_EPSILON) {return;}
+        gesture.x = clampTranslation(
+          gesture.panOriginX + (gestureState.dx - gesture.panBaseDx),
+          gesture.width,
+          gesture.scale
+        );
+        gesture.y = clampTranslation(
+          gesture.panOriginY + (gestureState.dy - gesture.panBaseDy),
+          gesture.height,
+          gesture.scale
+        );
+        write();
+      },
+
+      onPanResponderRelease: (evt, gestureState) => {
+        const wasTap =
+          !gesture.didPinch &&
+          Math.abs(gestureState.dx) < TAP_SLOP &&
+          Math.abs(gestureState.dy) < TAP_SLOP;
+
+        if (wasTap) {
+          const now = Date.now();
+          if (now - gesture.lastTapAt < DOUBLE_TAP_WINDOW_MS) {
+            gesture.lastTapAt = 0;
+            const { locationX, locationY } = evt.nativeEvent;
+            handleDoubleTap(locationX, locationY);
+            return;
+          }
+          gesture.lastTapAt = now;
+        }
+
+        gesture.touchCount = 0;
+        gesture.pinchStartDistance = 0;
+        gesture.didPinch = false;
+
+        // A pinch that ended below fit springs back instead of sitting small.
+        if (gesture.scale <= MIN_ZOOM_SCALE + ZOOM_EPSILON) {
+          animateTo(MIN_ZOOM_SCALE, 0, 0);
+          return;
+        }
+        clampToFrame();
+        write();
+        reportZoom();
+      },
+    });
+  }, [gesture, scale, translateX, translateY]);
+
+  const handleLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      const { width, height } = event.nativeEvent.layout;
+      gesture.width = width;
+      gesture.height = height;
+    },
+    [gesture]
+  );
+
+  return (
+    <View
+      style={styles.zoomSurface}
+      onLayout={handleLayout}
+      testID="asset-zoom-surface"
+      {...panResponder.panHandlers}
+    >
+      <Animated.Image
+        source={{ uri }}
+        style={[
+          styles.previewImage,
+          { transform: [{ translateX }, { translateY }, { scale }] },
+        ]}
+        resizeMode="contain"
+        accessibilityLabel={accessibilityLabel}
+      />
+    </View>
+  );
+}
 
 type AssetViewerScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'AssetViewer'>;
@@ -69,6 +341,7 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
   const [renameValue, setRenameValue] = useState('');
   const [isSavingRename, setIsSavingRename] = useState(false);
   const [isSavingToLibrary, setIsSavingToLibrary] = useState(false);
+  const [isImageZoomed, setIsImageZoomed] = useState(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [audioPosition, setAudioPosition] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
@@ -224,6 +497,7 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
         contentType: asset.content_type || '',
         name: asset.name,
       });
+      hapticNotification('success');
       Alert.alert(
         'Saved',
         kind === 'video'
@@ -231,6 +505,7 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
           : 'Image saved to your photo library.'
       );
     } catch (error: unknown) {
+      hapticNotification('error');
       const msg =
         error instanceof Error ? error.message : 'Could not save this asset.';
       Alert.alert('Save failed', msg);
@@ -285,14 +560,14 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+      scrollEnabled={!isImageZoomed}
     >
       <View style={[styles.previewContainer, { backgroundColor: colors.surfaceElevated }]}>
         {isImage && url ? (
-          <Image
-            source={{ uri: url }}
-            style={styles.previewImage}
-            resizeMode="contain"
+          <ZoomableImage
+            uri={url}
             accessibilityLabel={asset.name}
+            onZoomChange={setIsImageZoomed}
           />
         ) : isVideo && url ? (
           <Video
@@ -572,6 +847,13 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    // A zoomed image stays inside its frame instead of bleeding over the
+    // details below it.
+    overflow: 'hidden',
+  },
+  zoomSurface: {
+    width: '100%',
+    height: '100%',
   },
   previewImage: {
     width: '100%',
