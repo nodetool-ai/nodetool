@@ -17,7 +17,10 @@ module.exports = {
     // Shared mini-app runtime core, compiled from source (mirrors metro.config.js).
     '^@nodetool-ai/app-runtime$':
       '<rootDir>/../packages/app-runtime/src/index.ts',
-    // That package's source uses ESM `.js` specifiers for its own modules.
+    // Shared timeline engine (split/trim/factories), also from source.
+    '^@nodetool-ai/timeline$': '<rootDir>/../packages/timeline/src/index.ts',
+    '^@nodetool-ai/gpu$': '<rootDir>/../packages/gpu/src/index.ts',
+    // Those packages' sources use ESM `.js` specifiers for their own modules.
     '^(\\.{1,2}/.+)\\.js$': '$1',
   },
   collectCoverageFrom: [

@@ -24,6 +24,12 @@
       ],
       "@nodetool-ai/app-runtime": [
         "../packages/app-runtime/src/index.ts"
+      ],
+      "@nodetool-ai/timeline": [
+        "../packages/timeline/src/index.ts"
+      ],
+      "@nodetool-ai/gpu": [
+        "../packages/gpu/src/index.ts"
       ]
     }
   },
