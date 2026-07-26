@@ -7,6 +7,7 @@
  * operation and carry no history. An application row separates the two: the app
  * owns a UI document plus typed bindings, and each binding names a workflow.
  */
+import { createHash } from "node:crypto";
 import { eq, desc, and, max } from "drizzle-orm";
 import {
   APP_SCHEMA_VERSION,
@@ -25,6 +26,8 @@ import {
 } from "./base-model.js";
 import { getDb } from "./db.js";
 import { applications, applicationVersions } from "./schema/applications.js";
+import { Workflow, type WorkflowGraph } from "./workflow.js";
+import { WorkflowVersion } from "./workflow-version.js";
 
 /**
  * What a release is allowed to do, derived from its bindings at publish time
@@ -32,10 +35,38 @@ import { applications, applicationVersions } from "./schema/applications.js";
  * nothing else the app layer can do.
  */
 export interface ApplicationCapabilities {
-  /** Workflow ids the release may invoke, with the version each is pinned to. */
-  workflows: Array<{ workflowId: string; version?: number }>;
+  /**
+   * Workflow ids the release may invoke, with the version each is pinned to
+   * and the hash of the graph that version froze. The hash identifies the
+   * exact graph a release runs without carrying it.
+   */
+  workflows: Array<{
+    workflowId: string;
+    version?: number;
+    graphHash?: string;
+  }>;
   /** Resource kinds the release touches and the operations it uses on them. */
   resources: Array<{ kind: ResourceKind; operations: ResourceOperation[] }>;
+}
+
+/**
+ * A workflow graph as a release froze it.
+ *
+ * `version` is a row in `nodetool_workflow_versions` written at publish time,
+ * so the number means the same thing it means everywhere else in the app. The
+ * graph itself is copied onto the release as well: a release must stay
+ * reproducible even if that version row is later pruned or its workflow is
+ * deleted.
+ *
+ * Both are null on a snapshot published before releases pinned anything; a
+ * runtime that meets one has no frozen graph to run and falls back to the live
+ * workflow.
+ */
+export interface PinnedWorkflow {
+  workflowId: string;
+  version: number | null;
+  graphHash: string | null;
+  graph: WorkflowGraph | null;
 }
 
 export interface ApplicationResponse {
@@ -58,6 +89,14 @@ export interface ApplicationVersionResponse {
   createdAt: string;
 }
 
+/**
+ * Everything needed to *run* a release: the snapshot plus the frozen graph of
+ * every workflow its operations name.
+ */
+export interface ApplicationReleaseResponse extends ApplicationVersionResponse {
+  workflows: PinnedWorkflow[];
+}
+
 export class ApplicationConflictError extends Error {
   constructor(id: string) {
     super(`Application ${id} was modified concurrently`);
@@ -67,19 +106,25 @@ export class ApplicationConflictError extends Error {
 
 /** Derive a release's capability summary from the document's bindings. */
 export const deriveCapabilities = (
-  document: ApplicationDocument
+  document: ApplicationDocument,
+  graphHashes: ReadonlyMap<string, string> = new Map()
 ): ApplicationCapabilities => {
-  const workflows = new Map<string, { workflowId: string; version?: number }>();
+  const workflows = new Map<
+    string,
+    { workflowId: string; version?: number; graphHash?: string }
+  >();
   for (const operation of document.operations) {
     const key = `${operation.workflowId}@${operation.workflowVersion ?? ""}`;
     workflows.set(key, {
       workflowId: operation.workflowId,
-      version: operation.workflowVersion
+      version: operation.workflowVersion,
+      graphHash: graphHashes.get(operation.workflowId)
     });
   }
   const resources = new Map<ResourceKind, Set<ResourceOperation>>();
   for (const binding of document.resources) {
-    const existing = resources.get(binding.kind) ?? new Set<ResourceOperation>();
+    const existing =
+      resources.get(binding.kind) ?? new Set<ResourceOperation>();
     for (const op of binding.operations) existing.add(op);
     resources.set(binding.kind, existing);
   }
@@ -231,7 +276,9 @@ const toVersionResponse = (
   applicationId: String(row.application_id),
   version: Number(row.version),
   document: parseDocumentOrThrow(
-    typeof row.document === "string" ? row.document : JSON.stringify(row.document)
+    typeof row.document === "string"
+      ? row.document
+      : JSON.stringify(row.document)
   ),
   capabilities:
     typeof row.capabilities === "string"
@@ -241,20 +288,139 @@ const toVersionResponse = (
   createdAt: String(row.created_at)
 });
 
+/** Stable hash of a graph — the identity of the code a release runs. */
+const hashGraph = (graph: WorkflowGraph): string =>
+  createHash("sha256").update(JSON.stringify(graph)).digest("hex");
+
+const parsePinnedGraphs = (
+  raw: unknown
+): Map<
+  string,
+  { version: number | null; graphHash: string; graph: WorkflowGraph }
+> => {
+  if (raw == null) return new Map();
+  const parsed = (typeof raw === "string" ? JSON.parse(raw) : raw) as Record<
+    string,
+    { version: number | null; graphHash: string; graph: WorkflowGraph }
+  >;
+  return new Map(Object.entries(parsed));
+};
+
+/**
+ * Freeze every workflow the document invokes.
+ *
+ * Each referenced workflow's live graph is written as a new row in the
+ * workflow's own version history (`save_type: "publish"`), so the number the
+ * release pins is a real workflow version, not one invented for apps. The
+ * graph is returned alongside it so the release can carry its own copy.
+ */
+async function pinWorkflows(
+  document: ApplicationDocument,
+  userId: string,
+  applicationVersion: number
+): Promise<
+  Map<
+    string,
+    { version: number | null; graphHash: string; graph: WorkflowGraph }
+  >
+> {
+  const pinned = new Map<
+    string,
+    { version: number | null; graphHash: string; graph: WorkflowGraph }
+  >();
+  for (const operation of document.operations) {
+    if (pinned.has(operation.workflowId)) continue;
+    const workflow = await Workflow.find(userId, operation.workflowId);
+    if (!workflow) {
+      throw new Error(
+        `Cannot publish: workflow ${operation.workflowId} bound to operation ` +
+          `${operation.id} was not found`
+      );
+    }
+    const graph = workflow.getGraph();
+    // Only the workflow's owner may add to its version history; publishing an
+    // app over someone else's shared workflow still pins the graph, it just
+    // has no version of theirs to name.
+    let version: number | null = null;
+    if (workflow.user_id === userId) {
+      version = await WorkflowVersion.nextVersion(operation.workflowId);
+      await WorkflowVersion.create<WorkflowVersion>({
+        workflow_id: operation.workflowId,
+        user_id: workflow.user_id,
+        name: workflow.name,
+        description: `Pinned by application release v${applicationVersion}`,
+        graph,
+        version,
+        save_type: "publish"
+      });
+    }
+    pinned.set(operation.workflowId, {
+      version,
+      graphHash: hashGraph(graph),
+      graph
+    });
+  }
+  return pinned;
+}
+
+/**
+ * A version plus the frozen graphs it runs. Snapshots published before pinning
+ * carry no graphs; their entries report null so the caller can tell "pinned to
+ * nothing" from "pinned to this".
+ */
+const toReleaseResponse = (
+  row: Record<string, unknown>
+): ApplicationReleaseResponse => {
+  const version = toVersionResponse(row);
+  const graphs = parsePinnedGraphs(row.workflow_graphs);
+  const workflowIds = new Set(
+    version.document.operations.map((operation) => operation.workflowId)
+  );
+  return {
+    ...version,
+    workflows: [...workflowIds].map((workflowId) => {
+      const pinned = graphs.get(workflowId);
+      return {
+        workflowId,
+        version: pinned?.version ?? null,
+        graphHash: pinned?.graphHash ?? null,
+        graph: pinned?.graph ?? null
+      };
+    })
+  };
+};
+
 /**
  * Publish the application's current draft as an immutable, released snapshot.
  * The release pointer moves to the new version; rollback is `release(id, n)`.
+ *
+ * Publishing pins: every operation's `workflowVersion` is set to a workflow
+ * version written now, and that version's graph is copied onto the snapshot.
+ * Editing the workflow afterwards changes the draft's runs, never the
+ * release's.
  */
 export async function publishApplication(
   application: Application
-): Promise<ApplicationVersionResponse> {
+): Promise<ApplicationReleaseResponse> {
   const db = getDb();
-  const document = application.toDocument();
+  const draft = application.toDocument();
   const highest = await db
     .select({ value: max(applicationVersions.version) })
     .from(applicationVersions)
     .where(eq(applicationVersions.application_id, application.id));
   const nextVersion = Number(highest[0]?.value ?? 0) + 1;
+
+  const pinned = await pinWorkflows(draft, application.user_id, nextVersion);
+  const document: ApplicationDocument = {
+    ...draft,
+    operations: draft.operations.map((operation) => ({
+      ...operation,
+      workflowVersion: pinned.get(operation.workflowId)?.version ?? undefined
+    }))
+  };
+  const graphHashes = new Map(
+    [...pinned].map(([workflowId, entry]) => [workflowId, entry.graphHash])
+  );
 
   await db
     .update(applicationVersions)
@@ -268,13 +434,14 @@ export async function publishApplication(
       application_id: application.id,
       version: nextVersion,
       document: JSON.stringify(document),
-      capabilities: JSON.stringify(deriveCapabilities(document)),
+      capabilities: JSON.stringify(deriveCapabilities(document, graphHashes)),
+      workflow_graphs: JSON.stringify(Object.fromEntries(pinned)),
       released: 1,
       created_at: new Date().toISOString()
     })
     .returning();
 
-  return toVersionResponse(rows[0] as Record<string, unknown>);
+  return toReleaseResponse(rows[0] as Record<string, unknown>);
 }
 
 export async function listApplicationVersions(
@@ -308,6 +475,28 @@ export async function releasedApplicationVersion(
     .limit(1);
   const row = rows[0] as Record<string, unknown> | undefined;
   return row ? toVersionResponse(row) : null;
+}
+
+/**
+ * The released snapshot plus the graphs it is pinned to — everything a client
+ * needs to run the release rather than the draft.
+ */
+export async function releasedApplicationRelease(
+  applicationId: string
+): Promise<ApplicationReleaseResponse | null> {
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(applicationVersions)
+    .where(
+      and(
+        eq(applicationVersions.application_id, applicationId),
+        eq(applicationVersions.released, 1)
+      )
+    )
+    .limit(1);
+  const row = rows[0] as Record<string, unknown> | undefined;
+  return row ? toReleaseResponse(row) : null;
 }
 
 /** Move the release pointer to an existing version (publish or rollback). */

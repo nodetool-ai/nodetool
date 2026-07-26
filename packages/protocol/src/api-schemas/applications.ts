@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { graph } from "./workflows.js";
+
 // ── Application document ────────────────────────────────────────────────────
 // Mirrors `ApplicationDocument` in `@nodetool-ai/app-runtime`. The UI document
 // is a client-owned Puck payload, so it travels loosely; the binding, variable,
@@ -110,7 +112,12 @@ export type ApplicationListItem = z.infer<typeof applicationListItem>;
 /** Derived at publish time from the release's bindings — never hand-written. */
 export const applicationCapabilities = z.object({
   workflows: z.array(
-    z.object({ workflowId: z.string(), version: z.number().optional() })
+    z.object({
+      workflowId: z.string(),
+      version: z.number().optional(),
+      /** sha256 of the graph the release froze for this workflow. */
+      graphHash: z.string().optional()
+    })
   ),
   resources: z.array(
     z.object({
@@ -131,6 +138,29 @@ export const applicationVersionResponse = z.object({
 });
 export type ApplicationVersionResponse = z.infer<
   typeof applicationVersionResponse
+>;
+
+/**
+ * A workflow graph as a release froze it. `version` is a row in the workflow's
+ * own version history written at publish time; `graph` is the copy the release
+ * carries, so it survives that row being pruned. Both are null on a snapshot
+ * published before releases pinned anything — a runtime that meets one has no
+ * frozen graph and falls back to the live workflow.
+ */
+export const pinnedWorkflow = z.object({
+  workflowId: z.string(),
+  version: z.number().nullable(),
+  graphHash: z.string().nullable(),
+  graph: graph.nullable()
+});
+export type PinnedWorkflowSchema = z.infer<typeof pinnedWorkflow>;
+
+/** The released snapshot plus everything needed to run it. */
+export const applicationReleaseResponse = applicationVersionResponse.extend({
+  workflows: z.array(pinnedWorkflow)
+});
+export type ApplicationReleaseResponse = z.infer<
+  typeof applicationReleaseResponse
 >;
 
 export const createApplicationInput = z.object({

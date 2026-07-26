@@ -16,6 +16,8 @@
  *   versions (query)    — ApplicationVersionResponse[]
  *   release  (mutation) — ApplicationVersionResponse (publish or rollback)
  *   released (query)    — ApplicationVersionResponse | null
+ *   releasedDocument (query) — ApplicationReleaseResponse | null
+ *                              (the snapshot plus the graphs it is pinned to)
  *
  * Spend governance, for apps published to people other than their author:
  *   budget/setBudget       — the app-scoped ceiling
@@ -40,6 +42,7 @@ import {
   publishApplication,
   reserveInvocation,
   releaseApplicationVersion,
+  releasedApplicationRelease,
   releasedApplicationVersion,
   setApplicationBudget,
   settleInvocation
@@ -48,6 +51,7 @@ import { Workflow } from "@nodetool-ai/models";
 import {
   applicationBudget,
   applicationListItem,
+  applicationReleaseResponse,
   applicationResponse,
   applicationUsage as applicationUsageSchema,
   applicationVersionResponse,
@@ -252,6 +256,21 @@ export const applicationsRouter = router({
       await loadOwned(ctx.userId, input.id);
       const version = await releasedApplicationVersion(input.id);
       return version ? applicationVersionResponse.parse(version) : null;
+    }),
+
+  /**
+   * What a published app should run: the released snapshot's document, its
+   * version number and capabilities, plus the graph each operation is pinned
+   * to. A client that runs these graphs runs the release; a client that runs
+   * the app's `document` runs the draft.
+   */
+  releasedDocument: protectedProcedure
+    .input(idInput)
+    .output(applicationReleaseResponse.nullable())
+    .query(async ({ ctx, input }) => {
+      await loadOwned(ctx.userId, input.id);
+      const release = await releasedApplicationRelease(input.id);
+      return release ? applicationReleaseResponse.parse(release) : null;
     }),
 
   budget: protectedProcedure

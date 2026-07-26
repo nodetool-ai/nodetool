@@ -1,15 +1,21 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { createEmptyDocument } from "@nodetool-ai/app-runtime";
 
-import { initTestDb } from "../src/db.js";
+import { eq } from "drizzle-orm";
+
+import { getDb, initTestDb } from "../src/db.js";
+import { applicationVersions } from "../src/schema/applications.js";
 import {
   Application,
   deriveCapabilities,
   listApplicationVersions,
   publishApplication,
   releaseApplicationVersion,
+  releasedApplicationRelease,
   releasedApplicationVersion
 } from "../src/application.js";
+import { Workflow } from "../src/workflow.js";
+import { WorkflowVersion } from "../src/workflow-version.js";
 
 const documentWith = (workflowId = "wf1") => {
   const doc = createEmptyDocument("Demo");
@@ -36,6 +42,21 @@ const createApp = (
     project_id: projectId,
     name,
     document: JSON.stringify(documentWith())
+  });
+
+const nodeNamed = (id: string) => ({ id, type: "nodetool.text.Concat" });
+
+/** The workflow the app's operation names — publishing pins its graph. */
+const createWorkflow = (
+  id = "wf1",
+  userId = "u1",
+  nodeId = "n1"
+): Promise<Workflow> =>
+  Workflow.create<Workflow>({
+    id,
+    user_id: userId,
+    name: "Demo workflow",
+    graph: { nodes: [nodeNamed(nodeId)], edges: [] }
   });
 
 describe("Application model", () => {
@@ -85,8 +106,9 @@ describe("Application model", () => {
 });
 
 describe("application releases", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     initTestDb();
+    await createWorkflow();
   });
 
   it("publishes monotonic versions and moves the release pointer", async () => {
@@ -122,6 +144,102 @@ describe("application releases", () => {
   it("returns null when rolling back to a version that does not exist", async () => {
     const app = await createApp();
     expect(await releaseApplicationVersion(app.id, 7)).toBeNull();
+  });
+
+  it("pins each operation to a workflow version written at publish time", async () => {
+    const app = await createApp();
+
+    const release = await publishApplication(app);
+
+    const pinnedVersion = release.document.operations[0]!.workflowVersion;
+    expect(pinnedVersion).toBe(1);
+    expect(release.workflows).toEqual([
+      {
+        workflowId: "wf1",
+        version: 1,
+        graphHash: expect.any(String),
+        graph: { nodes: [nodeNamed("n1")], edges: [] }
+      }
+    ]);
+    expect(release.capabilities.workflows[0]).toMatchObject({
+      workflowId: "wf1",
+      version: 1
+    });
+    const stored = await WorkflowVersion.findByVersion("wf1", 1);
+    expect(stored?.save_type).toBe("publish");
+    expect(stored?.graph).toEqual({ nodes: [nodeNamed("n1")], edges: [] });
+  });
+
+  it("keeps the release unchanged when the workflow is edited afterwards", async () => {
+    const app = await createApp();
+    const release = await publishApplication(app);
+    const hashAtPublish = release.capabilities.workflows[0]!.graphHash;
+
+    const workflow = (await Workflow.get<Workflow>("wf1"))!;
+    workflow.graph = { nodes: [nodeNamed("edited")], edges: [] };
+    await workflow.save();
+
+    const served = await releasedApplicationRelease(app.id);
+    expect(served?.workflows[0]!.graph).toEqual({
+      nodes: [nodeNamed("n1")],
+      edges: []
+    });
+    expect(served?.workflows[0]!.graphHash).toBe(hashAtPublish);
+    expect(served?.document.operations[0]!.workflowVersion).toBe(1);
+
+    // Publishing again picks the edit up as a new pin, leaving v1 alone.
+    const next = await publishApplication(app);
+    expect(next.workflows[0]!.version).toBe(2);
+    expect(next.workflows[0]!.graph).toEqual({
+      nodes: [nodeNamed("edited")],
+      edges: []
+    });
+    const first = (await listApplicationVersions(app.id)).find(
+      (v) => v.version === 1
+    );
+    expect(first?.document.operations[0]!.workflowVersion).toBe(1);
+  });
+
+  it("pins a shared workflow's graph without writing to its history", async () => {
+    const workflow = (await Workflow.get<Workflow>("wf1"))!;
+    workflow.user_id = "someone-else";
+    workflow.access = "public";
+    await workflow.save();
+    const app = await createApp();
+
+    const release = await publishApplication(app);
+
+    expect(release.workflows[0]).toMatchObject({
+      workflowId: "wf1",
+      version: null,
+      graph: { nodes: [nodeNamed("n1")], edges: [] }
+    });
+    expect(await WorkflowVersion.listForWorkflow("wf1")).toEqual([]);
+  });
+
+  it("refuses to publish an operation whose workflow is gone", async () => {
+    const app = await createApp();
+    const workflow = (await Workflow.get<Workflow>("wf1"))!;
+    await workflow.delete();
+
+    await expect(publishApplication(app)).rejects.toThrow(
+      /workflow wf1 bound to operation main was not found/
+    );
+  });
+
+  it("reports no pinned graph on a snapshot published before pinning", async () => {
+    const app = await createApp();
+    await publishApplication(app);
+    // Simulate a row written by the pre-pinning publish path.
+    await getDb()
+      .update(applicationVersions)
+      .set({ workflow_graphs: null })
+      .where(eq(applicationVersions.application_id, app.id));
+
+    const served = await releasedApplicationRelease(app.id);
+    expect(served?.workflows).toEqual([
+      { workflowId: "wf1", version: null, graphHash: null, graph: null }
+    ]);
   });
 });
 

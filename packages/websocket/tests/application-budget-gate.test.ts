@@ -16,10 +16,14 @@ import {
   type WebSocketConnection,
   type WebSocketReceiveFrame
 } from "../src/unified-websocket-runner.js";
+import { createEmptyDocument } from "@nodetool-ai/app-runtime";
 import {
+  Application,
+  Workflow,
   applicationUsage,
   initTestDb,
   listInvocations,
+  publishApplication,
   recordInvocation,
   setApplicationBudget
 } from "@nodetool-ai/models";
@@ -107,9 +111,75 @@ describe("application budget gate", () => {
     expect(ledger).toHaveLength(1);
     expect(ledger[0]).toMatchObject({
       invocationId: "job-1",
-      version: 2,
+      // The app has no release, so there is no version to bill the run to —
+      // the client's claim of one does not create it.
+      version: null,
       status: "running"
     });
+  });
+
+  it("bills a release run to the released version, not the claimed one", async () => {
+    await Workflow.create<Workflow>({
+      id: "wf1",
+      user_id: "u1",
+      name: "Demo workflow",
+      graph: { nodes: [], edges: [] }
+    });
+    const document = createEmptyDocument("Demo");
+    document.operations = [
+      {
+        id: "main",
+        name: "Run",
+        workflowId: "wf1",
+        inputs: {},
+        outputs: {},
+        policy: "replace"
+      }
+    ];
+    const app = await Application.create<Application>({
+      id: APP,
+      user_id: "u1",
+      name: "Demo app",
+      document: JSON.stringify(document)
+    });
+    await publishApplication(app);
+
+    await run({ application_id: APP, application_version: 99 });
+
+    const [record] = await listInvocations(APP);
+    expect(record).toMatchObject({ invocationId: "job-1", version: 1 });
+  });
+
+  it("records a draft run against no version even when a release exists", async () => {
+    await Workflow.create<Workflow>({
+      id: "wf1",
+      user_id: "u1",
+      name: "Demo workflow",
+      graph: { nodes: [], edges: [] }
+    });
+    const document = createEmptyDocument("Demo");
+    document.operations = [
+      {
+        id: "main",
+        name: "Run",
+        workflowId: "wf1",
+        inputs: {},
+        outputs: {},
+        policy: "replace"
+      }
+    ];
+    const app = await Application.create<Application>({
+      id: APP,
+      user_id: "u1",
+      name: "Demo app",
+      document: JSON.stringify(document)
+    });
+    await publishApplication(app);
+
+    await run({ application_id: APP });
+
+    const [record] = await listInvocations(APP);
+    expect(record).toMatchObject({ invocationId: "job-1", version: null });
   });
 
   it("refuses a run that would cross the budget, before the job exists", async () => {

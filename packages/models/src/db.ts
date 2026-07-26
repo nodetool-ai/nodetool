@@ -1028,6 +1028,7 @@ function getCreateSchemaSql(): string {
       "version" integer NOT NULL,
       "document" text NOT NULL,
       "capabilities" text NOT NULL,
+      "workflow_graphs" text,
       "released" integer NOT NULL DEFAULT 0,
       "created_at" text NOT NULL
     );
