@@ -19,7 +19,11 @@ export function isSdkV1DiscoveryRequest(
 }
 
 export function isSdkV1AuthenticationRequired(
-  environment: NodeJS.ProcessEnv = process.env
+  environment: NodeJS.ProcessEnv = process.env,
+  serverAuthenticationRequired = false
 ): boolean {
-  return isSdkV1AuthenticationEnabled(environment);
+  return (
+    serverAuthenticationRequired ||
+    isSdkV1AuthenticationEnabled(environment)
+  );
 }

@@ -798,7 +798,8 @@ app.addHook("onRequest", async (req, reply) => {
     pathname.startsWith("/api/assets/packages/") ||
     pathname === "/api/nodes/metadata" ||
     pathname.startsWith("/api/kie/webhook") ||
-    (sdkDiscoveryRequest && !isSdkV1AuthenticationRequired()) ||
+    (sdkDiscoveryRequest &&
+      !isSdkV1AuthenticationRequired(process.env, enforceAuth)) ||
     isPublicWorkflowMetadataRequest(pathname, req.method)
   ) {
     return;

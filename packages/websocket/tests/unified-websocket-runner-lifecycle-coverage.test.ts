@@ -535,7 +535,7 @@ describe("UnifiedWebSocketRunner lifecycle — job status/cancel/reconnect", () 
     await expect(runner.resumeJob("missing")).resolves.toBeUndefined();
   });
 
-  it("reconnectJob gives completed persisted jobs a terminal result shape", async () => {
+  it("reconnectJob fails honestly when completed outputs cannot be replayed", async () => {
     await Job.create({
       id: "completed-job",
       workflow_id: "wf",
@@ -548,9 +548,10 @@ describe("UnifiedWebSocketRunner lifecycle — job status/cancel/reconnect", () 
     expect(decodeAll(ws)).toContainEqual(
       expect.objectContaining({
         type: "job_update",
-        status: "completed",
+        status: "failed",
         job_id: "completed-job",
-        result: { outputs: {} }
+        error:
+          "Job event replay is unavailable after the execution connection was lost."
       })
     );
   });

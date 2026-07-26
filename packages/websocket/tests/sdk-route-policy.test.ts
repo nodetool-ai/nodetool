@@ -38,4 +38,14 @@ describe("SDK v1 route policy", () => {
       })
     ).toBe(true);
   });
+
+  it("never bypasses authentication on an authenticated server", () => {
+    expect(isSdkV1AuthenticationRequired({}, true)).toBe(true);
+    expect(
+      isSdkV1AuthenticationRequired(
+        { NODETOOL_REQUIRE_SDK_AUTH_V1: "0" },
+        true
+      )
+    ).toBe(true);
+  });
 });

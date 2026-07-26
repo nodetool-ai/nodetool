@@ -3046,14 +3046,22 @@ export class UnifiedWebSocketRunner {
       // here became an unhandled promise rejection (the caller only `void`s
       // this) and left the client waiting for state that never arrived.
       const job = (await Job.get(jobId)) as Job | null;
+      const replayUnavailable =
+        job != null &&
+        job.status !== "failed" &&
+        job.status !== "cancelled";
       await this.sendMessage({
         type: "job_update",
-        status: job?.status ?? "failed",
+        status: replayUnavailable ? "failed" : (job?.status ?? "failed"),
         job_id: jobId,
         workflow_id: workflowId ?? job?.workflow_id ?? null,
-        ...(job?.status === "completed" ? { result: { outputs: {} } } : {}),
         ...(job
-          ? job.error
+          ? replayUnavailable
+            ? {
+                error:
+                  "Job event replay is unavailable after the execution connection was lost."
+              }
+            : job.error
             ? { error: job.error }
             : {}
           : { error: `Job ${jobId} not found` })

@@ -114,11 +114,11 @@ not removed or repurposed within protocol v1.
 
 ## Authentication boundary
 
-Current local discovery behavior is preserved by default. Set
-`NODETOOL_REQUIRE_SDK_AUTH_V1=1` to route SDK discovery through NodeTool's
-normal authentication hook. Remote multi-user SDK deployments should enable
-this flag and use bearer authentication. Trusted loopback behavior remains
-controlled by NodeTool's existing local-trust settings.
+Current local discovery behavior is preserved by default. When NodeTool's
+server authentication is enabled, SDK discovery always uses the normal
+authentication hook. `NODETOOL_REQUIRE_SDK_AUTH_V1=1` can additionally require
+that hook in a local deployment. Trusted loopback behavior remains controlled
+by NodeTool's existing local-trust settings.
 
 The Fastify-to-Web-API bridge strips caller-supplied `x-user-id` and forwards
 only the server-authenticated identity. Missing and inaccessible workflows
@@ -130,7 +130,7 @@ user owns a requested workflow.
 | Flag                                         | Default                     | Owner                       | Protected behavior                                                                                                      |
 | -------------------------------------------- | --------------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1` | Enabled unless exactly `1`  | WebSocket/API server        | Emergency kill switch for SDK workflow summaries, interfaces, and node-type inventory                                   |
-| `NODETOOL_REQUIRE_SDK_AUTH_V1`               | Disabled unless exactly `1` | Fastify authentication hook | Verified identity for SDK discovery routes in remote/multi-user deployments                                             |
+| `NODETOOL_REQUIRE_SDK_AUTH_V1`               | Disabled unless exactly `1` | Fastify authentication hook | Require verified identity for SDK discovery even when the server otherwise runs in local mode                           |
 | `NODETOOL_DISABLE_SDK_LIFECYCLE_V1`          | Enabled unless exactly `1`  | WebSocket/API server        | Emergency kill switch for HTTP/WebSocket capabilities and preflight; later job-lifecycle operations remain unregistered |
 
 The two additive SDK profiles are available without special server startup.
