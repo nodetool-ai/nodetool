@@ -1,3 +1,4 @@
+import { tagContentCardBodies } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
 
 import { TEXT_CLASSIFICATION_NODES } from "./nodes/text-classification.js";
@@ -82,24 +83,33 @@ export {
   type TjsDownloadProgress
 } from "./tjs-downloader.js";
 
-export const TRANSFORMERS_JS_NODES: readonly NodeClass[] = [
-  ...TEXT_CLASSIFICATION_NODES,
-  ...TOKEN_CLASSIFICATION_NODES,
-  ...QUESTION_ANSWERING_NODES,
-  ...SUMMARIZATION_NODES,
-  ...TRANSLATION_NODES,
-  ...TEXT_GENERATION_NODES,
-  ...FILL_MASK_NODES,
-  ...FEATURE_EXTRACTION_NODES,
-  ...ZERO_SHOT_CLASSIFICATION_NODES,
-  ...IMAGE_CLASSIFICATION_NODES,
-  ...OBJECT_DETECTION_NODES,
-  ...IMAGE_TO_TEXT_NODES,
-  ...ZERO_SHOT_IMAGE_CLASSIFICATION_NODES,
-  ...AUTOMATIC_SPEECH_RECOGNITION_NODES,
-  ...AUDIO_CLASSIFICATION_NODES,
-  ...TEXT_TO_SPEECH_NODES
-];
+/**
+ * Every transformers.js node.
+ *
+ * Nodes whose primary output is displayable (generated speech, or the text a
+ * generator/captioner/transcriber returns) render a content card; the ones
+ * that return embeddings or bounding boxes keep the generic body.
+ */
+export const TRANSFORMERS_JS_NODES: readonly NodeClass[] = tagContentCardBodies(
+  [
+    ...TEXT_CLASSIFICATION_NODES,
+    ...TOKEN_CLASSIFICATION_NODES,
+    ...QUESTION_ANSWERING_NODES,
+    ...SUMMARIZATION_NODES,
+    ...TRANSLATION_NODES,
+    ...TEXT_GENERATION_NODES,
+    ...FILL_MASK_NODES,
+    ...FEATURE_EXTRACTION_NODES,
+    ...ZERO_SHOT_CLASSIFICATION_NODES,
+    ...IMAGE_CLASSIFICATION_NODES,
+    ...OBJECT_DETECTION_NODES,
+    ...IMAGE_TO_TEXT_NODES,
+    ...ZERO_SHOT_IMAGE_CLASSIFICATION_NODES,
+    ...AUTOMATIC_SPEECH_RECOGNITION_NODES,
+    ...AUDIO_CLASSIFICATION_NODES,
+    ...TEXT_TO_SPEECH_NODES
+  ]
+);
 
 export function registerTransformersJsNodes(registry: {
   register: (nodeClass: NodeClass) => void;
