@@ -44,6 +44,18 @@ const NODE_ROW_HEIGHT = 32;
 const NAMESPACE_ROW_HEIGHT = 28;
 const API_VALIDATION_ROW_HEIGHT = 36;
 
+const NODES_CONTAINER_STYLE: React.CSSProperties = { height: "100%", overflow: "hidden" };
+const SCROLL_CONTAINER_STYLE: React.CSSProperties = {
+  height: "100%",
+  width: "100%",
+  overflowY: "auto",
+  overflowX: "hidden"
+};
+const VIRTUAL_LIST_STYLE: React.CSSProperties = {
+  width: "100%",
+  position: "relative"
+};
+
 type FlatRow =
   | {
       type: "api-validation";
@@ -200,28 +212,20 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     getItemKey: (index) => virtualRows[index]?.key ?? index,
   });
 
-  const style = { height: "100%", overflow: "hidden" };
-
   return (
-    <div className="nodes" style={style}>
+    <div className="nodes" style={NODES_CONTAINER_STYLE}>
       {nodes.length > 0 ? (
         searchNodes ? (
           <SearchResultsPanel searchNodes={searchNodes} />
         ) : (
           <div
             ref={scrollRef}
-            style={{
-              height: "100%",
-              width: "100%",
-              overflowY: "auto",
-              overflowX: "hidden",
-            }}
+            style={SCROLL_CONTAINER_STYLE}
           >
             <div
               style={{
-                height: virtualizer.getTotalSize(),
-                width: "100%",
-                position: "relative",
+                ...VIRTUAL_LIST_STYLE,
+                height: virtualizer.getTotalSize()
               }}
             >
               {virtualizer.getVirtualItems().map((vi) => {

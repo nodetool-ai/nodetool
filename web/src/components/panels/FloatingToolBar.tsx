@@ -54,24 +54,23 @@ const MOBILE_DOCK_LAYER_STYLE: React.CSSProperties = {
   bottom: "calc(8px + env(safe-area-inset-bottom, 0px))"
 };
 
+const RUNNING_TIME_STYLE: React.CSSProperties = {
+  fontWeight: 600,
+  fontFamily: "monospace",
+  letterSpacing: "-0.5px"
+};
+
 /** Live elapsed-time readout shown inside the Run button while a run is active. */
 const RunningTime: React.FC<{ isRunning: boolean; timerKey?: string }> = memo(
   function RunningTime({ isRunning, timerKey }) {
     const theme = useTheme();
     const elapsedSeconds = useRunningTime(isRunning, timerKey);
-    const { text, sizeKey } = formatRunningTime(elapsedSeconds);
-    const fontSizeMap = {
-      smaller: theme.fontSizeSmaller,
-      tiny: theme.fontSizeSmaller,
-      tinyer: theme.fontSizeSmaller
-    };
+    const { text } = formatRunningTime(elapsedSeconds);
     return (
       <span
         style={{
-          fontSize: fontSizeMap[sizeKey],
-          fontWeight: 600,
-          fontFamily: "monospace",
-          letterSpacing: "-0.5px"
+          ...RUNNING_TIME_STYLE,
+          fontSize: theme.fontSizeSmaller
         }}
       >
         {text}
