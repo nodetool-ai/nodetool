@@ -36,7 +36,14 @@ function findExamples(dir) {
     const stat = statSync(full);
     if (stat.isDirectory()) {
       results.push(...findExamples(full));
-    } else if (entry.endsWith(".json") && full.includes("/examples/")) {
+    } else if (
+      entry.endsWith(".json") &&
+      // `*.app.json` files are ApplicationBundles, not workflow graphs. They
+      // are validated by scripts/build-example-apps.mjs, which runs
+      // `nodetool app debug --no-run` over each one.
+      !entry.endsWith(".app.json") &&
+      full.includes("/examples/")
+    ) {
       results.push(full);
     }
   }

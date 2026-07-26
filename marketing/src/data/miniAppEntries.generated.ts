@@ -4,125 +4,167 @@ import type { MiniAppEntry } from "./miniApps";
 
 export const miniAppEntries: MiniAppEntry[] = [
   {
-    "route": "/apps/ad-creative-factory",
-    "title": "Ad Creative Factory — Free AI Mini App | NodeTool",
-    "description": "Turn one product photo and one offer into a batch of ready-to-test video ads.",
+    "route": "/apps/ask-your-documents",
+    "title": "Ask Your Documents — Free AI Mini App | NodeTool",
+    "description": "Ask your own documents — with a local mode that never leaves your machine.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "ad-creative-factory",
-    "name": "Ad Creative Factory",
-    "summary": "Turn one product photo and one offer into a batch of ready-to-test vertical video ads. A strategist agent plans a persona × angle test matrix, a structured data generator emits one variant row per cell — persona, angle, and spoken hook as separate fields, not a prose blob — and every row's hook becomes a staged product scene, an animated 9:16 clip, and a voiceover mixed on top.",
+    "indexable": false,
+    "slug": "ask-your-documents",
+    "name": "Ask Your Documents",
+    "summary": "Retrieval-augmented answers with citations, and a fully local fallback that reads one pasted document instead of the vector store.",
     "featured": false,
-    "templateRoute": "/templates/ad-creative-factory",
-    "screenshot": "/apps/ad-creative-factory.png",
-    "tags": [
-      "marketing",
-      "advertising",
-      "video",
-      "audio",
-      "agents",
-      "example"
+    "note": "🖥️ The retrieval mode embeds with Ollama `nomic-embed-text` and answers with OpenAI, so it needs **both**. Local mode needs only Ollama.",
+    "workflows": [
+      {
+        "name": "Chat With Your Documents",
+        "slug": "chat-with-your-documents",
+        "route": "/templates/chat-with-your-documents"
+      },
+      {
+        "name": "Private Assistant",
+        "slug": "private-assistant",
+        "route": "/templates/private-assistant"
+      }
     ],
-    "heading": "Ad Creative Factory",
-    "tagline": "Turn one product photo and one offer into a batch of ready-to-test video ads.",
-    "buttonLabel": "Generate my ads",
+    "templateRoute": "/templates/chat-with-your-documents",
+    "screenshot": null,
+    "tags": [
+      "assistant",
+      "citations",
+      "llm",
+      "local",
+      "offline",
+      "ollama",
+      "privacy",
+      "rag",
+      "retrieval",
+      "vectorstore"
+    ],
+    "heading": "📄 Ask Your Documents",
+    "tagline": "Ask your own documents — with a local mode that never leaves your machine.",
+    "buttonLabel": "Search my documents",
     "inputs": [
       {
-        "label": "Product Offer",
+        "label": "Your question",
         "kind": "text"
       },
       {
-        "label": "Audience",
+        "label": "Local only (no cloud)",
+        "kind": "toggle"
+      },
+      {
+        "label": "Search keyword",
         "kind": "text"
       },
       {
-        "label": "Variant Count",
-        "kind": "number"
+        "label": "Or paste one document",
+        "kind": "text"
       },
       {
-        "label": "Product Photo",
-        "kind": "image"
+        "label": "Answer tone",
+        "kind": "choice"
+      },
+      {
+        "label": "Document: specs",
+        "kind": "text"
+      },
+      {
+        "label": "Document: charging",
+        "kind": "text"
+      },
+      {
+        "label": "Document: warranty",
+        "kind": "text"
       }
     ],
     "outputs": [
       {
-        "label": "Hooks",
+        "label": "Searching your knowledge base…",
+        "kind": "progress"
+      },
+      {
+        "label": "Answer",
         "kind": "text"
       },
       {
-        "label": "Finished Ads",
-        "kind": "video"
+        "label": "Sources used",
+        "kind": "text"
+      },
+      {
+        "label": "Thinking locally…",
+        "kind": "progress"
+      },
+      {
+        "label": "Local answer",
+        "kind": "text"
       }
     ],
-    "widgetCount": 14
+    "widgetCount": 25
   },
   {
-    "route": "/apps/audio-to-image",
-    "title": "Audio To Image — Free AI Mini App | NodeTool",
-    "description": "Describe a scene out loud — get it back as a picture.",
+    "route": "/apps/brand-and-social",
+    "title": "Brand & Social — Free AI Mini App | NodeTool",
+    "description": "One brand identity drives three deliverables.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "audio-to-image",
-    "name": "Audio To Image",
-    "summary": "Speak an image into existence: no keyboard needed. Whisper transcribes your audio, then FLUX renders the description as an image — the whole pipeline runs from a single voice note.",
-    "featured": false,
-    "templateRoute": "/templates/audio-to-image",
-    "screenshot": "/apps/audio-to-image.png",
-    "tags": [
-      "huggingface",
-      "multimodal",
-      "start",
-      "example"
-    ],
-    "heading": "Audio To Image",
-    "tagline": "Describe a scene out loud — get it back as a picture.",
-    "buttonLabel": "Turn my voice into art",
-    "inputs": [
-      {
-        "label": "Description",
-        "kind": "audio"
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Image",
-        "kind": "image"
-      }
-    ],
-    "widgetCount": 8
-  },
-  {
-    "route": "/apps/brand-asset-generator",
-    "title": "Brand Asset Generator — Free AI Mini App | NodeTool",
-    "description": "Type your brand name and vibe — get logo-ready visuals in seconds.",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "brand-asset-generator",
-    "name": "Brand Asset Generator",
-    "summary": "Turn a brand name and vibe into a whole social kit in one run: the graph fans out to two branches at once — a streamed gallery of four on-brand, text-overlaid social images (Instagram, LinkedIn, X, product launch) and a one-page brand brief (voice, palette, tagline options). Differentiator: structured multi-asset outputs from a single fan-out graph. Uses fal-ai flux/schnell for images (paid) and gpt-5-mini for text.",
+    "indexable": false,
+    "slug": "brand-and-social",
+    "name": "Brand & Social",
+    "summary": "Fill in your brand once — the asset kit, the thumbnail factory, and the content calendar all read the same values.",
     "featured": true,
+    "note": "🔑 Needs OpenAI and FAL keys. Your brand name, audience, and voice persist between sessions.",
+    "workflows": [
+      {
+        "name": "Brand Asset Generator",
+        "slug": "brand-asset-generator",
+        "route": "/templates/brand-asset-generator"
+      },
+      {
+        "name": "Hook & Thumbnail Factory",
+        "slug": "hook-and-thumbnail-factory",
+        "route": "/templates/hook-and-thumbnail-factory"
+      },
+      {
+        "name": "Social Media Calendar Filler",
+        "slug": "social-media-calendar-filler",
+        "route": "/templates/social-media-calendar-filler"
+      }
+    ],
     "templateRoute": "/templates/brand-asset-generator",
-    "screenshot": "/apps/brand-asset-generator.png",
+    "screenshot": null,
     "tags": [
       "brand-asset",
       "branding",
+      "content",
       "design",
+      "example",
+      "image",
       "images",
-      "example"
+      "marketing",
+      "planning",
+      "social",
+      "social media",
+      "video"
     ],
-    "heading": "Brand Asset Generator",
-    "tagline": "Type your brand name and vibe — get logo-ready visuals in seconds.",
+    "heading": "🎨 Brand & Social",
+    "tagline": "One brand identity drives three deliverables.",
     "buttonLabel": "Generate brand assets",
     "inputs": [
       {
-        "label": "Brand Name",
+        "label": "Brand name",
         "kind": "text"
       },
       {
-        "label": "Brand Description",
+        "label": "Who is it for?",
+        "kind": "text"
+      },
+      {
+        "label": "Brand voice",
+        "kind": "text"
+      },
+      {
+        "label": "Describe your brand",
         "kind": "text"
       },
       {
@@ -130,198 +172,118 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "text"
       },
       {
-        "label": "Primary Color",
+        "label": "Primary color",
         "kind": "color"
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Social Assets",
-        "kind": "image"
       },
       {
-        "label": "Brand Brief",
-        "kind": "text"
-      }
-    ],
-    "widgetCount": 14
-  },
-  {
-    "route": "/apps/chat-with-your-documents",
-    "title": "Chat With Your Documents — Free AI Mini App | NodeTool",
-    "description": "Ask questions about your own documents — answers cite their source and refuse to guess.",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "chat-with-your-documents",
-    "name": "Chat With Your Documents",
-    "summary": "Retrieval-augmented Q&A over your own documents. Index a small knowledge base into a vector collection, pull the passages matching a search keyword, and get a Markdown answer that cites its sources and refuses to guess when the answer isn't in the docs. NodeTool's first RAG example. The answer step uses gpt-5-mini (OpenAI key); the collection is configured for Ollama nomic-embed-text embeddings.",
-    "featured": false,
-    "templateRoute": "/templates/chat-with-your-documents",
-    "screenshot": "/apps/chat-with-your-documents.png",
-    "tags": [
-      "rag",
-      "vectorstore",
-      "retrieval",
-      "llm",
-      "citations"
-    ],
-    "heading": "Chat With Your Documents",
-    "tagline": "Ask questions about your own documents — answers cite their source and refuse to guess.",
-    "buttonLabel": "Ask",
-    "inputs": [
-      {
-        "label": "Question",
+        "label": "What's your video about?",
         "kind": "text"
       },
       {
-        "label": "Search",
+        "label": "How many hooks?",
+        "kind": "number"
+      },
+      {
+        "label": "This month's theme",
         "kind": "text"
       },
       {
-        "label": "Doc Specs",
-        "kind": "text"
-      },
-      {
-        "label": "Doc Charging",
-        "kind": "text"
-      },
-      {
-        "label": "Doc Warranty",
-        "kind": "text"
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Answer",
-        "kind": "text"
-      },
-      {
-        "label": "Retrieved Passages",
-        "kind": "text"
-      }
-    ],
-    "widgetCount": 15
-  },
-  {
-    "route": "/apps/cold-outreach-co-pilot",
-    "title": "Cold Outreach Co-Pilot — Free AI Mini App | NodeTool",
-    "description": "An agent researches your prospect and writes a cold email that opens with a real, specific detail.",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "cold-outreach-co-pilot",
-    "name": "Cold Outreach Co-Pilot",
-    "summary": "An autonomous agent researches a prospect on the web and drafts a personalized cold email — opening with a real, specific detail — as structured fields (subject, body, follow-up) instead of one prose blob, ready to drop straight into a CRM or email tool.",
-    "featured": false,
-    "templateRoute": "/templates/cold-outreach-co-pilot",
-    "screenshot": "/apps/cold-outreach-co-pilot.png",
-    "tags": [
-      "agents",
-      "sales",
-      "outreach",
-      "marketing",
-      "example"
-    ],
-    "heading": "Cold Outreach Co-Pilot",
-    "tagline": "An agent researches your prospect and writes a cold email that opens with a real, specific detail.",
-    "buttonLabel": "Research & write my email",
-    "inputs": [
-      {
-        "label": "Prospect / Company",
-        "kind": "text"
-      },
-      {
-        "label": "Your Offer",
-        "kind": "text"
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Company Summary",
-        "kind": "text"
-      },
-      {
-        "label": "Pain Points",
-        "kind": "text"
-      },
-      {
-        "label": "Subject",
-        "kind": "text"
-      },
-      {
-        "label": "Body",
-        "kind": "text"
-      },
-      {
-        "label": "Follow Up",
-        "kind": "text"
-      }
-    ],
-    "widgetCount": 18
-  },
-  {
-    "route": "/apps/color-boost-video",
-    "title": "Color Boost Video — Free AI Mini App | NodeTool",
-    "description": "Give any clip a cinematic color grade — drag one slider, watch it apply.",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "color-boost-video",
-    "name": "Color Boost Video",
-    "summary": "Grade a video by splitting it into frames, applying exposure/contrast and saturation/vibrance adjustments per frame, then reassembling the result — differentiator: bring your own clip and a single Grading Intensity slider drives the saturation pass live, no per-node tweaking.",
-    "featured": false,
-    "templateRoute": "/templates/color-boost-video",
-    "screenshot": "/apps/color-boost-video.png",
-    "tags": [
-      "video",
-      "start"
-    ],
-    "heading": "Color Boost Video",
-    "tagline": "Give any clip a cinematic color grade — drag one slider, watch it apply.",
-    "buttonLabel": "Boost my video",
-    "inputs": [
-      {
-        "label": "Source Video",
-        "kind": "video"
-      },
-      {
-        "label": "Grading intensity",
+        "label": "Posts per week",
         "kind": "number"
       }
     ],
     "outputs": [
       {
-        "label": "Graded Video",
-        "kind": "video"
+        "label": "Designing your assets…",
+        "kind": "progress"
+      },
+      {
+        "label": "Your brand assets",
+        "kind": "image"
+      },
+      {
+        "label": "Brand brief",
+        "kind": "text"
+      },
+      {
+        "label": "Writing hooks & rendering thumbnails…",
+        "kind": "progress"
+      },
+      {
+        "label": "Thumbnail gallery",
+        "kind": "image"
+      },
+      {
+        "label": "Hook ideas",
+        "kind": "text"
+      },
+      {
+        "label": "Featured thumbnail",
+        "kind": "image"
+      },
+      {
+        "label": "Filling your calendar…",
+        "kind": "progress"
+      },
+      {
+        "label": "Content calendar",
+        "kind": "data"
+      },
+      {
+        "label": "Post visuals",
+        "kind": "image"
+      },
+      {
+        "label": "Captions & hashtags",
+        "kind": "text"
       }
     ],
-    "widgetCount": 9
+    "widgetCount": 44
   },
   {
-    "route": "/apps/concept-art-iteration-board",
-    "title": "Concept Art Iteration Board — Free AI Mini App | NodeTool",
-    "description": "Fan one brief into a gallery of concept-art variations — keep the ones you like.",
+    "route": "/apps/concept-studio",
+    "title": "Concept Studio — Free AI Mini App | NodeTool",
+    "description": "Generate a gallery, pick one, polish it.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "concept-art-iteration-board",
-    "name": "Concept Art Iteration Board",
-    "summary": "Fan one creative brief into a gallery of concept-art variations. An art-director agent turns your brief, style, and mood into a detailed direction, then a list generator writes N distinct image prompts that all render into an append-style variant gallery. Differentiator: one run, many on-brief variations you can compare side by side and regenerate. Text runs on gpt-5-mini; images on fal-ai/flux/schnell.",
+    "indexable": false,
+    "slug": "concept-studio",
+    "name": "Concept Studio",
+    "summary": "The creative iteration loop: fan a brief into concept art, mix animals into creatures, then run the picked image through a keyless filter chain.",
     "featured": true,
+    "note": "🎨 Generating needs OpenAI and FAL keys. Polishing is GPU-only and runs with no keys.",
+    "workflows": [
+      {
+        "name": "Concept Art Iteration Board",
+        "slug": "concept-art-iteration-board",
+        "route": "/templates/concept-art-iteration-board"
+      },
+      {
+        "name": "Pokemon Maker",
+        "slug": "pokemon-maker",
+        "route": "/templates/pokemon-maker"
+      },
+      {
+        "name": "Image Enhance",
+        "slug": "image-enhance",
+        "route": "/templates/image-enhance"
+      }
+    ],
     "templateRoute": "/templates/concept-art-iteration-board",
-    "screenshot": "/apps/concept-art-iteration-board.png",
+    "screenshot": null,
     "tags": [
       "concept-art",
+      "example",
+      "image",
       "planning",
-      "example"
+      "start"
     ],
-    "heading": "Concept Art Iteration Board",
-    "tagline": "Fan one brief into a gallery of concept-art variations — keep the ones you like.",
+    "heading": "🖌️ Concept Studio",
+    "tagline": "Generate a gallery, pick one, polish it.",
     "buttonLabel": "Generate concept art",
     "inputs": [
       {
-        "label": "Creative Brief",
+        "label": "Creative brief",
         "kind": "text"
       },
       {
@@ -329,297 +291,23 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "choice"
       },
       {
-        "label": "Mood Keywords",
+        "label": "Mood keywords",
         "kind": "text"
       },
       {
-        "label": "Variations",
+        "label": "How many variations?",
         "kind": "number"
-      }
-    ],
-    "outputs": [
+      },
       {
-        "label": "Concept Art",
-        "kind": "image"
-      }
-    ],
-    "widgetCount": 12
-  },
-  {
-    "route": "/apps/conditional-logic-engine",
-    "title": "Conditional Logic Engine — Free AI Mini App | NodeTool",
-    "description": "A teaching example: one number routes down a high or low branch.",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "conditional-logic-engine",
-    "name": "Conditional Logic Engine",
-    "summary": "Teaching example for control flow: one number drives two independent decision structures built entirely from If nodes — there is no dedicated numeric-compare or boolean-logic node in NodeTool, so this shows the actual pattern: PadText + Compare + Equals turn the number into a boolean, then pairs of If nodes sharing one condition (each holding its own value, taking the opposite branch) act as the ternary select and OR you'd otherwise reach for. No LLM calls.",
-    "featured": false,
-    "templateRoute": "/templates/conditional-logic-engine",
-    "screenshot": "/apps/conditional-logic-engine.png",
-    "tags": [
-      "boolean"
-    ],
-    "heading": "Conditional Logic Engine",
-    "tagline": "A teaching example: one number routes down a high or low branch.",
-    "buttonLabel": "Run the logic",
-    "inputs": [
-      {
-        "label": "Value",
-        "kind": "number"
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Result",
+        "label": "Mix these animals",
         "kind": "text"
       },
       {
-        "label": "High Priority",
-        "kind": "text"
+        "label": "Style",
+        "kind": "choice"
       },
       {
-        "label": "Low Priority",
-        "kind": "text"
-      },
-      {
-        "label": "Medium Priority",
-        "kind": "text"
-      }
-    ],
-    "widgetCount": 14
-  },
-  {
-    "route": "/apps/data-generator",
-    "title": "Data Generator — Free AI Mini App | NodeTool",
-    "description": "Describe the dataset you need — an agent generates it, structured and ready.",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "data-generator",
-    "name": "Data Generator",
-    "summary": "Turn a one-line topic into a structured dataset — define the columns once, get validated rows back instead of paragraphs of prose.",
-    "featured": false,
-    "templateRoute": "/templates/data-generator",
-    "screenshot": "/apps/data-generator.png",
-    "tags": [
-      "agents"
-    ],
-    "heading": "Data Generator",
-    "tagline": "Describe the dataset you need — an agent generates it, structured and ready.",
-    "buttonLabel": "Generate data",
-    "inputs": [
-      {
-        "label": "Topic",
-        "kind": "text"
-      },
-      {
-        "label": "Row Count",
-        "kind": "number"
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Generated Data",
-        "kind": "data"
-      }
-    ],
-    "widgetCount": 9
-  },
-  {
-    "route": "/apps/directed-film-to-timeline",
-    "title": "Directed Film to Timeline — Free AI Mini App | NodeTool",
-    "description": "Turn a one-line brief into an editable rough cut",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "directed-film-to-timeline",
-    "name": "Directed Film to Timeline",
-    "summary": "Turn a one-line brief into an editable rough cut. A Director agent writes a screenplay of shots, each shot is fanned out into a keyframe prompt, rendered as a still, animated into a clip, then all clips are collected, appended to a timeline sequence, and rendered to a single video you can keep editing.",
-    "featured": false,
-    "templateRoute": "/templates/directed-film-to-timeline",
-    "screenshot": "/apps/directed-film-to-timeline.png",
-    "tags": [
-      "video",
-      "generation",
-      "ai",
-      "timeline",
-      "creative",
-      "director",
-      "storyboard",
-      "example"
-    ],
-    "heading": "Directed Film to Timeline",
-    "tagline": "Turn a one-line brief into an editable rough cut",
-    "buttonLabel": "Direct my film",
-    "inputs": [
-      {
-        "label": "Brief",
-        "kind": "text"
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Film",
-        "kind": "video"
-      }
-    ],
-    "widgetCount": 8
-  },
-  {
-    "route": "/apps/flashcard-generator",
-    "title": "Flashcard Generator — Free AI Mini App | NodeTool",
-    "description": "Type a topic — get study flashcards as structured cards, saved for review.",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "flashcard-generator",
-    "name": "Flashcard Generator",
-    "summary": "Generate study flashcards as structured front/back card objects and store them persistently in a database. Enter any topic and get instant flashcards that are saved for future review.",
-    "featured": false,
-    "templateRoute": "/templates/flashcard-generator",
-    "screenshot": "/apps/flashcard-generator.png",
-    "tags": [
-      "education",
-      "database",
-      "ai",
-      "flashcards",
-      "learning"
-    ],
-    "heading": "Flashcard Generator",
-    "tagline": "Type a topic — get study flashcards as structured cards, saved for review.",
-    "buttonLabel": "Make flashcards",
-    "inputs": [
-      {
-        "label": "Topic",
-        "kind": "text"
-      },
-      {
-        "label": "Num Cards",
-        "kind": "number"
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Flashcards",
-        "kind": "data"
-      }
-    ],
-    "widgetCount": 9
-  },
-  {
-    "route": "/apps/hacker-news-agent",
-    "title": "Hacker News Agent — Free AI Mini App | NodeTool",
-    "description": "Give it a topic — get a smart digest of what Hacker News is saying about it.",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "hacker-news-agent",
-    "name": "Hacker News Agent",
-    "summary": "Scrape the Hacker News front page and get a topic-filtered digest written directly as Markdown — no separate formatting step.",
-    "featured": false,
-    "templateRoute": "/templates/hacker-news-agent",
-    "screenshot": "/apps/hacker-news-agent.png",
-    "tags": [
-      "hackernews",
-      "news",
-      "analysis"
-    ],
-    "heading": "Hacker News Agent",
-    "tagline": "Give it a topic — get a smart digest of what Hacker News is saying about it.",
-    "buttonLabel": "Analyze the front page",
-    "inputs": [
-      {
-        "label": "Topic",
-        "kind": "text"
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Analysis",
-        "kind": "text"
-      }
-    ],
-    "widgetCount": 8
-  },
-  {
-    "route": "/apps/hook-and-thumbnail-factory",
-    "title": "Hook & Thumbnail Factory — Free AI Mini App | NodeTool",
-    "description": "Give it a video topic — get scroll-stopping hooks and a gallery of matching thumbnails.",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "hook-and-thumbnail-factory",
-    "name": "Hook & Thumbnail Factory",
-    "summary": "One video topic in, a full thumbnail pack out: scroll-stopping hook lines plus a color-graded, ready-to-post thumbnail for each. The differentiator is the fan-out — one hook stream drives a whole gallery of matching images in a single run. Uses fal-ai/flux/schnell (cheap, fast).",
-    "featured": true,
-    "templateRoute": "/templates/hook-and-thumbnail-factory",
-    "screenshot": "/apps/hook-and-thumbnail-factory.png",
-    "tags": [
-      "image",
-      "content",
-      "social",
-      "video",
-      "example"
-    ],
-    "heading": "Hook & Thumbnail Factory",
-    "tagline": "Give it a video topic — get scroll-stopping hooks and a gallery of matching thumbnails.",
-    "buttonLabel": "Make hooks & thumbnails",
-    "inputs": [
-      {
-        "label": "Video Topic",
-        "kind": "text"
-      },
-      {
-        "label": "Target Audience",
-        "kind": "text"
-      },
-      {
-        "label": "Number Of Hooks",
-        "kind": "number"
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Thumbnail Gallery",
-        "kind": "image"
-      },
-      {
-        "label": "Hooks",
-        "kind": "text"
-      },
-      {
-        "label": "Thumbnail",
-        "kind": "image"
-      }
-    ],
-    "widgetCount": 16
-  },
-  {
-    "route": "/apps/image-enhance",
-    "title": "Image Enhance — Free AI Mini App | NodeTool",
-    "description": "A live photo editor: drag Denoise, Brightness, Contrast, Saturation, and Sharpen — the preview re-renders on release.",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "image-enhance",
-    "name": "Image Enhance",
-    "summary": "A live photo editor: five GPU filters chained into one pipeline, each exposing a numeric property the app binds to a slider. Drag Denoise, Brightness, Contrast, Saturation, and Sharpen and the preview updates in place — the filters run in-browser, so there is no model, no API key, and no per-run cost.",
-    "featured": true,
-    "templateRoute": "/templates/image-enhance",
-    "screenshot": "/apps/image-enhance.png",
-    "tags": [
-      "image",
-      "start",
-      "example"
-    ],
-    "heading": "Image Enhance",
-    "tagline": "A live photo editor: drag Denoise, Brightness, Contrast, Saturation, and Sharpen — the preview re-renders on release.",
-    "buttonLabel": "Enhance my photo",
-    "inputs": [
-      {
-        "label": "Image",
+        "label": "The image you picked",
         "kind": "image"
       },
       {
@@ -645,140 +333,281 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "outputs": [
       {
-        "label": "Enhanced Image",
+        "label": "Rendering variations…",
+        "kind": "progress"
+      },
+      {
+        "label": "Concept art",
+        "kind": "image"
+      },
+      {
+        "label": "Designing your creatures…",
+        "kind": "progress"
+      },
+      {
+        "label": "Your creatures",
+        "kind": "image"
+      },
+      {
+        "label": "Polishing…",
+        "kind": "progress"
+      },
+      {
+        "label": "Polished",
         "kind": "image"
       }
     ],
-    "widgetCount": 13
+    "widgetCount": 36
   },
   {
-    "route": "/apps/image-to-audio-story",
-    "title": "Image To Audio Story — Free AI Mini App | NodeTool",
-    "description": "Point it at a picture — hear the story it tells, narrated aloud.",
+    "route": "/apps/dataset-builder",
+    "title": "Dataset Builder — Free AI Mini App | NodeTool",
+    "description": "Describe the dataset you need — get it as a table.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "image-to-audio-story",
-    "name": "Image To Audio Story",
-    "summary": "Upload any photo and a vision agent narrates a spoken story about it — one image in, one audio clip out",
+    "indexable": false,
+    "slug": "dataset-builder",
+    "name": "Dataset Builder",
+    "summary": "The smallest app in the set, and the reference for the Table widget: a dataframe reads better as rows than as a Preview node.",
     "featured": false,
-    "templateRoute": "/templates/image-to-audio-story",
-    "screenshot": "/apps/image-to-audio-story.png",
-    "tags": [
-      "start",
-      "multimodal",
-      "example"
+    "note": "🔑 Needs an OpenAI key.",
+    "workflows": [
+      {
+        "name": "Data Generator",
+        "slug": "data-generator",
+        "route": "/templates/data-generator"
+      }
     ],
-    "heading": "Image To Audio Story",
-    "tagline": "Point it at a picture — hear the story it tells, narrated aloud.",
-    "buttonLabel": "Tell me its story",
+    "templateRoute": "/templates/data-generator",
+    "screenshot": null,
+    "tags": [
+      "agents"
+    ],
+    "heading": "🧮 Dataset Builder",
+    "tagline": "Describe the dataset you need — get it as a table.",
+    "buttonLabel": "Generate data",
     "inputs": [
       {
-        "label": "Image",
-        "kind": "image"
+        "label": "What data do you need?",
+        "kind": "text"
+      },
+      {
+        "label": "How many rows?",
+        "kind": "number"
       }
     ],
     "outputs": [
       {
-        "label": "Narration",
-        "kind": "audio"
-      }
-    ],
-    "widgetCount": 8
-  },
-  {
-    "route": "/apps/image-to-video-animation",
-    "title": "Image to Video Animation — Free AI Mini App | NodeTool",
-    "description": "Type a scene — get a still, then watch it come alive as a cinematic clip.",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "image-to-video-animation",
-    "name": "Image to Video Animation",
-    "summary": "Generate a high-quality still from text, then animate it into a short cinematic clip. Uses Veo 3.1 for the animation step, which costs more per run than image-only templates.",
-    "featured": false,
-    "templateRoute": "/templates/image-to-video-animation",
-    "screenshot": "/apps/image-to-video-animation.png",
-    "tags": [
-      "image",
-      "video",
-      "example"
-    ],
-    "heading": "Image to Video Animation",
-    "tagline": "Type a scene — get a still, then watch it come alive as a cinematic clip.",
-    "buttonLabel": "Animate my scene",
-    "inputs": [
-      {
-        "label": "Scene Prompt",
-        "kind": "text"
+        "label": "Generating rows…",
+        "kind": "progress"
       },
       {
-        "label": "Motion Prompt",
-        "kind": "text"
-      },
-      {
-        "label": "Duration Prompt",
-        "kind": "text"
-      },
-      {
-        "label": "Negative Prompt",
-        "kind": "text"
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Animation",
-        "kind": "video"
-      }
-    ],
-    "widgetCount": 11
-  },
-  {
-    "route": "/apps/meeting-transcript-summarizer",
-    "title": "Meeting Transcript Summarizer — Free AI Mini App | NodeTool",
-    "description": "Drop in a meeting recording — get the transcript, notes, and action items back.",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "meeting-transcript-summarizer",
-    "name": "Meeting Transcript Summarizer",
-    "summary": "Summarize a meeting from a recording or a pasted transcript — either input works, and action items come back as structured rows instead of another paragraph to scan.",
-    "featured": false,
-    "templateRoute": "/templates/meeting-transcript-summarizer",
-    "screenshot": "/apps/meeting-transcript-summarizer.png",
-    "tags": [
-      "audio",
-      "llm",
-      "dataframe"
-    ],
-    "heading": "Meeting Transcript Summarizer",
-    "tagline": "Drop in a meeting recording — get the transcript, notes, and action items back.",
-    "buttonLabel": "Summarize my meeting",
-    "inputs": [
-      {
-        "label": "Recording",
-        "kind": "audio"
-      },
-      {
-        "label": "Transcript",
-        "kind": "text"
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Transcript",
-        "kind": "text"
-      },
-      {
-        "label": "Summary",
-        "kind": "text"
-      },
-      {
-        "label": "Action Items",
+        "label": "Generated dataset",
         "kind": "data"
       }
     ],
-    "widgetCount": 14
+    "widgetCount": 12
+  },
+  {
+    "route": "/apps/film-studio",
+    "title": "Film Studio — Free AI Mini App | NodeTool",
+    "description": "Brief → direction → storyboard → cut → key art.",
+    "priority": 0.4,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "film-studio",
+    "name": "Film Studio",
+    "summary": "The showcase run: one brief drives a directed short, an editable rough cut, and the poster that sells it.",
+    "featured": true,
+    "note": "💸 This app spends real money — Veo 3.1 video and Replicate MusicGen. Run it once, deliberately.",
+    "workflows": [
+      {
+        "name": "Script to Screen",
+        "slug": "script-to-screen",
+        "route": "/templates/script-to-screen"
+      },
+      {
+        "name": "Directed Film to Timeline",
+        "slug": "directed-film-to-timeline",
+        "route": "/templates/directed-film-to-timeline"
+      },
+      {
+        "name": "Movie Posters",
+        "slug": "movie-posters",
+        "route": "/templates/movie-posters"
+      }
+    ],
+    "templateRoute": "/templates/script-to-screen",
+    "screenshot": null,
+    "tags": [
+      "ai",
+      "creative",
+      "director",
+      "example",
+      "generation",
+      "image",
+      "start",
+      "storyboard",
+      "storytelling",
+      "timeline",
+      "video"
+    ],
+    "heading": "🎬 Film Studio",
+    "tagline": "Brief → direction → storyboard → cut → key art.",
+    "buttonLabel": "Shoot my film",
+    "inputs": [
+      {
+        "label": "Your film in one line",
+        "kind": "text"
+      },
+      {
+        "label": "Visual style",
+        "kind": "text"
+      },
+      {
+        "label": "Number of shots",
+        "kind": "text"
+      },
+      {
+        "label": "Movie title",
+        "kind": "text"
+      },
+      {
+        "label": "Genre",
+        "kind": "choice"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Directing, storyboarding & shooting…",
+        "kind": "progress"
+      },
+      {
+        "label": "Direction document",
+        "kind": "text"
+      },
+      {
+        "label": "Storyboard keyframes",
+        "kind": "image"
+      },
+      {
+        "label": "Finished film",
+        "kind": "video"
+      },
+      {
+        "label": "Cutting the timeline…",
+        "kind": "progress"
+      },
+      {
+        "label": "Editable rough cut",
+        "kind": "video"
+      },
+      {
+        "label": "Designing your poster…",
+        "kind": "progress"
+      },
+      {
+        "label": "Your poster",
+        "kind": "image"
+      }
+    ],
+    "widgetCount": 31
+  },
+  {
+    "route": "/apps/meeting-room",
+    "title": "Meeting Room — Free AI Mini App | NodeTool",
+    "description": "Recording in, minutes out — then question the transcript.",
+    "priority": 0.4,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "meeting-room",
+    "name": "Meeting Room",
+    "summary": "Transcribe a recording, summarize it into notes and action items, then ask follow-up questions of the transcript on a local model.",
+    "featured": true,
+    "note": "🎙️ Transcription uses FAL Whisper and the summary uses OpenAI. The follow-up questions run on a local Ollama model, so they cost nothing.",
+    "workflows": [
+      {
+        "name": "Transcribe Audio",
+        "slug": "transcribe-audio",
+        "route": "/templates/transcribe-audio"
+      },
+      {
+        "name": "Meeting Transcript Summarizer",
+        "slug": "meeting-transcript-summarizer",
+        "route": "/templates/meeting-transcript-summarizer"
+      },
+      {
+        "name": "Private Assistant",
+        "slug": "private-assistant",
+        "route": "/templates/private-assistant"
+      }
+    ],
+    "templateRoute": "/templates/transcribe-audio",
+    "screenshot": null,
+    "tags": [
+      "asr",
+      "assistant",
+      "audio",
+      "dataframe",
+      "llm",
+      "local",
+      "offline",
+      "ollama",
+      "privacy",
+      "start"
+    ],
+    "heading": "🎧 Meeting Room",
+    "tagline": "Recording in, minutes out — then question the transcript.",
+    "buttonLabel": "Transcribe",
+    "inputs": [
+      {
+        "label": "Meeting recording",
+        "kind": "audio"
+      },
+      {
+        "label": "Your question",
+        "kind": "text"
+      },
+      {
+        "label": "Answer tone",
+        "kind": "choice"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Transcribing…",
+        "kind": "progress"
+      },
+      {
+        "label": "Transcript",
+        "kind": "text"
+      },
+      {
+        "label": "Writing the minutes…",
+        "kind": "progress"
+      },
+      {
+        "label": "Meeting notes",
+        "kind": "text"
+      },
+      {
+        "label": "Action items",
+        "kind": "data"
+      },
+      {
+        "label": "Transcript used",
+        "kind": "text"
+      },
+      {
+        "label": "Thinking locally…",
+        "kind": "progress"
+      },
+      {
+        "label": "Answer",
+        "kind": "text"
+      }
+    ],
+    "widgetCount": 31
   },
   {
     "route": "/apps/model-arena",
@@ -789,33 +618,45 @@ export const miniAppEntries: MiniAppEntry[] = [
     "indexable": true,
     "slug": "model-arena",
     "name": "Model Arena",
-    "summary": "One brief, three frontier models, answered side by side. The same prompt fans out to OpenAI, Anthropic, and Google in a single pass, each answering in the same structure — so you compare reasoning, not formatting. Swap the model on any lane to build your own bracket.",
+    "summary": "Three answers in three columns, each streaming independently. A missing provider key fails one column, not the run.",
     "featured": false,
+    "note": "🔑 Needs OpenAI, Anthropic, and Google keys — one per column.",
+    "workflows": [
+      {
+        "name": "Model Arena",
+        "slug": "model-arena",
+        "route": "/templates/model-arena"
+      }
+    ],
     "templateRoute": "/templates/model-arena",
     "screenshot": "/apps/model-arena.png",
     "tags": [
-      "comparison",
-      "llm",
       "agents",
-      "providers",
-      "example"
+      "comparison",
+      "example",
+      "llm",
+      "providers"
     ],
-    "heading": "Model Arena",
+    "heading": "⚖️ Model Arena",
     "tagline": "One brief, three frontier models, answered side by side.",
     "buttonLabel": "Compare the models",
     "inputs": [
       {
-        "label": "Brief",
+        "label": "Your brief",
         "kind": "text"
       },
       {
-        "label": "Context",
+        "label": "Extra context",
         "kind": "text"
       }
     ],
     "outputs": [
       {
-        "label": "Openai",
+        "label": "Asking three models…",
+        "kind": "progress"
+      },
+      {
+        "label": "OpenAI",
         "kind": "text"
       },
       {
@@ -823,175 +664,75 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "text"
       },
       {
-        "label": "Gemini",
+        "label": "Google",
         "kind": "text"
       }
     ],
-    "widgetCount": 14
+    "widgetCount": 16
   },
   {
-    "route": "/apps/movie-posters",
-    "title": "Movie Posters — Free AI Mini App | NodeTool",
-    "description": "One title, one genre, one style — get a finished movie poster.",
+    "route": "/apps/photo-studio",
+    "title": "Photo Studio — Free AI Mini App | NodeTool",
+    "description": "Drag five sliders and watch the photo re-render — then run the same grade over a whole folder.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "movie-posters",
-    "name": "Movie Posters",
-    "summary": "Turn a title, genre, and visual style into finished theatrical one-sheet posters. An art-direction agent first writes a key-art brief (positioning, palette, typography), which drives every generated poster — the differentiator is the agent-authored creative strategy, not a raw prompt.",
+    "indexable": false,
+    "slug": "photo-studio",
+    "name": "Photo Studio",
+    "summary": "A live photo editor and a batch retoucher behind one surface. The single-photo grade is pure GPU filters, so it runs with no API key at all.",
     "featured": true,
-    "templateRoute": "/templates/movie-posters",
-    "screenshot": "/apps/movie-posters.png",
+    "note": "✨ `Enhance` is GPU-only and needs no keys. `Batch` adds a FAL grading pass, so it needs a FAL key.",
+    "workflows": [
+      {
+        "name": "Image Enhance",
+        "slug": "image-enhance",
+        "route": "/templates/image-enhance"
+      },
+      {
+        "name": "Photo Enhancement Suite",
+        "slug": "photo-enhancement-suite",
+        "route": "/templates/photo-enhancement-suite"
+      }
+    ],
+    "templateRoute": "/templates/image-enhance",
+    "screenshot": null,
     "tags": [
-      "start",
-      "image",
-      "example"
-    ],
-    "heading": "Movie Posters",
-    "tagline": "One title, one genre, one style — get a finished movie poster.",
-    "buttonLabel": "Make my poster",
-    "inputs": [
-      {
-        "label": "Movie Title",
-        "kind": "text"
-      },
-      {
-        "label": "Genre",
-        "kind": "choice"
-      },
-      {
-        "label": "Visual Style",
-        "kind": "text"
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Poster",
-        "kind": "image"
-      }
-    ],
-    "widgetCount": 10
-  },
-  {
-    "route": "/apps/movie-trailer-generator",
-    "title": "Movie Trailer Generator — Free AI Mini App | NodeTool",
-    "description": "Type one logline — get a cinematic teaser cut shot-by-shot.",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "movie-trailer-generator",
-    "name": "Movie Trailer Generator",
-    "summary": "Type a single logline and get back a cinematic teaser. Prompt nodes template the inputs into a treatment and turn each shot into full cinematic key art; the shots are animated and cut together into the final trailer. Cost note: each shot runs through Veo 3.1 image-to-video, which is metered per second of generated video and is the most expensive step in the pipeline — a 6-shot trailer makes 6 Veo calls.",
-    "featured": false,
-    "templateRoute": "/templates/movie-trailer-generator",
-    "screenshot": "/apps/movie-trailer-generator.png",
-    "tags": [
-      "video",
-      "generation",
-      "ai",
-      "storytelling",
-      "creative",
-      "trailer",
-      "example"
-    ],
-    "heading": "Movie Trailer Generator",
-    "tagline": "Type one logline — get a cinematic teaser cut shot-by-shot.",
-    "buttonLabel": "Cut my trailer",
-    "inputs": [
-      {
-        "label": "Logline",
-        "kind": "text"
-      },
-      {
-        "label": "Visual Style",
-        "kind": "text"
-      },
-      {
-        "label": "Shot Count",
-        "kind": "text"
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Trailer",
-        "kind": "video"
-      }
-    ],
-    "widgetCount": 10
-  },
-  {
-    "route": "/apps/music-video-visualizer",
-    "title": "Music Video Visualizer — Free AI Mini App | NodeTool",
-    "description": "Feed it a track — get mood-matched visuals cut to your music.",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "music-video-visualizer",
-    "name": "Music Video Visualizer",
-    "summary": "Turn any song into a mood-matched music video. Whisper transcribes the lyrics, an LLM creative director reads the emotional arc, writes one image prompt per frame, FLUX renders every frame, and they are stitched back to your original audio. Differentiator: a full transcribe → analyze → fan-out → render → reassemble media pipeline in a single graph — no chat box can do this. Cost note: generates one image per frame (default 8) plus a Whisper transcription, so a run costs several fal-ai calls.",
-    "featured": true,
-    "templateRoute": "/templates/music-video-visualizer",
-    "screenshot": "/apps/music-video-visualizer.png",
-    "tags": [
-      "video",
-      "audio",
-      "music",
-      "visualization",
-      "example"
-    ],
-    "heading": "Music Video Visualizer",
-    "tagline": "Feed it a track — get mood-matched visuals cut to your music.",
-    "buttonLabel": "Visualize my track",
-    "inputs": [
-      {
-        "label": "Audio Track",
-        "kind": "audio"
-      },
-      {
-        "label": "Genre Hint",
-        "kind": "text"
-      },
-      {
-        "label": "Visual Style",
-        "kind": "text"
-      },
-      {
-        "label": "Num Frames",
-        "kind": "text"
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Music Video",
-        "kind": "video"
-      }
-    ],
-    "widgetCount": 11
-  },
-  {
-    "route": "/apps/photo-enhancement-suite",
-    "title": "Photo Enhancement Suite — Free AI Mini App | NodeTool",
-    "description": "Batch-enhance a set of photos — tune brightness and color, run the whole retouch chain.",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "photo-enhancement-suite",
-    "name": "Photo Enhancement Suite",
-    "summary": "Batch-enhance a list of photos through a fixed retouch chain — auto-contrast, color, sharpening, and an AI cinematic-grade pass — with no folder path required, just drop images in.",
-    "featured": false,
-    "templateRoute": "/templates/photo-enhancement-suite",
-    "screenshot": "/apps/photo-enhancement-suite.png",
-    "tags": [
+      "batch processing",
+      "example",
       "image",
       "photo",
-      "batch processing"
+      "start"
     ],
-    "heading": "Photo Enhancement Suite",
-    "tagline": "Batch-enhance a set of photos — tune brightness and color, run the whole retouch chain.",
-    "buttonLabel": "Enhance my photos",
+    "heading": "📸 Photo Studio",
+    "tagline": "Drag five sliders and watch the photo re-render — then run the same grade over a whole folder.",
+    "buttonLabel": "Enhance my photo",
     "inputs": [
       {
-        "label": "Photos",
+        "label": "Your photo",
+        "kind": "image"
+      },
+      {
+        "label": "Denoise",
+        "kind": "number"
+      },
+      {
+        "label": "Brightness",
+        "kind": "number"
+      },
+      {
+        "label": "Contrast",
+        "kind": "number"
+      },
+      {
+        "label": "Saturation",
+        "kind": "number"
+      },
+      {
+        "label": "Sharpen",
+        "kind": "number"
+      },
+      {
+        "label": "Your photos",
         "kind": "image"
       },
       {
@@ -1005,656 +746,273 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "outputs": [
       {
-        "label": "Enhanced Photos",
+        "label": "Running the filter chain…",
+        "kind": "progress"
+      },
+      {
+        "label": "Enhanced photo",
+        "kind": "image"
+      },
+      {
+        "label": "Retouching each photo…",
+        "kind": "progress"
+      },
+      {
+        "label": "Enhanced photos",
         "kind": "image"
       }
     ],
-    "widgetCount": 10
+    "widgetCount": 26
   },
   {
-    "route": "/apps/podcast-repurposing-studio",
-    "title": "Podcast Repurposing Studio — Free AI Mini App | NodeTool",
-    "description": "One episode in — show notes, a newsletter, social posts, and quote cards out.",
+    "route": "/apps/product-launch-kit",
+    "title": "Product Launch Kit — Free AI Mini App | NodeTool",
+    "description": "One product photo in, mockups and a launch video out.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "podcast-repurposing-studio",
-    "name": "Podcast Repurposing Studio",
-    "summary": "Drop in one podcast episode and ship the whole content pack: episode titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images. Whisper transcribes once; four writer branches fan out from the transcript.",
+    "indexable": false,
+    "slug": "product-launch-kit",
+    "name": "Product Launch Kit",
+    "summary": "Stage a product photo into lifestyle mockups, then — deliberately, because it costs real money — turn the same photo into a launch video.",
     "featured": false,
-    "templateRoute": "/templates/podcast-repurposing-studio",
-    "screenshot": "/apps/podcast-repurposing-studio.png",
-    "tags": [
-      "podcast",
-      "audio",
-      "content",
-      "marketing",
-      "agents",
-      "example"
-    ],
-    "heading": "Podcast Repurposing Studio",
-    "tagline": "One episode in — show notes, a newsletter, social posts, and quote cards out.",
-    "buttonLabel": "Repurpose my episode",
-    "inputs": [
+    "note": "💸 Mockups need OpenAI and FAL. The launch video runs on Veo and costs credits per run, so it has its own button.",
+    "workflows": [
       {
-        "label": "Episode Audio",
-        "kind": "audio"
+        "name": "Product Mockup Generator",
+        "slug": "product-mockup-generator",
+        "route": "/templates/product-mockup-generator"
       },
       {
-        "label": "Show Context",
-        "kind": "text"
-      },
-      {
-        "label": "Quote Count",
-        "kind": "number"
+        "name": "Product Video Generator",
+        "slug": "product-video-generator",
+        "route": "/templates/product-video-generator"
       }
     ],
-    "outputs": [
-      {
-        "label": "Show Notes",
-        "kind": "text"
-      },
-      {
-        "label": "Newsletter",
-        "kind": "text"
-      },
-      {
-        "label": "Social Posts",
-        "kind": "text"
-      },
-      {
-        "label": "Quote Cards",
-        "kind": "image"
-      }
-    ],
-    "widgetCount": 17
-  },
-  {
-    "route": "/apps/pokemon-maker",
-    "title": "Pokemon Maker — Free AI Mini App | NodeTool",
-    "description": "Mix any animals you like — meet the gallery of creatures they become.",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "pokemon-maker",
-    "name": "Pokemon Maker",
-    "summary": "Turn any mix of real animals into a gallery of original collectible creatures. A style dropdown restyles the whole batch, so one Run yields four cohesive variant designs instead of a single image.",
-    "featured": true,
-    "templateRoute": "/templates/pokemon-maker",
-    "screenshot": "/apps/pokemon-maker.png",
-    "tags": [
-      "example"
-    ],
-    "heading": "Pokemon Maker",
-    "tagline": "Mix any animals you like — meet the gallery of creatures they become.",
-    "buttonLabel": "Create my creatures",
-    "inputs": [
-      {
-        "label": "Animals",
-        "kind": "text"
-      },
-      {
-        "label": "Style",
-        "kind": "choice"
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Pokemon",
-        "kind": "image"
-      }
-    ],
-    "widgetCount": 10
-  },
-  {
-    "route": "/apps/private-assistant",
-    "title": "Private Assistant — Free AI Mini App | NodeTool",
-    "description": "Ask questions about your own notes — fully local, no API keys.",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "private-assistant",
-    "name": "Private Assistant",
-    "summary": "Ask questions about your own notes and documents — fully local, no API keys. Runs end-to-end on a local Ollama model, so the text never leaves your machine. Requires Ollama running with a model pulled (default: llama3.2 — run `ollama pull llama3.2`).",
-    "featured": false,
-    "templateRoute": "/templates/private-assistant",
-    "screenshot": "/apps/private-assistant.png",
-    "tags": [
-      "local",
-      "privacy",
-      "ollama",
-      "offline",
-      "assistant"
-    ],
-    "heading": "Private Assistant",
-    "tagline": "Ask questions about your own notes — fully local, no API keys.",
-    "buttonLabel": "Ask locally",
-    "inputs": [
-      {
-        "label": "Document",
-        "kind": "text"
-      },
-      {
-        "label": "Question",
-        "kind": "text"
-      },
-      {
-        "label": "Answer tone",
-        "kind": "choice"
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Answer",
-        "kind": "text"
-      }
-    ],
-    "widgetCount": 10
-  },
-  {
-    "route": "/apps/product-mockup-generator",
-    "title": "Product Mockup Generator — Free AI Mini App | NodeTool",
-    "description": "Turn one product shot into a set of polished lifestyle mockups.",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "product-mockup-generator",
-    "name": "Product Mockup Generator",
-    "summary": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then each scene is rendered with FLUX and finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
-    "featured": true,
     "templateRoute": "/templates/product-mockup-generator",
-    "screenshot": "/apps/product-mockup-generator.png",
-    "tags": [
-      "product-mockup",
-      "mockup",
-      "design",
-      "example"
-    ],
-    "heading": "Product Mockup Generator",
-    "tagline": "Turn one product shot into a set of polished lifestyle mockups.",
-    "buttonLabel": "Generate mockups",
-    "inputs": [
-      {
-        "label": "Product Image",
-        "kind": "image"
-      },
-      {
-        "label": "Product Name",
-        "kind": "text"
-      },
-      {
-        "label": "Product Description",
-        "kind": "text"
-      },
-      {
-        "label": "Target Audience",
-        "kind": "text"
-      },
-      {
-        "label": "Num Scenes",
-        "kind": "number"
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Mockup",
-        "kind": "image"
-      },
-      {
-        "label": "Scene",
-        "kind": "image"
-      }
-    ],
-    "widgetCount": 15
-  },
-  {
-    "route": "/apps/product-video-generator",
-    "title": "Product Video Generator — Free AI Mini App | NodeTool",
-    "description": "Brief in, launch video out — a realistic 16:9 spot for your product.",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "product-video-generator",
-    "name": "Product Video Generator",
-    "summary": "Turn a campaign brief, audience, features, and a product photo into a realistic 16:9 launch video — an agent writes the motion prompt, then Veo animates the shot. Cost note: Veo is a paid per-second video model, so this run costs noticeably more than an image-only template.",
-    "featured": false,
-    "templateRoute": "/templates/product-video-generator",
-    "screenshot": "/apps/product-video-generator.png",
+    "screenshot": null,
     "tags": [
       "business",
       "data",
-      "video",
-      "example"
+      "design",
+      "example",
+      "mockup",
+      "product-mockup",
+      "video"
     ],
-    "heading": "Product Video Generator",
-    "tagline": "Brief in, launch video out — a realistic 16:9 spot for your product.",
-    "buttonLabel": "Generate launch video",
+    "heading": "📦 Product Launch Kit",
+    "tagline": "One product photo in, mockups and a launch video out.",
+    "buttonLabel": "Generate mockups",
     "inputs": [
       {
-        "label": "Campaign Brief",
-        "kind": "text"
-      },
-      {
-        "label": "Target Audience",
-        "kind": "text"
-      },
-      {
-        "label": "Key Features",
-        "kind": "text"
-      },
-      {
-        "label": "Image Input 1",
+        "label": "Product photo",
         "kind": "image"
+      },
+      {
+        "label": "Who is it for?",
+        "kind": "text"
+      },
+      {
+        "label": "Product name",
+        "kind": "text"
+      },
+      {
+        "label": "Describe the product",
+        "kind": "text"
+      },
+      {
+        "label": "How many scenes?",
+        "kind": "number"
+      },
+      {
+        "label": "Campaign brief",
+        "kind": "text"
+      },
+      {
+        "label": "Key features",
+        "kind": "text"
       }
     ],
     "outputs": [
       {
-        "label": "Product Video",
+        "label": "Staging your mockups…",
+        "kind": "progress"
+      },
+      {
+        "label": "Mockups",
+        "kind": "image"
+      },
+      {
+        "label": "Shot list",
+        "kind": "text"
+      },
+      {
+        "label": "Producing your spot…",
+        "kind": "progress"
+      },
+      {
+        "label": "Launch video",
         "kind": "video"
       }
     ],
-    "widgetCount": 11
+    "widgetCount": 27
   },
   {
-    "route": "/apps/prompt-template",
-    "title": "Prompt Template — Free AI Mini App | NodeTool",
-    "description": "The starter pattern: typed inputs fill a prompt, an LLM answers, the output renders.",
+    "route": "/apps/research-desk",
+    "title": "Research Desk — Free AI Mini App | NodeTool",
+    "description": "One topic, three sources, three briefings side by side.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "prompt-template",
-    "name": "Prompt Template",
-    "summary": "The starter pattern behind almost every NodeTool workflow: typed inputs fill a reusable prompt template, an LLM answers it, the output renders. Explains a topic for any audience — swap the prompt to reuse the pattern for anything.",
-    "featured": false,
-    "templateRoute": "/templates/prompt-template",
-    "screenshot": "/apps/prompt-template.png",
-    "tags": [
-      "start",
-      "beginner",
-      "tutorial",
-      "template",
-      "example"
-    ],
-    "heading": "Prompt Template",
-    "tagline": "The starter pattern: typed inputs fill a prompt, an LLM answers, the output renders.",
-    "buttonLabel": "Explain it",
-    "inputs": [
+    "indexable": false,
+    "slug": "research-desk",
+    "name": "Research Desk",
+    "summary": "A research agent, a Hacker News reader, and an RSS digest all take the same topic and stream into their own panel.",
+    "featured": true,
+    "note": "🔑 Needs an OpenAI key. All three briefings run in parallel from one button.",
+    "workflows": [
       {
-        "label": "Topic",
-        "kind": "text"
+        "name": "Research Agent",
+        "slug": "research-agent",
+        "route": "/templates/research-agent"
       },
       {
-        "label": "Audience",
-        "kind": "text"
-      }
-    ],
-    "outputs": [
+        "name": "Hacker News Agent",
+        "slug": "hacker-news-agent",
+        "route": "/templates/hacker-news-agent"
+      },
       {
-        "label": "Explanation",
-        "kind": "text"
+        "name": "Summarize RSS",
+        "slug": "summarize-rss",
+        "route": "/templates/summarize-rss"
       }
     ],
-    "widgetCount": 8
-  },
-  {
-    "route": "/apps/research-agent",
-    "title": "Research Agent — Free AI Mini App | NodeTool",
-    "description": "Give it a topic and audience — the agent searches, browses, and streams back a cited brief.",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "research-agent",
-    "name": "Research Agent",
-    "summary": "Give it a topic and an audience; the agent runs real web searches, opens the best sources, and streams back a cited markdown briefing. Differentiator: genuine multi-step tool use (search + browse) with inline citations — not a single prompt call.",
-    "featured": false,
     "templateRoute": "/templates/research-agent",
-    "screenshot": "/apps/research-agent.png",
+    "screenshot": null,
     "tags": [
       "agent",
+      "analysis",
+      "browser",
+      "citations",
+      "example",
+      "hackernews",
+      "news",
       "research",
       "search",
-      "browser",
-      "streaming",
-      "citations",
-      "example"
+      "streaming"
     ],
-    "heading": "Research Agent",
-    "tagline": "Give it a topic and audience — the agent searches, browses, and streams back a cited brief.",
-    "buttonLabel": "Run the research",
+    "heading": "🕵️ Research Desk",
+    "tagline": "One topic, three sources, three briefings side by side.",
+    "buttonLabel": "Run the desk",
     "inputs": [
       {
-        "label": "Topic",
+        "label": "Research topic",
         "kind": "text"
       },
       {
-        "label": "Audience",
+        "label": "Who is it for?",
+        "kind": "choice"
+      },
+      {
+        "label": "RSS feed",
         "kind": "text"
       }
     ],
     "outputs": [
       {
-        "label": "Brief",
+        "label": "Searching & browsing sources…",
+        "kind": "progress"
+      },
+      {
+        "label": "Research brief",
+        "kind": "text"
+      },
+      {
+        "label": "Reading the front page…",
+        "kind": "progress"
+      },
+      {
+        "label": "Hacker News",
+        "kind": "text"
+      },
+      {
+        "label": "Reading your feed…",
+        "kind": "progress"
+      },
+      {
+        "label": "Feed digest",
         "kind": "text"
       }
     ],
-    "widgetCount": 9
+    "widgetCount": 22
   },
   {
-    "route": "/apps/research-paper-summarizer",
-    "title": "Research Paper Summarizer — Free AI Mini App | NodeTool",
-    "description": "Name a topic — get the key paper summarized in plain terms.",
+    "route": "/apps/study-buddy",
+    "title": "Study Buddy — Free AI Mini App | NodeTool",
+    "description": "A deck of flashcards and the concept behind it, side by side.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "research-paper-summarizer",
-    "name": "Research Paper Summarizer",
-    "summary": "Search a curated index of transformer papers by topic, fetch the matches, and have two agents extract findings and technical methodology into one report.",
+    "indexable": false,
+    "slug": "study-buddy",
+    "name": "Study Buddy",
+    "summary": "Structured data an app renders better than a graph does: the cards land in a table, the explanation beside them.",
     "featured": false,
-    "templateRoute": "/templates/research-paper-summarizer",
-    "screenshot": "/apps/research-paper-summarizer.png",
+    "note": "🔑 Needs an OpenAI key. Your topic persists between sessions.",
+    "workflows": [
+      {
+        "name": "Flashcard Generator",
+        "slug": "flashcard-generator",
+        "route": "/templates/flashcard-generator"
+      },
+      {
+        "name": "Prompt Template",
+        "slug": "prompt-template",
+        "route": "/templates/prompt-template"
+      }
+    ],
+    "templateRoute": "/templates/flashcard-generator",
+    "screenshot": null,
     "tags": [
-      "research"
-    ],
-    "heading": "Research Paper Summarizer",
-    "tagline": "Name a topic — get the key paper summarized in plain terms.",
-    "buttonLabel": "Summarize the research",
-    "inputs": [
-      {
-        "label": "Topic",
-        "kind": "text"
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Summary",
-        "kind": "text"
-      }
-    ],
-    "widgetCount": 8
-  },
-  {
-    "route": "/apps/seo-content-engine",
-    "title": "SEO Content Engine — Free AI Mini App | NodeTool",
-    "description": "One topic in — a keyword-targeted article batch out, with hero images.",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "seo-content-engine",
-    "name": "SEO Content Engine",
-    "summary": "One topic in, a keyword-targeted article batch out — each article lands as typed fields (title, meta description, keywords, body) instead of one markdown blob, ready to paste straight into a CMS. A strategist agent plans the topic cluster, a list generator turns it into briefs, and every brief becomes a full article with an editorial hero image.",
-    "featured": false,
-    "templateRoute": "/templates/seo-content-engine",
-    "screenshot": "/apps/seo-content-engine.png",
-    "tags": [
-      "seo",
-      "content",
-      "marketing",
-      "writing",
-      "agents",
-      "example"
-    ],
-    "heading": "SEO Content Engine",
-    "tagline": "One topic in — a keyword-targeted article batch out, with hero images.",
-    "buttonLabel": "Plan & write my articles",
-    "inputs": [
-      {
-        "label": "Business",
-        "kind": "text"
-      },
-      {
-        "label": "Audience And Seeds",
-        "kind": "text"
-      },
-      {
-        "label": "Article Count",
-        "kind": "number"
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Content Plan",
-        "kind": "text"
-      },
-      {
-        "label": "Article Titles",
-        "kind": "text"
-      },
-      {
-        "label": "Meta Descriptions",
-        "kind": "text"
-      },
-      {
-        "label": "Keywords",
-        "kind": "text"
-      },
-      {
-        "label": "Article Bodies",
-        "kind": "text"
-      },
-      {
-        "label": "Hero Images",
-        "kind": "image"
-      }
-    ],
-    "widgetCount": 21
-  },
-  {
-    "route": "/apps/script-to-screen",
-    "title": "Script to Screen — Free AI Mini App | NodeTool",
-    "description": "Full production spine: a Director agent turns your brief into a direction document (characters, style bible, shot list, narration, music)",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "script-to-screen",
-    "name": "Script to Screen",
-    "summary": "Full production spine: a Director agent turns your brief into a direction document (characters, style bible, shot list, narration, music). A style frame anchors every keyframe for consistency, keyframes form a cheap storyboard you can approve before video spend, then each shot is animated, cut together, and mixed with voiceover and music.",
-    "featured": false,
-    "templateRoute": "/templates/script-to-screen",
-    "screenshot": "/apps/script-to-screen.png",
-    "tags": [
-      "video",
-      "generation",
       "ai",
-      "storytelling",
-      "creative",
-      "director",
-      "storyboard",
-      "example"
+      "beginner",
+      "database",
+      "education",
+      "example",
+      "flashcards",
+      "learning",
+      "start",
+      "template",
+      "tutorial"
     ],
-    "heading": "Script to Screen",
-    "tagline": "Full production spine: a Director agent turns your brief into a direction document (characters, style bible, shot list, narration, music)",
-    "buttonLabel": "Shoot my film",
+    "heading": "🃏 Study Buddy",
+    "tagline": "A deck of flashcards and the concept behind it, side by side.",
+    "buttonLabel": "Make flashcards",
     "inputs": [
       {
-        "label": "Brief",
+        "label": "Study topic",
         "kind": "text"
       },
       {
-        "label": "Visual Style",
-        "kind": "text"
-      },
-      {
-        "label": "Shot Count",
-        "kind": "text"
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Direction",
-        "kind": "text"
-      },
-      {
-        "label": "Storyboard",
-        "kind": "image"
-      },
-      {
-        "label": "Film",
-        "kind": "video"
-      }
-    ],
-    "widgetCount": 15
-  },
-  {
-    "route": "/apps/social-media-calendar-filler",
-    "title": "Social Media Calendar Filler — Free AI Mini App | NodeTool",
-    "description": "Fill a month of social posts — a structured calendar with an image for every row.",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "social-media-calendar-filler",
-    "name": "Social Media Calendar Filler",
-    "summary": "Generate a month's worth of social media content as a structured calendar — one row per post with its own image prompt and ready-to-post caption — then render an image for every row.",
-    "featured": false,
-    "templateRoute": "/templates/social-media-calendar-filler",
-    "screenshot": "/apps/social-media-calendar-filler.png",
-    "tags": [
-      "content",
-      "social media",
-      "marketing",
-      "planning",
-      "example"
-    ],
-    "heading": "Social Media Calendar Filler",
-    "tagline": "Fill a month of social posts — a structured calendar with an image for every row.",
-    "buttonLabel": "Fill my calendar",
-    "inputs": [
-      {
-        "label": "Brand Name",
-        "kind": "text"
-      },
-      {
-        "label": "Monthly Theme",
-        "kind": "text"
-      },
-      {
-        "label": "Target Audience",
-        "kind": "text"
-      },
-      {
-        "label": "Brand Voice",
-        "kind": "text"
-      },
-      {
-        "label": "Posts Per Week",
+        "label": "How many cards?",
         "kind": "number"
+      },
+      {
+        "label": "Explain it to…",
+        "kind": "choice"
       }
     ],
     "outputs": [
       {
-        "label": "Content Calendar",
+        "label": "Writing cards…",
+        "kind": "progress"
+      },
+      {
+        "label": "Flashcards",
         "kind": "data"
       },
       {
-        "label": "Post Images",
-        "kind": "image"
-      },
-      {
-        "label": "Captions",
+        "label": "The concept behind this deck",
         "kind": "text"
       }
     ],
-    "widgetCount": 17
-  },
-  {
-    "route": "/apps/summarize-rss",
-    "title": "Summarize RSS — Free AI Mini App | NodeTool",
-    "description": "Your feed, read for you — paste a URL, get a clean daily brief.",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "summarize-rss",
-    "name": "Summarize RSS",
-    "summary": "Turn any RSS feed into a topic-grouped digest — point it at a new URL and get headlines organized by theme, not a flat list.",
-    "featured": false,
-    "templateRoute": "/templates/summarize-rss",
-    "screenshot": "/apps/summarize-rss.png",
-    "tags": [],
-    "heading": "Summarize RSS",
-    "tagline": "Your feed, read for you — paste a URL, get a clean daily brief.",
-    "buttonLabel": "Brief me",
-    "inputs": [
-      {
-        "label": "Feed Url",
-        "kind": "text"
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Summary",
-        "kind": "text"
-      }
-    ],
-    "widgetCount": 8
-  },
-  {
-    "route": "/apps/transcribe-audio",
-    "title": "Transcribe Audio — Free AI Mini App | NodeTool",
-    "description": "Speech to text with word-level timestamps — paste-ready in seconds.",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "transcribe-audio",
-    "name": "Transcribe Audio",
-    "summary": "Instant Whisper transcription: drop in an audio clip, get a clean text transcript back — one step, auto-runs on upload.",
-    "featured": false,
-    "templateRoute": "/templates/transcribe-audio",
-    "screenshot": "/apps/transcribe-audio.png",
-    "tags": [
-      "start",
-      "audio",
-      "asr"
-    ],
-    "heading": "Transcribe Audio",
-    "tagline": "Speech to text with word-level timestamps — paste-ready in seconds.",
-    "buttonLabel": "Transcribe",
-    "inputs": [
-      {
-        "label": "Audio",
-        "kind": "audio"
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Transcript",
-        "kind": "text"
-      }
-    ],
-    "widgetCount": 8
-  },
-  {
-    "route": "/apps/workflow-as-a-tool",
-    "title": "Workflow As A Tool — Free AI Mini App | NodeTool",
-    "description": "An orchestrator agent delegates to specialist sub-agents wired in as callable tools.",
-    "priority": 0.4,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "workflow-as-a-tool",
-    "name": "Workflow As A Tool",
-    "summary": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research (Gemini) gathers the facts, Copy Editor (Claude) polishes the draft, and the manager (GPT-5 mini) decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
-    "featured": false,
-    "templateRoute": "/templates/workflow-as-a-tool",
-    "screenshot": "/apps/workflow-as-a-tool.png",
-    "tags": [
-      "agents",
-      "composition",
-      "tools",
-      "orchestration"
-    ],
-    "heading": "Workflow As A Tool",
-    "tagline": "An orchestrator agent delegates to specialist sub-agents wired in as callable tools.",
-    "buttonLabel": "Run the team",
-    "inputs": [
-      {
-        "label": "Topic",
-        "kind": "text"
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Article",
-        "kind": "text"
-      }
-    ],
-    "widgetCount": 8
+    "widgetCount": 16
   }
 ];

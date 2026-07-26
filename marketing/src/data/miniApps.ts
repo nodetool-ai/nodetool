@@ -2,9 +2,10 @@
  * Mini-app page-data contract, consumed by the `/apps/*` routes.
  *
  * `miniAppEntries.generated.ts` is written by
- * `marketing/scripts/generate-miniapp-entries.mjs` from the app-builder
- * documents (`workflow.app_doc`) on the shipped example workflows. Do not edit
- * the generated file by hand — run `npm run gen:apps`.
+ * `marketing/scripts/generate-miniapp-entries.mjs` from the shipped example
+ * apps (the bundle-derived previews in `web/public/app-preview/`). One page per
+ * curated app, each binding one or more workflow templates. Do not edit the
+ * generated file by hand — run `npm run gen:apps`.
  *
  * A `MiniAppEntry` extends the `PageEntry` contract, so it folds into the
  * sitemap and smoke walk with no special-casing.
@@ -23,15 +24,27 @@ export interface MiniAppOutput {
   kind: string;
 }
 
+/** A workflow template the app binds, one per operation target. */
+export interface MiniAppWorkflow {
+  name: string;
+  slug: string;
+  /** Route of its /templates page. */
+  route: string;
+}
+
 export interface MiniAppEntry extends PageEntry {
   slug: string;
-  /** Human name, e.g. "Movie Posters". */
+  /** Human name, e.g. "Photo Studio". */
   name: string;
-  /** The workflow's own description (may be empty). */
+  /** The app's own description (may be empty). */
   summary: string;
-  /** Hero app — leads the /apps index (curation table `featured: true`). */
+  /** Hero app — leads the /apps index (curation spec `featured: true`). */
   featured: boolean;
-  /** Route of the matching /templates page. */
+  /** What the app warns about up front: keys it needs, money it spends. */
+  note: string | null;
+  /** Every workflow the app binds, in operation order. */
+  workflows: MiniAppWorkflow[];
+  /** Route of the first bound workflow's /templates page. */
   templateRoute: string;
   /** Public path to the app screenshot (`/apps/<slug>.png`) or null. */
   screenshot: string | null;
