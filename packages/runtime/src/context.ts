@@ -111,13 +111,10 @@ const isAbsolute = (p: string): boolean =>
   nodePath ? nodePath.isAbsolute(p) : notOnNode("node:path.isAbsolute");
 const join = (...parts: string[]): string =>
   nodePath ? nodePath.join(...parts) : notOnNode("node:path.join");
-const normalize = (p: string): string =>
-  nodePath ? nodePath.normalize(p) : notOnNode("node:path.normalize");
 const relative = (from: string, to: string): string =>
   nodePath ? nodePath.relative(from, to) : notOnNode("node:path.relative");
 const resolve = (...parts: string[]): string =>
   nodePath ? nodePath.resolve(...parts) : notOnNode("node:path.resolve");
-const sep = nodePath?.sep ?? "/";
 
 const fileURLToPath = (u: string | URL): string =>
   nodeUrl ? nodeUrl.fileURLToPath(u) : notOnNode("node:url.fileURLToPath");
@@ -544,13 +541,20 @@ async function coerceEntityList(
 }
 
 function normalizeStorageKey(key: string): string {
-  const cleaned = normalize(key.replaceAll("\\", "/")).replace(/^\/+/, "");
-  if (
-    !cleaned ||
-    cleaned === "." ||
-    cleaned.startsWith("..") ||
-    cleaned.includes(`..${sep}`)
-  ) {
+  const segments: string[] = [];
+  for (const segment of key.replaceAll("\\", "/").split("/")) {
+    if (!segment || segment === ".") continue;
+    if (segment === "..") {
+      if (segments.length === 0) {
+        throw new Error(`Invalid storage key: ${key}`);
+      }
+      segments.pop();
+      continue;
+    }
+    segments.push(segment);
+  }
+  const cleaned = segments.join("/");
+  if (!cleaned) {
     throw new Error(`Invalid storage key: ${key}`);
   }
   return cleaned;
@@ -3170,6 +3174,38 @@ export class ProcessingContext {
     if (mode === "native" || mode === "raw") {
       // In-process consumers handle the raw asset as-is (incl. raw RGBA).
       return rawAsset;
+    }
+
+    // A fetchable reference with no inline bytes is already materialized for
+    // an HTTP client. Reuse it instead of downloading the asset into this
+    // process and writing an identical second temp object. This is especially
+    // important for SDK pass-through workflows: their large input was already
+    // uploaded once and should not be copied again on output.
+    if (mode === "temp_url") {
+      const uri = typeof rawAsset.uri === "string" ? rawAsset.uri : "";
+      const hasInlineBytes =
+        ProcessingContext.decodeAssetData(rawAsset.data) !== null;
+      const isStorageRoute =
+        uri.startsWith("/api/storage/") || uri.startsWith("api/storage/");
+      const isAdapterUri = /^(file|s3|supabase):\/\//.test(uri);
+      if (uri && !hasInlineBytes && (isStorageRoute || isAdapterUri)) {
+        const resolvedUri = this._tempUrlResolver
+          ? await this._tempUrlResolver(uri)
+          : uri;
+        if (
+          resolvedUri.startsWith("/api/storage/") ||
+          resolvedUri.startsWith("api/storage/") ||
+          (isAdapterUri &&
+            resolvedUri !== uri &&
+            /^https?:\/\//.test(resolvedUri))
+        ) {
+          return {
+            ...rawAsset,
+            uri: resolvedUri,
+            data: undefined
+          };
+        }
+      }
     }
 
     // Raw in-flight RGBA → encode to PNG up front so every downstream mode

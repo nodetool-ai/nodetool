@@ -24,7 +24,7 @@ import type {
 import { registerProvider } from "../src/providers/provider-registry.js";
 import { FakeProvider } from "../src/providers/fake-provider.js";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 
@@ -493,6 +493,34 @@ describe("Storage adapters", () => {
     expect(await storage.retrieve(uri)).toEqual(new Uint8Array([1, 2, 3]));
   });
 
+  it("normalizes Windows separators in URI storage keys", async () => {
+    const memory = new InMemoryStorageAdapter();
+    expect(
+      await memory.store("assets\\nested\\test.txt", new Uint8Array([1]))
+    ).toBe("memory://assets/nested/test.txt");
+
+    let storedKey = "";
+    const s3 = new S3StorageAdapter({
+      bucket: "test-bucket",
+      prefix: "runs\\r1",
+      client: {
+        async putObject(input) {
+          storedKey = input.key;
+        },
+        async getObject() {
+          return null;
+        },
+        async headObject() {
+          return false;
+        }
+      }
+    });
+    expect(
+      await s3.store("assets\\out.bin", new Uint8Array([2]))
+    ).toBe("s3://test-bucket/runs/r1/assets/out.bin");
+    expect(storedKey).toBe("runs/r1/assets/out.bin");
+  });
+
   it("InMemoryStorageAdapter returns null/false for unknown URIs", async () => {
     const storage = new InMemoryStorageAdapter();
     expect(await storage.retrieve("memory://missing.bin")).toBeNull();
@@ -602,14 +630,14 @@ describe("workspace path resolution", () => {
   it("resolves /workspace/ prefix", () => {
     const root = "/tmp/nodetool-workspace";
     expect(resolveWorkspacePath(root, "/workspace/out/a.txt")).toBe(
-      "/tmp/nodetool-workspace/out/a.txt"
+      resolve(root, "out/a.txt")
     );
   });
 
   it("resolves relative path", () => {
     const root = "/tmp/nodetool-workspace";
     expect(resolveWorkspacePath(root, "out/a.txt")).toBe(
-      "/tmp/nodetool-workspace/out/a.txt"
+      resolve(root, "out/a.txt")
     );
   });
 
@@ -626,7 +654,7 @@ describe("workspace path resolution", () => {
       workspaceDir: "/tmp/nodetool-workspace"
     });
     expect(ctx.resolveWorkspacePath("workspace/out.json")).toBe(
-      "/tmp/nodetool-workspace/out.json"
+      resolve("/tmp/nodetool-workspace", "out.json")
     );
   });
 });
@@ -1927,13 +1955,13 @@ describe("ProcessingContext – workspace path errors", () => {
 
   it("handles workspace/ prefix (no leading slash)", () => {
     expect(resolveWorkspacePath("/tmp/ws", "workspace/foo.txt")).toBe(
-      "/tmp/ws/foo.txt"
+      resolve("/tmp/ws", "foo.txt")
     );
   });
 
   it("handles absolute paths as workspace-relative", () => {
     const result = resolveWorkspacePath("/tmp/ws", "/some/path.txt");
-    expect(result).toBe("/tmp/ws/some/path.txt");
+    expect(result).toBe(resolve("/tmp/ws", "some/path.txt"));
   });
 });
 
