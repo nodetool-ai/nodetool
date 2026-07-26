@@ -291,6 +291,9 @@ export function getNodeMetadata(
     is_trigger: nodeClass.isTrigger || undefined,
     always_emit_output_updates: nodeClass.alwaysEmitOutputUpdates || undefined,
     supports_dynamic_inputs: nodeClass.supportsDynamicInputs || false,
+    allowed_dynamic_slot_types: nodeClass.allowedDynamicSlotTypes?.map(
+      toMetadataType
+    ),
     supports_dynamic_outputs: nodeClass.supportsDynamicOutputs,
     auto_save_asset: nodeClass.autoSaveAsset || undefined,
     cache_ttl: nodeClass.cacheTtl,

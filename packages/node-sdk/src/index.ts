@@ -10,6 +10,7 @@ export * from "./node-metadata.js";
 export * from "./decorators.js";
 export * from "./search.js";
 export * from "./validation.js";
+export * from "./type-compat.js";
 export * from "./graph-validation.js";
 export * from "./correlation-validation.js";
 export * from "./nodes/test-nodes.js";

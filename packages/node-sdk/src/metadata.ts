@@ -92,6 +92,11 @@ export interface NodeMetadata {
    */
   required_runtimes?: string[];
   supports_dynamic_inputs?: boolean;
+  /**
+   * Types a user may pick for a dynamic input slot on this node. Unset means
+   * the full type palette. See `BaseNode.allowedDynamicSlotTypes`.
+   */
+  allowed_dynamic_slot_types?: TypeMetadata[];
   is_streaming_input?: boolean;
   is_streaming_output?: boolean;
   input_mode?: InputMode;

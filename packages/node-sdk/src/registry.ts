@@ -140,7 +140,9 @@ export class NodeRegistry {
       (descriptor.properties as Record<string, unknown> | undefined) ?? {};
     return NodeClass.validateProperties(properties, {
       connectedHandles,
-      nodeId: descriptor.id
+      nodeId: descriptor.id,
+      dynamicSlots: descriptor.dynamic_inputs,
+      dynamicValues: descriptor.dynamic_properties
     });
   }
 
@@ -218,14 +220,24 @@ export class NodeRegistry {
     if (!NodeClass) {
       throw new Error(`Unknown node type: ${descriptor.type}`);
     }
+    const properties =
+      (descriptor.properties as Record<string, unknown> | undefined) ?? {};
+    // Slot declarations must be visible to `assign()` before it stores the
+    // dynamic values, so they can be coerced against their declared type.
     const instance = new NodeClass(
-      (descriptor.properties as Record<string, unknown> | undefined) ?? {}
+      descriptor.dynamic_inputs
+        ? { _dynamic_inputs: descriptor.dynamic_inputs, ...properties }
+        : properties
     );
     instance.__node_id = descriptor.id;
     instance.__node_name = descriptor.name ?? descriptor.type;
     // Stryker disable next-line ConditionalExpression: forcing this true assigns _dynamic_outputs = undefined, which reads back identically to leaving it unset (equivalent).
     if (descriptor.dynamic_outputs) {
       (instance as unknown as Record<string, unknown>)._dynamic_outputs = descriptor.dynamic_outputs;
+    }
+    if (descriptor.dynamic_inputs) {
+      (instance as unknown as Record<string, unknown>)._dynamic_inputs =
+        descriptor.dynamic_inputs;
     }
     return instance.toExecutor();
   }
