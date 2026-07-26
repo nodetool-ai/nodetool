@@ -26,7 +26,19 @@ framework-independent core the web runtime, the CLI `app debug` harness, and the
   that is the legacy `app_doc` form and the migration path.
 - **Widgets** bind one slot (read for displays, two-way for inputs) and emit
   **events** (`click` / `change`) that dispatch **actions** (`run`, `cancel`,
-  `setVariable`, `toggleVariable`, `resourceCommand`, `openResource`).
+  `setVariable`, `toggleVariable`, `resourceCommand`, `openResource`). A `run`
+  names its operation; the runtime runs **that** operation's workflow, fetching
+  it when it is not the one the view already holds.
+- **Operation outputs land in two places**: the display slot a widget reads and,
+  when the operation maps the output `to: "variable"`, an app variable. That is
+  how one operation hands a value to the next without a procedure language.
+- **Run policy** (`replace` / `queue` / `parallel`) decides what a second run
+  means while one is in flight: cancel the live one, wait for it, or ask the
+  server for a concurrent slot. `timeoutMs` fails the invocation when it
+  elapses.
+- **Variables** start from their declared `default`. A `user`-scoped variable
+  with `persist: true` survives a reload (`localStorage`, keyed by application
+  or workflow id); `instance` variables and widget-local `view` state do not.
 - **Resource bindings** name a collection (a kind plus a project or a pinned
   id) rather than a document. A picker chooses a member; the chosen
   `ResourceRef` carries the document's `revision`, and the server rejects a
@@ -58,9 +70,15 @@ the existing worker path.
   one implementation.
 - `workflowIO.ts` / `workflowState.ts` — a workflow's bindable surface
   (inputs, outputs, variables).
+- `appThemes.ts` — the named-theme registry `ApplicationDocument.theme`
+  resolves against. A theme decides how the page is presented (surface, content
+  width, framing); widget styling stays with the widgets and the design tokens.
+- `runtime/variablePersistence.ts` — `localStorage` for user-scoped variables
+  declared `persist: true`, keyed by application or workflow id.
 - `runtime/` — `appRuntimeStore` (a Zustand wrapper around the shared reducer,
-  one store per app instance), `useAppRuntime` (the engine: claims invocations,
-  folds the streaming runner into state, dispatches actions),
+  one store per app instance), `useAppRuntime` (the engine: resolves each
+  operation's workflow and runner, claims invocations, folds the streaming
+  runner into state, dispatches actions under the operation's run policy),
   `AppRuntimeContext` (binding resolution, conditions, formatting),
   `buildTriggerSubgraph` (reactive subgraph runs + the effect gate).
 - `puck/` — the Puck integration:
@@ -134,8 +152,11 @@ on top of the same `@nodetool-ai/app-runtime` core — it runs apps, it does not
 edit them.
 
 An app with its own record opens in the workspace: the app library's tab renders
-`ApplicationSurface`, whose **Design** view is the builder canvas and whose
-**Settings** view is publishing, budgets, and telemetry.
+`ApplicationSurface`, whose **Design** view is the builder canvas, whose **Run**
+view is `ApplicationRunView`, and whose **Settings** view is publishing,
+budgets, and telemetry. The Run view renders the **released** snapshot — its
+document and the workflow graphs the release pinned — falling back to the draft
+only while nothing is published.
 
 ## Publishing
 

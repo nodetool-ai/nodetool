@@ -58,10 +58,13 @@ const Picker: React.FC<{
   value: string;
   options: Option[];
   emptyHint?: string;
+  /** Show the hint even though the picker has options (execution fields). */
+  hintVisible?: boolean;
   readOnly?: boolean;
   onChange: (value: string) => void;
-}> = ({ label, value, options, emptyHint, readOnly, onChange }) => {
+}> = ({ label, value, options, emptyHint, hintVisible, readOnly, onChange }) => {
   const hasOptions = options.length > 0;
+  const showHint = hintVisible ?? !hasOptions;
   return (
     <FlexColumn gap={0.5}>
       <SelectField
@@ -71,9 +74,7 @@ const Picker: React.FC<{
         disabled={readOnly || !hasOptions}
         onChange={onChange}
       />
-      {!hasOptions && emptyHint && (
-        <Caption color="secondary">{emptyHint}</Caption>
-      )}
+      {showHint && emptyHint && <Caption color="secondary">{emptyHint}</Caption>}
     </FlexColumn>
   );
 };
@@ -127,13 +128,17 @@ const ReadBindingPicker: React.FC<{
     ...variables.map((v) => ({
       label: `variable · ${v}`,
       value: encodeBinding({ kind: "variable", variableId: v })
-    }))
+    })),
+    ...EXECUTION_OPTIONS
   ];
   return (
     <Picker
       label={label}
       value={canonicalBinding(value, scope, "read")}
       options={options}
+      // Execution fields are always bindable, so "nothing to bind" is about
+      // the workflow's own outputs and variables.
+      hintVisible={outputs.length === 0 && variables.length === 0}
       emptyHint="Add an Output node or Set Variable node to the workflow."
       readOnly={readOnly}
       onChange={onChange}
@@ -388,11 +393,42 @@ const CONDITION_OPS: Option[] = [
   { label: "equals", value: "eq" },
   { label: "does not equal", value: "neq" },
   { label: "is greater than", value: "gt" },
-  { label: "is less than", value: "lt" }
+  { label: "is at least", value: "gte" },
+  { label: "is less than", value: "lt" },
+  { label: "is at most", value: "lte" },
+  { label: "contains", value: "contains" }
 ];
 
 /** Operators that compare against a literal, so the value box is meaningful. */
-const OPS_WITH_VALUE = new Set(["eq", "neq", "gt", "lt"]);
+const OPS_WITH_VALUE = new Set([
+  "eq",
+  "neq",
+  "gt",
+  "gte",
+  "lt",
+  "lte",
+  "contains"
+]);
+
+/**
+ * What a run reports about itself. Bindable from any read widget (a Text
+ * showing the agent's current step) and from a condition.
+ */
+const EXECUTION_OPTIONS: Option[] = (
+  [
+    ["running", "is running"],
+    ["progress", "progress"],
+    ["error", "error"],
+    ["activity", "activity"]
+  ] as const
+).map(([field, label]) => ({
+  label: `run · ${label}`,
+  value: encodeBinding({
+    kind: "execution",
+    operationId: DEFAULT_OPERATION_ID,
+    field
+  })
+}));
 
 /**
  * Condition field: a state reference, an operator, and (for comparisons) a
@@ -443,22 +479,7 @@ const ConditionEditor: React.FC<{
       label: `variable · ${v}`,
       value: encodeBinding({ kind: "variable", variableId: v })
     })),
-    {
-      label: "run · is running",
-      value: encodeBinding({
-        kind: "execution",
-        operationId: DEFAULT_OPERATION_ID,
-        field: "running"
-      })
-    },
-    {
-      label: "run · error",
-      value: encodeBinding({
-        kind: "execution",
-        operationId: DEFAULT_OPERATION_ID,
-        field: "error"
-      })
-    }
+    ...EXECUTION_OPTIONS
   ];
   const op = value.op ?? "notEmpty";
   return (
@@ -467,6 +488,9 @@ const ConditionEditor: React.FC<{
         label={label}
         value={canonicalBinding(value.binding ?? "", scope, "none")}
         options={options}
+        hintVisible={
+          outputs.length === 0 && inputs.length === 0 && variables.length === 0
+        }
         emptyHint="Add an Input, Output, or Set Variable node to condition on."
         readOnly={readOnly}
         onChange={(binding) => onChange({ ...value, binding })}

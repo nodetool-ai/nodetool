@@ -14,6 +14,7 @@ import {
   Box,
   FlexColumn,
   Card,
+  DataTable,
   Divider,
   ProgressBar,
   Caption,
@@ -389,10 +390,83 @@ export const JsonWidget: React.FC<WidgetCommon> = (props) => {
   return <JsonBlock value={value} />;
 };
 
+/**
+ * Renders an array binding as rows: an array of objects becomes one column per
+ * key (union of the rows' keys, in first-seen order), an array of primitives a
+ * single "Value" column. Arrays are what an operation that emits N results —
+ * or a streamed output the runtime accumulated — actually holds.
+ */
+export const TableWidget: React.FC<WidgetCommon & {
+  label?: string;
+  placeholder?: string;
+  maxHeight?: number;
+}> = (props) => {
+  const { value } = useBinding(props, "read");
+  const items = asItems(value).filter((item) => item != null);
+
+  const { columns, rows } = React.useMemo(() => {
+    const objectRows = items.filter(
+      (item): item is Record<string, unknown> =>
+        typeof item === "object" && item !== null && !Array.isArray(item)
+    );
+    if (objectRows.length === items.length && objectRows.length > 0) {
+      const keys: string[] = [];
+      for (const row of objectRows) {
+        for (const key of Object.keys(row)) {
+          if (!keys.includes(key)) keys.push(key);
+        }
+      }
+      return {
+        columns: keys.map((key) => ({ key, label: key })),
+        rows: objectRows.map((row) =>
+          Object.fromEntries(
+            keys.map((key) => [
+              key,
+              typeof row[key] === "object" && row[key] !== null
+                ? JSON.stringify(row[key])
+                : str(row[key])
+            ])
+          )
+        )
+      };
+    }
+    return {
+      columns: [{ key: "value", label: props.label || "Value" }],
+      rows: items.map((item) => ({
+        value:
+          typeof item === "object" ? JSON.stringify(item) : str(item)
+      }))
+    };
+  }, [items, props.label]);
+
+  if (rows.length === 0) {
+    return (
+      <Caption color="secondary">{props.placeholder ?? "No rows yet"}</Caption>
+    );
+  }
+  return (
+    <FlexColumn gap={SPACING.xs} fullWidth>
+      {props.label ? <Caption color="secondary">{props.label}</Caption> : null}
+      <DataTable
+        compact
+        striped
+        stickyHeader={Boolean(props.maxHeight)}
+        maxHeight={props.maxHeight}
+        columns={columns}
+        rows={rows}
+        containerSx={{ borderRadius: BORDER_RADIUS.md }}
+      />
+    </FlexColumn>
+  );
+};
+
 export const ProgressWidget: React.FC<WidgetCommon & { label?: string }> = (
   props
 ) => {
-  const { value, runnerState, progress, designMode } = useBinding(props, "read");
+  const { value, runnerState, progress, activity, designMode } = useBinding(
+    props,
+    "read"
+  );
   const isRunning = runnerState === "running";
   // A widget bound to a numeric output shows that; otherwise the run's own
   // progress, which the runtime reports as a 0..1 fraction.
@@ -404,9 +478,12 @@ export const ProgressWidget: React.FC<WidgetCommon & { label?: string }> = (
   // progress field is cleared), so visibility hangs off the run state, not the
   // value. Keep it visible in the editor so the widget can be laid out.
   if (!designMode && !isRunning) return null;
+  // An agent run reports what it is doing; without it the app shows a spinner
+  // and nothing else. The label the run reports wins over the static one.
+  const caption = (isRunning && activity) || props.label;
   return (
     <FlexColumn gap={SPACING.micro} fullWidth>
-      {props.label ? <Caption color="secondary">{props.label}</Caption> : null}
+      {caption ? <Caption color="secondary">{caption}</Caption> : null}
       <ProgressBar
         value={hasValue ? bound : 0}
         progressVariant={!hasValue && isRunning ? "indeterminate" : "determinate"}

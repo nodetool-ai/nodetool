@@ -1,22 +1,33 @@
 /**
  * The reactive engine.
  *
- * Binds an app-instance store to the shared per-workflow runner, folds the
- * run's streaming messages into namespaced state, and turns widget actions into
- * runs. All the semantics — what a message does to a value, which invocation
- * owns a slot, how an action reads — live in `@nodetool-ai/app-runtime`; this
- * hook is the web adapter around them.
+ * Binds an app-instance store to the workflow runners its operations target,
+ * folds each run's streaming messages into namespaced state, and turns widget
+ * actions into runs. All the semantics — what a message does to a value, which
+ * invocation owns a slot, what a collision with a live run means — live in
+ * `@nodetool-ai/app-runtime`; this hook is the web adapter around them.
  *
  * Run identity is the load-bearing part: every invocation this app starts is
  * registered by its `job_id`, and a streaming message for any other job is
  * dropped. Overlapping runs, a second tab, and runs started in the graph editor
  * no longer fold into what the app shows.
+ *
+ * An app may bind several operations, each over its own workflow. Every
+ * operation gets its own runner store, its own IO, and its own invocations, so
+ * a `run` action naming an operation runs that operation — never operation 0
+ * against the host workflow.
  */
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useQueries } from "@tanstack/react-query";
 import {
+  decideRun,
   implicitOperation,
+  initialVariableValues,
+  isLiveInvocation,
+  liveInvocations,
   mergeVariables,
   messageToEvents,
+  outputVariableTargets,
   resolveBinding,
   resolveOperationParams,
   stateKey,
@@ -32,14 +43,17 @@ import {
 import { Workflow } from "../../../stores/ApiTypes";
 import {
   getWorkflowRunnerStore,
-  MsgpackData
+  MsgpackData,
+  WorkflowRunnerStore
 } from "../../../stores/WorkflowRunner";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 import { graphNodeToReactFlowNode } from "../../../stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "../../../stores/graphEdgeToReactFlowEdge";
 import { runBrowserGraphJob } from "../../../lib/workflow/browserWorkflowRunner";
 import useMetadataStore from "../../../stores/MetadataStore";
-import { extractWorkflowIO } from "../workflowIO";
+import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
+import { trpcClient } from "../../../trpc/client";
+import { extractWorkflowIO, WorkflowIO } from "../workflowIO";
 import { extractVariableNames } from "../workflowState";
 import { seedInputValue } from "../inputProperty";
 import { collectNodePropertyOverlays, withNodeProperties } from "../nodeBinding";
@@ -50,9 +64,33 @@ import {
   workflowInstanceId,
   AppRuntimeStore
 } from "./appRuntimeStore";
+import {
+  appVariableIdentity,
+  loadPersistedVariables,
+  savePersistedVariables
+} from "./variablePersistence";
 import { AppRuntimeContextValue } from "./AppRuntimeContext";
 
 const now = (): number => Date.now();
+
+const EMPTY_IO: WorkflowIO = { inputs: [], outputs: [] };
+
+/** Everything one bound operation needs to run: its graph, IO, and runner. */
+interface OperationRuntime {
+  operation: OperationBinding;
+  /** Undefined while the operation's workflow is still loading, or missing. */
+  workflow: Workflow | undefined;
+  io: WorkflowIO;
+  runnerStore: WorkflowRunnerStore;
+}
+
+/** Per-operation bookkeeping for coalesced reactive (subgraph) runs. */
+interface ReactiveRunState {
+  jobId: string;
+  inFlight: boolean;
+  pending: BindingRef | null;
+  hasRunFull: boolean;
+}
 
 export interface AppRuntimeOptions {
   /**
@@ -67,6 +105,12 @@ export interface AppRuntimeOptions {
    * the ledger afterwards. Absent for an app that has no record yet.
    */
   application?: { id: string; version?: number };
+  /**
+   * Workflow graphs supplied by the caller, by workflow id — the graphs a
+   * release pinned. An operation whose workflow is here runs that exact graph
+   * instead of fetching the live one.
+   */
+  workflowOverrides?: Record<string, Workflow>;
   /** Open a resource in its own editor. The runtime only knows which one. */
   onOpenResource?: (resourceBindingId: string, ref: ResourceRef) => void;
   /** Run a provider command (upload, delete, …) against a resource binding. */
@@ -82,83 +126,173 @@ export const useAppRuntime = (
   designMode: boolean,
   options: AppRuntimeOptions = {}
 ): AppRuntimeContextValue => {
-  const { application, document, onOpenResource, onResourceCommand } = options;
-  const io = useMemo(() => extractWorkflowIO(workflow), [workflow]);
+  const {
+    application,
+    document,
+    workflowOverrides,
+    onOpenResource,
+    onResourceCommand
+  } = options;
   const workflowId = workflow?.id;
+  const fetchWorkflow = useWorkflowManager((state) => state.fetchWorkflow);
 
-  // The operation a widget's run targets. Multi-operation apps arrive with the
-  // application entity; until then every app has exactly one.
-  const operation: OperationBinding = useMemo(
-    () => document?.operations[0] ?? implicitOperation(workflowId ?? ""),
-    [document, workflowId]
-  );
+  // Every operation the app binds. A legacy app running straight off a
+  // workflow has none declared, so it gets the implicit one.
+  const operations = useMemo<OperationBinding[]>(() => {
+    const declared = document?.operations ?? [];
+    return declared.length > 0 ? declared : [implicitOperation(workflowId ?? "")];
+  }, [document, workflowId]);
+
+  // Operations over a workflow this view did not already load. Fetched once
+  // each, so a two-operation app addresses two different graphs.
+  const extraWorkflowIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const operation of operations) {
+      const id = operation.workflowId;
+      if (!id || id === workflowId || workflowOverrides?.[id]) continue;
+      ids.add(id);
+    }
+    return [...ids].sort();
+  }, [operations, workflowId, workflowOverrides]);
+
+  const extraWorkflows = useQueries({
+    queries: extraWorkflowIds.map((id) => ({
+      queryKey: ["app-operation-workflow", id],
+      queryFn: async () => await fetchWorkflow(id),
+      enabled: !designMode,
+      staleTime: 60_000,
+      retry: false
+    }))
+  });
+
+  const fetched = new Map<string, Workflow>();
+  extraWorkflowIds.forEach((id, index) => {
+    const data = extraWorkflows[index]?.data;
+    if (data) fetched.set(id, data);
+  });
+  const fetchedRef = useRef(fetched);
+  fetchedRef.current = fetched;
+  const fetchedKey = [...fetched.keys()].join("|");
+
+  const operationRuntimes = useMemo(() => {
+    const map = new Map<string, OperationRuntime>();
+    for (const operation of operations) {
+      const targetId = operation.workflowId;
+      const target =
+        !targetId || targetId === workflowId
+          ? workflow
+          : workflowOverrides?.[targetId] ?? fetchedRef.current.get(targetId);
+      map.set(operation.id, {
+        operation,
+        workflow: target,
+        io: extractWorkflowIO(target),
+        runnerStore: getWorkflowRunnerStore(
+          targetId || workflowId || "__app_runtime__"
+        )
+      });
+    }
+    return map;
+    // `fetchedKey` tracks which operation workflows have arrived; the graphs
+    // themselves are read from the ref so the dep list stays fixed-length.
+  }, [fetchedKey, operations, workflow, workflowId, workflowOverrides]);
+
+  const operationRuntimesRef = useRef(operationRuntimes);
+  operationRuntimesRef.current = operationRuntimes;
+
+  const defaultOperation = operations[0];
+  // The host workflow's own surface, which the legacy single-operation
+  // contract (and every widget that does not name an operation) reads.
+  const io = operationRuntimes.get(defaultOperation.id)?.io ?? EMPTY_IO;
 
   // Everything a stored binding string can resolve against. Legacy documents
   // bind by name; the scope turns those names into node IDs once, here, so a
   // later rename in the graph editor is invisible to the app.
   const scope: BindingScope = useMemo(
     () => ({
-      defaultOperationId: operation.id,
-      operations: [
-        {
-          operationId: operation.id,
-          inputs: io.inputs.map(({ nodeId, name }) => ({ nodeId, name })),
-          outputs: io.outputs.map(({ nodeId, name }) => ({ nodeId, name })),
-          nodeIds: (workflow?.graph?.nodes ?? []).map((n) => n.id),
-          variableNames: extractVariableNames(workflow)
-        }
-      ],
+      defaultOperationId: defaultOperation.id,
+      operations: [...operationRuntimes.values()].map((entry) => ({
+        operationId: entry.operation.id,
+        inputs: entry.io.inputs.map(({ nodeId, name }) => ({ nodeId, name })),
+        outputs: entry.io.outputs.map(({ nodeId, name }) => ({ nodeId, name })),
+        nodeIds: (entry.workflow?.graph?.nodes ?? []).map((node) => node.id),
+        variableNames: extractVariableNames(entry.workflow)
+      })),
       variables: mergeVariables(
         document?.variables ?? [],
-        extractVariableNames(workflow)
+        [...operationRuntimes.values()].flatMap((entry) =>
+          extractVariableNames(entry.workflow)
+        )
       )
     }),
-    [document, io, workflow]
+    [defaultOperation.id, document, operationRuntimes]
   );
 
-  const inputKey = useCallback(
-    (nodeId: string) => stateKey({ kind: "input", operationId: operation.id, nodeId }),
-    [operation.id]
-  );
   const outputKey = useCallback(
-    (nodeId: string) => stateKey({ kind: "output", operationId: operation.id, nodeId }),
-    [operation.id]
+    (operationId: string, nodeId: string) =>
+      stateKey({ kind: "output", operationId, nodeId }),
+    []
   );
 
   // A design canvas gets an ephemeral store: widget writes there must not leak
   // into the published app's state. A live app keeps its store in the instance
   // registry so values survive View↔Edit tab switches and refetches.
+  const identity = appVariableIdentity(application?.id, workflowId);
   const store: AppRuntimeStore = useMemo(() => {
     const target =
       designMode || !workflowId
         ? createAppRuntimeStore()
         : getAppRuntimeStore(workflowInstanceId(workflowId));
+    const dispatchEvent = target.getState().dispatchEvent;
+
     // Seeding fills only slots that have no value: workflow input defaults plus
     // the select/boolean fallbacks the controls display, so an untouched form
     // runs with what it shows.
     const values: Record<string, unknown> = {};
-    for (const input of io.inputs) {
-      const seed = seedInputValue(input);
-      if (seed !== undefined) values[inputKey(input.nodeId)] = seed;
+    for (const entry of operationRuntimes.values()) {
+      for (const input of entry.io.inputs) {
+        const seed = seedInputValue(input);
+        if (seed === undefined) continue;
+        values[
+          stateKey({
+            kind: "input",
+            operationId: entry.operation.id,
+            nodeId: input.nodeId
+          })
+        ] = seed;
+      }
     }
-    target.getState().dispatchEvent({ type: "seedInputs", values });
+    dispatchEvent({ type: "seedInputs", values });
+
+    // Restored user-scoped values first, declared defaults second: seeding
+    // never clobbers, so what the user left behind wins over the default.
+    const variables = document?.variables ?? [];
+    if (!designMode) {
+      dispatchEvent({
+        type: "seedVariables",
+        values: loadPersistedVariables(identity, variables)
+      });
+    }
+    dispatchEvent({
+      type: "seedVariables",
+      values: initialVariableValues(variables)
+    });
     return target;
-  }, [designMode, workflowId, io, inputKey]);
+  }, [designMode, document, identity, operationRuntimes, workflowId]);
 
-  // The shared per-workflow runner (same instance the graph editor, jobs panel
-  // and frontend tools use), so busy/queue/cancel state is consistent across
-  // views.
-  const runnerStore = useMemo(
-    () => getWorkflowRunnerStore(workflowId ?? "__app_runtime__"),
-    [workflowId]
-  );
-
-  const outputNodeIds = useMemo(
-    () => new Set(io.outputs.map((o) => o.nodeId)),
-    [io.outputs]
-  );
-  const outputNodeIdsRef = useRef(outputNodeIds);
-  outputNodeIdsRef.current = outputNodeIds;
+  // Write persisting user-scoped variables back whenever they change. Instance
+  // variables and widget-local view state are deliberately not persisted.
+  useEffect(() => {
+    const variables = document?.variables ?? [];
+    if (designMode || !identity) return;
+    if (!variables.some((v) => v.scope === "user" && v.persist)) return;
+    let previous = store.getState().variables;
+    savePersistedVariables(identity, variables, previous);
+    return store.subscribe((state) => {
+      if (state.variables === previous) return;
+      previous = state.variables;
+      savePersistedVariables(identity, variables, previous);
+    });
+  }, [designMode, document, identity, store]);
 
   // Invocations this app started, by job id. A streaming message for anything
   // else is not ours — that is the whole cross-run contamination fix.
@@ -169,6 +303,23 @@ export const useAppRuntime = (
   // Messages that arrived between dispatching a run and learning its job id.
   const pendingRef = useRef<MsgpackData[]>([]);
   const awaitingJobRef = useRef(0);
+  // Timeout timers by invocation id, for operations that declare `timeoutMs`.
+  const timersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+
+  const clearTimeoutTimer = useCallback((invocationId: string) => {
+    const timer = timersRef.current.get(invocationId);
+    if (!timer) return;
+    clearTimeout(timer);
+    timersRef.current.delete(invocationId);
+  }, []);
+
+  useEffect(() => {
+    const timers = timersRef.current;
+    return () => {
+      for (const timer of timers.values()) clearTimeout(timer);
+      timers.clear();
+    };
+  }, []);
 
   const foldRef = useRef<(message: MsgpackData) => void>(() => {});
 
@@ -177,27 +328,100 @@ export const useAppRuntime = (
       const events = messageToEvents(message as Record<string, unknown>, {
         resolveInvocation: (jobId) =>
           jobId ? ownedRef.current.get(jobId) ?? null : null,
-        outputKey: (_operationId, nodeId) =>
-          outputNodeIdsRef.current.has(nodeId) ? outputKey(nodeId) : null
+        outputKey: (operationId, nodeId) => {
+          const entry = operationRuntimesRef.current.get(operationId);
+          return entry?.io.outputs.some((output) => output.nodeId === nodeId)
+            ? outputKey(operationId, nodeId)
+            : null;
+        },
+        // An output mapped `to: "variable"` writes app state as well as its
+        // display slot — that is how one operation hands a value to the next.
+        outputVariable: (operationId, nodeId) => {
+          const entry = operationRuntimesRef.current.get(operationId);
+          if (!entry) return null;
+          const mapping = entry.operation.outputs[nodeId];
+          return mapping?.to === "variable" ? mapping.variableId : null;
+        }
       });
       for (const event of events) {
         store.getState().dispatchEvent(event);
-        if (event.type === "invocationStatus") {
-          const invocation = ownedRef.current.get(event.invocationId);
-          if (invocation) invocation.status = event.status;
-        }
+        if (event.type !== "invocationStatus") continue;
+        const invocation = ownedRef.current.get(event.invocationId);
+        if (invocation) invocation.status = event.status;
+        const settled = event.status !== "pending" && event.status !== "running";
+        if (settled) clearTimeoutTimer(event.invocationId);
       }
     },
-    [outputKey, store]
+    [clearTimeoutTimer, outputKey, store]
   );
   foldRef.current = fold;
 
+  /** Stop one run on the server (or in the browser, when it runs there). */
+  const stopJob = useCallback(async (invocationId: string) => {
+    const invocation = ownedRef.current.get(invocationId);
+    const entry = invocation
+      ? operationRuntimesRef.current.get(invocation.operationId)
+      : undefined;
+    const runner = entry?.runnerStore;
+    // The runner only knows how to cancel the run it currently displays;
+    // anything else (a queued or parallel sibling) is cancelled by job id.
+    if (runner && runner.getState().job_id === invocationId) {
+      await runner.getState().cancel();
+      return;
+    }
+    try {
+      await trpcClient.jobs.cancel.mutate({ id: invocationId });
+    } catch {
+      // The job may already be gone; the app still marks it cancelled.
+    }
+  }, []);
+
+  const cancelInvocations = useCallback(
+    async (invocationIds: ReadonlyArray<string>) => {
+      for (const invocationId of invocationIds) {
+        clearTimeoutTimer(invocationId);
+        const invocation = ownedRef.current.get(invocationId);
+        if (invocation) invocation.status = "cancelled";
+        await stopJob(invocationId);
+        store.getState().dispatchEvent({
+          type: "invocationStatus",
+          invocationId,
+          status: "cancelled"
+        });
+      }
+    },
+    [clearTimeoutTimer, stopJob, store]
+  );
+
+  /** Resolve once every listed invocation has settled. */
+  const awaitSettled = useCallback(
+    (invocationIds: ReadonlyArray<string>) =>
+      new Promise<void>((resolve) => {
+        const settled = () =>
+          invocationIds.every((id) => {
+            const invocation = store.getState().invocations[id];
+            return !invocation || !isLiveInvocation(invocation);
+          });
+        if (settled()) {
+          resolve();
+          return;
+        }
+        const unsubscribe = store.subscribe(() => {
+          if (!settled()) return;
+          unsubscribe();
+          resolve();
+        });
+      }),
+    [store]
+  );
+
   /** Register a run this app started and flush anything buffered for it. */
   const claimInvocation = useCallback(
-    (jobId: string, clearOutputs: boolean) => {
+    (operationId: string, jobId: string, clearOutputs: boolean) => {
+      const entry = operationRuntimesRef.current.get(operationId);
       const invocation: InvocationState = {
         id: jobId,
-        operationId: operation.id,
+        operationId,
         status: "running",
         startedAt: now()
       };
@@ -205,19 +429,75 @@ export const useAppRuntime = (
       store.getState().dispatchEvent({
         type: "runStarted",
         invocation,
-        outputKeys: clearOutputs
-          ? io.outputs.map((output) => outputKey(output.nodeId))
-          : []
+        outputKeys:
+          clearOutputs && entry
+            ? entry.io.outputs.map((output) =>
+                outputKey(operationId, output.nodeId)
+              )
+            : []
       });
+
+      // A declared timeout is a promise to the user that the app stops waiting.
+      const timeoutMs = entry?.operation.timeoutMs;
+      if (timeoutMs && timeoutMs > 0) {
+        timersRef.current.set(
+          jobId,
+          setTimeout(() => {
+            timersRef.current.delete(jobId);
+            const live = ownedRef.current.get(jobId);
+            if (!live || !isLiveInvocation(live)) return;
+            live.status = "failed";
+            void stopJob(jobId);
+            store.getState().dispatchEvent({
+              type: "invocationStatus",
+              invocationId: jobId,
+              status: "failed",
+              error: `"${entry.operation.name}" timed out after ${timeoutMs} ms`
+            });
+          }, timeoutMs)
+        );
+      }
+
       const buffered = pendingRef.current;
       pendingRef.current = [];
       for (const message of buffered) foldRef.current(message);
     },
-    [io.outputs, operation.id, outputKey, store]
+    [outputKey, stopJob, store]
   );
 
+  /** Record a run that never started as a failed invocation the app can show. */
+  const failInvocation = useCallback(
+    (operationId: string, error: string) => {
+      const failed: InvocationState = {
+        id: `failed-${now()}`,
+        operationId,
+        status: "failed",
+        error,
+        startedAt: now()
+      };
+      ownedRef.current.set(failed.id, failed);
+      store
+        .getState()
+        .dispatchEvent({ type: "runStarted", invocation: failed, outputKeys: [] });
+    },
+    [store]
+  );
+
+  const workflowIds = useMemo(
+    () =>
+      [
+        ...new Set(
+          [...operationRuntimes.values()]
+            .map((entry) => entry.workflow?.id)
+            .filter((id): id is string => Boolean(id))
+        )
+      ].sort(),
+    [operationRuntimes]
+  );
+  const workflowIdsKey = workflowIds.join("|");
+
   useEffect(() => {
-    if (!workflowId || designMode) return;
+    if (designMode || workflowIds.length === 0) return;
 
     // Protocol-level handling (runner state machine, ResultsStore, node stores)
     // already runs via the workflow-manager subscription installed when the
@@ -233,150 +513,192 @@ export const useAppRuntime = (
       if (awaitingJobRef.current > 0) pendingRef.current.push(message);
     };
 
-    const unsubscribeWorkflow = globalWebSocketManager.subscribe(
-      workflowId,
-      (message) => handler(message as MsgpackData)
+    const unsubscribes = workflowIds.map((id) =>
+      globalWebSocketManager.subscribe(id, (message) =>
+        handler(message as MsgpackData)
+      )
     );
 
-    let unsubscribeJob: (() => void) | null = null;
-    const updateJobSubscription = (jobId: string | null) => {
-      unsubscribeJob?.();
-      unsubscribeJob = null;
+    const jobUnsubscribes = new Map<string, () => void>();
+    const updateJobSubscription = (runnerKey: string, jobId: string | null) => {
+      jobUnsubscribes.get(runnerKey)?.();
+      jobUnsubscribes.delete(runnerKey);
       if (!jobId) return;
-      unsubscribeJob = globalWebSocketManager.subscribe(jobId, (message) => {
-        if (message?.workflow_id) return;
-        handler(message as MsgpackData);
-      });
+      jobUnsubscribes.set(
+        runnerKey,
+        globalWebSocketManager.subscribe(jobId, (message) => {
+          if (message?.workflow_id) return;
+          handler(message as MsgpackData);
+        })
+      );
     };
-    updateJobSubscription(runnerStore.getState().job_id);
 
-    const unsubscribeRunner = runnerStore.subscribe((state, prev) => {
-      if (state.job_id !== prev.job_id) updateJobSubscription(state.job_id);
+    const runners = new Map<string, WorkflowRunnerStore>();
+    for (const entry of operationRuntimesRef.current.values()) {
+      const key = entry.workflow?.id;
+      if (key) runners.set(key, entry.runnerStore);
+    }
+    const runnerUnsubscribes = [...runners.entries()].map(([key, runner]) => {
+      updateJobSubscription(key, runner.getState().job_id);
+      return runner.subscribe((state, prev) => {
+        if (state.job_id !== prev.job_id) updateJobSubscription(key, state.job_id);
+      });
     });
 
     return () => {
-      unsubscribeWorkflow();
-      unsubscribeRunner();
-      unsubscribeJob?.();
+      for (const unsubscribe of unsubscribes) unsubscribe();
+      for (const unsubscribe of runnerUnsubscribes) unsubscribe();
+      for (const unsubscribe of jobUnsubscribes.values()) unsubscribe();
     };
-  }, [designMode, runnerStore, workflowId]);
+    // `workflowIdsKey` stands in for the workflow id list; the runner stores
+    // themselves are read from the ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [designMode, workflowIdsKey]);
 
-  const run = useCallback(async () => {
-    if (!workflow || designMode) return;
-    const state = store.getState();
-    // Bindings key on node IDs; the run protocol wants names. That translation
-    // happens here, at the execution boundary, which is why a graph rename
-    // never touches the app document.
-    const params = resolveOperationParams({
-      operation,
-      state,
-      inputNodeIds: io.inputs.map((input) => input.nodeId),
-      inputName: (nodeId) =>
-        io.inputs.find((input) => input.nodeId === nodeId)?.name,
-      resourceRef: (resourceBindingId) =>
-        resourceRefsRef.current.get(resourceBindingId)
-    });
-
-    // Node-property bindings overlay their live widget values onto the graph
-    // before the run, so a slider bound to e.g. a model's `strength` drives the
-    // actual node property.
-    const overlays = collectNodePropertyOverlays(state.inputs);
-    const nodes = (workflow.graph?.nodes ?? []).map((node) => {
-      const rf = graphNodeToReactFlowNode(workflow, node);
-      const overlay = overlays.get(rf.id);
-      return overlay ? withNodeProperties(rf, overlay) : rf;
-    });
-    const edges = (workflow.graph?.edges ?? []).map((edge) =>
-      graphEdgeToReactFlowEdge(edge)
-    );
-
-    awaitingJobRef.current += 1;
-    try {
-      const jobId = await runnerStore
-        .getState()
-        .run(
-          params,
-          workflow,
-          nodes,
-          edges,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          { application }
+  const run = useCallback(
+    async (operationId: string) => {
+      if (designMode) return;
+      const entry = operationRuntimesRef.current.get(operationId);
+      if (!entry) {
+        failInvocation(
+          operationId,
+          `This app has no operation "${operationId}".`
         );
-      claimInvocation(jobId, true);
-    } catch (error) {
-      pendingRef.current = [];
-      const message = error instanceof Error ? error.message : "Run failed";
-      const failed: InvocationState = {
-        id: `failed-${now()}`,
-        operationId: operation.id,
-        status: "failed",
-        error: message,
-        startedAt: now()
-      };
-      ownedRef.current.set(failed.id, failed);
-      store
-        .getState()
-        .dispatchEvent({ type: "runStarted", invocation: failed, outputKeys: [] });
-    } finally {
-      awaitingJobRef.current -= 1;
-    }
-  }, [
-    application,
-    claimInvocation,
-    designMode,
-    io.inputs,
-    operation,
-    runnerStore,
-    store,
-    workflow
-  ]);
-
-  const cancel = useCallback(async () => {
-    await runnerStore.getState().cancel();
-    for (const [id, invocation] of ownedRef.current) {
-      if (invocation.status !== "running" && invocation.status !== "pending") {
-        continue;
+        return;
       }
-      invocation.status = "cancelled";
+      const target = entry.workflow;
+      if (!target) {
+        failInvocation(
+          operationId,
+          `"${entry.operation.name}" runs workflow ${entry.operation.workflowId}, which could not be loaded.`
+        );
+        return;
+      }
+
+      // What a collision with a live run of this operation means: replace it,
+      // queue behind it, or start alongside it.
+      const decision = decideRun(store.getState(), entry.operation);
+      if (decision.kind === "replace") {
+        await cancelInvocations(decision.cancel);
+      } else if (decision.kind === "queue") {
+        await awaitSettled(decision.after);
+      }
+
+      const state = store.getState();
+      // Bindings key on node IDs; the run protocol wants names. That translation
+      // happens here, at the execution boundary, which is why a graph rename
+      // never touches the app document.
+      const params = resolveOperationParams({
+        operation: entry.operation,
+        state,
+        inputNodeIds: entry.io.inputs.map((input) => input.nodeId),
+        inputName: (nodeId) =>
+          entry.io.inputs.find((input) => input.nodeId === nodeId)?.name,
+        resourceRef: (resourceBindingId) =>
+          resourceRefsRef.current.get(resourceBindingId)
+      });
+
+      // Node-property bindings overlay their live widget values onto the graph
+      // before the run, so a slider bound to e.g. a model's `strength` drives the
+      // actual node property.
+      const overlays = collectNodePropertyOverlays(state.inputs);
+      const nodes = (target.graph?.nodes ?? []).map((node) => {
+        const rf = graphNodeToReactFlowNode(target, node);
+        const overlay = overlays.get(rf.id);
+        return overlay ? withNodeProperties(rf, overlay) : rf;
+      });
+      const edges = (target.graph?.edges ?? []).map((edge) =>
+        graphEdgeToReactFlowEdge(edge)
+      );
+
+      awaitingJobRef.current += 1;
+      try {
+        const jobId = await entry.runnerStore
+          .getState()
+          .run(
+            params,
+            target,
+            nodes,
+            edges,
+            undefined,
+            undefined,
+            // A parallel operation asks the server to lift the one-run-per-
+            // workflow limit rather than queue behind the run in flight.
+            entry.operation.policy === "parallel",
+            undefined,
+            { application }
+          );
+        claimInvocation(operationId, jobId, true);
+      } catch (error) {
+        pendingRef.current = [];
+        failInvocation(
+          operationId,
+          error instanceof Error ? error.message : "Run failed"
+        );
+      } finally {
+        awaitingJobRef.current -= 1;
+      }
+    },
+    [
+      application,
+      awaitSettled,
+      cancelInvocations,
+      claimInvocation,
+      designMode,
+      failInvocation,
       store
-        .getState()
-        .dispatchEvent({ type: "invocationStatus", invocationId: id, status: "cancelled" });
-    }
-  }, [runnerStore, store]);
+    ]
+  );
+
+  const cancel = useCallback(
+    async (operationId: string, invocationId?: string) => {
+      const ids = invocationId
+        ? [invocationId]
+        : liveInvocations(store.getState(), operationId).map((i) => i.id);
+      await cancelInvocations(ids);
+    },
+    [cancelInvocations, store]
+  );
 
   // Reactive trigger: recompute only the subgraph downstream of a bound input.
-  // Runs are coalesced — one in flight, latest value wins — and reuse a single
-  // job id so a scrub upserts one live result instead of flooding new ones. No
-  // runner-state toggling: a slider scrub is a live update, not a "run", so the
-  // UI never flashes "Running…".
-  const reactiveJobIdRef = useRef<string>("");
-  if (reactiveJobIdRef.current === "") {
-    reactiveJobIdRef.current = crypto.randomUUID();
-  }
-  const reactiveInFlightRef = useRef(false);
-  const reactivePendingRef = useRef<BindingRef | null>(null);
-  const reactiveRunRef = useRef<(trigger: BindingRef) => void>(() => {});
-  // The first trigger runs the whole graph, so computed upstreams (a generated
-  // image, a constant) populate their caches. Later triggers reuse those caches
-  // and only recompute the downstream subgraph.
-  const hasRunFullRef = useRef(false);
+  // Runs are coalesced per operation — one in flight, latest value wins — and
+  // reuse a single job id so a scrub upserts one live result instead of
+  // flooding new ones. No runner-state toggling: a slider scrub is a live
+  // update, not a "run", so the UI never flashes "Running…".
+  const reactiveRef = useRef(new Map<string, ReactiveRunState>());
+  const reactiveRunRef = useRef<
+    (operationId: string, trigger: BindingRef) => void
+  >(() => {});
   useEffect(() => {
-    hasRunFullRef.current = false;
-  }, [workflowId]);
+    reactiveRef.current.clear();
+  }, [workflowIdsKey]);
 
   const reactiveRun = useCallback(
-    (trigger: BindingRef) => {
-      if (!workflow || designMode) return;
+    (operationId: string, trigger: BindingRef) => {
+      if (designMode) return;
+      const entry = operationRuntimesRef.current.get(operationId);
+      const target = entry?.workflow;
+      if (!entry || !target) {
+        void run(operationId);
+        return;
+      }
+      let reactive = reactiveRef.current.get(operationId);
+      if (!reactive) {
+        reactive = {
+          jobId: crypto.randomUUID(),
+          inFlight: false,
+          pending: null,
+          hasRunFull: false
+        };
+        reactiveRef.current.set(operationId, reactive);
+      }
 
       // A graph is already running (a long-lived / streaming workflow): feed the
       // new value into the live job instead of starting a fresh subgraph run.
       // Its streaming input re-propagates downstream without a restart. Only
       // input-node bindings can stream — a node-property change falls through to
       // a subgraph run.
-      const runner = runnerStore.getState();
+      const runner = entry.runnerStore.getState();
       if (
         trigger.kind === "input" &&
         runner.job_id &&
@@ -385,29 +707,34 @@ export const useAppRuntime = (
           runner.state === "connecting" ||
           runner.state === "connected")
       ) {
-        const input = io.inputs.find((i) => i.nodeId === trigger.nodeId);
+        const input = entry.io.inputs.find((i) => i.nodeId === trigger.nodeId);
         if (input) {
           void runner.streamInput(
             input.name,
-            store.getState().inputs[inputKey(trigger.nodeId)]?.value
+            store.getState().inputs[
+              stateKey({ kind: "input", operationId, nodeId: trigger.nodeId })
+            ]?.value
           );
           return;
         }
       }
 
-      if (!hasRunFullRef.current) {
-        hasRunFullRef.current = true;
-        void run();
+      // The first trigger runs the whole graph, so computed upstreams (a
+      // generated image, a constant) populate their caches. Later triggers
+      // reuse those caches and only recompute the downstream subgraph.
+      if (!reactive.hasRunFull) {
+        reactive.hasRunFull = true;
+        void run(operationId);
         return;
       }
 
-      if (reactiveInFlightRef.current) {
-        reactivePendingRef.current = trigger;
+      if (reactive.inFlight) {
+        reactive.pending = trigger;
         return;
       }
       const sub = buildTriggerSubgraph(
-        workflow,
-        io,
+        target,
+        entry.io,
         store.getState(),
         trigger,
         (type) => useMetadataStore.getState().getMetadata(type)?.effect
@@ -416,36 +743,39 @@ export const useAppRuntime = (
       // server-only compute tail, an effectful node the reactive gate refuses)
       // — fall back to a full authoritative run.
       if (!sub) {
-        void run();
+        void run(operationId);
         return;
       }
-      reactiveInFlightRef.current = true;
-      if (!ownedRef.current.has(reactiveJobIdRef.current)) {
-        claimInvocation(reactiveJobIdRef.current, false);
+      reactive.inFlight = true;
+      if (!ownedRef.current.has(reactive.jobId)) {
+        claimInvocation(operationId, reactive.jobId, false);
       }
+      const jobId = reactive.jobId;
       void runBrowserGraphJob({
         graph: sub.graph,
-        workflowId: workflow.id,
-        jobId: reactiveJobIdRef.current
+        workflowId: target.id,
+        jobId
       })
         .catch((error) => {
           store.getState().dispatchEvent({
             type: "invocationError",
-            invocationId: reactiveJobIdRef.current,
+            invocationId: jobId,
             error: error instanceof Error ? error.message : "Run failed"
           });
         })
         .finally(() => {
-          reactiveInFlightRef.current = false;
-          const pending = reactivePendingRef.current;
+          const current = reactiveRef.current.get(operationId);
+          if (!current) return;
+          current.inFlight = false;
+          const pending = current.pending;
           if (pending !== null) {
-            reactivePendingRef.current = null;
+            current.pending = null;
             // Re-run from fresh store values — the slider has moved on.
-            reactiveRunRef.current(pending);
+            reactiveRunRef.current(operationId, pending);
           }
         });
     },
-    [claimInvocation, designMode, inputKey, io, run, runnerStore, store, workflow]
+    [claimInvocation, designMode, run, store]
   );
   reactiveRunRef.current = reactiveRun;
 
@@ -473,14 +803,22 @@ export const useAppRuntime = (
       switch (action.kind) {
         case "run": {
           // A run triggered from a bound input recomputes just its downstream
-          // subgraph; an unbound run (a button) runs the whole workflow.
+          // subgraph; an unbound run (a button) runs the whole workflow. A
+          // trigger belonging to another operation is not a subgraph of this
+          // one, so it runs whole.
           const trigger = resolveBinding(action.from, scope, "write");
-          if (trigger) reactiveRun(trigger);
-          else void run();
+          if (trigger && "operationId" in trigger && trigger.operationId === action.operationId) {
+            reactiveRun(action.operationId, trigger);
+          } else {
+            void run(action.operationId);
+          }
           break;
         }
         case "cancel":
-          void cancel();
+          void cancel(
+            action.operationId ?? defaultOperation.id,
+            action.invocationId
+          );
           break;
         case "setVariable":
           store.getState().dispatchEvent({
@@ -513,6 +851,7 @@ export const useAppRuntime = (
     },
     [
       cancel,
+      defaultOperation.id,
       designMode,
       onOpenResource,
       onResourceCommand,
@@ -525,14 +864,17 @@ export const useAppRuntime = (
 
   const getNodeProperty = useCallback(
     (nodeId: string, property: string): unknown => {
-      const node = workflow?.graph?.nodes?.find((n) => n.id === nodeId);
-      if (!node) return undefined;
-      const data = (node.data ?? {}) as Record<string, unknown>;
-      if (data[property] !== undefined) return data[property];
-      const meta = useMetadataStore.getState().getMetadata(node.type);
-      return meta?.properties.find((p) => p.name === property)?.default;
+      for (const entry of operationRuntimesRef.current.values()) {
+        const node = entry.workflow?.graph?.nodes?.find((n) => n.id === nodeId);
+        if (!node) continue;
+        const data = (node.data ?? {}) as Record<string, unknown>;
+        if (data[property] !== undefined) return data[property];
+        const meta = useMetadataStore.getState().getMetadata(node.type);
+        return meta?.properties.find((p) => p.name === property)?.default;
+      }
+      return undefined;
     },
-    [workflow]
+    []
   );
 
   const selectResource = useCallback(
@@ -548,7 +890,9 @@ export const useAppRuntime = (
       store,
       io,
       scope,
-      operation,
+      operation: defaultOperation,
+      operations,
+      theme: document?.theme?.id,
       resources: document?.resources ?? [],
       designMode,
       dispatch,
@@ -560,7 +904,8 @@ export const useAppRuntime = (
       store,
       io,
       scope,
-      operation,
+      defaultOperation,
+      operations,
       document,
       designMode,
       dispatch,

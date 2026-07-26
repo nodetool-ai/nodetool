@@ -3,6 +3,8 @@ import React from "react";
 import type { Config, ArrayField } from "@puckeditor/core";
 
 import { Box, Text, FlexColumn, SPACING, SPACING_PX } from "../../ui_primitives";
+import { APP_THEMES, appThemeFrame, resolveAppTheme } from "../appThemes";
+import { useAppRuntimeContext } from "../runtime/AppRuntimeContext";
 import {
   bindingField,
   conditionField,
@@ -18,6 +20,7 @@ import {
   AudioWidget,
   VideoWidget,
   JsonWidget,
+  TableWidget,
   OutputWidget,
   ProgressWidget,
   TextInputWidget,
@@ -59,7 +62,8 @@ const conditionalFields = ({ format = true }: { format?: boolean } = {}) => ({
     ? {
         format: {
           type: "text" as const,
-          label: "Format ({binding} · number:2 · date:short · upper · truncate:80)"
+          label:
+            "Format ({binding} · number:2 · date:short · upper · lower · join:, · truncate:80)"
         }
       }
     : {})
@@ -133,54 +137,90 @@ const fixedInputEntry = (label: string, kind: FixedInputKind) => ({
   ))
 });
 
+/**
+ * The app page. Its theme comes from the root prop the author picked, falling
+ * back to what the document declares (`ApplicationDocument.theme`) — the shell
+ * keeps the two in step, and the fallback is what makes a document authored
+ * through the API render with its theme.
+ */
+const AppRoot: React.FC<{
+  title?: string;
+  theme?: string;
+  children?: React.ReactNode;
+}> = ({ title, theme, children }) => {
+  const { theme: documentTheme } = useAppRuntimeContext();
+  const appTheme = resolveAppTheme(theme ?? documentTheme);
+  return (
+    <Box
+      sx={{
+        p: appTheme.padding,
+        minHeight: "100%",
+        backgroundColor: appTheme.surface,
+        color: "text.primary",
+        // Width-responsive widgets (Columns) query this container, so the
+        // editor canvas and the published app share one layout per width.
+        containerType: "inline-size"
+      }}
+    >
+      <FlexColumn
+        gap={SPACING.xxl}
+        sx={{
+          width: "100%",
+          ...(appTheme.maxWidth
+            ? { maxWidth: appTheme.maxWidth, mx: "auto" }
+            : {}),
+          ...appThemeFrame(appTheme),
+          // The root zone renders as a single direct div in both the editor
+          // (Puck's DropZone) and the runtime (a plain wrapper div); style
+          // its children as a gapped flex column so top-level widgets get
+          // the same vertical rhythm as slot contents (see slotStack in
+          // widgets.tsx) in both surfaces.
+          "& > div": {
+            display: "flex",
+            flexDirection: "column",
+            gap: `${SPACING_PX.xxl}px`,
+            width: "100%"
+          }
+        }}
+      >
+        {title ? (
+          <Text size="big" weight={600}>
+            {title}
+          </Text>
+        ) : null}
+        {children}
+      </FlexColumn>
+    </Box>
+  );
+};
+
 // `Config` is intentionally loosely typed (DefaultComponents): Puck injects
 // `id`/`puck` into render props, and our widget components take optional props.
 export const appConfig: Config = {
   root: {
     fields: {
-      title: { type: "text", label: "App title" }
+      title: { type: "text", label: "App title" },
+      theme: {
+        type: "select",
+        label: "Theme",
+        options: APP_THEMES.map((theme) => ({
+          label: theme.label,
+          value: theme.id
+        }))
+      }
     },
     render: ({
       children,
-      title
+      title,
+      theme
     }: {
       children?: React.ReactNode;
       title?: string;
+      theme?: string;
     }) => (
-      <Box
-        sx={{
-          p: SPACING.xl,
-          minHeight: "100%",
-          backgroundColor: "background.default",
-          color: "text.primary",
-          // Width-responsive widgets (Columns) query this container, so the
-          // editor canvas and the published app share one layout per width.
-          containerType: "inline-size"
-        }}
-      >
-        <FlexColumn
-          gap={SPACING.xxl}
-          sx={{
-            width: "100%",
-            // The root zone renders as a single direct div in both the editor
-            // (Puck's DropZone) and the runtime (a plain wrapper div); style
-            // its children as a gapped flex column so top-level widgets get
-            // the same vertical rhythm as slot contents (see slotStack in
-            // widgets.tsx) in both surfaces.
-            "& > div": {
-              display: "flex",
-              flexDirection: "column",
-              gap: `${SPACING_PX.xxl}px`,
-              width: "100%"
-            }
-          }}
-        >
-          {title ? (
-            <Text size="big" weight={600}>{title}</Text>
-          ) : null}
-          {children}
-        </FlexColumn>
-      </Box>
+      <AppRoot title={title} theme={theme}>
+        {children}
+      </AppRoot>
     )
   },
   categories: {
@@ -214,6 +254,7 @@ export const appConfig: Config = {
         "Audio",
         "Video",
         "Json",
+        "Table",
         "Output",
         "Progress"
       ]
@@ -306,6 +347,18 @@ export const appConfig: Config = {
       fields: { binding: bindingField("read"), ...conditionalFields() },
       defaultProps: {},
       render: withConditions((props) => <JsonWidget {...props} />)
+    },
+    Table: {
+      label: "Table",
+      fields: {
+        binding: bindingField("read"),
+        label: { type: "text", label: "Label" },
+        maxHeight: { type: "number", label: "Max height (px)" },
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: { label: "", placeholder: "No rows yet" },
+      render: withConditions((props) => <TableWidget {...props} />)
     },
     Output: {
       label: "Output",

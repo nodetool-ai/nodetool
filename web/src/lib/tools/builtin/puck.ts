@@ -521,7 +521,8 @@ FrontendToolRegistry.register({
     "List everything a widget can bind to, with the exact token to store in " +
     "its `binding` prop: each operation's input and output nodes " +
     "(op:<opId>/in:<nodeId>, op:<opId>/out:<nodeId>), its execution fields " +
-    "(op:<opId>/exec#running|progress|error), and every variable (var:<id>). " +
+    "(op:<opId>/exec#running|progress|error|activity), and every variable " +
+    "(var:<id>). " +
     "Call this before binding a widget instead of guessing a name. An " +
     "operation over a workflow this editor has not loaded reports " +
     "ioAvailable: false and no node lists.",
