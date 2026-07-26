@@ -107,11 +107,18 @@ export function getExampleAppBundle(
 ): ApplicationBundle | null {
   const dir = resolveExampleAppsDir(options);
   if (!dir) return null;
-  // A slug is a file name, so anything path-shaped is refused outright rather
-  // than normalized into something that escapes the directory.
-  if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) return null;
-  const file = `${slug}${BUNDLE_SUFFIX}`;
-  if (!existsSync(nodePath.join(dir, file))) return null;
+  // Match the slug against what is actually shipped instead of building a path
+  // out of it: the file name that reaches readBundle comes from the directory
+  // listing, so a path-shaped slug can only fail to match.
+  let file: string | undefined;
+  try {
+    file = readdirSync(dir).find(
+      (entry) => entry.endsWith(BUNDLE_SUFFIX) && slugOf(entry) === slug
+    );
+  } catch {
+    return null;
+  }
+  if (!file) return null;
   return readBundle(dir, file);
 }
 
