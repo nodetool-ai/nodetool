@@ -273,8 +273,8 @@ const PROVIDER_META: ProviderMeta[] = [
   {
     key: "ATLASCLOUD_API_KEY",
     name: "AtlasCloud",
-    description: "GPT Image 2, Nano Banana, and Seedance 2.0 video generation.",
-    section: "media",
+    description: "Chat, image, and video models behind one key.",
+    section: "gateways",
     docsUrl: "https://www.atlascloud.ai/",
     icon: atlascloudIcon
   },
