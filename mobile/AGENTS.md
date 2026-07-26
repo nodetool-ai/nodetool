@@ -55,6 +55,10 @@ read the comment at the top of `metro.config.js` before changing any of it.
 - **Mini apps**: `components/app_runtime/` renders `workflow.app_doc` with native widgets on
   top of `@nodetool-ai/app-runtime` — the same core the web runtime and the CLI `app debug`
   harness use. See [ARCHITECTURE.md § Mini apps](ARCHITECTURE.md#mini-apps-srccomponentsapp_runtime).
+- **Documents**: `documents/` + the document screens open storyboards, timelines, and
+  sketches over `trpc.resources.*`. No tabs — one document per pushed screen. Edits are
+  expected to come from the chat agent through the `ui_*` tools registered there.
+  See [ARCHITECTURE.md § Documents](ARCHITECTURE.md#documents-srcdocuments).
 
 ## Testing
 

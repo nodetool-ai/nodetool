@@ -89,7 +89,9 @@ packages/           # 58 npm workspace packages (TypeScript backend)
 
 web/                # React 19 + Vite + MUI + Zustand + ReactFlow
 electron/           # Electron 39 desktop app
-mobile/             # React Native / Expo
+mobile/             # React Native / Expo (documents open one-per-screen, no tabs;
+                    # edits come through the chat agent's ui_* tools —
+                    # see mobile/ARCHITECTURE.md § Documents)
 demo/               # Remotion harness for product-demo videos (replays recorded
                     # graph-UI "casts"; see demo/README.md and web/src/demo/)
 ```

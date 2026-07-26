@@ -54,6 +54,10 @@ mobile/
 │   │   ├── WorkflowsListScreen.tsx     # List of available workflows
 │   │   ├── GraphEditorScreen.tsx       # Chain-based graph editor
 │   │   ├── ChatScreen.tsx              # AI chat interface
+│   │   ├── DocumentsScreen.tsx         # Document browser (all kinds, no tabs)
+│   │   ├── StoryboardEditorScreen.tsx  # Storyboard editor
+│   │   ├── TimelineViewerScreen.tsx    # Read-only timeline
+│   │   ├── DocumentViewerScreen.tsx    # Fallback for kinds without a screen
 │   │   ├── AssetsScreen.tsx            # Asset browser
 │   │   ├── AssetViewerScreen.tsx       # Single-asset viewer
 │   │   ├── CollectionsScreen.tsx       # RAG collections
@@ -63,6 +67,8 @@ mobile/
 │   │   ├── SecretsScreen.tsx           # API-key management
 │   │   ├── SettingsScreen.tsx          # Server configuration
 │   │   └── LoginScreen.tsx             # Supabase / Google sign-in
+│   │
+│   ├── documents/           # Document layer (kinds, load/save, agent bridge, ui_* tools)
 │   │
 │   ├── components/          # Reusable components
 │   │   ├── app_runtime/       # Mini-app runtime (renders workflow.app_doc)
@@ -140,6 +146,64 @@ The shared package is compiled from source rather than from `dist`: see
 `metro.config.js` (bundler), the `paths` entry in `tsconfig.json` (types), and
 `moduleNameMapper` in `jest.config.js` (tests). All three point at
 `packages/app-runtime/src`, so no build step is needed to run the app.
+
+## Documents (`src/documents/`)
+
+Storyboards, timelines, and sketches are documents on the server, reachable
+through the one `trpc.resources.*` envelope (`resources.list/read/create/update/
+delete` over `asset | timeline | storyboard | sketch`). Mobile browses them in
+`DocumentsScreen` and opens each in its own pushed screen.
+
+**No tabs.** Web keys its whole document UX off `WorkspaceTabType` and keeps
+every tab mounted at once. On a phone the navigation stack *is* the tab model:
+one document per screen, the top of the stack is the focused one. That removes
+the tab store, the `openTab` indirection, and the per-surface `active` prop, and
+leaves the parts that never depended on focus — the agent bridge keys by
+document id, which ports unchanged.
+
+```
+kinds.ts          # which kinds exist: label, icon, editor|viewer, route
+useDocuments.ts   # TanStack Query over resources.* for the browser
+documentStore.ts  # one Zustand store per open document (cached by kind+id)
+agentBridge.ts    # handler registry keyed by kind+id, plus the focus claim
+uiContext.ts      # the open/focused/selection block sent with each chat turn
+tools/            # the ui_* tools: registry, manifest, tool_call dispatch
+```
+
+**Load and save.** `documentStore` holds the open document's body, name,
+revision, and dirty flag. `save()` sends `resources.update` carrying the
+revision it read; the server rejects a stale write rather than applying it,
+which surfaces as `status: 'conflict'` and a Reload banner. Two things the
+store handles that are easy to get wrong: saves are serialized (the user's Save
+button and an agent's `ui_*_save` would otherwise send the same revision and
+the second would be rejected as a conflict the user never caused), and a save
+only marks the document clean if nothing changed while it was in flight, so an
+agent edit landing mid-save is not silently dropped.
+
+**Agent-first.** The surfaces are deliberately thin — text fields and a shot
+list, not a desktop editor — because the intended way to change a document is
+to ask the assistant. That path is:
+
+1. On every socket open (including reconnects) `ChatStore` sends
+   `client_tools_manifest` with the registered `ui_*` tools.
+2. Each outgoing turn carries `ui_context` — the open documents, the focused
+   one, and the current selection. Every tool takes a **required** document id
+   and there is no "act on whatever is mounted" fallback, so this block is the
+   only thing that tells the agent which ids are valid.
+3. The server sends `tool_call`; `executeToolCall` runs it against the handler
+   the mounted screen registered and replies `tool_result` — always, including
+   for unknown tools, so the agent is never left waiting.
+4. Handlers mutate the same store the screen renders from, so an agent edit
+   repaints immediately and `ui_*_save` is the user's Save button's code path.
+
+Tools are trimmed to what a phone should do. Storyboards get read, shot and
+board editing, select, and save — generation and timeline assembly stay on
+desktop, where progress on a long, paid job can actually be supervised. The
+timeline is read-only, and its tool descriptions say so, so the agent answers
+questions about a sequence instead of attempting an edit and reporting failure.
+
+Kinds with no dedicated screen fall back to `DocumentViewerScreen`, so every
+document can at least be opened.
 
 ## Component Architecture
 

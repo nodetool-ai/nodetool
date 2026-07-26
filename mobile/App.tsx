@@ -12,6 +12,10 @@ import GraphEditorScreen from './src/screens/GraphEditorScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import AssetsScreen from './src/screens/AssetsScreen';
 import AssetViewerScreen from './src/screens/AssetViewerScreen';
+import DocumentsScreen from './src/screens/DocumentsScreen';
+import DocumentViewerScreen from './src/screens/DocumentViewerScreen';
+import StoryboardEditorScreen from './src/screens/StoryboardEditorScreen';
+import TimelineViewerScreen from './src/screens/TimelineViewerScreen';
 import SecretsScreen from './src/screens/SecretsScreen';
 import CollectionsScreen from './src/screens/CollectionsScreen';
 import JobsScreen from './src/screens/JobsScreen';
@@ -127,6 +131,26 @@ export default function App() {
                   name="AssetViewer"
                   component={AssetViewerScreen}
                   options={{ title: 'Asset' }}
+                />
+                <Stack.Screen
+                  name="Documents"
+                  component={DocumentsScreen}
+                  options={{ title: 'Documents' }}
+                />
+                <Stack.Screen
+                  name="StoryboardEditor"
+                  component={StoryboardEditorScreen}
+                  options={{ title: 'Storyboard' }}
+                />
+                <Stack.Screen
+                  name="TimelineViewer"
+                  component={TimelineViewerScreen}
+                  options={{ title: 'Timeline' }}
+                />
+                <Stack.Screen
+                  name="DocumentViewer"
+                  component={DocumentViewerScreen}
+                  options={{ title: 'Document' }}
                 />
                 <Stack.Screen
                   name="Secrets"
