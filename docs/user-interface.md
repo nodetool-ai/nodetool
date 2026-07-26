@@ -250,7 +250,7 @@ Access chat directly from the system tray for quick conversations:
 
 ## Mini-Apps
 
-Convert workflows into simple apps.
+A form or dashboard over one or more workflows, with the graph hidden.
 
 ### Purpose
 
@@ -260,12 +260,12 @@ Convert workflows into simple apps.
 
 ### How It Works
 
-1. Build your workflow in the Editor
-2. Click **Mini-App** in the top-right
-3. See a clean interface with just:
-   - Input fields (from your Input nodes)
-   - Run button
-   - Output results
+1. Build the workflows in the Editor
+2. Open the **Apps** panel and click **New app**, or **New app from workflow** to scaffold one from a graph
+3. Design the app in its tab: input widgets, a run button, display widgets
+4. Switch the tab to **Run** to use it, and publish when it is ready
+
+The workflows an app runs stay separate resources. **Linked workflows** on the app tab opens one in its own workflow tab. See [Mini Apps](mini-apps.md).
 
 ### Standalone Mini-App Windows
 
