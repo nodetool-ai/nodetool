@@ -195,7 +195,7 @@ describe("triggers router", () => {
       );
       (mockWakeupService.deliverTriggerInput as ReturnType<typeof vi.fn>).mockClear();
 
-      const result2 = await caller.triggers.fire({
+      await caller.triggers.fire({
         registrationId: "reg-1",
         payload: {},
         idempotencyKey: "idempotent-key-1"
