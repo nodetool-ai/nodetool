@@ -9,11 +9,12 @@
  */
 
 import { pack, unpack } from 'msgpackr';
-import { 
-  ConnectionState, 
+import {
+  ConnectionState,
   WebSocketConfig,
-  WebSocketMessageData 
+  WebSocketMessageData
 } from '../types/chat';
+import { isAppForeground, subscribeAppLifecycle } from '../hooks/useAppLifecycle';
 
 type WebSocketMessage = { type: string };
 
@@ -65,8 +66,18 @@ export class WebSocketManager {
   private connectionResolver: (() => void) | null = null;
   private connectionRejector: ((error: Error) => void) | null = null;
   private callbacks: WebSocketCallbacks = {};
+  private backgrounded = false;
+  private lifecycleUnsubscribe: (() => void) | null = null;
 
   constructor(config: WebSocketConfig) {
+    this.backgrounded = !isAppForeground();
+    this.lifecycleUnsubscribe = subscribeAppLifecycle((event) => {
+      if (event === 'foreground') {
+        this.handleForeground();
+      } else {
+        this.handleBackground();
+      }
+    });
     this.config = {
       url: config.url,
       reconnect: config.reconnect ?? true,
@@ -110,6 +121,67 @@ export class WebSocketManager {
 
   public isConnected(): boolean {
     return this.state === 'connected' && this.ws?.readyState === WebSocket.OPEN;
+  }
+
+  private handleForeground(): void {
+    this.backgrounded = false;
+    this.resumeFromBackground();
+  }
+
+  private handleBackground(): void {
+    this.backgrounded = true;
+    this.pauseForBackground();
+  }
+
+  /**
+   * Bring the socket back after the app was suspended. A healthy connection is
+   * left alone; otherwise the backoff counter is reset and a reconnect starts
+   * immediately rather than waiting out an exponential delay that was scheduled
+   * (or skipped) while the app was in the background.
+   *
+   * Idempotent — safe to call from both the AppState listener and an owner.
+   */
+  public resumeFromBackground(): void {
+    if (
+      this.isConnected() ||
+      this.intentionalDisconnect ||
+      !this.config.reconnect ||
+      this.state === 'connecting' ||
+      this.state === 'reconnecting' ||
+      this.state === 'disconnecting'
+    ) {
+      return;
+    }
+
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    this.reconnectAttempt = 0;
+
+    if (this.state === 'connected') {
+      // State says connected but the socket isn't OPEN — it died while
+      // suspended without an onclose. Close it so handleClose drives recovery.
+      console.log('WebSocket: app foregrounded with a stale socket, closing it');
+      this.ws?.close();
+      return;
+    }
+
+    console.log('WebSocket: app foregrounded, reconnecting immediately');
+    void this.reconnect();
+  }
+
+  /**
+   * Stop burning reconnect attempts while the app is suspended. A live socket
+   * is deliberately left open — iOS often keeps short backgrounds alive, and
+   * closing it would drop chat stream continuity for no reason.
+   */
+  public pauseForBackground(): void {
+    if (this.reconnectTimer) {
+      console.log('WebSocket: app backgrounded, cancelling pending reconnect');
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
   }
 
   public async connect(): Promise<void> {
@@ -309,6 +381,13 @@ export class WebSocketManager {
       return;
     }
 
+    if (this.backgrounded) {
+      // Retrying against a suspended radio just exhausts the attempt budget;
+      // resumeFromBackground() reconnects as soon as the app is active again.
+      console.log('WebSocket: app backgrounded, deferring reconnect to foreground');
+      return;
+    }
+
     const delay = this.getReconnectDelay();
     this.reconnectAttempt++;
 
@@ -441,6 +520,8 @@ export class WebSocketManager {
     this.intentionalDisconnect = true;
     this.clearTimers();
     this.callbacks = {};
+    this.lifecycleUnsubscribe?.();
+    this.lifecycleUnsubscribe = null;
 
     if (this.ws) {
       this.ws.close();
