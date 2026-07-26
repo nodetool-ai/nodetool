@@ -34,7 +34,7 @@
     "chrome-launcher": "^1.2.0",
     "chrome-remote-interface": "^0.34.0",
     "exceljs": "^4.4.0",
-    "sharp": "^0.35.0",
+    "sharp": "^0.35.1",
     "tesseract.js": "^7.0.0",
     "turndown": "^7.2.2",
     "ws": "^8.18.0"

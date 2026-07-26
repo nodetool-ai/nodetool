@@ -21,7 +21,7 @@
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
-    "sharp": "^0.35.0",
+    "sharp": "^0.35.1",
     "typegpu": "^0.11.6"
   },
   "devDependencies": {
