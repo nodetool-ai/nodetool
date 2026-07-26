@@ -363,17 +363,21 @@ const inFlightMessageLoads = new Map<string, Promise<Message[]>>();
  * Mirror the editor path here: register the run so `useLiveRunCost(workflowId)`
  * follows it, record any provider charge, and refresh the session budget spend.
  */
+function isNodeUpdate(
+  msg: WebSocketMessage
+): msg is WebSocketMessage & NodeUpdate {
+  return msg.type === "node_update";
+}
+
 const captureChatRunSpend = (
   data: WebSocketMessage,
   threadId: string,
   get: () => GlobalChatState
 ): void => {
-  if (data.type !== "node_update") {
+  if (!isNodeUpdate(data)) {
     return;
   }
-  // job_id / workflow_id are stamped onto the wire message by the relay; the
-  // NodeUpdate type carries provider_cost and node_id.
-  const update = data as unknown as NodeUpdate;
+  const update = data;
   const jobId = data.job_id;
   const workflowId =
     data.workflow_id ?? get().threadWorkflowId[threadId] ?? undefined;

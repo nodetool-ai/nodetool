@@ -13,13 +13,13 @@ import { useCallback, useRef, useState } from "react";
 import type { Edge, Node } from "@xyflow/react";
 import { isScreenplay, type Screenplay } from "@nodetool-ai/protocol";
 import type { NodeData } from "../../stores/NodeData";
-import type { OutputUpdate, WorkflowAttributes } from "../../stores/ApiTypes";
+import type { WorkflowAttributes } from "../../stores/ApiTypes";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
 import {
   globalWebSocketManager,
   type WebSocketMessage
 } from "../../lib/websocket/GlobalWebSocketManager";
-import { normalizeOutputUpdateValue } from "../../stores/outputUpdateValue";
+import { normalizeOutputUpdateValue, isOutputUpdate } from "../../stores/outputUpdateValue";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useEntities } from "../../serverState/useEntities";
 
@@ -148,13 +148,8 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
           const unsubscribe = globalWebSocketManager.subscribe(
             jobId,
             (message: WebSocketMessage) => {
-              if (
-                message.type === "output_update" &&
-                message.node_id === OUT_NODE_ID
-              ) {
-                outputRef.current = normalizeOutputUpdateValue(
-                  message as unknown as OutputUpdate
-                );
+              if (isOutputUpdate(message) && message.node_id === OUT_NODE_ID) {
+                outputRef.current = normalizeOutputUpdateValue(message);
                 return;
               }
               if (message.type !== "job_update") {
