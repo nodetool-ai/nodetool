@@ -29,6 +29,8 @@ import type { TriggerWakeupService } from "@nodetool-ai/kernel";
 import {
   FileWatchDebouncer,
   shouldEmitFileWatchEvent,
+  shouldProcessFileWatchPath,
+  isWatchedFileEvent,
   type FileWatchFilter
 } from "@nodetool-ai/automation-nodes";
 
@@ -36,6 +38,29 @@ import {
 const log = createLogger("nodetool.websocket.triggers.file-watch");
 
 const DEFAULT_SWEEP_INTERVAL_MS = 5_000;
+
+/**
+ * Downtime catch-up (`config_json.catch_up: true`). `fs.watch` has no
+ * history, so the only way to notice a change made while the adapter wasn't
+ * running is to compare a snapshot taken before stopping against a fresh
+ * scan on the next start. Capped so a huge tree can't make shutdown/startup
+ * hang or bloat the `cursor` column — `last_error` records when the cap was
+ * hit so the truncation is visible, not silent.
+ */
+const CATCH_UP_SNAPSHOT_CAP = 10_000;
+
+/** `{path -> mtimeMs}` snapshot persisted into a registration's `cursor`. */
+interface FileWatchSnapshot {
+  entries: Record<string, number>;
+}
+
+type CatchUpEventType = "created" | "modified" | "deleted";
+
+interface CatchUpChange {
+  event: CatchUpEventType;
+  path: string;
+  mtimeMs: number;
+}
 
 /** Fired once per registration each time a watcher delivers a new event. */
 export interface FileWatchNotifyEvent {
@@ -58,14 +83,22 @@ export interface StartFileWatchOptions extends RunFileWatchSweepOptions {
   intervalMs?: number;
 }
 
-/** Cancels a running `startFileWatch` timer and closes every open watcher. */
-export type FileWatchHandle = () => void;
+/** Cancels a running `startFileWatch` timer and closes every open watcher,
+ * persisting catch-up snapshots along the way — see `stopFileWatch`. */
+export type FileWatchHandle = () => Promise<void>;
 
 interface WatchedRegistration {
   watcher: fs.FSWatcher;
   /** Identifies the watched path + recursion setting; a change here forces a
    * watcher restart on the next sweep. */
   configSnapshot: string;
+  /** Kept so `stopFileWatch` can capture a catch-up snapshot without a DB
+   * round trip and without re-deriving path/recursion/filter from config. */
+  registration: TriggerRegistration;
+  watchPath: string;
+  recursive: boolean;
+  filter: FileWatchFilter;
+  catchUp: boolean;
 }
 
 /** One `startFileWatch`/`runFileWatchSweepOnce` instance's set of currently
@@ -147,11 +180,9 @@ async function deliverFileWatchEvent(
   filePath: string,
   isDirectory: boolean,
   opts: RunFileWatchSweepOptions,
-  eventCounter: { count: number }
+  inputId: string
 ): Promise<void> {
   const nowMs = (opts.now ?? Date.now)();
-  eventCounter.count += 1;
-  const inputId = `${registration.id}:${nowMs}:${eventCounter.count}`;
   const payload = {
     event: eventType,
     path: filePath,
@@ -208,13 +239,16 @@ function attachWatcher(
     if (!shouldEmitFileWatchEvent(eventType, filePath, filter, debouncer)) {
       return;
     }
+    eventCounter.count += 1;
+    const nowMs = (opts.now ?? Date.now)();
+    const inputId = `${registration.id}:${nowMs}:${eventCounter.count}`;
     void deliverFileWatchEvent(
       registration,
       eventType,
       filePath,
       isDirectory,
       opts,
-      eventCounter
+      inputId
     );
   };
 
@@ -238,6 +272,152 @@ function attachWatcher(
       }
     }
   );
+}
+
+/**
+ * Scan `watchPath` for the files a watcher for `filter` would care about
+ * (directories are never diffed — only file mtimes), capped at
+ * `CATCH_UP_SNAPSHOT_CAP` entries. BFS order so a capped scan takes a
+ * deterministic, roughly breadth-first prefix of the tree rather than an
+ * arbitrary one that depends on `readdirSync` ordering across directories.
+ */
+function scanDirectorySnapshot(
+  watchPath: string,
+  recursive: boolean,
+  filter: FileWatchFilter
+): { snapshot: FileWatchSnapshot; truncated: boolean } {
+  const entries: Record<string, number> = {};
+  let truncated = false;
+  const dirs: string[] = [watchPath];
+
+  while (dirs.length > 0 && !truncated) {
+    const dir = dirs.shift() as string;
+    let dirents: fs.Dirent[];
+    try {
+      dirents = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      // Directory vanished mid-scan (e.g. concurrent delete) — skip it.
+      continue;
+    }
+
+    for (const dirent of dirents) {
+      const fullPath = path.join(dir, dirent.name);
+
+      if (dirent.isDirectory()) {
+        if (recursive) dirs.push(fullPath);
+        continue;
+      }
+      if (!dirent.isFile()) continue;
+      if (!shouldProcessFileWatchPath(fullPath, filter)) continue;
+
+      if (Object.keys(entries).length >= CATCH_UP_SNAPSHOT_CAP) {
+        truncated = true;
+        break;
+      }
+
+      try {
+        entries[fullPath] = fs.statSync(fullPath).mtimeMs;
+      } catch {
+        // File vanished between readdir and stat — skip it.
+      }
+    }
+  }
+
+  return { snapshot: { entries }, truncated };
+}
+
+/**
+ * Diff a stored snapshot against a fresh scan: files whose mtime changed are
+ * `modified`, files absent from the old snapshot are `created`, files absent
+ * from the new scan are `deleted`.
+ */
+function diffSnapshots(
+  previous: FileWatchSnapshot,
+  current: FileWatchSnapshot
+): CatchUpChange[] {
+  const changes: CatchUpChange[] = [];
+
+  for (const [filePath, mtimeMs] of Object.entries(current.entries)) {
+    const previousMtime = previous.entries[filePath];
+    if (previousMtime === undefined) {
+      changes.push({ event: "created", path: filePath, mtimeMs });
+    } else if (previousMtime !== mtimeMs) {
+      changes.push({ event: "modified", path: filePath, mtimeMs });
+    }
+  }
+
+  for (const filePath of Object.keys(previous.entries)) {
+    if (!(filePath in current.entries)) {
+      changes.push({ event: "deleted", path: filePath, mtimeMs: 0 });
+    }
+  }
+
+  return changes;
+}
+
+/**
+ * Replay changes that happened while the adapter wasn't running, using the
+ * `{path -> mtime}` snapshot `stopFileWatch` persisted into `cursor`. Runs
+ * before `attachWatcher` so catch-up events are delivered ahead of anything
+ * the live watcher itself observes.
+ *
+ * `inputId` is deterministic — `<registrationId>:catchup:<event>:<path>:
+ * <mtimeMs>` — instead of timestamp-based like the live-event ids. If the
+ * server crashes twice in a row before a clean `stopFileWatch` ever runs
+ * again (so `cursor` still holds the same stale snapshot both times), both
+ * restarts diff against the identical baseline and recompute the identical
+ * change list, which produces the identical inputIds. `deliverTriggerInput`
+ * is idempotent by inputId — durably so, once wired to the DB-backed store
+ * (Task 3/11) whose `trigger_inputs.input_id` is uniquely indexed — so the
+ * replay from the second restart is rejected as a duplicate instead of
+ * dispatching the same catch-up event twice. A counter or wall-clock id
+ * would not have that property: it would mint a fresh id each replay and
+ * double-fire on the second crash-restart.
+ */
+async function runCatchUpEvents(
+  registration: TriggerRegistration,
+  watchPath: string,
+  recursive: boolean,
+  filter: FileWatchFilter,
+  opts: RunFileWatchSweepOptions
+): Promise<void> {
+  const cursorRaw = registration.cursor;
+  if (!cursorRaw) return;
+
+  let previous: FileWatchSnapshot;
+  try {
+    const parsed = JSON.parse(cursorRaw) as Partial<FileWatchSnapshot>;
+    previous = { entries: parsed.entries ?? {} };
+  } catch {
+    // Cursor predates this format (or is corrupt) — nothing to replay.
+    return;
+  }
+
+  const { snapshot: current } = scanDirectorySnapshot(
+    watchPath,
+    recursive,
+    filter
+  );
+  const changes = diffSnapshots(previous, current);
+
+  for (const change of changes) {
+    if (!isWatchedFileEvent(change.event, filter.events)) continue;
+    const inputId = `${registration.id}:catchup:${change.event}:${change.path}:${change.mtimeMs}`;
+    await deliverFileWatchEvent(
+      registration,
+      change.event,
+      change.path,
+      false,
+      opts,
+      inputId
+    );
+  }
+
+  // Consume the cursor: the live watcher takes over from here, and leaving
+  // the stale snapshot in place would replay the same diff on every future
+  // restart until the next clean stop overwrites it.
+  registration.cursor = null;
+  await registration.save();
 }
 
 /**
@@ -285,6 +465,11 @@ export async function runFileWatchSweepOnce(
     const debounceMs = readNumber(config, "debounce_seconds", 0.5) * 1000;
     const filter = configFilter(config);
     const debouncer = new FileWatchDebouncer(debounceMs, opts.now);
+    const catchUp = readBool(config, "catch_up", false);
+
+    if (catchUp) {
+      await runCatchUpEvents(registration, watchPath, recursive, filter, opts);
+    }
 
     let watcher: fs.FSWatcher;
     try {
@@ -312,14 +497,59 @@ export async function runFileWatchSweepOnce(
       await registration.save();
     }
 
-    state.set(registration.id, { watcher, configSnapshot: snapshot });
+    state.set(registration.id, {
+      watcher,
+      configSnapshot: snapshot,
+      registration,
+      watchPath,
+      recursive,
+      filter,
+      catchUp
+    });
   }
 }
 
-/** Close every watcher tracked by `state` and clear it. */
-export function stopFileWatch(state: FileWatchState): void {
+/**
+ * Capture a `{path -> mtime}` snapshot for a catch-up-enabled registration
+ * and persist it into `cursor` so the next start can diff against it. Caps
+ * at `CATCH_UP_SNAPSHOT_CAP` entries and notes the truncation in
+ * `last_error` — a capped snapshot means changes to the excluded files while
+ * stopped may be missed, which is worth surfacing even though it doesn't
+ * block anything.
+ */
+async function captureCatchUpSnapshot(
+  entry: WatchedRegistration
+): Promise<void> {
+  if (!entry.catchUp) return;
+
+  const { snapshot, truncated } = scanDirectorySnapshot(
+    entry.watchPath,
+    entry.recursive,
+    entry.filter
+  );
+
+  entry.registration.cursor = JSON.stringify(snapshot);
+  if (truncated) {
+    entry.registration.last_error = `File-watch catch-up snapshot capped at ${CATCH_UP_SNAPSHOT_CAP} entries; changes to excluded files while stopped may be missed.`;
+  }
+
+  try {
+    await entry.registration.save();
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    log.warn(
+      `File-watch registration ${entry.registration.id} failed to persist catch-up snapshot`,
+      error
+    );
+  }
+}
+
+/** Close every watcher tracked by `state`, persisting a catch-up snapshot
+ * for each catch-up-enabled registration, and clear the state. */
+export async function stopFileWatch(state: FileWatchState): Promise<void> {
   for (const entry of state.values()) {
     entry.watcher.close();
+    await captureCatchUpSnapshot(entry);
   }
   state.clear();
 }
@@ -350,8 +580,8 @@ export function startFileWatch(opts: StartFileWatchOptions): FileWatchHandle {
     timer.unref();
   }
 
-  return () => {
+  return async () => {
     clearInterval(timer);
-    stopFileWatch(state);
+    await stopFileWatch(state);
   };
 }

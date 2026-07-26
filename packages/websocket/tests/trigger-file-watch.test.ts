@@ -61,8 +61,8 @@ describe("file-watch adapter", () => {
     state = createFileWatchState();
   });
 
-  afterEach(() => {
-    stopFileWatch(state);
+  afterEach(async () => {
+    await stopFileWatch(state);
     fs.rmSync(tmpDir, { recursive: true, force: true });
     ModelObserver.clear();
     vi.useRealTimers();
@@ -217,6 +217,95 @@ describe("file-watch adapter", () => {
       await sleep(200);
       expect(deliverSpy.mock.calls.length).toBe(callsAtStop);
       void registration;
+    });
+  });
+
+  describe("downtime catch-up", () => {
+    it("synthesizes exactly one modified event for a file changed while stopped, when catch_up is true", async () => {
+      const filePath = path.join(tmpDir, "a.txt");
+      fs.writeFileSync(filePath, "before");
+
+      const registration = await makeRegistration({
+        config: {
+          path: tmpDir,
+          patterns: ["*.txt"],
+          debounce_seconds: 0,
+          catch_up: true
+        }
+      });
+      const wakeupService = new TriggerWakeupService();
+      const deliverSpy = vi.spyOn(wakeupService, "deliverTriggerInput");
+
+      // First start: no cursor yet, nothing to catch up on.
+      await runFileWatchSweepOnce(state, { wakeupService });
+      expect(deliverSpy).not.toHaveBeenCalled();
+
+      // Simulate downtime: stop (persists a {path -> mtime} snapshot into
+      // `cursor`), then mutate the file while no watcher is attached.
+      await stopFileWatch(state);
+      const stopped = (await TriggerRegistration.get(
+        registration.id
+      )) as TriggerRegistration;
+      expect(stopped.cursor).toBeTruthy();
+      const snapshot = JSON.parse(stopped.cursor as string) as {
+        entries: Record<string, number>;
+      };
+      expect(snapshot.entries[filePath]).toBeGreaterThan(0);
+
+      // Ensure a distinguishable mtime on filesystems with coarse timestamp
+      // resolution.
+      const future = new Date(Date.now() + 5_000);
+      fs.writeFileSync(filePath, "after");
+      fs.utimesSync(filePath, future, future);
+
+      // Restart: exactly one synthesized "modified" event, before any live
+      // fs.watch event could fire (the write already happened).
+      state = createFileWatchState();
+      await runFileWatchSweepOnce(state, { wakeupService });
+
+      expect(deliverSpy).toHaveBeenCalledTimes(1);
+      const call = deliverSpy.mock.calls[0][0];
+      expect(call.runId).toBe(registration.workflow_id);
+      expect(call.nodeId).toBe(registration.node_id);
+      expect(call.payload).toMatchObject({
+        event: "modified",
+        path: filePath
+      });
+
+      // The cursor is consumed once replayed so a later restart with no
+      // further downtime does not re-diff against the same stale baseline.
+      const afterRestart = (await TriggerRegistration.get(
+        registration.id
+      )) as TriggerRegistration;
+      expect(afterRestart.cursor).toBeNull();
+    });
+
+    it("does not persist a snapshot or synthesize events when catch_up is absent (default)", async () => {
+      const filePath = path.join(tmpDir, "b.txt");
+      fs.writeFileSync(filePath, "before");
+
+      const registration = await makeRegistration({
+        config: { path: tmpDir, patterns: ["*.txt"], debounce_seconds: 0 }
+      });
+      const wakeupService = new TriggerWakeupService();
+      const deliverSpy = vi.spyOn(wakeupService, "deliverTriggerInput");
+
+      await runFileWatchSweepOnce(state, { wakeupService });
+      await stopFileWatch(state);
+
+      const stopped = (await TriggerRegistration.get(
+        registration.id
+      )) as TriggerRegistration;
+      expect(stopped.cursor).toBeNull();
+
+      const future = new Date(Date.now() + 5_000);
+      fs.writeFileSync(filePath, "after");
+      fs.utimesSync(filePath, future, future);
+
+      state = createFileWatchState();
+      await runFileWatchSweepOnce(state, { wakeupService });
+
+      expect(deliverSpy).not.toHaveBeenCalled();
     });
   });
 });
