@@ -29,7 +29,7 @@ import {
 } from "../src/unified-websocket-runner.js";
 
 const createCaller = createCallerFactory(appRouter);
-const FEATURE_FLAG = "NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1";
+const DISABLE_FLAG = "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1";
 const OWNER_ID = "sdk-owner";
 const VIEWER_ID = "sdk-viewer";
 const UNAUTHORIZED_ID = "sdk-unauthorized";
@@ -212,7 +212,7 @@ describe("SDK workflow-interface transport integration", () => {
   });
 
   it("returns identical single and bulk contracts over REST, tRPC, and WebSocket", async () => {
-    vi.stubEnv(FEATURE_FLAG, "1");
+    vi.stubEnv(DISABLE_FLAG, "0");
     const first = await createWorkflow({ name: "First" });
     const second = await createWorkflow({ name: "Second" });
     const caller = createCaller(makeContext(OWNER_ID, registry));
@@ -261,7 +261,7 @@ describe("SDK workflow-interface transport integration", () => {
   });
 
   it("returns identical compact summaries without graph data", async () => {
-    vi.stubEnv(FEATURE_FLAG, "1");
+    vi.stubEnv(DISABLE_FLAG, "0");
     await createWorkflow({ name: "Small", largeDefault: true });
     const caller = createCaller(makeContext(OWNER_ID, registry));
 
@@ -287,7 +287,7 @@ describe("SDK workflow-interface transport integration", () => {
   });
 
   it("enforces the same viewer authorization for all transports", async () => {
-    vi.stubEnv(FEATURE_FLAG, "1");
+    vi.stubEnv(DISABLE_FLAG, "0");
     const privateWorkflow = await createWorkflow();
     const publicWorkflow = await createWorkflow({
       ownerId: "other-owner",
@@ -354,6 +354,8 @@ describe("SDK workflow-interface transport integration", () => {
       expect(rest.statusCode).toBe(404);
       expect(rest.json()).toEqual({
         code: "WORKFLOW_NOT_FOUND",
+        message: "Workflow not found",
+        retryable: false,
         detail: "Workflow not found"
       });
       await expect(trpc).rejects.toMatchObject({
@@ -367,10 +369,10 @@ describe("SDK workflow-interface transport integration", () => {
     }
   });
 
-  it("keeps legacy workflow JSON unchanged and disables every SDK transport when flagged off", async () => {
+  it("keeps legacy workflow JSON unchanged when the SDK kill switch is active", async () => {
     const workflow = await createWorkflow();
 
-    vi.stubEnv(FEATURE_FLAG, "0");
+    vi.stubEnv(DISABLE_FLAG, "1");
     const legacyFlagOff = await app.inject({
       method: "GET",
       url: `/api/workflows/${workflow.id}`,
@@ -396,6 +398,8 @@ describe("SDK workflow-interface transport integration", () => {
     expect(restDisabled.statusCode).toBe(503);
     expect(restDisabled.json()).toEqual({
       code: "SDK_WORKFLOW_INTERFACE_DISABLED",
+      message: "SDK workflow interface v1 is disabled",
+      retryable: false,
       detail: "SDK workflow interface v1 is disabled"
     });
     await expect(trpcDisabled).rejects.toMatchObject({
@@ -406,7 +410,7 @@ describe("SDK workflow-interface transport integration", () => {
       apiCode: "SERVICE_UNAVAILABLE"
     });
 
-    vi.stubEnv(FEATURE_FLAG, "1");
+    vi.stubEnv(DISABLE_FLAG, "0");
     const legacyFlagOn = await app.inject({
       method: "GET",
       url: `/api/workflows/${workflow.id}`,
@@ -419,7 +423,7 @@ describe("SDK workflow-interface transport integration", () => {
   });
 
   it("keeps image-heavy graph data out of discovery responses", async () => {
-    vi.stubEnv(FEATURE_FLAG, "1");
+    vi.stubEnv(DISABLE_FLAG, "0");
     const workflow = await createWorkflow({ largeDefault: true });
     const caller = createCaller(makeContext(OWNER_ID, registry));
 

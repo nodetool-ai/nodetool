@@ -81,7 +81,7 @@ import {
 } from "./lib/http-rate-limit.js";
 
 import websocketPlugin from "./plugins/websocket.js";
-import healthRoute from "./routes/health.js";
+import healthRoute, { getVersion } from "./routes/health.js";
 import configRoute from "./routes/config.js";
 import assetsRoutes from "./routes/assets.js";
 import workflowsRoutes from "./routes/workflows.js";
@@ -89,6 +89,14 @@ import nodesRoutes from "./routes/nodes.js";
 import storageRoutes from "./routes/storage.js";
 import openaiRoutes from "./routes/openai.js";
 import oauthRoutes from "./routes/oauth.js";
+import {
+  isSdkV1AuthenticationRequired,
+  isSdkV1DiscoveryRequest
+} from "./sdk/sdk-route-policy.js";
+import { createNodeToolSdkV1CapabilitiesProvider } from "./sdk/sdk-runtime-capabilities-service.js";
+import { createNodeToolSdkV1PreflightService } from "./sdk/sdk-preflight-service.js";
+import { createSdkV1ExecutionTargetReadiness } from "./sdk/sdk-execution-target-readiness.js";
+import { SdkLiveRunnerRegistry } from "./sdk/sdk-live-runner-registry.js";
 import workspaceRoutes from "./routes/workspace.js";
 import filesRoutes from "./routes/files.js";
 import collectionsRoutes from "./routes/collections.js";
@@ -142,13 +150,7 @@ function isPublicWorkflowMetadataRequest(
   pathname: string,
   method: string
 ): boolean {
-  if (method === "POST" && pathname === "/api/sdk/v1/workflow-interfaces") {
-    return true;
-  }
   if (method !== "GET") return false;
-  if (pathname === "/api/sdk/v1/node-types") {
-    return true;
-  }
   if (pathname === "/api/workflows" || pathname === "/api/workflows/") {
     return true;
   }
@@ -159,12 +161,6 @@ function isPublicWorkflowMetadataRequest(
     return true;
   }
   if (pathname === "/api/workflows/names" || pathname === "/api/workflows/tools") {
-    return true;
-  }
-  if (pathname === "/api/sdk/v1/workflows") {
-    return true;
-  }
-  if (/^\/api\/workflows\/[^/]+\/interface$/.test(pathname)) {
     return true;
   }
   if (/^\/api\/workflows\/[^/]+\/dsl-export$/.test(pathname)) {
@@ -791,6 +787,7 @@ app.addHook("onRequest", async (req, reply) => {
 
   // Public routes — no auth required
   const pathname = req.url.split("?")[0];
+  const sdkDiscoveryRequest = isSdkV1DiscoveryRequest(pathname, req.method);
   if (
     pathname === "/health" ||
     pathname === "/ready" ||
@@ -801,6 +798,7 @@ app.addHook("onRequest", async (req, reply) => {
     pathname.startsWith("/api/assets/packages/") ||
     pathname === "/api/nodes/metadata" ||
     pathname.startsWith("/api/kie/webhook") ||
+    (sdkDiscoveryRequest && !isSdkV1AuthenticationRequired()) ||
     isPublicWorkflowMetadataRequest(pathname, req.method)
   ) {
     return;
@@ -921,10 +919,68 @@ if (_resolvedExamplesDir) {
 // API options for HTTP route handlers
 // ---------------------------------------------------------------------------
 
+const sdkLiveRunnerRegistry = new SdkLiveRunnerRegistry();
+const resolveExecutionTarget = createSdkV1ExecutionTargetReadiness({
+  getActiveWorker: () => workerManager.getActiveWorker()
+});
+
 const apiOptions: HttpApiOptions = {
   metadataRoots,
   registry,
-  getPythonBridgeReady
+  getPythonBridgeReady,
+  getSdkCapabilities: createNodeToolSdkV1CapabilitiesProvider({
+    nodetoolVersion: getVersion(),
+    registry,
+    pythonBridge: () => (getPythonBridgeReady() ? "ready" : "starting"),
+    profiles: {
+      discovery: "available",
+      execution: "available",
+      preflight: "available"
+    },
+    authModes: enforceAuth ? ["bearer"] : ["trusted_local"],
+    assetUriSchemes: ["asset"],
+    limits: {
+      maxRpcBatch: 100,
+      // The initial SDK profile deliberately prefers asset references for
+      // media instead of promising an inline payload size.
+      maxInlineBytes: 0,
+      maxQueuedJobs: 0,
+      maxJobEventReplay: 0,
+      requestTimeoutSeconds: 30
+    }
+  }),
+  sdkPreflightService: createNodeToolSdkV1PreflightService({
+    registry,
+    getPythonBridgeReady,
+    getExecutionTargetReadiness: ({ request, principal }) => {
+      const target = request.execution_target;
+      if (target?.kind === "runner") {
+        const ready = sdkLiveRunnerRegistry.has(
+          target.runner_id,
+          principal.userId
+        );
+        return {
+          id: target.runner_id,
+          name: "Live runner",
+          ready,
+          message: ready ? null : "Selected live runner is not available."
+        };
+      }
+      return resolveExecutionTarget(target);
+    },
+    getExecutionCapacitySnapshot: ({ request, principal }) => {
+      const target = request.execution_target;
+      if (target?.kind !== "runner") {
+        throw new Error("Execution capacity requires a selected live runner.");
+      }
+      return sdkLiveRunnerRegistry.getCapacity({
+        runnerId: target.runner_id,
+        userId: principal.userId,
+        workflowId: request.workflow_id,
+        concurrent: target.concurrent
+      });
+    }
+  })
 };
 if (_resolvedExamplesDir) {
   apiOptions.examplesDir = _resolvedExamplesDir;
@@ -1011,6 +1067,7 @@ await app.register(websocketPlugin, {
   registry,
   pythonBridge,
   apiOptions,
+  sdkLiveRunnerRegistry,
   workerManager,
   getPythonBridgeReady,
   ensurePythonBridge: async () => {

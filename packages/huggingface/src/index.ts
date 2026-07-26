@@ -52,9 +52,14 @@ export {
 
 export type {
   DownloadUpdate,
-  ProgressCallback
+  ProgressCallback,
+  DownloadStateSnapshot
 } from "./hf-download-manager.js";
-export { DownloadManager, getDownloadManager } from "./hf-download-manager.js";
+export {
+  DownloadManager,
+  getDownloadManager,
+  getExistingDownloadManager
+} from "./hf-download-manager.js";
 
 export {
   getLlamaCppCacheDir,

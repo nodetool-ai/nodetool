@@ -33,10 +33,12 @@ export type NodeMetadataSource =
 export interface RegisterNodeOptions {
   metadata?: NodeMetadata;
   source?: NodeMetadataSource;
+  packageId?: string;
 }
 
 export interface LoadMetadataOptions {
   source?: NodeMetadataSource;
+  packageId?: string;
 }
 
 export interface RegistryGraphResolverOptions {
@@ -52,6 +54,9 @@ export class NodeRegistry {
   private _registeredMetadataByType = new Map<string, NodeMetadata>();
   private _loadedMetadataSourceByType = new Map<string, NodeMetadataSource>();
   private _registeredMetadataSourceByType = new Map<string, NodeMetadataSource>();
+  private _loadedPackageIdByType = new Map<string, string>();
+  private _registeredPackageIdByType = new Map<string, string>();
+  private _activePackageId: string | undefined;
   private _strictMetadata: boolean;
   private _revision = 0;
 
@@ -101,6 +106,15 @@ export class NodeRegistry {
         nodeClass.nodeType,
         options.source ?? "typescript"
       );
+      const packageId = options.packageId ?? this._activePackageId;
+      if (packageId?.trim()) {
+        this._registeredPackageIdByType.set(
+          nodeClass.nodeType,
+          packageId.trim()
+        );
+      } else {
+        this._registeredPackageIdByType.delete(nodeClass.nodeType);
+      }
     } else if (this._strictMetadata) {
       throw new Error(
         `Missing resolved metadata for node type: ${nodeClass.nodeType}`
@@ -119,6 +133,23 @@ export class NodeRegistry {
     this._mergedMetadataCache = null;
     this._searchIndexCache = null;
     this._revision++;
+  }
+
+  /**
+   * Attribute synchronous registrar calls to an explicit package identity.
+   * Package registration functions are synchronous by contract.
+   */
+  registerPackage(
+    packageId: string,
+    registrar: (registry: NodeRegistry) => void
+  ): void {
+    const previous = this._activePackageId;
+    this._activePackageId = packageId.trim() || undefined;
+    try {
+      registrar(this);
+    } finally {
+      this._activePackageId = previous;
+    }
   }
 
   /** Monotonic metadata revision used to invalidate derived contract caches. */
@@ -201,7 +232,12 @@ export class NodeRegistry {
       const metadata = this._registeredMetadataByType.get(nodeType);
       const source =
         this._registeredMetadataSourceByType.get(nodeType) ?? "typescript";
-      filtered.register(nodeClass, metadata ? { metadata, source } : { source });
+      const packageId = this._registeredPackageIdByType.get(nodeType);
+      filtered.register(nodeClass, {
+        ...(metadata ? { metadata } : {}),
+        source,
+        ...(packageId ? { packageId } : {})
+      });
       const loaded = this._loadedMetadataByType.get(nodeType);
       // Stryker disable next-line ConditionalExpression: every kept node is re-registered with derived metadata above (which getMetadata returns first), so copying the loaded entry is unobservable (equivalent).
       if (loaded) {
@@ -210,6 +246,10 @@ export class NodeRegistry {
           nodeType,
           this._loadedMetadataSourceByType.get(nodeType) ?? "loaded-metadata"
         );
+        const loadedPackageId = this._loadedPackageIdByType.get(nodeType);
+        if (loadedPackageId) {
+          filtered._loadedPackageIdByType.set(nodeType, loadedPackageId);
+        }
       }
     }
     return filtered;
@@ -289,6 +329,32 @@ export class NodeRegistry {
     );
   }
 
+  /**
+   * Exact package identity recorded by the loader or registrar for this node.
+   * Undefined means package provenance is not authoritative.
+   */
+  getNodePackageId(nodeType: string): string | undefined {
+    if (this._registeredMetadataByType.has(nodeType)) {
+      return this._registeredPackageIdByType.get(nodeType);
+    }
+    return this._loadedPackageIdByType.get(nodeType);
+  }
+
+  /** Exact package identities represented by the current registry. */
+  listNodePackageIds(): string[] {
+    const ids = new Set<string>();
+    for (const nodeType of this._registeredMetadataByType.keys()) {
+      const id = this._registeredPackageIdByType.get(nodeType);
+      if (id) ids.add(id);
+    }
+    for (const nodeType of this._loadedMetadataByType.keys()) {
+      if (this._registeredMetadataByType.has(nodeType)) continue;
+      const id = this._loadedPackageIdByType.get(nodeType);
+      if (id) ids.add(id);
+    }
+    return [...ids].sort();
+  }
+
   resolveMetadata(nodeType: string): NodeMetadata | undefined {
     const exact = this.getMetadata(nodeType);
     if (exact) return exact;
@@ -337,6 +403,11 @@ export class NodeRegistry {
       nodeType,
       options.source ?? "loaded-metadata"
     );
+    if (options.packageId?.trim()) {
+      this._loadedPackageIdByType.set(nodeType, options.packageId.trim());
+    } else {
+      this._loadedPackageIdByType.delete(nodeType);
+    }
     this.invalidateMetadataCaches();
   }
 
@@ -344,9 +415,21 @@ export class NodeRegistry {
     options: PythonMetadataLoadOptions = {}
   ): PythonMetadataLoadResult {
     const loaded = loadPythonPackageMetadata(options);
+    const packageIdByType = new Map<string, string>();
+    for (const pkg of loaded.packages) {
+      for (const node of pkg.nodes ?? []) {
+        if (node?.node_type) packageIdByType.set(node.node_type, pkg.name);
+      }
+    }
     for (const [nodeType, metadata] of loaded.nodesByType.entries()) {
       this._loadedMetadataByType.set(nodeType, metadata);
       this._loadedMetadataSourceByType.set(nodeType, "python-package");
+      const packageId = packageIdByType.get(nodeType);
+      if (packageId) {
+        this._loadedPackageIdByType.set(nodeType, packageId);
+      } else {
+        this._loadedPackageIdByType.delete(nodeType);
+      }
     }
     this.invalidateMetadataCaches();
     return loaded;
@@ -362,6 +445,8 @@ export class NodeRegistry {
     this._registeredMetadataByType.delete(nodeType);
     this._loadedMetadataSourceByType.delete(nodeType);
     this._registeredMetadataSourceByType.delete(nodeType);
+    this._loadedPackageIdByType.delete(nodeType);
+    this._registeredPackageIdByType.delete(nodeType);
     this.invalidateMetadataCaches();
     return hadClass;
   }
@@ -372,6 +457,8 @@ export class NodeRegistry {
     this._registeredMetadataByType.clear();
     this._loadedMetadataSourceByType.clear();
     this._registeredMetadataSourceByType.clear();
+    this._loadedPackageIdByType.clear();
+    this._registeredPackageIdByType.clear();
     this.invalidateMetadataCaches();
   }
 

@@ -228,7 +228,7 @@ export function registerBuiltInNodes(
     if (!register) {
       throw new Error(`No registrar for built-in node pack "${pack.id}"`);
     }
-    register(registry);
+    registry.registerPackage(pack.id, register);
   }
 }
 
@@ -249,7 +249,7 @@ export function applyBuiltinPackEnabled(
     throw new Error(`No registrar for built-in node pack "${id}"`);
   }
   if (enabled) {
-    register(registry);
+    registry.registerPackage(id, register);
     return;
   }
   const packOnly = new NodeRegistry();

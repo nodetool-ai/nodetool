@@ -129,6 +129,7 @@ describe("loadInstalledPacks", () => {
     expect(results).toHaveLength(1);
     expect(results[0]!.status).toBe("loaded");
     expect(results[0]!.registered).toEqual(["acme.Hello"]);
+    expect(registry.getNodePackageId("acme.Hello")).toBe("acme-nodes");
     expect(registry.has("acme.Hello")).toBe(true);
   });
 

@@ -1,14 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  afterEach,
-  vi
-} from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import Fastify, { type FastifyInstance } from "fastify";
 
 vi.mock("@nodetool-ai/node-sdk", async (orig) => ({
@@ -19,10 +12,7 @@ vi.mock("@nodetool-ai/node-sdk", async (orig) => ({
 }));
 
 import { initTestDb, Workflow, Job, Asset } from "@nodetool-ai/models";
-import {
-  NodeRegistry,
-  type NodeMetadata
-} from "@nodetool-ai/node-sdk";
+import { NodeRegistry, type NodeMetadata } from "@nodetool-ai/node-sdk";
 import {
   handleApiRequest,
   handleAssetsRoot,
@@ -189,7 +179,7 @@ describe("http-api extra: workflows root + by-id branches", () => {
   });
 
   it("GET /api/sdk/v1/workflows excludes graph and inline media data", async () => {
-    vi.stubEnv("NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
+    vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
     await app.close();
     app = await makeApp({ registry: new NodeRegistry() });
     await makeWorkflow({
@@ -233,7 +223,7 @@ describe("http-api extra: workflows root + by-id branches", () => {
   });
 
   it("returns a stable REST error when SDK discovery is disabled", async () => {
-    vi.stubEnv("NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
+    vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
 
     const response = await app.inject({
       method: "GET",
@@ -244,12 +234,80 @@ describe("http-api extra: workflows root + by-id branches", () => {
     expect(response.statusCode).toBe(503);
     expect(response.json()).toEqual({
       code: "SDK_WORKFLOW_INTERFACE_DISABLED",
+      message: "SDK workflow interface v1 is disabled",
+      retryable: false,
       detail: "SDK workflow interface v1 is disabled"
     });
   });
 
+  it("keeps current workflow, node, and asset reads available with all SDK flags disabled", async () => {
+    vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
+    vi.stubEnv("NODETOOL_REQUIRE_SDK_AUTH_V1", "0");
+    vi.stubEnv("NODETOOL_DISABLE_SDK_LIFECYCLE_V1", "1");
+    await makeWorkflow({ user_id: "user-1", name: "Current workflow" });
+
+    const [workflows, nodes, assets] = await Promise.all([
+      app.inject({
+        method: "GET",
+        url: "/api/workflows",
+        headers: { "x-user-id": "user-1" }
+      }),
+      app.inject({
+        method: "GET",
+        url: "/api/nodes/metadata?fields=summary",
+        headers: { "x-user-id": "user-1" }
+      }),
+      handleAssetsRoot(
+        req("/api/assets", {
+          method: "POST",
+          headers: {
+            "x-user-id": "user-1",
+            "content-type": "application/json"
+          },
+          body: JSON.stringify({
+            name: "baseline.png",
+            content_type: "image/png",
+            parent_id: "user-1"
+          })
+        }),
+        {}
+      )
+    ]);
+
+    expect(workflows.statusCode).toBe(200);
+    expect((workflows.json() as { workflows: unknown[] }).workflows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "Current workflow" })
+      ])
+    );
+    expect(nodes.statusCode).toBe(200);
+    expect(assets.status).toBe(200);
+  });
+
+  it("redacts unexpected REST discovery errors", async () => {
+    vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
+    vi.spyOn(Workflow, "paginateSummaries").mockRejectedValueOnce(
+      new Error("secret database connection string")
+    );
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/sdk/v1/workflows",
+      headers: { "x-user-id": "user-1" }
+    });
+
+    expect(response.statusCode).toBe(500);
+    expect(response.json()).toEqual({
+      code: "INTERNAL_ERROR",
+      message: "Internal server error",
+      retryable: true,
+      detail: "Internal server error"
+    });
+    expect(response.body).not.toContain("secret database");
+  });
+
   it("GET /api/sdk/v1/node-types returns bounded hybrid type usage", async () => {
-    vi.stubEnv("NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
+    vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
     const registry = new NodeRegistry();
     registry.loadMetadata(
       "python.ListImage",
@@ -298,14 +356,14 @@ describe("http-api extra: workflows root + by-id branches", () => {
   });
 
   it("rejects invalid node type inventory bounds and honors the flag", async () => {
-    vi.stubEnv("NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
+    vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
     const invalid = await app.inject({
       method: "GET",
       url: "/api/sdk/v1/node-types?limit=101"
     });
     expect(invalid.statusCode).toBe(400);
 
-    vi.stubEnv("NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
+    vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
     const disabled = await app.inject({
       method: "GET",
       url: "/api/sdk/v1/node-types"
@@ -313,12 +371,14 @@ describe("http-api extra: workflows root + by-id branches", () => {
     expect(disabled.statusCode).toBe(503);
     expect(disabled.json()).toEqual({
       code: "SDK_NODE_TYPE_INVENTORY_DISABLED",
+      message: "SDK node/type inventory v1 is disabled",
+      retryable: false,
       detail: "SDK node/type inventory v1 is disabled"
     });
   });
 
   it("GET /api/workflows/:id/interface returns the compact v1 contract", async () => {
-    vi.stubEnv("NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
+    vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
     const nodeType = "nodetool.input.StringInput";
     const metadata: NodeMetadata = {
       title: "String Input",
@@ -384,7 +444,7 @@ describe("http-api extra: workflows root + by-id branches", () => {
   });
 
   it("POST /api/sdk/v1/workflow-interfaces preserves order and isolates errors", async () => {
-    vi.stubEnv("NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
+    vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
     await app.close();
     app = await makeApp({ registry: new NodeRegistry() });
     const first = await makeWorkflow({ name: "First" });
@@ -432,6 +492,8 @@ describe("http-api extra: workflows root + by-id branches", () => {
     expect(response.statusCode).toBe(400);
     expect(response.json()).toEqual({
       code: "INVALID_INPUT",
+      message: "Expected 1 to 100 unique workflow ids",
+      retryable: false,
       detail: "Expected 1 to 100 unique workflow ids"
     });
   });
@@ -523,11 +585,7 @@ describe("http-api extra: workflow run guard branches", () => {
   beforeEach(() => initTestDb());
 
   it("405 for a non-POST method", async () => {
-    const res = await handleWorkflowRun(
-      req("/x", { method: "GET" }),
-      "w1",
-      {}
-    );
+    const res = await handleWorkflowRun(req("/x", { method: "GET" }), "w1", {});
     expect(res.status).toBe(405);
   });
 
@@ -1123,7 +1181,9 @@ describe("http-api extra: createHttpApiServer", () => {
 
   it("serves a request over a real listening socket", async () => {
     const server = createHttpApiServer({});
-    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve)
+    );
     const address = server.address();
     if (!address || typeof address === "string") {
       throw new Error("Expected a TCP address");
@@ -1147,7 +1207,9 @@ describe("http-api extra: createHttpApiServer", () => {
       .spyOn(Workflow, "paginate")
       .mockRejectedValue(new Error("boom from paginate"));
     const server = createHttpApiServer({});
-    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve)
+    );
     const address = server.address();
     if (!address || typeof address === "string") {
       throw new Error("Expected a TCP address");

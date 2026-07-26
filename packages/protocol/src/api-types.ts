@@ -143,7 +143,9 @@ export function isBitmapImage(
 
 /** True when `value` is any in-flight image (raw-RGBA CPU buffer, GPU texture, or preview bitmap). */
 export function isInFlightImage(value: unknown): boolean {
-  return isRawRgbaImage(value) || isGpuTextureImage(value) || isBitmapImage(value);
+  return (
+    isRawRgbaImage(value) || isGpuTextureImage(value) || isBitmapImage(value)
+  );
 }
 
 export interface AudioRef {
@@ -896,7 +898,15 @@ export interface RunJobRequest {
   explicit_types?: Record<string, string> | boolean;
   /** Suppress provisional completed events and emit one terminal result snapshot. */
   require_terminal_result?: boolean;
+  /** Additive execution relaxations. Omitted values preserve current behavior. */
+  execution_options?: RunJobExecutionOptions;
   resource_limits?: ResourceLimits | null;
+}
+
+export interface RunJobExecutionOptions {
+  persistence?: "job" | "session";
+  event_detail?: "full" | "outputs" | "terminal";
+  asset_persistence?: "auto" | "temporary";
 }
 
 export interface ResourceLimits {

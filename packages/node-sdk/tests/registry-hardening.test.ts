@@ -320,6 +320,8 @@ describe("loadPythonMetadata", () => {
       expect(result.nodesByType.has("py.Loaded")).toBe(true);
       // The for-loop must copy each loaded node into the registry.
       expect(registry.getMetadata("py.Loaded")?.title).toBe("Loaded");
+      expect(registry.getNodePackageId("py.Loaded")).toBe("pkg");
+      expect(registry.listNodePackageIds()).toEqual(["pkg"]);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

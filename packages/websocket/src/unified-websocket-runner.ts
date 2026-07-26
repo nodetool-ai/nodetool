@@ -4,10 +4,7 @@ import { pathToFileURL } from "node:url";
 import { getSecret } from "@nodetool-ai/models";
 import { getSetting } from "./settings-registry.js";
 import { JobConcurrencyQueue } from "./job-queue.js";
-import {
-  packWebSocketMessage,
-  unpackWebSocketMessage
-} from "./messagepack.js";
+import { packWebSocketMessage, unpackWebSocketMessage } from "./messagepack.js";
 import {
   createLogger,
   getDefaultAssetsPath,
@@ -82,6 +79,11 @@ import type {
   ProcessingMessage,
   ProviderCost
 } from "@nodetool-ai/protocol";
+import {
+  getSdkV1SafeErrorMessage,
+  isSdkV1RetryableError,
+  sdkV1RpcCommand
+} from "@nodetool-ai/protocol/api-schemas/sdk-v1.js";
 import type {
   UnifiedCommandType,
   WebSocketCommandEnvelope,
@@ -131,6 +133,7 @@ import { appRouter } from "./trpc/router.js";
 import { createCallerFactory } from "./trpc/index.js";
 import type { HttpApiOptions } from "./http-api.js";
 import { getAssetFileName } from "./lib/asset-paths.js";
+import { handleSdkV1LifecycleRpc } from "./sdk/sdk-lifecycle-rpc-handler.js";
 
 const log = createLogger("nodetool.websocket.runner");
 const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
@@ -1322,16 +1325,17 @@ function formatUiContext(uiContext?: UiContext | null): string {
     (ref) => !focused || ref.id !== focused.id || ref.type !== focused.type
   );
   if (others.length > 0) {
-    lines.push(
-      `Also open: ${others.map(describe).join("; ")}.`
-    );
+    lines.push(`Also open: ${others.map(describe).join("; ")}.`);
   }
 
   const selection = uiContext.selection;
   const selected = selection
     ? Object.entries(selection)
         .filter(([, ids]) => Array.isArray(ids) && ids.length > 0)
-        .map(([key, ids]) => `${key.replace(/_ids$/, "")}: ${(ids as string[]).join(", ")}`)
+        .map(
+          ([key, ids]) =>
+            `${key.replace(/_ids$/, "")}: ${(ids as string[]).join(", ")}`
+        )
     : [];
   if (selected.length > 0) {
     lines.push(`Selected in the focused document — ${selected.join("; ")}.`);
@@ -1376,7 +1380,42 @@ export interface RunJobRequest {
   explicit_types?: boolean;
   /** SDK opt-in: completed job updates are terminal only when they carry result.outputs. */
   require_terminal_result?: boolean;
+  /** Optional SDK fast-path relaxations. Missing/invalid values use current defaults. */
+  execution_options?: {
+    persistence?: "job" | "session";
+    event_detail?: "full" | "outputs" | "terminal";
+    asset_persistence?: "auto" | "temporary";
+  };
+  /** Internal monotonic timestamp captured when runJob accepts the request. */
+  _accepted_at_ms?: number;
   settings?: Record<string, unknown>;
+}
+
+export interface RunJobExecutionOptions {
+  persistence: "job" | "session";
+  eventDetail: "full" | "outputs" | "terminal";
+  assetPersistence: "auto" | "temporary";
+}
+
+export const DEFAULT_RUN_JOB_EXECUTION_OPTIONS: Readonly<RunJobExecutionOptions> =
+  Object.freeze({
+    persistence: "job",
+    eventDetail: "full",
+    assetPersistence: "auto"
+  });
+
+export function resolveRunJobExecutionOptions(
+  value: RunJobRequest["execution_options"]
+): RunJobExecutionOptions {
+  return {
+    persistence: value?.persistence === "session" ? "session" : "job",
+    eventDetail:
+      value?.event_detail === "outputs" || value?.event_detail === "terminal"
+        ? value.event_detail
+        : "full",
+    assetPersistence:
+      value?.asset_persistence === "temporary" ? "temporary" : "auto"
+  };
 }
 
 interface ActiveJob {
@@ -1389,6 +1428,16 @@ interface ActiveJob {
   status: "running" | "completed" | "failed" | "cancelled" | "suspended";
   error?: string;
   requireTerminalResult: boolean;
+  executionOptions: RunJobExecutionOptions;
+  timings: {
+    acceptedAt: number;
+    queueMs: number;
+    graphLoadedMs: number;
+    graphHydratedMs: number;
+    preRunMs: number;
+    persistenceMs: number;
+    kernelStartedAt: number;
+  };
   /** Suspension detail when status is "suspended" (node + saved state). */
   suspend?: {
     node_id: string;
@@ -1524,6 +1573,15 @@ export interface UnifiedWebSocketRunnerOptions {
   getPythonBridgeReady?: () => boolean;
   /** API options forwarded into the tRPC context (metadata roots, registry, etc.). */
   apiOptions?: HttpApiOptions;
+}
+
+export interface SdkExecutionCapacitySnapshot {
+  inFlightJobs: number;
+  maxConcurrentJobs: number;
+  queuedJobs: number;
+  workflowInFlightJobs: number;
+  maxConcurrentRunsForWorkflow: number;
+  likelyQueued: boolean;
 }
 
 export class UnifiedWebSocketRunner {
@@ -1701,6 +1759,22 @@ export class UnifiedWebSocketRunner {
         });
       }
     }
+  }
+
+  private async normalizeFinalOutputs(
+    active: ActiveJob,
+    outputs: Record<string, unknown[]>
+  ): Promise<Record<string, unknown[]>> {
+    const normalized: Record<string, unknown[]> = {};
+    for (const [outputKey, values] of Object.entries(outputs)) {
+      normalized[outputKey] = [];
+      for (const value of Array.isArray(values) ? values : []) {
+        normalized[outputKey].push(
+          await active.context.normalizeOutputValue(value)
+        );
+      }
+    }
+    return normalized;
   }
 
   constructor(options: UnifiedWebSocketRunnerOptions) {
@@ -2043,7 +2117,8 @@ export class UnifiedWebSocketRunner {
   private async emitBeforeRunFailure(
     jobId: string,
     workflowId: string | null,
-    err: unknown
+    err: unknown,
+    persistJob: boolean
   ): Promise<void> {
     const errorMessage = err instanceof Error ? err.message : String(err);
     this.logError("beforeRunJob failed", err);
@@ -2054,6 +2129,7 @@ export class UnifiedWebSocketRunner {
       workflow_id: workflowId,
       error: errorMessage
     });
+    if (!persistJob) return;
     try {
       const job = (await Job.get(jobId)) as Job | null;
       if (job) {
@@ -2175,11 +2251,43 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
+   * Read-only view of the same admission counters used by runJob. This does
+   * not reserve a slot or mutate the queue; lifecycle preflight can therefore
+   * report likely queueing without changing current execution behavior.
+   */
+  async getSdkExecutionCapacitySnapshot(input: {
+    workflowId: string;
+    concurrent?: boolean;
+  }): Promise<SdkExecutionCapacitySnapshot> {
+    const [maxConcurrentJobs, maxConcurrentRunsForWorkflow] = await Promise.all(
+      [
+        this.getMaxConcurrentJobs(),
+        this.perWorkflowLimitFor({ concurrent: input.concurrent })
+      ]
+    );
+    const inFlightJobs = this.inFlightJobCount;
+    const workflowInFlightJobs = this.countActiveJobsForWorkflow(
+      input.workflowId
+    );
+    return {
+      inFlightJobs,
+      maxConcurrentJobs,
+      queuedJobs: this.jobQueue.size,
+      workflowInFlightJobs,
+      maxConcurrentRunsForWorkflow,
+      likelyQueued:
+        inFlightJobs >= maxConcurrentJobs ||
+        workflowInFlightJobs >= maxConcurrentRunsForWorkflow
+    };
+  }
+
+  /**
    * Entry point for the "run_job" command. Starts the run immediately when the
    * client is under its concurrency cap, otherwise queues it (FIFO) and emits a
    * `queued` job update. Queued runs start automatically as active jobs finish.
    */
   async runJob(req: RunJobRequest): Promise<void> {
+    req._accepted_at_ms ??= performance.now();
     const max = await this.getMaxConcurrentJobs();
     const perWorkflowMax = await this.perWorkflowLimitFor(req);
     // Queue the run when over the global cap, or when this workflow already has
@@ -2207,21 +2315,25 @@ export class UnifiedWebSocketRunner {
     // Persist the queued run so it shows in jobs.list (Queue panel, reload,
     // other tabs). Best-effort, mirroring startJobInner's persistence. It flips
     // to "running" in startJobInner when a slot frees.
-    try {
-      const existing = await Job.get(jobId);
-      if (!existing) {
-        await Job.create({
-          id: jobId,
-          workflow_id: req.workflow_id ?? "",
-          user_id: req.user_id ?? this.userId ?? "1",
-          status: "queued",
-          name: req.job_name ?? "",
-          params: req.params ?? {},
-          graph: req.graph ?? { nodes: [], edges: [] }
-        });
+    if (
+      resolveRunJobExecutionOptions(req.execution_options).persistence === "job"
+    ) {
+      try {
+        const existing = await Job.get(jobId);
+        if (!existing) {
+          await Job.create({
+            id: jobId,
+            workflow_id: req.workflow_id ?? "",
+            user_id: req.user_id ?? this.userId ?? "1",
+            status: "queued",
+            name: req.job_name ?? "",
+            params: req.params ?? {},
+            graph: req.graph ?? { nodes: [], edges: [] }
+          });
+        }
+      } catch (err) {
+        this.logError("enqueue persistence failed", err);
       }
-    } catch (err) {
-      this.logError("enqueue persistence failed", err);
     }
     this.sendDetached({
       type: "job_update",
@@ -2336,11 +2448,20 @@ export class UnifiedWebSocketRunner {
     const userId = req.user_id ?? this.userId ?? "1";
     const workflowId = req.workflow_id ?? null;
     const jobId = req.job_id ?? randomUUID();
+    const executionOptions = resolveRunJobExecutionOptions(
+      req.execution_options
+    );
+    const acceptedAt = req._accepted_at_ms ?? performance.now();
+    const preparationStartedAt = performance.now();
+    let phaseStartedAt = preparationStartedAt;
 
     const rawGraph = await this.getRawGraph(req);
+    const graphLoadedMs = performance.now() - phaseStartedAt;
 
     // Hydrate the graph (resolves node types from the registry)
+    phaseStartedAt = performance.now();
     const graph = await this.hydrateGraph(rawGraph);
+    const graphHydratedMs = performance.now() - phaseStartedAt;
 
     // The kernel keys terminal outputs by node.name. For SDK runs, align output
     // node names with their public interface names before execution so the
@@ -2356,14 +2477,21 @@ export class UnifiedWebSocketRunner {
       }
     }
 
+    phaseStartedAt = performance.now();
     if (this.beforeRunJob) {
       try {
         await this.beforeRunJob(graph);
       } catch (err) {
-        await this.emitBeforeRunFailure(jobId, workflowId, err);
+        await this.emitBeforeRunFailure(
+          jobId,
+          workflowId,
+          err,
+          executionOptions.persistence === "job"
+        );
         return;
       }
     }
+    const preRunMs = performance.now() - phaseStartedAt;
 
     const workspaceDir =
       workflowId && this.workspaceResolver
@@ -2418,7 +2546,17 @@ export class UnifiedWebSocketRunner {
       graph,
       finished: false,
       status: "running",
-      requireTerminalResult: req.require_terminal_result === true
+      requireTerminalResult: req.require_terminal_result === true,
+      executionOptions,
+      timings: {
+        acceptedAt,
+        queueMs: Math.max(0, preparationStartedAt - acceptedAt),
+        graphLoadedMs,
+        graphHydratedMs,
+        preRunMs,
+        persistenceMs: 0,
+        kernelStartedAt: 0
+      }
     };
     this.activeJobs.set(jobId, active);
     // Slot ownership transfers from startingJobs to activeJobs now that the
@@ -2426,52 +2564,57 @@ export class UnifiedWebSocketRunner {
     releaseSlot();
     log.info("Job started", { jobId, workflowId });
 
-    try {
-      const existing = await Job.get(jobId);
-      if (existing) {
-        // The run may have been cancelled via the DB-only cancel path (tRPC
-        // `jobs.cancel`) while it was still sitting in the in-memory queue —
-        // that path doesn't remove it from `jobQueue`, so drainQueue can still
-        // hand it to us. Honor the cancellation instead of resurrecting it:
-        // undo the start, surface the cancelled status, and free the slot.
-        if (existing.status === "cancelled") {
-          log.info("Skipping start of cancelled job", { jobId });
-          this.activeJobs.delete(jobId);
-          // Freeing this slot must promote any queued run, matching every
-          // other activeJobs.delete site (streamJobMessages finally, the
-          // chat-run finally). Without it a cancelled-while-queued job leaves
-          // its slot idle and the next queued run stalls.
-          this.drainQueue();
-          this.sendDetached({
-            type: "job_update",
-            status: "cancelled",
-            job_id: jobId,
-            workflow_id: workflowId
+    phaseStartedAt = performance.now();
+    if (executionOptions.persistence === "job") {
+      try {
+        const existing = await Job.get(jobId);
+        if (existing) {
+          // The run may have been cancelled via the DB-only cancel path (tRPC
+          // `jobs.cancel`) while it was still sitting in the in-memory queue —
+          // that path doesn't remove it from `jobQueue`, so drainQueue can still
+          // hand it to us. Honor the cancellation instead of resurrecting it:
+          // undo the start, surface the cancelled status, and free the slot.
+          if (existing.status === "cancelled") {
+            log.info("Skipping start of cancelled job", { jobId });
+            this.activeJobs.delete(jobId);
+            // Freeing this slot must promote any queued run, matching every
+            // other activeJobs.delete site (streamJobMessages finally, the
+            // chat-run finally). Without it a cancelled-while-queued job leaves
+            // its slot idle and the next queued run stalls.
+            this.drainQueue();
+            this.sendDetached({
+              type: "job_update",
+              status: "cancelled",
+              job_id: jobId,
+              workflow_id: workflowId
+            });
+            return;
+          }
+          // Was persisted as "queued" while waiting for a slot — flip it to
+          // running now that it's actually starting.
+          if (existing.status !== "running") {
+            existing.markRunning();
+            await existing.save();
+          }
+        } else {
+          await Job.create({
+            id: jobId,
+            workflow_id: workflowId ?? "",
+            user_id: userId,
+            status: "running",
+            name: req.job_name ?? "",
+            started_at: new Date().toISOString(),
+            params: req.params ?? {},
+            graph
           });
-          return;
         }
-        // Was persisted as "queued" while waiting for a slot — flip it to
-        // running now that it's actually starting.
-        if (existing.status !== "running") {
-          existing.markRunning();
-          await existing.save();
-        }
-      } else {
-        await Job.create({
-          id: jobId,
-          workflow_id: workflowId ?? "",
-          user_id: userId,
-          status: "running",
-          name: req.job_name ?? "",
-          started_at: new Date().toISOString(),
-          params: req.params ?? {},
-          graph
-        });
+      } catch (error) {
+        this.logError("runJob persistence failed", error);
+        // Persistence is best-effort in TS runtime mode.
       }
-    } catch (error) {
-      this.logError("runJob persistence failed", error);
-      // Persistence is best-effort in TS runtime mode.
     }
+    active.timings.persistenceMs = performance.now() - phaseStartedAt;
+    active.timings.kernelStartedAt = performance.now();
 
     const executePromise = runner.run(
       {
@@ -2661,7 +2804,11 @@ export class UnifiedWebSocketRunner {
             //     re-streams the same events with arrivalIndex back at 0..N-1).
             // Server-only (D9): this is the websocket runner; the browser never
             // reaches runJob, so no browser autosave is introduced here.
-            if (meta?.auto_save_asset && outbound.outputs != null) {
+            if (
+              active.executionOptions.assetPersistence === "auto" &&
+              meta?.auto_save_asset &&
+              outbound.outputs != null
+            ) {
               const userId = this.userId ?? "1";
               const slotKey = `${nodeId} ${arrivalIndex}`;
               // Warm the cross-run replay set once per node (on its first
@@ -2732,6 +2879,18 @@ export class UnifiedWebSocketRunner {
 
           await this._handleNodeProviderCost(active, outbound, nodeType);
 
+          const isNodeError =
+            outbound.type === "node_update" && outbound.status === "error";
+          if (
+            !isNodeError &&
+            (active.executionOptions.eventDetail === "terminal" ||
+              (active.executionOptions.eventDetail === "outputs" &&
+                (outbound.type === "node_update" ||
+                  outbound.type === "generation_complete")))
+          ) {
+            continue;
+          }
+
           // Materialize binary assets to temp URLs before sending over WebSocket
           if (outbound.type === "node_update" && outbound.result != null) {
             outbound.result = await active.context.normalizeOutputValue(
@@ -2753,6 +2912,12 @@ export class UnifiedWebSocketRunner {
               outbound.outputs
             );
           }
+        }
+        if (
+          outbound.type === "edge_update" &&
+          active.executionOptions.eventDetail !== "full"
+        ) {
+          continue;
         }
         const status =
           outbound.type === "job_update" ? String(outbound.status ?? "") : "";
@@ -2781,11 +2946,39 @@ export class UnifiedWebSocketRunner {
       }
     }
 
-    if (!outputUpdateSeen && Object.keys(finalOutputs).length > 0) {
+    if (
+      active.executionOptions.eventDetail !== "terminal" &&
+      !outputUpdateSeen &&
+      Object.keys(finalOutputs).length > 0
+    ) {
       await this.sendOutputUpdates(active, finalOutputs);
     }
 
-    log.info("Job completed", { jobId: active.jobId, status: active.status });
+    if (
+      active.executionOptions.eventDetail === "terminal" &&
+      Object.keys(finalOutputs).length > 0
+    ) {
+      finalOutputs = await this.normalizeFinalOutputs(active, finalOutputs);
+    }
+
+    const completedAt = performance.now();
+    log.info("Job completed", {
+      jobId: active.jobId,
+      status: active.status,
+      executionOptions: active.executionOptions,
+      timings: {
+        queueMs: active.timings.queueMs,
+        graphLoadedMs: active.timings.graphLoadedMs,
+        graphHydratedMs: active.timings.graphHydratedMs,
+        preRunMs: active.timings.preRunMs,
+        persistenceMs: active.timings.persistenceMs,
+        executionAndRelayMs: Math.max(
+          0,
+          completedAt - active.timings.kernelStartedAt
+        ),
+        totalMs: Math.max(0, completedAt - active.timings.acceptedAt)
+      }
+    });
 
     if (
       !terminalSeen ||
@@ -2801,39 +2994,44 @@ export class UnifiedWebSocketRunner {
       });
     }
 
-    // Persist final job status
-    try {
-      const job = (await Job.get(active.jobId)) as Job | null;
-      // A DB-only cancel (tRPC `jobs.cancel`) can finalize the row as cancelled
-      // while the job is still executing in memory. Don't overwrite that with a
-      // completed/failed status when the in-flight run finishes.
-      if (job) {
-        if (job.status !== "cancelled") {
-          if (active.status === "completed") {
-            job.markCompleted();
-          } else if (active.status === "failed") {
-            job.markFailed(active.error ?? "Unknown error");
-          } else if (active.status === "cancelled") {
-            job.markCancelled();
-          } else if (active.status === "suspended") {
-            // A node paused the run (e.g. human-in-the-loop). Persist the
-            // saved state so the job can be resumed later.
-            job.markSuspended(
-              active.suspend?.node_id ?? "",
-              active.suspend?.reason ?? "",
-              active.suspend?.state,
-              active.suspend?.metadata
-            );
+    // Persist final job status unless this is an explicitly session-scoped run.
+    if (
+      (active.executionOptions?.persistence ??
+        DEFAULT_RUN_JOB_EXECUTION_OPTIONS.persistence) === "job"
+    ) {
+      try {
+        const job = (await Job.get(active.jobId)) as Job | null;
+        // A DB-only cancel (tRPC `jobs.cancel`) can finalize the row as cancelled
+        // while the job is still executing in memory. Don't overwrite that with a
+        // completed/failed status when the in-flight run finishes.
+        if (job) {
+          if (job.status !== "cancelled") {
+            if (active.status === "completed") {
+              job.markCompleted();
+            } else if (active.status === "failed") {
+              job.markFailed(active.error ?? "Unknown error");
+            } else if (active.status === "cancelled") {
+              job.markCancelled();
+            } else if (active.status === "suspended") {
+              // A node paused the run (e.g. human-in-the-loop). Persist the
+              // saved state so the job can be resumed later.
+              job.markSuspended(
+                active.suspend?.node_id ?? "",
+                active.suspend?.reason ?? "",
+                active.suspend?.state,
+                active.suspend?.metadata
+              );
+            }
           }
+          job.cost =
+            (active.providerCostTotal ?? 0) > 0
+              ? (active.providerCostTotal ?? null)
+              : null;
+          await job.save();
         }
-        job.cost =
-          (active.providerCostTotal ?? 0) > 0
-            ? (active.providerCostTotal ?? null)
-            : null;
-        await job.save();
+      } catch (error) {
+        this.logError("job persistence (final status) failed", error);
       }
-    } catch (error) {
-      this.logError("job persistence (final status) failed", error);
     }
     // Slot release + queue drain happen in the streamJobMessages wrapper's
     // finally, so they run even if the drain loop above throws.
@@ -2905,14 +3103,19 @@ export class UnifiedWebSocketRunner {
       const cancelledWorkflowId = queued.workflow_id ?? workflowId ?? null;
       // Mark the persisted queued row cancelled so it leaves the queue in
       // jobs.list too (not just the in-memory queue).
-      try {
-        const job = await Job.get(jobId);
-        if (job) {
-          job.markCancelled();
-          await job.save();
+      if (
+        resolveRunJobExecutionOptions(queued.execution_options).persistence ===
+        "job"
+      ) {
+        try {
+          const job = await Job.get(jobId);
+          if (job) {
+            job.markCancelled();
+            await job.save();
+          }
+        } catch (err) {
+          this.logError("cancel persistence failed", err);
         }
-      } catch (err) {
-        this.logError("cancel persistence failed", err);
       }
       await this.sendMessage({
         type: "job_update",
@@ -2950,14 +3153,19 @@ export class UnifiedWebSocketRunner {
     // the toolbar Stop already fired. Marking it cancelled here, plus the
     // job_update below, lets clients refetch and reflect the stop immediately.
     const cancelledWorkflowId = workflowId ?? active.workflowId ?? null;
-    try {
-      const job = await Job.get(jobId);
-      if (job && job.status !== "cancelled") {
-        job.markCancelled();
-        await job.save();
+    if (
+      (active.executionOptions?.persistence ??
+        DEFAULT_RUN_JOB_EXECUTION_OPTIONS.persistence) === "job"
+    ) {
+      try {
+        const job = await Job.get(jobId);
+        if (job && job.status !== "cancelled") {
+          job.markCancelled();
+          await job.save();
+        }
+      } catch (err) {
+        this.logError("cancel persistence failed", err);
       }
-    } catch (err) {
-      this.logError("cancel persistence failed", err);
     }
     await this.sendMessage({
       type: "job_update",
@@ -5686,7 +5894,17 @@ export class UnifiedWebSocketRunner {
         graph,
         finished: false,
         status: "running",
-        requireTerminalResult: false
+        requireTerminalResult: false,
+        executionOptions: { ...DEFAULT_RUN_JOB_EXECUTION_OPTIONS },
+        timings: {
+          acceptedAt: performance.now(),
+          queueMs: 0,
+          graphLoadedMs: 0,
+          graphHydratedMs: 0,
+          preRunMs: 0,
+          persistenceMs: 0,
+          kernelStartedAt: performance.now()
+        }
       };
       this.activeJobs.set(jobId, active);
 
@@ -6467,9 +6685,15 @@ export class UnifiedWebSocketRunner {
         message?: string;
         cause?: { apiCode?: string };
       };
+      const code = trpc.cause?.apiCode ?? trpc.code ?? "INTERNAL_ERROR";
+      const internalMessage = trpc.message ?? String(err);
+      const publicMessage = sdkV1RpcCommand.safeParse(command.command).success
+        ? getSdkV1SafeErrorMessage(code, internalMessage)
+        : internalMessage;
       const error: RpcErrorPayload = {
-        code: trpc.cause?.apiCode ?? trpc.code ?? "INTERNAL_ERROR",
-        message: trpc.message ?? String(err),
+        code,
+        message: publicMessage,
+        retryable: isSdkV1RetryableError(code, internalMessage),
         apiCode: trpc.cause?.apiCode ?? null,
         trpcCode: trpc.code
       };
@@ -6480,6 +6704,38 @@ export class UnifiedWebSocketRunner {
         error
       });
     }
+    return null;
+  }
+
+  private async runSdkLifecycleRpc(
+    command: WebSocketCommandEnvelope
+  ): Promise<Record<string, unknown> | null> {
+    const response = await handleSdkV1LifecycleRpc(command, {
+      getCapabilities: () => {
+        if (!this.apiOptions?.getSdkCapabilities) {
+          throw new Error("SDK capabilities service is unavailable.");
+        }
+        return this.apiOptions.getSdkCapabilities();
+      },
+      preflightService: {
+        preflight: (input) => {
+          if (!this.apiOptions?.sdkPreflightService) {
+            throw new Error("SDK preflight service is unavailable.");
+          }
+          return this.apiOptions.sdkPreflightService.preflight(input);
+        }
+      },
+      getPrincipal: () =>
+        this.userId ? { userId: this.userId } : null,
+      environment: process.env,
+      onInternalError: (error) =>
+        this.logError("SDK lifecycle RPC failed", error)
+    });
+
+    if (!response) {
+      return { error: "Unknown SDK lifecycle command" };
+    }
+    await this.sendMessage(response);
     return null;
   }
 
@@ -6753,6 +7009,9 @@ export class UnifiedWebSocketRunner {
           )
         );
       }
+      case "get_capabilities":
+      case "preflight_workflow":
+        return this.runSdkLifecycleRpc(command);
       case "generate_media": {
         const rawMode = data.mode;
         const mode: "image" | "image_edit" | "inpaint" | "video" | "audio" =

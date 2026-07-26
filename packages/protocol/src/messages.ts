@@ -533,6 +533,8 @@ export type UnifiedCommandType =
   | "list_nodes"
   | "get_node"
   | "get_node_type_inventory"
+  | "get_capabilities"
+  | "preflight_workflow"
   | "generate_media"
   | "transcribe_audio";
 
@@ -556,6 +558,8 @@ export type RpcCommandType =
   | "list_nodes"
   | "get_node"
   | "get_node_type_inventory"
+  | "get_capabilities"
+  | "preflight_workflow"
   | "generate_media"
   | "transcribe_audio";
 
@@ -667,6 +671,7 @@ export interface GenerateMediaResponse {
 export interface RpcErrorPayload {
   code: string;
   message: string;
+  retryable: boolean;
   apiCode?: string | null;
   trpcCode?: string;
 }

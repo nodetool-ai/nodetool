@@ -434,7 +434,8 @@ async function loadPack(
     registry,
     reserved,
     registered,
-    skippedNodes
+    skippedNodes,
+    pack.name
   );
 
   try {
@@ -464,7 +465,8 @@ function makeGuardedRegistry(
   target: NodeRegistry,
   reserved: readonly string[],
   registered: string[],
-  skippedNodes: { nodeType: string; reason: SkipReason }[]
+  skippedNodes: { nodeType: string; reason: SkipReason }[],
+  packageId: string
 ): PackRegistry {
   return {
     has: (nodeType: string) => target.has(nodeType),
@@ -473,7 +475,7 @@ function makeGuardedRegistry(
       // Stryker disable next-line ConditionalExpression,BlockStatement: a falsy nodeType errors either way — this branch lets target.register throw "without nodeType"; skipping it makes isReservedNamespace throw on the missing type — both surface as a loadPack error (equivalent).
       if (!nodeType) {
         // Let the real registry surface the "no nodeType" error.
-        target.register(nodeClass);
+        target.register(nodeClass, { packageId });
         return;
       }
       if (isReservedNamespace(nodeType, reserved)) {
@@ -484,7 +486,7 @@ function makeGuardedRegistry(
         skippedNodes.push({ nodeType, reason: "collision" });
         return;
       }
-      target.register(nodeClass);
+      target.register(nodeClass, { packageId });
       registered.push(nodeType);
     }
   };

@@ -23,6 +23,9 @@ describe("registerBuiltInNodes", () => {
     // Throws if a catalog id has no registrar.
     registerBuiltInNodes(registry, { enabledOverrides: allEnabled() });
     expect(registry.list().length).toBeGreaterThan(0);
+    expect(registry.listNodePackageIds()).toEqual(
+      expect.arrayContaining(["base", "elevenlabs"])
+    );
   });
 
   it("only registers required and default-enabled packs out of the box", () => {
@@ -37,6 +40,9 @@ describe("registerBuiltInNodes", () => {
       .list()
       .filter((t) => t.startsWith("elevenlabs."));
     expect(elevenlabsTypes.length).toBeGreaterThan(0);
+    for (const nodeType of elevenlabsTypes) {
+      expect(everything.getNodePackageId(nodeType)).toBe("elevenlabs");
+    }
     for (const t of elevenlabsTypes) {
       expect(defaults.has(t)).toBe(false);
     }

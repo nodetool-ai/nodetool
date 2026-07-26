@@ -8,8 +8,9 @@ import {
   sdkNodeTypeInventoryOutput,
   type SdkNodeTypeInventoryInput
 } from "@nodetool-ai/protocol/api-schemas/nodes.js";
-import { getUnavailableBuiltinPackDiagnostics } from "./node-registry-setup.js";
-import { getPackSnapshot } from "./pack-snapshot.js";
+import { getUnavailableBuiltinPackDiagnostics } from "../node-registry-setup.js";
+import { getPackSnapshot } from "../pack-snapshot.js";
+import { isSdkWorkflowInterfaceV1Enabled } from "./sdk-feature-flags.js";
 
 export class SdkNodeTypeInventoryServiceError extends Error {
   constructor(message: string) {
@@ -37,7 +38,7 @@ export function getSdkNodeTypeInventory(args: {
   pythonBridgeReady: boolean;
   input: SdkNodeTypeInventoryInput;
 }): NodeTypeInventory {
-  if (process.env["NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1"] !== "1") {
+  if (!isSdkWorkflowInterfaceV1Enabled()) {
     throw new SdkNodeTypeInventoryServiceError(
       "SDK node/type inventory v1 is disabled"
     );

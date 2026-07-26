@@ -1,0 +1,42 @@
+{
+  "artifacts": [
+    {
+      "media_type": "application/vnd.aai.asyncapi+json;version=3.0",
+      "path": "sdk-v1.asyncapi.json",
+      "profile": "discovery",
+      "sha256": "ae9450d4c080d002d5701dfd9a1fe6148708e5b1f054444d55de18053b8367ce"
+    },
+    {
+      "media_type": "application/vnd.oai.openapi+json;version=3.1",
+      "path": "sdk-v1.openapi.json",
+      "profile": "discovery",
+      "sha256": "f32c97399cfd2de511a92e3f4f99244a9afd49ee5b4ee5d4f5c7cae199139c84"
+    },
+    {
+      "media_type": "application/schema+json",
+      "path": "sdk-v1.lifecycle.schema.json",
+      "profile": "lifecycle-draft",
+      "sha256": "637dfa54390be2e7a8aab3b7d7ef16cb85ccca10fc7cce368336cef1af20c3b5"
+    },
+    {
+      "media_type": "application/schema+json",
+      "path": "sdk-v1.discovery.schema.json",
+      "profile": "discovery",
+      "sha256": "c012ff82562e22911cc757a51861a77357c9e9768b38dd9ef4bd089496586daa"
+    }
+  ],
+  "default_websocket_encoding": "messagepack",
+  "generated_from": "@nodetool-ai/protocol",
+  "manifest_version": 1,
+  "optional_profiles": [
+    "assets",
+    "jobs",
+    "agent",
+    "offline-bundles"
+  ],
+  "protocol_version": "1",
+  "public_profiles": [
+    "discovery"
+  ],
+  "status": "draft"
+}

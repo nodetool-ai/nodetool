@@ -367,7 +367,7 @@ describe("workflows router", () => {
     });
 
     it("returns only compact identity and revision fields", async () => {
-      vi.stubEnv("NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
+      vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
       (
         Workflow.paginateSummaries as ReturnType<typeof vi.fn>
       ).mockResolvedValue([
@@ -411,7 +411,7 @@ describe("workflows router", () => {
     });
 
     it("is unavailable while the SDK feature flag is disabled", async () => {
-      vi.stubEnv("NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
+      vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
       const caller = createCaller(makeCtx());
 
       await expect(
@@ -424,7 +424,7 @@ describe("workflows router", () => {
     });
 
     it("derives a compact authoritative interface when enabled", async () => {
-      vi.stubEnv("NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
+      vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
       const wf = makeWorkflow({
         id: "wf-1",
         graph: {
@@ -500,7 +500,7 @@ describe("workflows router", () => {
     });
 
     it("derives a bounded interface batch without per-workflow lookups", async () => {
-      vi.stubEnv("NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
+      vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
       const first = makeWorkflow({ id: "wf-1" });
       const second = makeWorkflow({ id: "wf-2" });
       (Workflow.getManyByIds as ReturnType<typeof vi.fn>).mockResolvedValue(

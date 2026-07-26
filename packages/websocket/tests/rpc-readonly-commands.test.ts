@@ -254,7 +254,7 @@ describe("RPC read-only commands", () => {
 
   describe("SDK workflow interface commands", () => {
     beforeEach(() => {
-      vi.stubEnv("NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
+      vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
     });
 
     afterEach(() => {
@@ -374,7 +374,7 @@ describe("RPC read-only commands", () => {
     });
 
     it("reports the feature flag state through the correlated error", async () => {
-      vi.stubEnv("NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
+      vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
 
       const out = await runOne(ws, runner, {
         command: "get_workflow_interface",

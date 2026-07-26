@@ -13,7 +13,7 @@ import {
   sdkNodeTypeInventoryOutput
 } from "@nodetool-ai/protocol/api-schemas/nodes.js";
 import type { NodeMetadata } from "@nodetool-ai/node-sdk";
-import { getSdkNodeTypeInventory } from "../../sdk-node-type-inventory-service.js";
+import { getSdkNodeTypeInventory } from "../../sdk/sdk-node-type-inventory-service.js";
 
 type NodeMetaOut = {
   node_type: string;

@@ -13,6 +13,7 @@ import {
   type WorkflowInterfaceV1Response,
   type WorkflowInterfacesOutput
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import { isSdkWorkflowInterfaceV1Enabled } from "./sdk/sdk-feature-flags.js";
 
 export type WorkflowInterfaceServiceErrorCode =
   | "feature_disabled"
@@ -67,8 +68,32 @@ function deriveCachedWorkflowInterface(
   return result;
 }
 
+export function deriveWorkflowInterfaceSourceV1(args: {
+  readonly workflow: Workflow;
+  readonly registry: NodeRegistry;
+}): {
+  graph: Parameters<typeof deriveWorkflowInterfaceV1>[0]["graph"];
+  workflowInterface: WorkflowInterfaceV1Response;
+} {
+  const graph = graphSchema.safeParse(args.workflow.graph);
+  if (!graph.success) {
+    throw new WorkflowInterfaceServiceError(
+      "invalid_graph",
+      "Workflow graph is invalid"
+    );
+  }
+  return {
+    graph: graph.data,
+    workflowInterface: deriveCachedWorkflowInterface(
+      args.workflow,
+      graph.data,
+      args.registry
+    )
+  };
+}
+
 function requireFeature(): void {
-  if (process.env["NODETOOL_ENABLE_SDK_WORKFLOW_INTERFACE_V1"] !== "1") {
+  if (!isSdkWorkflowInterfaceV1Enabled()) {
     throw new WorkflowInterfaceServiceError(
       "feature_disabled",
       "SDK workflow interface v1 is disabled"
@@ -105,14 +130,10 @@ export async function getWorkflowInterfaceV1(args: {
 }): Promise<WorkflowInterfaceV1Response> {
   requireFeature();
   const workflow = await getAccessibleWorkflow(args.workflowId, args.userId);
-  const graph = graphSchema.safeParse(workflow.graph);
-  if (!graph.success) {
-    throw new WorkflowInterfaceServiceError(
-      "invalid_graph",
-      "Workflow graph is invalid"
-    );
-  }
-  return deriveCachedWorkflowInterface(workflow, graph.data, args.registry);
+  return deriveWorkflowInterfaceSourceV1({
+    workflow,
+    registry: args.registry
+  }).workflowInterface;
 }
 
 /** Derives up to 100 interfaces with bounded database queries and item errors. */

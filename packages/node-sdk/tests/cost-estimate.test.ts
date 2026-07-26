@@ -111,6 +111,24 @@ describe("estimateWorkflowCost", () => {
     expect(unknown?.quantity).toBe(1);
   });
 
+  it("omits only nodes explicitly identified as known non-billable", () => {
+    const estimate = estimateWorkflowCost({
+      nodes: [
+        { id: "input-1", type: "nodetool.input.StringInput" },
+        { id: "utility-1", type: "nodetool.string.Concat" },
+        { id: "unknown-1", type: LLM_TYPE }
+      ],
+      getMetadata,
+      isKnownNonBillable: (node) =>
+        node.type.startsWith("nodetool.input.") ||
+        node.type.startsWith("nodetool.string.")
+    });
+
+    expect(estimate.items.map((item) => item.node_id)).toEqual(["unknown-1"]);
+    expect(estimate.unknown_count).toBe(1);
+    expect(estimate.total).toBe(0);
+  });
+
   it("prices a generic node from its selected model field", () => {
     const estimate = estimateWorkflowCost({
       nodes: [
