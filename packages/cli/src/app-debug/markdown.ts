@@ -68,6 +68,45 @@ export function renderAppReportMarkdown(report: AppDebugReport): string {
     });
   }
 
+  const operations = report.spec?.operations ?? [];
+  if (operations.length > 0) {
+    lines.push("", "## Operations", "");
+    for (const op of operations) {
+      const timeout = op.timeoutMs != null ? `, timeout ${op.timeoutMs}ms` : "";
+      const state = op.unavailable ? ` — ⚠ ${op.unavailable}` : "";
+      lines.push(
+        `- \`${op.id}\` → workflow \`${op.workflowId || "(host)"}\` (policy ${op.policy}${timeout})${state}`
+      );
+    }
+  }
+
+  if (report.invocations.length > 0) {
+    lines.push("", "## Invocations", "");
+    lines.push("| Invocation | Operation | Decision | Status | Run |");
+    lines.push("| --- | --- | --- | --- | --- |");
+    for (const inv of report.invocations) {
+      const decision =
+        inv.decisionTargets.length > 0
+          ? `${inv.decision} (${inv.decisionTargets.join(", ")})`
+          : inv.decision;
+      const status = inv.timedOutMs != null
+        ? `timed out after ${inv.timedOutMs}ms`
+        : inv.status;
+      lines.push(
+        `| ${inv.id} | ${inv.operationId} | ${decision} | ${status} | ${
+          inv.runIndex != null ? inv.runIndex + 1 : "—"
+        } |`
+      );
+    }
+  }
+
+  if (report.activity.length > 0) {
+    lines.push("", "## Activity", "");
+    for (const entry of report.activity) {
+      lines.push(`- ${entry.operationId} (${entry.invocationId}): ${short(entry.label)}`);
+    }
+  }
+
   if (report.widgets.length > 0) {
     lines.push("", "## Widget state", "");
     lines.push("| Widget | Mode | Binding | Value |");
@@ -83,6 +122,14 @@ export function renderAppReportMarkdown(report: AppDebugReport): string {
   if (values.length > 0) {
     lines.push("", "## Final values", "");
     for (const [key, value] of values) {
+      lines.push(`- \`${key}\`: ${short(value, 300)}`);
+    }
+  }
+
+  const variables = Object.entries(report.variables);
+  if (variables.length > 0) {
+    lines.push("", "## Variables", "");
+    for (const [key, value] of variables) {
       lines.push(`- \`${key}\`: ${short(value, 300)}`);
     }
   }
