@@ -62,6 +62,7 @@ import { withWorkflowSpan } from "@nodetool-ai/runtime/tracing";
 import { isControlEdge, isDataEdge } from "@nodetool-ai/protocol";
 import { Graph, GraphValidationError } from "./graph.js";
 import { rewriteBypassedNodes } from "./graph-utils.js";
+import { dynamicSlotPropertyTypes } from "./dynamic-slots.js";
 import { NodeInbox } from "./inbox.js";
 import { NodeActor, type NodeExecutor } from "./actor.js";
 import { syntheticEdgeId } from "./edge-ids.js";
@@ -1994,8 +1995,14 @@ export class WorkflowRunner {
   ): Record<string, Record<string, unknown>> {
     const result: Record<string, Record<string, unknown>> = {};
 
-    const propTypes = (node.propertyTypes ?? {}) as Record<string, string>;
     const props = (node.properties ?? {}) as Record<string, unknown>;
+    const slotTypes = dynamicSlotPropertyTypes(node.dynamic_inputs);
+    // Declared dynamic slots type their handles; the registry map wins on a
+    // name collision.
+    const propTypes: Record<string, string> = {
+      ...slotTypes,
+      ...((node.propertyTypes ?? {}) as Record<string, string>)
+    };
 
     // Build the schema from registry-declared property types so the LLM sees
     // every argument the node accepts, even when the node has no saved values.
@@ -2027,7 +2034,8 @@ export class WorkflowRunner {
         jsonType = "boolean";
       }
 
-      const meta = node.propertyMeta?.[name] as
+      const slot = node.dynamic_inputs?.[name];
+      const meta = (node.propertyMeta?.[name] ?? slot) as
         | { description?: string; min?: number; max?: number }
         | undefined;
       result[name] = {

@@ -50,7 +50,15 @@ export {
   type EmitOptions
 } from "./io.js";
 export {
+  applyDynamicSlotTypes,
+  dynamicSlotPropertyTypes,
+  dynamicSlotTypeErrorMessage,
+  dynamicSlotTypeString,
+  getDynamicSlotTypeString
+} from "./dynamic-slots.js";
+export {
   findNodeOrThrow,
+  getInputTypeString,
   getNodeInputTypes,
   getDownstreamSubgraph,
   isNodeBypassed,

@@ -475,3 +475,50 @@ describe("topologicalSort", () => {
     expect(flat).toEqual(["b", "a"]);
   });
 });
+
+// ---------------------------------------------------------------------------
+// 12. Legacy untyped dynamic slots (no dynamic_inputs) behave as before
+// ---------------------------------------------------------------------------
+
+describe("legacy dynamic_properties without dynamic_inputs", () => {
+  it("runs unchanged: values pass through uncoerced and unchecked", async () => {
+    const nodes: NodeDescriptor[] = [
+      { id: "src", type: "test.Source" },
+      {
+        id: "dyn",
+        type: "test.Dynamic",
+        supports_dynamic_inputs: true,
+        properties: { declared: "base" },
+        // Types that a typed slot would reject or wrap: a string where a
+        // list would be, a float, a raw object. All must arrive verbatim.
+        dynamic_properties: {
+          text: "plain",
+          count: 1.5,
+          blob: { type: "image", uri: "u" }
+        }
+      }
+    ];
+    const edges: Edge[] = [de("src", "output", "dyn", "wired")];
+
+    let received: Record<string, unknown> | null = null;
+    const runner = new WorkflowRunner("legacy-dyn", {
+      resolveExecutor: (node) => ({
+        async process(inputs) {
+          if (node.id === "dyn") received = { ...inputs };
+          return node.id === "src" ? { output: 7 } : {};
+        }
+      })
+    });
+
+    const result = await runner.run({ job_id: "legacy-dyn" }, { nodes, edges });
+
+    expect(result.status).toBe("completed");
+    expect(received).toEqual({
+      declared: "base",
+      text: "plain",
+      count: 1.5,
+      blob: { type: "image", uri: "u" },
+      wired: 7
+    });
+  });
+});
