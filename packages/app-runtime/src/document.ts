@@ -292,6 +292,52 @@ export const parseApplicationDocument = (
   return null;
 };
 
+/**
+ * A workflow row carrying a legacy `app_doc`. Structural so callers in the
+ * server, the migration, and the CLI can pass their own workflow types.
+ */
+export interface LegacyAppDocHost {
+  id: string;
+  app_doc?: unknown;
+}
+
+/**
+ * Lift a legacy `workflow.app_doc` into a standalone {@link ApplicationDocument}
+ * ready to insert as an application row. Returns null when the workflow carries
+ * no document or the stored value cannot be parsed.
+ *
+ * `app_doc` is stored as JSON text in some databases and as an object in
+ * others, so both are accepted. The workflow's id becomes the host id: v1/v2
+ * documents get a single operation bound to it, and v3 operations that ship
+ * without a workflow (templates, which have no id until installed) bind to it.
+ */
+export const liftLegacyAppDoc = (
+  workflow: LegacyAppDocHost | null | undefined
+): ApplicationDocument | null => {
+  const raw = workflow?.app_doc;
+  if (raw === null || raw === undefined || raw === "") return null;
+  const hostWorkflowId = workflow?.id ?? "";
+
+  let value: unknown = raw;
+  if (typeof raw === "string") {
+    try {
+      value = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  const document = parseApplicationDocument(value, { hostWorkflowId });
+  if (!document) return null;
+
+  return {
+    ...document,
+    operations: document.operations.map((op) =>
+      op.workflowId ? op : { ...op, workflowId: hostWorkflowId }
+    )
+  };
+};
+
 /** True when the document has at least one placed component. */
 export const isRenderableUi = (ui: PuckData | null | undefined): ui is PuckData =>
   Boolean(ui && Array.isArray(ui.content) && ui.content.length > 0);
