@@ -31,15 +31,16 @@ export function matchesFileWatchPattern(
   pattern: string
 ): boolean {
   if (pattern === "*") return true;
-  const regex = new RegExp(
-    "^" +
-      pattern
-        .replace(/\./g, "\\.")
-        .replace(/\*/g, ".*")
-        .replace(/\?/g, ".") +
-      "$"
-  );
-  return regex.test(filename);
+  // Escape every regex metacharacter first, then reinstate the two glob
+  // wildcards from their escaped forms. Escaping only "." would leave the
+  // rest live: "\d" would match any digit instead of a literal backslash,
+  // and an unbalanced "(" would throw at watch time rather than simply
+  // failing to match.
+  const source = pattern
+    .replace(/[\\^$.*+?()[\]{}|]/g, "\\$&")
+    .replace(/\\\*/g, ".*")
+    .replace(/\\\?/g, ".");
+  return new RegExp(`^${source}$`).test(filename);
 }
 
 /**
