@@ -1,0 +1,222 @@
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { initTestDb, ModelObserver, TriggerRegistration } from "@nodetool-ai/models";
+import { TriggerWakeupService } from "@nodetool-ai/kernel";
+import {
+  createFileWatchState,
+  runFileWatchSweepOnce,
+  startFileWatch,
+  stopFileWatch
+} from "../src/triggers/file-watch.js";
+
+function mkTmpDir(): string {
+  return fs.mkdtempSync(path.join(os.tmpdir(), "nodetool-file-watch-test-"));
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitFor(
+  predicate: () => boolean,
+  timeoutMs = 2_000,
+  stepMs = 20
+): Promise<void> {
+  const start = Date.now();
+  while (!predicate()) {
+    if (Date.now() - start > timeoutMs) {
+      throw new Error("waitFor timed out");
+    }
+    await sleep(stepMs);
+  }
+}
+
+async function makeRegistration(
+  overrides: Partial<{
+    config: Record<string, unknown>;
+    enabled: number;
+    workflowId: string;
+    nodeId: string;
+  }> = {}
+): Promise<TriggerRegistration> {
+  return (await TriggerRegistration.create<TriggerRegistration>({
+    user_id: "user-1",
+    workflow_id: overrides.workflowId ?? "wf-1",
+    node_id: overrides.nodeId ?? "n1",
+    kind: "file_watch",
+    config_json: overrides.config ?? {},
+    enabled: overrides.enabled ?? 1
+  })) as TriggerRegistration;
+}
+
+describe("file-watch adapter", () => {
+  let tmpDir: string;
+  let state: ReturnType<typeof createFileWatchState>;
+
+  beforeEach(() => {
+    initTestDb();
+    tmpDir = mkTmpDir();
+    state = createFileWatchState();
+  });
+
+  afterEach(() => {
+    stopFileWatch(state);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    ModelObserver.clear();
+    vi.useRealTimers();
+  });
+
+  describe("runFileWatchSweepOnce", () => {
+    it("delivers a created event with {event, path} when a matching file appears", async () => {
+      const registration = await makeRegistration({
+        config: { path: tmpDir, patterns: ["*.txt"], debounce_seconds: 0 }
+      });
+      const wakeupService = new TriggerWakeupService();
+      const deliverSpy = vi.spyOn(wakeupService, "deliverTriggerInput");
+
+      await runFileWatchSweepOnce(state, { wakeupService });
+
+      const filePath = path.join(tmpDir, "a.txt");
+      fs.writeFileSync(filePath, "hello");
+
+      await waitFor(() => deliverSpy.mock.calls.length > 0);
+
+      const call = deliverSpy.mock.calls[0][0];
+      expect(call.runId).toBe(registration.workflow_id);
+      expect(call.nodeId).toBe(registration.node_id);
+      expect(call.payload).toMatchObject({
+        event: "created",
+        path: filePath
+      });
+    });
+
+    it("ignores a file matched by an ignore pattern", async () => {
+      await makeRegistration({
+        config: {
+          path: tmpDir,
+          patterns: ["*"],
+          ignore_patterns: ["*.log"],
+          debounce_seconds: 0
+        }
+      });
+      const wakeupService = new TriggerWakeupService();
+      const deliverSpy = vi.spyOn(wakeupService, "deliverTriggerInput");
+
+      await runFileWatchSweepOnce(state, { wakeupService });
+
+      fs.writeFileSync(path.join(tmpDir, "ignored.log"), "x");
+      // Give the (non-)event time to arrive if it were going to.
+      await sleep(200);
+
+      expect(deliverSpy).not.toHaveBeenCalled();
+    });
+
+    it("debounces repeated events for the same path", async () => {
+      await makeRegistration({
+        config: { path: tmpDir, patterns: ["*.txt"], debounce_seconds: 5 }
+      });
+      const wakeupService = new TriggerWakeupService();
+      const deliverSpy = vi.spyOn(wakeupService, "deliverTriggerInput");
+
+      await runFileWatchSweepOnce(state, { wakeupService });
+
+      const filePath = path.join(tmpDir, "b.txt");
+      fs.writeFileSync(filePath, "1");
+      await waitFor(() => deliverSpy.mock.calls.length > 0);
+      expect(deliverSpy).toHaveBeenCalledTimes(1);
+
+      // A second write within the debounce window must be suppressed.
+      fs.writeFileSync(filePath, "2");
+      await sleep(200);
+      expect(deliverSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("closes the watcher for a registration that becomes disabled", async () => {
+      const registration = await makeRegistration({
+        config: { path: tmpDir, patterns: ["*.txt"], debounce_seconds: 0 }
+      });
+      const wakeupService = new TriggerWakeupService();
+      const deliverSpy = vi.spyOn(wakeupService, "deliverTriggerInput");
+
+      await runFileWatchSweepOnce(state, { wakeupService });
+      expect(state.has(registration.id)).toBe(true);
+
+      registration.enabled = 0;
+      await registration.save();
+      await runFileWatchSweepOnce(state, { wakeupService });
+
+      expect(state.has(registration.id)).toBe(false);
+
+      fs.writeFileSync(path.join(tmpDir, "after-disable.txt"), "x");
+      await sleep(200);
+
+      expect(deliverSpy).not.toHaveBeenCalled();
+    });
+
+    it("skips a registration whose path does not exist and records last_error", async () => {
+      const missingPath = path.join(tmpDir, "does-not-exist");
+      const registration = await makeRegistration({
+        config: { path: missingPath }
+      });
+      const wakeupService = new TriggerWakeupService();
+
+      await runFileWatchSweepOnce(state, { wakeupService });
+
+      expect(state.has(registration.id)).toBe(false);
+      const updated = (await TriggerRegistration.get(
+        registration.id
+      )) as TriggerRegistration;
+      expect(updated.last_error).toContain(missingPath);
+    });
+
+    it("never watches a disabled registration", async () => {
+      const registration = await makeRegistration({
+        config: { path: tmpDir },
+        enabled: 0
+      });
+      const wakeupService = new TriggerWakeupService();
+
+      await runFileWatchSweepOnce(state, { wakeupService });
+
+      expect(state.has(registration.id)).toBe(false);
+    });
+  });
+
+  describe("startFileWatch", () => {
+    it("watches on start and stops watching once the handle is called", async () => {
+      const registration = await makeRegistration({
+        config: {
+          path: tmpDir,
+          patterns: ["*.txt"],
+          // A single writeFileSync fires both a "rename" (create) and a
+          // "change" (content write) native fs event; restrict to "created"
+          // so this test's call count reflects one logical file appearing.
+          events: ["created"],
+          debounce_seconds: 0
+        }
+      });
+      const wakeupService = new TriggerWakeupService();
+      const deliverSpy = vi.spyOn(wakeupService, "deliverTriggerInput");
+
+      const stop = startFileWatch({ wakeupService, intervalMs: 50 });
+      try {
+        // Sweep runs synchronously on start; give fs.watch a beat to attach.
+        await sleep(50);
+
+        fs.writeFileSync(path.join(tmpDir, "c.txt"), "1");
+        await waitFor(() => deliverSpy.mock.calls.length > 0);
+        expect(deliverSpy).toHaveBeenCalledTimes(1);
+      } finally {
+        stop();
+      }
+
+      const callsAtStop = deliverSpy.mock.calls.length;
+      fs.writeFileSync(path.join(tmpDir, "d.txt"), "1");
+      await sleep(200);
+      expect(deliverSpy.mock.calls.length).toBe(callsAtStop);
+      void registration;
+    });
+  });
+});

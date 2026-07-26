@@ -8,6 +8,10 @@ import * as fs from "fs";
 import * as path from "path";
 import * as http from "http";
 import { URL } from "url";
+import {
+  FileWatchDebouncer,
+  shouldEmitFileWatchEvent
+} from "../lib/file-watch-match.js";
 
 // Minimum wait time in seconds to prevent tight loops when drift compensation
 // causes wait_time to be near zero.
@@ -772,44 +776,11 @@ export class FileWatchTriggerNode extends BaseNode {
     }
 
     const queue = new AsyncQueue<Record<string, unknown>>();
-    const lastEvents = new Map<string, number>();
-
-    const matchesPattern = (filename: string, pattern: string): boolean => {
-      if (pattern === "*") return true;
-      // Convert glob to regex: *.txt -> ^.*\.txt$
-      const regex = new RegExp(
-        "^" +
-          pattern
-            .replace(/\./g, "\\.")
-            .replace(/\*/g, ".*")
-            .replace(/\?/g, ".") +
-          "$"
-      );
-      return regex.test(filename);
-    };
-
-    const shouldProcess = (filePath: string): boolean => {
-      const filename = path.basename(filePath);
-
-      // Check ignore patterns
-      for (const p of ignorePatterns) {
-        if (matchesPattern(filename, p)) return false;
-      }
-
-      // Check include patterns
-      for (const p of patterns) {
-        if (matchesPattern(filename, p)) return true;
-      }
-
-      return false;
-    };
-
-    const debounce = (filePath: string): boolean => {
-      const now = Date.now();
-      const last = lastEvents.get(filePath) ?? 0;
-      if (now - last < debounceMs) return true;
-      lastEvents.set(filePath, now);
-      return false;
+    const debouncer = new FileWatchDebouncer(debounceMs);
+    const filter = {
+      patterns,
+      ignorePatterns,
+      events: watchEvents
     };
 
     const emitEvent = (
@@ -817,9 +788,9 @@ export class FileWatchTriggerNode extends BaseNode {
       filePath: string,
       isDirectory: boolean
     ) => {
-      if (!watchEvents.includes(eventType)) return;
-      if (!shouldProcess(filePath)) return;
-      if (debounce(filePath)) return;
+      if (!shouldEmitFileWatchEvent(eventType, filePath, filter, debouncer)) {
+        return;
+      }
 
       queue.push({
         event: eventType,
