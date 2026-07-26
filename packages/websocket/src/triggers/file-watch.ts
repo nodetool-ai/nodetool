@@ -565,13 +565,22 @@ export function startFileWatch(opts: StartFileWatchOptions): FileWatchHandle {
   const intervalMs = opts.intervalMs ?? DEFAULT_SWEEP_INTERVAL_MS;
   const state = createFileWatchState();
 
+  let stopped = false;
+
   const sweep = (): void => {
-    void runFileWatchSweepOnce(state, opts).catch((err) => {
-      log.warn(
-        "File-watch sweep failed",
-        err instanceof Error ? err : new Error(String(err))
-      );
-    });
+    void runFileWatchSweepOnce(state, opts)
+      .catch((err) => {
+        log.warn(
+          "File-watch sweep failed",
+          err instanceof Error ? err : new Error(String(err))
+        );
+      })
+      .finally(() => {
+        // A sweep still in flight when the handle was called would otherwise
+        // attach its watchers into an already-emptied state map and leak them
+        // past shutdown, delivering events into the next process life.
+        if (stopped) void stopFileWatch(state);
+      });
   };
 
   sweep();
@@ -581,6 +590,7 @@ export function startFileWatch(opts: StartFileWatchOptions): FileWatchHandle {
   }
 
   return async () => {
+    stopped = true;
     clearInterval(timer);
     await stopFileWatch(state);
   };

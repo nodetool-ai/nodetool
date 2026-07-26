@@ -81,6 +81,10 @@ function isUniqueConstraintError(err: unknown): boolean {
  * `TriggerInputStore` over the `trigger_inputs` table.
  */
 export class DrizzleTriggerInputStore implements TriggerInputStore {
+  async has(inputId: string): Promise<boolean> {
+    return (await TriggerInput.findByInputId(inputId)) !== null;
+  }
+
   async insertIfAbsent(input: TriggerInputRecord): Promise<boolean> {
     if (await TriggerInput.findByInputId(input.inputId)) return false;
     try {
@@ -143,6 +147,22 @@ export class DrizzleTriggerInputStore implements TriggerInputStore {
       await new TriggerInput(row as Record<string, unknown>).delete();
     }
     return rows.length;
+  }
+
+  async hasInputsFor(runId: string, nodeId: string): Promise<boolean> {
+    const row = await getDb().query.triggerInputs.findFirst({
+      where: (t, { and, eq }) => and(eq(t.run_id, runId), eq(t.node_id, nodeId))
+    });
+    return row !== undefined;
+  }
+
+  async deleteRun(runId: string): Promise<void> {
+    const rows = await getDb().query.triggerInputs.findMany({
+      where: (t, { eq }) => eq(t.run_id, runId)
+    });
+    for (const row of rows) {
+      await new TriggerInput(row as Record<string, unknown>).delete();
+    }
   }
 }
 

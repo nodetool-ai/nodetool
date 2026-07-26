@@ -10,6 +10,7 @@ import {
 } from "@nodetool-ai/models";
 import {
   DurableInbox,
+  TriggerWakeupService,
   type DurableInboxStore,
   type TriggerInputStore,
   type TriggerInput as KernelTriggerInput
@@ -54,6 +55,68 @@ describe("DrizzleTriggerInputStore", () => {
     expect(typeof store.findUnprocessed).toBe("function");
     expect(typeof store.markProcessed).toBe("function");
     expect(typeof store.cleanupProcessed).toBe("function");
+    expect(typeof store.has).toBe("function");
+    expect(typeof store.hasInputsFor).toBe("function");
+    expect(typeof store.deleteRun).toBe("function");
+  });
+
+  it("has() answers for processed and unprocessed rows alike", async () => {
+    const store = new DrizzleTriggerInputStore();
+    expect(await store.has("i1")).toBe(false);
+    await store.insertIfAbsent(input());
+    expect(await store.has("i1")).toBe(true);
+    await store.markProcessed("i1");
+    expect(await store.has("i1")).toBe(true);
+  });
+
+  it("hasInputsFor() and deleteRun() scope to the run", async () => {
+    const store = new DrizzleTriggerInputStore();
+    await store.insertIfAbsent(input({ inputId: "a" }));
+    await store.insertIfAbsent(input({ inputId: "b", runId: "r2" }));
+
+    expect(await store.hasInputsFor("r1", "n1")).toBe(true);
+    expect(await store.hasInputsFor("r1", "n2")).toBe(false);
+
+    await store.deleteRun("r1");
+    expect(await store.hasInputsFor("r1", "n1")).toBe(false);
+    expect(await store.hasInputsFor("r2", "n1")).toBe(true);
+  });
+
+  it("backs a TriggerWakeupService so delivered events land in trigger_inputs", async () => {
+    const service = new TriggerWakeupService(
+      new DrizzleDurableInboxStore(),
+      new DrizzleTriggerInputStore()
+    );
+
+    expect(
+      await service.deliverTriggerInput({
+        runId: "wf-1",
+        nodeId: "node-1",
+        inputId: "evt-1",
+        payload: { hello: 1 }
+      })
+    ).toBe(true);
+
+    const row = await TriggerInput.findByInputId("evt-1");
+    expect(row).not.toBeNull();
+    expect(row?.run_id).toBe("wf-1");
+    expect(row?.node_id).toBe("node-1");
+    expect(row?.processed).toBe(0);
+    expect(row?.payload_json).toEqual({ hello: 1 });
+
+    // Idempotency now survives a fresh service over the same database.
+    const restarted = new TriggerWakeupService(
+      new DrizzleDurableInboxStore(),
+      new DrizzleTriggerInputStore()
+    );
+    expect(
+      await restarted.deliverTriggerInput({
+        runId: "wf-1",
+        nodeId: "node-1",
+        inputId: "evt-1",
+        payload: { hello: 2 }
+      })
+    ).toBe(false);
   });
 
   it("persists an input and reads it back unprocessed", async () => {

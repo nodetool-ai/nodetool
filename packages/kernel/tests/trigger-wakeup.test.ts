@@ -91,6 +91,93 @@ describe("MemoryTriggerInputStore", () => {
   });
 });
 
+describe("TriggerWakeupService — injected input store", () => {
+  it("writes every delivered input through the injected store, not a private memory one", async () => {
+    const store = new MemoryTriggerInputStore();
+    const svc = new TriggerWakeupService(undefined, store);
+
+    await svc.deliverTriggerInput({
+      runId: "r1",
+      nodeId: "n1",
+      inputId: "i1",
+      payload: { a: 1 }
+    });
+
+    expect(store.findUnprocessed("r1", "n1").map((i) => i.inputId)).toEqual([
+      "i1"
+    ]);
+    // The service reads back through the same store.
+    expect(await svc.getPendingInputs("r1", "n1")).toHaveLength(1);
+  });
+
+  it("dedupes, marks, cleans and disposes against the injected store", async () => {
+    const store = new MemoryTriggerInputStore();
+    const svc = new TriggerWakeupService(undefined, store);
+
+    await svc.deliverTriggerInput({
+      runId: "r1",
+      nodeId: "n1",
+      inputId: "i1",
+      payload: {}
+    });
+    // Idempotency is decided by the store, so a row inserted behind the
+    // service's back still dedupes.
+    store.insertIfAbsent(makeInput({ inputId: "i2" }));
+    expect(
+      await svc.deliverTriggerInput({
+        runId: "r1",
+        nodeId: "n1",
+        inputId: "i2",
+        payload: {}
+      })
+    ).toBe(false);
+
+    await svc.markProcessed("i1");
+    expect(store.findUnprocessed("r1", "n1").map((i) => i.inputId)).toEqual([
+      "i2"
+    ]);
+
+    await svc.disposeRun("r1");
+    expect(store.hasInputsFor("r1", "n1")).toBe(false);
+  });
+
+  it("works with an asynchronous store", async () => {
+    const backing = new MemoryTriggerInputStore();
+    const store: TriggerInputStore = {
+      has: async (id) => backing.has(id),
+      insertIfAbsent: async (i) => backing.insertIfAbsent(i),
+      findUnprocessed: async (r, n, l) => backing.findUnprocessed(r, n, l),
+      markProcessed: async (id) => backing.markProcessed(id),
+      cleanupProcessed: async (r, n, h) => backing.cleanupProcessed(r, n, h),
+      hasInputsFor: async (r, n) => backing.hasInputsFor(r, n),
+      deleteRun: async (r) => backing.deleteRun(r)
+    };
+    const svc = new TriggerWakeupService(undefined, store);
+
+    expect(
+      await svc.deliverTriggerInput({
+        runId: "r1",
+        nodeId: "n1",
+        inputId: "i1",
+        payload: { a: 1 }
+      })
+    ).toBe(true);
+    expect(
+      await svc.deliverTriggerInput({
+        runId: "r1",
+        nodeId: "n1",
+        inputId: "i1",
+        payload: { a: 2 }
+      })
+    ).toBe(false);
+    expect((await svc.getPendingInputs("r1", "n1")).map((i) => i.inputId)).toEqual(
+      ["i1"]
+    );
+    await svc.markProcessed("i1");
+    expect(await svc.getPendingInputs("r1", "n1")).toHaveLength(0);
+  });
+});
+
 describe("TriggerWakeupService", () => {
   it("deliverTriggerInput() stores input and returns true", async () => {
     const svc = new TriggerWakeupService();
@@ -104,7 +191,7 @@ describe("TriggerWakeupService", () => {
 
     expect(result).toBe(true);
 
-    const pending = svc.getPendingInputs("r1", "n1");
+    const pending = await svc.getPendingInputs("r1", "n1");
     expect(pending).toHaveLength(1);
     expect(pending[0].inputId).toBe("input-1");
     expect(pending[0].payload).toEqual({ event: "click" });
@@ -143,7 +230,7 @@ describe("TriggerWakeupService", () => {
       })
     ).rejects.toThrow(/transient/);
     // No marker was recorded, so nothing is pending yet.
-    expect(svc.getPendingInputs("r1", "n1")).toHaveLength(0);
+    expect(await svc.getPendingInputs("r1", "n1")).toHaveLength(0);
 
     // Retry succeeds — the input is now delivered rather than being swallowed
     // by a stale idempotency marker.
@@ -154,7 +241,7 @@ describe("TriggerWakeupService", () => {
       payload: { a: 1 }
     });
     expect(retry).toBe(true);
-    expect(svc.getPendingInputs("r1", "n1")).toHaveLength(1);
+    expect(await svc.getPendingInputs("r1", "n1")).toHaveLength(1);
   });
 
   it("dedupes two CONCURRENT deliveries of the same inputId", async () => {
@@ -178,7 +265,7 @@ describe("TriggerWakeupService", () => {
     ]);
     // Exactly one delivery is "new", and only one input is stored.
     expect([a, b].filter(Boolean)).toHaveLength(1);
-    expect(svc.getPendingInputs("r1", "n1")).toHaveLength(1);
+    expect(await svc.getPendingInputs("r1", "n1")).toHaveLength(1);
   });
 
   it("deliverTriggerInput() is idempotent — duplicate inputId returns false", async () => {
@@ -201,7 +288,7 @@ describe("TriggerWakeupService", () => {
     expect(second).toBe(false);
 
     // Only one input stored
-    const pending = svc.getPendingInputs("r1", "n1");
+    const pending = await svc.getPendingInputs("r1", "n1");
     expect(pending).toHaveLength(1);
   });
 
@@ -214,9 +301,9 @@ describe("TriggerWakeupService", () => {
       inputId: "i1",
       payload: {}
     });
-    svc.markProcessed("i1");
+    await svc.markProcessed("i1");
     // With a 0h cutoff, the processed input is purged and the inbox evicted.
-    svc.cleanupProcessed("run-1", "n1", 0);
+    await svc.cleanupProcessed("run-1", "n1", 0);
     // A fresh delivery for the same run works (idempotency marker was purged),
     // demonstrating no stale state blocks it.
     const again = await svc.deliverTriggerInput({
@@ -228,8 +315,8 @@ describe("TriggerWakeupService", () => {
     expect(again).toBe(true);
 
     // disposeRun clears everything for a run.
-    svc.disposeRun("run-1");
-    expect(svc.getPendingInputs("run-1", "n1")).toHaveLength(0);
+    await svc.disposeRun("run-1");
+    expect(await svc.getPendingInputs("run-1", "n1")).toHaveLength(0);
   });
 
   it("getPendingInputs() returns unprocessed inputs", async () => {
@@ -255,11 +342,11 @@ describe("TriggerWakeupService", () => {
     });
 
     // Only inputs for n1
-    const pending = svc.getPendingInputs("r1", "n1");
+    const pending = await svc.getPendingInputs("r1", "n1");
     expect(pending).toHaveLength(2);
 
     // Different node
-    const pendingN2 = svc.getPendingInputs("r1", "n2");
+    const pendingN2 = await svc.getPendingInputs("r1", "n2");
     expect(pendingN2).toHaveLength(1);
   });
 
@@ -279,9 +366,9 @@ describe("TriggerWakeupService", () => {
       payload: { v: 2 }
     });
 
-    svc.markProcessed("i1");
+    await svc.markProcessed("i1");
 
-    const pending = svc.getPendingInputs("r1", "n1");
+    const pending = await svc.getPendingInputs("r1", "n1");
     expect(pending).toHaveLength(1);
     expect(pending[0].inputId).toBe("i2");
   });
@@ -296,17 +383,17 @@ describe("TriggerWakeupService", () => {
       payload: {}
     });
 
-    svc.markProcessed("i1");
+    await svc.markProcessed("i1");
 
     // Wait 1ms so processedAt is strictly in the past
     await new Promise((r) => setTimeout(r, 2));
 
     // olderThanHours=0 means cutoff = Date.now(), processedAt < now
-    const removed = svc.cleanupProcessed("r1", "n1", 0);
+    const removed = await svc.cleanupProcessed("r1", "n1", 0);
     expect(removed).toBe(1);
 
     // Nothing left to clean
-    const removed2 = svc.cleanupProcessed("r1", "n1", 0);
+    const removed2 = await svc.cleanupProcessed("r1", "n1", 0);
     expect(removed2).toBe(0);
   });
 
@@ -321,10 +408,10 @@ describe("TriggerWakeupService", () => {
     });
 
     // Not processed — should not be removed
-    const removed = svc.cleanupProcessed("r1", "n1", 0);
+    const removed = await svc.cleanupProcessed("r1", "n1", 0);
     expect(removed).toBe(0);
 
-    const pending = svc.getPendingInputs("r1", "n1");
+    const pending = await svc.getPendingInputs("r1", "n1");
     expect(pending).toHaveLength(1);
   });
 });
@@ -422,7 +509,7 @@ describe("TriggerWakeupService — getPendingInputs filtering", () => {
         payload: {}
       });
     }
-    expect(svc.getPendingInputs("r1", "n1", 2)).toHaveLength(2);
+    expect(await svc.getPendingInputs("r1", "n1", 2)).toHaveLength(2);
   });
 
   it("filters by runId", async () => {
@@ -439,7 +526,7 @@ describe("TriggerWakeupService — getPendingInputs filtering", () => {
       inputId: "i2",
       payload: {}
     });
-    expect(svc.getPendingInputs("r1", "n1").map((i) => i.inputId)).toEqual([
+    expect((await svc.getPendingInputs("r1", "n1")).map((i) => i.inputId)).toEqual([
       "i1"
     ]);
   });
@@ -460,8 +547,8 @@ describe("TriggerWakeupService — markProcessed targeting", () => {
       inputId: "i2",
       payload: {}
     });
-    svc.markProcessed("i2");
-    expect(svc.getPendingInputs("r1", "n1").map((i) => i.inputId)).toEqual([
+    await svc.markProcessed("i2");
+    expect((await svc.getPendingInputs("r1", "n1")).map((i) => i.inputId)).toEqual([
       "i1"
     ]);
   });
@@ -474,8 +561,8 @@ describe("TriggerWakeupService — markProcessed targeting", () => {
       inputId: "i1",
       payload: {}
     });
-    expect(() => svc.markProcessed("nope")).not.toThrow();
-    expect(svc.getPendingInputs("r1", "n1")).toHaveLength(1);
+    await expect(svc.markProcessed("nope")).resolves.toBeUndefined();
+    expect(await svc.getPendingInputs("r1", "n1")).toHaveLength(1);
   });
 });
 
@@ -509,17 +596,17 @@ describe("TriggerWakeupService — cleanupProcessed details", () => {
         inputId: "unprocessed",
         payload: {}
       });
-      svc.markProcessed("match");
-      svc.markProcessed("otherRun");
-      svc.markProcessed("otherNode");
+      await svc.markProcessed("match");
+      await svc.markProcessed("otherRun");
+      await svc.markProcessed("otherNode");
 
       vi.setSystemTime(new Date("2024-01-02T00:00:00Z")); // a day later
 
-      expect(svc.cleanupProcessed("r1", "n1", 1)).toBe(1); // only "match"
+      expect(await svc.cleanupProcessed("r1", "n1", 1)).toBe(1); // only "match"
       // The others were untouched, so they are still individually removable.
-      expect(svc.cleanupProcessed("r2", "n1", 1)).toBe(1); // otherRun
-      expect(svc.cleanupProcessed("r1", "n2", 1)).toBe(1); // otherNode
-      expect(svc.getPendingInputs("r1", "n1").map((i) => i.inputId)).toEqual([
+      expect(await svc.cleanupProcessed("r2", "n1", 1)).toBe(1); // otherRun
+      expect(await svc.cleanupProcessed("r1", "n2", 1)).toBe(1); // otherNode
+      expect((await svc.getPendingInputs("r1", "n1")).map((i) => i.inputId)).toEqual([
         "unprocessed"
       ]);
     } finally {
@@ -538,10 +625,10 @@ describe("TriggerWakeupService — cleanupProcessed details", () => {
         inputId: "i1",
         payload: {}
       });
-      svc.markProcessed("i1"); // processedAt = 00:00
+      await svc.markProcessed("i1"); // processedAt = 00:00
       vi.setSystemTime(new Date("2024-01-01T00:30:00Z")); // 30 min later
       // threshold 2h => cutoff 22:30 yesterday; processed at 00:00 is newer
-      expect(svc.cleanupProcessed("r1", "n1", 2)).toBe(0);
+      expect(await svc.cleanupProcessed("r1", "n1", 2)).toBe(0);
     } finally {
       vi.useRealTimers();
     }
@@ -558,10 +645,10 @@ describe("TriggerWakeupService — cleanupProcessed details", () => {
         inputId: "i1",
         payload: {}
       });
-      svc.markProcessed("i1"); // processedAt = T0
+      await svc.markProcessed("i1"); // processedAt = T0
       vi.setSystemTime(new Date("2024-01-01T01:00:00Z")); // +1h
       // cutoff = now - 1h = T0 exactly; the comparison is strict `<`
-      expect(svc.cleanupProcessed("r1", "n1", 1)).toBe(0);
+      expect(await svc.cleanupProcessed("r1", "n1", 1)).toBe(0);
     } finally {
       vi.useRealTimers();
     }

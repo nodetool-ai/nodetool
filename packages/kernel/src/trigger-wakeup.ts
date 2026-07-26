@@ -37,6 +37,8 @@ export interface TriggerInput {
  * server package, which is the only layer allowed to depend on the models.
  */
 export interface TriggerInputStore {
+  /** Whether an input with this id was already stored (processed or not). */
+  has(inputId: string): boolean | Promise<boolean>;
   /** Store an input; false when one with the same inputId already exists. */
   insertIfAbsent(input: TriggerInput): boolean | Promise<boolean>;
   /** Unprocessed inputs for a (run, node), oldest first. */
@@ -53,17 +55,22 @@ export interface TriggerInputStore {
     nodeId: string,
     olderThanHours?: number
   ): number | Promise<number>;
+  /** Whether any input (processed or not) remains for a (run, node). */
+  hasInputsFor(runId: string, nodeId: string): boolean | Promise<boolean>;
+  /** Drop every input belonging to a run. */
+  deleteRun(runId: string): void | Promise<void>;
 }
 
 /**
  * In-memory trigger input store — the default, and all a single-process run
- * needs. Beyond the interface it exposes the synchronous lookups
- * `TriggerWakeupService` needs to keep its own API synchronous.
+ * needs. Its methods answer synchronously; the interface allows that, and
+ * `TriggerWakeupService` awaits either way.
  */
 export class MemoryTriggerInputStore implements TriggerInputStore {
   // Stryker disable next-line ArrayDeclaration: a non-empty seed is equivalent — a bogus entry matches no runId/nodeId/inputId and is excluded by every query/filter
   private _inputs: TriggerInput[] = [];
 
+  /** Whether an input with this id was already stored. */
   has(inputId: string): boolean {
     return this._inputs.some((i) => i.inputId === inputId);
   }
@@ -118,9 +125,13 @@ export class MemoryTriggerInputStore implements TriggerInputStore {
 /**
  * Service for delivering trigger events and waking suspended workflows.
  * Stores trigger inputs durably and coordinates wakeup.
+ *
+ * Both stores are injectable and default to the in-memory implementations. The
+ * whole public API is `async` because a database-backed store cannot answer
+ * synchronously — callers must await even when the memory stores are in use.
  */
 export class TriggerWakeupService {
-  private _store = new MemoryTriggerInputStore();
+  private _store: TriggerInputStore;
   private _inboxStore: DurableInboxStore;
   /**
    * One DurableInbox per (runId, nodeId). DurableInbox.append() serializes its
@@ -139,8 +150,9 @@ export class TriggerWakeupService {
    */
   private _inflightInputIds = new Set<string>();
 
-  constructor(inboxStore?: DurableInboxStore) {
+  constructor(inboxStore?: DurableInboxStore, inputStore?: TriggerInputStore) {
     this._inboxStore = inboxStore ?? new MemoryDurableInboxStore();
+    this._store = inputStore ?? new MemoryTriggerInputStore();
   }
 
   private _inboxFor(runId: string, nodeId: string): DurableInbox {
@@ -166,73 +178,86 @@ export class TriggerWakeupService {
     payload: unknown;
     cursor?: string;
   }): Promise<boolean> {
-    // Idempotency check — against both the committed marker and any delivery
-    // of the same inputId whose durable append is still in flight.
-    if (
-      this._store.has(opts.inputId) ||
-      this._inflightInputIds.has(opts.inputId)
-    ) {
+    // Idempotency, part one: a concurrent delivery of the same inputId whose
+    // durable append is still in flight. This check and the matching `add` are
+    // the synchronous prefix of the method — nothing may await between them, or
+    // two concurrent deliveries both pass and both store an entry.
+    if (this._inflightInputIds.has(opts.inputId)) {
       // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.debug("Trigger input already exists (idempotent)", {
         inputId: opts.inputId
       });
       return false;
     }
-
-    const input: TriggerInput = {
-      runId: opts.runId,
-      nodeId: opts.nodeId,
-      inputId: opts.inputId,
-      payload: opts.payload,
-      cursor: opts.cursor,
-      processed: false,
-      createdAt: new Date()
-    };
-
-    // Durable append FIRST, then record the in-memory idempotency marker.
-    // Recording the marker before the append meant a transient append failure
-    // left the marker behind, so the caller's retry hit the idempotency check
-    // and returned early WITHOUT ever writing the durable message — the event
-    // was lost. The inbox dedupes by message id (`trigger-<inputId>`), so a
-    // concurrent double-append is safe. Reuse a cached DurableInbox per (run,
-    // node) so its per-instance append serialization applies across concurrent
-    // deliveries — a fresh instance per call would defeat it (see finding #9).
-    // The in-flight marker covers the await window; on failure it is cleared so
-    // a retry is not short-circuited.
-    const inbox = this._inboxFor(opts.runId, opts.nodeId);
     this._inflightInputIds.add(opts.inputId);
+
     try {
+      // Idempotency, part two: the committed marker in the store. With a
+      // database store this is the check that survives a restart.
+      if (await this._store.has(opts.inputId)) {
+        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+        log.debug("Trigger input already exists (idempotent)", {
+          inputId: opts.inputId
+        });
+        return false;
+      }
+
+      const input: TriggerInput = {
+        runId: opts.runId,
+        nodeId: opts.nodeId,
+        inputId: opts.inputId,
+        payload: opts.payload,
+        cursor: opts.cursor,
+        processed: false,
+        createdAt: new Date()
+      };
+
+      // Durable append FIRST, then record the idempotency marker in the store.
+      // Recording the marker before the append meant a transient append failure
+      // left the marker behind, so the caller's retry hit the idempotency check
+      // and returned early WITHOUT ever writing the durable message — the event
+      // was lost. The inbox dedupes by message id (`trigger-<inputId>`), so a
+      // concurrent double-append is safe. Reuse a cached DurableInbox per (run,
+      // node) so its per-instance append serialization applies across concurrent
+      // deliveries — a fresh instance per call would defeat it (see finding #9).
+      // The in-flight marker covers the whole await window; on failure it is
+      // cleared so a retry is not short-circuited.
+      const inbox = this._inboxFor(opts.runId, opts.nodeId);
       await inbox.append("trigger", opts.payload, `trigger-${opts.inputId}`);
+
+      await this._store.insertIfAbsent(input);
+
+      // Stryker disable next-line StringLiteral,ObjectLiteral,ConditionalExpression: diagnostic log args only (the cursor spread only affects log fields)
+      log.info("Stored trigger input", {
+        inputId: opts.inputId,
+        runId: opts.runId,
+        nodeId: opts.nodeId,
+        // Stryker disable next-line ObjectLiteral,ConditionalExpression: diagnostic log field only
+        ...(opts.cursor ? { cursor: opts.cursor } : {})
+      });
+
+      return true;
     } finally {
       this._inflightInputIds.delete(opts.inputId);
     }
-
-    this._store.insertIfAbsent(input);
-
-    // Stryker disable next-line StringLiteral,ObjectLiteral,ConditionalExpression: diagnostic log args only (the cursor spread only affects log fields)
-    log.info("Stored trigger input", {
-      inputId: opts.inputId,
-      runId: opts.runId,
-      nodeId: opts.nodeId,
-      // Stryker disable next-line ObjectLiteral,ConditionalExpression: diagnostic log field only
-      ...(opts.cursor ? { cursor: opts.cursor } : {})
-    });
-
-    return true;
   }
 
   /**
    * Get pending (unprocessed) trigger inputs for a node.
    */
-  getPendingInputs(runId: string, nodeId: string, limit = 100): TriggerInput[] {
+  async getPendingInputs(
+    runId: string,
+    nodeId: string,
+    limit = 100
+  ): Promise<TriggerInput[]> {
     return this._store.findUnprocessed(runId, nodeId, limit);
   }
 
   /**
    * Mark a trigger input as processed.
    */
-  markProcessed(inputId: string): void {
-    this._store.markProcessed(inputId);
+  async markProcessed(inputId: string): Promise<void> {
+    await this._store.markProcessed(inputId);
     // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
     log.debug("Marked trigger input as processed", { inputId });
   }
@@ -240,8 +265,16 @@ export class TriggerWakeupService {
   /**
    * Clean up processed trigger inputs older than specified hours.
    */
-  cleanupProcessed(runId: string, nodeId: string, olderThanHours = 24): number {
-    const removed = this._store.cleanupProcessed(runId, nodeId, olderThanHours);
+  async cleanupProcessed(
+    runId: string,
+    nodeId: string,
+    olderThanHours = 24
+  ): Promise<number> {
+    const removed = await this._store.cleanupProcessed(
+      runId,
+      nodeId,
+      olderThanHours
+    );
     // Stryker disable next-line ConditionalExpression,EqualityOperator,BlockStatement: the guard only gates a diagnostic log; `removed` is returned regardless
     if (removed > 0) {
       // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
@@ -254,7 +287,7 @@ export class TriggerWakeupService {
     // Evict the cached DurableInbox once no inputs remain for this (run, node),
     // otherwise _inboxes grows by one entry per run for the process lifetime
     // (runId is unique per run) even after cleanupProcessed purges the inputs.
-    if (!this._store.hasInputsFor(runId, nodeId)) {
+    if (!(await this._store.hasInputsFor(runId, nodeId))) {
       this._inboxes.delete(JSON.stringify([runId, nodeId]));
     }
     return removed;
@@ -265,8 +298,8 @@ export class TriggerWakeupService {
    * cached DurableInbox instances. Call when a run terminates so a long-lived
    * service does not accumulate per-run state indefinitely.
    */
-  disposeRun(runId: string): void {
-    this._store.deleteRun(runId);
+  async disposeRun(runId: string): Promise<void> {
+    await this._store.deleteRun(runId);
     for (const key of [...this._inboxes.keys()]) {
       const [keyRunId] = JSON.parse(key) as [string, string];
       if (keyRunId === runId) {

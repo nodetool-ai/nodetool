@@ -45,11 +45,11 @@ describe("TriggerWakeupService — inbox cache eviction", () => {
         inputId: "c",
         payload: {}
       });
-      svc.markProcessed("a");
+      await svc.markProcessed("a");
       vi.setSystemTime(new Date("2024-01-01T01:00:00Z"));
 
       // Act: purge (r1, n1) — its only input is processed, so nothing remains.
-      const removed = svc.cleanupProcessed("r1", "n1", 0);
+      const removed = await svc.cleanupProcessed("r1", "n1", 0);
 
       // Assert
       expect(removed).toBe(1);
@@ -84,15 +84,15 @@ describe("TriggerWakeupService — inbox cache eviction", () => {
         inputId: "c",
         payload: {}
       });
-      svc.markProcessed("a");
+      await svc.markProcessed("a");
       vi.setSystemTime(new Date("2024-01-01T01:00:00Z"));
 
       // Act
-      const removed = svc.cleanupProcessed("r1", "n1", 0);
+      const removed = await svc.cleanupProcessed("r1", "n1", 0);
 
       // Assert: "b" still belongs to (r1, n1), so its inbox must survive.
       expect(removed).toBe(1);
-      expect(svc.getPendingInputs("r1", "n1").map((i) => i.inputId)).toEqual([
+      expect((await svc.getPendingInputs("r1", "n1")).map((i) => i.inputId)).toEqual([
         "b"
       ]);
       expect(inboxKeys(svc)).toContain(key("r1", "n1"));
@@ -124,12 +124,12 @@ describe("TriggerWakeupService — inbox cache eviction", () => {
     });
 
     // Act
-    svc.disposeRun("r1");
+    await svc.disposeRun("r1");
 
     // Assert: r1 is gone entirely, r2 is untouched and still queryable.
-    expect(svc.getPendingInputs("r1", "n1")).toHaveLength(0);
-    expect(svc.getPendingInputs("r1", "n2")).toHaveLength(0);
-    const r2Pending = svc.getPendingInputs("r2", "n1");
+    expect(await svc.getPendingInputs("r1", "n1")).toHaveLength(0);
+    expect(await svc.getPendingInputs("r1", "n2")).toHaveLength(0);
+    const r2Pending = await svc.getPendingInputs("r2", "n1");
     expect(r2Pending.map((i) => i.inputId)).toEqual(["c"]);
     expect(r2Pending[0].payload).toEqual({ from: "r2" });
     expect(inboxKeys(svc)).toEqual([key("r2", "n1")]);
@@ -157,7 +157,7 @@ describe("TriggerWakeupService — stored input fields", () => {
     });
 
     // Assert: the cursor is the caller's resume token — it must survive storage.
-    const pending = svc.getPendingInputs("r1", "n1");
+    const pending = await svc.getPendingInputs("r1", "n1");
     expect(pending.map((i) => i.cursor)).toEqual(["page-2", undefined]);
   });
 
@@ -173,13 +173,13 @@ describe("TriggerWakeupService — stored input fields", () => {
         inputId: "i1",
         payload: {}
       });
-      const stored = svc.getPendingInputs("r1", "n1")[0];
+      const stored = (await svc.getPendingInputs("r1", "n1"))[0];
       expect(stored.createdAt).toEqual(new Date("2024-01-01T00:00:00Z"));
       expect(stored.processedAt).toBeUndefined();
 
       // Act
       vi.setSystemTime(new Date("2024-01-01T00:05:00Z"));
-      svc.markProcessed("i1");
+      await svc.markProcessed("i1");
 
       // Assert: processedAt is the cleanup clock, stamped when marking, not at
       // delivery.
@@ -206,7 +206,7 @@ describe("TriggerWakeupService — defaults", () => {
     }
 
     // Act
-    const pending = svc.getPendingInputs("r1", "n1");
+    const pending = await svc.getPendingInputs("r1", "n1");
 
     // Assert
     expect(pending).toHaveLength(100);
@@ -226,7 +226,7 @@ describe("TriggerWakeupService — defaults", () => {
         inputId: "old",
         payload: {}
       });
-      svc.markProcessed("old"); // processedAt = T0
+      await svc.markProcessed("old"); // processedAt = T0
 
       vi.setSystemTime(new Date("2024-01-01T02:00:00Z"));
       await svc.deliverTriggerInput({
@@ -235,17 +235,17 @@ describe("TriggerWakeupService — defaults", () => {
         inputId: "recent",
         payload: {}
       });
-      svc.markProcessed("recent"); // processedAt = T0 + 2h
+      await svc.markProcessed("recent"); // processedAt = T0 + 2h
 
       // Act: 25h after "old" was processed, 23h after "recent" was.
       vi.setSystemTime(new Date("2024-01-02T01:00:00Z"));
-      const removed = svc.cleanupProcessed("r1", "n1");
+      const removed = await svc.cleanupProcessed("r1", "n1");
 
       // Assert
       expect(removed).toBe(1);
       // "recent" (processed 23h ago) survived the default call and is still
       // removable with a shorter window.
-      expect(svc.cleanupProcessed("r1", "n1", 22)).toBe(1);
+      expect(await svc.cleanupProcessed("r1", "n1", 22)).toBe(1);
     } finally {
       vi.useRealTimers();
     }
@@ -279,7 +279,7 @@ describe("TriggerWakeupService — idempotency scope (current behaviour)", () =>
     // this drops real events silently and the check must widen to the
     // (runId, nodeId, inputId) triple.
     expect(second).toBe(false);
-    expect(svc.getPendingInputs("r2", "n2")).toHaveLength(0);
-    expect(svc.getPendingInputs("r1", "n1")).toHaveLength(1);
+    expect(await svc.getPendingInputs("r2", "n2")).toHaveLength(0);
+    expect(await svc.getPendingInputs("r1", "n1")).toHaveLength(1);
   });
 });
