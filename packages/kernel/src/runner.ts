@@ -135,6 +135,20 @@ export interface RunJobRequest {
 
   /** Optional parent workflow ID for sub-graph execution. */
   parent_id?: string;
+
+  /**
+   * Wake-up payload for a trigger-driven run. Mirrors
+   * `@nodetool-ai/protocol`'s `RunJobRequest.trigger_event`, redeclared here
+   * (like {@link NodeValidationIssue}) to avoid a circular dependency. When
+   * present, propagated onto `WorkflowRunnerOptions.executionContext` as
+   * `triggerEvent` at the start of the run so actors can read it via
+   * `ProcessingContext`.
+   */
+  trigger_event?: {
+    node_id: string;
+    payload: unknown;
+    input_id: string;
+  };
 }
 
 export interface WorkflowRunnerOptions {
@@ -516,6 +530,8 @@ export class WorkflowRunner {
     // re-published each time rather than wired once at construction.
     if (this._options.executionContext) {
       this._options.executionContext.signal = this._abortController.signal;
+      this._options.executionContext.triggerEvent =
+        request.trigger_event ?? null;
     }
 
     try {

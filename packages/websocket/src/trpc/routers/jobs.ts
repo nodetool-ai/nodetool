@@ -2,13 +2,13 @@
  * Jobs router — migrated from REST `/api/jobs*`.
  *
  * User ownership is enforced on every procedure — a job whose `user_id`
- * doesn't match `ctx.userId` is indistinguishable from a missing one.
- *
- * The trigger stubs (`/api/jobs/triggers/*`) stay on REST — they're
- * 501-placeholders for a feature that isn't available in standalone mode.
+ * doesn't match `ctx.userId` is indistinguishable from a missing one. The
+ * same rule applies to the trigger-registration procedures below, which
+ * replace the old `GET/POST /api/jobs/triggers/*` REST stubs.
  */
 
-import { Job } from "@nodetool-ai/models";
+import { z } from "zod";
+import { Job, RunEvent, TriggerRegistration } from "@nodetool-ai/models";
 import type { Job as JobModel } from "@nodetool-ai/models";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
@@ -54,6 +54,45 @@ function toBackgroundJobResponse(job: JobModel): BackgroundJobResponse {
   };
 }
 
+export interface TriggerRegistrationResponse {
+  id: string;
+  workflow_id: string;
+  node_id: string;
+  kind: string;
+  enabled: boolean;
+  last_fired_at: string | null;
+  last_error: string | null;
+}
+
+function toTriggerRegistrationResponse(
+  registration: TriggerRegistration
+): TriggerRegistrationResponse {
+  return {
+    id: registration.id,
+    workflow_id: registration.workflow_id,
+    node_id: registration.node_id,
+    kind: registration.kind,
+    enabled: registration.enabled === 1,
+    last_fired_at: registration.last_fired_at,
+    last_error: registration.last_error
+  };
+}
+
+const triggerIdInput = z.object({ id: z.string() });
+
+async function requireOwnedRegistration(
+  id: string,
+  userId: string
+): Promise<TriggerRegistration> {
+  const registration = (await TriggerRegistration.get(
+    id
+  )) as TriggerRegistration | null;
+  if (!registration || registration.user_id !== userId) {
+    throwApiError(ApiErrorCode.NOT_FOUND, "Trigger registration not found");
+  }
+  return registration;
+}
+
 export const jobsRouter = router({
   list: protectedProcedure
     .input(listInput)
@@ -92,5 +131,51 @@ export const jobsRouter = router({
       job.markCancelled();
       await job.save();
       return toBackgroundJobResponse(job);
+    }),
+
+  // ── triggersRunning (GET /api/jobs/triggers/running) ────────────────────
+  // Lists the caller's enabled trigger registrations — the set the host's
+  // ingestion adapters (webhook route, scheduler, file watcher) are
+  // currently listening for.
+  triggersRunning: protectedProcedure.query(async ({ ctx }) => {
+    const registrations = await TriggerRegistration.findByUser(ctx.userId);
+    return {
+      triggers: registrations
+        .filter((r) => r.enabled === 1)
+        .map((r) => toTriggerRegistrationResponse(r))
+    };
+  }),
+
+  // ── triggerStart (POST /api/jobs/triggers/:id/start) ────────────────────
+  triggerStart: protectedProcedure
+    .input(triggerIdInput)
+    .mutation(async ({ ctx, input }) => {
+      const registration = await requireOwnedRegistration(input.id, ctx.userId);
+      const wasEnabled = registration.enabled === 1;
+      registration.enabled = 1;
+      await registration.save();
+      if (!wasEnabled) {
+        await RunEvent.appendEvent(
+          registration.workflow_id,
+          "TriggerRegistered",
+          {
+            registration_id: registration.id,
+            workflow_id: registration.workflow_id,
+            kind: registration.kind
+          },
+          registration.node_id
+        );
+      }
+      return toTriggerRegistrationResponse(registration);
+    }),
+
+  // ── triggerStop (POST /api/jobs/triggers/:id/stop) ──────────────────────
+  triggerStop: protectedProcedure
+    .input(triggerIdInput)
+    .mutation(async ({ ctx, input }) => {
+      const registration = await requireOwnedRegistration(input.id, ctx.userId);
+      registration.enabled = 0;
+      await registration.save();
+      return toTriggerRegistrationResponse(registration);
     })
 });

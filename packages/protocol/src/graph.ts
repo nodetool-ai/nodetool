@@ -169,6 +169,15 @@ export interface NodeDescriptor {
   /** Whether this node is controlled via control edges. */
   is_controlled?: boolean;
 
+  /**
+   * Whether this node is a trigger (registration + run-time entry point).
+   * When a run carries a `trigger_event` targeting this node, the kernel
+   * calls the node's `emitTriggerEvent` entry point instead of its
+   * live-listening `genProcess` loop. See
+   * docs/superpowers/specs/2026-07-10-trigger-wakeup-redesign.md.
+   */
+  is_trigger?: boolean;
+
   /** Whether this node accepts user-named dynamic input properties. */
   supports_dynamic_inputs?: boolean;
 

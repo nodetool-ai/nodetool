@@ -9,7 +9,8 @@ import type { NodeExecutor } from "@nodetool-ai/kernel";
 import type {
   ProcessingContext,
   StreamingInputs,
-  StreamingOutputs
+  StreamingOutputs,
+  TriggerEvent
 } from "@nodetool-ai/runtime";
 import { getDeclaredPropertiesForClass } from "./decorators.js";
 import {
@@ -67,6 +68,7 @@ export type NodeClass = {
   requiredSettings?: string[];
   requiredRuntimes?: string[];
   isStreamingInput: boolean;
+  isTrigger: boolean;
   alwaysEmitOutputUpdates?: boolean;
   inputMode?: InputMode;
   outputCorrelation?: Record<string, OutputCorrelation>;
@@ -195,6 +197,16 @@ export abstract class BaseNode {
   static readonly requiredSettings: string[] | undefined = undefined;
   static readonly requiredRuntimes: string[] | undefined = undefined;
   static readonly isStreamingInput: boolean = false;
+  /**
+   * Marks a trigger node. Triggers compile to `trigger_registrations` on
+   * workflow activation, and when a run starts because of a delivered event
+   * (`RunJobRequest.trigger_event` targeting this node) the kernel calls
+   * {@link emitTriggerEvent} instead of the live-listening `genProcess`
+   * loop. Runs without a trigger event keep today's streaming behavior
+   * (in-editor live test). See
+   * docs/superpowers/specs/2026-07-10-trigger-wakeup-redesign.md.
+   */
+  static readonly isTrigger: boolean = false;
   /**
    * Emit output_update for this node's handles even when they are connected
    * onward. The runner suppresses output_update for connected handles by
@@ -457,6 +469,33 @@ export abstract class BaseNode {
   ): Promise<void>;
 
   /**
+   * Trigger entry point — called instead of `genProcess()` when the run
+   * carries a `trigger_event` for this node (see the `isTrigger` static).
+   * The default maps the keys of an object payload onto this node's
+   * declared output slots and drops everything else. Trigger subclasses
+   * override this to shape their adapter payloads (webhook envelope,
+   * synthesized tick, file-watch event) onto their specific slots.
+   */
+  async emitTriggerEvent(
+    event: TriggerEvent,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const ctor = this.constructor as typeof BaseNode;
+    const declared = ctor.metadataOutputTypes ?? ctor.getDeclaredOutputs();
+    const payload = event.payload;
+    if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
+      return;
+    }
+    for (const [key, value] of Object.entries(
+      payload as Record<string, unknown>
+    )) {
+      if (key in declared) {
+        await outputs.emit(key, value);
+      }
+    }
+  }
+
+  /**
    * Resolve requiredSettings from the context's secret store. Returns an
    * empty record when nothing is required or nothing resolves.
    */
@@ -553,7 +592,9 @@ export abstract class BaseNode {
         this.assign(properties),
       preProcess: () => this.preProcess(),
       finalize: () => this.finalize(),
-      initialize: () => this.initialize()
+      initialize: () => this.initialize(),
+      emitTriggerEvent: (event: TriggerEvent, outputs: StreamingOutputs) =>
+        this.emitTriggerEvent(event, outputs)
     };
     if (this.run) {
       executor.run = async (
@@ -589,7 +630,8 @@ export abstract class BaseNode {
       input_mode: cls.inputMode,
       output_correlation: cls.outputCorrelation,
       is_controlled: cls.isControlled,
-      is_join_node: cls.isJoinNode || undefined
+      is_join_node: cls.isJoinNode || undefined,
+      is_trigger: cls.isTrigger || undefined
     };
     if (Object.keys(propertyTypes).length > 0) {
       desc.propertyTypes = propertyTypes;

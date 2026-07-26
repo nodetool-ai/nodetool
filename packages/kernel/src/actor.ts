@@ -304,8 +304,34 @@ export class NodeActor {
         await this._executor.preProcess();
       }
 
-      // Determine execution mode
-      if (this.node.is_streaming_input) {
+      // Determine execution mode.
+      //
+      // Trigger entry point comes first: when this run was started by a
+      // delivered trigger event targeting this node, the node does not
+      // listen — it emits the event payload on its declared outputs via
+      // emitTriggerEvent() and completes. Runs without a trigger event
+      // (user pressed Run in the editor) fall through to the normal modes
+      // below, preserving the in-editor live-test experience.
+      const triggerEvent = this._executionContext?.triggerEvent;
+      if (
+        this.node.is_trigger &&
+        triggerEvent?.node_id === this.node.id &&
+        this._executor.emitTriggerEvent
+      ) {
+        const nodeOutputs = new NodeOutputs({
+          sendFn: async (slot: string, value: unknown) => {
+            await this._sendOutputs(this.node.id, { [slot]: value });
+          },
+          eosCallback: (slot: string) => {
+            this._signalSlotEos?.(this.node.id, slot || "output");
+          }
+        });
+        await this._executor.emitTriggerEvent(triggerEvent, nodeOutputs);
+        this._latestResult = nodeOutputs.collected();
+        // One committed result per trigger event (RFC §5 site parity with
+        // the streaming-input run() path).
+        this._emitGenerationComplete(this._latestResult);
+      } else if (this.node.is_streaming_input) {
         if (this._executor.run) {
           // Streaming input mode with run(): node drains inbox via
           // NodeInputs and pushes outputs via NodeOutputs. Passing

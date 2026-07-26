@@ -143,7 +143,8 @@ export {
   type NodeExecutor,
   type StreamingInputs,
   type StreamingOutputs,
-  type MessageEnvelopeLike
+  type MessageEnvelopeLike,
+  type TriggerEvent
 } from "./node-executor.js";
 export {
   createFakeContext,

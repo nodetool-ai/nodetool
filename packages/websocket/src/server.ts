@@ -78,6 +78,12 @@ import {
   isRateLimitExempt
 } from "./lib/http-rate-limit.js";
 
+import {
+  createTriggerWebhookRoute,
+  startTriggerServices,
+  triggersEnabled
+} from "./triggers/boot.js";
+
 import websocketPlugin from "./plugins/websocket.js";
 import healthRoute from "./routes/health.js";
 import configRoute from "./routes/config.js";
@@ -787,6 +793,9 @@ app.addHook("onRequest", async (req, reply) => {
     pathname.startsWith("/api/assets/packages/") ||
     pathname === "/api/nodes/metadata" ||
     pathname.startsWith("/api/kie/webhook") ||
+    // Trigger webhooks authenticate on their own, per registration secret
+    // (packages/websocket/src/triggers/webhook-route.ts) — no session exists.
+    pathname.startsWith("/api/webhooks/") ||
     isPublicWorkflowMetadataRequest(pathname, req.method)
   ) {
     return;
@@ -1104,6 +1113,12 @@ await app.register(falPricingEstimateRoute);
 await app.register(kieCreditsRoute);
 await app.register(kiePricingRoute);
 await app.register(kieWebhookRoute);
+// Trigger webhook ingestion (`POST /api/webhooks/:token`). Registered here
+// because Fastify routes must exist before `app.listen`; the plugin reaches the
+// wakeup service and dispatcher started below through module accessors.
+if (triggersEnabled()) {
+  await app.register(createTriggerWebhookRoute());
+}
 // MCP endpoints are only available in local/dev mode — not in production.
 // The configuration endpoints moved to the tRPC `mcpConfig` router; the
 // `/mcp` proxy below is a bare MCP over-HTTP transport and stays on REST.
@@ -1271,6 +1286,16 @@ app.listen({ port, host }, (err) => {
 });
 
 // ---------------------------------------------------------------------------
+// Triggers — durable wakeup service, dispatcher, and ingestion adapters
+// ---------------------------------------------------------------------------
+//
+// Starting the dispatcher also drains the boot backlog: every unprocessed
+// `trigger_inputs` row a previous process life stored is dispatched now. Set
+// NODETOOL_DISABLE_TRIGGERS=1 to opt this process out.
+
+const triggerServices = startTriggerServices({ registry });
+
+// ---------------------------------------------------------------------------
 // Worker cost guard — reconcile orphaned GPU pods on boot, then reap on a loop
 // ---------------------------------------------------------------------------
 
@@ -1317,6 +1342,14 @@ async function shutdown(signal: string): Promise<void> {
     // best-effort cleanup
   }
   stopReaper();
+  try {
+    await triggerServices.stop();
+  } catch (err) {
+    log.warn(
+      "Trigger services failed to stop cleanly",
+      err instanceof Error ? err : new Error(String(err))
+    );
+  }
   localBridge.close();
   workerBridge?.close();
   try {
