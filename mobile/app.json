@@ -6,7 +6,7 @@
     "scheme": "nodetool",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -46,7 +46,16 @@
     "plugins": [
       "expo-web-browser",
       "@react-native-google-signin/google-signin",
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-notifications",
+      [
+        "expo-media-library",
+        {
+          "savePhotosPermission": "NodeTool saves generated images and video to your photo library.",
+          "photosPermission": "NodeTool reads photos you pick as workflow input.",
+          "isAccessMediaLocationEnabled": false
+        }
+      ]
     ],
     "experiments": {
       "onDemandFilesystem": false

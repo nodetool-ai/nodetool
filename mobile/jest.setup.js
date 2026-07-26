@@ -129,6 +129,54 @@ jest.mock('expo-document-picker', () => ({
   }),
 }));
 
+// Mock expo-notifications (no notification service in Jest)
+jest.mock('expo-notifications', () => ({
+  setNotificationHandler: jest.fn(),
+  getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
+  requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
+  scheduleNotificationAsync: jest.fn().mockResolvedValue('notification-id'),
+  setNotificationChannelAsync: jest.fn().mockResolvedValue(undefined),
+  addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  getLastNotificationResponseAsync: jest.fn().mockResolvedValue(null),
+  AndroidImportance: { DEFAULT: 3, HIGH: 4 },
+}));
+
+// Mock expo-media-library (no photo library in Jest)
+jest.mock('expo-media-library', () => ({
+  getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
+  requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
+  saveToLibraryAsync: jest.fn().mockResolvedValue(undefined),
+  createAssetAsync: jest.fn().mockResolvedValue({ id: 'asset-1' }),
+  PermissionStatus: { GRANTED: 'granted', DENIED: 'denied', UNDETERMINED: 'undetermined' },
+}));
+
+// Mock expo-file-system (downloads for save-to-library)
+jest.mock('expo-file-system', () => ({
+  cacheDirectory: 'file:///cache/',
+  documentDirectory: 'file:///documents/',
+  downloadAsync: jest.fn().mockResolvedValue({ uri: 'file:///cache/download.png', status: 200 }),
+  deleteAsync: jest.fn().mockResolvedValue(undefined),
+}));
+
+// Mock expo-linking
+jest.mock('expo-linking', () => ({
+  createURL: jest.fn((path) => `nodetool://${path}`),
+  getInitialURL: jest.fn().mockResolvedValue(null),
+  addEventListener: jest.fn(() => ({ remove: jest.fn() })),
+  parse: jest.fn(() => ({ path: '', queryParams: {} })),
+}));
+
+// Mock @react-native-community/netinfo (no native network module in Jest)
+jest.mock('@react-native-community/netinfo', () => ({
+  __esModule: true,
+  default: {
+    addEventListener: jest.fn(() => jest.fn()),
+    fetch: jest.fn().mockResolvedValue({ isConnected: true, isInternetReachable: true }),
+  },
+  addEventListener: jest.fn(() => jest.fn()),
+  fetch: jest.fn().mockResolvedValue({ isConnected: true, isInternetReachable: true }),
+}));
+
 // Silence console methods to reduce noise in tests
 const originalConsole = { ...console };
 beforeAll(() => {
