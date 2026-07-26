@@ -506,6 +506,11 @@ export type {
 export { evaluateGraphDsl } from "./graph-dsl.js";
 export type { GraphDslResult, EvaluateGraphDslOptions } from "./graph-dsl.js";
 export { GraphBuilder, AGENT_NODE_TYPE } from "./graph-builder.js";
+export {
+  declareDynamicSlotsFromEdges,
+  toSlotTypeRecord,
+  type SlotTypeLookup
+} from "./dynamic-slots.js";
 export { normalizeModelProperties } from "./normalize-model-properties.js";
 export type { ModelPropertyRegistry } from "./normalize-model-properties.js";
 export { GraphPlanner } from "./graph-planner.js";

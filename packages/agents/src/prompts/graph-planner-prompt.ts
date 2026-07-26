@@ -289,6 +289,17 @@ node("nodetool.output.Output", { name: "image", value: poster.output() });
 return graph();
 \`\`\`
 
+## Dynamic inputs
+
+A node whose \`get_node_info\` reports \`supports_dynamic_inputs: true\` also
+accepts input handles you name yourself (a template's placeholders, a
+formatter's fields). Wiring an edge into one declares the slot with the source
+output's type, so anything else connected to that handle later must match it.
+Give a slot one consistent type: an untypable or conflicting slot stays
+untyped and nothing checks what flows in. Every other handle must come from
+\`get_node_info\` — inventing a name on a node without dynamic inputs is an
+error.
+
 Multi-output nodes use named slots: \`ifNode.output("if_true")\`,
 \`ifNode.output("if_false")\`. Plain JS is available for repetition — loops,
 arrays, and template strings over your own literals — use it instead of
