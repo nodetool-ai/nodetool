@@ -48,6 +48,7 @@ export interface DocumentKindInfo {
     | 'StoryboardEditor'
     | 'TimelineViewer'
     | 'ScriptEditor'
+    | 'SketchViewer'
     | 'DocumentViewer';
   /** Whether the browser offers a "new document" action for this kind. */
   creatable: boolean;
@@ -97,8 +98,10 @@ export const DOCUMENT_KINDS: readonly DocumentKindInfo[] = [
     label: 'Sketch',
     plural: 'Sketches',
     icon: 'brush-outline',
+    // Composited layers, read-only. A canvas is not the phone's job, and there
+    // are no `ui_sketch_*` tools yet, so nothing edits this from here.
     surface: 'viewer',
-    route: 'DocumentViewer',
+    route: 'SketchViewer',
     creatable: false,
     agentEditable: false,
   },

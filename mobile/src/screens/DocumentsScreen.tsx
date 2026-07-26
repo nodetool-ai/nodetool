@@ -120,6 +120,9 @@ export default function DocumentsScreen({ navigation }: DocumentsScreenProps) {
         case 'TimelineViewer':
           navigation.navigate('TimelineViewer', { id: entry.id, name: entry.name });
           break;
+        case 'SketchViewer':
+          navigation.navigate('SketchViewer', { id: entry.id, name: entry.name });
+          break;
         case 'DocumentViewer':
           navigation.navigate('DocumentViewer', {
             kind: entry.kind,

@@ -160,8 +160,7 @@ describe('DocumentsScreen', () => {
     });
 
     fireEvent.press(screen.getByLabelText('Open Doodle, Sketch'));
-    expect(navigation.navigate).toHaveBeenCalledWith('DocumentViewer', {
-      kind: 'sketch',
+    expect(navigation.navigate).toHaveBeenCalledWith('SketchViewer', {
       id: 'sk-1',
       name: 'Doodle',
     });
