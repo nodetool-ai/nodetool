@@ -963,6 +963,11 @@ function getCreateSchemaSql(): string {
       "cursor" text,
       "last_fired_at" text,
       "last_error" text,
+      "disabled_reason" text,
+      "consecutive_failures" integer NOT NULL DEFAULT 0,
+      "run_count" integer NOT NULL DEFAULT 0,
+      "expires_at" text,
+      "max_runs" integer,
       "created_at" text NOT NULL,
       "updated_at" text NOT NULL
     );

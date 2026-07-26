@@ -41,6 +41,14 @@ export interface TriggerRegistrationStatus {
    * Optional: older servers omit the field.
    */
   interval_seconds?: number | null;
+  /**
+   * Why the dispatcher disarmed this registration — `failures`, `expired` or
+   * `max_runs`. Null when it is armed, or when a person switched it off.
+   * Optional: older servers omit the field.
+   */
+  disabled_reason?: string | null;
+  /** Failed runs since the last success. Optional: older servers omit it. */
+  consecutive_failures?: number;
 }
 
 /** A registration as `jobs.triggersRunning` returns it — no webhook secrets. */
@@ -52,6 +60,7 @@ export interface RunningTriggerRegistration {
   enabled: boolean;
   last_fired_at: string | null;
   last_error: string | null;
+  disabled_reason?: string | null;
 }
 
 export const triggersQueryKey = (workflowId: string) =>

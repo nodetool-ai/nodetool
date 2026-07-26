@@ -44,6 +44,11 @@ function toEditorRegistration(reg: TriggerRegistration) {
     enabled: reg.enabled === 1,
     last_fired_at: reg.last_fired_at ?? null,
     last_error: reg.last_error ?? null,
+    disabled_reason: reg.disabled_reason ?? null,
+    consecutive_failures: reg.consecutive_failures,
+    run_count: reg.run_count,
+    expires_at: reg.expires_at ?? null,
+    max_runs: reg.max_runs ?? null,
     next_fire_at: nextFireAtIso(reg),
     interval_seconds: scheduleIntervalSeconds(reg),
     webhook_token: isWebhook

@@ -15,20 +15,11 @@
 import { randomBytes, createHash } from "node:crypto";
 import { RunEvent, TriggerRegistration } from "@nodetool-ai/models";
 import type { Workflow as WorkflowModel } from "@nodetool-ai/models";
+import { TRIGGER_KIND_BY_NODE_TYPE } from "@nodetool-ai/protocol";
+import type { TriggerKind } from "@nodetool-ai/protocol";
 
-export type TriggerKind = "webhook" | "schedule" | "file_watch" | "manual";
-
-/**
- * Node type → registration kind. Only nodes listed here compile to a
- * registration; other `nodetool.triggers.*` nodes (e.g. `Wait`) are ignored.
- */
-export const TRIGGER_KIND_BY_NODE_TYPE: Readonly<Record<string, TriggerKind>> =
-  {
-    "nodetool.triggers.WebhookTrigger": "webhook",
-    "nodetool.triggers.IntervalTrigger": "schedule",
-    "nodetool.triggers.FileWatchTrigger": "file_watch",
-    "nodetool.triggers.ManualTrigger": "manual"
-  };
+export { TRIGGER_KIND_BY_NODE_TYPE };
+export type { TriggerKind };
 
 /** Keys `syncRegistrations` writes into a webhook registration's `config_json`
  * that are not part of the node's own property snapshot — stripped out

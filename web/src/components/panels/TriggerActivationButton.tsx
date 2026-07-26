@@ -46,8 +46,9 @@ import {
 } from "../../serverState/useTriggers";
 import {
   TRIGGER_KIND_BY_NODE_TYPE,
+  describeTriggerDisabledReason,
   isTriggerNodeType
-} from "../../utils/triggerNodeTypes";
+} from "@nodetool-ai/protocol";
 import { formatSchedule } from "../../utils/triggerSchedule";
 
 /** Stable empty fallback, so a pending query doesn't hand every render a new
@@ -212,7 +213,9 @@ const TriggerActivationButton: React.FC = () => {
           : enabledCount === rows.length
             ? "active"
             : "mixed";
-  const hasError = rows.some((r) => r.last_error);
+  // A trigger the dispatcher gave up on is a failure the user has to see, even
+  // though the row now reads as plain "Inactive".
+  const hasError = rows.some((r) => r.last_error || r.disabled_reason);
   const canToggle = state !== "loading" && state !== "error" && rows.length > 0;
 
   const handleToggle = useCallback(
@@ -252,8 +255,9 @@ const TriggerActivationButton: React.FC = () => {
     return null;
   }
 
-  const buttonState =
-    hasError && (state === "active" || state === "mixed")
+  const buttonState = rows.some((r) => r.disabled_reason)
+    ? `${STATUS_LABELS[state].toLowerCase()}, disabled automatically`
+    : hasError && (state === "active" || state === "mixed")
       ? `${STATUS_LABELS[state].toLowerCase()}, last run failed`
       : STATUS_LABELS[state].toLowerCase();
   const buttonLabel = `Triggers: ${buttonState}`;
@@ -317,6 +321,10 @@ const TriggerActivationButton: React.FC = () => {
                 kind === "schedule"
                   ? formatSchedule(reg?.interval_seconds, reg?.next_fire_at)
                   : null;
+              const stoppedBecause = describeTriggerDisabledReason(
+                reg?.disabled_reason,
+                reg?.consecutive_failures
+              );
               return (
                 <FlexColumn
                   key={nodeId}
@@ -331,8 +339,20 @@ const TriggerActivationButton: React.FC = () => {
                   <FlexRow justify="space-between" align="center">
                     <Label>{kindLabel(kind)}</Label>
                     <StatusIndicator
-                      status={reg?.enabled ? "success" : "pending"}
-                      label={reg?.enabled ? "Active" : "Inactive"}
+                      status={
+                        reg?.enabled
+                          ? "success"
+                          : stoppedBecause
+                            ? "error"
+                            : "pending"
+                      }
+                      label={
+                        reg?.enabled
+                          ? "Active"
+                          : stoppedBecause
+                            ? "Stopped"
+                            : "Inactive"
+                      }
                       size="small"
                     />
                   </FlexRow>
@@ -354,6 +374,11 @@ const TriggerActivationButton: React.FC = () => {
                   {!isLoading && !isError && (
                     <Caption>
                       Last fired: {formatLastFired(reg?.last_fired_at ?? null)}
+                    </Caption>
+                  )}
+                  {stoppedBecause && (
+                    <Caption color="error">
+                      {stoppedBecause} Turn it back on to retry.
                     </Caption>
                   )}
                   {reg?.last_error && (
