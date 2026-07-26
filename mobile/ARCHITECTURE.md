@@ -63,6 +63,7 @@ mobile/
 │   │   ├── AssetViewerScreen.tsx       # Single-asset viewer
 │   │   ├── CollectionsScreen.tsx       # RAG collections
 │   │   ├── JobsScreen.tsx              # Job history
+│   │   ├── TriggersScreen.tsx          # Trigger monitoring + arm/disarm
 │   │   ├── ThreadsScreen.tsx           # Chat thread list
 │   │   ├── LanguageModelSelectionScreen.tsx
 │   │   ├── SecretsScreen.tsx           # API-key management

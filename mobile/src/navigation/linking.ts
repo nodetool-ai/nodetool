@@ -55,6 +55,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       Assets: 'assets',
       AssetViewer: 'asset/:assetId',
       Jobs: 'jobs',
+      Triggers: 'triggers',
       JobDetail: 'job/:jobId',
       Collections: 'collections',
       Settings: 'settings',
