@@ -141,7 +141,11 @@ jest.mock('expo-notifications', () => ({
   AndroidImportance: { DEFAULT: 3, HIGH: 4 },
 }));
 
-// Mock expo-media-library (no photo library in Jest)
+// Mock expo-media-library (no photo library in Jest).
+// v56 moved these onto the /legacy subpath — the root re-exports are
+// deprecated stubs that throw at runtime — so both specifiers are mocked.
+// The factories are written out per specifier rather than shared through a
+// variable: babel-plugin-jest-hoist requires an inline function.
 jest.mock('expo-media-library', () => ({
   getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
   requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
@@ -149,9 +153,22 @@ jest.mock('expo-media-library', () => ({
   createAssetAsync: jest.fn().mockResolvedValue({ id: 'asset-1' }),
   PermissionStatus: { GRANTED: 'granted', DENIED: 'denied', UNDETERMINED: 'undetermined' },
 }));
+jest.mock('expo-media-library/legacy', () => ({
+  getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
+  requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
+  saveToLibraryAsync: jest.fn().mockResolvedValue(undefined),
+  createAssetAsync: jest.fn().mockResolvedValue({ id: 'asset-1' }),
+  PermissionStatus: { GRANTED: 'granted', DENIED: 'denied', UNDETERMINED: 'undetermined' },
+}));
 
-// Mock expo-file-system (downloads for save-to-library)
+// Mock expo-file-system (downloads for save-to-library). Same /legacy story.
 jest.mock('expo-file-system', () => ({
+  cacheDirectory: 'file:///cache/',
+  documentDirectory: 'file:///documents/',
+  downloadAsync: jest.fn().mockResolvedValue({ uri: 'file:///cache/download.png', status: 200 }),
+  deleteAsync: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('expo-file-system/legacy', () => ({
   cacheDirectory: 'file:///cache/',
   documentDirectory: 'file:///documents/',
   downloadAsync: jest.fn().mockResolvedValue({ uri: 'file:///cache/download.png', status: 200 }),

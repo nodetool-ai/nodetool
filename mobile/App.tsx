@@ -20,20 +20,27 @@ import TimelineViewerScreen from './src/screens/TimelineViewerScreen';
 import SecretsScreen from './src/screens/SecretsScreen';
 import CollectionsScreen from './src/screens/CollectionsScreen';
 import JobsScreen from './src/screens/JobsScreen';
+import JobDetailScreen from './src/screens/JobDetailScreen';
 import ThreadsScreen from './src/screens/ThreadsScreen';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { OfflineBanner } from './src/components/OfflineBanner';
 import { apiService } from './src/services/api';
+import { initNotifications } from './src/services/notifications';
 import { useTheme } from './src/hooks/useTheme';
 import { useReducedMotion } from './src/hooks/useReducedMotion';
+import { useAppLifecycle } from './src/hooks/useAppLifecycle';
 import { useAuthStore } from './src/stores/AuthStore';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { TRPCProvider } from './src/trpc/Provider';
+import { linking } from './src/navigation/linking';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
   const { colors, isDark } = useTheme();
   const reduceMotion = useReducedMotion();
+  // Attaches the shared AppState subscription the sockets listen on.
+  useAppLifecycle();
   const [isReady, setIsReady] = useState(false);
   const authState = useAuthStore((s) => s.state);
   const initializeAuth = useAuthStore((s) => s.initialize);
@@ -43,6 +50,7 @@ export default function App() {
     const initialize = async () => {
       try {
         await apiService.loadApiHost();
+        await initNotifications();
         await initializeAuth();
       } catch (error) {
         console.error('Failed to initialize app:', error);
@@ -74,7 +82,16 @@ export default function App() {
     <ErrorBoundary>
       <TRPCProvider>
       <SafeAreaProvider>
-        <NavigationContainer>
+        <View style={splashStyles.root}>
+        {/*
+          Linking is attached only once logged in. Logged out, the navigator
+          holds just the Login screen, so a nodetool:// link would resolve to
+          route names that aren't mounted — React Navigation drops it and the
+          link is consumed. Withholding the config leaves the launch URL (and
+          the last notification response) unread until the navigator remounts
+          with the real screens, at which point getInitialURL picks it up.
+        */}
+        <NavigationContainer linking={isLoggedIn ? linking : undefined}>
           <StatusBar style={isDark ? 'light' : 'dark'} />
           <Stack.Navigator
             screenOptions={{
@@ -174,6 +191,11 @@ export default function App() {
                   options={{ title: 'Jobs' }}
                 />
                 <Stack.Screen
+                  name="JobDetail"
+                  component={JobDetailScreen}
+                  options={{ title: 'Job' }}
+                />
+                <Stack.Screen
                   name="Threads"
                   component={ThreadsScreen}
                   options={{ title: 'Conversations' }}
@@ -188,6 +210,8 @@ export default function App() {
             )}
           </Stack.Navigator>
         </NavigationContainer>
+        <OfflineBanner />
+        </View>
       </SafeAreaProvider>
       </TRPCProvider>
     </ErrorBoundary>
@@ -195,6 +219,9 @@ export default function App() {
 }
 
 const splashStyles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     justifyContent: 'center',
