@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.e2e.json",
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "types": ["@playwright/test", "node"]
+  },
+  "include": [
+    "tests/journeys/**/*",
+    "tests/smoke/pageLoadHelpers.ts",
+    "tests/globalSetup.ts",
+    "playwright.journeys.config.ts",
+    "tests/benchmarks/helpers/**/*"
+  ]
+}
