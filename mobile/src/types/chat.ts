@@ -5,6 +5,7 @@
 
 import { Message, MessageContent, LanguageModel, Thread, Chunk, JobUpdate, NodeUpdate, NodeProgress, OutputUpdate } from './ApiTypes';
 import type { MediaGenerationRequest } from '../stores/MediaGenerationStore';
+import type { UiContextPayload } from '../documents/uiContext';
 
 // Re-export types we use directly
 export type { Message, LanguageModel, Thread, Chunk };
@@ -104,6 +105,8 @@ export interface ChatMessageRequest {
   agent_mode?: boolean;
   help_mode?: boolean;
   media_generation?: MediaGenerationRequest;
+  /** Open/focused document ids the agent's `ui_*` tools may address. */
+  ui_context?: UiContextPayload;
 }
 
 /**

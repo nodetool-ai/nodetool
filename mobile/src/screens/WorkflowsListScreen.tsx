@@ -159,6 +159,16 @@ export default function WorkflowsListScreen({ navigation }: WorkflowsListScreenP
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.headerButton, { backgroundColor: colors.primaryMuted }]}
+            onPress={() => navigation.navigate('Documents')}
+            accessibilityRole="button"
+            accessibilityLabel="Open documents"
+            activeOpacity={0.7}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          >
+            <Ionicons name="documents-outline" size={20} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.headerButton, { backgroundColor: colors.primaryMuted }]}
             onPress={() => navigation.navigate('Assets')}
             accessibilityRole="button"
             accessibilityLabel="Open assets"

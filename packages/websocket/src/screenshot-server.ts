@@ -36,6 +36,12 @@ import {
   getMasterKey
 } from "@nodetool-ai/security";
 import { createTestUiServer } from "./test-ui-server.js";
+import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import {
+  createFakeExecutorResolver,
+  fakeAllProviders,
+  resolveFakeProvider
+} from "./fake-runtime.js";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
@@ -55,7 +61,8 @@ function makeWorkflow(
   tags: string[],
   updatedAt: string,
   access: "private" | "public" = "private",
-  graph: { nodes: unknown[]; edges: unknown[] } = { nodes: [], edges: [] }
+  graph: { nodes: unknown[]; edges: unknown[] } = { nodes: [], edges: [] },
+  appDoc: Record<string, unknown> | null = null
 ): Record<string, unknown> {
   return {
     id,
@@ -75,9 +82,106 @@ function makeWorkflow(
     run_mode: "workflow",
     workspace_id: null,
     html_app: null,
-    app_doc: null
+    app_doc: appDoc
   };
 }
+
+/**
+ * A deliberately tiny mini-app fixture for the user-journey suite: a
+ * `StringInput → Output` graph plus an app document that binds a text input, a
+ * Run button and an Output widget to it.
+ *
+ * Everything here runs for real on the kernel (input and output nodes are
+ * structural, and there is nothing else in the graph), so whatever the test
+ * types is exactly what the Output widget must display. That makes the mini-app
+ * journey a true end-to-end assertion — params in, run triggered, streamed
+ * result folded back into the widget — with no provider, network or fake in the
+ * path to soften a regression.
+ */
+const MINI_APP_GRAPH = {
+  nodes: [
+    {
+      id: "prompt_input",
+      type: "nodetool.input.StringInput",
+      data: {
+        name: "prompt",
+        value: "hello journey",
+        description: "Text echoed back by the app"
+      },
+      // Kept clear of the editor's left icon rail so the journey suite can
+      // click node fields without the rail intercepting pointer events.
+      ui_properties: { position: { x: 560, y: 200 }, width: 320 }
+    },
+    {
+      id: "result_output",
+      type: "nodetool.output.Output",
+      data: { name: "result" },
+      ui_properties: { position: { x: 1020, y: 200 }, width: 280 }
+    }
+  ],
+  edges: [
+    {
+      id: "edge-mini-app",
+      source: "prompt_input",
+      sourceHandle: "output",
+      target: "result_output",
+      targetHandle: "value"
+    }
+  ]
+};
+
+const MINI_APP_DOC: Record<string, unknown> = {
+  schemaVersion: 3,
+  ui: {
+    root: { props: { title: "Echo Mini App" } },
+    content: [
+      {
+        type: "Container",
+        props: {
+          id: "panel-main",
+          title: "Echo",
+          content: [
+            {
+              type: "WorkflowInput",
+              props: { id: "in-prompt", binding: "op:main/in:prompt_input", events: [] }
+            },
+            {
+              type: "Button",
+              props: {
+                id: "btn-run",
+                label: "Run echo",
+                variant: "contained",
+                color: "primary",
+                events: [{ trigger: "click", kind: "run", key: "", value: "" }]
+              }
+            },
+            {
+              type: "Output",
+              props: {
+                id: "out-result",
+                binding: "op:main/out:result_output",
+                placeholder: "Your result appears here"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    zones: {}
+  },
+  operations: [
+    {
+      id: "main",
+      name: "Run",
+      workflowId: "",
+      inputs: {},
+      outputs: {},
+      policy: "replace"
+    }
+  ],
+  resources: [],
+  variables: []
+};
 
 // Use real node types registered by @nodetool-ai/base-nodes so the editor
 // renders nodes instead of crashing on unknown types.
@@ -162,6 +266,28 @@ const MOCK_WORKFLOWS = [
     "2024-12-15T11:30:00Z",
     "private",
     STORY_GRAPH
+  ),
+  makeWorkflow(
+    "wf-mini-app",
+    "Echo Mini App",
+    "Deterministic mini app used by the user-journey suite: echoes its input to an Output widget",
+    ["app", "test"],
+    "2024-12-14T10:00:00Z",
+    "private",
+    MINI_APP_GRAPH,
+    MINI_APP_DOC
+  ),
+  // Same echo graph, but a separate row: the editor journey adds nodes and runs
+  // against this one, so its mutations can't disturb the mini-app journey (the
+  // seeded DB is in-memory and shared by every test in a suite run).
+  makeWorkflow(
+    "wf-editor-journey",
+    "Editor Journey Fixture",
+    "Deterministic two-node graph the user-journey editor suite edits and runs",
+    ["test"],
+    "2024-12-13T10:00:00Z",
+    "private",
+    MINI_APP_GRAPH
   ),
   makeWorkflow(
     "wf-image-pipeline",
@@ -1412,16 +1538,42 @@ const EXAMPLES_DIR = resolve(
   "nodetool-base"
 );
 
+// Hermetic mode (NODETOOL_FAKE_PROVIDERS=1) swaps every LLM provider and every
+// external/media node for a deterministic fake, so workflows and chat actually
+// run with no API keys and no network while pure-compute nodes still run for
+// real. The user-journey suite (web/tests/journeys) needs this; the screenshot
+// and visual suites only render, so they leave it off and keep real providers.
+const HERMETIC = process.env.NODETOOL_FAKE_PROVIDERS === "1";
+
+let registry: NodeRegistry | null = null;
+
+if (HERMETIC) {
+  fakeAllProviders();
+}
+
 // Start the actual backend server
 const srv = createTestUiServer({
   port: PORT,
   host: HOST,
-  ...(existsSync(EXAMPLES_DIR) ? { examplesDir: EXAMPLES_DIR } : {})
+  ...(existsSync(EXAMPLES_DIR) ? { examplesDir: EXAMPLES_DIR } : {}),
+  ...(HERMETIC
+    ? {
+        configureRegistry: (r: NodeRegistry) => {
+          registry = r;
+          // Providers self-register on import, so re-fake once node packages
+          // have finished registering.
+          fakeAllProviders();
+        },
+        resolveExecutor: createFakeExecutorResolver(() => registry),
+        resolveProvider: resolveFakeProvider
+      }
+    : {})
 });
 await srv.listen();
 
 console.log(
-  `[screenshot-server] Ready on http://${HOST}:${PORT} (${srv.info.metadataCount} nodes registered)`
+  `[screenshot-server] Ready on http://${HOST}:${PORT} (${srv.info.metadataCount} nodes registered)` +
+    (HERMETIC ? " [hermetic: providers + external nodes faked]" : "")
 );
 
 // Signal to the parent process (globalSetup) that the server is ready

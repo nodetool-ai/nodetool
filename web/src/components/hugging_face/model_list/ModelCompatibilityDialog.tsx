@@ -116,7 +116,7 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(4, 2),
       fontStyle: "italic",
       background: theme.vars.palette.action.hover,
-      borderRadius: theme.shape.borderRadius,
+      borderRadius: BORDER_RADIUS.md,
       border: `1px dashed ${theme.vars.palette.divider}`
     },
     "& .copy-button": {

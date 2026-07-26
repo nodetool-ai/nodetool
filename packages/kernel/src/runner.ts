@@ -24,6 +24,7 @@ import type {
 } from "@nodetool-ai/protocol";
 import { TypeMetadata } from "@nodetool-ai/protocol";
 
+// Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
 const log = createLogger("nodetool.kernel.runner");
 
 /** Node type that publishes to a variable channel (see runtime VariableChannel). */
@@ -608,6 +609,7 @@ export class WorkflowRunner {
       // checked first, then suspend takes priority over node errors so a
       // human-in-the-loop pause isn't masked by an incidental sibling error.
       if (!this._cancelled && this._suspend) {
+        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
         log.info("Workflow suspended", {
           jobId: request.job_id,
           nodeId: this._suspend.node_id,
@@ -634,6 +636,7 @@ export class WorkflowRunner {
         const error = [...this._nodeErrors]
           .map(([nodeId, msg]) => `Node "${nodeId}" failed: ${msg}`)
           .join("; ");
+        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
         log.error("Workflow failed", { jobId: request.job_id, error });
         this._emit({
           type: "job_update",
@@ -651,6 +654,7 @@ export class WorkflowRunner {
       }
 
       const status = this._cancelled ? "cancelled" : "completed";
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.info("Workflow completed", { jobId: request.job_id, status });
 
       this._emit({
@@ -667,6 +671,7 @@ export class WorkflowRunner {
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.error("Workflow failed", { jobId: request.job_id, error: message });
       // Drain active edges on error for front-end cleanup
       this._drainActiveEdges();
@@ -737,6 +742,7 @@ export class WorkflowRunner {
   }
 
   cancel(): void {
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
     log.info("Job cancelled", { jobId: this.jobId });
     // Latch the request so a cancel before run() survives _resetRunState. §17.
     this._cancelRequested = true;
@@ -766,7 +772,9 @@ export class WorkflowRunner {
         this._graph.findNode(edge.target) !== undefined
     );
     if (validEdges.length < this._graph.edges.length) {
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.warn("Filtered invalid edges", {
+        // Stryker disable next-line ArithmeticOperator: diagnostic log arg only
         removed: this._graph.edges.length - validEdges.length,
         remaining: validEdges.length
       });
@@ -1231,7 +1239,9 @@ export class WorkflowRunner {
     const pendingNodes = this._checkPendingInboxWork();
     if (pendingNodes.length > 0) {
       log.warn(
+        // Stryker disable next-line StringLiteral: diagnostic log args only
         "Pending inbox work detected after all actors completed — possible data loss",
+        // Stryker disable next-line ObjectLiteral: diagnostic log args only
         {
           pendingNodes
         }
@@ -1370,6 +1380,7 @@ export class WorkflowRunner {
 
       const value = outputs[edge.sourceHandle];
       if (value === undefined) {
+        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
         log.debug("_sendMessages skip edge (no matching output)", {
           sourceNodeId,
           sourceHandle: edge.sourceHandle,
@@ -1380,12 +1391,14 @@ export class WorkflowRunner {
 
       const targetInbox = this._inboxes.get(edge.target);
       if (!targetInbox) {
+        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
         log.debug("_sendMessages skip edge (no target inbox)", {
           target: edge.target
         });
         continue;
       }
 
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.debug("_sendMessages delivering", {
         sourceNodeId,
         sourceHandle: edge.sourceHandle,
@@ -1873,6 +1886,7 @@ export class WorkflowRunner {
     if (this._options.executionContext) {
       this._options.executionContext.emit(msg);
     }
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
     log.debug("Message emitted", { jobId: this.jobId, type: msg.type });
   }
 

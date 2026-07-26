@@ -18,7 +18,7 @@ import {
 } from "../../ui_primitives";
 import useNodePacksStore from "../../../stores/NodePacksStore";
 import { useShallow } from "zustand/react/shallow";
-import { useOpenPackageManager } from "../../../hooks/useOpenPackageManager";
+import { useOpenPackageManagerInNewTab } from "../../../hooks/useOpenPackageManager";
 import {
   ONBOARDING_ENGINES,
   ONBOARDING_NODE_PACKS,
@@ -88,7 +88,7 @@ const NodePackRow: React.FC<{ pack: OnboardingNodePack }> = ({ pack }) => {
     state.installed.some((p) => p.repo_id === pack.repoId)
   );
   const isBusy = useNodePacksStore((state) => state.busyIds.includes(pack.repoId));
-  const openPackageManager = useOpenPackageManager();
+  const openPackageManager = useOpenPackageManagerInNewTab();
 
   const handleInstall = useCallback(() => {
     if (available) {
@@ -156,7 +156,7 @@ const EngineGuide: React.FC = () => {
       refresh: state.refresh
     }))
   );
-  const openPackageManager = useOpenPackageManager();
+  const openPackageManager = useOpenPackageManagerInNewTab();
 
   useEffect(() => {
     if (available) {

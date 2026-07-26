@@ -3,6 +3,13 @@ import 'react-native-get-random-values';
 
 import { registerRootComponent } from 'expo';
 
+import { installRandomUuid } from './src/polyfills/randomUuid';
+
+// Hermes has no `crypto.randomUUID`, and the import above only supplies
+// `getRandomValues`. `@nodetool-ai/timeline`'s id factory calls `randomUUID`,
+// so without this every makeClip/makeTrack/splitClip would throw on device.
+installRandomUuid();
+
 import App from './App';
 import { initErrorReporting } from './src/services/errorReporting';
 

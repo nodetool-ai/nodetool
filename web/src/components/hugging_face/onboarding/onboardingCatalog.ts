@@ -3,8 +3,8 @@
  *
  * The static guidance behind the Model Manager's "Get Started" tab: which local
  * inference engines exist, which node packs unlock them, and a curated set of
- * current models in the 2–30 GB range with an approximate VRAM budget so the UI
- * can tell the user what actually fits their machine.
+ * current models with an approximate VRAM budget so the UI can tell the user
+ * what actually fits their machine.
  *
  * Everything here is guidance, not a live registry. Sizes and VRAM figures are
  * approximate (quantized weights + a little runtime headroom) and labelled as
@@ -123,20 +123,16 @@ export interface OnboardingNodePack {
   capabilities: OnboardingCapability[];
 }
 
+/** The pack that unlocks the Python Diffusers/Transformers stack. */
+export const HUGGINGFACE_PACK_REPO_ID = "nodetool-ai/nodetool-huggingface";
+
 /**
- * The node packs most people want first. `repoId` matches the Python registry
- * ids the desktop Package Manager installs.
+ * The optional node packs. Base nodes ship with NodeTool, so they are not
+ * listed here — everything below is an extra install.
  */
 export const ONBOARDING_NODE_PACKS: readonly OnboardingNodePack[] = [
   {
-    repoId: "nodetool-ai/nodetool-base",
-    name: "Base",
-    description:
-      "Core text, chat, and agent nodes. The starting point for most workflows.",
-    capabilities: ["chat", "embedding"]
-  },
-  {
-    repoId: "nodetool-ai/nodetool-huggingface",
+    repoId: HUGGINGFACE_PACK_REPO_ID,
     name: "Hugging Face",
     description:
       "Local image, audio, and speech models via Diffusers and Transformers.",
@@ -188,7 +184,6 @@ const ollama = (
   blurb,
   approxSizeGb,
   minVramGb,
-  quant: "Q4",
   model: { id, name, type: "llama_model", provider: "ollama" },
   ...extra
 });
@@ -223,8 +218,9 @@ const hf = (
 });
 
 /**
- * The curated models, mostly in the 2–30 GB range. Chat/vision run on Ollama
- * (GGUF, one-click); image/speech run on the Hugging Face Python stack.
+ * The curated models, sized to run on a single consumer GPU. Chat/vision run on
+ * Ollama (GGUF, one-click); image/speech/embeddings run on the Hugging Face
+ * Python stack.
  *
  * Ollama tags and Hugging Face repo ids are real; sizes/VRAM are approximate
  * and shown as such in the UI.
@@ -232,121 +228,111 @@ const hf = (
 export const ONBOARDING_MODELS: readonly OnboardingModel[] = [
   // --- Chat & reasoning (Ollama, GGUF) --------------------------------------
   ollama(
-    "llama3.2:3b",
-    "Llama 3.2 3B",
+    "qwen3.5:2b",
+    "Qwen3.5 2B",
     "Tiny and fast. Runs on almost anything, even without a GPU.",
-    2.0,
+    2.7,
     4,
     "chat"
   ),
   ollama(
-    "qwen2.5:7b",
-    "Qwen2.5 7B",
+    "qwen3.5:4b",
+    "Qwen3.5 4B",
+    "Noticeably sharper than the 2B while still fitting a laptop.",
+    3.4,
+    6,
+    "chat"
+  ),
+  ollama(
+    "qwen3.5:9b",
+    "Qwen3.5 9B",
     "Strong all-round chat and tool use at a modest size.",
-    4.7,
-    6,
-    "chat",
-    { featured: true }
-  ),
-  ollama(
-    "llama3.1:8b",
-    "Llama 3.1 8B",
-    "Well-rounded general assistant with solid instruction following.",
-    4.9,
-    6,
-    "chat"
-  ),
-  ollama(
-    "gemma2:9b",
-    "Gemma 2 9B",
-    "Google's efficient open model, good quality per gigabyte.",
-    5.4,
+    6.6,
     8,
-    "chat"
-  ),
-  ollama(
-    "deepseek-r1:14b",
-    "DeepSeek-R1 14B",
-    "Reasoning-tuned model that shows its work — great for hard problems.",
-    9.0,
-    12,
     "chat",
     { featured: true }
   ),
   ollama(
-    "phi4:14b",
-    "Phi-4 14B",
-    "Microsoft's compact model, punches above its weight on reasoning.",
-    9.1,
-    12,
+    "gemma4:12b",
+    "Gemma 4 12B",
+    "Google's mid-size open model, good quality per gigabyte.",
+    7.6,
+    10,
     "chat"
   ),
   ollama(
-    "qwen2.5:14b",
-    "Qwen2.5 14B",
-    "A capable mid-size assistant for richer conversations and coding.",
-    9.0,
-    12,
-    "chat"
-  ),
-  ollama(
-    "mistral-small:24b",
-    "Mistral Small 24B",
-    "Near-flagship quality that still fits a 16 GB card.",
+    "gpt-oss:20b",
+    "GPT-OSS 20B",
+    "OpenAI's open-weight reasoning model. NodeTool's default local chat model.",
     14.0,
+    16,
+    "chat",
+    { featured: true, quant: "MXFP4" }
+  ),
+  ollama(
+    "mistral-small3.2:24b",
+    "Mistral Small 3.2 24B",
+    "Near-flagship quality that still fits a 16 GB card.",
+    15.0,
     16,
     "chat"
   ),
   ollama(
-    "gemma2:27b",
-    "Gemma 2 27B",
-    "High-quality answers for machines with plenty of VRAM.",
-    16.0,
-    20,
-    "chat"
-  ),
-  ollama(
-    "qwen2.5:32b",
-    "Qwen2.5 32B",
+    "qwen3.6:27b",
+    "Qwen3.6 27B",
     "One of the strongest models you can run locally at this size.",
-    20.0,
-    24,
+    17.0,
+    20,
     "chat",
     { featured: true }
   ),
+  ollama(
+    "gemma4:26b",
+    "Gemma 4 26B",
+    "Sparse mixture-of-experts — 26B weights, but only a few active per token.",
+    18.0,
+    22,
+    "chat"
+  ),
+  ollama(
+    "qwen3.6:35b-a3b",
+    "Qwen3.6 35B A3B",
+    "Mixture-of-experts: 35B quality at roughly 3B speed. Wants a big card.",
+    24.0,
+    28,
+    "chat"
+  ),
   // --- Vision (Ollama, GGUF) ------------------------------------------------
   ollama(
-    "llama3.2-vision:11b",
-    "Llama 3.2 Vision 11B",
-    "Describe, read, and answer questions about images.",
-    7.9,
-    10,
+    "qwen3-vl:4b",
+    "Qwen3-VL 4B",
+    "Small vision model for captions, screenshots, and document Q&A.",
+    3.3,
+    6,
     "vision"
   ),
   ollama(
-    "llava:7b",
-    "LLaVA 7B",
-    "Lightweight image understanding for captions and Q&A.",
-    4.7,
-    6,
+    "qwen3-vl:8b",
+    "Qwen3-VL 8B",
+    "Describe, read, and answer questions about images.",
+    6.1,
+    8,
+    "vision",
+    { featured: true }
+  ),
+  ollama(
+    "qwen3-vl:32b",
+    "Qwen3-VL 32B",
+    "The accurate end of local vision — charts, dense text, fine detail.",
+    21.0,
+    24,
     "vision"
   ),
   // --- Image generation (Hugging Face, Diffusers) ---------------------------
   hf(
-    "stabilityai/sdxl-turbo",
-    "SDXL Turbo",
-    "Real-time image generation in a single step. A great first image model.",
-    6.9,
-    8,
-    "image",
-    "hf.stable_diffusion_xl",
-    "text-to-image",
-    { engine: "huggingface", featured: true }
-  ),
-  hf(
     "stabilityai/stable-diffusion-xl-base-1.0",
     "Stable Diffusion XL",
-    "The classic high-quality open image model with a huge ecosystem.",
+    "Runs on modest GPUs and has the biggest ecosystem of LoRAs and ControlNets.",
     6.9,
     8,
     "image",
@@ -356,7 +342,7 @@ export const ONBOARDING_MODELS: readonly OnboardingModel[] = [
   hf(
     "black-forest-labs/FLUX.1-schnell",
     "FLUX.1 schnell",
-    "State-of-the-art open image quality. Needs a large GPU (or offloading).",
+    "Top open image quality in a few steps. Needs a large GPU (or offloading).",
     23.0,
     24,
     "image",
@@ -366,32 +352,64 @@ export const ONBOARDING_MODELS: readonly OnboardingModel[] = [
   ),
   // --- Speech to text (Hugging Face, Transformers) --------------------------
   hf(
-    "openai/whisper-large-v3",
-    "Whisper Large v3",
-    "Accurate multilingual transcription and translation.",
-    3.1,
-    4,
+    "openai/whisper-large-v3-turbo",
+    "Whisper Large v3 Turbo",
+    "Multilingual transcription at several times the speed of Large v3.",
+    1.6,
+    3,
     "speech-to-text",
     "hf.automatic_speech_recognition",
     "automatic-speech-recognition",
     { featured: true }
   ),
+  hf(
+    "openai/whisper-large-v3",
+    "Whisper Large v3",
+    "The most accurate Whisper, for transcription and translation.",
+    3.1,
+    4,
+    "speech-to-text",
+    "hf.automatic_speech_recognition",
+    "automatic-speech-recognition"
+  ),
   // --- Text to speech (Hugging Face) ----------------------------------------
   hf(
-    "coqui/XTTS-v2",
-    "XTTS v2",
-    "Natural multilingual voice cloning from a few seconds of audio.",
-    2.0,
-    4,
+    "hexgrad/Kokoro-82M",
+    "Kokoro 82M",
+    "Tiny, natural-sounding voices. Fast enough to run on CPU.",
+    0.4,
+    2,
+    "text-to-speech",
+    "hf.text_to_speech",
+    "text-to-speech",
+    { featured: true }
+  ),
+  hf(
+    "ResembleAI/chatterbox",
+    "Chatterbox",
+    "Expressive voice cloning from a short reference clip.",
+    1.0,
+    3,
     "text-to-speech",
     "hf.text_to_speech",
     "text-to-speech"
   ),
   // --- Embeddings (Hugging Face) --------------------------------------------
   hf(
+    "Qwen/Qwen3-Embedding-0.6B",
+    "Qwen3 Embedding 0.6B",
+    "Small, current multilingual embeddings for search and RAG.",
+    1.2,
+    2,
+    "embedding",
+    "hf.feature_extraction",
+    "feature-extraction",
+    { featured: true }
+  ),
+  hf(
     "BAAI/bge-m3",
     "BGE-M3",
-    "Multilingual embeddings for semantic search and RAG.",
+    "Multilingual embeddings with long-document support.",
     2.3,
     3,
     "embedding",

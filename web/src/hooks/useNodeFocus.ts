@@ -1,6 +1,6 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useNodeFocusStore } from "../stores/NodeFocusStore";
-import { useNodes } from "../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
 import { NodeData } from "../stores/NodeData";
 import { Node } from "@xyflow/react";
 
@@ -25,7 +25,7 @@ interface UseNodeFocusReturn {
 
 /** Keyboard-based node navigation (Tab/Arrow keys) for the node editor. */
 export const useNodeFocus = (): UseNodeFocusReturn => {
-  const nodes = useNodes((state) => state.nodes);
+  const nodeStore = useNodeStoreRef();
   const setSelectedNodes = useNodes((state) => state.setSelectedNodes);
 
   const focusedNodeId = useNodeFocusStore((state) => state.focusedNodeId);
@@ -47,37 +47,38 @@ export const useNodeFocus = (): UseNodeFocusReturn => {
   );
 
   const focusNext = useCallback(() => {
-    navigateFocusStore("next", nodes);
-  }, [navigateFocusStore, nodes]);
+    navigateFocusStore("next", nodeStore.getState().nodes);
+  }, [navigateFocusStore, nodeStore]);
 
   const focusPrev = useCallback(() => {
-    navigateFocusStore("prev", nodes);
-  }, [navigateFocusStore, nodes]);
+    navigateFocusStore("prev", nodeStore.getState().nodes);
+  }, [navigateFocusStore, nodeStore]);
 
   const focusUp = useCallback(() => {
-    navigateFocusStore("up", nodes);
-  }, [navigateFocusStore, nodes]);
+    navigateFocusStore("up", nodeStore.getState().nodes);
+  }, [navigateFocusStore, nodeStore]);
 
   const focusDown = useCallback(() => {
-    navigateFocusStore("down", nodes);
-  }, [navigateFocusStore, nodes]);
+    navigateFocusStore("down", nodeStore.getState().nodes);
+  }, [navigateFocusStore, nodeStore]);
 
   const focusLeft = useCallback(() => {
-    navigateFocusStore("left", nodes);
-  }, [navigateFocusStore, nodes]);
+    navigateFocusStore("left", nodeStore.getState().nodes);
+  }, [navigateFocusStore, nodeStore]);
 
   const focusRight = useCallback(() => {
-    navigateFocusStore("right", nodes);
-  }, [navigateFocusStore, nodes]);
+    navigateFocusStore("right", nodeStore.getState().nodes);
+  }, [navigateFocusStore, nodeStore]);
 
   const selectFocused = useCallback(() => {
     if (focusedNodeId) {
+      const nodes = nodeStore.getState().nodes;
       const focusedNode = nodes.find(
         (node: Node<NodeData>) => node.id === focusedNodeId
       );
       setSelectedNodes(focusedNode ? [focusedNode] : []);
     }
-  }, [focusedNodeId, nodes, setSelectedNodes]);
+  }, [focusedNodeId, nodeStore, setSelectedNodes]);
 
   const goBack = useCallback(() => {
     if (focusHistory.length > 1) {
@@ -93,10 +94,11 @@ export const useNodeFocus = (): UseNodeFocusReturn => {
     if (!focusedNodeId) {
       return undefined;
     }
+    const nodes = nodeStore.getState().nodes;
     return nodes.find((node: Node<NodeData>) => node.id === focusedNodeId);
-  }, [nodes, focusedNodeId]);
+  }, [nodeStore, focusedNodeId]);
 
-  return {
+  return useMemo(() => ({
     focusedNodeId,
     isNavigationMode,
     focusHistory,
@@ -113,5 +115,22 @@ export const useNodeFocus = (): UseNodeFocusReturn => {
     goBack,
     clearFocusHistory: clearFocusHistoryStore,
     getFocusedNode
-  };
+  }), [
+    focusedNodeId,
+    isNavigationMode,
+    focusHistory,
+    enterNavigationMode,
+    exitNavigationMode,
+    setFocusedNodeStore,
+    focusNext,
+    focusPrev,
+    focusUp,
+    focusDown,
+    focusLeft,
+    focusRight,
+    selectFocused,
+    goBack,
+    clearFocusHistoryStore,
+    getFocusedNode
+  ]);
 };

@@ -633,14 +633,10 @@ export class NodeActor {
         if (cls === "max") {
           const bucket = maxBuckets.get(h)!.get(key);
           if (!bucket || bucket.length === 0) {
-            // No driver value: not ready unless a non-driver max handle has
-            // sticky from a side-input semantic — which only applies when a
-            // repeating driver exists.
-            if (driverHandle && h !== driverHandle) {
-              // Side input must have produced for this exact key. v1: still
-              // wait for it to arrive.
-              return false;
-            }
+            // Not ready. v1 has no side-input sticky at max scope: a
+            // non-driver max handle must still have produced for this exact
+            // key, so the answer is `false` with or without a repeating
+            // driver.
             return false;
           }
           // Multi-edge list inputs aggregate every envelope: wait for the
@@ -836,9 +832,13 @@ export class NodeActor {
             // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
             log.warn(
               `Node "${this.node.id}" handle "${handle}" received multiple ` +
+                // Stryker disable next-line StringLiteral: diagnostic log args only
                 `values at empty scope; only the last is kept. Declare ` +
+                // Stryker disable next-line StringLiteral: diagnostic log args only
                 `output_correlation (chunk/iteration) on the upstream output ` +
+                // Stryker disable next-line StringLiteral: diagnostic log args only
                 `to preserve the stream.`,
+              // Stryker disable next-line ObjectLiteral: diagnostic log args only
               { nodeId: this.node.id, handle }
             );
           }
@@ -921,17 +921,24 @@ export class NodeActor {
           // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
           log.warn(
             `Node "${this.node.id}" dropped ${bucket.length} envelope(s) on ` +
+              // Stryker disable next-line StringLiteral: diagnostic log args only
               `handle "${handle}" for key "${key}" already fired without a ` +
+              // Stryker disable next-line StringLiteral: diagnostic log args only
               `repeating driver; declare output_correlation to fan out per ` +
+              // Stryker disable next-line StringLiteral: diagnostic log args only
               `item.`,
+            // Stryker disable next-line ObjectLiteral: diagnostic log args only
             { nodeId: this.node.id, handle, key, count: bucket.length }
           );
         } else {
           // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
           log.warn(
             `Node "${this.node.id}" left ${bucket.length} envelope(s) on ` +
+              // Stryker disable next-line StringLiteral: diagnostic log args only
               `handle "${handle}" for key "${key}" unfired at close; its ` +
+              // Stryker disable next-line StringLiteral: diagnostic log args only
               `inputs never completed for this key.`,
+            // Stryker disable next-line ObjectLiteral: diagnostic log args only
             { nodeId: this.node.id, handle, key, count: bucket.length }
           );
         }
