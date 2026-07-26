@@ -5,8 +5,13 @@ description: "Design Mini App interfaces for workflows"
 ---
 
 App Builder turns a workflow into a custom Mini App. You place widgets on a
-canvas, bind them to workflow inputs and outputs, and publish the app document
-onto the workflow.
+canvas, bind them to workflow inputs and outputs, and save the app document onto
+the workflow.
+
+This page covers the editor. For what Mini Apps solve and how the runtime works,
+see [Mini Apps](mini-apps.md); for step-by-step recipes, see
+[Building Mini Apps](mini-apps-guide.md); for the widget, binding, and schema
+tables, see the [Reference](mini-apps-reference.md).
 
 ## What it does
 
@@ -38,7 +43,7 @@ The builder opens at `/app-builder/:workflowId`.
 4. Add a Button with the **Run workflow** action.
 5. Add display widgets such as Text, Markdown, Image, JSON, or Progress.
 6. Set each display widget's binding to the matching Output node name.
-7. Click **Publish**.
+7. Click **Save**.
 
 ## Agent-assisted editing
 
@@ -70,7 +75,9 @@ no app document, NodeTool renders the generated input/output form.
 
 ## Related topics
 
+- [Mini Apps](mini-apps.md) — concepts and runtime
+- [Building Mini Apps](mini-apps-guide.md) — recipes per use case
+- [Mini App Reference](mini-apps-reference.md) — widgets, bindings, schema
 - [Workflow Editor](workflow-editor.md)
-- [Mini Apps](getting-started.md#step-4--build-an-app)
 - [Chat & Agents](global-chat-agents.md)
 - [Key Concepts](key-concepts.md)
