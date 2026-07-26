@@ -393,6 +393,8 @@ export function hydrateGraphNodeFlags(
         (cls ? cls.isJoinNode : meta?.is_join_node) ??
         node.is_join_node ??
         false,
+      is_trigger:
+        (cls ? cls.isTrigger : meta?.is_trigger) ?? node.is_trigger ?? false,
       always_emit_output_updates:
         (cls ? cls.alwaysEmitOutputUpdates : meta?.always_emit_output_updates) ??
         node.always_emit_output_updates ??

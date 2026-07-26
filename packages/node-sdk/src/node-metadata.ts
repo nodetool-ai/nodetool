@@ -288,6 +288,7 @@ export function getNodeMetadata(
     output_correlation: nodeClass.outputCorrelation,
     is_controlled: nodeClass.isControlled || false,
     is_join_node: nodeClass.isJoinNode || undefined,
+    is_trigger: nodeClass.isTrigger || undefined,
     always_emit_output_updates: nodeClass.alwaysEmitOutputUpdates || undefined,
     supports_dynamic_inputs: nodeClass.supportsDynamicInputs || false,
     supports_dynamic_outputs: nodeClass.supportsDynamicOutputs,

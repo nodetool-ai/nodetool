@@ -99,6 +99,11 @@ export interface NodeMetadata {
   is_controlled?: boolean;
   /** §7 — Zip/Cross nodes opt out of the incomparable-scope check. */
   is_join_node?: boolean;
+  /**
+   * Trigger node: compiles to a `trigger_registrations` row on activation
+   * and enters via `emitTriggerEvent` when a run carries a trigger event.
+   */
+  is_trigger?: boolean;
   /** Emit output_update even for connected handles (UI-monitor nodes). */
   always_emit_output_updates?: boolean;
   supports_dynamic_outputs?: boolean;

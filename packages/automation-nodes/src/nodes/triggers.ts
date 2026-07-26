@@ -1,5 +1,9 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { StreamingInputs, StreamingOutputs } from "@nodetool-ai/node-sdk";
+import type {
+  StreamingInputs,
+  StreamingOutputs,
+  TriggerEvent
+} from "@nodetool-ai/node-sdk";
 import * as fs from "fs";
 import * as path from "path";
 import * as http from "http";
@@ -8,6 +12,21 @@ import { URL } from "url";
 // Minimum wait time in seconds to prevent tight loops when drift compensation
 // causes wait_time to be near zero.
 const MIN_WAIT_SECONDS = 0.001;
+
+/** View a trigger-event payload as a record; non-objects yield {}. */
+function payloadRecord(payload: unknown): Record<string, unknown> {
+  return payload !== null && typeof payload === "object" && !Array.isArray(payload)
+    ? (payload as Record<string, unknown>)
+    : {};
+}
+
+function stringOr(value: unknown, fallback: string): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function numberOr(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
 
 /**
  * Async queue used by trigger nodes to receive events from external sources
@@ -146,6 +165,7 @@ export class ManualTriggerNode extends BaseNode {
   };
 
   static readonly isStreamingInput = true;
+  static readonly isTrigger = true;
 
   @prop({
     type: "int",
@@ -175,6 +195,29 @@ export class ManualTriggerNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     return {};
+  }
+
+  /**
+   * Wake-up entry point: a manually fired trigger input becomes one event.
+   * The payload is either the adapter envelope ({data, timestamp, source})
+   * or an arbitrary value, which is emitted whole as `data`.
+   */
+  async emitTriggerEvent(
+    event: TriggerEvent,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const p = payloadRecord(event.payload);
+    const data = "data" in p ? p.data : event.payload;
+    await outputs.emit("data", data);
+    await outputs.emit(
+      "timestamp",
+      stringOr(p.timestamp, new Date().toISOString())
+    );
+    await outputs.emit(
+      "source",
+      stringOr(p.source, String(this.name ?? "manual_trigger"))
+    );
+    await outputs.emit("event_type", "manual");
   }
 
   /**
@@ -256,6 +299,7 @@ export class IntervalTriggerNode extends BaseNode {
     event_type: "str"
   };
 
+  static readonly isTrigger = true;
 
   @prop({
     type: "int",
@@ -301,6 +345,30 @@ export class IntervalTriggerNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     return {};
+  }
+
+  /**
+   * Wake-up entry point: the scheduler adapter synthesizes a tick payload
+   * ({tick, elapsed_seconds, interval_seconds, timestamp}); missing fields
+   * are synthesized here so a bare fire still yields a complete event.
+   */
+  async emitTriggerEvent(
+    event: TriggerEvent,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const p = payloadRecord(event.payload);
+    await outputs.emit("tick", numberOr(p.tick, 1));
+    await outputs.emit("elapsed_seconds", numberOr(p.elapsed_seconds, 0));
+    await outputs.emit(
+      "interval_seconds",
+      numberOr(p.interval_seconds, Number(this.interval_seconds ?? 60))
+    );
+    await outputs.emit(
+      "timestamp",
+      stringOr(p.timestamp, new Date().toISOString())
+    );
+    await outputs.emit("source", "interval");
+    await outputs.emit("event_type", "tick");
   }
 
   async *genProcess(): AsyncGenerator<Record<string, unknown>> {
@@ -390,6 +458,7 @@ export class WebhookTriggerNode extends BaseNode {
     event_type: "str"
   };
 
+  static readonly isTrigger = true;
 
   @prop({
     type: "int",
@@ -446,6 +515,34 @@ export class WebhookTriggerNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     return {};
+  }
+
+  /**
+   * Wake-up entry point: the server webhook route captures
+   * {body, headers, query, method} (plus path/timestamp when available)
+   * into the trigger input; a non-envelope payload is treated as the body.
+   */
+  async emitTriggerEvent(
+    event: TriggerEvent,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const p = payloadRecord(event.payload);
+    const isEnvelope =
+      "body" in p || "headers" in p || "query" in p || "method" in p;
+    await outputs.emit("body", isEnvelope ? p.body : event.payload);
+    await outputs.emit("headers", payloadRecord(p.headers));
+    await outputs.emit("query", payloadRecord(p.query));
+    await outputs.emit("method", stringOr(p.method, "POST"));
+    await outputs.emit(
+      "path",
+      stringOr(p.path, String(this.path ?? "/webhook"))
+    );
+    await outputs.emit(
+      "timestamp",
+      stringOr(p.timestamp, new Date().toISOString())
+    );
+    await outputs.emit("source", stringOr(p.source, "webhook"));
+    await outputs.emit("event_type", "webhook");
   }
 
   async *genProcess(): AsyncGenerator<Record<string, unknown>> {
@@ -569,6 +666,7 @@ export class FileWatchTriggerNode extends BaseNode {
     timestamp: "str"
   };
 
+  static readonly isTrigger = true;
 
   @prop({
     type: "int",
@@ -630,6 +728,28 @@ export class FileWatchTriggerNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     return {};
+  }
+
+  /**
+   * Wake-up entry point: the file-watch adapter (or the launch-time
+   * snapshot diff) delivers {event, path, dest_path, is_directory}.
+   */
+  async emitTriggerEvent(
+    event: TriggerEvent,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const p = payloadRecord(event.payload);
+    await outputs.emit("event", stringOr(p.event, "modified"));
+    await outputs.emit("path", stringOr(p.path, ""));
+    await outputs.emit("dest_path", stringOr(p.dest_path, ""));
+    await outputs.emit(
+      "is_directory",
+      typeof p.is_directory === "boolean" ? p.is_directory : false
+    );
+    await outputs.emit(
+      "timestamp",
+      stringOr(p.timestamp, new Date().toISOString())
+    );
   }
 
   async *genProcess(): AsyncGenerator<Record<string, unknown>> {
