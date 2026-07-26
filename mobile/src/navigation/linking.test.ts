@@ -59,6 +59,7 @@ describe('linking', () => {
       'StoryboardEditor',
       'ScriptEditor',
       'TimelineViewer',
+      'SketchViewer',
       'DocumentViewer',
       'Assets',
       'AssetViewer',

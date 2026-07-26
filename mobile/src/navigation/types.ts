@@ -31,6 +31,11 @@ export type RootStackParamList = {
     id: string;
     name?: string;
   };
+  /** Read-only sketch: composited layers plus their generation status. */
+  SketchViewer: {
+    id: string;
+    name?: string;
+  };
   /** Fallback surface for document kinds with no dedicated screen yet. */
   DocumentViewer: {
     kind: string;

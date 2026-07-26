@@ -17,6 +17,7 @@ import DocumentViewerScreen from './src/screens/DocumentViewerScreen';
 import ScriptEditorScreen from './src/screens/ScriptEditorScreen';
 import StoryboardEditorScreen from './src/screens/StoryboardEditorScreen';
 import TimelineViewerScreen from './src/screens/TimelineViewerScreen';
+import SketchViewerScreen from './src/screens/SketchViewerScreen';
 import SecretsScreen from './src/screens/SecretsScreen';
 import CollectionsScreen from './src/screens/CollectionsScreen';
 import JobsScreen from './src/screens/JobsScreen';
@@ -169,6 +170,11 @@ export default function App() {
                   name="TimelineViewer"
                   component={TimelineViewerScreen}
                   options={{ title: 'Timeline' }}
+                />
+                <Stack.Screen
+                  name="SketchViewer"
+                  component={SketchViewerScreen}
+                  options={{ title: 'Sketch' }}
                 />
                 <Stack.Screen
                   name="DocumentViewer"

@@ -50,6 +50,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       StoryboardEditor: 'document/storyboard/:id',
       ScriptEditor: 'document/script/:id',
       TimelineViewer: 'document/timeline/:id',
+      SketchViewer: 'document/sketch/:id',
       DocumentViewer: 'document/:kind/:id',
       Assets: 'assets',
       AssetViewer: 'asset/:assetId',

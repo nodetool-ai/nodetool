@@ -3,7 +3,7 @@
  * and a mode selector for chat / image / video generation.
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   View,
   TextInput,
@@ -15,6 +15,7 @@ import {
   Modal,
   Text,
   Alert,
+  AccessibilityInfo,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -23,6 +24,7 @@ import { MessageContent, ChatStatus } from '../../types';
 import { DroppedFile } from '../../types/chat.types';
 import { useTheme } from '../../hooks/useTheme';
 import { useFileHandling } from '../../hooks/useFileHandling';
+import { useVoiceInput } from '../../hooks/useVoiceInput';
 import { FilePreview } from './FilePreview';
 import {
   useMediaGenerationStore,
@@ -77,6 +79,49 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   const videoParams = useMediaGenerationStore((s) => s.video);
   const setVideoParams = useMediaGenerationStore((s) => s.setVideoParams);
 
+  // Dictation appends to what the user already typed — never replaces it.
+  const appendTranscript = useCallback((transcript: string) => {
+    setText((previous) => {
+      const trimmedEnd = previous.replace(/\s+$/, '');
+      return trimmedEnd.length === 0 ? transcript : `${trimmedEnd} ${transcript}`;
+    });
+  }, []);
+
+  const {
+    isListening,
+    isAvailable: voiceAvailable,
+    interimTranscript,
+    errorMessage: voiceError,
+    start: startVoice,
+    stop: stopVoice,
+  } = useVoiceInput({ onTranscript: appendTranscript });
+
+  const wasListening = useRef(false);
+  useEffect(() => {
+    if (isListening === wasListening.current) {
+      return;
+    }
+    wasListening.current = isListening;
+    // Screen readers get no signal from the color/pulse change alone.
+    AccessibilityInfo.announceForAccessibility(
+      isListening ? 'Recording. Speak now.' : 'Recording stopped.'
+    );
+  }, [isListening]);
+
+  useEffect(() => {
+    if (voiceError) {
+      AccessibilityInfo.announceForAccessibility(voiceError);
+    }
+  }, [voiceError]);
+
+  const handleMicPress = useCallback(() => {
+    if (isListening) {
+      stopVoice();
+    } else {
+      void startVoice();
+    }
+  }, [isListening, startVoice, stopVoice]);
+
   const files = externalFiles ?? droppedFiles;
   const hasFiles = files.length > 0;
 
@@ -117,6 +162,8 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   const handleSend = useCallback(() => {
     if (!canSend) {return;}
 
+    stopVoice();
+
     const trimmedText = text.trim();
     const content: MessageContent[] = [];
 
@@ -139,7 +186,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     }
 
     Keyboard.dismiss();
-  }, [canSend, text, hasFiles, getFileContents, onSendMessage, buildMediaGeneration, externalFiles, onExternalFilesChange, clearFiles]);
+  }, [canSend, text, hasFiles, getFileContents, onSendMessage, buildMediaGeneration, externalFiles, onExternalFilesChange, clearFiles, stopVoice]);
 
   const handleStop = useCallback(() => {
     onStop?.();
@@ -409,6 +456,46 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
         </ScrollView>
       )}
 
+      {/* Recording state — announced, and readable without relying on color */}
+      {isListening && (
+        <View
+          style={[styles.voiceBanner, { backgroundColor: colors.primaryLight, borderColor: colors.primary }]}
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
+          testID="voice-recording-banner"
+        >
+          <Ionicons name="radio-button-on" size={12} color={colors.error} />
+          <Text style={[styles.voiceBannerLabel, { color: colors.text }]}>Recording</Text>
+          <Text
+            style={[styles.voiceBannerTranscript, { color: colors.textSecondary }]}
+            numberOfLines={2}
+            testID="voice-interim-transcript"
+          >
+            {interimTranscript || 'Listening…'}
+          </Text>
+          <TouchableOpacity
+            onPress={stopVoice}
+            accessibilityRole="button"
+            accessibilityLabel="Stop recording"
+            activeOpacity={0.7}
+            testID="voice-stop-button"
+            style={[styles.voiceStopButton, { backgroundColor: colors.error }]}
+          >
+            <Ionicons name="square" size={11} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {voiceError && !isListening && (
+        <Text
+          style={[styles.voiceErrorText, { color: colors.textSecondary }]}
+          accessibilityLiveRegion="polite"
+          testID="voice-error-message"
+        >
+          {voiceError}
+        </Text>
+      )}
+
       <View style={[styles.inputContainer, { backgroundColor: inputContainerBg }]}>
         <TouchableOpacity
           style={styles.attachButton}
@@ -421,6 +508,42 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
             name="add-circle-outline"
             size={24}
             color={disabled ? colors.textTertiary : colors.textSecondary}
+          />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.micButton,
+            isListening && { backgroundColor: colors.error },
+          ]}
+          onPress={handleMicPress}
+          disabled={disabled || !voiceAvailable}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={
+            !voiceAvailable
+              ? 'Voice input unavailable'
+              : isListening
+                ? 'Stop voice input'
+                : 'Start voice input'
+          }
+          accessibilityState={{
+            selected: isListening,
+            busy: isListening,
+            disabled: disabled || !voiceAvailable,
+          }}
+          testID="mic-button"
+        >
+          <Ionicons
+            name={!voiceAvailable ? 'mic-off-outline' : isListening ? 'stop' : 'mic-outline'}
+            size={22}
+            color={
+              isListening
+                ? '#FFFFFF'
+                : disabled || !voiceAvailable
+                  ? colors.textTertiary
+                  : colors.textSecondary
+            }
           />
         </TouchableOpacity>
 
@@ -697,6 +820,43 @@ const styles = StyleSheet.create({
     height: 36,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  micButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  voiceBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: 8,
+  },
+  voiceBannerLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  voiceBannerTranscript: {
+    flex: 1,
+    fontSize: 13,
+  },
+  voiceStopButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  voiceErrorText: {
+    fontSize: 12,
+    marginBottom: 8,
+    paddingHorizontal: 4,
   },
   input: {
     flex: 1,

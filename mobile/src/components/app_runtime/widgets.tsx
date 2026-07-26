@@ -35,6 +35,7 @@ import { OutputRenderer } from "../outputs/OutputRenderer";
 import { useAppRuntimeContext, useCondition, useFormatted } from "./AppRuntimeContext";
 import { useWidgetRuntime } from "./useWidgetRuntime";
 import { SliderControl } from "./SliderControl";
+import { RESOURCE_RENDERERS } from "./resourceWidgets";
 import { pickMediaValue, type MediaKind } from "./mediaPicker";
 import { clampNumber } from "./inputKinds";
 
@@ -719,6 +720,7 @@ const RENDERERS: Record<string, React.FC<WidgetProps>> = {
   AudioInput: (props) => <MediaInputWidget {...props} kind="audio" />,
   VideoInput: (props) => <MediaInputWidget {...props} kind="video" />,
   DocumentInput: (props) => <MediaInputWidget {...props} kind="document" />,
+  ...RESOURCE_RENDERERS,
   Button: ButtonWidget,
   Container: ContainerWidget,
   Columns: ColumnsWidget,
@@ -739,8 +741,9 @@ const WidgetNode: React.FC<{ node: ComponentNode }> = ({ node }) => {
 
   const Renderer = RENDERERS[node.type];
   if (!Renderer) {
-    // Resource widgets have no mobile surface yet; an unknown type is a
-    // document from a newer builder. Both say so rather than vanish.
+    // A catalog type with no renderer here is one mobile has yet to grow; an
+    // unknown type is a document from a newer builder. Both say so rather than
+    // vanish.
     const known = node.type in WIDGET_CATALOG;
     return (
       <UnknownWidget

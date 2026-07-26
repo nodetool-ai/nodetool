@@ -2,6 +2,7 @@ import React from 'react';
 import { Alert } from 'react-native';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 
 import AssetViewerScreen from './AssetViewerScreen';
 import { saveMediaToLibrary } from '../utils/saveMedia';
@@ -116,6 +117,9 @@ describe('AssetViewerScreen save to library', () => {
         'Image saved to your photo library.'
       );
     });
+    expect(Haptics.notificationAsync).toHaveBeenCalledWith(
+      Haptics.NotificationFeedbackType.Success
+    );
   });
 
   it('shows a busy state while saving', async () => {
@@ -147,5 +151,18 @@ describe('AssetViewerScreen save to library', () => {
     await waitFor(() => {
       expect(alertSpy).toHaveBeenCalledWith('Save failed', 'Permission denied');
     });
+    expect(Haptics.notificationAsync).toHaveBeenCalledWith(
+      Haptics.NotificationFeedbackType.Error
+    );
+  });
+
+  it('does not buzz for the actions that are not outcomes', () => {
+    renderScreen();
+
+    fireEvent.press(screen.getByLabelText('Share asset'));
+    fireEvent.press(screen.getByLabelText('Rename asset'));
+
+    expect(Haptics.notificationAsync).not.toHaveBeenCalled();
+    expect(Haptics.impactAsync).not.toHaveBeenCalled();
   });
 });
