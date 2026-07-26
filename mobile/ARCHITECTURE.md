@@ -136,6 +136,24 @@ WorkflowAppView      # resolves the document, renders the widget tree
 - **Run identity**: the runtime claims the job id of the run it dispatched and
   drops messages from any other job, so a run started in the chain editor never
   folds into what the app shows.
+- **Run policy and timeout** are enforced, not just parsed: `decideRun` decides
+  what a run colliding with a live one does (`replace` cancels first, `queue`
+  waits, `parallel` starts), and an operation's `timeoutMs` cancels the run and
+  fails the invocation with a timeout error.
+- **Variables**: declared defaults seed the instance at open, and `scope: "user"`
+  + `persist: true` variables survive a restart — stored in AsyncStorage by
+  `variablePersistence.ts` under `app-runtime:variables:app:<workflowId>`, so two
+  apps never share a slot. Restoring runs before defaults are seeded (seeding
+  never clobbers), and instance-scoped and view values are never written.
+- **Outputs can write variables**: an operation output mapped `to: "variable"`
+  lands in that variable as well as in its display slot, streamed chunks
+  accumulating in both.
+- **Activity**: a streaming agent's tool/phase/step label shows in the `Progress`
+  widget and reads through `op:<id>/exec#activity`, instead of a bare spinner.
+- **Operations** are dispatched by id, so an event naming a second operation runs
+  that one. Mobile holds one workflow per app screen: when a document's
+  operations name several workflows, the ones bound elsewhere refuse to run with
+  a visible error rather than running the loaded graph under another name.
 - **No app document?** `generateAppDoc` builds one in memory from the graph's
   Input/Output nodes, so every workflow is runnable. Mobile never writes it
   back — authoring is the web builder's job.

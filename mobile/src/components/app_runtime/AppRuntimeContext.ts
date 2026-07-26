@@ -12,6 +12,7 @@ import {
   evaluateCondition,
   formatTemplate,
   parseCondition,
+  readRef,
   resolveBinding,
   stateKey,
   type AppAction,
@@ -32,8 +33,10 @@ export interface AppRuntimeContextValue {
   io: WorkflowIO;
   /** Everything a stored binding string can resolve against. */
   scope: BindingScope;
-  /** The operation a widget's `run` targets. */
+  /** The operation a widget's `run` targets when its event names none. */
   operation: OperationBinding;
+  /** Every operation the document declares, in document order. */
+  operations: OperationBinding[];
   /** The document's resource bindings, by declaration order. */
   resources: ResourceBinding[];
   dispatch: (action: AppAction) => void;
@@ -83,6 +86,13 @@ export const useBindingValue = (ref: BindingRef | null): unknown => {
         return s.variables[key];
       case "view":
         return s.view[key];
+      // `op:<id>/exec#<field>` reads the run itself rather than a value slot.
+      case "execution":
+        return readRef(s, {
+          source: "execution",
+          operationId: ref.operationId,
+          field: ref.field,
+        });
       default:
         return s.inputs[key]?.value;
     }

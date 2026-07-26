@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   eventToAction,
   isOperationRunning,
+  operationActivity,
   operationProgress,
   resolveBinding,
   type AppEvent,
@@ -43,6 +44,8 @@ export interface WidgetRuntime {
   running: boolean;
   /** Fractional progress of the app's active run, when it reports any. */
   progress: number | undefined;
+  /** What that run last reported it was doing — the agent's tool, phase, step. */
+  activity: string | undefined;
 }
 
 interface UseWidgetRuntimeParams {
@@ -75,12 +78,19 @@ export const useWidgetRuntime = ({
 
   const value = useBindingValue(ref);
 
-  const operationId = scope.defaultOperationId;
+  // A widget reports on the operation its own events drive; only a widget with
+  // no run/cancel event of its own falls back to the app's default operation.
+  const operationId =
+    events?.find((event) => event.operationId)?.operationId ??
+    scope.defaultOperationId;
   const running = useRuntimeSelector((s) =>
     isOperationRunning(s, operationId)
   );
   const progress = useRuntimeSelector((s) =>
     operationProgress(s, operationId)
+  );
+  const activity = useRuntimeSelector((s) =>
+    operationActivity(s, operationId)
   );
 
   const setValue = useCallback(
@@ -150,5 +160,5 @@ export const useWidgetRuntime = ({
     [dispatch, events, scope]
   );
 
-  return { value, setValue, emit, running, progress };
+  return { value, setValue, emit, running, progress, activity };
 };

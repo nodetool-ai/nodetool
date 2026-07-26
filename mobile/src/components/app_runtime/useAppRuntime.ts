@@ -4,8 +4,9 @@
  * Binds an app-instance store to the shared per-workflow runner, folds the
  * run's streaming messages into namespaced state, and turns widget actions into
  * runs. All the semantics — what a message does to a value, which invocation
- * owns a slot, how an action reads — live in `@nodetool-ai/app-runtime`; this
- * hook is the React Native adapter around them.
+ * owns a slot, how an action reads, what a policy means when a run collides
+ * with a live one — live in `@nodetool-ai/app-runtime`; this hook is the React
+ * Native adapter around them.
  *
  * Run identity is the load-bearing part: every invocation this app starts is
  * registered by its `job_id`, and a streaming message for any other job is
@@ -13,13 +14,20 @@
  * shows.
  *
  * Unlike web there is no reactive subgraph path — mobile has no browser worker
- * — so every `run` action runs the whole workflow on the server.
+ * — so every `run` action runs the whole workflow on the server. A document may
+ * declare several operations over that workflow and each is dispatched by id;
+ * an operation bound to a *different* workflow cannot run on a screen that
+ * holds only this one, and says so instead of running the wrong graph.
  */
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
+  decideRun,
   implicitOperation,
+  initialVariableValues,
+  isLiveInvocation,
   mergeVariables,
   messageToEvents,
+  outputVariableTargets,
   resolveOperationParams,
   stateKey,
   type AppAction,
@@ -46,8 +54,30 @@ import {
   seedInputValue,
 } from "./workflowIO";
 import { useOpenResource } from "./useOpenResource";
+import {
+  loadPersistedVariables,
+  persistableValues,
+  persistableVariableIds,
+  savePersistedVariables,
+} from "./variablePersistence";
 
 type RawMessage = Record<string, unknown>;
+
+/** Trailing window before a variable change is written to storage. */
+const PERSIST_DEBOUNCE_MS = 300;
+
+/**
+ * A run that has been dispatched but whose `job_id` has not come back yet.
+ * Starts are claimed in dispatch order, which is what lets two parallel
+ * invocations of one operation each find their own job.
+ */
+interface PendingStart {
+  operationId: string;
+  timeoutMs?: number;
+  /** Set once the run's job id arrives. */
+  invocationId?: string;
+  timer?: ReturnType<typeof setTimeout>;
+}
 
 export interface AppRuntimeOptions {
   /**
@@ -66,11 +96,44 @@ export const useAppRuntime = (
   const workflowId = workflow?.id;
   const io = useMemo(() => extractWorkflowIO(workflow), [workflow]);
 
-  // The operation a widget's run targets. Multi-operation apps arrive with the
-  // application entity; until then every app has exactly one.
-  const operation: OperationBinding = useMemo(
-    () => document?.operations[0] ?? implicitOperation(workflowId ?? ""),
+  // Every operation a widget's run/cancel can name. A legacy app running
+  // straight off a workflow gets the one implicit operation.
+  const operations: OperationBinding[] = useMemo(
+    () =>
+      document?.operations.length
+        ? document.operations
+        : [implicitOperation(workflowId ?? "")],
     [document, workflowId]
+  );
+  const operation = operations[0];
+
+  /**
+   * Mobile holds exactly one workflow per app screen.
+   *
+   * A document whose operations all name one workflow *is* this screen's app —
+   * it is stored on the workflow it was opened from — so it runs the loaded
+   * graph even when the id it carries is stale (a copied workflow keeps the
+   * original's app document). Only a document that mixes several workflows can
+   * name one this screen does not hold, and that operation refuses to run
+   * rather than running the loaded graph under another operation's name.
+   */
+  const isRunnable = useMemo(() => {
+    const workflowIds = new Set(
+      operations.map((op) => op.workflowId).filter((id) => id !== "")
+    );
+    return (candidate: OperationBinding) =>
+      workflowIds.size <= 1 ||
+      candidate.workflowId === "" ||
+      candidate.workflowId === workflowId;
+  }, [operations, workflowId]);
+
+  const variables = useMemo(
+    () =>
+      mergeVariables(
+        document?.variables ?? [],
+        extractVariableNames(workflow)
+      ),
+    [document, workflow]
   );
 
   // Everything a stored binding string can resolve against. Legacy documents
@@ -79,23 +142,24 @@ export const useAppRuntime = (
   const scope: BindingScope = useMemo(
     () => ({
       defaultOperationId: operation.id,
-      operations: [
-        {
-          operationId: operation.id,
-          inputs: io.inputs.map(({ nodeId, name }) => ({ nodeId, name })),
-          outputs: io.outputs.map(({ nodeId, name }) => ({ nodeId, name })),
-          nodeIds: (workflow?.graph?.nodes ?? []).map(
-            (node: { id: string }) => node.id
-          ),
-          variableNames: extractVariableNames(workflow),
-        },
-      ],
-      variables: mergeVariables(
-        document?.variables ?? [],
-        extractVariableNames(workflow)
-      ),
+      operations: operations.map((op) => ({
+        operationId: op.id,
+        inputs: isRunnable(op)
+          ? io.inputs.map(({ nodeId, name }) => ({ nodeId, name }))
+          : [],
+        outputs: isRunnable(op)
+          ? io.outputs.map(({ nodeId, name }) => ({ nodeId, name }))
+          : [],
+        nodeIds: isRunnable(op)
+          ? (workflow?.graph?.nodes ?? []).map(
+              (node: { id: string }) => node.id
+            )
+          : [],
+        variableNames: extractVariableNames(workflow),
+      })),
+      variables,
     }),
-    [document, io, operation.id, workflow]
+    [io, isRunnable, operation.id, operations, variables, workflow]
   );
 
   const resources = useMemo(() => document?.resources ?? [], [document]);
@@ -116,30 +180,70 @@ export const useAppRuntime = (
 
   const openResource = useOpenResource();
 
-  const inputKey = useCallback(
-    (nodeId: string) =>
-      stateKey({ kind: "input", operationId: operation.id, nodeId }),
-    [operation.id]
-  );
   const outputKey = useCallback(
-    (nodeId: string) =>
-      stateKey({ kind: "output", operationId: operation.id, nodeId }),
-    [operation.id]
+    (operationId: string, nodeId: string) =>
+      stateKey({ kind: "output", operationId, nodeId }),
+    []
   );
+
+  const instanceId = workflowInstanceId(workflowId ?? "__app_runtime__");
 
   // Kept in the instance registry so values survive an editor↔app toggle.
   const store: AppRuntimeStore = useMemo(() => {
-    const target = getAppRuntimeStore(
-      workflowInstanceId(workflowId ?? "__app_runtime__")
-    );
+    const target = getAppRuntimeStore(instanceId);
     const values: Record<string, unknown> = {};
-    for (const input of io.inputs) {
-      const seed = seedInputValue(input);
-      if (seed !== undefined) {values[inputKey(input.nodeId)] = seed;}
+    for (const op of operations) {
+      for (const input of io.inputs) {
+        const seed = seedInputValue(input);
+        if (seed !== undefined) {
+          values[stateKey({ kind: "input", operationId: op.id, nodeId: input.nodeId })] =
+            seed;
+        }
+      }
     }
     target.getState().dispatchEvent({ type: "seedInputs", values });
     return target;
-  }, [inputKey, io.inputs, workflowId]);
+  }, [instanceId, io.inputs, operations]);
+
+  // Restore first, then seed the declared defaults: `seedVariables` never
+  // clobbers, so a value the user set last session outranks the default.
+  useEffect(() => {
+    let cancelled = false;
+    const defaults = initialVariableValues(variables);
+    void loadPersistedVariables(instanceId, variables).then((restored) => {
+      if (cancelled) {return;}
+      const { dispatchEvent } = store.getState();
+      dispatchEvent({ type: "seedVariables", values: restored });
+      dispatchEvent({ type: "seedVariables", values: defaults });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [instanceId, store, variables]);
+
+  // Write back whatever the document declared persistent. Instance-scoped and
+  // view values never reach storage — that is what their scope means.
+  useEffect(() => {
+    const ids = persistableVariableIds(variables);
+    if (ids.size === 0) {return undefined;}
+    let last = JSON.stringify(persistableValues(store.getState().variables, ids));
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const unsubscribe = store.subscribe((state) => {
+      const values = persistableValues(state.variables, ids);
+      const encoded = JSON.stringify(values);
+      if (encoded === last) {return;}
+      last = encoded;
+      if (timer) {clearTimeout(timer);}
+      timer = setTimeout(() => {
+        timer = null;
+        void savePersistedVariables(instanceId, values);
+      }, PERSIST_DEBOUNCE_MS);
+    });
+    return () => {
+      unsubscribe();
+      if (timer) {clearTimeout(timer);}
+    };
+  }, [instanceId, store, variables]);
 
   const runnerStore = useWorkflowRunner(workflowId ?? "__app_runtime__");
 
@@ -149,33 +253,62 @@ export const useAppRuntime = (
     [io.outputs]
   );
 
+  // Operation id → (output node id → the variable that output writes).
+  const outputVariablesRef = useRef(new Map<string, Map<string, string>>());
+  outputVariablesRef.current = useMemo(() => {
+    const byOperation = new Map<string, Map<string, string>>();
+    for (const op of operations) {
+      const targets = outputVariableTargets(op);
+      if (targets.length === 0) {continue;}
+      byOperation.set(
+        op.id,
+        new Map(targets.map(({ nodeId, variableId }) => [nodeId, variableId]))
+      );
+    }
+    return byOperation;
+  }, [operations]);
+
   // Invocations this app started, by job id. A streaming message for anything
   // else is not ours — that is the cross-run contamination fix.
   const ownedRef = useRef(new Map<string, InvocationState>());
-  // Messages that arrived between dispatching a run and learning its job id.
-  const pendingRef = useRef<RawMessage[]>([]);
-  // True from the moment a run is dispatched until its job id comes back. The
-  // runner resolves as soon as the request is sent, well before the server
-  // answers, so this cannot be tied to the run promise.
-  const expectingJobRef = useRef(false);
+  // Runs dispatched but not yet matched to a job id, oldest first.
+  const pendingStartsRef = useRef<PendingStart[]>([]);
+  // Claimed runs that still hold a timeout timer, by invocation id.
+  const startsByInvocationRef = useRef(new Map<string, PendingStart>());
+
+  const clearTimer = useCallback((start: PendingStart | undefined) => {
+    if (start?.timer) {
+      clearTimeout(start.timer);
+      start.timer = undefined;
+    }
+  }, []);
 
   const fold = useCallback(
     (message: RawMessage) => {
       const events = messageToEvents(message, {
         resolveInvocation: (jobId) =>
           jobId ? ownedRef.current.get(jobId) ?? null : null,
-        outputKey: (_operationId, nodeId) =>
-          outputNodeIdsRef.current.has(nodeId) ? outputKey(nodeId) : null,
+        outputKey: (operationId, nodeId) =>
+          outputNodeIdsRef.current.has(nodeId)
+            ? outputKey(operationId, nodeId)
+            : null,
+        outputVariable: (operationId, nodeId) =>
+          outputVariablesRef.current.get(operationId)?.get(nodeId) ?? null,
       });
       for (const event of events) {
         store.getState().dispatchEvent(event);
         if (event.type === "invocationStatus") {
           const invocation = ownedRef.current.get(event.invocationId);
           if (invocation) {invocation.status = event.status;}
+          if (event.status !== "pending" && event.status !== "running") {
+            const start = startsByInvocationRef.current.get(event.invocationId);
+            clearTimer(start);
+            startsByInvocationRef.current.delete(event.invocationId);
+          }
         }
       }
     },
-    [outputKey, store]
+    [clearTimer, outputKey, store]
   );
   const foldRef = useRef(fold);
   foldRef.current = fold;
@@ -183,12 +316,38 @@ export const useAppRuntime = (
   const outputsRef = useRef(io.outputs);
   outputsRef.current = io.outputs;
 
-  /** Register a run this app started and flush anything buffered for it. */
+  /** Report a run that could not start, so the failure is visible in the app. */
+  const failRun = useCallback(
+    (operationId: string, error: string) => {
+      const failed: InvocationState = {
+        id: `failed-${operationId}-${Date.now()}`,
+        operationId,
+        status: "failed",
+        error,
+        startedAt: Date.now(),
+      };
+      ownedRef.current.set(failed.id, failed);
+      store.getState().dispatchEvent({
+        type: "runStarted",
+        invocation: failed,
+        outputKeys: [],
+      });
+    },
+    [store]
+  );
+  const failRunRef = useRef(failRun);
+  failRunRef.current = failRun;
+
+  /** Register a run this app started against the start that is waiting for it. */
   const claimInvocation = useCallback(
     (jobId: string) => {
+      const start = pendingStartsRef.current.shift();
+      if (!start) {return;}
+      start.invocationId = jobId;
+      startsByInvocationRef.current.set(jobId, start);
       const invocation: InvocationState = {
         id: jobId,
-        operationId: operation.id,
+        operationId: start.operationId,
         status: "running",
         startedAt: Date.now(),
       };
@@ -197,14 +356,11 @@ export const useAppRuntime = (
         type: "runStarted",
         invocation,
         outputKeys: outputsRef.current.map((output) =>
-          outputKey(output.nodeId)
+          outputKey(start.operationId, output.nodeId)
         ),
       });
-      const buffered = pendingRef.current;
-      pendingRef.current = [];
-      for (const message of buffered) {foldRef.current(message);}
     },
-    [operation.id, outputKey, store]
+    [outputKey, store]
   );
   const claimRef = useRef(claimInvocation);
   claimRef.current = claimInvocation;
@@ -214,19 +370,15 @@ export const useAppRuntime = (
 
     const handler = (message: RawMessage) => {
       const jobId = message.job_id;
-      if (typeof jobId === "string") {
+      // A message with no job id cannot be attributed to one of this app's
+      // invocations, so it is not folded.
+      if (typeof jobId !== "string") {return;}
+      if (!ownedRef.current.has(jobId)) {
         // The first job id to arrive after we dispatched a run is that run.
-        if (!ownedRef.current.has(jobId)) {
-          if (!expectingJobRef.current) {return;}
-          expectingJobRef.current = false;
-          claimRef.current(jobId);
-        }
-        foldRef.current(message);
-        return;
+        if (pendingStartsRef.current.length === 0) {return;}
+        claimRef.current(jobId);
       }
-      // A run we started whose job id has not come back yet: buffer rather than
-      // drop, then replay once the id is known.
-      if (expectingJobRef.current) {pendingRef.current.push(message);}
+      foldRef.current(message);
     };
 
     const unsubscribeWorkflow = webSocketService.subscribe(
@@ -253,58 +405,180 @@ export const useAppRuntime = (
     };
   }, [runnerStore, workflowId]);
 
-  const run = useCallback(async () => {
-    if (!workflow) {return;}
-    // Bindings key on node IDs; the run protocol wants names. That translation
-    // happens here, at the execution boundary, which is why a graph rename
-    // never touches the app document.
-    const params = resolveOperationParams({
-      operation,
-      state: store.getState(),
-      inputNodeIds: io.inputs.map((input) => input.nodeId),
-      inputName: (nodeId) =>
-        io.inputs.find((input) => input.nodeId === nodeId)?.name,
-      resourceRef: (resourceBindingId) =>
-        resourceRefsRef.current.get(resourceBindingId),
-    });
-
-    expectingJobRef.current = true;
-    pendingRef.current = [];
-    try {
-      await runnerStore.getState().run(params, workflow);
-    } catch (error) {
-      expectingJobRef.current = false;
-      pendingRef.current = [];
-      const failed: InvocationState = {
-        id: `failed-${Date.now()}`,
-        operationId: operation.id,
-        status: "failed",
-        error: error instanceof Error ? error.message : "Run failed",
-        startedAt: Date.now(),
-      };
-      ownedRef.current.set(failed.id, failed);
-      store.getState().dispatchEvent({
-        type: "runStarted",
-        invocation: failed,
-        outputKeys: [],
-      });
-    }
-  }, [io.inputs, operation, runnerStore, store, workflow]);
-
-  const cancel = useCallback(async () => {
-    await runnerStore.getState().cancel();
-    for (const [id, invocation] of ownedRef.current) {
-      if (invocation.status !== "running" && invocation.status !== "pending") {
-        continue;
+  /**
+   * Cancel invocations this app owns. `error` turns the cancellation into a
+   * failure, which is what a timeout is: the run stops and the app says why.
+   */
+  const cancelInvocations = useCallback(
+    async (invocationIds: ReadonlyArray<string>, error?: string) => {
+      for (const id of invocationIds) {
+        const invocation = ownedRef.current.get(id);
+        if (invocation && !isLiveInvocation(invocation)) {continue;}
+        clearTimer(startsByInvocationRef.current.get(id));
+        startsByInvocationRef.current.delete(id);
+        await runnerStore.getState().cancel(id);
+        if (invocation) {invocation.status = error ? "failed" : "cancelled";}
+        store.getState().dispatchEvent({
+          type: "invocationStatus",
+          invocationId: id,
+          status: error ? "failed" : "cancelled",
+          ...(error ? { error } : {}),
+        });
       }
-      invocation.status = "cancelled";
-      store.getState().dispatchEvent({
-        type: "invocationStatus",
-        invocationId: id,
-        status: "cancelled",
+    },
+    [clearTimer, runnerStore, store]
+  );
+
+  /** Resolve once none of the given invocations is live any more. */
+  const waitForSettled = useCallback(
+    (invocationIds: ReadonlyArray<string>) =>
+      new Promise<void>((resolve) => {
+        const settled = () =>
+          invocationIds.every((id) => {
+            const invocation = store.getState().invocations[id];
+            return !invocation || !isLiveInvocation(invocation);
+          });
+        if (settled()) {
+          resolve();
+          return;
+        }
+        const unsubscribe = store.subscribe(() => {
+          if (!settled()) {return;}
+          unsubscribe();
+          resolve();
+        });
+      }),
+    [store]
+  );
+
+  const startTimeout = useCallback(
+    (start: PendingStart) => {
+      if (!start.timeoutMs || start.timeoutMs <= 0) {return;}
+      const limit = start.timeoutMs;
+      start.timer = setTimeout(() => {
+        start.timer = undefined;
+        const message = `Run timed out after ${limit}ms`;
+        if (start.invocationId) {
+          void cancelInvocations([start.invocationId], message);
+          return;
+        }
+        // The run never reported a job id, so there is nothing to cancel — the
+        // failure is all the app can show.
+        pendingStartsRef.current = pendingStartsRef.current.filter(
+          (pending) => pending !== start
+        );
+        failRunRef.current(start.operationId, message);
+      }, limit);
+    },
+    [cancelInvocations]
+  );
+
+  const run = useCallback(
+    async (operationId: string) => {
+      const target = operations.find((op) => op.id === operationId);
+      if (!target) {
+        failRun(
+          operation.id,
+          `This app has no operation "${operationId}".`
+        );
+        return;
+      }
+      if (!workflow || !isRunnable(target)) {
+        failRun(
+          target.id,
+          `"${target.name}" runs workflow ${target.workflowId}, which this screen does not have open.`
+        );
+        return;
+      }
+
+      const decision = decideRun(store.getState(), target);
+      if (decision.kind === "replace") {
+        await cancelInvocations(decision.cancel);
+      } else if (decision.kind === "queue") {
+        await waitForSettled(decision.after);
+      }
+
+      // Bindings key on node IDs; the run protocol wants names. That
+      // translation happens here, at the execution boundary, which is why a
+      // graph rename never touches the app document.
+      const params = resolveOperationParams({
+        operation: target,
+        state: store.getState(),
+        inputNodeIds: io.inputs.map((input) => input.nodeId),
+        inputName: (nodeId) =>
+          io.inputs.find((input) => input.nodeId === nodeId)?.name,
+        resourceRef: (resourceBindingId) =>
+          resourceRefsRef.current.get(resourceBindingId),
       });
-    }
-  }, [runnerStore, store]);
+
+      const start: PendingStart = {
+        operationId: target.id,
+        timeoutMs: target.timeoutMs,
+      };
+      pendingStartsRef.current.push(start);
+      startTimeout(start);
+      try {
+        await runnerStore.getState().run(params, workflow);
+      } catch (error) {
+        pendingStartsRef.current = pendingStartsRef.current.filter(
+          (pending) => pending !== start
+        );
+        clearTimer(start);
+        failRun(
+          target.id,
+          error instanceof Error ? error.message : "Run failed"
+        );
+      }
+    },
+    [
+      cancelInvocations,
+      clearTimer,
+      failRun,
+      io.inputs,
+      isRunnable,
+      operation.id,
+      operations,
+      runnerStore,
+      startTimeout,
+      store,
+      waitForSettled,
+      workflow,
+    ]
+  );
+
+  const cancel = useCallback(
+    async (operationId: string, invocationId?: string) => {
+      if (invocationId) {
+        await cancelInvocations([invocationId]);
+        return;
+      }
+      const live = Object.values(store.getState().invocations)
+        .filter((i) => i.operationId === operationId && isLiveInvocation(i))
+        .map((i) => i.id);
+      // A run dispatched but not yet claimed has no job to cancel; dropping its
+      // start keeps a late job id from being adopted as a live run.
+      pendingStartsRef.current = pendingStartsRef.current.filter((start) => {
+        if (start.operationId !== operationId) {return true;}
+        clearTimer(start);
+        return false;
+      });
+      await cancelInvocations(live);
+    },
+    [cancelInvocations, clearTimer, store]
+  );
+
+  // A screen that goes away leaves no timer behind to fail a run nobody sees.
+  useEffect(
+    () => () => {
+      for (const start of pendingStartsRef.current) {
+        if (start.timer) {clearTimeout(start.timer);}
+      }
+      for (const start of startsByInvocationRef.current.values()) {
+        if (start.timer) {clearTimeout(start.timer);}
+      }
+    },
+    []
+  );
 
   const write = useCallback(
     (ref: BindingRef, value: unknown) => {
@@ -332,10 +606,13 @@ export const useAppRuntime = (
     (action: AppAction) => {
       switch (action.kind) {
         case "run":
-          void run();
+          void run(action.operationId);
           break;
         case "cancel":
-          void cancel();
+          void cancel(
+            action.operationId ?? operation.id,
+            action.invocationId
+          );
           break;
         case "setVariable":
           store.getState().dispatchEvent({
@@ -366,7 +643,7 @@ export const useAppRuntime = (
           break;
       }
     },
-    [cancel, openResource, run, store]
+    [cancel, openResource, operation.id, run, store]
   );
 
   return useMemo(
@@ -375,6 +652,7 @@ export const useAppRuntime = (
       io,
       scope,
       operation,
+      operations,
       resources,
       dispatch,
       write,
@@ -384,6 +662,7 @@ export const useAppRuntime = (
       dispatch,
       io,
       operation,
+      operations,
       resources,
       scope,
       selectResource,

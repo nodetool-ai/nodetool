@@ -172,20 +172,119 @@ const MediaOutputWidget: React.FC<WidgetProps> = (widget) => {
   );
 };
 
+/** A cell's text: primitives print, anything structured falls back to JSON. */
+const cellText = (value: unknown): string => {
+  if (value == null) {return "";}
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+  return String(value);
+};
+
+const isRow = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+/**
+ * Columns of a bound array: the union of the rows' keys, in first-seen order.
+ * An array of primitives has none — it renders as a single unnamed column.
+ */
+export const tableColumns = (rows: ReadonlyArray<unknown>): string[] => {
+  const columns: string[] = [];
+  for (const row of rows) {
+    if (!isRow(row)) {continue;}
+    for (const key of Object.keys(row)) {
+      if (!columns.includes(key)) {columns.push(key);}
+    }
+  }
+  return columns;
+};
+
+/** Lays an array value out as rows — what a run that emits N results needs. */
+const TableWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
+  const rows = asItems(value);
+  const columns = useMemo(() => tableColumns(rows), [rows]);
+
+  if (rows.length === 0) {
+    return (
+      <Placeholder
+        text={str(widget.props.placeholder) || "No rows"}
+        colors={colors}
+      />
+    );
+  }
+
+  const cells = (row: unknown): string[] =>
+    columns.length === 0
+      ? [cellText(row)]
+      : columns.map((column) => (isRow(row) ? cellText(row[column]) : ""));
+
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      <View style={[styles.table, { borderColor: colors.border }]}>
+        {columns.length > 0 ? (
+          <View style={[styles.tableRow, { backgroundColor: colors.inputBg }]}>
+            {columns.map((column) => (
+              <Text
+                key={column}
+                numberOfLines={1}
+                style={[styles.tableCell, styles.tableHeader, { color: colors.text }]}
+              >
+                {column}
+              </Text>
+            ))}
+          </View>
+        ) : null}
+        {rows.map((row, index) => (
+          <View
+            key={index}
+            style={[
+              styles.tableRow,
+              index > 0 || columns.length > 0
+                ? { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth }
+                : null,
+            ]}
+          >
+            {cells(row).map((text, cellIndex) => (
+              <Text
+                key={cellIndex}
+                numberOfLines={3}
+                style={[styles.tableCell, { color: colors.textSecondary }]}
+              >
+                {text}
+              </Text>
+            ))}
+          </View>
+        ))}
+      </View>
+    </ScrollView>
+  );
+};
+
 const ProgressWidget: React.FC<WidgetProps> = (widget) => {
   const { colors } = useTheme();
-  const { value, running, progress } = useWidgetRuntime({
+  const { value, running, progress, activity } = useWidgetRuntime({
     ...widget,
     bindingMode: "read",
   });
   const bound = typeof value === "number" ? value : undefined;
   const ratio = bound ?? progress;
-  const label = str(widget.props.label);
+  // What the run says it is doing outranks the author's static label: an app
+  // over an agent workflow otherwise shows a bare spinner for minutes.
+  const label = (running ? activity : undefined) ?? str(widget.props.label);
   if (!running && ratio === undefined) {return null;}
   return (
     <View style={styles.stack}>
       {label ? (
-        <Text style={[styles.label, { color: colors.textSecondary }]}>
+        <Text
+          numberOfLines={2}
+          style={[styles.label, { color: colors.textSecondary }]}
+        >
           {label}
         </Text>
       ) : null}
@@ -708,6 +807,7 @@ const RENDERERS: Record<string, React.FC<WidgetProps>> = {
   Video: MediaOutputWidget,
   Json: MediaOutputWidget,
   Output: MediaOutputWidget,
+  Table: TableWidget,
   Progress: ProgressWidget,
   WorkflowInput: WorkflowInputWidget,
   TextInput: TextInputWidget,
@@ -852,6 +952,24 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     fontSize: 13,
+  },
+  table: {
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+  },
+  tableRow: {
+    flexDirection: "row",
+  },
+  tableCell: {
+    minWidth: 120,
+    maxWidth: 240,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+  },
+  tableHeader: {
+    fontWeight: "700",
   },
   progressTrack: {
     height: 6,
