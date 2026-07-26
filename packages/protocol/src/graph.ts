@@ -119,6 +119,27 @@ export interface LineageScopeClosed {
 export type LineageControlSignal = LineageDone | LineageScopeClosed;
 
 /**
+ * Declaration of one user-added dynamic input slot.
+ *
+ * Types and values live in separate maps: `NodeDescriptor.dynamic_inputs`
+ * holds the declarations, `NodeDescriptor.dynamic_properties` holds the
+ * current inline values. A property with no declaration is an untyped legacy
+ * slot and behaves as `any`.
+ */
+export interface DynamicSlotMeta {
+  /**
+   * Wire shape matches `dynamic_outputs`: either a parsed `TypeMetadata` or
+   * the JSON form (`{ type, type_args, optional }`) that crosses the wire.
+   */
+  type: TypeMetadata | Record<string, unknown>;
+  description?: string;
+  default?: unknown;
+  required?: boolean;
+  min?: number;
+  max?: number;
+}
+
+/**
  * Minimal node descriptor for graph operations.
  * The full BaseNode equivalent lives in the node-sdk package.
  */
@@ -141,6 +162,13 @@ export interface NodeDescriptor {
 
   /** Dynamic runtime properties accepted by dynamic nodes. */
   dynamic_properties?: Record<string, unknown>;
+
+  /**
+   * Typed slot declarations for dynamic inputs. Slots without a declaration
+   * are untyped (`any`), which is how every workflow saved before typed slots
+   * existed behaves.
+   */
+  dynamic_inputs?: Record<string, DynamicSlotMeta>;
 
   /** Dynamic runtime outputs declared by dynamic nodes. */
   dynamic_outputs?: Record<string, TypeMetadata | Record<string, unknown>>;
