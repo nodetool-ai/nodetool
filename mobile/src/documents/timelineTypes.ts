@@ -1,85 +1,45 @@
 /**
  * The agent-facing timeline contract on mobile.
  *
- * Ported from web's `timelineAgentBridge`, trimmed to reads: snapshot, clip
- * lookup, selection, seek. Editing, generation, and rendering are deliberately
- * absent — a phone screen cannot supervise a render job, and a timeline is too
- * dense to cut accurately with a thumb, so mobile opens sequences read-only
- * (`kinds.ts` marks the surface `viewer`).
+ * The human-facing screen is a viewer — a timeline is too dense to cut with a
+ * thumb, so `kinds.ts` marks the surface `viewer` — but the document is fully
+ * agent-editable (`agentEditable: true`): "move the title card two seconds
+ * later" is a sentence, and that is what a phone is good at. The read tools
+ * answer questions about a sequence; the write tools apply the edit and the user
+ * presses Save.
+ *
+ * Document types come straight from `@nodetool-ai/timeline` rather than being
+ * re-declared here. That package is the same engine the desktop editor uses, so
+ * `splitClip`/`trimClip` apply to these values directly and the two surfaces
+ * cannot drift.
  *
  * Everything crossing the bridge is a plain serializable value, so the tool
  * layer never touches a Zustand handle.
  */
 
-export type TimelineTrackType = 'video' | 'audio' | 'overlay' | 'subtitle';
+import type {
+  ClipShapeStyle,
+  ClipTextStyle,
+  TimelineClip,
+  TimelineMarker,
+  TimelineTrack,
+  TranscriptLine,
+} from '@nodetool-ai/timeline';
 
-export type TimelineMediaType =
-  | 'image'
-  | 'video'
-  | 'audio'
-  | 'overlay'
-  | 'text'
-  | 'shape';
+export type TimelineTrackType = TimelineTrack['type'];
+export type TimelineMediaType = TimelineClip['mediaType'];
+export type TimelineClipStatus = TimelineClip['status'];
 
-export type TimelineClipStatus =
-  | 'draft'
-  | 'queued'
-  | 'generating'
-  | 'generated'
-  | 'stale'
-  | 'failed'
-  | 'locked'
-  | 'missing';
-
-export interface TimelineTrackData {
-  id: string;
-  name: string;
-  type: TimelineTrackType;
-  index: number;
-  visible: boolean;
-  locked: boolean;
-  muted?: boolean;
-  solo?: boolean;
-  heightPx?: number;
-}
-
-export interface TimelineClipData {
-  id: string;
-  trackId: string;
-  name: string;
-  startMs: number;
-  durationMs: number;
-  inPointMs?: number;
-  outPointMs?: number;
-  mediaType: TimelineMediaType;
-  sourceType: 'imported' | 'generated';
-  status: TimelineClipStatus;
-  locked: boolean;
-  muted?: boolean;
-  hidden?: boolean;
-  prompt?: string;
-  provider?: string;
-  model?: string;
-  currentAssetId?: string;
-  thumbnailAssetId?: string;
-  /** Generation history. The viewer only shows how many there are. */
-  versions: unknown[];
-}
-
-export interface TimelineMarkerData {
-  id: string;
-  timeMs: number;
-  label: string;
-  color?: string;
-  note?: string;
-}
+/** Document-shaped aliases, kept so existing call sites read unchanged. */
+export type TimelineTrackData = TimelineTrack;
+export type TimelineClipData = TimelineClip;
+export type TimelineMarkerData = TimelineMarker;
 
 /**
  * The timeline document body — the wire shape of `timelineDocument` in
- * `@nodetool-ai/protocol/api-schemas/timeline`. Declared structurally because
- * that module is zod and is not re-exported from the package root, and mobile
- * has no zod. Only the fields the viewer reads are named; the rest ride along
- * untouched.
+ * `@nodetool-ai/protocol/api-schemas/timeline`, expressed with the engine's
+ * types (the protocol module is zod, is not re-exported from the package root,
+ * and mobile has no zod).
  *
  * `fps`, `width`, and `height` live on the resource row, not in the body, so
  * they are unavailable here — duration comes from the clips.
@@ -88,7 +48,7 @@ export interface TimelineDocument {
   tracks: TimelineTrackData[];
   clips: TimelineClipData[];
   markers: TimelineMarkerData[];
-  transcript?: unknown[];
+  transcript?: TranscriptLine[];
   scriptEnabled?: boolean;
 }
 
@@ -109,6 +69,8 @@ export interface TimelineClipNode {
   prompt?: string;
   model?: string;
   provider?: string;
+  /** Set when the clip travels with a sibling (video + its extracted audio). */
+  linkId?: string;
   /** Whether a rendered asset is attached, so the agent can tell empty from done. */
   hasAsset: boolean;
 }
@@ -134,14 +96,88 @@ export interface TimelineSnapshot {
   clipCount: number;
   playheadMs: number;
   selectedClipIds: string[];
+  /** Whether the document has unsaved edits the user still has to save. */
+  dirty: boolean;
   tracks: TimelineTrackNode[];
   clips: TimelineClipNode[];
   markers: { id: string; timeMs: number; label: string }[];
+  /**
+   * Transcript lines and the clips they own. Clips a line references cannot be
+   * deleted or split, so the agent needs to see the constraint before it plans.
+   */
+  transcript: { id: string; text: string; clipIds: string[] }[];
+}
+
+// ── Edit inputs ─────────────────────────────────────────────────────────────
+
+export interface TimelineAddTextClipInput {
+  text: string;
+  trackId?: string;
+  startMs?: number;
+  durationMs?: number;
+  style?: Partial<Omit<ClipTextStyle, 'text'>>;
+}
+
+export interface TimelineAddShapeClipInput {
+  shape: ClipShapeStyle;
+  trackId?: string;
+  startMs?: number;
+  durationMs?: number;
+}
+
+export interface TimelineMovePatch {
+  startMs?: number;
+  trackId?: string;
+}
+
+export interface TimelineTrimPatch {
+  durationMs?: number;
+  inPointMs?: number;
+  outPointMs?: number;
+}
+
+/**
+ * Render/audio params plus the generation binding. Changing any binding field
+ * marks a generated clip `stale` (see `timelineEdits.ts`), so the user is never
+ * shown "generated" over an asset that no longer matches its prompt.
+ */
+export interface TimelineClipParamsPatch {
+  name?: string;
+  opacity?: number;
+  speedMultiplier?: number;
+  volumeDb?: number;
+  fadeInMs?: number;
+  fadeOutMs?: number;
+  blendMode?: string;
+  borderRadius?: number;
+  hidden?: boolean;
+  muted?: boolean;
+  locked?: boolean;
+  textStyle?: ClipTextStyle;
+  shapeStyle?: ClipShapeStyle;
+  prompt?: string;
+  negativePrompt?: string;
+  provider?: string;
+  model?: string;
+  voice?: string;
+  width?: number;
+  height?: number;
+  strength?: number;
+  numInferenceSteps?: number;
+  seed?: number;
+}
+
+export interface TimelineAddMarkerInput {
+  timeMs: number;
+  label?: string;
+  color?: string;
+  note?: string;
 }
 
 /**
  * Operations the mounted TimelineViewerScreen exposes to the tool layer. Clips
- * are addressed by id, case-insensitive name, or the literal `"selected"`.
+ * and tracks are addressed by id, case-insensitive name, or the literal
+ * `"selected"` (clips only).
  */
 export interface TimelineAgentHandler {
   getSnapshot: () => TimelineSnapshot;
@@ -150,6 +186,27 @@ export interface TimelineAgentHandler {
   selectClip: (target: string | null) => TimelineClipNode | null;
   /** Move the playhead and return the resulting position (ms). */
   seek: (timeMs: number) => number;
+
+  addTrack: (type: TimelineTrackType, name?: string) => TimelineTrackNode;
+  addTextClip: (input: TimelineAddTextClipInput) => TimelineClipNode;
+  addShapeClip: (input: TimelineAddShapeClipInput) => TimelineClipNode;
+  /** Moves the whole link group by one delta; returns every clip that moved. */
+  moveClip: (target: string, patch: TimelineMovePatch) => TimelineClipNode[];
+  /** All-or-nothing across the link group. */
+  trimClip: (target: string, patch: TimelineTrimPatch) => TimelineClipNode[];
+  /** Splits the clip and every link sibling at the same point. */
+  splitClip: (target: string, atMs?: number) => TimelineClipNode[];
+  deleteClip: (target: string) => TimelineClipNode;
+  /** Duplicates the clip, or the whole link group when it has one. */
+  duplicateClip: (target: string, gapMs?: number) => TimelineClipNode[];
+  setClipParams: (
+    target: string,
+    patch: TimelineClipParamsPatch
+  ) => TimelineClipNode;
+  addMarker: (input: TimelineAddMarkerInput) => TimelineMarkerData;
+  deleteMarker: (target: string) => TimelineMarkerData;
+  rename: (name: string) => { title: string };
+  save: () => Promise<{ ok: true; updatedAt: string | null }>;
 }
 
 /** Sequence length: the end of the last clip. Zero when there are none. */
@@ -179,6 +236,7 @@ export function clipToNode(
     prompt: clip.prompt,
     model: clip.model,
     provider: clip.provider,
+    linkId: clip.linkId,
     hasAsset: typeof clip.currentAssetId === 'string' && clip.currentAssetId.length > 0,
   };
 }
@@ -235,5 +293,33 @@ export function resolveClip(
       (known.length > 0
         ? `Clips: ${known}.`
         : 'This sequence has no clips yet.')
+  );
+}
+
+/**
+ * Resolve a track address: an id or a case-insensitive name. Never returns the
+ * raw string — writing a track *name* into `clip.trackId` would orphan the clip.
+ */
+export function resolveTrack(
+  tracks: readonly TimelineTrackData[],
+  target: string
+): TimelineTrackData {
+  const byId = tracks.find((track) => track.id === target);
+  if (byId) {
+    return byId;
+  }
+
+  const lowered = target.toLowerCase();
+  const byName = tracks.find((track) => track.name.toLowerCase() === lowered);
+  if (byName) {
+    return byName;
+  }
+
+  const known = tracks.map((track) => `${track.id} ("${track.name}")`).join(', ');
+  throw new Error(
+    `No track matches "${target}". Use a track id or a track name. ` +
+      (known.length > 0
+        ? `Tracks: ${known}.`
+        : 'This sequence has no tracks yet.')
   );
 }

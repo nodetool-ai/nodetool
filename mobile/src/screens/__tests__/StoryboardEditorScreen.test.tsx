@@ -112,7 +112,7 @@ function makeStore(overrides: Partial<TestState> = {}) {
     id: 'sb-1',
     doc: makeDocument(),
     name: 'Test board',
-    revision: 3,
+    token: 3,
     updatedAt: '2026-07-26T00:00:00Z',
     dirty: false,
     status: 'idle',

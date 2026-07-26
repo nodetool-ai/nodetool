@@ -1,12 +1,16 @@
 /**
- * Read-only timeline viewer.
+ * Timeline viewer, edited by the agent.
  *
- * The sequence is shown, never edited: a phone cannot place a cut accurately
- * and cannot supervise a render, so `kinds.ts` opens timelines as a `viewer`
- * surface and this screen never calls `save()`. What it does offer is the two
- * things a phone is good for — looking at what a sequence contains, and asking
- * the assistant about it, which is why the header links to Chat and why the
- * screen registers an agent handler for the `ui_timeline_*` tools.
+ * Direct manipulation stays off: placing a cut accurately with a thumb is not
+ * possible at phone width, so `kinds.ts` opens timelines as a `viewer` surface —
+ * no drag, no trim handles, no clip editing by touch. What the phone is good at
+ * is the other half: looking at what a sequence contains, and saying "move the
+ * title card two seconds later". So this screen registers the agent handler the
+ * `ui_timeline_*` tools write through, and owns the Save button for the result.
+ *
+ * The handler mutates the same `documentStore` the render reads, so an agent edit
+ * repaints the screen the user is holding, and `ui_timeline_save` is the same
+ * code path as pressing Save.
  */
 
 import React, {
@@ -14,6 +18,7 @@ import React, {
   useEffect,
   useLayoutEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -29,12 +34,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useShallow } from 'zustand/react/shallow';
 
 import type { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../hooks/useTheme';
 import { documentStore } from '../documents/documentStore';
-import { registerDocumentHandler, setFocusedDocument } from '../documents/agentBridge';
+import {
+  registerDocumentHandler,
+  setDocumentTitle,
+  setFocusedDocument,
+} from '../documents/agentBridge';
 import { clearUiSelection, setUiSelection } from '../documents/uiContext';
+import * as edits from '../documents/timelineEdits';
 import {
   clipToNode,
   resolveClip,
@@ -42,9 +53,11 @@ import {
   trackToNode,
   type TimelineAgentHandler,
   type TimelineClipData,
+  type TimelineClipNode,
   type TimelineClipStatus,
   type TimelineDocument,
   type TimelineMediaType,
+  type TimelineSnapshot,
   type TimelineTrackData,
   type TimelineTrackType,
 } from '../documents/timelineTypes';
@@ -130,24 +143,50 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
 
   const store = useMemo(() => documentStore<TimelineDocument>('timeline', id), [id]);
-  const doc = store((state) => state.doc);
-  const docName = store((state) => state.name);
-  const status = store((state) => state.status);
-  const error = store((state) => state.error);
-  const load = store((state) => state.load);
+  const { doc, docName, dirty, status, error } = store(
+    useShallow((state) => ({
+      doc: state.doc,
+      docName: state.name,
+      dirty: state.dirty,
+      status: state.status,
+      error: state.error,
+    }))
+  );
 
   const [pxPerSecond, setPxPerSecond] = useState(DEFAULT_PX_PER_SECOND);
   const [playheadMs, setPlayheadMs] = useState(0);
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
+
+  // The agent handler runs outside React, so it reads live selection and
+  // playhead from refs rather than a stale render closure.
+  const selectedRef = useRef<string | null>(null);
+  const playheadRef = useRef(0);
+  const select = useCallback((next: string | null) => {
+    selectedRef.current = next;
+    setSelectedClipId(next);
+  }, []);
+  const movePlayhead = useCallback((next: number) => {
+    playheadRef.current = next;
+    setPlayheadMs(next);
+  }, []);
+
+  // The store's actions live in its state, so every caller goes through
+  // getState() — including the agent handler.
+  const runLoad = useCallback(() => void store.getState().load(), [store]);
+  const runSave = useCallback(() => store.getState().save(), [store]);
+  const runRevert = useCallback(() => void store.getState().revert(), [store]);
 
   const title = docName || name || 'Timeline';
 
   useEffect(() => {
     // Re-read on every open: the store is cached for the app's lifetime, so a
     // sequence edited on desktop since it was last viewed here would otherwise
-    // keep showing the stale cut. Nothing local can be lost — this is a viewer.
-    void load();
-  }, [store, load]);
+    // keep showing a stale cut. Unsaved agent edits are the one thing worth
+    // keeping over a fresh read.
+    if (!store.getState().dirty) {
+      runLoad();
+    }
+  }, [store, runLoad]);
 
   const tracks = useMemo<TimelineTrackData[]>(
     () => [...(doc?.tracks ?? [])].sort((a, b) => a.index - b.index),
@@ -163,53 +202,221 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
     [tracks]
   );
 
-  const handler = useMemo<TimelineAgentHandler>(() => {
-    const selectedClipIds = selectedClipId ? [selectedClipId] : [];
-    const node = (clip: TimelineClipData) => clipToNode(clip, trackNameOf(clip.trackId));
-    return {
-      getSnapshot: () => ({
+  // ── Agent handler ────────────────────────────────────────────────────────
+  useEffect(() => {
+    /** The live document. Reading it per call keeps a batch of edits coherent. */
+    const requireDoc = (): TimelineDocument => {
+      const current = store.getState().doc;
+      if (current === null) {
+        throw new Error(
+          `Timeline "${id}" has not finished loading. Retry in a moment.`
+        );
+      }
+      return current;
+    };
+
+    const selectedIds = (): string[] =>
+      selectedRef.current ? [selectedRef.current] : [];
+
+    const trackNameIn = (
+      current: TimelineDocument,
+      trackId: string
+    ): string | null =>
+      current.tracks.find((track) => track.id === trackId)?.name ?? null;
+
+    const node = (
+      current: TimelineDocument,
+      clip: TimelineClipData
+    ): TimelineClipNode => clipToNode(clip, trackNameIn(current, clip.trackId));
+
+    /** Apply a pure edit, write it to the store, and project the result. */
+    const apply = <T,>(
+      run: (current: TimelineDocument) => {
+        doc: TimelineDocument;
+        result: T;
+      }
+    ): T => {
+      const outcome = run(requireDoc());
+      store.getState().edit(() => outcome.doc);
+      return outcome.result;
+    };
+
+    const applyClips = (
+      run: (current: TimelineDocument) => {
+        doc: TimelineDocument;
+        clips: TimelineClipData[];
+      }
+    ): TimelineClipNode[] =>
+      apply((current) => {
+        const next = run(current);
+        return {
+          doc: next.doc,
+          result: next.clips.map((clip) => node(next.doc, clip)),
+        };
+      });
+
+    const snapshot = (): TimelineSnapshot => {
+      const state = store.getState();
+      const current = state.doc;
+      const currentTracks = [...(current?.tracks ?? [])].sort(
+        (a, b) => a.index - b.index
+      );
+      const currentClips = current?.clips ?? [];
+      return {
         sequenceId: id,
-        title,
-        durationMs,
-        trackCount: tracks.length,
-        clipCount: clips.length,
-        playheadMs,
-        selectedClipIds,
-        tracks: tracks.map((track) =>
+        title: state.name || name || 'Timeline',
+        durationMs: timelineDurationMs(currentClips),
+        trackCount: currentTracks.length,
+        clipCount: currentClips.length,
+        playheadMs: playheadRef.current,
+        selectedClipIds: selectedIds(),
+        dirty: state.dirty,
+        tracks: currentTracks.map((track) =>
           trackToNode(
             track,
-            clips.filter((clip) => clip.trackId === track.id).length
+            currentClips.filter((clip) => clip.trackId === track.id).length
           )
         ),
-        clips: clips.map(node),
-        markers: markers.map((marker) => ({
+        clips: currentClips.map((clip) =>
+          clipToNode(
+            clip,
+            currentTracks.find((track) => track.id === clip.trackId)?.name ?? null
+          )
+        ),
+        markers: (current?.markers ?? []).map((marker) => ({
           id: marker.id,
           timeMs: marker.timeMs,
           label: marker.label,
         })),
-      }),
-      getClip: (target) => node(resolveClip(clips, target, selectedClipIds)),
+        transcript: (current?.transcript ?? []).map((line) => ({
+          id: line.id,
+          text: line.text,
+          clipIds: line.clipIds,
+        })),
+      };
+    };
+
+    const handler: TimelineAgentHandler = {
+      getSnapshot: snapshot,
+
+      getClip: (target) => {
+        const current = requireDoc();
+        return node(current, resolveClip(current.clips, target, selectedIds()));
+      },
+
       selectClip: (target) => {
         if (target === null || target === '') {
-          setSelectedClipId(null);
+          select(null);
           return null;
         }
-        const clip = resolveClip(clips, target, selectedClipIds);
-        setSelectedClipId(clip.id);
-        return node(clip);
+        const current = requireDoc();
+        const clip = resolveClip(current.clips, target, selectedIds());
+        select(clip.id);
+        return node(current, clip);
       },
+
       seek: (timeMs) => {
-        const clamped = Math.max(0, Math.min(timeMs, durationMs));
-        setPlayheadMs(clamped);
+        const clamped = Math.max(
+          0,
+          Math.min(timeMs, timelineDurationMs(requireDoc().clips))
+        );
+        movePlayhead(clamped);
         return clamped;
       },
-    };
-  }, [clips, durationMs, id, markers, playheadMs, selectedClipId, title, trackNameOf, tracks]);
 
-  useEffect(
-    () => registerDocumentHandler('timeline', id, title, handler),
-    [handler, id, title]
-  );
+      addTrack: (type, trackName) =>
+        apply((current) => {
+          const next = edits.addTrack(current, type, trackName);
+          return { doc: next.doc, result: trackToNode(next.track, 0) };
+        }),
+
+      addTextClip: (input) =>
+        apply((current) => {
+          const next = edits.addTextClip(current, input);
+          return { doc: next.doc, result: node(next.doc, next.clip) };
+        }),
+
+      addShapeClip: (input) =>
+        apply((current) => {
+          const next = edits.addShapeClip(current, input);
+          return { doc: next.doc, result: node(next.doc, next.clip) };
+        }),
+
+      moveClip: (target, patch) =>
+        applyClips((current) => edits.moveClip(current, target, patch, selectedIds())),
+
+      trimClip: (target, patch) =>
+        applyClips((current) => edits.trimClip(current, target, patch, selectedIds())),
+
+      splitClip: (target, atMs) =>
+        applyClips((current) =>
+          edits.splitClipAt(
+            current,
+            target,
+            atMs ?? Math.round(playheadRef.current),
+            selectedIds()
+          )
+        ),
+
+      deleteClip: (target) =>
+        apply((current) => {
+          const next = edits.deleteClip(current, target, selectedIds());
+          if (selectedRef.current === next.deleted.id) {
+            select(null);
+          }
+          return { doc: next.doc, result: node(next.doc, next.deleted) };
+        }),
+
+      duplicateClip: (target, gapMs) =>
+        applyClips((current) =>
+          edits.duplicateClip(current, target, gapMs ?? 0, selectedIds())
+        ),
+
+      setClipParams: (target, patch) =>
+        apply((current) => {
+          const next = edits.setClipParams(current, target, patch, selectedIds());
+          return { doc: next.doc, result: node(next.doc, next.clip) };
+        }),
+
+      addMarker: (input) =>
+        apply((current) => {
+          const next = edits.addMarker(current, input);
+          return { doc: next.doc, result: next.marker };
+        }),
+
+      deleteMarker: (target) =>
+        apply((current) => {
+          const next = edits.deleteMarker(current, target);
+          return { doc: next.doc, result: next.deleted };
+        }),
+
+      rename: (nextName) => {
+        store.getState().rename(nextName);
+        return { title: nextName };
+      },
+
+      save: async () => {
+        await runSave();
+        const state = store.getState();
+        if (state.status === 'conflict' || state.status === 'error') {
+          throw new Error(state.error ?? 'Failed to save the timeline.');
+        }
+        return { ok: true, updatedAt: state.updatedAt };
+      },
+    };
+
+    return registerDocumentHandler('timeline', id, title, handler);
+    // `title` is intentionally excluded: it changes on rename, and
+    // re-registering the handler mid-turn is churn the bridge does not need.
+    // `setDocumentTitle` below keeps the agent-visible title current instead.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store, id, name, select, movePlayhead, runSave]);
+
+  useEffect(() => {
+    if (docName) {
+      setDocumentTitle('timeline', id, docName);
+    }
+  }, [docName, id]);
 
   // Claim focus and publish the selection on focus, but release neither on
   // blur. Navigating to Chat blurs this screen, and the chat turn is the one
@@ -226,24 +433,58 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
   useEffect(() => clearUiSelection, []);
 
   const openChat = useCallback(() => navigation.navigate('Chat'), [navigation]);
+  const handleSave = useCallback(() => void runSave(), [runSave]);
 
   useLayoutEffect(() => {
+    const saving = status === 'saving';
     navigation.setOptions({
       title,
       headerRight: () => (
-        <TouchableOpacity
-          onPress={openChat}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel="Ask the assistant about this sequence"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          style={styles.headerButton}
-        >
-          <Ionicons name="chatbubble-ellipses-outline" size={22} color={colors.text} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            onPress={openChat}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Ask the assistant to change this sequence"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="chatbubble-ellipses-outline" size={22} color={colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleSave}
+            activeOpacity={0.7}
+            disabled={!dirty || saving}
+            accessibilityRole="button"
+            accessibilityLabel="Save timeline"
+            accessibilityState={{ disabled: !dirty || saving }}
+          >
+            {saving ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Text
+                style={[
+                  styles.saveText,
+                  { color: dirty ? colors.primary : colors.textTertiary },
+                ]}
+              >
+                Save
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
       ),
     });
-  }, [colors.text, navigation, openChat, title]);
+  }, [
+    colors.primary,
+    colors.text,
+    colors.textTertiary,
+    dirty,
+    handleSave,
+    navigation,
+    openChat,
+    status,
+    title,
+  ]);
 
   const msToPx = useCallback(
     (ms: number): number => (ms / 1000) * pxPerSecond,
@@ -264,9 +505,9 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
   const seekAt = useCallback(
     (event: GestureResponderEvent) => {
       const x = event.nativeEvent.locationX;
-      setPlayheadMs(Math.max(0, Math.min((x / pxPerSecond) * 1000, durationMs)));
+      movePlayhead(Math.max(0, Math.min((x / pxPerSecond) * 1000, durationMs)));
     },
-    [durationMs, pxPerSecond]
+    [durationMs, movePlayhead, pxPerSecond]
   );
 
   const zoomOut = useCallback(
@@ -291,7 +532,10 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
     );
   }
 
-  if (status === 'error') {
+  // A failure with nothing loaded blocks the screen; a failure with a document
+  // in hand (a rejected save) must not hide the edits it failed to persist, so
+  // that case falls through to the banner below.
+  if (doc === null && status === 'error') {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
         <Ionicons name="alert-circle-outline" size={32} color={colors.error} />
@@ -299,7 +543,7 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
           {error ?? 'Failed to load this timeline.'}
         </Text>
         <TouchableOpacity
-          onPress={() => void load()}
+          onPress={runLoad}
           activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel="Retry loading timeline"
@@ -318,11 +562,48 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
         { backgroundColor: colors.background, paddingBottom: insets.bottom },
       ]}
     >
+      {status === 'conflict' && (
+        <View
+          style={[styles.banner, { backgroundColor: colors.warning + '22' }]}
+          accessibilityLabel="Timeline changed elsewhere"
+        >
+          <Ionicons name="git-compare-outline" size={16} color={colors.warning} />
+          <Text style={[styles.bannerText, { color: colors.text }]}>
+            Someone else saved this sequence. Reload to get their version — the
+            unsaved edits here will be lost.
+          </Text>
+          <TouchableOpacity
+            onPress={runRevert}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Reload timeline"
+            style={[styles.bannerButton, { backgroundColor: colors.warning }]}
+          >
+            <Text style={styles.bannerButtonText}>Reload</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {status === 'error' && error !== null && (
+        <View style={[styles.banner, { backgroundColor: colors.error + '18' }]}>
+          <Ionicons name="warning-outline" size={16} color={colors.error} />
+          <Text style={[styles.bannerText, { color: colors.error }]}>{error}</Text>
+        </View>
+      )}
+
       <View style={[styles.toolbar, { borderBottomColor: colors.borderLight }]}>
         <Text style={[styles.toolbarText, { color: colors.textSecondary }]}>
           {`${formatTime(durationMs)} · ${tracks.length} tracks · ${clips.length} clips`}
         </Text>
         <View style={styles.toolbarActions}>
+          {dirty && (
+            <View style={styles.dirtyRow} accessibilityLabel="Unsaved changes">
+              <View style={[styles.dirtyDot, { backgroundColor: colors.warning }]} />
+              <Text style={[styles.dirtyText, { color: colors.textSecondary }]}>
+                Unsaved
+              </Text>
+            </View>
+          )}
           <Text style={[styles.playheadReadout, { color: colors.text }]}>
             {formatTime(playheadMs)}
           </Text>
@@ -351,8 +632,20 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
         <View style={styles.centered}>
           <Ionicons name="film-outline" size={36} color={colors.textTertiary} />
           <Text style={[styles.centeredText, { color: colors.textSecondary }]}>
-            This sequence has no clips yet.
+            This sequence has no clips yet. Clips cannot be arranged by touch at
+            this width — ask the assistant to change the sequence, then save.
           </Text>
+          <TouchableOpacity
+            onPress={openChat}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Ask the assistant"
+            style={[styles.retryButton, { backgroundColor: colors.primaryMuted }]}
+          >
+            <Text style={[styles.retryText, { color: colors.primary }]}>
+              Ask the assistant
+            </Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.verticalContent}>
@@ -433,7 +726,7 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
                           activeOpacity={0.7}
                           accessibilityRole="button"
                           accessibilityLabel={`Clip ${clip.name}, ${clip.mediaType}, ${formatTime(clip.startMs)} to ${formatTime(clip.startMs + clip.durationMs)}`}
-                          onPress={() => setSelectedClipId(clip.id)}
+                          onPress={() => select(clip.id)}
                           style={[
                             styles.clip,
                             {
@@ -488,7 +781,7 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
               {selectedClip.name}
             </Text>
             <TouchableOpacity
-              onPress={() => setSelectedClipId(null)}
+              onPress={() => select(null)}
               activeOpacity={0.7}
               accessibilityRole="button"
               accessibilityLabel="Close clip details"
@@ -575,9 +868,50 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  headerButton: {
-    paddingHorizontal: 10,
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  saveText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  bannerText: {
+    flex: 1,
+    fontSize: 13,
+  },
+  bannerButton: {
+    paddingHorizontal: 12,
     paddingVertical: 6,
+    borderRadius: 8,
+  },
+  bannerButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  dirtyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginRight: 6,
+  },
+  dirtyDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  dirtyText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
   toolbar: {
     flexDirection: 'row',

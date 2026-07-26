@@ -11,14 +11,31 @@
 import type { ResourceKind } from '@nodetool-ai/app-runtime';
 
 /**
- * Whether the surface can write the document back. `viewer` kinds are opened
- * read-only — the timeline is far too dense to edit on a phone, and an asset
- * is not a document at all.
+ * The kinds mobile opens as documents.
+ *
+ * Not the same set as the server's `ResourceKind`: `asset` is a library entry
+ * with its own screen rather than a document, and `script` is a document the
+ * `resources` envelope cannot carry (its table has no `revision` column), so it
+ * travels over `scripts.*` instead. `backends.ts` maps each kind to its
+ * transport.
+ */
+export type DocumentKind = Exclude<ResourceKind, 'asset'> | 'script';
+
+/** The kinds the `resources.*` envelope can list and write. */
+export type ResourceDocumentKind = Exclude<DocumentKind, 'script'>;
+
+/**
+ * How much the surface lets a person do directly.
+ *
+ * `editor` means direct manipulation is available. `viewer` means the screen
+ * shows the document but does not edit it — the agent still can, through the
+ * `ui_*` tools, which is the point: a timeline is far too dense to arrange with
+ * fingers, but "move the title card two seconds later" is a sentence.
  */
 export type DocumentSurface = 'editor' | 'viewer';
 
 export interface DocumentKindInfo {
-  kind: ResourceKind;
+  kind: DocumentKind;
   /** Singular label, e.g. "Storyboard". */
   label: string;
   /** Plural label for section headers, e.g. "Storyboards". */
@@ -27,9 +44,19 @@ export interface DocumentKindInfo {
   icon: string;
   surface: DocumentSurface;
   /** Route pushed to open one. */
-  route: 'StoryboardEditor' | 'TimelineViewer' | 'DocumentViewer';
+  route:
+    | 'StoryboardEditor'
+    | 'TimelineViewer'
+    | 'ScriptEditor'
+    | 'DocumentViewer';
   /** Whether the browser offers a "new document" action for this kind. */
   creatable: boolean;
+  /**
+   * Whether the agent's `ui_*` tools can write this kind. Independent of
+   * `surface`: the timeline is agent-editable but has no direct-manipulation
+   * editor, which is exactly the split the browser needs to communicate.
+   */
+  agentEditable: boolean;
 }
 
 export const DOCUMENT_KINDS: readonly DocumentKindInfo[] = [
@@ -41,15 +68,29 @@ export const DOCUMENT_KINDS: readonly DocumentKindInfo[] = [
     surface: 'editor',
     route: 'StoryboardEditor',
     creatable: true,
+    agentEditable: true,
+  },
+  {
+    kind: 'script',
+    label: 'Script',
+    plural: 'Scripts',
+    icon: 'document-text-outline',
+    surface: 'editor',
+    route: 'ScriptEditor',
+    creatable: true,
+    agentEditable: true,
   },
   {
     kind: 'timeline',
     label: 'Timeline',
     plural: 'Timelines',
     icon: 'film-outline',
+    // No direct-manipulation editor — arranging clips by touch is not viable at
+    // phone width — but the agent edits it through `ui_timeline_*`.
     surface: 'viewer',
     route: 'TimelineViewer',
     creatable: false,
+    agentEditable: true,
   },
   {
     kind: 'sketch',
@@ -59,6 +100,7 @@ export const DOCUMENT_KINDS: readonly DocumentKindInfo[] = [
     surface: 'viewer',
     route: 'DocumentViewer',
     creatable: false,
+    agentEditable: false,
   },
 ] as const;
 
@@ -66,7 +108,7 @@ const BY_KIND = new Map<string, DocumentKindInfo>(
   DOCUMENT_KINDS.map((entry) => [entry.kind, entry])
 );
 
-export function documentKindInfo(kind: ResourceKind): DocumentKindInfo {
+export function documentKindInfo(kind: DocumentKind): DocumentKindInfo {
   const info = BY_KIND.get(kind);
   if (!info) {
     throw new Error(`Unknown document kind: ${kind}`);
@@ -79,12 +121,14 @@ export function documentKindInfo(kind: ResourceKind): DocumentKindInfo {
  * `TAB_TYPE_TO_SURFACE` — the ids handed to the agent in `ui_context` must use
  * the protocol's `UiSurfaceType` spelling, not our route names.
  */
-export function uiSurfaceForKind(kind: ResourceKind): string | null {
+export function uiSurfaceForKind(kind: DocumentKind): string | null {
   switch (kind) {
     case 'storyboard':
       return 'storyboard';
     case 'timeline':
       return 'timeline';
+    case 'script':
+      return 'script';
     case 'sketch':
       return 'sketch';
     default:

@@ -16,11 +16,11 @@
  * never touch a Zustand handle.
  */
 
-import type { ResourceKind } from '@nodetool-ai/app-runtime';
+import type { DocumentKind } from './kinds';
 
 /** Identity of a document the agent can address. */
 export interface OpenDocument {
-  kind: ResourceKind;
+  kind: DocumentKind;
   id: string;
   title: string;
 }
@@ -29,13 +29,13 @@ export interface OpenDocument {
 export type DocumentAgentHandler = object;
 
 interface Entry {
-  kind: ResourceKind;
+  kind: DocumentKind;
   id: string;
   title: string;
   handler: DocumentAgentHandler;
 }
 
-const key = (kind: ResourceKind, id: string): string => `${kind}:${id}`;
+const key = (kind: DocumentKind, id: string): string => `${kind}:${id}`;
 
 /** Insertion-ordered, so `listOpenDocuments` reflects open order. */
 const entries = new Map<string, Entry>();
@@ -58,7 +58,7 @@ let focusedKey: string | null = null;
  * function, so a screen can hand it straight to a `useEffect` cleanup.
  */
 export function registerDocumentHandler(
-  kind: ResourceKind,
+  kind: DocumentKind,
   id: string,
   title: string,
   handler: DocumentAgentHandler
@@ -72,7 +72,7 @@ export function registerDocumentHandler(
 
 /** Update the title the agent sees without re-registering the handler. */
 export function setDocumentTitle(
-  kind: ResourceKind,
+  kind: DocumentKind,
   id: string,
   title: string
 ): void {
@@ -84,13 +84,13 @@ export function setDocumentTitle(
 
 /** Mark a document as the one the user is looking at (or clear with null). */
 export function setFocusedDocument(
-  kind: ResourceKind | null,
+  kind: DocumentKind | null,
   id?: string
 ): void {
   focusedKey = kind && id ? key(kind, id) : null;
 }
 
-export function hasDocumentHandler(kind: ResourceKind, id: string): boolean {
+export function hasDocumentHandler(kind: DocumentKind, id: string): boolean {
   return entries.has(key(kind, id));
 }
 
@@ -117,7 +117,7 @@ export function focusedDocument(): OpenDocument | null {
  * lets it recover by calling the right id instead of guessing again.
  */
 export function getDocumentHandler<T extends DocumentAgentHandler>(
-  kind: ResourceKind,
+  kind: DocumentKind,
   id: string
 ): T {
   const entry = entries.get(key(kind, id));

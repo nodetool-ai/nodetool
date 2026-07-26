@@ -25,9 +25,18 @@ describe('buildUiContext', () => {
     ]);
   });
 
-  it('omits kinds with no ui_* tools rather than advertising unusable ids', () => {
+  // Every current kind maps to a surface, so this guard only fires if a kind is
+  // added without one. Exercised through a cast, because a well-typed caller
+  // cannot reach it — and an unmapped kind must be dropped rather than handed to
+  // the agent as an id it has no tool for.
+  it('omits a kind with no ui_* surface rather than advertising an unusable id', () => {
     registerDocumentHandler('storyboard', 'sb1', 'Board', {});
-    registerDocumentHandler('asset', 'asset1', 'photo.png', {});
+    registerDocumentHandler(
+      'unmapped' as Parameters<typeof registerDocumentHandler>[0],
+      'x1',
+      'Mystery',
+      {}
+    );
 
     const open = buildUiContext()?.open;
 
@@ -35,10 +44,12 @@ describe('buildUiContext', () => {
     expect(open?.[0].id).toBe('sb1');
   });
 
-  it('is undefined when the only open document has no tools', () => {
-    registerDocumentHandler('asset', 'asset1', 'photo.png', {});
+  it('lists scripts, which are addressable by the agent', () => {
+    registerDocumentHandler('script', 'sc1', 'Pilot', {});
 
-    expect(buildUiContext()).toBeUndefined();
+    expect(buildUiContext()?.open).toEqual([
+      { type: 'script', id: 'sc1', title: 'Pilot' },
+    ]);
   });
 
   it('reports the focused document', () => {

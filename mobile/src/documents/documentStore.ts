@@ -1,5 +1,5 @@
 /**
- * Per-document store: load, local edits, dirty tracking, and revision-checked
+ * Per-document store: load, local edits, dirty tracking, and concurrency-checked
  * save.
  *
  * One store instance per open document, cached by kind + id and created on
@@ -8,16 +8,17 @@
  * store the screen renders from, so an agent edit repaints immediately, and a
  * save triggered from a tool is the same code path as the user's Save button.
  *
- * Saving goes through the vanilla tRPC client rather than a mutation hook, for
- * the same reason. `resources.update` carries the revision we read; the server
- * rejects a stale write instead of applying it, which surfaces here as
+ * Transport is a per-kind backend (`backends.ts`) rather than a mutation hook,
+ * for the same reason. Every write echoes back the concurrency token it read —
+ * a revision for the `resources` kinds, `baseUpdatedAt` for scripts — and the
+ * server rejects a stale write instead of applying it, which surfaces here as
  * `status: 'conflict'` for the screen to offer a reload.
  */
 
 import { create, type StoreApi, type UseBoundStore } from 'zustand';
-import type { ResourceKind } from '@nodetool-ai/app-runtime';
 
-import { createMobileTRPCClient } from '../trpc/client';
+import { documentBackend } from './backends';
+import type { DocumentKind } from './kinds';
 
 export type DocumentStatus =
   | 'idle'
@@ -27,13 +28,16 @@ export type DocumentStatus =
   | 'error';
 
 export interface DocumentState<Doc> {
-  kind: ResourceKind;
+  kind: DocumentKind;
   id: string;
   /** The document body. Null until the first load resolves. */
   doc: Doc | null;
   name: string;
-  /** Revision echoed back on write; absent for kinds without one (assets). */
-  revision: number | undefined;
+  /**
+   * The concurrency token from the last read or write, echoed back on the next
+   * write. Opaque here: only the kind's backend knows its shape.
+   */
+  token: unknown;
   updatedAt: string | null;
   dirty: boolean;
   status: DocumentStatus;
@@ -55,37 +59,39 @@ type DocumentStore<Doc> = UseBoundStore<StoreApi<DocumentState<Doc>>>;
 
 const stores = new Map<string, DocumentStore<unknown>>();
 
-const storeKey = (kind: ResourceKind, id: string): string => `${kind}:${id}`;
+const storeKey = (kind: DocumentKind, id: string): string => `${kind}:${id}`;
 
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : 'Unknown error';
 
 /**
- * A stale-write rejection comes back as the `ALREADY_EXISTS` code the resources
- * router raises for an optimistic-concurrency conflict. Detecting it lets the
- * screen offer "reload" instead of showing a generic failure the user can only
- * retry into the same wall.
+ * A stale-write rejection. Both routers raise `ALREADY_EXISTS` with a message
+ * naming the conflict; matching it lets the screen offer "reload" instead of a
+ * generic failure the user can only retry into the same wall.
  */
 const isConflict = (error: unknown): boolean => {
   const message = errorMessage(error).toLowerCase();
   return (
     message.includes('optimistic concurrency') ||
-    message.includes('modified since')
+    message.includes('modified since') ||
+    message.includes('modified concurrently')
   );
 };
 
 function createDocumentStore<Doc>(
-  kind: ResourceKind,
+  kind: DocumentKind,
   id: string
 ): DocumentStore<Doc> {
+  const backend = documentBackend<Doc>(kind);
+
   /**
    * The write currently on the wire, if any.
    *
    * Saves must not overlap. The user's Save button and the agent's
    * `ui_*_save` both land here, and two concurrent writes would carry the same
-   * revision — the server commits the first and rejects the second as a
-   * conflict, which would surface to the user as "someone else changed this"
-   * for two edits they made themselves.
+   * token — the server commits the first and rejects the second as a conflict,
+   * which would surface to the user as "someone else changed this" for two
+   * edits they made themselves.
    */
   let inFlight: Promise<void> | null = null;
 
@@ -94,7 +100,7 @@ function createDocumentStore<Doc>(
     id,
     doc: null,
     name: '',
-    revision: undefined,
+    token: undefined,
     updatedAt: null,
     dirty: false,
     status: 'idle',
@@ -103,14 +109,12 @@ function createDocumentStore<Doc>(
     load: async () => {
       set({ status: 'loading', error: null });
       try {
-        const detail = await createMobileTRPCClient().resources.read.query({
-          ref: { kind, id },
-        });
+        const loaded = await backend.read(id);
         set({
-          doc: detail.document as Doc,
-          name: detail.name,
-          revision: detail.ref.revision,
-          updatedAt: detail.updatedAt,
+          doc: loaded.doc,
+          name: loaded.name,
+          token: loaded.token,
+          updatedAt: loaded.updatedAt,
           dirty: false,
           status: 'idle',
           error: null,
@@ -136,31 +140,30 @@ function createDocumentStore<Doc>(
       while (inFlight) {
         await inFlight;
       }
-      const { doc, name, revision, dirty } = get();
+      const { doc, name, token, dirty } = get();
       if (doc === null || !dirty) {
         return;
+      }
+      if (!backend.writable) {
+        throw new Error(`${kind} documents are read-only`);
       }
 
       set({ status: 'saving', error: null });
       const write = (async () => {
         try {
-          const detail = await createMobileTRPCClient().resources.update.mutate({
-            ref: { kind, id, revision },
-            name,
-            document: doc,
-          });
+          const saved = await backend.save(id, { doc, name, token });
           const after = get();
           // Only call the document clean if nothing changed while the write was
           // in flight. An agent edit landing mid-save would otherwise be marked
           // saved, disabling the Save button and losing the edit on reload.
           const settled = after.doc === doc && after.name === name;
           set({
-            // Adopt the server's revision either way, so the follow-up save is
+            // Adopt the server's token either way, so the follow-up save is
             // checked against the row we just wrote.
-            revision: detail.ref.revision,
-            updatedAt: detail.updatedAt,
+            token: saved.token,
+            updatedAt: saved.updatedAt,
             status: 'idle',
-            ...(settled ? { name: detail.name, dirty: false } : {}),
+            ...(settled ? { name: saved.name, dirty: false } : {}),
           });
         } catch (error) {
           set({
@@ -184,7 +187,7 @@ function createDocumentStore<Doc>(
 
 /** The store for one document, created on first use and reused after. */
 export function documentStore<Doc>(
-  kind: ResourceKind,
+  kind: DocumentKind,
   id: string
 ): DocumentStore<Doc> {
   const key = storeKey(kind, id);
@@ -198,7 +201,7 @@ export function documentStore<Doc>(
 }
 
 /** Drop a cached store — call when a document is deleted. */
-export function disposeDocumentStore(kind: ResourceKind, id: string): void {
+export function disposeDocumentStore(kind: DocumentKind, id: string): void {
   stores.delete(storeKey(kind, id));
 }
 

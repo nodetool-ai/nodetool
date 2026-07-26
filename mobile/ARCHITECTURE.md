@@ -56,7 +56,8 @@ mobile/
 │   │   ├── ChatScreen.tsx              # AI chat interface
 │   │   ├── DocumentsScreen.tsx         # Document browser (all kinds, no tabs)
 │   │   ├── StoryboardEditorScreen.tsx  # Storyboard editor
-│   │   ├── TimelineViewerScreen.tsx    # Read-only timeline
+│   │   ├── ScriptEditorScreen.tsx      # Script editor (cast, sections, lines)
+│   │   ├── TimelineViewerScreen.tsx    # Timeline: viewer, agent-editable
 │   │   ├── DocumentViewerScreen.tsx    # Fallback for kinds without a screen
 │   │   ├── AssetsScreen.tsx            # Asset browser
 │   │   ├── AssetViewerScreen.tsx       # Single-asset viewer
@@ -149,10 +150,9 @@ The shared package is compiled from source rather than from `dist`: see
 
 ## Documents (`src/documents/`)
 
-Storyboards, timelines, and sketches are documents on the server, reachable
-through the one `trpc.resources.*` envelope (`resources.list/read/create/update/
-delete` over `asset | timeline | storyboard | sketch`). Mobile browses them in
-`DocumentsScreen` and opens each in its own pushed screen.
+Storyboards, scripts, timelines, and sketches are documents on the server.
+Mobile browses them all in `DocumentsScreen` and opens each in its own pushed
+screen.
 
 **No tabs.** Web keys its whole document UX off `WorkspaceTabType` and keeps
 every tab mounted at once. On a phone the navigation stack *is* the tab model:
@@ -162,27 +162,44 @@ leaves the parts that never depended on focus — the agent bridge keys by
 document id, which ports unchanged.
 
 ```
-kinds.ts          # which kinds exist: label, icon, editor|viewer, route
-useDocuments.ts   # TanStack Query over resources.* for the browser
+kinds.ts          # which kinds exist: label, icon, surface, route, agentEditable
+backends.ts       # per-kind transport; the concurrency token is opaque above it
+useDocuments.ts   # React Query over the backends, for the browser
 documentStore.ts  # one Zustand store per open document (cached by kind+id)
 agentBridge.ts    # handler registry keyed by kind+id, plus the focus claim
 uiContext.ts      # the open/focused/selection block sent with each chat turn
+timelineEdits.ts  # pure, link-aware edits over {tracks, clips, markers}
 tools/            # the ui_* tools: registry, manifest, tool_call dispatch
 ```
 
-**Load and save.** `documentStore` holds the open document's body, name,
-revision, and dirty flag. `save()` sends `resources.update` carrying the
-revision it read; the server rejects a stale write rather than applying it,
-which surfaces as `status: 'conflict'` and a Reload banner. Two things the
-store handles that are easy to get wrong: saves are serialized (the user's Save
-button and an agent's `ui_*_save` would otherwise send the same revision and
-the second would be rejected as a conflict the user never caused), and a save
-only marks the document clean if nothing changed while it was in flight, so an
-agent edit landing mid-save is not silently dropped.
+**Two transports, one interface.** Three kinds ride the `resources.*` envelope,
+whose concurrency token is a numeric `revision`. Scripts cannot: the `scripts`
+table has no `revision` column, so the provider's conflict check would compare
+`undefined` to `undefined`, pass, and silently clobber concurrent writes. Their
+own router does the same job with `baseUpdatedAt`. Rather than migrate two
+schemas — which would also make `{kind:"script"}` a legal resource binding in
+every app document — `backends.ts` makes the token **opaque**: a backend hands
+one out on read and echoes it back on write, and only it knows the shape.
 
-**Agent-first.** The surfaces are deliberately thin — text fields and a shot
-list, not a desktop editor — because the intended way to change a document is
-to ask the assistant. That path is:
+**`surface` is not `agentEditable`.** `surface` says whether a person can edit
+by touch; `agentEditable` says whether the `ui_*` tools can write. The timeline
+is `viewer` + `agentEditable`: placing a cut accurately with a thumb is not
+possible at phone width, but "move the title card two seconds later" is a
+sentence.
+
+**Load and save.** `documentStore` holds the open document's body, name,
+concurrency token, and dirty flag. `save()` echoes back the token it read; the
+server rejects a stale write rather than applying it, which surfaces as
+`status: 'conflict'` and a Reload banner. Two things the store handles that are
+easy to get wrong: saves are serialized (the user's Save button and an agent's
+`ui_*_save` would otherwise send the same token and the second would be
+rejected as a conflict the user never caused), and a save only marks the
+document clean if nothing changed while it was in flight, so an agent edit
+landing mid-save is not silently dropped.
+
+**Agent-first.** The surfaces are deliberately thin — text fields and lists,
+not a desktop editor — because the intended way to change a document is to ask
+the assistant. That path is:
 
 1. On every socket open (including reconnects) `ChatStore` sends
    `client_tools_manifest` with the registered `ui_*` tools.
@@ -196,11 +213,34 @@ to ask the assistant. That path is:
 4. Handlers mutate the same store the screen renders from, so an agent edit
    repaints immediately and `ui_*_save` is the user's Save button's code path.
 
-Tools are trimmed to what a phone should do. Storyboards get read, shot and
-board editing, select, and save — generation and timeline assembly stay on
-desktop, where progress on a long, paid job can actually be supervised. The
-timeline is read-only, and its tool descriptions say so, so the agent answers
-questions about a sequence instead of attempting an edit and reporting failure.
+Tools are trimmed to what a phone should do. Everything that is a pure document
+edit is available; everything that dispatches a long, paid job or needs a
+browser stays on desktop, where its progress can actually be supervised. So
+storyboards get shot and board editing but not generation or timeline assembly;
+scripts get cast, section, and line editing but not TTS voicing, subtitle
+export, or send-to-timeline; timelines get the full set of structural edits but
+not clip generation or frame extraction. Each tool's description says which side
+of that line it is on, so the agent does not promise what it cannot do.
+
+**Timeline edits are link-aware** (`timelineEdits.ts`, pure functions over
+`{tracks, clips, markers, transcript}`). A video clip and the audio extracted
+from it share a `linkId` and must move, trim, split, and delete together: a
+split mints a fresh `linkId` for each side so neither becomes a three-member
+group, and a delete unlinks survivors when a group drops below two. Web's own
+agent handlers take a `patchClip` shortcut that bypasses this and desyncs the
+pair, so the logic here is ported from its store rather than its bridge.
+Anything that changes a generation input marks the clip `stale`, and an edit
+that would orphan a `transcript[].clipIds` reference is **refused** naming the
+line — web re-flows the transcript in 795 lines of code, and a clear refusal
+beats a dangling pointer.
+
+The split/trim primitives come from `@nodetool-ai/timeline`, compiled from
+source like `app-runtime` (`metro.config.js`, `tsconfig.json` paths,
+`jest.config.js` moduleNameMapper — all must agree). `splitClip` also partitions
+animations by role, rebases clip-local caption words, and clears the fades and
+transition the halves must not inherit; hand-rolling that would get it wrong.
+Its id factory calls `crypto.randomUUID`, which Hermes lacks, so
+`src/polyfills/randomUuid.ts` supplies one from `uuid` in `index.ts`.
 
 Kinds with no dedicated screen fall back to `DocumentViewerScreen`, so every
 document can at least be opened.

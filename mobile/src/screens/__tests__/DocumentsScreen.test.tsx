@@ -182,14 +182,15 @@ describe('DocumentsScreen', () => {
     alertButton(1, 'Delete').onPress?.();
 
     expect(deleteMutate).toHaveBeenCalledWith(
-      { ref: { kind: 'storyboard', id: 'sb-1' } },
+      { kind: 'storyboard', id: 'sb-1' },
       expect.objectContaining({ onError: expect.any(Function) })
     );
   });
 
   it('renames through the modal', async () => {
     renameMutateAsync.mockResolvedValue({
-      ref: { kind: 'storyboard', id: 'sb-1' },
+      kind: 'storyboard',
+      id: 'sb-1',
       name: 'Board B',
     });
     renderScreen();
@@ -205,7 +206,8 @@ describe('DocumentsScreen', () => {
 
     await waitFor(() => {
       expect(renameMutateAsync).toHaveBeenCalledWith({
-        ref: { kind: 'storyboard', id: 'sb-1' },
+        kind: 'storyboard',
+        id: 'sb-1',
         name: 'Board B',
       });
     });
@@ -213,7 +215,8 @@ describe('DocumentsScreen', () => {
 
   it('creates a storyboard and opens it', async () => {
     createMutateAsync.mockResolvedValue({
-      ref: { kind: 'storyboard', id: 'sb-new' },
+      kind: 'storyboard',
+      id: 'sb-new',
       name: 'New Storyboard',
       updatedAt: '2026-07-26T00:00:00.000Z',
     });
@@ -225,7 +228,6 @@ describe('DocumentsScreen', () => {
       expect(createMutateAsync).toHaveBeenCalledWith({
         kind: 'storyboard',
         name: 'New Storyboard',
-        projectId: 'default',
       });
     });
     expect(navigation.navigate).toHaveBeenCalledWith('StoryboardEditor', {

@@ -26,7 +26,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { ResourceKind } from '@nodetool-ai/app-runtime';
+import type { DocumentKind } from '../documents/kinds';
 
 import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../hooks/useTheme';
@@ -86,7 +86,7 @@ export default function DocumentsScreen({ navigation }: DocumentsScreenProps) {
   const { colors, shadows } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const [activeKind, setActiveKind] = useState<ResourceKind | null>(null);
+  const [activeKind, setActiveKind] = useState<DocumentKind | null>(null);
   const [renameTarget, setRenameTarget] = useState<DocumentListEntry | null>(null);
   const [renameValue, setRenameValue] = useState('');
 
@@ -114,6 +114,9 @@ export default function DocumentsScreen({ navigation }: DocumentsScreenProps) {
         case 'StoryboardEditor':
           navigation.navigate('StoryboardEditor', { id: entry.id, name: entry.name });
           break;
+        case 'ScriptEditor':
+          navigation.navigate('ScriptEditor', { id: entry.id, name: entry.name });
+          break;
         case 'TimelineViewer':
           navigation.navigate('TimelineViewer', { id: entry.id, name: entry.name });
           break;
@@ -130,19 +133,13 @@ export default function DocumentsScreen({ navigation }: DocumentsScreenProps) {
   );
 
   const handleCreate = useCallback(
-    async (kind: ResourceKind, label: string) => {
+    async (kind: DocumentKind, label: string) => {
       try {
-        const detail = await createDocument.mutateAsync({
+        const created = await createDocument.mutateAsync({
           kind,
           name: `New ${label}`,
-          projectId: 'default',
         });
-        openDocument({
-          kind: detail.ref.kind,
-          id: detail.ref.id,
-          name: detail.name,
-          updatedAt: detail.updatedAt,
-        });
+        openDocument(created);
       } catch (createError: unknown) {
         const message =
           createError instanceof Error ? createError.message : `Could not create ${label}`;
@@ -164,7 +161,7 @@ export default function DocumentsScreen({ navigation }: DocumentsScreenProps) {
             style: 'destructive',
             onPress: () => {
               deleteDocument.mutate(
-                { ref: { kind: entry.kind, id: entry.id } },
+                { kind: entry.kind, id: entry.id },
                 {
                   onError: (deleteError) => {
                     Alert.alert('Error', deleteError.message);
@@ -191,7 +188,8 @@ export default function DocumentsScreen({ navigation }: DocumentsScreenProps) {
     }
     try {
       await renameDocument.mutateAsync({
-        ref: { kind: target.kind, id: target.id },
+        kind: target.kind,
+        id: target.id,
         name,
       });
       setRenameTarget(null);
@@ -385,8 +383,9 @@ export default function DocumentsScreen({ navigation }: DocumentsScreenProps) {
               {activeKind === null ? 'No documents yet' : 'Nothing of this kind'}
             </Text>
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              Storyboards, timelines, and sketches are usually built by asking the
-              assistant. Describe what you want and it writes the document for you.
+              Storyboards, scripts, timelines, and sketches are usually built by
+              asking the assistant. Describe what you want and it writes the
+              document for you.
             </Text>
             <TouchableOpacity
               style={[styles.emptyButton, shadows.small, { backgroundColor: colors.primary }]}

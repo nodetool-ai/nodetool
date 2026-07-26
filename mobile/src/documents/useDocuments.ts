@@ -1,41 +1,57 @@
 /**
- * TanStack Query bindings for the documents browser.
+ * React Query bindings for the documents browser.
  *
- * Browsing is server state, so it stays in tRPC + React Query. Only the *open*
+ * Browsing is server state, so it stays in React Query. Only the *open*
  * document moves into a Zustand store (see `documentStore.ts`), because that is
  * the one thing agent tools must reach from outside React.
+ *
+ * Queries go through the kind's `DocumentBackend` rather than a tRPC hook: the
+ * four kinds do not share one router (scripts have their own), and routing that
+ * choice through the backend keeps it in the one place that already knows.
  */
 
-import { useMemo } from 'react';
-import type { ResourceKind } from '@nodetool-ai/app-runtime';
+import { useCallback, useMemo } from 'react';
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryKey,
+} from '@tanstack/react-query';
 
-import { trpc } from '../trpc/client';
+import { documentBackend } from './backends';
 import { disposeDocumentStore } from './documentStore';
+import { DOCUMENT_KINDS, type DocumentKind } from './kinds';
 
 export interface DocumentListEntry {
-  kind: ResourceKind;
+  kind: DocumentKind;
   id: string;
   name: string;
   updatedAt: string;
+  /** Kind-specific detail, e.g. "12 lines". */
+  detail?: string;
 }
 
-/** One kind's documents, newest first. */
-export function useDocumentsOfKind(kind: ResourceKind, limit = 50) {
-  const query = trpc.resources.list.useQuery(
-    { kind, limit },
-    {
-      select: (summaries) =>
-        summaries.map(
-          (summary): DocumentListEntry => ({
-            kind: summary.ref.kind,
-            id: summary.ref.id,
-            name: summary.name || `Untitled ${kind}`,
-            updatedAt: summary.updatedAt,
-          })
-        ),
-    }
-  );
-  return query;
+const listKey = (kind: DocumentKind, limit: number): QueryKey => [
+  'documents',
+  kind,
+  limit,
+];
+
+/** One kind's documents. */
+export function useDocumentsOfKind(kind: DocumentKind, limit = 50) {
+  return useQuery({
+    queryKey: listKey(kind, limit),
+    queryFn: async (): Promise<DocumentListEntry[]> => {
+      const summaries = await documentBackend(kind).list(limit);
+      return summaries.map((summary) => ({
+        kind,
+        id: summary.id,
+        name: summary.name || `Untitled ${kind}`,
+        updatedAt: summary.updatedAt,
+        detail: summary.detail,
+      }));
+    },
+  });
 }
 
 /**
@@ -46,6 +62,7 @@ export function useDocumentsOfKind(kind: ResourceKind, limit = 50) {
  */
 export function useAllDocuments(limit = 50) {
   const storyboards = useDocumentsOfKind('storyboard', limit);
+  const scripts = useDocumentsOfKind('script', limit);
   const timelines = useDocumentsOfKind('timeline', limit);
   const sketches = useDocumentsOfKind('sketch', limit);
 
@@ -53,19 +70,20 @@ export function useAllDocuments(limit = 50) {
     () =>
       [
         ...(storyboards.data ?? []),
+        ...(scripts.data ?? []),
         ...(timelines.data ?? []),
         ...(sketches.data ?? []),
       ].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
-    [storyboards.data, timelines.data, sketches.data]
+    [storyboards.data, scripts.data, timelines.data, sketches.data]
   );
 
-  const queries = [storyboards, timelines, sketches];
+  const queries = [storyboards, scripts, timelines, sketches];
 
   return {
     documents,
     isLoading: queries.some((query) => query.isLoading),
     isRefetching: queries.some((query) => query.isRefetching),
-    // Surface the first failure; the browser shows one banner, not three.
+    // Surface the first failure; the browser shows one banner, not four.
     error: queries.find((query) => query.error)?.error ?? null,
     refetch: () => {
       for (const query of queries) {
@@ -75,34 +93,65 @@ export function useAllDocuments(limit = 50) {
   };
 }
 
-/** Create a document of a kind and invalidate that kind's list. */
+/** Invalidate one kind's list, whatever page size it was fetched with. */
+function useInvalidateKind() {
+  const queryClient = useQueryClient();
+  return useCallback(
+    (kind: DocumentKind) =>
+      queryClient.invalidateQueries({ queryKey: ['documents', kind] }),
+    [queryClient]
+  );
+}
+
 export function useCreateDocument() {
-  const utils = trpc.useUtils();
-  return trpc.resources.create.useMutation({
-    onSuccess: (detail) => {
-      void utils.resources.list.invalidate({ kind: detail.ref.kind });
+  const invalidate = useInvalidateKind();
+  return useMutation({
+    mutationFn: async ({ kind, name }: { kind: DocumentKind; name: string }) => {
+      const created = await documentBackend(kind).create(name);
+      return { kind, ...created };
+    },
+    onSuccess: ({ kind }) => {
+      void invalidate(kind);
     },
   });
 }
 
 export function useRenameDocument() {
-  const utils = trpc.useUtils();
-  return trpc.resources.update.useMutation({
-    onSuccess: (detail) => {
-      void utils.resources.list.invalidate({ kind: detail.ref.kind });
-      void utils.resources.read.invalidate({ ref: { kind: detail.ref.kind, id: detail.ref.id } });
+  const invalidate = useInvalidateKind();
+  return useMutation({
+    mutationFn: async ({
+      kind,
+      id,
+      name,
+    }: {
+      kind: DocumentKind;
+      id: string;
+      name: string;
+    }) => {
+      await documentBackend(kind).rename(id, name);
+      return { kind, id, name };
+    },
+    onSuccess: ({ kind }) => {
+      void invalidate(kind);
     },
   });
 }
 
 export function useDeleteDocument() {
-  const utils = trpc.useUtils();
-  return trpc.resources.delete.useMutation({
-    onSuccess: (_result, variables) => {
+  const invalidate = useInvalidateKind();
+  return useMutation({
+    mutationFn: async ({ kind, id }: { kind: DocumentKind; id: string }) => {
+      await documentBackend(kind).remove(id);
+      return { kind, id };
+    },
+    onSuccess: ({ kind, id }) => {
       // The cached store would otherwise keep serving a document that no
       // longer exists if the same id were somehow reopened.
-      disposeDocumentStore(variables.ref.kind, variables.ref.id);
-      void utils.resources.list.invalidate({ kind: variables.ref.kind });
+      disposeDocumentStore(kind, id);
+      void invalidate(kind);
     },
   });
 }
+
+/** The kinds the browser offers a "new document" action for. */
+export const CREATABLE_KINDS = DOCUMENT_KINDS.filter((entry) => entry.creatable);

@@ -20,7 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { ResourceKind } from '@nodetool-ai/app-runtime';
+import type { DocumentKind } from '../documents/kinds';
 
 import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../hooks/useTheme';
@@ -73,7 +73,7 @@ export default function DocumentViewerScreen({
   const insets = useSafeAreaInsets();
 
   const useStore = useMemo(
-    () => documentStore<unknown>(kind as ResourceKind, id),
+    () => documentStore<unknown>(kind as DocumentKind, id),
     [kind, id]
   );
   const doc = useStore((state) => state.doc);
@@ -94,7 +94,7 @@ export default function DocumentViewerScreen({
 
   const kindLabel = useMemo(() => {
     try {
-      return documentKindInfo(kind as ResourceKind).label;
+      return documentKindInfo(kind as DocumentKind).label;
     } catch {
       // An unregistered kind can still be opened by id; name it as-is.
       return kind;

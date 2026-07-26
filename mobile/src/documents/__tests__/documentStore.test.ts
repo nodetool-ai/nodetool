@@ -48,7 +48,7 @@ describe('documentStore', () => {
     );
   });
 
-  it('loads the document body, name and revision', async () => {
+  it('loads the document body, name and concurrency token', async () => {
     mockRead.mockResolvedValue(detail());
     const store = documentStore<Doc>('storyboard', 'sb1');
 
@@ -58,7 +58,7 @@ describe('documentStore', () => {
     expect(store.getState()).toMatchObject({
       doc: { shots: ['a'] },
       name: 'Chase scene',
-      revision: 3,
+      token: 3,
       updatedAt: '2026-07-01T00:00:00Z',
       dirty: false,
       status: 'idle',
@@ -118,7 +118,7 @@ describe('documentStore', () => {
       document: { shots: ['a', 'b'] },
     });
     expect(store.getState()).toMatchObject({
-      revision: 4,
+      token: 4,
       updatedAt: '2026-07-02T00:00:00Z',
       dirty: false,
       status: 'idle',
@@ -187,9 +187,9 @@ describe('documentStore', () => {
     // marking it clean would disable Save and lose the edit on reload.
     expect(store.getState().doc).toEqual({ shots: ['a', 'b', 'c'] });
     expect(store.getState().dirty).toBe(true);
-    // The new revision is adopted regardless, so the follow-up save is checked
+    // The new token is adopted regardless, so the follow-up save is checked
     // against the row we just wrote.
-    expect(store.getState().revision).toBe(4);
+    expect(store.getState().token).toBe(4);
   });
 
   it('persists the mid-save edit on the next save, with the new revision', async () => {
