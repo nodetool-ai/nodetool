@@ -5,6 +5,7 @@ import {
   runSchedulerSweepOnce,
   startScheduler
 } from "../src/triggers/scheduler.js";
+import { nextFireAtIso } from "../src/triggers/schedule-timing.js";
 
 const BASE_TIME = Date.parse("2026-01-01T00:00:00.000Z");
 
@@ -267,6 +268,45 @@ describe("scheduler adapter", () => {
       expect(notify.mock.calls[0][0]).toMatchObject({
         registrationId: registration.id
       });
+    });
+  });
+
+  describe("next-fire projection", () => {
+    it("names the exact instant the sweep fires at", async () => {
+      // The editor reads nextFireAtIso; the sweep reads computeDueTick. Both
+      // go through computeScheduleTiming, so a projection that is one tick off
+      // would show up here.
+      const registration = await makeRegistration({
+        config: { interval_seconds: 60, emit_on_start: false },
+        lastFiredAtMs: BASE_TIME
+      });
+      const projected = Date.parse(nextFireAtIso(registration) as string);
+      expect(projected).toBe(BASE_TIME + 60_000);
+
+      const wakeupService = new TriggerWakeupService();
+      const deliverSpy = vi.spyOn(wakeupService, "deliverTriggerInput");
+
+      await runSchedulerSweepOnce({ wakeupService, now: () => projected - 1 });
+      expect(deliverSpy).not.toHaveBeenCalled();
+
+      await runSchedulerSweepOnce({ wakeupService, now: () => projected });
+      expect(deliverSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("moves the projection forward by one interval after a fire", async () => {
+      await makeRegistration({
+        config: { interval_seconds: 60 },
+        lastFiredAtMs: BASE_TIME
+      });
+      const wakeupService = new TriggerWakeupService();
+
+      await runSchedulerSweepOnce({
+        wakeupService,
+        now: () => BASE_TIME + 90_000
+      });
+
+      const [updated] = await TriggerRegistration.findEnabledByKind("schedule");
+      expect(nextFireAtIso(updated)).toBe(isoAt(BASE_TIME + 150_000));
     });
   });
 });

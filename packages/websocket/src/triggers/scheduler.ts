@@ -21,6 +21,7 @@
 import { createLogger } from "@nodetool-ai/config";
 import { TriggerRegistration } from "@nodetool-ai/models";
 import type { TriggerWakeupService } from "@nodetool-ai/kernel";
+import { computeScheduleTiming, SCHEDULE_KIND } from "./schedule-timing.js";
 
 // Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
 const log = createLogger("nodetool.websocket.triggers.scheduler");
@@ -46,26 +47,6 @@ export interface StartSchedulerOptions {
 /** Cancels a running `startScheduler` timer. */
 export type SchedulerHandle = () => void;
 
-function readNumber(
-  config: Record<string, unknown> | null,
-  key: string,
-  fallback: number
-): number {
-  const raw = config?.[key];
-  if (raw === undefined || raw === null) return fallback;
-  const value = Number(raw);
-  return Number.isFinite(value) ? value : fallback;
-}
-
-function readBool(
-  config: Record<string, unknown> | null,
-  key: string,
-  fallback: boolean
-): boolean {
-  const raw = config?.[key];
-  return raw === undefined || raw === null ? fallback : Boolean(raw);
-}
-
 function synthesizeTickPayload(
   dueTickIndex: number,
   intervalSeconds: number,
@@ -87,34 +68,26 @@ interface DueTick {
 }
 
 /**
- * The next due instant for a `schedule` registration, honoring
- * `interval_seconds` (default 60), `initial_delay_seconds` (default 0), and
- * `emit_on_start` (default true) from `config_json` — the same property
- * names `IntervalTriggerNode` snapshots into the registration on sync.
- *
- * Returns `null` when the next due instant is still in the future.
+ * The due tick for a `schedule` registration, or `null` when the next due
+ * instant is still in the future. The instant itself comes from
+ * `computeScheduleTiming` (`schedule-timing.ts`), shared with the editor's
+ * "next fire" readout so the two cannot drift.
  */
 function computeDueTick(
   registration: TriggerRegistration,
   nowMs: number
 ): DueTick | null {
-  const config = registration.config_json;
-  const intervalSeconds = readNumber(config, "interval_seconds", 60);
-  const intervalMs = Math.max(1, intervalSeconds * 1000);
-  const initialDelaySeconds = readNumber(config, "initial_delay_seconds", 0);
-  const emitOnStart = readBool(config, "emit_on_start", true);
+  const timing = computeScheduleTiming(registration);
+  if (!timing) return null;
 
-  const createdAtMs = Date.parse(registration.created_at);
-  const firstDueAt =
-    createdAtMs + initialDelaySeconds * 1000 + (emitOnStart ? 0 : intervalMs);
-
-  const dueAt = registration.last_fired_at
-    ? Date.parse(registration.last_fired_at) + intervalMs
-    : firstDueAt;
-
+  const { nextFireAtMs: dueAt, intervalMs, intervalSeconds } = timing;
   if (nowMs < dueAt) return null;
 
-  return { dueAt, dueTickIndex: Math.floor(dueAt / intervalMs), intervalSeconds };
+  return {
+    dueAt,
+    dueTickIndex: Math.floor(dueAt / intervalMs),
+    intervalSeconds
+  };
 }
 
 async function fireRegistration(
@@ -168,7 +141,8 @@ export async function runSchedulerSweepOnce(opts: {
   now?: () => number;
 }): Promise<void> {
   const nowMs = (opts.now ?? Date.now)();
-  const registrations = await TriggerRegistration.findEnabledByKind("schedule");
+  const registrations =
+    await TriggerRegistration.findEnabledByKind(SCHEDULE_KIND);
 
   for (const registration of registrations) {
     let due: DueTick | null;

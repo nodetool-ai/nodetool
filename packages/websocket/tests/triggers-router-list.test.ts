@@ -109,4 +109,90 @@ describe("triggers.listByWorkflow", () => {
 
     expect(triggers).toEqual([]);
   });
+
+  describe("next fire", () => {
+    const CREATED_AT = "2026-01-01T00:00:00.000Z";
+
+    async function makeSchedule(opts: {
+      config?: Record<string, unknown>;
+      enabled?: number;
+      lastFiredAt?: string | null;
+      kind?: string;
+    }): Promise<TriggerRegistration> {
+      return (await TriggerRegistration.create<TriggerRegistration>({
+        user_id: "user-1",
+        workflow_id: "wf-1",
+        node_id: "node-1",
+        kind: opts.kind ?? "schedule",
+        config_json: opts.config ?? { interval_seconds: 300 },
+        enabled: opts.enabled ?? 1,
+        created_at: CREATED_AT,
+        updated_at: CREATED_AT,
+        last_fired_at: opts.lastFiredAt ?? null
+      })) as TriggerRegistration;
+    }
+
+    async function listOne() {
+      const { triggers } = await createCaller(
+        makeCtx()
+      ).triggers.listByWorkflow({ workflowId: "wf-1" });
+      return triggers[0];
+    }
+
+    it("projects the next fire one interval past the last one", async () => {
+      await makeSchedule({
+        config: { interval_seconds: 300 },
+        lastFiredAt: "2026-02-02T10:00:00.000Z"
+      });
+
+      const trigger = await listOne();
+
+      expect(trigger.next_fire_at).toBe("2026-02-02T10:05:00.000Z");
+      expect(trigger.interval_seconds).toBe(300);
+    });
+
+    it("schedules a never-fired registration from created_at plus the initial delay", async () => {
+      await makeSchedule({
+        config: { interval_seconds: 300, initial_delay_seconds: 30 }
+      });
+
+      expect((await listOne()).next_fire_at).toBe("2026-01-01T00:00:30.000Z");
+    });
+
+    it("waits a full interval when emit_on_start is off", async () => {
+      await makeSchedule({
+        config: { interval_seconds: 300, emit_on_start: false }
+      });
+
+      expect((await listOne()).next_fire_at).toBe("2026-01-01T00:05:00.000Z");
+    });
+
+    it("defaults the interval to 60s when config omits it", async () => {
+      await makeSchedule({ config: {} });
+
+      const trigger = await listOne();
+      expect(trigger.interval_seconds).toBe(60);
+      expect(trigger.next_fire_at).toBe(CREATED_AT);
+    });
+
+    it("reports no next fire for a disabled schedule", async () => {
+      await makeSchedule({ enabled: 0, lastFiredAt: "2026-02-02T10:00:00.000Z" });
+
+      const trigger = await listOne();
+      expect(trigger.next_fire_at).toBeNull();
+      // The interval is still a property of the trigger, armed or not.
+      expect(trigger.interval_seconds).toBe(300);
+    });
+
+    it.each(["webhook", "manual", "file_watch"])(
+      "reports neither field for a %s trigger",
+      async (kind) => {
+        await makeSchedule({ kind, config: { interval_seconds: 300 } });
+
+        const trigger = await listOne();
+        expect(trigger.next_fire_at).toBeNull();
+        expect(trigger.interval_seconds).toBeNull();
+      }
+    );
+  });
 });

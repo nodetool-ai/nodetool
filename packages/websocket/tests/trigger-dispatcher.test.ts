@@ -453,6 +453,105 @@ describe("trigger dispatcher", () => {
     });
   });
 
+  describe("last_fired_at", () => {
+    async function dispatchOnce(
+      registration: TriggerRegistration,
+      job: DispatchedJob = okJob("job-1")
+    ): Promise<TriggerRegistration> {
+      await storeInput(store, "in-1", {
+        runId: registration.workflow_id,
+        nodeId: registration.node_id
+      });
+      const dispatcher = createTriggerDispatcher({
+        store,
+        startJob: async () => job
+      });
+      await dispatcher.runOnce();
+      return (await TriggerRegistration.get(
+        registration.id
+      )) as TriggerRegistration;
+    }
+
+    it.each(["webhook", "manual", "file_watch"])(
+      "stamps the fire time on a delivered %s dispatch",
+      async (kind) => {
+        const registration = await makeRegistration({ kind });
+        const before = Date.now();
+
+        const updated = await dispatchOnce(registration);
+
+        expect(updated.last_fired_at).not.toBeNull();
+        expect(
+          Date.parse(updated.last_fired_at as string)
+        ).toBeGreaterThanOrEqual(before);
+      }
+    );
+
+    it("stamps the fire time even when the run itself failed", async () => {
+      const registration = await makeRegistration({ kind: "webhook" });
+
+      const updated = await dispatchOnce(registration, {
+        jobId: "job-1",
+        status: "failed",
+        error: "boom"
+      });
+
+      expect(updated.last_fired_at).not.toBeNull();
+      expect(updated.last_error).toBe("run failed: boom");
+    });
+
+    it("leaves a schedule registration's cursor alone — the scheduler owns it", async () => {
+      // Moving it here would push the next sweep's due instant out by however
+      // long the dispatch took.
+      const cursor = "2026-01-01T00:00:00.000Z";
+      const registration = await makeRegistration({ kind: "schedule" });
+      registration.last_fired_at = cursor;
+      await registration.save();
+
+      const updated = await dispatchOnce(registration);
+
+      expect(updated.last_fired_at).toBe(cursor);
+    });
+
+    it("does not stamp an event dropped by the skip policy", async () => {
+      const registration = await makeRegistration({
+        kind: "webhook",
+        config: { concurrency: "skip" }
+      });
+      let release: () => void = () => undefined;
+      const held = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+
+      await storeInput(store, "in-1");
+      await storeInput(store, "in-2");
+      const dispatcher = createTriggerDispatcher({
+        store,
+        startJob: async () => {
+          await held;
+          return okJob("job-1");
+        }
+      });
+      const pass = dispatcher.runOnce();
+      await vi.waitFor(async () => expect(await isProcessed("in-2")).toBe(true));
+
+      // in-2 has been dropped while in-1's run is still in flight: a dropped
+      // event is not a fire, so nothing has been stamped yet.
+      const dropped = (await TriggerRegistration.get(
+        registration.id
+      )) as TriggerRegistration;
+      expect(dropped.last_fired_at).toBeNull();
+
+      release();
+      await pass;
+
+      const delivered = (await TriggerRegistration.get(
+        registration.id
+      )) as TriggerRegistration;
+      expect(delivered.last_fired_at).not.toBeNull();
+    });
+  });
+
   describe("getTriggerWakeupService", () => {
     it("lazily creates a singleton and returns the wired instance once set", () => {
       const lazy = getTriggerWakeupService();
