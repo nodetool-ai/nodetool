@@ -66,11 +66,15 @@ cron_expr        TEXT,            -- 5-field cron, mutually exclusive with every
 cron_tz          TEXT,            -- IANA zone, e.g. "Europe/Berlin"
 
 -- lifecycle
-status           TEXT NOT NULL DEFAULT 'pending',  -- pending | claimed | done | failed
+status           TEXT NOT NULL DEFAULT 'pending',  -- pending | claimed — dispatch state only.
+                                                   -- "Disabled" is not a status: it is enabled=0
+                                                   -- plus disabled_reason, so a registration can be
+                                                   -- re-enabled without losing its dispatch state.
+disabled_reason  TEXT,            -- failures | expired | max_runs | budget | user
 attempts         INTEGER NOT NULL DEFAULT 0,
 consecutive_failures INTEGER NOT NULL DEFAULT 0,
 expires_at       TEXT,
-max_runs         INTEGER,
+max_runs         INTEGER,        -- counts successful runs (see §5)
 run_count        INTEGER NOT NULL DEFAULT 0,
 
 -- concurrency
@@ -88,7 +92,8 @@ scope            TEXT NOT NULL DEFAULT 'cloud',   -- cloud | desktop
 
 -- event auth
 auth_mode        TEXT NOT NULL DEFAULT 'token',   -- token | hmac_sha256 | none
-auth_secret      TEXT,            -- encrypted via the secret store
+auth_secret      TEXT,            -- reference into the secret store, not the
+                                  -- secret itself; the row stays safe to list
 auth_header      TEXT             -- signature header name for hmac_sha256
 ```
 
@@ -102,6 +107,9 @@ CREATE TABLE trigger_events (
   registration_id TEXT NOT NULL,
   payload_json JSON,
   dedupe_key   TEXT,
+  serialize_key TEXT,            -- copied from the registration at insert; a config
+                                 -- payload path can override it per event, which is
+                                 -- how per-conversation ordering (use case 5) works
   status       TEXT NOT NULL DEFAULT 'pending',
   attempts     INTEGER NOT NULL DEFAULT 0,
   next_fire_at TEXT NOT NULL,
@@ -111,6 +119,10 @@ CREATE TABLE trigger_events (
 CREATE UNIQUE INDEX idx_trigger_events_dedupe ON trigger_events(registration_id, dedupe_key);
 CREATE INDEX idx_trigger_events_due ON trigger_events(status, next_fire_at);
 ```
+
+Events carry their own `serialize_key` (denormalized at insert) so the claim can
+enforce ordering across both tables with one predicate: a key is busy if any row
+in either table holds it in `claimed`.
 
 The existing `trigger_inputs` table is close to this but is keyed by `(run_id, node_id)`, which is the parked-run addressing scheme from the abandoned design. Drop it with the rest.
 
@@ -134,6 +146,8 @@ async function claim() {
 
 async function dispatch(item) {
   const reg = item.registration;
+  if (overBudget(reg)) return disable(reg, 'budget');   // check BEFORE spending, not only at settle
+  if (reg.expires_at && nowIso() > reg.expires_at) return disable(reg, 'expired');
   const params = {
     ...reg.config_json,
     ...item.payload,                       // event triggers only
@@ -151,7 +165,11 @@ async function dispatch(item) {
 }
 ```
 
-`settle` is where the semantics live:
+`settle` is where the semantics live. For a scheduled item the retry and
+next-fire bookkeeping lands on the registration row; for an event item it lands
+on the event row (the registration only accumulates `consecutive_failures`,
+`last_error`, `run_count`, and state). Both end by returning the claimed row to
+`pending` — a settle that forgets to release the claim is a stuck trigger:
 
 ```ts
 async function settle(item, result) {
@@ -163,26 +181,32 @@ async function settle(item, result) {
 
   if (result.ok) {
     reg.consecutive_failures = 0;
-    reg.run_count++;
-    reg.last_fired_at = item.claimed_at;
+    reg.run_count++;                       // counts successes; max_runs and is_first_run key off it
+    reg.last_fired_at = item.claimed_at;   // so last_fired_at = last SUCCESSFUL fire; a failed
+                                           // occurrence re-covers its window on the next run,
+                                           // which is the at-least-once contract
     reg.next_fire_at = next;
-    reg.status = 'pending';
   } else {
     reg.consecutive_failures++;
     reg.last_error = result.error;
     reg.attempts++;
     reg.next_fire_at = reg.attempts < reg.max_attempts
-      ? backoff(reg.attempts)              // 2^n capped at 300s
+      ? nowPlus(backoff(reg.attempts))     // 2^attempts seconds, capped at 300s
       : next;                              // give up on this occurrence
     if (reg.attempts >= reg.max_attempts) reg.attempts = 0;
   }
+  reg.status = 'pending';                  // release the claim on BOTH paths
 
-  if (reg.consecutive_failures >= 5) disable(reg, 'repeated failure');
+  if (reg.consecutive_failures >= 5) disable(reg, 'failures');
   if (reg.expires_at && next > reg.expires_at) disable(reg, 'expired');
-  if (reg.max_runs && reg.run_count >= reg.max_runs) disable(reg, 'max runs');
-  if (overBudget(reg)) disable(reg, 'budget exceeded');
+  if (reg.max_runs && reg.run_count >= reg.max_runs) disable(reg, 'max_runs');
+  if (overBudget(reg)) disable(reg, 'budget');
 }
 ```
+
+`is_first_run` is `run_count === 0`, so it stays true until the first *success*.
+A first run that fails and retries sees `is_first_run` again, which is what a
+backfill-seeding run wants.
 
 ### 5.1 Why a 1s poll and not long timers
 
@@ -191,6 +215,8 @@ async function settle(item, result) {
 ### 5.2 Claiming is the only lock
 
 `UPDATE ... WHERE status='pending'` is atomic in SQLite and in Postgres (`schema-pg` mirrors every table). Whoever's update lands first owns the row. This is why `run_leases` is unnecessary: the claim *is* the lease, and it lasts exactly as long as the dispatch.
+
+One portability note: `UPDATE ... LIMIT ... RETURNING` needs an optional SQLite build flag. The portable claim is `SELECT` the candidate ids, then `UPDATE ... WHERE id IN (...) AND status='pending' RETURNING *`, keeping only the rows the update actually flipped. Same atomicity, standard builds.
 
 A crashed process leaves rows in `claimed`. A reaper in the same tick returns rows claimed longer than a threshold to `pending`, which is at-least-once and consistent with the retry semantics.
 
@@ -264,7 +290,9 @@ One route: `POST /api/triggers/:token`. The token identifies the registration. A
 - **`hmac_sha256`** — verify `auth_header` against HMAC-SHA256 of the **raw** body with `auth_secret`, compared in constant time. Required for GitHub, Stripe, and most providers. The raw body must be captured before JSON parsing.
 - **`none`** — explicit opt-in, warned in the UI.
 
-The route inserts a row and returns `202 {run_id}`. Body cap 1MB. `dedupe_key` comes from a configurable header (`X-GitHub-Delivery`, `Stripe-Signature`, …) so provider retries do not duplicate runs.
+The route inserts a row and returns `202 {event_id, run_id?}` — `run_id` is present when eager dispatch (§5.3) enqueued the run inline, absent when the queue was saturated and the poller will pick the event up. A duplicate `dedupe_key` returns `200` with the original event's ids and inserts nothing. A disabled or expired registration returns `410` and inserts nothing, so a forgotten webhook endpoint cannot accumulate a backlog that fires on re-enable. Body cap 1MB.
+
+`dedupe_key` comes from a configurable header (`X-GitHub-Delivery`) or a JSON body path (Stripe's `id` — its `Stripe-Signature` header is a signature, not a delivery id) so provider retries do not duplicate runs. Regenerating a registration's token invalidates the old URL; that is the revocation story for a leaked `token`-mode URL.
 
 Client-facing approval links (use case 13) reuse `nodetool_workflow_shares` as the token source instead of minting a second capability system.
 
@@ -335,4 +363,4 @@ Net: roughly 2800 lines removed, roughly 900 added.
 1. **Reaper threshold for stuck `claimed` rows.** A 25-minute video render (use case 16) must not be reaped as stuck. Proposal: derive from the job's own timeout rather than a fixed constant.
 2. **Does `next_fire_at` from a run need a floor?** A workflow returning `now` loops as fast as the queue allows. Proposal: clamp to 1s and log.
 3. **Budget accounting granularity.** `application_budgets` reserves an estimate before the run and reconciles after. Reuse that ledger keyed on `registration_id`, or add a simpler per-period sum over the cost records?
-4. **Should `state` write-back require an explicit opt-in on the registration**, so a workflow that happens to have an output named `state` does not silently become stateful?
+4. **Should `state` write-back require an explicit opt-in on the registration**, so a workflow that happens to have an output named `state` does not silently become stateful? Proposal: keep it automatic — outputs are user-named, so an output called `state` is already deliberate — but display the detected state contract in the Triggers tab when the registration is created, so accidental statefulness is visible rather than silent.

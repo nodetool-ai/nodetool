@@ -27,8 +27,8 @@ This plan turns the design into ordered, reviewable PRs with file-level targets 
 
 **Files**
 
-- `packages/models/src/schema/trigger-registrations.ts` — drop `node_id` and its unique index, widen `cursor` to `state`, add the columns from design §4
-- `packages/models/src/schema/trigger-events.ts` — new
+- `packages/models/src/schema/trigger-registrations.ts` — drop `node_id` and its unique index, widen `cursor` to `state`, add the columns from design §4 (including `disabled_reason`)
+- `packages/models/src/schema/trigger-events.ts` — new; carries its own `serialize_key`, denormalized from the registration at insert
 - `packages/models/src/schema-pg/trigger-registrations.ts`, `schema-pg/trigger-events.ts` — mirrors
 - `packages/models/src/trigger-registration.ts` — rewrite the model; add `findDue`, `claim`, `settle`, `disable`
 - `packages/models/src/trigger-event.ts` — new
@@ -62,6 +62,7 @@ This plan turns the design into ordered, reviewable PRs with file-level targets 
 - Interval after 3 hours of downtime fires **once**, not 12 times.
 - A run returning `next_fire_at` overrides the schedule; returning `now` clamps to 1s and logs.
 - State writes back on a failed run that emitted one; does not write when the output is absent.
+- Settle returns the claimed row to `pending` on success **and** failure — a claim leaked by the failure path is a permanently stuck trigger.
 - 5 consecutive failures disables. `expires_at`, `max_runs`, and `max_usd` each disable with a distinct reason.
 
 **Estimate:** 4 days
@@ -102,8 +103,9 @@ This plan turns the design into ordered, reviewable PRs with file-level targets 
 
 - HMAC-SHA256 verification against a real GitHub sample payload, compared in constant time; a tampered body is rejected 401.
 - Body over 1MB is rejected 413.
-- Duplicate `dedupe_key` returns 200 with the original run id and starts no second run.
-- Response is `202 {run_id}` in under 50ms, with dispatch happening eagerly rather than on the next tick.
+- Duplicate `dedupe_key` returns 200 with the original event's ids and starts no second run.
+- A disabled or expired registration returns 410 and inserts nothing.
+- Response is `202 {event_id, run_id?}` in under 50ms, with dispatch happening eagerly rather than on the next tick.
 
 **Estimate:** 3 days
 
