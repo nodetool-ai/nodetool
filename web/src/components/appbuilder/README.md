@@ -165,6 +165,20 @@ immutable `application_versions` snapshot with a capability summary **derived**
 from its bindings — the workflows it may invoke and the resource kinds it
 touches. Rollback moves the release pointer.
 
+A release is **pinned**, not a copy of a moving target. Publishing freezes each
+operation's workflow twice over: it writes a row in that workflow's own version
+history and records the number on the snapshot's `workflowVersion`, and it
+copies the graph JSON plus a sha256 onto the release itself, so the snapshot
+survives the version row being pruned or the workflow deleted. Editing the
+workflow afterwards moves the draft only. Publishing an operation whose workflow
+is missing throws rather than shipping a release that references nothing.
+
+Running one is the **Run** view in `ApplicationSurface`, which reads
+`applications.releasedDocument` and hands the pinned graphs to the runtime as
+workflow overrides — a release runs the graphs it froze, not whatever the
+workflow says today. With nothing released the view falls back to the draft and
+says so.
+
 A released app runs on the creator's secrets, so runs are metered. An app run
 carries its `application_id` on the run request; the websocket runner checks the
 budget before the job is created — refusing with a typed `BUDGET_EXCEEDED` error

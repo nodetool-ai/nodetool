@@ -325,18 +325,37 @@ npm run dev:nodetool -- app debug <id> --no-run       # static wiring check only
 npm run dev:nodetool -- app debug <id> --json         # full AppDebugReport for agents
 
 # Scripted interactions: set values, change inputs, click widgets (by
-# component id, unique type, or unique label)
+# component id, unique type, or unique label), and run or cancel an
+# operation by id
 npm run dev:nodetool -- app debug <id> --interact \
   '[{"set":{"key":"prompt","value":"hi"}},{"click":"Button-1"}]'
+npm run dev:nodetool -- app debug <id> --interact \
+  '[{"set":{"key":"tone","value":"terse","operationId":"draft"}},{"run":"draft"},{"cancel":"draft"}]'
 ```
+
+The harness runs **every** declared operation, not just the first: each resolves
+its own graph, and state is keyed per operation.
 
 The verdict catches app-level failures a workflow-only run can't: bindings that
 reference missing inputs/outputs/variables, apps with no run trigger, and
-display widgets that never receive a value from a completed run. The bundle
-(`nodetool-debug/app-<id>-<ts>/`) contains `report.json`/`report.md`,
+display widgets that never receive a value from a completed run. It also catches
+what the operation/variable layer makes mis-configurable — an output mapped to
+an undeclared variable, a mapping keyed on a node the workflow lacks, an event
+naming an operation the document never declares, a widget showing execution
+state of an operation nothing can run, and an elapsed `timeoutMs`. A
+`persist: true` variable that is `instance`-scoped warns rather than being
+silently downgraded.
+
+The bundle (`nodetool-debug/app-<id>-<ts>/`) contains `report.json`/`report.md`,
 `app.json` (the app document), `workflow.json`, and
-`server/run-N.messages.jsonl` per triggered run. Harness code:
-`packages/cli/src/app-debug/`.
+`server/run-N.messages.jsonl` per triggered run. The report carries final
+variable values, the activity label stream, and each invocation's policy
+decision, so an agent can see why a run was replaced, queued, or timed out.
+Harness code: `packages/cli/src/app-debug/`.
+
+Not simulated headlessly: `visibleWhen`/`disabledWhen`/`format`, so a widget
+hidden by a condition is reported as if visible; and `from: "resource"` params,
+which have no provider outside the browser.
 
 Every shipped workflow template carries a generated mini app on its `app_doc`
 (`node scripts/generate-template-apps.mjs` — curation table + Output-node
