@@ -184,7 +184,6 @@ const ollama = (
   blurb,
   approxSizeGb,
   minVramGb,
-  quant: "Q4",
   model: { id, name, type: "llama_model", provider: "ollama" },
   ...extra
 });
@@ -229,59 +228,43 @@ const hf = (
 export const ONBOARDING_MODELS: readonly OnboardingModel[] = [
   // --- Chat & reasoning (Ollama, GGUF) --------------------------------------
   ollama(
-    "qwen3:4b",
-    "Qwen3 4B",
-    "Tiny and fast, with a thinking mode you can switch on. Runs without a GPU.",
-    2.6,
+    "qwen3.5:2b",
+    "Qwen3.5 2B",
+    "Tiny and fast. Runs on almost anything, even without a GPU.",
+    2.7,
     4,
     "chat"
   ),
   ollama(
-    "gemma3:4b",
-    "Gemma 3 4B",
-    "Google's small model — reads images too, and still fits a laptop.",
-    3.3,
+    "qwen3.5:4b",
+    "Qwen3.5 4B",
+    "Noticeably sharper than the 2B while still fitting a laptop.",
+    3.4,
     6,
     "chat"
   ),
   ollama(
-    "qwen3:8b",
-    "Qwen3 8B",
+    "qwen3.5:9b",
+    "Qwen3.5 9B",
     "Strong all-round chat and tool use at a modest size.",
-    5.2,
+    6.6,
     8,
     "chat",
     { featured: true }
   ),
   ollama(
-    "deepseek-r1:8b",
-    "DeepSeek-R1 8B",
-    "Reasoning-tuned model that shows its work — good on hard problems.",
-    5.2,
-    8,
-    "chat"
-  ),
-  ollama(
-    "qwen3:14b",
-    "Qwen3 14B",
-    "A capable mid-size assistant for richer conversations and coding.",
-    9.3,
-    12,
-    "chat"
-  ),
-  ollama(
-    "phi4:14b",
-    "Phi-4 14B",
-    "Microsoft's compact model, punches above its weight on reasoning.",
-    9.1,
-    12,
+    "gemma4:12b",
+    "Gemma 4 12B",
+    "Google's mid-size open model, good quality per gigabyte.",
+    7.6,
+    10,
     "chat"
   ),
   ollama(
     "gpt-oss:20b",
     "GPT-OSS 20B",
     "OpenAI's open-weight reasoning model. NodeTool's default local chat model.",
-    13.0,
+    14.0,
     16,
     "chat",
     { featured: true, quant: "MXFP4" }
@@ -295,20 +278,28 @@ export const ONBOARDING_MODELS: readonly OnboardingModel[] = [
     "chat"
   ),
   ollama(
-    "qwen3:30b-a3b",
-    "Qwen3 30B A3B",
-    "Mixture-of-experts: 30B quality at roughly 3B speed.",
-    18.0,
-    24,
+    "qwen3.6:27b",
+    "Qwen3.6 27B",
+    "One of the strongest models you can run locally at this size.",
+    17.0,
+    20,
     "chat",
     { featured: true }
   ),
   ollama(
-    "gemma3:27b",
-    "Gemma 3 27B",
-    "High-quality answers for machines with plenty of VRAM.",
-    17.0,
-    24,
+    "gemma4:26b",
+    "Gemma 4 26B",
+    "Sparse mixture-of-experts — 26B weights, but only a few active per token.",
+    18.0,
+    22,
+    "chat"
+  ),
+  ollama(
+    "qwen3.6:35b-a3b",
+    "Qwen3.6 35B A3B",
+    "Mixture-of-experts: 35B quality at roughly 3B speed. Wants a big card.",
+    24.0,
+    28,
     "chat"
   ),
   // --- Vision (Ollama, GGUF) ------------------------------------------------
@@ -324,17 +315,17 @@ export const ONBOARDING_MODELS: readonly OnboardingModel[] = [
     "qwen3-vl:8b",
     "Qwen3-VL 8B",
     "Describe, read, and answer questions about images.",
-    6.0,
+    6.1,
     8,
     "vision",
     { featured: true }
   ),
   ollama(
-    "gemma3:12b",
-    "Gemma 3 12B",
-    "Multimodal chat that handles both text and images well.",
-    8.1,
-    12,
+    "qwen3-vl:32b",
+    "Qwen3-VL 32B",
+    "The accurate end of local vision — charts, dense text, fine detail.",
+    21.0,
+    24,
     "vision"
   ),
   // --- Image generation (Hugging Face, Diffusers) ---------------------------
@@ -394,11 +385,11 @@ export const ONBOARDING_MODELS: readonly OnboardingModel[] = [
     { featured: true }
   ),
   hf(
-    "coqui/XTTS-v2",
-    "XTTS v2",
-    "Multilingual voice cloning from a few seconds of audio.",
-    2.0,
-    4,
+    "ResembleAI/chatterbox",
+    "Chatterbox",
+    "Expressive voice cloning from a short reference clip.",
+    1.0,
+    3,
     "text-to-speech",
     "hf.text_to_speech",
     "text-to-speech"

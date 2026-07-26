@@ -72,7 +72,7 @@ describe("ModelOnboarding", () => {
       screen.getByRole("button", { name: /all capabilities/i })
     ).toBeInTheDocument();
     // A well-known catalog model is shown.
-    expect(screen.getByText("Qwen3 8B")).toBeInTheDocument();
+    expect(screen.getByText("Qwen3.5 9B")).toBeInTheDocument();
   });
 
   it("filters models when a capability is selected", async () => {
@@ -80,7 +80,7 @@ describe("ModelOnboarding", () => {
     renderOnboarding();
     await user.click(screen.getByRole("button", { name: /Image Generation/i }));
     expect(screen.getByText("Stable Diffusion XL")).toBeInTheDocument();
-    expect(screen.queryByText("Qwen3 8B")).not.toBeInTheDocument();
+    expect(screen.queryByText("Qwen3.5 9B")).not.toBeInTheDocument();
   });
 
   it("starts a download when a model's Download button is clicked", async () => {
