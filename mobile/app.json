@@ -49,6 +49,13 @@
       "expo-status-bar",
       "expo-notifications",
       [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "NodeTool uses the microphone so you can dictate messages to the assistant.",
+          "speechRecognitionPermission": "NodeTool transcribes your speech on-device to fill the chat composer."
+        }
+      ],
+      [
         "expo-media-library",
         {
           "savePhotosPermission": "NodeTool saves generated images and video to your photo library.",

@@ -175,6 +175,38 @@ jest.mock('expo-file-system/legacy', () => ({
   deleteAsync: jest.fn().mockResolvedValue(undefined),
 }));
 
+// Mock expo-speech-recognition (no speech recognizer in Jest)
+jest.mock('expo-speech-recognition', () => ({
+  ExpoSpeechRecognitionModule: {
+    requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
+    getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
+    start: jest.fn(),
+    stop: jest.fn(),
+    abort: jest.fn(),
+    getSupportedLocales: jest.fn().mockResolvedValue({ locales: ['en-US'] }),
+    isRecognitionAvailable: jest.fn().mockReturnValue(true),
+  },
+  useSpeechRecognitionEvent: jest.fn(),
+  addSpeechRecognitionListener: jest.fn(() => ({ remove: jest.fn() })),
+}));
+
+// Mock @sentry/react-native (no crash SDK in Jest)
+jest.mock('@sentry/react-native', () => ({
+  init: jest.fn(),
+  captureException: jest.fn(),
+  setUser: jest.fn(),
+  wrap: jest.fn((component) => component),
+}));
+
+// Mock expo-haptics (no taptic engine in Jest)
+jest.mock('expo-haptics', () => ({
+  impactAsync: jest.fn().mockResolvedValue(undefined),
+  notificationAsync: jest.fn().mockResolvedValue(undefined),
+  selectionAsync: jest.fn().mockResolvedValue(undefined),
+  ImpactFeedbackStyle: { Light: 'light', Medium: 'medium', Heavy: 'heavy' },
+  NotificationFeedbackType: { Success: 'success', Warning: 'warning', Error: 'error' },
+}));
+
 // Mock expo-linking
 jest.mock('expo-linking', () => ({
   createURL: jest.fn((path) => `nodetool://${path}`),
