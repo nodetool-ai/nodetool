@@ -140,8 +140,15 @@ WorkflowAppView      # resolves the document, renders the widget tree
   back — authoring is the web builder's job.
 - **Mobile differences**: `Columns` stacks vertically (two columns are unusable
   at phone width), there is no reactive-subgraph path (no browser worker, so
-  every run is a full server run), and resource widgets have no surface yet —
-  they render a note instead of vanishing.
+  every run is a full server run), and `ResourcePicker`/`ResourceGallery`
+  collapse into one list of rows — a grid of tiles buys nothing at phone width.
+- **Resource widgets** (`resourceWidgets.tsx`) render a bound document as a card
+  — name, kind icon, and a summary read off the body ("6 shots") — that opens
+  the screen its kind already has. The route comes from `documents/kinds.ts`, so
+  a kind with no dedicated screen falls back to `DocumentViewer`. A binding that
+  resolves to nothing renders an empty state instead of a card, and the
+  `openResource` action navigates the same way. `resourceCommand` stays inert:
+  writing a document needs a provider router mobile does not have.
 
 The shared package is compiled from source rather than from `dist`: see
 `metro.config.js` (bundler), the `paths` entry in `tsconfig.json` (types), and

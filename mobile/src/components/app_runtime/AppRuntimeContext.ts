@@ -20,6 +20,8 @@ import {
   type BindingScope,
   type ConditionProps,
   type OperationBinding,
+  type ResourceBinding,
+  type ResourceRef,
 } from "@nodetool-ai/app-runtime";
 
 import { AppRuntimeStore, AppRuntimeState } from "./appRuntimeStore";
@@ -32,9 +34,16 @@ export interface AppRuntimeContextValue {
   scope: BindingScope;
   /** The operation a widget's `run` targets. */
   operation: OperationBinding;
+  /** The document's resource bindings, by declaration order. */
+  resources: ResourceBinding[];
   dispatch: (action: AppAction) => void;
   /** Write a value through a resolved binding. */
   write: (ref: BindingRef, value: unknown) => void;
+  /**
+   * Report which document a resource binding currently points at, so an
+   * operation input mapped `from: "resource"` passes it to the run.
+   */
+  selectResource: (resourceBindingId: string, ref: ResourceRef | null) => void;
 }
 
 export const AppRuntimeContext = createContext<AppRuntimeContextValue | null>(

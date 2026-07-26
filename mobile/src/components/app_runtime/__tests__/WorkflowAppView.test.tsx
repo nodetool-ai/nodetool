@@ -8,6 +8,12 @@ import { fireEvent, render, screen, act } from "@testing-library/react-native";
 
 import type { Workflow } from "../../../types/workflow";
 
+// The runtime pushes a screen for an `openResource` action; nothing here fires
+// one, so a bare navigator stub is enough.
+jest.mock("@react-navigation/native", () => ({
+  useNavigation: () => ({ navigate: jest.fn() }),
+}));
+
 const mockRun = jest.fn().mockResolvedValue(undefined);
 const mockCancel = jest.fn().mockResolvedValue(undefined);
 const mockRunnerState = {

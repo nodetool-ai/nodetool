@@ -28,6 +28,7 @@ import {
   type BindingScope,
   type InvocationState,
   type OperationBinding,
+  type ResourceRef,
 } from "@nodetool-ai/app-runtime";
 
 import type { Workflow } from "../../types/workflow";
@@ -44,6 +45,7 @@ import {
   extractWorkflowIO,
   seedInputValue,
 } from "./workflowIO";
+import { useOpenResource } from "./useOpenResource";
 
 type RawMessage = Record<string, unknown>;
 
@@ -95,6 +97,24 @@ export const useAppRuntime = (
     }),
     [document, io, operation.id, workflow]
   );
+
+  const resources = useMemo(() => document?.resources ?? [], [document]);
+
+  // Which document each resource binding currently points at. A ref, never the
+  // entity — resource data belongs to the query cache, not the app store.
+  const resourceRefsRef = useRef(new Map<string, ResourceRef>());
+  const selectResource = useCallback(
+    (resourceBindingId: string, ref: ResourceRef | null) => {
+      if (ref) {
+        resourceRefsRef.current.set(resourceBindingId, ref);
+      } else {
+        resourceRefsRef.current.delete(resourceBindingId);
+      }
+    },
+    []
+  );
+
+  const openResource = useOpenResource();
 
   const inputKey = useCallback(
     (nodeId: string) =>
@@ -244,6 +264,8 @@ export const useAppRuntime = (
       inputNodeIds: io.inputs.map((input) => input.nodeId),
       inputName: (nodeId) =>
         io.inputs.find((input) => input.nodeId === nodeId)?.name,
+      resourceRef: (resourceBindingId) =>
+        resourceRefsRef.current.get(resourceBindingId),
     });
 
     expectingJobRef.current = true;
@@ -328,17 +350,45 @@ export const useAppRuntime = (
             variableId: action.variableId,
           });
           break;
+        case "openResource": {
+          // Which screen opens a document is the host's business; the runtime
+          // only knows which binding was asked for.
+          const ref =
+            action.ref ?? resourceRefsRef.current.get(action.resourceBindingId);
+          if (ref) {
+            openResource(ref);
+          }
+          break;
+        }
         default:
-          // Resource actions need a provider router the mobile app has no
-          // surface for yet; they are inert rather than an error.
+          // `resourceCommand` writes a document through a provider router that
+          // mobile does not have; it stays inert rather than half-applied.
           break;
       }
     },
-    [cancel, run, store]
+    [cancel, openResource, run, store]
   );
 
   return useMemo(
-    () => ({ store, io, scope, operation, dispatch, write }),
-    [dispatch, io, operation, scope, store, write]
+    () => ({
+      store,
+      io,
+      scope,
+      operation,
+      resources,
+      dispatch,
+      write,
+      selectResource,
+    }),
+    [
+      dispatch,
+      io,
+      operation,
+      resources,
+      scope,
+      selectResource,
+      store,
+      write,
+    ]
   );
 };
