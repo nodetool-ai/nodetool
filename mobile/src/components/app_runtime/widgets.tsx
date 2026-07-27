@@ -13,6 +13,8 @@ import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Linking,
+  Platform,
   ScrollView,
   StyleSheet,
   Switch,
@@ -310,8 +312,6 @@ const ProgressWidget: React.FC<WidgetProps> = (widget) => {
   );
 };
 
-// ── Inputs ──────────────────────────────────────────────────────────────────
-
 const FieldLabel: React.FC<{ text: string; colors: ThemeColors }> = ({
   text,
   colors,
@@ -319,6 +319,167 @@ const FieldLabel: React.FC<{ text: string; colors: ThemeColors }> = ({
   text ? (
     <Text style={[styles.label, { color: colors.text }]}>{text}</Text>
   ) : null;
+
+/** A bound value shown as a message. Empty binding renders nothing. */
+const AlertWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
+  const text = widget.formattedValue ?? (str(value) || str(widget.props.text));
+  if (!text) {return null;}
+  const severity = str(widget.props.severity) || "info";
+  const tint =
+    severity === "error"
+      ? colors.error
+      : severity === "warning"
+        ? colors.warning
+        : severity === "success"
+          ? colors.success
+          : colors.primary;
+  const title = str(widget.props.title);
+  return (
+    <View style={[styles.alert, { borderColor: tint }]}>
+      {title ? (
+        <Text style={[styles.label, { color: tint }]}>{title}</Text>
+      ) : null}
+      <Text style={[styles.body, { color: colors.text }]}>{text}</Text>
+    </View>
+  );
+};
+
+const CodeBlockWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
+  const text =
+    widget.formattedValue ??
+    (value != null
+      ? asItems(value).map(cellText).join("\n")
+      : str(widget.props.text));
+  if (!text) {return null;}
+  return (
+    <ScrollView
+      horizontal
+      style={[styles.code, { backgroundColor: colors.inputBg }]}
+    >
+      <Text style={[styles.codeText, { color: colors.text }]}>{text}</Text>
+    </ScrollView>
+  );
+};
+
+const ListWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
+  const items = (
+    widget.formattedValue ? [widget.formattedValue] : asItems(value)
+  ).filter((item) => item != null && item !== "");
+  if (items.length === 0) {
+    const placeholder = str(widget.props.placeholder);
+    return placeholder ? (
+      <Placeholder text={placeholder} colors={colors} />
+    ) : null;
+  }
+  const ordered = widget.props.ordered === true;
+  return (
+    <View style={styles.field}>
+      <FieldLabel text={str(widget.props.label)} colors={colors} />
+      {items.map((item, index) => (
+        <View key={index} style={styles.listItem}>
+          <Text style={[styles.body, { color: colors.textTertiary }]}>
+            {ordered ? `${index + 1}.` : "•"}
+          </Text>
+          <Text style={[styles.body, styles.flex, { color: colors.text }]}>
+            {cellText(item)}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+};
+
+const KeyValueWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
+  const entries = isRow(value)
+    ? Object.entries(value)
+    : value == null || value === ""
+      ? []
+      : ([["value", value]] as [string, unknown][]);
+  if (entries.length === 0) {
+    const placeholder = str(widget.props.placeholder);
+    return placeholder ? (
+      <Placeholder text={placeholder} colors={colors} />
+    ) : null;
+  }
+  return (
+    <View style={styles.field}>
+      <FieldLabel text={str(widget.props.label)} colors={colors} />
+      {entries.map(([key, entry]) => (
+        <View
+          key={key}
+          style={[styles.row, styles.kvRow, { borderColor: colors.borderLight }]}
+        >
+          <Text style={[styles.hint, { color: colors.textTertiary }]}>{key}</Text>
+          <Text style={[styles.body, styles.kvValue, { color: colors.text }]}>
+            {cellText(entry)}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+};
+
+const StatWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
+  const shown =
+    widget.formattedValue ?? (value != null && value !== "" ? str(value) : "");
+  const caption = str(widget.props.caption);
+  return (
+    <View style={styles.field}>
+      <FieldLabel text={str(widget.props.label)} colors={colors} />
+      <Text style={[styles.stat, { color: colors.text }]}>
+        {shown || str(widget.props.placeholder) || "—"}
+      </Text>
+      {caption ? (
+        <Text style={[styles.hint, { color: colors.textTertiary }]}>
+          {caption}
+        </Text>
+      ) : null}
+    </View>
+  );
+};
+
+/** Hands the bound file to the OS rather than rendering it inline. */
+const DownloadWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
+  const uri = mediaUri(asItems(value)[0]);
+  if (!uri) {
+    const placeholder = str(widget.props.placeholder);
+    return placeholder ? (
+      <Placeholder text={placeholder} colors={colors} />
+    ) : null;
+  }
+  return (
+    <TouchableOpacity
+      accessibilityRole="button"
+      disabled={widget.disabled}
+      onPress={() => {
+        void Linking.openURL(uri);
+      }}
+      style={[
+        styles.button,
+        styles.secondaryButton,
+        { borderColor: colors.primary },
+      ]}
+    >
+      <Text style={[styles.buttonText, { color: colors.primary }]}>
+        {str(widget.props.label) || "Download"}
+      </Text>
+    </TouchableOpacity>
+  );
+};
+
+// ── Inputs ──────────────────────────────────────────────────────────────────
 
 const TextInputWidget: React.FC<WidgetProps> = (widget) => {
   const { colors } = useTheme();
@@ -516,6 +677,153 @@ const SelectWidget: React.FC<WidgetProps> = (widget) => {
           })}
         </View>
       </ScrollView>
+    </View>
+  );
+};
+
+/** The author's option list, tolerating both `["a"]` and `[{ value: "a" }]`. */
+const useOptionValues = (raw: unknown): string[] =>
+  useMemo(() => {
+    if (!Array.isArray(raw)) {return [] as string[];}
+    return raw
+      .map((option) =>
+        typeof option === "string"
+          ? option
+          : str((option as Record<string, unknown>)?.value)
+      )
+      .filter((option) => option.length > 0);
+  }, [raw]);
+
+/** Chips rather than native radios: one tap target, and it matches Select. */
+const RadioGroupWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { value, setValue, emit } = useWidgetRuntime({
+    ...widget,
+    bindingMode: "write",
+  });
+  const options = useOptionValues(widget.props.options);
+  return (
+    <View style={styles.field}>
+      <FieldLabel text={str(widget.props.label)} colors={colors} />
+      <View style={styles.chipWrap}>
+        {options.map((option) => {
+          const selected = str(value) === option;
+          return (
+            <TouchableOpacity
+              key={option}
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
+              disabled={widget.disabled}
+              onPress={() => {
+                setValue(option);
+                emit("change");
+              }}
+              style={[
+                styles.chip,
+                {
+                  backgroundColor: selected ? colors.primary : colors.inputBg,
+                  borderColor: selected ? colors.primary : colors.border,
+                },
+              ]}
+            >
+              <Text
+                style={{ color: selected ? colors.textOnPrimary : colors.text }}
+              >
+                {option}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+};
+
+/** Writes the checked options as an array, in the option list's own order. */
+const CheckboxGroupWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { value, setValue, emit } = useWidgetRuntime({
+    ...widget,
+    bindingMode: "write",
+  });
+  const options = useOptionValues(widget.props.options);
+  const selected = Array.isArray(value) ? value.map(str) : [];
+  return (
+    <View style={styles.field}>
+      <FieldLabel text={str(widget.props.label)} colors={colors} />
+      <View style={styles.chipWrap}>
+        {options.map((option) => {
+          const checked = selected.includes(option);
+          return (
+            <TouchableOpacity
+              key={option}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked }}
+              disabled={widget.disabled}
+              onPress={() => {
+                setValue(
+                  options.filter((o) =>
+                    o === option ? !checked : selected.includes(o)
+                  )
+                );
+                emit("change");
+              }}
+              style={[
+                styles.chip,
+                {
+                  backgroundColor: checked ? colors.primary : colors.inputBg,
+                  borderColor: checked ? colors.primary : colors.border,
+                },
+              ]}
+            >
+              <Text
+                style={{ color: checked ? colors.textOnPrimary : colors.text }}
+              >
+                {option}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+};
+
+/**
+ * A typed field rather than a native picker: the document stores the same
+ * `YYYY-MM-DD` string the web `<input type="date">` writes, and pulling in a
+ * date-picker dependency to produce it would not change what the app sees.
+ */
+const DateInputWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { value, setValue, emit } = useWidgetRuntime({
+    ...widget,
+    bindingMode: "write",
+  });
+  const withTime = widget.props.withTime === true;
+  return (
+    <View style={styles.field}>
+      <FieldLabel text={str(widget.props.label)} colors={colors} />
+      <TextInput
+        style={[
+          styles.input,
+          {
+            backgroundColor: colors.inputBg,
+            color: colors.text,
+            borderColor: colors.border,
+          },
+        ]}
+        editable={!widget.disabled}
+        value={str(value)}
+        autoCapitalize="none"
+        placeholder={withTime ? "YYYY-MM-DDTHH:MM" : "YYYY-MM-DD"}
+        placeholderTextColor={colors.textTertiary}
+        onChangeText={(text) => {
+          setValue(text === "" ? null : text);
+          emit("change");
+        }}
+        onBlur={() => emit("change", "commit")}
+      />
     </View>
   );
 };
@@ -779,6 +1087,97 @@ const DividerWidget: React.FC = () => {
   return <View style={[styles.divider, { backgroundColor: colors.border }]} />;
 };
 
+const SpacerWidget: React.FC<WidgetProps> = (widget) => (
+  <View style={{ height: numOr(widget.props.height, 24) }} />
+);
+
+/** Tabs with a blank label are dropped, matching the web renderer. */
+const TabsWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const panes = (["tab1", "tab2", "tab3"] as const)
+    .map((key) => ({
+      key,
+      label: str(widget.props[`${key}Label`]),
+      nodes: slotNodes(widget.props[key]),
+    }))
+    .filter((pane) => pane.label.trim().length > 0);
+  const [active, setActive] = useState<string>("tab1");
+  const current = panes.some((pane) => pane.key === active)
+    ? active
+    : panes[0]?.key;
+
+  if (panes.length === 0) {return null;}
+  return (
+    <View style={styles.field}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <View style={styles.chipRow}>
+          {panes.map((pane) => {
+            const selected = pane.key === current;
+            return (
+              <TouchableOpacity
+                key={pane.key}
+                accessibilityRole="tab"
+                accessibilityState={{ selected }}
+                onPress={() => setActive(pane.key)}
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor: selected ? colors.primary : colors.inputBg,
+                    borderColor: selected ? colors.primary : colors.border,
+                  },
+                ]}
+              >
+                <Text
+                  style={{
+                    color: selected ? colors.textOnPrimary : colors.text,
+                  }}
+                >
+                  {pane.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </ScrollView>
+      {panes.map((pane) =>
+        // Hidden rather than unmounted, so a widget's view state and any run it
+        // started survive switching tabs — same as the web renderer.
+        <View key={pane.key} style={pane.key === current ? undefined : styles.hidden}>
+          <ComponentList nodes={pane.nodes} />
+        </View>
+      )}
+    </View>
+  );
+};
+
+const AccordionWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const [open, setOpen] = useState(widget.props.defaultOpen !== false);
+  return (
+    <View
+      style={[
+        styles.panel,
+        { backgroundColor: colors.cardBg, borderColor: colors.borderLight },
+      ]}
+    >
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        onPress={() => setOpen((prev) => !prev)}
+        style={styles.row}
+      >
+        <Text style={[styles.panelTitle, { color: colors.text }]}>
+          {str(widget.props.title) || "Section"}
+        </Text>
+        <Text style={[styles.hint, { color: colors.textTertiary }]}>
+          {open ? "−" : "+"}
+        </Text>
+      </TouchableOpacity>
+      {open ? <ComponentList nodes={slotNodes(widget.props.content)} /> : null}
+    </View>
+  );
+};
+
 const UnknownWidget: React.FC<{ label: string }> = ({ label }) => {
   const { colors } = useTheme();
   return (
@@ -809,12 +1208,21 @@ const RENDERERS: Record<string, React.FC<WidgetProps>> = {
   Output: MediaOutputWidget,
   Table: TableWidget,
   Progress: ProgressWidget,
+  Alert: AlertWidget,
+  CodeBlock: CodeBlockWidget,
+  List: ListWidget,
+  KeyValue: KeyValueWidget,
+  Stat: StatWidget,
+  Download: DownloadWidget,
   WorkflowInput: WorkflowInputWidget,
   TextInput: TextInputWidget,
   NumberInput: NumberInputWidget,
   Slider: SliderWidget,
   Switch: SwitchWidget,
   Select: SelectWidget,
+  RadioGroup: RadioGroupWidget,
+  CheckboxGroup: CheckboxGroupWidget,
+  DateInput: DateInputWidget,
   ColorInput: ColorInputWidget,
   ImageInput: (props) => <MediaInputWidget {...props} kind="image" />,
   AudioInput: (props) => <MediaInputWidget {...props} kind="audio" />,
@@ -824,7 +1232,10 @@ const RENDERERS: Record<string, React.FC<WidgetProps>> = {
   Button: ButtonWidget,
   Container: ContainerWidget,
   Columns: ColumnsWidget,
+  Tabs: TabsWidget,
+  Accordion: AccordionWidget,
   Divider: DividerWidget as React.FC<WidgetProps>,
+  Spacer: SpacerWidget,
 };
 
 /**
@@ -1011,5 +1422,45 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: StyleSheet.hairlineWidth,
+  },
+  hidden: {
+    display: "none",
+  },
+  chipWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  alert: {
+    gap: 4,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  code: {
+    padding: 12,
+    borderRadius: 10,
+  },
+  codeText: {
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+    fontSize: 13,
+  },
+  listItem: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  kvRow: {
+    paddingVertical: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    alignItems: "flex-start",
+  },
+  kvValue: {
+    flexShrink: 1,
+    textAlign: "right",
+  },
+  stat: {
+    fontSize: 30,
+    fontWeight: "700",
+    letterSpacing: -0.5,
   },
 });

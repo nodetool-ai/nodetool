@@ -46,7 +46,26 @@ describe("widget catalog", () => {
   it("declares the slots layout widgets nest children in", () => {
     expect(WIDGET_CATALOG.Columns.slots).toEqual(["left", "right"]);
     expect(WIDGET_CATALOG.Container.slots).toEqual(["content"]);
+    expect(WIDGET_CATALOG.Tabs.slots).toEqual(["tab1", "tab2", "tab3"]);
+    expect(WIDGET_CATALOG.Accordion.slots).toEqual(["content"]);
     expect(WIDGET_CATALOG.Divider.slots).toBeUndefined();
+    expect(WIDGET_CATALOG.Spacer.slots).toBeUndefined();
+  });
+
+  it("groups the multi-option and date inputs with the other write widgets", () => {
+    for (const type of ["RadioGroup", "CheckboxGroup", "DateInput"]) {
+      expect(widgetMode(type)).toBe("write");
+      expect(WIDGET_CATALOG[type].trigger).toBe("change");
+    }
+    // Only the date field settles on blur, so only it can pace "on release".
+    expect(WIDGET_CATALOG.DateInput.commits).toBe(true);
+    expect(WIDGET_CATALOG.RadioGroup.commits).toBe(false);
+  });
+
+  it("keeps the added display widgets read-only", () => {
+    for (const type of ["Alert", "CodeBlock", "List", "KeyValue", "Stat", "Download"]) {
+      expect(widgetMode(type)).toBe("read");
+    }
   });
 });
 

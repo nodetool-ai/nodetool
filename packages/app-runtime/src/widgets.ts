@@ -38,6 +38,19 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
   Table: { label: "Table", mode: "read" },
   Output: { label: "Output", mode: "read" },
   Progress: { label: "Progress", mode: "read" },
+  // Reads a bound value as a message rather than as content: an error output,
+  // a validation string, a status line the app wants to draw attention to.
+  Alert: { label: "Alert", mode: "read" },
+  CodeBlock: { label: "Code", mode: "read" },
+  // Lays out an array value as items; Table's sibling for values that have no
+  // columns.
+  List: { label: "List", mode: "read" },
+  // An object value as label/value rows — what a single-result operation that
+  // emits a record usually wants.
+  KeyValue: { label: "Key/Value", mode: "read" },
+  Stat: { label: "Stat", mode: "read" },
+  // Offers the bound media/document ref as a file rather than rendering it.
+  Download: { label: "Download", mode: "read" },
   // Inputs
   WorkflowInput: {
     label: "Workflow Input",
@@ -55,6 +68,26 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
   Slider: { label: "Slider", mode: "write", trigger: "change", commits: true },
   Switch: { label: "Switch", mode: "write", trigger: "change", commits: false },
   Select: { label: "Select", mode: "write", trigger: "change", commits: false },
+  RadioGroup: {
+    label: "Radio Group",
+    mode: "write",
+    trigger: "change",
+    commits: false
+  },
+  // Writes an array of the checked options, so it binds to a list-typed input.
+  CheckboxGroup: {
+    label: "Checkbox Group",
+    mode: "write",
+    trigger: "change",
+    commits: false
+  },
+  // A date control settles on blur, so "on release" pacing is meaningful.
+  DateInput: {
+    label: "Date Input",
+    mode: "write",
+    trigger: "change",
+    commits: true
+  },
   ImageInput: {
     label: "Image Input",
     mode: "write",
@@ -105,6 +138,12 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
   // Layout
   Container: { label: "Panel", mode: "layout", slots: ["content"] },
   Columns: { label: "Columns", mode: "layout", slots: ["left", "right"] },
+  // Three fixed slots rather than a variable number: Puck fields are declared
+  // statically, and three tabs cover what a mini app does without a nested
+  // array-of-slots field the agent would have to reason about.
+  Tabs: { label: "Tabs", mode: "layout", slots: ["tab1", "tab2", "tab3"] },
+  Accordion: { label: "Accordion", mode: "layout", slots: ["content"] },
+  Spacer: { label: "Spacer", mode: "layout" },
   Divider: { label: "Divider", mode: "layout" }
 };
 

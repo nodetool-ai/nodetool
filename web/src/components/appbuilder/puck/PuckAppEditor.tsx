@@ -10,6 +10,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import PhoneIphoneIcon from "@mui/icons-material/PhoneIphone";
 import TabletMacIcon from "@mui/icons-material/TabletMac";
 import AspectRatioIcon from "@mui/icons-material/AspectRatio";
+import TuneIcon from "@mui/icons-material/Tune";
 
 import { Workflow } from "../../../stores/ApiTypes";
 import { NodeContext } from "../../../contexts/NodeContext";
@@ -49,6 +50,8 @@ interface PuckAppEditorProps {
    */
   meta?: AppDocMeta;
   onMetaChange?: (next: AppDocMeta) => void;
+  dataOpen?: boolean;
+  onToggleData?: () => void;
 }
 
 /**
@@ -163,7 +166,9 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
   agentOpen = false,
   onToggleAgent,
   meta = EMPTY_DOC_META,
-  onMetaChange
+  onMetaChange,
+  dataOpen = false,
+  onToggleData
 }) => {
   const workflowState = useMemo(
     () => extractWorkflowState(workflow, meta.resources),
@@ -194,6 +199,17 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
           />
           <PreviewWidthToggle value={previewWidth} onChange={setPreviewWidth} />
           <GenerateFromWorkflowButton workflow={workflow} />
+          {onToggleData && (
+            <EditorButton
+              size="small"
+              variant={dataOpen ? "contained" : "text"}
+              startIcon={<TuneIcon sx={{ fontSize: 16 }} />}
+              onClick={onToggleData}
+              aria-pressed={dataOpen}
+            >
+              App Data
+            </EditorButton>
+          )}
           {onToggleAgent && (
             <EditorButton
               size="small"
@@ -230,7 +246,9 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
       previewWidth,
       meta,
       handleMetaChange,
-      workflowState
+      workflowState,
+      dataOpen,
+      onToggleData
     ]
   );
 
