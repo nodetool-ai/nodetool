@@ -257,6 +257,39 @@ describe("useDynamicProperty", () => {
         dynamic_inputs: { n: { type: type("float"), description: "a count" } }
       });
     });
+
+    it("reseeds when the old ref is a different ref type", () => {
+      nodeSlots = { pic: { type: type("image") } };
+      const { result } = renderHook(() =>
+        useDynamicProperty("node-1", { pic: { type: "image", uri: "a.png" } })
+      );
+
+      act(() => {
+        result.current.handleUpdatePropertyType("pic", type("audio"));
+      });
+
+      expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", {
+        dynamic_properties: { pic: null },
+        dynamic_inputs: { pic: { type: type("audio") } }
+      });
+    });
+
+    it("keeps a ref the new type still accepts", () => {
+      nodeSlots = { pic: { type: type("any") } };
+      const ref = { type: "image", uri: "a.png" };
+      const { result } = renderHook(() =>
+        useDynamicProperty("node-1", { pic: ref })
+      );
+
+      act(() => {
+        result.current.handleUpdatePropertyType("pic", type("image"));
+      });
+
+      expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", {
+        dynamic_properties: { pic: ref },
+        dynamic_inputs: { pic: { type: type("image") } }
+      });
+    });
   });
 
   it("memoizes callbacks based on dependencies", () => {

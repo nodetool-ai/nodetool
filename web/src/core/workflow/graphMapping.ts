@@ -7,7 +7,10 @@ import {
   hasInputHandle,
   hasOutputHandle
 } from "../../utils/handleUtils";
-import { normalizeDynamicSlots } from "../../utils/dynamicSlots";
+import {
+  defaultValueForType,
+  normalizeDynamicSlots
+} from "../../utils/dynamicSlots";
 import { CONTROL_HANDLE_ID } from "../../stores/graphEdgeToReactFlowEdge";
 import { addExposedInput } from "../../utils/exposedInputs";
 
@@ -103,16 +106,19 @@ const ensureHandlesForEdges = (
             edge.sourceHandle,
             metadata
           );
-          // The value is driven by the edge, so it stays `""` as before —
-          // only the declaration is new.
+          const typed = inferred && inferred.type !== "any" ? inferred : null;
+          // The edge drives the value, but `dynamic_properties` is also the
+          // default the runner falls back to when the edge delivers nothing on
+          // a given run — so it has to be a value the declared type accepts.
+          // A bare `""` under an `image` declaration makes that run throw.
           patch.dynamic_properties = {
             ...currentDynProps,
-            [edge.targetHandle]: ""
+            [edge.targetHandle]: typed ? defaultValueForType(typed) : ""
           };
-          if (inferred && inferred.type !== "any") {
+          if (typed) {
             patch.dynamic_inputs = {
               ...currentDynInputs,
-              [edge.targetHandle]: { type: inferred }
+              [edge.targetHandle]: { type: typed }
             };
           }
         }

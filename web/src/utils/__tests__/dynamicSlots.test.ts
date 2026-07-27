@@ -5,7 +5,8 @@ import {
   normalizeDynamicSlot,
   normalizeDynamicSlots,
   normalizeTypeMetadata,
-  slotType
+  slotType,
+  valueFitsType
 } from "../dynamicSlots";
 
 describe("normalizeTypeMetadata", () => {
@@ -145,5 +146,43 @@ describe("defaultValueForType", () => {
 
   it("seeds asset refs with null", () => {
     expect(defaultValueForType({ ...ANY_TYPE, type: "image" })).toBeNull();
+  });
+});
+
+describe("valueFitsType", () => {
+  const t = (type: string) => ({ ...ANY_TYPE, type });
+
+  it("accepts an empty value for any type", () => {
+    expect(valueFitsType(null, t("image"))).toBe(true);
+    expect(valueFitsType(undefined, t("image"))).toBe(true);
+  });
+
+  it("reads a tagged ref by its own type, not as a plain object", () => {
+    expect(valueFitsType({ type: "image", uri: "x" }, t("image"))).toBe(true);
+    expect(valueFitsType({ type: "image", uri: "x" }, t("audio"))).toBe(false);
+    expect(valueFitsType({ type: "dataframe" }, t("image"))).toBe(false);
+  });
+
+  it("matches the runner on scalars", () => {
+    expect(valueFitsType("hi", t("str"))).toBe(true);
+    expect(valueFitsType("hi", t("image"))).toBe(false);
+    expect(valueFitsType(7, t("float"))).toBe(true);
+    expect(valueFitsType(7, t("str"))).toBe(false);
+    expect(valueFitsType(false, t("bool"))).toBe(true);
+  });
+
+  it("accepts anything for an `any` slot", () => {
+    expect(valueFitsType({ type: "image" }, ANY_TYPE)).toBe(true);
+  });
+
+  it("compares list element types", () => {
+    const listOf = (inner: string) => ({
+      ...ANY_TYPE,
+      type: "list",
+      type_args: [t(inner)]
+    });
+    expect(valueFitsType(["a"], listOf("str"))).toBe(true);
+    expect(valueFitsType(["a"], listOf("image"))).toBe(false);
+    expect(valueFitsType([], listOf("image"))).toBe(true);
   });
 });

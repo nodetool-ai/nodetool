@@ -134,3 +134,78 @@ export const defaultValueForType = (type: TypeMetadata): unknown => {
       return null;
   }
 };
+
+const NUMERIC_TYPES: ReadonlySet<string> = new Set(["int", "float", "number"]);
+
+/**
+ * Type of a runtime value, as the runner sees it. Mirrors `inferValueType` in
+ * `packages/kernel/src/dynamic-slots.ts` — notably, a tagged ref carries its
+ * NodeTool type inline (`{ type: "image", … }`), so an image ref is an
+ * `image`, not an anonymous object.
+ *
+ * `undefined` means nothing can be said (null/undefined), which callers read
+ * as "no check possible".
+ */
+const inferValueType = (value: unknown): TypeMetadata | undefined => {
+  if (value === null || value === undefined) return undefined;
+  switch (typeof value) {
+    case "string":
+      return { ...ANY_TYPE, type: "str" };
+    case "boolean":
+      return { ...ANY_TYPE, type: "bool" };
+    case "number":
+      return { ...ANY_TYPE, type: Number.isInteger(value) ? "int" : "float" };
+    case "object":
+      break;
+    default:
+      return undefined;
+  }
+
+  if (Array.isArray(value)) {
+    const element = value.length > 0 ? inferValueType(value[0]) : undefined;
+    return {
+      ...ANY_TYPE,
+      type: "list",
+      type_args: element ? [element] : []
+    };
+  }
+
+  const tag = (value as Record<string, unknown>).type;
+  if (typeof tag === "string" && tag.length > 0) {
+    return { ...ANY_TYPE, type: tag };
+  }
+  return { ...ANY_TYPE, type: "dict" };
+};
+
+/** Mirrors `TypeMetadata.isCompatibleWith` in `@nodetool-ai/protocol`. */
+const typesCompatible = (a: TypeMetadata, b: TypeMetadata): boolean => {
+  if (a.type === "any" || b.type === "any") return true;
+
+  const aArgs = a.type_args ?? [];
+  const bArgs = b.type_args ?? [];
+  if (a.type === b.type) {
+    if (aArgs.length === 0 && bArgs.length === 0) return true;
+    // Different arities stay a loose match, as the runner does.
+    if (aArgs.length !== bArgs.length) return true;
+    return aArgs.every((arg, i) => typesCompatible(arg, bArgs[i]));
+  }
+
+  if (NUMERIC_TYPES.has(a.type) && NUMERIC_TYPES.has(b.type)) return true;
+  if (a.type === "union") return aArgs.some((arg) => typesCompatible(arg, b));
+  if (b.type === "union") return bArgs.some((arg) => typesCompatible(arg, a));
+  return false;
+};
+
+/**
+ * Whether an inline slot value can still be a value of `type`, judged the way
+ * the runner judges it. `false` means keeping the value would make the node
+ * throw on its next run, so the caller must reseed.
+ *
+ * A value the runner cannot type at all (null/undefined) fits everything —
+ * it is the empty state of every slot.
+ */
+export const valueFitsType = (value: unknown, type: TypeMetadata): boolean => {
+  const actual = inferValueType(value);
+  if (!actual) return true;
+  return typesCompatible(actual, type);
+};
