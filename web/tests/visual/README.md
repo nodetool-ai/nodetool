@@ -96,9 +96,13 @@ So the first CI run on a PR without baselines will fail while writing them,
 and upload the generated `*-snapshots/` folders as a `visual-regression`
 artifact. Download it, drop the folders into `web/tests/visual/`, commit — or
 run the `update=true` dispatch on the PR branch, which regenerates and commits
-them for you. Initial baselines are committed in this change, but they were
-captured outside CI — regenerate them in CI via the `update=true` dispatch
-before enabling enforcement (see [§ CI](#ci)).
+them for you.
+
+Baselines are **CI-generated and Linux-only**. Screenshot filenames carry the
+platform (`…-desktop-chromium-linux.png`), so a macOS run writes a parallel
+`-darwin` set that CI never regenerates and that goes stale on the first UI
+change. Don't commit those — capture on a branch and run the `update=true`
+dispatch instead.
 
 ## Keeping tests stable (no flaky results)
 
