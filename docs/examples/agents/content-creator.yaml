@@ -33,7 +33,7 @@ planning_agent:
   enabled: true
   model:
     provider: openai
-    id: gpt-4o-mini
+    id: gpt-5-mini
 
 tools:
   - google_search

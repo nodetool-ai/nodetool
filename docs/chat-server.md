@@ -35,7 +35,7 @@ The server provides:
 curl http://localhost:7777/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "gpt-4o",
+    "model": "gpt-5.6",
     "messages": [{"role": "user", "content": "Hello"}]
   }'
 ```
@@ -56,7 +56,7 @@ const response = await fetch("http://localhost:7777/v1/chat/completions", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    model: "gpt-4o",
+    model: "gpt-5.6",
     messages: [{ role: "user", content: "Hello, AI!" }],
     stream: true
   })

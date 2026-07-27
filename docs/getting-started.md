@@ -86,7 +86,7 @@ screen you land on when the app opens.
    - **Genre**: Sci-Fi Thriller
    - **Audience**: Adults who love mystery
 4. Two nodes, Agent and List Generator, ask you to pick a model. A **model** is
-   the specific AI you want to use, such as GPT-5 or Claude. Pick any one from
+   the specific AI you want to use, such as GPT-5.6 or Claude Opus 5. Pick any one from
    the dropdown. This is the step that needs the API key from above.
 5. Press <kbd>Ctrl/⌘ + Enter</kbd> to run it.
 

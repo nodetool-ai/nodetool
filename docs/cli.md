@@ -213,7 +213,7 @@ Starts an interactive TUI chat session.
 nodetool chat
 
 # Chat with a specific provider and model
-nodetool chat --provider anthropic --model claude-sonnet-4-6
+nodetool chat --provider anthropic --model claude-sonnet-5
 
 # Connect to a running server
 nodetool chat --url ws://localhost:7777/ws

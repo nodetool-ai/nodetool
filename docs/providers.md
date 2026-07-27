@@ -51,7 +51,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | Meshy AI | | | | | | | ✅ |
 | Rodin AI | | | | | | | ✅ |
 
-¹ Chat only for a short gateway list (GPT-5.5, Claude Opus/Sonnet/Haiku 4.x, Gemini 3.1 Pro) — most kie.ai models are image, video, or audio.
+¹ Chat only for a short gateway list (GPT-5.5, Claude Opus 4.6, Claude Sonnet 4.6, Claude Haiku 4.5, Gemini 3.1 Pro, Gemini 3 Flash) — most kie.ai models are image, video, or audio.
 ² Text-to-video only; no image-to-video.
 ³ Via a dedicated Speech-to-Text node, not the generic ASR picker.
 ⁴ Upscale and enhancement, not text-to-image generation.
@@ -126,7 +126,7 @@ Evolink is an OpenAI/Anthropic-compatible gateway: one key for GPT, Claude, Gemi
 
 ## kie.ai
 
-kie.ai is a multi-model aggregator: manifest-driven image, video, TTS, and music models (Seedance, Runway, Wan, Kling, FLUX.2, Suno, and more), plus chat for a short list of gateway models (GPT-5.5, Claude Opus/Sonnet/Haiku 4.x, Gemini 3.1 Pro). One key covers all of it, often at a lower price than the upstream provider directly. Cloud only, keyed by `KIE_API_KEY`. See the [KIE provider guide](developer/providers/kie.md).
+kie.ai is a multi-model aggregator: manifest-driven image, video, TTS, and music models (Seedance, Runway, Wan, Kling, FLUX.2, Suno, and more), plus chat for a short list of gateway models (GPT-5.5, Claude Opus 4.6, Claude Sonnet 4.6, Claude Haiku 4.5, Gemini 3.1 Pro, Gemini 3 Flash). One key covers all of it, often at a lower price than the upstream provider directly. Cloud only, keyed by `KIE_API_KEY`. See the [KIE provider guide](developer/providers/kie.md).
 
 ## AKI
 

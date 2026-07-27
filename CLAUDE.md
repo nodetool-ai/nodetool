@@ -180,7 +180,7 @@ npm run chat -- [flags]
 ```bash
 # Interactive agent chat
 npm run dev:chat -- --agent --provider openai --model gpt-5.4-mini
-npm run dev:chat -- --agent --provider anthropic --model claude-sonnet-4-6
+npm run dev:chat -- --agent --provider anthropic --model claude-sonnet-5
 
 # Piped input (non-interactive)
 echo "research 5 AI topics" | npm run dev:chat -- --agent --provider openai --model gpt-5.4-mini
@@ -198,7 +198,7 @@ Chat flags:
                          moonshot, minimax, cerebras, together, openrouter,
                          huggingface, replicate, kie, aki, ollama, lmstudio
                          (any registry provider id also works, e.g. vllm, llama_cpp)
--m, --model <id>         Model ID (e.g. claude-sonnet-4-6, gpt-5.4-mini)
+-m, --model <id>         Model ID (e.g. claude-sonnet-5, gpt-5.4-mini)
 -w, --workspace <path>   Workspace directory for file tools
 --tools <list>           Comma-separated tool names
 -u, --url <ws-url>       Connect to WebSocket server instead of local provider
@@ -435,7 +435,7 @@ and cost. Cases and expectations live in
 
 ```bash
 npm run dev:nodetool -- eval graph-planner --list                     # show cases
-npm run dev:nodetool -- eval graph-planner -p anthropic -m claude-sonnet-4-6
+npm run dev:nodetool -- eval graph-planner -p anthropic -m claude-sonnet-5
 npm run dev:nodetool -- eval graph-planner -p ollama -m qwen-3.5:4b --cases summarize,branch-both-paths
 npm run dev:nodetool -- eval graph-planner -p openai -m gpt-5.4-mini --json --out report.json
 npm run dev:nodetool -- eval graph-planner -p anthropic -m ... --min-success 0.8   # non-zero exit below threshold
@@ -451,7 +451,7 @@ metrics, and `--min-success` CI gate as `graph-planner`. Details:
 
 ```bash
 npm run dev:nodetool -- eval timeline-tools --list
-npm run dev:nodetool -- eval script-tools -p anthropic -m claude-sonnet-4-6
+npm run dev:nodetool -- eval script-tools -p anthropic -m claude-sonnet-5
 npm run dev:nodetool -- eval sketch-tools -p ollama -m qwen-3.5:4b --min-success 0.8
 ```
 
@@ -661,7 +661,7 @@ Each line in the file is one span:
   "status": { "code": "OK" },
   "attributes": {
     "agent.objective": "...", "agent.kind": "plan",
-    "agent.provider": "anthropic", "agent.model": "claude-sonnet-4-6",
+    "agent.provider": "anthropic", "agent.model": "claude-sonnet-5",
     "gen_ai.usage.input_tokens": 150, "gen_ai.usage.output_tokens": 80
   },
   "events": [],

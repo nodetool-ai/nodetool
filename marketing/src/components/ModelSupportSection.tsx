@@ -48,11 +48,12 @@ const cloudProviders = [
 // Perishable by design: stale names here directly undercut the
 // "swap models the day they launch" pitch — review on every release cycle.
 const frontierModels = [
-    { name: "Claude Opus 4.8", color: "text-amber-400" },
-    { name: "Claude Sonnet 4.6", color: "text-amber-400" },
-    { name: "Claude Haiku 4.5", color: "text-amber-400" },
-    { name: "Gemini 3 Pro", color: "text-blue-400" },
-    { name: "Gemini 3 Flash", color: "text-blue-400" },
+    { name: "GPT-5.6", color: "text-emerald-400" },
+    { name: "Claude Fable 5", color: "text-amber-400" },
+    { name: "Claude Opus 5", color: "text-amber-400" },
+    { name: "Claude Sonnet 5", color: "text-amber-400" },
+    { name: "Gemini 3.5 Flash", color: "text-blue-400" },
+    { name: "Gemini 3.1 Pro", color: "text-blue-400" },
     { name: "Qwen Image", color: "text-sky-400" },
     { name: "Veo 3.1", color: "text-blue-400" },
     { name: "Kling 3", color: "text-cyan-400" },

@@ -59,7 +59,7 @@ Server-calling commands accept `--api-url <url>` (default `http://localhost:7777
 
 ```bash
 nodetool-chat                           # Saved / auto-detected settings
-nodetool-chat --provider anthropic --model claude-sonnet-4-6
+nodetool-chat --provider anthropic --model claude-sonnet-5
 nodetool-chat --agent                   # Start in agent mode
 nodetool-chat --workspace /path/to/dir  # Set the workspace for file tools
 nodetool-chat --url ws://localhost:7777/ws   # Connect to a running server

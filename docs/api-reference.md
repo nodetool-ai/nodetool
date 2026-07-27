@@ -118,7 +118,7 @@ curl -X POST "http://localhost:7777/v1/chat/completions" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{
-    "model": "gpt-4",
+    "model": "gpt-5.6",
     "messages": [
       {"role": "user", "content": "Explain quantum computing in simple terms"}
     ]
@@ -131,7 +131,7 @@ Response:
   "id": "chatcmpl-abc123",
   "object": "chat.completion",
   "created": 1699000000,
-  "model": "gpt-4",
+  "model": "gpt-5.6",
   "choices": [
     {
       "index": 0,
@@ -158,7 +158,7 @@ curl -X POST "http://localhost:7777/v1/chat/completions" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{
-    "model": "gpt-4",
+    "model": "gpt-5.6",
     "messages": [
       {"role": "user", "content": "Write a haiku about programming"}
     ],
@@ -191,9 +191,9 @@ Response:
 {
   "object": "list",
   "data": [
-    {"id": "gpt-4", "object": "model", "owned_by": "openai"},
-    {"id": "gpt-3.5-turbo", "object": "model", "owned_by": "openai"},
-    {"id": "claude-3-opus", "object": "model", "owned_by": "anthropic"},
+    {"id": "gpt-5.6", "object": "model", "owned_by": "openai"},
+    {"id": "gpt-5-mini", "object": "model", "owned_by": "openai"},
+    {"id": "claude-opus-5", "object": "model", "owned_by": "anthropic"},
     {"id": "gpt-oss:20b", "object": "model", "owned_by": "ollama"}
   ]
 }
@@ -300,7 +300,7 @@ const openai = new OpenAI({
 });
 
 const completion = await openai.chat.completions.create({
-  model: 'gpt-4',
+  model: 'gpt-5.6',
   messages: [{ role: 'user', content: 'Hello!' }]
 });
 
@@ -338,7 +338,7 @@ from openai import OpenAI
 
 client = OpenAI(api_key=TOKEN, base_url=f"{BASE_URL}/v1")
 completion = client.chat.completions.create(
-    model="gpt-4",
+    model="gpt-5.6",
     messages=[{"role": "user", "content": "Hello!"}],
 )
 print(completion.choices[0].message.content)

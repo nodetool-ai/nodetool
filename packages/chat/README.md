@@ -29,7 +29,7 @@ import { processChat } from "@nodetool-ai/chat";
 await processChat({
   userInput: "Summarize the attached report",
   messages,
-  model: "claude-sonnet-4-6",
+  model: "claude-sonnet-5",
   provider,
   context,
   tools,
