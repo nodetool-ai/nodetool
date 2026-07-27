@@ -80,6 +80,9 @@ jobs:
         with:
           working-directory: mobile
           command: eas update --auto --branch ${{ github.event.pull_request.head.ref }}
-          qr-target: dev-build
+          # `dev-client`, not the `dev-build` the action's own docs name: its
+          # input validation accepts only "expo-go" or "dev-client", and its
+          # error message misreports the second as "dev-build".
+          qr-target: dev-client
           comment: true
           github-token: ${{ github.token }}
