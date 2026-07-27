@@ -1,4 +1,5 @@
 import React, { forwardRef, useEffect, useRef, useCallback, memo, useLayoutEffect } from "react";
+import { useAutoFocusEnabled } from "../../../hooks/useAutoFocusEnabled";
 
 interface MessageInputProps {
   value: string;
@@ -24,6 +25,7 @@ export const MessageInput = memo(forwardRef<HTMLTextAreaElement, MessageInputPro
   ) => {
     const internalRef = useRef<HTMLTextAreaElement>(null);
     const textareaRef = (ref as React.RefObject<HTMLTextAreaElement>) || internalRef;
+    const autoFocusEnabled = useAutoFocusEnabled();
 
     const adjustHeight = useCallback(() => {
       const textarea = textareaRef.current;
@@ -41,12 +43,13 @@ export const MessageInput = memo(forwardRef<HTMLTextAreaElement, MessageInputPro
       adjustHeight();
     }, [value, adjustHeight]);
 
+    // Skipped on touch, where the virtual keyboard would cover the thread.
     useLayoutEffect(() => {
       const textarea = textareaRef.current;
-      if (textarea && !disabled) {
+      if (textarea && !disabled && autoFocusEnabled) {
         textarea.focus();
       }
-    }, [textareaRef, disabled]);
+    }, [textareaRef, disabled, autoFocusEnabled]);
 
     const handleChange = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
       onChange(event);

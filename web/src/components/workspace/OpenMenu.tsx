@@ -34,6 +34,7 @@ import {
   type WorkspaceTabType
 } from "../../stores/WorkspaceTabsStore";
 import { assetTabType } from "./assetTabType";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import type {
   WorkflowList,
   AssetWithPath,
@@ -142,6 +143,7 @@ const TEXT_FILE_TEMPLATES: readonly TextFileTemplate[] = [
  */
 const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
   const [view, setView] = useState<MenuView>("root");
+  const autoFocusEnabled = useAutoFocusEnabled();
   const [assetQuery, setAssetQuery] = useState("");
   const [wfFilter, setWfFilter] = useState("");
   const [chatFilter, setChatFilter] = useState("");
@@ -509,7 +511,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
             />
             <FlexRow sx={{ px: 1, py: 0.5 }}>
               <TextInput
-                autoFocus
+                autoFocus={autoFocusEnabled}
                 fullWidth
                 placeholder="Filter workflows"
                 value={wfFilter}
@@ -546,7 +548,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
             />
             <FlexRow sx={{ px: 1, py: 0.5 }}>
               <TextInput
-                autoFocus
+                autoFocus={autoFocusEnabled}
                 fullWidth
                 placeholder="Filter chats"
                 value={chatFilter}
@@ -583,7 +585,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
             />
             <FlexRow sx={{ px: 1, py: 0.5 }}>
               <TextInput
-                autoFocus
+                autoFocus={autoFocusEnabled}
                 fullWidth
                 placeholder="Search assets (2+ chars)"
                 value={assetQuery}

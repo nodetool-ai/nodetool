@@ -19,6 +19,7 @@ import NodeLibraryRow from "./NodeLibraryRow";
 import NodeInfo from "./NodeInfo";
 import useMetadataStore from "../../stores/MetadataStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import { serializeDragData } from "../../lib/dragdrop";
@@ -308,6 +309,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
     const [query, setQuery] = useState("");
     const [hoveredType, setHoveredType] = useState<string | null>(null);
     const searchRef = useRef<HTMLInputElement>(null);
+    const autoFocusEnabled = useAutoFocusEnabled();
     const scrollRef = useRef<HTMLDivElement>(null);
 
     const category =
@@ -320,9 +322,12 @@ const NodeLibrary = memo<NodeLibraryProps>(
     const clearDrag = useDragDropStore((s) => s.clearDrag);
     const recentNodes = useRecentNodesStore((s) => s.recentNodes);
 
+    // Skipped on touch, where the virtual keyboard would cover the library.
     useEffect(() => {
-      searchRef.current?.focus();
-    }, []);
+      if (autoFocusEnabled) {
+        searchRef.current?.focus();
+      }
+    }, [autoFocusEnabled]);
 
     const allNodes = useMemo(
       () => Object.values(metadataRecord),

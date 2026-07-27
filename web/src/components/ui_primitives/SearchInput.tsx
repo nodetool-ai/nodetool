@@ -8,6 +8,7 @@ import { IconButton, Tooltip, InputAdornment, TextField } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 
 export interface SearchInputProps {
   /** Current search value */
@@ -22,7 +23,8 @@ export interface SearchInputProps {
   size?: "small" | "medium";
   /** Whether the input is disabled */
   disabled?: boolean;
-  /** Auto-focus on mount */
+  /** Auto-focus on mount. Ignored on touch devices, where it would raise the
+   * virtual keyboard over the panel that just opened. */
   autoFocus?: boolean;
   /** Debounce delay in ms (0 = no debounce) */
   debounceMs?: number;
@@ -136,6 +138,7 @@ export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>((
   sx
 }, ref) => {
   const theme = useTheme();
+  const autoFocusEnabled = useAutoFocusEnabled();
   const [localValue, setLocalValue] = useState(value);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   
@@ -192,7 +195,7 @@ export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>((
         placeholder={placeholder}
         size={size}
         disabled={disabled}
-        autoFocus={autoFocus}
+        autoFocus={autoFocus && autoFocusEnabled}
         fullWidth={fullWidth}
         sx={sx}
         inputRef={ref}
