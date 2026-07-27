@@ -170,6 +170,23 @@ consistency:
 Builds run on **EAS Build** (Expo's cloud build service) against the EAS project
 declared in `app.json` (`extra.eas.projectId`, owner `mgeorgi`).
 
+### Testing a PR on a phone without signing it
+
+`.github/workflows/expo-preview.yml` publishes every PR that touches `mobile/`
+as an **EAS Update** and comments a QR code on the pull request. Scan it with
+**Expo Go** to run that PR's code on a device.
+
+This is the way onto an iOS device that a company-managed phone allows: Expo Go
+is an ordinary App Store app, so it installs where an EAS
+internal-distribution build cannot — those need an ad-hoc provisioning profile,
+which embeds an allow-list of device UDIDs and which MDM policies routinely
+block. Publishing a bundle also costs no build credits and takes a couple of
+minutes instead of a queue wait.
+
+The tradeoff: Expo Go ships a fixed set of native modules, so a PR that adds or
+changes native code needs a real build. Updates are keyed to the PR's head ref
+(`eas update --branch`), so each PR gets its own channel.
+
 ### From CI (preferred)
 
 The `.github/workflows/eas-build.yml` workflow authenticates with the

@@ -49,6 +49,7 @@
     "expo-secure-store": "~56.0.4",
     "expo-speech-recognition": "^56.0.1",
     "expo-status-bar": "~56.0.4",
+    "expo-updates": "~56.0.23",
     "expo-video": "~56.1.4",
     "msgpackr": "^1.12.1",
     "react": "19.2.3",
