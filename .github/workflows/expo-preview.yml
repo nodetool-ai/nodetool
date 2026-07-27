@@ -1,16 +1,21 @@
 name: Expo preview (mobile)
 
 # Publishes the PR's JS bundle as an EAS Update and comments a QR code on the
-# pull request. Scanning it with Expo Go runs that PR's code on a phone.
+# pull request. Scanning it opens that PR's code in the development build.
 #
-# This is the signing-free way to test on iOS: Expo Go is an ordinary App Store
-# app, so it installs on managed devices that refuse the ad-hoc provisioning
-# profiles an EAS internal-distribution build needs (see eas-build.yml). It
-# publishes a bundle rather than building a binary, so it costs no build credits
-# and finishes in a couple of minutes.
+# The QR targets a dev build rather than Expo Go, because Expo Go cannot run
+# this app at all: it ships a fixed set of native modules, and app.json's
+# plugins include three that are not in it (@react-native-google-signin,
+# @sentry/react-native, expo-speech-recognition). The App Store build of Expo
+# Go is also pinned to an older SDK than this project targets.
 #
-# The limit is the flip side: Expo Go ships a fixed set of native modules, so a
-# PR that adds or changes native code needs a real build, not an update.
+# Install the dev client once from the `development-testflight` profile (see
+# eas-build.yml), and from then on every PR is a QR scan away — publishing a
+# bundle costs no build credits and takes a couple of minutes, where a rebuild
+# would mean a queue wait and a new TestFlight submission.
+#
+# The limit is the flip side: an update only carries JS. A PR that adds or
+# changes native code needs a new build of the client itself.
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -75,6 +80,9 @@ jobs:
         with:
           working-directory: mobile
           command: eas update --auto --branch ${{ github.event.pull_request.head.ref }}
-          qr-target: expo-go
+          # `dev-client`, not the `dev-build` the action's own docs name: its
+          # input validation accepts only "expo-go" or "dev-client", and its
+          # error message misreports the second as "dev-build".
+          qr-target: dev-client
           comment: true
           github-token: ${{ github.token }}
