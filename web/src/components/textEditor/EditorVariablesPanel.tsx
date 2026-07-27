@@ -276,6 +276,7 @@ const EditorVariablesPanel = ({
                     autoFocus
                     value={draftValue}
                     placeholder="value"
+                    aria-label={`Value for ${variable.name}`}
                     onChange={(e) => setDraftValue(e.target.value)}
                     onClick={(e) => e.stopPropagation()}
                     onBlur={commitEdit}
@@ -302,6 +303,7 @@ const EditorVariablesPanel = ({
                 className="add-input"
                 value={addName}
                 placeholder="variable name"
+                aria-label="New variable name"
                 onChange={(e) =>
                   setAddName(e.target.value.replace(/[^\w]/g, ""))
                 }

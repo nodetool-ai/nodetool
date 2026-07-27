@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo } from "react";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import { DeleteButton, FlexRow, FlexColumn, Text, Caption, Tooltip, LoadingSpinner, EditorButton, ProgressBar, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
+import { DeleteButton, FlexRow, FlexColumn, Text, Caption, Tooltip, LoadingSpinner, EditorButton, ProgressBar, MOTION, BORDER_RADIUS, SPACING, Z_INDEX } from "../ui_primitives";
 import { CollectionResponse } from "../../stores/ApiTypes";
 import {
   UseMutationResult,
@@ -165,13 +165,6 @@ const CollectionItem = ({
     position: "relative"
   }), [dragOverCollection, collection.name]);
 
-  const containerStyle = useMemo(() => ({
-    display: "flex",
-    alignItems: "center",
-    gap: getSpacingPx(SPACING.lg),
-    width: "100%"
-  }), []);
-
   return (
     <FlexColumn
       onDrop={onDrop}
@@ -224,7 +217,7 @@ const CollectionItem = ({
           </Text>
         </FlexRow>
       )}
-      <div style={containerStyle}>
+      <FlexRow align="center" gap={SPACING.lg} fullWidth>
         <Tooltip title={`Collection: ${collection.name}`}>
           <Text
             weight={600}
@@ -242,9 +235,9 @@ const CollectionItem = ({
         {indexProgress?.collection === collection.name && (
           <IndexingProgress indexProgress={indexProgress} />
         )}
-      </div>
+      </FlexRow>
 
-      <div style={containerStyle}>
+      <FlexRow align="center" gap={SPACING.lg} fullWidth>
         <Tooltip title="Number of documents in this collection">
           <Text
             size="small"
@@ -312,7 +305,7 @@ const CollectionItem = ({
             </EditorButton>
           </Tooltip>
         )}
-      </div>
+      </FlexRow>
     </FlexColumn>
   );
 };

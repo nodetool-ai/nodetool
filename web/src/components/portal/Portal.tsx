@@ -54,7 +54,7 @@ const styles = (theme: Theme) =>
       overflowX: "hidden"
     },
     "main": {
-      paddingBottom: 8
+      paddingBottom: getSpacingPx(SPACING.md)
     },
 
     // Setup state (no provider configured yet)
@@ -65,7 +65,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       padding: `0 ${getSpacingPx(SPACING.xxl)}`,
-      paddingTop: 8
+      paddingTop: getSpacingPx(SPACING.md)
     },
     ".portal-setup-message": {
       maxWidth: 480,

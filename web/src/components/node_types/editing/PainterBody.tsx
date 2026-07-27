@@ -53,6 +53,7 @@ import {
   ToolbarIconButton,
   BORDER_RADIUS,
   MOTION,
+  reducedMotion,
   Z_INDEX
 } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
@@ -217,6 +218,7 @@ const styles = (theme: Theme) =>
         pointerEvents: "none",
         opacity: 0,
         transition: MOTION.opacity,
+        ...reducedMotion({ transition: MOTION.none }),
         // `will-change: transform` hints the browser to give this its own
         // GPU layer up front so per-move transform writes don't churn.
         willChange: "transform",

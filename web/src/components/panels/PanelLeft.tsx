@@ -367,6 +367,7 @@ const PanelContent = memo(function PanelContent({
                     onClick={handleFullscreenClick}
                     tabIndex={-1}
                     icon={<Fullscreen />}
+                    ariaLabel="Open the global asset library"
                   />
                 </Tooltip>
               }
@@ -396,6 +397,7 @@ const PanelContent = memo(function PanelContent({
                     onClick={handleFullscreenClick}
                     tabIndex={-1}
                     icon={<Fullscreen />}
+                    ariaLabel="Open library in full page"
                   />
                 </Tooltip>
               }

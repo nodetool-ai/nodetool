@@ -172,7 +172,7 @@ const addButtonStyles = (theme: Theme) =>
     border: "none",
     padding: theme.spacing(0.5, 1),
     borderRadius: BORDER_RADIUS.xs,
-    fontSize: theme.typography.caption.fontSize,
+    fontSize: FONT_SIZE_SANS.caption,
     cursor: "pointer",
     display: "inline-flex",
     alignItems: "center",
@@ -192,7 +192,7 @@ const paramLabelStyles = (theme: Theme) =>
   css({
     width: 70,
     flexShrink: 0,
-    fontSize: theme.typography.caption.fontSize,
+    fontSize: FONT_SIZE_SANS.caption,
     color: theme.vars.palette.text.secondary
   });
 
@@ -202,7 +202,7 @@ const paramValueStyles = (theme: Theme) =>
     flexShrink: 0,
     textAlign: "right",
     fontVariantNumeric: "tabular-nums",
-    fontSize: theme.typography.caption.fontSize,
+    fontSize: FONT_SIZE_SANS.caption,
     color: theme.vars.palette.text.primary
   });
 
@@ -462,7 +462,7 @@ const bandReadoutStyles = (theme: Theme, color: string) =>
     borderRadius: BORDER_RADIUS.xs,
     padding: theme.spacing(0.5, 1),
     background: theme.vars.palette.background.paper,
-    fontSize: theme.typography.caption.fontSize,
+    fontSize: FONT_SIZE_SANS.caption,
     display: "flex",
     flexDirection: "column",
     gap: 2
@@ -1735,7 +1735,7 @@ const ChromaKeyEditor: React.FC<
       <FlexRow gap={1} align="center">
         <span
           css={{
-            fontSize: theme.typography.caption.fontSize,
+            fontSize: FONT_SIZE_SANS.caption,
             color: theme.vars.palette.text.secondary,
             width: 70
           }}
@@ -1752,7 +1752,7 @@ const ChromaKeyEditor: React.FC<
         />
         <span
           css={{
-            fontSize: theme.typography.caption.fontSize,
+            fontSize: FONT_SIZE_SANS.caption,
             color: theme.vars.palette.text.primary,
             fontVariantNumeric: "tabular-nums"
           }}

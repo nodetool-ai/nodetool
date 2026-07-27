@@ -55,7 +55,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.c_white,
       display: "flex",
       alignItems: "center",
-      gap: 6,
+      gap: getSpacingPx(SPACING.sm),
     },
     ".portal-setup-recommended": {
       fontSize: 10,
@@ -84,7 +84,7 @@ const styles = (theme: Theme) =>
     ".portal-setup-key-help": {
       fontSize: 11,
       color: theme.vars.palette.c_gray4,
-      marginTop: 6,
+      marginTop: getSpacingPx(SPACING.sm),
       "& a": {
         color: theme.palette.primary.main,
         textDecoration: "none",
@@ -94,7 +94,7 @@ const styles = (theme: Theme) =>
     ".portal-setup-error": {
       fontSize: 11,
       color: theme.vars.palette.error.main,
-      marginTop: 6,
+      marginTop: getSpacingPx(SPACING.sm),
     },
     ".portal-setup-back": {
       display: "block",

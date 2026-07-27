@@ -37,7 +37,7 @@ import {
   EditorButton,
   CloseButton,
   DownloadButton,
-  BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+  BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx } from "../ui_primitives";
 import SceneOutliner from "./SceneOutliner";
 import PropertiesPanel from "./PropertiesPanel";
 import Model3DChatPanel from "./Model3DChatPanel";
@@ -138,7 +138,7 @@ const styles = (theme: Theme) =>
       position: "absolute",
       top: "100%",
       left: 0,
-      zIndex: 50,
+      zIndex: Z_INDEX.dropdown,
       marginTop: getSpacingPx(SPACING.xs),
       padding: getSpacingPx(SPACING.xs),
       minWidth: "160px",
@@ -154,8 +154,8 @@ const styles = (theme: Theme) =>
     ".overlay": {
       position: "absolute",
       inset: 0,
-      zIndex: 100,
-      backgroundColor: "rgba(0,0,0,0.6)"
+      zIndex: Z_INDEX.overlay,
+      backgroundColor: theme.vars.palette.c_scrim
     },
     ".load-error": {
       position: "absolute",

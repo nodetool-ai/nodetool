@@ -668,7 +668,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
       >
         <FlexColumn className="canvas-container" fullWidth fullHeight>
           {isLoading && !loadError && (
-            <FlexColumn className="loading-overlay" align="center" gap={1}>
+            <FlexColumn className="loading-overlay" align="center" gap={SPACING.xs}>
               <LoadingSpinner size={compact ? "small" : "medium"} />
               {!compact && (
                 <Text size="small" color="secondary">
@@ -678,7 +678,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
             </FlexColumn>
           )}
           {loadError && (
-            <FlexColumn className="error-overlay" align="flex-start" gap={0.5}>
+            <FlexColumn className="error-overlay" align="flex-start" gap={SPACING.micro}>
               {loadError.split("\n").map((line, i) => (
                 <Text
                   key={`${i}:${line}`}
@@ -778,7 +778,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
         )}
 
         {!compact && (
-          <FlexRow className="controls-toolbar" gap={0.5} align="center">
+          <FlexRow className="controls-toolbar" gap={SPACING.micro} align="center">
             <ToolbarIconButton
               icon={<GridOnIcon fontSize="small" />}
               tooltip="Toggle Grid"

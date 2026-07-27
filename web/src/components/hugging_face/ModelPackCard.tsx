@@ -7,6 +7,7 @@ import {
   ToolbarIconButton,
   Chip,
   Box,
+  FlexRow,
   ProgressBar,
   Collapse,
   MOTION,
@@ -143,7 +144,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
       }}
     >
       <Box sx={{ p: 2, pb: 1 }}>
-        <Box display="flex" alignItems="flex-start" gap={2}>
+        <FlexRow align="flex-start" gap={2}>
           <InventoryIcon
             sx={{
               color: allDownloaded
@@ -154,7 +155,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
             }}
           />
           <Box flex={1}>
-            <Box display="flex" alignItems="center" gap={1} mb={0.5}>
+            <FlexRow align="center" gap={1} mb={0.5}>
               <Text size="normal" weight={600}>
                 {pack.title}
               </Text>
@@ -163,7 +164,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
                   sx={{ color: "var(--palette-success-main)", fontSize: 20 }}
                 />
               )}
-            </Box>
+            </FlexRow>
             <Text
               size="small"
               color="secondary"
@@ -171,7 +172,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
             >
               {pack.description}
             </Text>
-            <Box display="flex" gap={1} flexWrap="wrap">
+            <FlexRow gap={1} wrap>
               {pack.tags?.slice(0, 4).map((tag) => (
                 <Chip
                   key={tag}
@@ -201,9 +202,9 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
                   }}
                 />
               )}
-            </Box>
+            </FlexRow>
           </Box>
-        </Box>
+        </FlexRow>
 
         {isDownloading && (
           <Box mt={2}>
@@ -222,7 +223,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
         )}
       </Box>
 
-      <Box sx={{ px: 2, pb: 2, pt: 0, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <FlexRow align="center" justify="space-between" sx={{ px: 2, pb: 2, pt: 0 }}>
         <EditorButton
           variant={allDownloaded ? "outlined" : "contained"}
           size="small"
@@ -251,7 +252,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
           }}
           size="small"
         />
-      </Box>
+      </FlexRow>
 
       <Collapse in={expanded}>
         <Box px={2} pb={2}>

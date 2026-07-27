@@ -98,7 +98,7 @@ const sparkleCss = css({
   position: "absolute",
   width: 6,
   height: 6,
-  borderRadius: "50%",
+  borderRadius: BORDER_RADIUS.circle,
   background:
     "radial-gradient(circle, #fff 0%, rgba(110, 231, 255, 0.9) 40%, transparent 70%)",
   animation: `${sparkleTwinkle} ${MOTION.pulse} infinite`,

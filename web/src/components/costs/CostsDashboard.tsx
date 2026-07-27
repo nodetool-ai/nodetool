@@ -632,14 +632,9 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
           }
         }}
       >
-        <Box
-          sx={{
-            display: "flex",
-            color: theme.vars.palette.text.secondary
-          }}
-        >
+        <FlexRow sx={{ color: theme.vars.palette.text.secondary }}>
           {icon}
-        </Box>
+        </FlexRow>
         {label}
         {count && (
           <Text

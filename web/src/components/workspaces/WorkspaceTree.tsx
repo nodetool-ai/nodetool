@@ -450,6 +450,7 @@ const WorkspaceTree: React.FC = () => {
           <span
             className="breadcrumb-segment"
             role="button"
+            aria-label="Go to workspace root"
             tabIndex={0}
             onClick={() => setSelectedFilePath("")}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { setSelectedFilePath(""); } }}

@@ -16,7 +16,7 @@ import {
   TextInput,
   ToggleGroup,
   ToggleOption,
-  Tooltip, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+  Tooltip, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx } from "../ui_primitives";
 import {
   GradientValue,
   GradientStop,
@@ -51,11 +51,11 @@ const styles = (theme: Theme) =>
       border: `2px solid white`,
       boxShadow: "0 0 0 1px rgba(0,0,0,0.3)",
       "&:hover": {
-        zIndex: 10
+        zIndex: Z_INDEX.dropdown
       },
       "&.selected": {
         borderColor: theme.vars.palette.primary.main,
-        zIndex: 10
+        zIndex: Z_INDEX.dropdown
       }
     },
     ".css-output": {

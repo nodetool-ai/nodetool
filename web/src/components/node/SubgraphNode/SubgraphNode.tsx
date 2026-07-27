@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo } from "react";
 import { Node, NodeProps, NodeToolbar, Position } from "@xyflow/react";
-import { Box } from "../../ui_primitives";
+import { FlexColumn } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import { NodeData } from "../../../stores/NodeData";
 import { NodeHeader } from "../NodeHeader";
@@ -98,12 +98,10 @@ const SubgraphNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }
 
   return (
-    <Box
+    <FlexColumn
       className="subgraph-node"
       onDoubleClick={handleDoubleClick}
       sx={{
-        display: "flex",
-        flexDirection: "column",
         height: "100%",
         minHeight: 100,
         padding: "0 !important",
@@ -142,14 +140,12 @@ const SubgraphNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         workflowId={workflow_id}
         status={statusValue}
       />
-      <Box
+      <FlexColumn
         className="node-content-container"
         sx={{
           flex: "1 1 auto",
           minHeight: 80,
-          width: "100%",
-          display: "flex",
-          flexDirection: "column"
+          width: "100%"
         }}
       >
         <SubgraphNodeContent
@@ -160,8 +156,8 @@ const SubgraphNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           status={statusValue}
           workflowId={workflow_id}
         />
-      </Box>
-    </Box>
+      </FlexColumn>
+    </FlexColumn>
   );
 };
 

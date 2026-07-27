@@ -8,13 +8,13 @@ import { SPACING, getSpacingPx } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
-    marginTop: 8,
+    marginTop: getSpacingPx(SPACING.md),
     borderTop: `1px solid ${theme.vars.palette.divider}`,
     ".foot-wrap": {
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      gap: 8,
+      gap: getSpacingPx(SPACING.md),
       flexWrap: "wrap",
       minHeight: 46,
       padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(10)}`, // was 10px 40px

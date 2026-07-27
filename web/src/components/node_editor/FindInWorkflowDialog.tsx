@@ -361,7 +361,12 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
               onChange={handleInputChange}
             />
             {searchTerm && (
-              <button type="button" className="clear-button" onClick={handleClear}>
+              <button
+                type="button"
+                className="clear-button"
+                aria-label="Clear search"
+                onClick={handleClear}
+              >
                 <ClearIcon fontSize="small" />
               </button>
             )}
@@ -373,6 +378,7 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
               onClick={navigatePrevious}
               disabled={results.length === 0}
               title="Previous (Shift+Enter)"
+              aria-label="Previous match"
             >
               <ArrowUpwardIcon fontSize="small" />
             </button>
@@ -382,6 +388,7 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
               onClick={navigateNext}
               disabled={results.length === 0}
               title="Next (Enter)"
+              aria-label="Next match"
             >
               <ArrowDownwardIcon fontSize="small" />
             </button>

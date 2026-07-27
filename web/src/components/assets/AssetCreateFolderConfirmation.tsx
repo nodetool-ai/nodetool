@@ -262,7 +262,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
 
         <FlexRow
           justify="flex-end"
-          gap={1}
+          gap={SPACING.xs}
           sx={{
             padding: ".5em 1em"
           }}
