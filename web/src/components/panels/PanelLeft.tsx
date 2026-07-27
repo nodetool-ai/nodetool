@@ -606,6 +606,7 @@ const MobilePanelLeft: React.FC<{
   onClose: () => void;
   onViewChange: (view: LeftPanelView) => void;
   handlePanelToggle: (view: LeftPanelView) => void;
+  showAppMenu?: boolean;
 }> = ({
   activeView,
   activeNodeCategory,
@@ -615,7 +616,8 @@ const MobilePanelLeft: React.FC<{
   onOpen,
   onClose,
   onViewChange,
-  handlePanelToggle
+  handlePanelToggle,
+  showAppMenu = false
 }) => {
   const theme = useTheme();
 
@@ -648,6 +650,10 @@ const MobilePanelLeft: React.FC<{
         ariaLabel="Workflows, sketches, timelines, and assets panel"
         headerExtras={
           <div css={mobileHeaderExtrasStyles(theme)}>
+            {/* The rail's app menu (Settings, Help, Models, Downloads, …) has
+              no other entry point on mobile — the vertical toolbar that carries
+              it on desktop isn't rendered here. */}
+            {showAppMenu && <RailAppMenu onAction={onClose} />}
             <Tooltip title="Workflows" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
               <ToolbarIconButton
                 className={`tab-button ${activeView === "workflows" ? "active" : ""}`}
@@ -846,6 +852,7 @@ const PanelLeft: React.FC = () => {
         onClose={handleMobileClose}
         onViewChange={onViewChange}
         handlePanelToggle={handlePanelToggle}
+        showAppMenu={isWorkspace}
       />
     );
   }

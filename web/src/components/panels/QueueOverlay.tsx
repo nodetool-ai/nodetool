@@ -10,7 +10,9 @@ import {
   Tooltip,
   MOTION,
   reducedMotion,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 import type { SxProps } from "@mui/material/styles";
 import LayersIcon from "@mui/icons-material/Layers";
@@ -336,6 +338,19 @@ const HeaderCount = ({
   </FlexRow>
 );
 
+// The 92px left inset clears the desktop rail, but 92 + 304 is wider than a
+// phone viewport, so the overlay used to hang off the right edge with its
+// expand and cancel controls out of reach. On mobile the rail is a floating
+// hamburger at left 8, so the overlay starts past it and runs to the margin.
+const mobileOverlayStyles = (theme: Theme) =>
+  css({
+    [theme.breakpoints.down("sm")]: {
+      left: "56px",
+      right: getSpacingPx(SPACING.md),
+      width: "auto"
+    }
+  });
+
 const overlayStyles = (theme: Theme) =>
   css({
     position: "fixed",
@@ -474,7 +489,7 @@ const QueueOverlay = memo(function QueueOverlay() {
   if (!expanded) {
     const single = running.length === 1 ? running[0] : null;
     return (
-      <Box css={overlayStyles(theme)} data-state={hasJobs ? "open" : "closed"}>
+      <Box css={[overlayStyles(theme), mobileOverlayStyles(theme)]} data-state={hasJobs ? "open" : "closed"}>
         <FlexColumn gap={1} sx={{ p: 1.5 }}>
           <FlexRow align="center" gap={1} sx={{ minWidth: 0 }}>
             <Dot color={running.length ? "primary.main" : "grey.600"} />
@@ -515,7 +530,7 @@ const QueueOverlay = memo(function QueueOverlay() {
   }
 
   return (
-    <Box css={overlayStyles(theme)} data-state={hasJobs ? "open" : "closed"}>
+    <Box css={[overlayStyles(theme), mobileOverlayStyles(theme)]} data-state={hasJobs ? "open" : "closed"}>
       <FlexRow align="center" gap={1} sx={{ px: 2, py: 1.5, flex: "0 0 auto" }}>
         <LayersIcon sx={{ fontSize: 17, color: "text.secondary" }} />
         <Text size="normal" weight={600} sx={{ flex: 1 }}>
