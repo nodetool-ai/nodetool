@@ -96,7 +96,13 @@
       "import": "./dist/zod-schema.js",
       "default": "./dist/zod-schema.js"
     },
-    "./providers/aki-manifest.json": "./dist/providers/aki-manifest.json"
+    "./providers/aki-manifest.json": "./dist/providers/aki-manifest.json",
+    "./google": {
+      "nodetool-dev": "./src/google/index.ts",
+      "types": "./dist/google/index.d.ts",
+      "import": "./dist/google/index.js",
+      "default": "./dist/google/index.js"
+    }
   },
   "license": "MIT",
   "repository": {

@@ -207,6 +207,14 @@ export type {
 
 export { OAuthCredential } from "./oauth-credential.js";
 export { resolveCodexAccessToken } from "./codex-token.js";
+export {
+  GOOGLE_ACCESS_TOKEN_KEY,
+  GOOGLE_CREDENTIAL_PROVIDER,
+  resolveGoogleAccessToken,
+  getGoogleGrantedScopes,
+  storeGoogleCredential,
+  deleteGoogleCredentials
+} from "./google-token.js";
 
 export { Prediction } from "./prediction.js";
 export type {
