@@ -25,6 +25,7 @@ import sharp from "sharp";
 import { createLogger } from "@nodetool-ai/config";
 import { assetObjectKey } from "@nodetool-ai/storage";
 import { getAssetAdapter } from "./storage.js";
+import { retrieveAssetBytes } from "./asset-paths.js";
 
 const log = createLogger("nodetool.thumbnail");
 const execFileAsync = promisify(execFile);
@@ -160,6 +161,57 @@ async function generateAudioThumb(bytes: Uint8Array): Promise<Buffer> {
   ]);
 }
 
+/** Largest object we'll pull back out of storage just to thumbnail it. */
+export const THUMBNAIL_SOURCE_MAX_BYTES = 100 * 1024 * 1024;
+
+function thumbGeneratorFor(
+  contentType: string
+): ((bytes: Uint8Array) => Promise<Buffer>) | null {
+  if (contentType.startsWith("image/")) return generateImageThumb;
+  if (contentType.startsWith("video/")) return generateVideoThumb;
+  if (contentType.startsWith("audio/")) return generateAudioThumb;
+  if (contentType === "application/pdf") return generatePdfThumb;
+  return null;
+}
+
+/**
+ * Generate a thumbnail for an object already in storage — the client-direct
+ * upload path, where the bytes never passed through this process. Reads them
+ * back once. Failures are logged and swallowed; the asset stays usable
+ * without a thumbnail.
+ */
+export async function generateThumbnailForStoredAsset(
+  userId: string,
+  assetId: string,
+  contentType: string
+): Promise<void> {
+  const generator = thumbGeneratorFor(contentType);
+  if (!generator) return;
+
+  const adapter = getAssetAdapter();
+  try {
+    const bytes = await retrieveAssetBytes(
+      adapter,
+      userId,
+      assetId,
+      contentType
+    );
+    if (!bytes) return;
+    const thumb = await generator(bytes);
+    await adapter.store(
+      assetObjectKey(userId, thumbnailKey(assetId)),
+      new Uint8Array(thumb),
+      THUMB_CONTENT_TYPE
+    );
+  } catch (err) {
+    log.warn("thumbnail generation failed", {
+      assetId,
+      contentType,
+      error: String(err)
+    });
+  }
+}
+
 /**
  * Store an asset's bytes and, when applicable, generate and store a
  * thumbnail. Thumbnail failures are logged and swallowed — the original
@@ -175,15 +227,7 @@ export async function storeAssetWithThumbnail(
   const adapter = getAssetAdapter();
   await adapter.store(assetObjectKey(userId, fileName), bytes, contentType);
 
-  const generator = contentType.startsWith("image/")
-    ? generateImageThumb
-    : contentType.startsWith("video/")
-      ? generateVideoThumb
-      : contentType.startsWith("audio/")
-        ? generateAudioThumb
-        : contentType === "application/pdf"
-          ? generatePdfThumb
-          : null;
+  const generator = thumbGeneratorFor(contentType);
   if (!generator) return;
 
   try {
