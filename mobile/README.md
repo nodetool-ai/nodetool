@@ -162,62 +162,54 @@ consistency:
 
 ## Building for Production
 
-NodeTool uses **EAS Build** (Expo's cloud build service) for creating production builds. This requires an Expo account and the EAS CLI.
+Builds run on **EAS Build** (Expo's cloud build service) against the EAS project
+declared in `app.json` (`extra.eas.projectId`, owner `mgeorgi`).
 
-### Prerequisites
+### From CI (preferred)
 
-1. Create an Expo account: https://expo.dev/signup
-2. Install EAS CLI:
-   ```bash
-   npm install -g eas-cli
-   ```
-3. Log in to your Expo account:
-   ```bash
-   eas login
-   ```
+The `.github/workflows/eas-build.yml` workflow authenticates with the
+`EAS_TOKEN` repository secret (an Expo access token, passed to eas-cli as
+`EXPO_TOKEN`). Builds cost credits, so no ordinary push starts one:
 
-### Building for Android (APK/AAB)
+- **Manual**: Actions → *EAS Build (mobile)* → *Run workflow*. Pick the platform
+  and profile; `wait` blocks on the EAS queue, `submit` uploads the finished
+  production build to the stores.
+- **Release**: pushing a `mobile-v*` tag builds the `production` profile for
+  both platforms, waits for it, and submits it.
+- **Pull requests** that touch `app.json`, `eas.json`, or the lockfile only run
+  the config check — it resolves the Expo config and never queues a build.
 
-```bash
-# Build for Android (APK for direct installation)
-eas build --platform android --profile preview
+Each run writes the build IDs, statuses, and artifact links to the job summary.
 
-# Or build for Google Play Store submission (AAB format)
-eas build --platform android --profile production
-```
-
-### Building for iOS (IPA)
+### From a workstation
 
 ```bash
-# Build for iOS (requires Apple Developer account)
-eas build --platform ios --profile preview
+cd mobile
+npx eas-cli login            # once; or export EXPO_TOKEN
+
+npm run build:dev            # development client, internal distribution
+npm run build:preview        # Android APK + iOS internal build
+npm run build:production     # Android AAB + iOS store build
+npm run submit:production    # submit the latest production build
 ```
 
-### Building for Both Platforms
+Anything the scripts don't cover goes through the CLI directly, e.g.
+`npm run eas -- build --platform ios --profile preview`.
 
-```bash
-# Build for all platforms at once
-eas build --platform all --profile preview
-```
+### Build profiles
 
-### EAS Build Profiles
+`eas.json` profiles all extend `base`, which pins Node to 22.22.1 so cloud
+builds use the same version as the repo (`.nvmrc`):
 
-The app uses EAS Build profiles defined in `eas.json`:
+| Profile                   | Use                                                       |
+| ------------------------- | --------------------------------------------------------- |
+| `development`             | Dev client on a physical device, internal distribution     |
+| `development-simulator`   | Same, but an iOS Simulator build                           |
+| `preview`                 | Testing builds — Android APK you can sideload              |
+| `production`              | Store builds — Android AAB, version auto-incremented       |
 
-- **preview**: For testing builds (simpler configuration)
-- **production**: For store submissions (includes app versioning, icons, etc.)
-
-### Submitting to App Stores
-
-After building, you can submit directly to stores:
-
-```bash
-# Submit to Google Play Store
-eas submit --platform android
-
-# Submit to Apple App Store
-eas submit --platform ios
-```
+`cli.appVersionSource` is `remote`, so EAS owns the build number; the
+`production` profile increments it on every build.
 
 ### Local Builds (Advanced)
 
