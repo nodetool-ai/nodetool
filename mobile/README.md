@@ -67,7 +67,7 @@ Then:
 - Press `a` to open in Android Emulator
 - Press `w` to open in web browser
 - Scan the QR code with a **development build** on your phone (see
-  [Testing a PR on a phone](#testing-a-pr-on-a-phone))
+  [Testing a branch on a phone](#testing-a-branch-on-a-phone))
 
 Not Expo Go: it ships a fixed set of native modules, and this app's plugins
 include three that are not among them —
@@ -177,18 +177,21 @@ consistency:
 Builds run on **EAS Build** (Expo's cloud build service) against the EAS project
 declared in `app.json` (`extra.eas.projectId`, owner `mgeorgi`).
 
-### Testing a PR on a phone
+### Testing a branch on a phone
 
-`.github/workflows/expo-preview.yml` publishes every PR that touches `mobile/`
-as an **EAS Update** and comments a QR code on the pull request. Scan it with
-the development build to run that PR's code on a device — no rebuild, no queue
-wait, no build credits. Updates are keyed to the PR's head ref
-(`eas update --branch`), so each PR gets its own channel.
+Install the development build once, from the `development-testflight` profile.
+From then on it loads whatever your machine is serving:
 
-The tradeoff: an update carries only JS. A PR that adds or changes native code
-needs a new build of the client itself.
+```bash
+cd mobile
+npm start            # then open the dev build and point it at this server
+```
 
-Install the client once, from the `development-testflight` profile.
+The client and the Metro server have to reach each other, so use `--tunnel` if
+the phone is not on the same network.
+
+A rebuild is only needed when native code changes — new native dependency,
+changed plugin, bumped SDK. JS-only changes are picked up by reloading.
 
 #### Why TestFlight, and not Expo Go or an internal build
 
