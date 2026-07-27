@@ -246,6 +246,68 @@ describe("validateApp", () => {
     expect(warnings.join("\n")).toMatch(/constant with no value/);
   });
 
+  it("flags a resource widget whose collection the app never declares", () => {
+    const doc = {
+      schemaVersion: 3,
+      ui: { root: { props: {} }, content: [
+        widget("ResourceGallery", "ResourceGallery-1", {
+          resourceBindingId: "shots"
+        }),
+        widget("Button", "Button-1", { events: [{ trigger: "click", kind: "run" }] })
+      ], zones: {} },
+      operations: [],
+      variables: [],
+      resources: []
+    };
+    const { spec } = parseAppSpec(doc, io);
+    expect(spec?.widgets[0].resourceBindingId).toBe("shots");
+    const { errors, warnings } = validateApp(spec!, io);
+    expect(errors.join("\n")).toMatch(/no such resource binding/);
+    // Its value is not app state, so the local-UI-state warning must not fire.
+    expect(warnings.join("\n")).not.toMatch(/local UI state/);
+  });
+
+  it("flags a resource widget with no collection selected at all", () => {
+    const doc = {
+      schemaVersion: 3,
+      ui: { root: { props: {} }, content: [
+        widget("ResourcePicker", "ResourcePicker-1", { resourceBindingId: "" }),
+        widget("Button", "Button-1", { events: [{ trigger: "click", kind: "run" }] })
+      ], zones: {} },
+      operations: [],
+      variables: [],
+      resources: []
+    };
+    const { spec } = parseAppSpec(doc, io);
+    const { errors } = validateApp(spec!, io);
+    expect(errors.join("\n")).toMatch(/no resource binding selected/);
+  });
+
+  it("accepts a resource widget bound to a declared collection", () => {
+    const doc = {
+      schemaVersion: 3,
+      ui: { root: { props: {} }, content: [
+        widget("StoryboardSceneList", "StoryboardSceneList-1", {
+          resourceBindingId: "board"
+        }),
+        widget("Button", "Button-1", { events: [{ trigger: "click", kind: "run" }] })
+      ], zones: {} },
+      operations: [],
+      variables: [],
+      resources: [
+        {
+          id: "board",
+          name: "Board",
+          kind: "storyboard",
+          scope: { projectId: "p1" },
+          operations: []
+        }
+      ]
+    };
+    const { spec } = parseAppSpec(doc, io);
+    expect(validateApp(spec!, io).errors).toEqual([]);
+  });
+
   it("warns on an unbound write widget (local-only state)", () => {
     const { spec } = parseAppSpec(
       appDoc([

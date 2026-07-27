@@ -59,8 +59,9 @@ FrontendToolRegistry.register({
     "name) or directly to any node property (props.binding = " +
     "'node:<nodeId>#<property>'), display widgets to Output nodes or " +
     "Variables, and other state to Variables. Add those nodes first with the " +
-    "workflow tools. To nest inside a Panel or Columns widget, pass parent_id " +
-    "(and slot: 'content' | 'left' | 'right').",
+    "workflow tools. To nest inside a layout widget, pass parent_id and the " +
+    "slot it holds children in: Panel and Accordion use 'content', Columns " +
+    "'left' | 'right', Tabs 'tab1' | 'tab2' | 'tab3'.",
   parameters: z.object({
     application_id: applicationIdParam,
     type: z
@@ -74,12 +75,18 @@ FrontendToolRegistry.register({
       .string()
       .nullable()
       .optional()
-      .describe("Id of a Panel/Columns widget in this app to nest inside."),
+      .describe(
+        "Id of a layout widget (Panel, Columns, Tabs, Accordion) in this app to nest inside."
+      ),
     slot: z
       .string()
       .nullable()
       .optional()
-      .describe("Slot of the parent: 'content', 'left', or 'right'."),
+      .describe(
+        "Slot of the parent: 'content' (Panel, Accordion), 'left' | 'right' " +
+          "(Columns), or 'tab1' | 'tab2' | 'tab3' (Tabs). Defaults to the " +
+          "parent's first slot."
+      ),
     index: z
       .number()
       .int()

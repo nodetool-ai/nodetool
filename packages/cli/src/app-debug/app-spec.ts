@@ -109,6 +109,13 @@ export function bindingScopeFor(io: AppIO, context?: AppContext): BindingScope {
   };
 }
 
+/**
+ * True for the widgets the catalog gives a `resourceBindingId` field — the ones
+ * that read a document collection through the resource provider.
+ */
+const usesResourceBinding = (type: string): boolean =>
+  WIDGET_CATALOG[type]?.fields.resourceBindingId !== undefined;
+
 const modeToBindingMode = (mode: AppWidgetSpec["bindingMode"]): BindingMode =>
   mode === "write" ? "write" : mode === "read" ? "read" : "none";
 
@@ -223,6 +230,11 @@ export function parseAppSpec(
       const id = str(item.props.id) ?? `${item.type}-${widgets.length}`;
       const bindingMode = widgetMode(item.type);
       const binding = str(item.props.binding) || null;
+      // A resource widget addresses a collection, not app state, so it carries
+      // `resourceBindingId` where the state widgets carry `binding`.
+      const resourceBindingId = usesResourceBinding(item.type)
+        ? str(item.props.resourceBindingId) || null
+        : null;
       const ref: BindingRef | null = binding
         ? resolveBinding(binding, scope, modeToBindingMode(bindingMode))
         : bindingMode === "write"
@@ -238,6 +250,7 @@ export function parseAppSpec(
         ref,
         stateKey: ref ? stateKey(ref) : null,
         canonicalBinding: ref ? encodeBinding(ref) : null,
+        resourceBindingId,
         label: str(item.props.label) ?? str(item.props.text) ?? null,
         events: parseEvents(item.props.events),
         parentId,
@@ -398,8 +411,21 @@ export function validateApp(
           ? `${where}: bound to "${w.binding}" but the workflow has no input node or node property that resolves it.`
           : `${where}: bound to "${w.binding}" but the workflow has no output or variable with that name.`
       );
-    } else if (!w.binding && w.bindingMode === "write") {
+    } else if (!w.binding && w.bindingMode === "write" && !usesResourceBinding(w.type)) {
       warnings.push(`${where}: not bound to an input — its value stays local UI state.`);
+    }
+    // A resource widget with no collection behind it renders an empty picker
+    // the user can never choose from, which a run-only check never surfaces.
+    if (usesResourceBinding(w.type)) {
+      if (!w.resourceBindingId) {
+        errors.push(
+          `${where}: no resource binding selected — the widget has no collection to show. Add one with a resource binding.`
+        );
+      } else if (!resourceIds.has(w.resourceBindingId)) {
+        errors.push(
+          `${where}: bound to resource "${w.resourceBindingId}" but the app declares no such resource binding.`
+        );
+      }
     }
     // An explicit `op:<id>/…` token resolves on its own syntax, so a token
     // naming an operation the document never declared has to be caught here.

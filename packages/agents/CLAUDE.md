@@ -441,7 +441,10 @@ slot-valued props on Panel/Columns) headlessly — those live in `web/`
 (`puckDataOps.ts`), which a backend package can't import. Its operation,
 variable, resource, and binding-target tools call the shared doc-ops in
 `@nodetool-ai/app-runtime` (`src/doc-ops.ts`), the same module the browser
-handler calls, so that half of the contract cannot drift.
+handler calls, so that half of the contract cannot drift. The widget types it
+offers come from `WIDGET_CATALOG` in the same package — every widget the editor
+ships, with the fields each accepts — so `ui_app_list_component_types` reports
+the same catalog headlessly that the browser reads off the live Puck config.
 
 ```bash
 npm run dev:nodetool -- eval timeline-tools --list

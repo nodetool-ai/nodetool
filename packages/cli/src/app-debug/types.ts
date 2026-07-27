@@ -50,6 +50,12 @@ export interface AppWidgetSpec {
   stateKey: string | null;
   /** {@link ref} re-encoded in ID form — what a migrated document should store. */
   canonicalBinding: string | null;
+  /**
+   * For a resource widget (picker, gallery, scene list), the resource binding
+   * it addresses. These widgets read a document collection instead of app
+   * state, so this is their binding rather than {@link binding}.
+   */
+  resourceBindingId: string | null;
   label: string | null;
   events: AppEventSpec[];
   parentId: string | null;
