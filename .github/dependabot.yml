@@ -36,6 +36,21 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+      # The Expo SDK pins react-native, react, and every @react-native/* and
+      # expo-* package that ships with it. Those are 0.x/SDK-versioned, so a
+      # 0.85 -> 0.86 or 56.0 -> 56.1 bump is semver-minor but ecosystem-major:
+      # `npm ci` then dies on react-native's own peer range (run 30246386256
+      # bumped @react-native/jest-preset to 0.86.1 against
+      # `peerOptional @react-native/jest-preset@"0.85.3"`). These move together
+      # in an `npx expo install --fix` SDK upgrade, never one at a time.
+      - dependency-name: "react"
+      - dependency-name: "react-test-renderer"
+      - dependency-name: "react-native"
+      - dependency-name: "@react-native/*"
+      - dependency-name: "expo"
+      - dependency-name: "expo-*"
+      - dependency-name: "@expo/*"
+      - dependency-name: "babel-preset-expo"
     open-pull-requests-limit: 3
     labels:
       - "dependencies"
