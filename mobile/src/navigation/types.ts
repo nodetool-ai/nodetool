@@ -16,6 +16,13 @@ export type RootStackParamList = {
   };
   /** Browse every document, all kinds in one list. */
   Documents: undefined;
+  /** Browse the apps hosted on the server. */
+  Apps: undefined;
+  /** One app. `name` seeds the header before the load resolves. */
+  App: {
+    applicationId: string;
+    name?: string;
+  };
   /** Storyboard editor. `name` seeds the header before the load resolves. */
   StoryboardEditor: {
     id: string;

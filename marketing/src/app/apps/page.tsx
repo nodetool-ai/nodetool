@@ -82,10 +82,10 @@ export default function AppsHub() {
               AI apps anyone can use
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-400">
-              Every NodeTool workflow can become a mini app: a clean screen with
-              a few inputs and a Run button. No canvas, no nodes, no jargon —
-              and when you&apos;re curious, the full workflow behind it is one
-              click away.
+              A mini app is a clean screen with a few inputs and a Run button —
+              no canvas, no nodes, no jargon. Each one ships with NodeTool,
+              drives one or more real workflows, and opens them on the canvas
+              whenever you&apos;re curious.
             </p>
             <div className="mt-8">
               <SmartDownloadButton

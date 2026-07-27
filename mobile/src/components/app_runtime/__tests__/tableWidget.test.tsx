@@ -6,6 +6,11 @@
 import React from "react";
 import { render, screen } from "@testing-library/react-native";
 
+import {
+  parseApplicationDocument,
+  type ApplicationDocument,
+} from "@nodetool-ai/app-runtime";
+
 import type { Workflow } from "../../../types/workflow";
 
 jest.mock("@react-navigation/native", () => ({
@@ -34,7 +39,7 @@ jest.mock("../../../services/api", () => ({
   },
 }));
 
-import WorkflowAppView from "../WorkflowAppView";
+import ApplicationAppView from "../ApplicationAppView";
 
 const appDoc = (rows: unknown, placeholder?: string) => ({
   schemaVersion: 3,
@@ -74,27 +79,30 @@ const appDoc = (rows: unknown, placeholder?: string) => ({
   ],
 });
 
-const makeWorkflow = (id: string, doc: unknown): Workflow =>
+const makeWorkflow = (id: string): Workflow =>
   ({
     id,
     name: "Report",
     description: "",
-    app_doc: doc,
     graph: { nodes: [], edges: [] },
   }) as unknown as Workflow;
 
+const renderApp = (id: string, doc: unknown) =>
+  render(
+    <ApplicationAppView
+      document={parseApplicationDocument(doc) as ApplicationDocument}
+      workflow={makeWorkflow(id)}
+    />
+  );
+
 describe("Table widget", () => {
   it("renders one column per key of an array of objects", async () => {
-    render(
-      <WorkflowAppView
-        workflow={makeWorkflow(
-          "wf-table-objects",
-          appDoc([
-            { city: "Berlin", score: 7 },
-            { city: "Lisbon", extra: true },
-          ])
-        )}
-      />
+    renderApp(
+      "wf-table-objects",
+      appDoc([
+        { city: "Berlin", score: 7 },
+        { city: "Lisbon", extra: true },
+      ])
     );
 
     // Columns are the union of the rows' keys, in first-seen order.
@@ -107,22 +115,14 @@ describe("Table widget", () => {
   });
 
   it("renders an array of primitives as a single unnamed column", async () => {
-    render(
-      <WorkflowAppView
-        workflow={makeWorkflow("wf-table-primitives", appDoc(["red", "green"]))}
-      />
-    );
+    renderApp("wf-table-primitives", appDoc(["red", "green"]));
 
     expect(await screen.findByText("red")).toBeTruthy();
     expect(screen.getByText("green")).toBeTruthy();
   });
 
   it("shows the placeholder for an empty value", () => {
-    render(
-      <WorkflowAppView
-        workflow={makeWorkflow("wf-table-empty", appDoc([], "Nothing yet"))}
-      />
-    );
+    renderApp("wf-table-empty", appDoc([], "Nothing yet"));
 
     expect(screen.getByText("Nothing yet")).toBeTruthy();
     expect(screen.queryByText(/not available on mobile/)).toBeNull();

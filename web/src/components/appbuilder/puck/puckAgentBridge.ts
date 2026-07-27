@@ -1,9 +1,13 @@
 /**
  * Bridge between the agent's `ui_app_*` frontend tools and the live Puck editor,
- * mirroring the timeline/3D editor bridges. The app document lives on the
- * workflow's `app_doc` field, so a workflow id identifies it. Each open editor
- * registers a handler under its workflow id on mount; the tools call
+ * mirroring the timeline/3D editor bridges. An app is its own resource — an
+ * `applications` row — so the application id identifies it. Each open editor
+ * registers a handler under its application id on mount; the tools call
  * {@link getPuckAgentHandler} with that id to read and mutate the app document.
+ *
+ * There is no workflow-id fallback: the workflows an app binds are named by its
+ * operations, and creating an app for a workflow is an explicit scaffold, not
+ * something a tool call infers.
  */
 import type {
   BindingTargets,
@@ -26,7 +30,7 @@ export interface PuckComponentType {
 }
 
 export interface PuckSnapshot {
-  workflowId: string;
+  applicationId: string;
   rootProps: Record<string, unknown>;
   selectedId: string | null;
   componentTypes: string[];
@@ -76,28 +80,29 @@ export interface PuckAgentHandler {
 const handlers = new Map<string, PuckAgentHandler>();
 
 /**
- * Register (or clear, with null) the handler for one workflow's app document.
- * Every open app builder registers under its own workflow id, so the ui_app_*
- * tools address any open app explicitly instead of guessing at a focused one.
+ * Register (or clear, with null) the handler for one application's document.
+ * Every open app builder registers under its own application id, so the
+ * ui_app_* tools address any open app explicitly instead of guessing at a
+ * focused one.
  */
 export function setPuckAgentHandler(
-  workflowId: string,
+  applicationId: string,
   next: PuckAgentHandler | null
 ): void {
-  if (next) handlers.set(workflowId, next);
-  else handlers.delete(workflowId);
+  if (next) handlers.set(applicationId, next);
+  else handlers.delete(applicationId);
 }
 
-export function hasPuckAgentHandler(workflowId: string): boolean {
-  return handlers.has(workflowId);
+export function hasPuckAgentHandler(applicationId: string): boolean {
+  return handlers.has(applicationId);
 }
 
-export function getPuckAgentHandler(workflowId: string): PuckAgentHandler {
-  const handler = handlers.get(workflowId);
+export function getPuckAgentHandler(applicationId: string): PuckAgentHandler {
+  const handler = handlers.get(applicationId);
   if (!handler) {
-    const open = listOpenPuckWorkflowIds();
+    const open = listOpenPuckApplicationIds();
     throw new Error(
-      `No app builder is open for workflow "${workflowId}". ` +
+      `No app builder is open for application "${applicationId}". ` +
         (open.length > 0
           ? `Open app builders: ${open.join(", ")}.`
           : "No app builders are currently open.")
@@ -106,7 +111,7 @@ export function getPuckAgentHandler(workflowId: string): PuckAgentHandler {
   return handler;
 }
 
-/** Workflow ids of every app document currently open in an app builder. */
-export function listOpenPuckWorkflowIds(): string[] {
+/** Application ids of every app currently open in an app builder. */
+export function listOpenPuckApplicationIds(): string[] {
   return [...handlers.keys()];
 }

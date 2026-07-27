@@ -1,12 +1,12 @@
 ---
 layout: page
 title: "App Builder"
-description: "Design Mini App interfaces for workflows"
+description: "Design the interface of a Mini App: place widgets, bind them to workflow inputs and outputs, publish."
 ---
 
-App Builder turns a workflow into a custom Mini App. You place widgets on a
-canvas, bind them to workflow inputs and outputs, and save the app document onto
-the workflow.
+App Builder is the **Design** view of an app tab. You place widgets on a canvas,
+bind them to the inputs and outputs of the workflows the app runs, and save the
+result onto the application.
 
 This page covers the editor. For what Mini Apps solve and how the runtime works,
 see [Mini Apps](mini-apps.md); for step-by-step recipes, see
@@ -15,63 +15,84 @@ tables, see the [Reference](mini-apps-reference.md).
 
 ## What it does
 
-- Builds a structured app document with inputs, actions, display widgets, and layout blocks.
-- Binds widgets to existing Input and Output node names.
-- Runs the workflow from buttons or change events.
-- Streams workflow outputs into bound display widgets.
-- Saves the app document with the workflow and serves it in Mini App mode.
+- Edits the app's document: layout blocks, input widgets, actions, and display
+  widgets.
+- Binds widgets to the Input and Output nodes of each operation's workflow.
+- Runs an operation from a button or a change event.
+- Streams outputs into bound display widgets.
+- Publishes a version that pins the graph of every bound workflow.
 
 ## Where this fits
 
-A Mini App is how a **workflow** reaches people who should not have to read a node graph. App Builder wraps the graph in a form: input widgets bind to Input nodes, buttons run the workflow, and display widgets stream Output nodes back. It is the share end of NodeTool's loop — the same **assets** a workflow produces on the canvas, exposed as a usable app.
+A Mini App is how work reaches people who should not have to read a node graph.
+App Builder wraps one or more workflows in a form: input widgets bind to Input
+nodes, buttons run operations, and display widgets stream Output nodes back. It
+is the share end of NodeTool's loop, exposing the same **assets** a workflow
+produces on the canvas as a usable app.
 
-See [Key Concepts → How everything fits together](key-concepts.md#how-everything-fits-together) for the full loop.
+See [Key Concepts → How everything fits together](key-concepts.md#how-everything-fits-together)
+for the full loop.
 
 ## Open App Builder
 
-1. Open a workflow.
-2. Switch the tab to **App** mode.
-3. Click **App Builder** in the tab bar.
+1. Open the **Apps** panel in the left sidebar.
+2. Click an app, or create one with **New app** or **New app from workflow**.
+3. On the app tab, switch to **Design**.
 
-The builder opens at `/app-builder/:workflowId`.
+**Run** shows the app as its users see it. **Settings** holds the name,
+description, versions, and budget.
 
 ## Build an app
 
-1. Add Input nodes and Output nodes to the workflow first. Their `name` fields are the binding keys.
+1. Make sure each bound workflow has the Input and Output nodes the app needs.
+   Open one from the **Linked workflows** menu to edit it; it opens as its own
+   workflow tab.
 2. Add input widgets such as Text Input, Number Input, Slider, Switch, or Select.
-3. Set each input widget's binding to the matching Input node name.
-4. Add a Button with the **Run workflow** action.
+3. Bind each input widget to the matching Input node.
+4. Add a Button with the **Run workflow** action, targeting the operation to run.
 5. Add display widgets such as Text, Markdown, Image, JSON, or Progress.
-6. Set each display widget's binding to the matching Output node name.
+6. Bind each display widget to the matching Output node.
 7. Click **Save**.
 
 ## Agent-assisted editing
 
-Click **Ask Agent** in App Builder to open the builder agent. It can inspect the
-workflow, add widgets, set bindings, and update the workflow graph when an app
-needs new Input, Output, or Variable nodes.
+Click **Ask Agent** to open the builder agent. It can read the app's workflows,
+add widgets, set bindings, declare operations and variables, and edit a graph
+when the app needs new Input, Output, or Variable nodes.
 
 Good prompts name the result you want:
 
-> Build a compact app for this workflow with all inputs on the left, a run
-> button below them, and outputs on the right.
+> Build a compact app with all inputs on the left, a run button below them, and
+> outputs on the right.
 
 ## Bindings
 
-Bindings must match workflow state exactly:
+The binding picker lists what each operation's live graph offers. Bindings key
+on node ids, so renaming a node does not break the app.
 
-| Widget kind | Bind to |
+| Widget kind | Binds to |
 | --- | --- |
-| Input widgets | Input node `name` |
-| Display widgets | Output node `name` |
-| State controls | Variable node name |
+| Input widgets | An operation input (`op:<opId>/in:<nodeId>`) or a node property |
+| Display widgets | An operation output (`op:<opId>/out:<nodeId>`) or a variable |
+| State controls | A declared variable (`var:<variableId>`) |
 
-If a binding does not match a node name, the widget has no data to read or write.
+A binding that resolves to nothing is reported as a validation error, in the
+editor and in `nodetool app debug`. The full grammar is in the
+[Reference](mini-apps-reference.md#binding-grammar).
 
-## Mini App mode
+## Multiple workflows in one app
 
-Mini App mode renders the App Builder document when one exists. If a workflow has
-no app document, NodeTool renders the generated input/output form.
+An app's operations are edited under **Operations**. Add one per workflow the
+app should run, each with its own input and output mappings, concurrency policy,
+and timeout. Buttons target an operation by id, so a two-step app is two
+operations and two buttons rather than two apps.
+
+## Publish and share
+
+**Publish** in Settings snapshots the document and pins the graph of every bound
+workflow, so the released app keeps running those graphs while you keep editing
+the draft. **Export bundle** writes the app and its workflows as one
+`ApplicationBundle` JSON file, which imports elsewhere as a working app.
 
 ## Related topics
 

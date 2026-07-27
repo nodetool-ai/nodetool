@@ -18,7 +18,8 @@ export interface ResolvedTarget {
   appDoc: unknown;
 }
 
-function looksLikeFile(ref: string): boolean {
+/** A path-shaped ref, as opposed to a database id. */
+export function looksLikeFile(ref: string): boolean {
   return (
     ref.endsWith(".json") ||
     ref.endsWith(".ts") ||
@@ -28,8 +29,33 @@ function looksLikeFile(ref: string): boolean {
   );
 }
 
+/** A DSL ref, which has to be executed rather than read. */
+export function looksLikeDsl(ref: string): boolean {
+  return ref.endsWith(".ts") || ref.endsWith(".tsx");
+}
+
+/**
+ * Read a file target's JSON: a `.json` file straight off disk, or the JSON a
+ * DSL file prints when executed.
+ */
+export async function readFileTarget(
+  ref: string
+): Promise<{ raw: unknown; source: "json" | "dsl" }> {
+  if (looksLikeDsl(ref)) {
+    // DSL file: execute via tsx and capture the emitted JSON workflow.
+    const { execSync } = await import("node:child_process");
+    const output = execSync(`npx tsx "${resolve(ref)}"`, {
+      encoding: "utf8",
+      cwd: dirname(resolve(ref)),
+      timeout: 30000
+    });
+    return { raw: JSON.parse(output.trim()), source: "dsl" };
+  }
+  return { raw: JSON.parse(readFileSync(ref, "utf8")), source: "json" };
+}
+
 /** Convert ReactFlow `node.data` to kernel `node.properties` in place. */
-function normalizeGraph(graph: DebugGraph): DebugGraph {
+export function normalizeGraph(graph: DebugGraph): DebugGraph {
   return {
     nodes: (graph.nodes ?? []).map((n) => {
       if (n.properties === undefined && n.data !== undefined) {
@@ -58,20 +84,9 @@ export async function resolveTarget(
   const fileParams: Record<string, unknown> = {};
 
   if (looksLikeFile(ref)) {
-    if (ref.endsWith(".ts") || ref.endsWith(".tsx")) {
-      // DSL file: execute via tsx and capture the emitted JSON workflow.
-      const { execSync } = await import("node:child_process");
-      const output = execSync(`npx tsx "${resolve(ref)}"`, {
-        encoding: "utf8",
-        cwd: dirname(resolve(ref)),
-        timeout: 30000
-      });
-      raw = JSON.parse(output.trim());
-      source = "dsl";
-    } else {
-      raw = JSON.parse(readFileSync(ref, "utf8"));
-      source = "json";
-    }
+    const file = await readFileTarget(ref);
+    raw = file.raw as typeof raw;
+    source = file.source;
     workflowId = raw.workflow_id ?? raw.id ?? null;
     if (raw.params) Object.assign(fileParams, raw.params);
   } else {

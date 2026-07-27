@@ -1,0 +1,474 @@
+{
+  "slug": "research-desk",
+  "name": "Research Desk",
+  "emoji": "🕵️",
+  "description": "A research agent, a Hacker News reader, and an RSS digest all take the same topic and stream into their own panel.",
+  "tagline": "One topic, three sources, three briefings side by side.",
+  "note": "🔑 Needs an OpenAI key. All three briefings run in parallel from one button.",
+  "featured": true,
+  "image": "/app-preview/img/research-desk.jpg",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {
+          "title": "Research Desk"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "🕵️ Research Desk",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "One topic, three sources, three briefings side by side."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "🔑 Needs an OpenAI key. All three briefings run in parallel from one button."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-your-topic",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-your-topic",
+                  "title": "Your topic",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-topic",
+                        "binding": "var:topic",
+                        "label": "Research topic",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "in-brief-audience",
+                        "binding": "op:brief/in:input-audience",
+                        "label": "Who is it for?",
+                        "options": [
+                          {
+                            "value": "engineers"
+                          },
+                          {
+                            "value": "executives"
+                          },
+                          {
+                            "value": "a general audience"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-digest-feed-url",
+                        "binding": "op:digest/in:input-feed-url",
+                        "label": "RSS feed",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-brief-pulse-digest",
+                        "label": "Run the desk",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "brief",
+                            "key": "",
+                            "value": ""
+                          },
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "pulse",
+                            "key": "",
+                            "value": ""
+                          },
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "digest",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-your-topic-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-brief",
+                        "binding": "op:brief/exec#progress",
+                        "label": "Searching & browsing sources…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-brief-brief",
+                        "text": "Research brief",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-brief-brief",
+                        "binding": "op:brief/out:output-brief",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-the-pulse",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-pulse",
+                  "title": "The pulse",
+                  "content": []
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-pulse-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-pulse",
+                        "binding": "op:pulse/exec#progress",
+                        "label": "Reading the front page…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-pulse-analysis",
+                        "text": "Hacker News",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-pulse-analysis",
+                        "binding": "op:pulse/out:output-analysis",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-digest",
+                        "binding": "op:digest/exec#progress",
+                        "label": "Reading your feed…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-digest-summary",
+                        "text": "Feed digest",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-digest-summary",
+                        "binding": "op:digest/out:output-summary",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "brief",
+        "name": "Brief",
+        "workflowId": "research",
+        "inputs": {
+          "input-topic": {
+            "from": "variable",
+            "variableId": "topic"
+          }
+        },
+        "outputs": {},
+        "policy": "parallel"
+      },
+      {
+        "id": "pulse",
+        "name": "Pulse",
+        "workflowId": "hn",
+        "inputs": {
+          "topic_input": {
+            "from": "variable",
+            "variableId": "topic"
+          }
+        },
+        "outputs": {},
+        "policy": "parallel"
+      },
+      {
+        "id": "digest",
+        "name": "Digest",
+        "workflowId": "rss",
+        "inputs": {},
+        "outputs": {},
+        "policy": "parallel"
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "topic",
+        "name": "Topic",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "on-device language models",
+        "scope": "user",
+        "persist": true
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "research",
+      "name": "Research Agent",
+      "graph": {
+        "nodes": [
+          {
+            "id": "input-topic",
+            "parent_id": null,
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "topic",
+              "value": "Small language models running on-device in 2026",
+              "description": "What to research — a subject, question, or claim to investigate.",
+              "line_mode": "multi_line"
+            },
+            "ui_properties": {
+              "title": "1️⃣ Topic",
+              "position": {
+                "x": 40,
+                "y": 60
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "input-audience",
+            "parent_id": null,
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "audience",
+              "value": "a technical product team deciding whether to adopt on-device models",
+              "description": "Who the brief is for — sets the depth, framing, and what to emphasize.",
+              "line_mode": "multi_line"
+            },
+            "ui_properties": {
+              "title": "2️⃣ Audience",
+              "position": {
+                "x": 40,
+                "y": 300
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-brief",
+            "parent_id": null,
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "brief"
+            },
+            "ui_properties": {
+              "title": "5️⃣ Cited brief",
+              "position": {
+                "x": 1180,
+                "y": 60
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "hn",
+      "name": "Hacker News Agent",
+      "graph": {
+        "nodes": [
+          {
+            "id": "topic_input",
+            "parent_id": null,
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "topic",
+              "value": "AI and developer tools",
+              "description": "Focus area for the digest. Posts matching this topic are prioritized; if none match, the agent falls back to the top general front-page posts."
+            },
+            "ui_properties": {
+              "selected": false,
+              "title": "1️⃣ Topic",
+              "position": {
+                "x": 80,
+                "y": 300
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-analysis",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "analysis"
+            },
+            "ui_properties": {
+              "title": "3️⃣ Digest",
+              "position": {
+                "x": 800,
+                "y": 80
+              },
+              "selectable": true
+            }
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "rss",
+      "name": "Summarize RSS",
+      "graph": {
+        "nodes": [
+          {
+            "id": "input-feed-url",
+            "parent_id": null,
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "feed_url",
+              "description": "The RSS feed to fetch and summarize.",
+              "value": "https://feeds.bbci.co.uk/news/world/europe/rss.xml"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 20,
+                "y": 403
+              },
+              "zIndex": 0,
+              "width": 220,
+              "title": "1️⃣ Feed URL",
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-summary",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "summary"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1226,
+                "y": 329
+              },
+              "selectable": true
+            }
+          }
+        ],
+        "edges": []
+      }
+    }
+  ],
+  "values": {
+    "op:brief/in:input-audience": "a technical product team deciding whether to adopt on-device models",
+    "op:digest/in:input-feed-url": "https://feeds.bbci.co.uk/news/world/europe/rss.xml",
+    "op:brief/out:output-brief": "**On-device LLMs — briefing for a product team.**\n\n- **State of play:** 3–8B models now run usably on laptops and high-end phones.\n- **Tradeoff:** roughly half the quality of frontier models, zero API cost, full privacy.",
+    "op:pulse/out:output-analysis": "**Today on HN:** local-first software is having a moment — three of the top ten posts cover sync engines.",
+    "op:digest/out:output-summary": "**Today's brief:** the EU passes its AI liability directive; two labs ship smaller on-device models.",
+    "var:topic": "on-device language models"
+  }
+}

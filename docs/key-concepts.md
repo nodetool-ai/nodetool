@@ -91,7 +91,7 @@ An agent node takes a natural-language goal, breaks it into steps, and uses tool
 
 ### Mini-Apps
 
-A workflow with the graph hidden — just inputs and outputs. Share with people who shouldn't have to read a node graph. See [Mini Apps](mini-apps.md).
+An app of its own: a form or dashboard that runs one or more workflows, with the graphs hidden. Created and opened from the Apps panel. Share with people who shouldn't have to read a node graph. See [Mini Apps](mini-apps.md).
 
 ---
 

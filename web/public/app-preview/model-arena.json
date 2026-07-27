@@ -1,10 +1,13 @@
 {
   "slug": "model-arena",
   "name": "Model Arena",
-  "description": "One brief, three frontier models, answered side by side. The same prompt fans out to OpenAI, Anthropic, and Google in a single pass, each answering in the same structure — so you compare reasoning, not formatting. Swap the model on any lane to build your own bracket.",
+  "emoji": "⚖️",
+  "description": "Three answers in three columns, each streaming independently. A missing provider key fails one column, not the run.",
+  "tagline": "One brief, three frontier models, answered side by side.",
+  "note": "🔑 Needs OpenAI, Anthropic, and Google keys — one per column.",
   "featured": false,
   "image": "/app-preview/img/model-arena.jpg",
-  "app_doc": {
+  "app": {
     "schemaVersion": 3,
     "ui": {
       "root": {
@@ -14,44 +17,63 @@
       },
       "content": [
         {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "⚖️ Model Arena",
+            "level": "1"
+          }
+        },
+        {
           "type": "Text",
           "props": {
-            "id": "t-tagline",
+            "id": "tagline",
             "text": "One brief, three frontier models, answered side by side."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "🔑 Needs OpenAI, Anthropic, and Google keys — one per column."
           }
         },
         {
           "type": "Columns",
           "props": {
-            "id": "cols-main",
+            "id": "cols-the-brief",
             "gap": 24,
             "left": [
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-try",
-                  "title": "Try it",
+                  "id": "panel-the-brief",
+                  "title": "The brief",
                   "content": [
                     {
-                      "type": "WorkflowInput",
+                      "type": "TextInput",
                       "props": {
-                        "id": "in-brief",
-                        "binding": "op:main/in:brief",
+                        "id": "in-compare-brief",
+                        "binding": "op:compare/in:brief",
+                        "label": "Your brief",
+                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "WorkflowInput",
+                      "type": "TextInput",
                       "props": {
-                        "id": "in-context",
-                        "binding": "op:main/in:context",
+                        "id": "in-compare-context",
+                        "binding": "op:compare/in:context",
+                        "label": "Extra context",
+                        "multiline": true,
                         "events": []
                       }
                     },
                     {
                       "type": "Button",
                       "props": {
-                        "id": "btn-run",
+                        "id": "btn-compare",
                         "label": "Compare the models",
                         "variant": "contained",
                         "color": "primary",
@@ -59,6 +81,7 @@
                           {
                             "trigger": "click",
                             "kind": "run",
+                            "operationId": "compare",
                             "key": "",
                             "value": ""
                           }
@@ -73,21 +96,21 @@
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-results",
+                  "id": "panel-the-brief-results",
                   "title": "Results",
                   "content": [
                     {
                       "type": "Progress",
                       "props": {
-                        "id": "progress-run",
-                        "label": "Asking three models…",
-                        "binding": ""
+                        "id": "progress-compare",
+                        "binding": "op:compare/exec#progress",
+                        "label": "Asking three models…"
                       }
                     },
                     {
                       "type": "Heading",
                       "props": {
-                        "id": "lbl-openai",
+                        "id": "lbl-compare-openai",
                         "text": "OpenAI",
                         "level": "3"
                       }
@@ -95,15 +118,15 @@
                     {
                       "type": "Markdown",
                       "props": {
-                        "id": "out-openai",
-                        "binding": "op:main/out:openai_out",
+                        "id": "out-compare-openai",
+                        "binding": "op:compare/out:openai_out",
                         "text": ""
                       }
                     },
                     {
                       "type": "Heading",
                       "props": {
-                        "id": "lbl-anthropic",
+                        "id": "lbl-compare-anthropic",
                         "text": "Anthropic",
                         "level": "3"
                       }
@@ -111,15 +134,15 @@
                     {
                       "type": "Markdown",
                       "props": {
-                        "id": "out-anthropic",
-                        "binding": "op:main/out:anthropic_out",
+                        "id": "out-compare-anthropic",
+                        "binding": "op:compare/out:anthropic_out",
                         "text": ""
                       }
                     },
                     {
                       "type": "Heading",
                       "props": {
-                        "id": "lbl-gemini",
+                        "id": "lbl-compare-gemini",
                         "text": "Google",
                         "level": "3"
                       }
@@ -127,8 +150,8 @@
                     {
                       "type": "Markdown",
                       "props": {
-                        "id": "out-gemini",
-                        "binding": "op:main/out:gemini_out",
+                        "id": "out-compare-gemini",
+                        "binding": "op:compare/out:gemini_out",
                         "text": ""
                       }
                     }
@@ -143,9 +166,9 @@
     },
     "operations": [
       {
-        "id": "main",
-        "name": "Run",
-        "workflowId": "",
+        "id": "compare",
+        "name": "Compare",
+        "workflowId": "arena",
         "inputs": {},
         "outputs": {},
         "policy": "replace"
@@ -154,122 +177,128 @@
     "resources": [],
     "variables": []
   },
-  "graph": {
-    "nodes": [
-      {
-        "id": "brief",
-        "type": "nodetool.input.StringInput",
-        "data": {
-          "name": "brief",
-          "value": "Should a 12-person B2B SaaS startup build its own customer-facing analytics dashboard, or integrate a third-party embedded-analytics vendor, for its reporting feature? Ship target is one quarter out.",
-          "description": "The question, spec, or decision every model should answer"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 50,
-            "y": 60
+  "workflows": [
+    {
+      "key": "arena",
+      "name": "Model Arena",
+      "graph": {
+        "nodes": [
+          {
+            "id": "brief",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "brief",
+              "value": "Should a 12-person B2B SaaS startup build its own customer-facing analytics dashboard, or integrate a third-party embedded-analytics vendor, for its reporting feature? Ship target is one quarter out.",
+              "description": "The question, spec, or decision every model should answer"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 50,
+                "y": 60
+              },
+              "zIndex": 0,
+              "width": 300,
+              "height": 260,
+              "title": "1️⃣ The brief",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
           },
-          "zIndex": 0,
-          "width": 300,
-          "height": 260,
-          "title": "1️⃣ The brief",
-          "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "context",
-        "type": "nodetool.input.StringInput",
-        "data": {
-          "name": "context",
-          "value": "Audience: the founding team (technical). Constraints: 2 engineers can be spared for 6 weeks; weak reporting is a top-3 reason prospects churn; tooling budget is about $2k/month.",
-          "description": "Audience, constraints, and context that shape a good answer"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 50,
-            "y": 360
+          {
+            "id": "context",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "context",
+              "value": "Audience: the founding team (technical). Constraints: 2 engineers can be spared for 6 weeks; weak reporting is a top-3 reason prospects churn; tooling budget is about $2k/month.",
+              "description": "Audience, constraints, and context that shape a good answer"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 50,
+                "y": 360
+              },
+              "zIndex": 0,
+              "width": 300,
+              "height": 240,
+              "title": "2️⃣ Audience & constraints",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
           },
-          "zIndex": 0,
-          "width": 300,
-          "height": 240,
-          "title": "2️⃣ Audience & constraints",
-          "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "openai_out",
-        "type": "nodetool.output.Output",
-        "data": {
-          "name": "openai"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1250,
-            "y": -60
+          {
+            "id": "openai_out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "openai"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1250,
+                "y": -60
+              },
+              "zIndex": 0,
+              "width": 300,
+              "title": "🟢 OpenAI answer",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
           },
-          "zIndex": 0,
-          "width": 300,
-          "title": "🟢 OpenAI answer",
-          "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "anthropic_out",
-        "type": "nodetool.output.Output",
-        "data": {
-          "name": "anthropic"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1250,
-            "y": 320
+          {
+            "id": "anthropic_out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "anthropic"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1250,
+                "y": 320
+              },
+              "zIndex": 0,
+              "width": 300,
+              "title": "🟣 Anthropic answer",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
           },
-          "zIndex": 0,
-          "width": 300,
-          "title": "🟣 Anthropic answer",
-          "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "gemini_out",
-        "type": "nodetool.output.Output",
-        "data": {
-          "name": "gemini"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1250,
-            "y": 700
-          },
-          "zIndex": 0,
-          "width": 300,
-          "title": "🔵 Gemini answer",
-          "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+          {
+            "id": "gemini_out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "gemini"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1250,
+                "y": 700
+              },
+              "zIndex": 0,
+              "width": 300,
+              "title": "🔵 Gemini answer",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
       }
-    ],
-    "edges": []
-  },
+    }
+  ],
   "values": {
-    "op:main/in:brief": "Should a 12-person B2B SaaS startup build its own customer-facing analytics dashboard, or integrate a third-party embedded-analytics vendor, for its reporting feature? Ship target is one quarter out.",
-    "op:main/in:context": "Audience: the founding team (technical). Constraints: 2 engineers can be spared for 6 weeks; weak reporting is a top-3 reason prospects churn; tooling budget is about $2k/month.",
-    "op:main/out:openai_out": "**OpenAI (gpt-5-mini):** Leads with a crisp 3-point structure, hedges on the edge case, ships a concrete next step.",
-    "op:main/out:anthropic_out": "**Anthropic (Claude):** Longer reasoning, names the tradeoff explicitly, flags one risk the others miss.",
-    "op:main/out:gemini_out": "**Google (Gemini):** Tightest answer, strongest on the factual recall, lightest on caveats."
+    "op:compare/in:brief": "Should a 12-person B2B SaaS startup build its own customer-facing analytics dashboard, or integrate a third-party embedded-analytics vendor, for its reporting feature? Ship target is one quarter out.",
+    "op:compare/in:context": "Audience: the founding team (technical). Constraints: 2 engineers can be spared for 6 weeks; weak reporting is a top-3 reason prospects churn; tooling budget is about $2k/month.",
+    "op:compare/out:openai_out": "**OpenAI:** leads with a crisp three-point structure and ships a concrete next step.",
+    "op:compare/out:anthropic_out": "**Anthropic:** longer reasoning, names the tradeoff explicitly, flags one risk the others miss.",
+    "op:compare/out:gemini_out": "**Google:** tightest answer, strongest factual recall, lightest on caveats."
   }
 }

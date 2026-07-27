@@ -1,10 +1,14 @@
 /** @jsxImportSource @emotion/react */
 /**
- * Renders one template's mini app with seeded demo values for marketing
- * screenshots. Loads /app-preview/<slug>.json, resolves $demo media tokens
- * (image → the template's card art; video/audio → client-generated clips),
- * seeds an AppRuntimeStore, and mounts the real Puck widget tree — the exact
- * pixels a user sees in the Mini App runtime, minus the backend.
+ * Renders one shipped example app with seeded demo values for marketing
+ * screenshots. Loads /app-preview/<slug>.json (a bundle-derived preview written
+ * by scripts/build-example-apps.mjs), resolves $demo media tokens (image → the
+ * app's card art; video/audio → client-generated clips), seeds an
+ * AppRuntimeStore, and mounts the real Puck widget tree — the exact pixels a
+ * user sees in the Mini App runtime, minus the backend.
+ *
+ * An example app binds several workflows, so the preview carries one IO-only
+ * graph per bundle key and the binding scope holds one entry per operation.
  *
  * Sets data-preview-ready="true" on the frame once every image and video has
  * decoded, which the screenshot script waits for.
@@ -15,13 +19,13 @@ import { ThemeProvider, CssBaseline } from "@mui/material";
 
 import ThemeNodetool from "../components/themes/ThemeNodetool";
 import {
-  DEFAULT_OPERATION_ID,
-  implicitOperation,
   namespaceOf,
   parseBinding,
   stateKey,
   type AppInstanceState,
-  type PuckData
+  type ApplicationDocument,
+  type BindingScope,
+  type OperationBinding
 } from "@nodetool-ai/app-runtime";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -42,14 +46,21 @@ import { Workflow } from "../stores/ApiTypes";
 import { Box, BORDER_RADIUS } from "../components/ui_primitives";
 import { makeDemoAudio, makeDemoGradient, makeDemoVideo } from "./demoMedia";
 
+/** One workflow the app binds, carrying only its Input/Output nodes. */
+interface PreviewWorkflow {
+  /** Bundle-local key an operation's `workflowId` names. */
+  key: string;
+  name: string;
+  graph: Workflow["graph"];
+}
+
 interface PreviewBundle {
   slug: string;
   name: string;
   image: string | null;
-  app_doc: { ui: PuckData };
-  /** The template's Input/Output nodes — the surface bindings resolve against. */
-  graph: Workflow["graph"];
-  /** Keyed by the same binding token the widgets carry (`op:main/out:<id>`). */
+  app: ApplicationDocument;
+  workflows: PreviewWorkflow[];
+  /** Keyed by the same binding token the widgets carry (`op:<id>/out:<node>`). */
   values: Record<string, unknown>;
 }
 
@@ -192,48 +203,53 @@ const AppPreviewApp: React.FC = () => {
     [values]
   );
 
-  // The bundle ships its Input/Output nodes, which is what a WorkflowInput
-  // widget needs to render the control for its node's type.
-  const io = useMemo(
-    () => extractWorkflowIO(bundle ? ({ graph: bundle.graph } as Workflow) : null),
-    [bundle]
-  );
+  // One IO surface per operation. Each operation names a bundle-local workflow
+  // key, and the preview ships that workflow's Input/Output nodes — enough for a
+  // WorkflowInput widget to render the control its node's type calls for, and
+  // for every `op:<id>/…` binding to resolve the way the runtime resolves it.
+  const operationIO = useMemo(() => {
+    const graphs = new Map(bundle?.workflows.map((w) => [w.key, w.graph]) ?? []);
+    return (bundle?.app.operations ?? []).map((operation) => ({
+      operation,
+      io: extractWorkflowIO({
+        graph: graphs.get(operation.workflowId)
+      } as Workflow)
+    }));
+  }, [bundle]);
 
-  const runtime = useMemo(
-    (): AppRuntimeContextValue | null =>
-      store && values
-        ? {
-            store,
-            io,
-            scope: {
-              defaultOperationId: DEFAULT_OPERATION_ID,
-              operations: [
-                {
-                  operationId: DEFAULT_OPERATION_ID,
-                  inputs: io.inputs.map(({ nodeId, name }) => ({ nodeId, name })),
-                  outputs: io.outputs.map(({ nodeId, name }) => ({
-                    nodeId,
-                    name
-                  })),
-                  nodeIds: io.inputs
-                    .map((i) => i.nodeId)
-                    .concat(io.outputs.map((o) => o.nodeId))
-                }
-              ],
-              variables: []
-            },
-            operation: implicitOperation(""),
-            operations: [implicitOperation("")],
-            resources: [],
-            designMode: false,
-            dispatch: () => {},
-            write: () => {},
-            selectResource: () => {},
-            getNodeProperty: () => undefined
-          }
-        : null,
-    [io, store, values]
-  );
+  const runtime = useMemo((): AppRuntimeContextValue | null => {
+    const first = operationIO[0];
+    if (!store || !values || !bundle || !first) return null;
+    const scope: BindingScope = {
+      defaultOperationId: first.operation.id,
+      operations: operationIO.map(({ operation, io }) => ({
+        operationId: operation.id,
+        inputs: io.inputs.map(({ nodeId, name }) => ({ nodeId, name })),
+        outputs: io.outputs.map(({ nodeId, name }) => ({ nodeId, name })),
+        nodeIds: io.inputs
+          .map((i) => i.nodeId)
+          .concat(io.outputs.map((o) => o.nodeId))
+      })),
+      variables: bundle.app.variables
+    };
+    const operations: OperationBinding[] = operationIO.map((e) => e.operation);
+    const byOperation = new Map(operationIO.map((e) => [e.operation.id, e.io]));
+    return {
+      store,
+      io: first.io,
+      ioFor: (operationId?: string) =>
+        byOperation.get(operationId ?? first.operation.id) ?? first.io,
+      scope,
+      operation: first.operation,
+      operations,
+      resources: bundle.app.resources,
+      designMode: false,
+      dispatch: () => {},
+      write: () => {},
+      selectResource: () => {},
+      getNodeProperty: () => undefined
+    };
+  }, [bundle, operationIO, store, values]);
 
   // Signal readiness for the screenshot script once media has decoded.
   useEffect(() => {
@@ -251,7 +267,7 @@ const AppPreviewApp: React.FC = () => {
   // twice in the marketing frame.
   const data = useMemo((): Data | null => {
     if (!bundle) return null;
-    const d = bundle.app_doc.ui;
+    const d = bundle.app.ui;
     return {
       ...d,
       root: { ...d.root, props: { ...d.root?.props, title: "" } }

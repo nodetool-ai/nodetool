@@ -15,15 +15,29 @@ const INPUT: WorkflowInputIO = {
   kind: "string"
 };
 
-const renderWidget = (binding: string) => {
+/** The same node id in a second operation's graph, with a different name. */
+const BATCH_INPUT: WorkflowInputIO = {
+  nodeId: "in1",
+  nodeType: "nodetool.input.StringInput",
+  name: "photos",
+  label: "Photos",
+  kind: "string"
+};
+
+const renderWidget = (binding: string, label?: string) => {
+  const io = { inputs: [INPUT], outputs: [] };
   const { wrapper: Wrapper } = makeTestRuntime(
     {},
-    { io: { inputs: [INPUT], outputs: [] } }
+    {
+      io,
+      ioFor: (operationId?: string) =>
+        operationId === "batch" ? { inputs: [BATCH_INPUT], outputs: [] } : io
+    }
   );
   render(
     <ThemeProvider theme={mockTheme}>
       <Wrapper>
-        <WorkflowInputWidget id="in-prompt" binding={binding} />
+        <WorkflowInputWidget id="in-prompt" binding={binding} label={label} />
       </Wrapper>
     </ThemeProvider>
   );
@@ -39,6 +53,18 @@ describe("WorkflowInputWidget", () => {
   it("still resolves a legacy name binding", () => {
     renderWidget("prompt");
     expect(screen.queryByText(/Unknown workflow input/)).toBeNull();
+  });
+
+  it("resolves against the graph of the operation the binding names", () => {
+    renderWidget("op:batch/in:in1");
+    expect(screen.queryByText(/Unknown workflow input/)).toBeNull();
+    expect(screen.getByLabelText("Photos")).toBeInTheDocument();
+  });
+
+  it("prefers the widget's own label over the input node's name", () => {
+    // PropertyLabel title-cases whatever name it is given.
+    renderWidget("op:main/in:in1", "Your brief");
+    expect(screen.getByLabelText("Your Brief")).toBeInTheDocument();
   });
 
   it("reports a binding that matches no input", () => {

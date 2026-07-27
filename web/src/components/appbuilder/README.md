@@ -23,7 +23,7 @@ framework-independent core the web runtime, the CLI `app debug` harness, and the
 - **Bindings key on node IDs**, never names (`op:main/in:<nodeId>`,
   `op:main/out:<nodeId>`, `var:<id>`, `view:<componentId>#<prop>`). Renaming a
   node in the graph editor does not break an app. Bare names still resolve —
-  that is the legacy `app_doc` form and the migration path.
+  that is the legacy `workflow.app_doc` form, read on import only.
 - **Widgets** bind one slot (read for displays, two-way for inputs) and emit
   **events** (`click` / `change`) that dispatch **actions** (`run`, `cancel`,
   `setVariable`, `toggleVariable`, `resourceCommand`, `openResource`). A `run`
@@ -63,7 +63,6 @@ the existing worker path.
 
 - `appData.ts` — storage model: re-exports the shared `ApplicationDocument`
   parser and the empty-document helpers.
-- `persistence.ts` — load/save the document on `workflow.app_doc`.
 - Pure edits to the document's operations, variables, and resources, plus the
   bindable-target report the agent reads, live in `@nodetool-ai/app-runtime`
   (`src/doc-ops.ts`) so the editor, the CLI harness, and the eval bridge share
@@ -97,15 +96,11 @@ the existing worker path.
 - `AppBuilderShell.tsx` — the editing surface, independent of storage: it seeds
   Puck from a document, holds the operations/resources/variables beside it, and
   emits the **whole** document on save.
-- `AppBuilderPage.tsx` — the `/app-builder/:workflowId` route, storing on
-  `workflow.app_doc`.
-- `ApplicationAppBuilder.tsx` — the same shell over an `applications` record:
+- `ApplicationAppBuilder.tsx` — the container over an `applications` record:
   loads with `applications.get`, saves with `applications.update` carrying
   `baseUpdatedAt`. A lost compare-and-swap raises an alert and a banner with a
-  Reload action; the canvas is never refetched out from under the user.
-
-The two containers are the only difference between the targets — the shell does
-not know which one it is inside.
+  Reload action; the canvas is never refetched out from under the user. It is
+  the only container — an app document has one home, the `applications` table.
 
 ## Agent
 
@@ -126,11 +121,12 @@ The builder embeds the same agent chat the other editors use (`AppBuilderAgentPa
     so the agent never has to guess a binding.
 
   Each open editor registers a handler (`PuckAgentBinder`, via `usePuck`
-  dispatch) under its workflow id, and every tool takes a required `workflow_id`
-  naming which app to act on. The app document lives on `workflow.app_doc`, so the
-  workflow id *is* the app's identity. Puck owns `ui`; `AppBuilderPage` holds the
-  operations/variables/resources beside it and saves both together
-  (app-runtime's `doc-ops.ts` holds the pure edits).
+  dispatch) under its application id, and every tool takes a required
+  `application_id` naming which app to act on. An app is its own resource, so
+  the application id is its identity; `target_workflow_id` on the operation
+  tools names a workflow the app *runs*. Puck owns `ui`; the app tab's Design
+  view holds the operations/variables/resources beside it and saves both
+  together (app-runtime's `doc-ops.ts` holds the pure edits).
 - `ui_*` (existing workflow tools) edit the graph. `FrontendToolRuntimeSync`
   (shared with the editor's right panel) is mounted here and the page sets the
   current workflow, so adding Input/Output/SetVariable nodes works — which is what
@@ -141,11 +137,17 @@ Variable node and wire app state to it.
 
 ## Where it shows up
 
-`WorkflowAppView` renders `AppRuntimeView` for every workflow: its saved app
-document when present, otherwise a form/results layout generated from the
-graph's Input/Output nodes (`generateAppData`). The builder lives at
-`/app-builder/:workflowId`; open it from a workflow's View mode with
-**App Builder**.
+Apps are opened from the **Apps** panel in the left sidebar — the only entry
+point. "New app" starts an empty one; "Create app from workflow" scaffolds a
+one-way copy bound to that workflow. Each opens one `application` workspace
+tab. A workflow never presents itself as an app, and there is no route keyed by
+workflow id: `/miniapp/:workflowId` survives only as a legacy redirect
+(`components/applications/LegacyAppRedirect.tsx`) that resolves to the app
+binding that workflow, or 404s.
+
+`generateAppData` still scaffolds a form/results layout from a graph's
+Input/Output nodes, but only inside an app the user already created — it fills a
+blank canvas, it never persists a document.
 
 The mobile app renders the same documents natively (`mobile/src/components/app_runtime/`)
 on top of the same `@nodetool-ai/app-runtime` core — it runs apps, it does not

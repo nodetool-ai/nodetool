@@ -1,5 +1,10 @@
 import { components } from '../api';
 import type {
+  ApplicationListItem,
+  ApplicationReleaseResponse,
+  ApplicationResponse,
+} from '@nodetool-ai/protocol/api-schemas/applications.js';
+import type {
   Workflow as AppWorkflow,
 } from '../types/ApiTypes';
 import { useAuthStore } from '../stores/AuthStore';
@@ -58,6 +63,11 @@ export type AssetSearchResult = components["schemas"]["AssetSearchResult"];
 export type AssetWithPath = components["schemas"]["AssetWithPath"];
 export type JobResponse = components["schemas"]["JobResponse"];
 export type JobListResponse = components["schemas"]["JobListResponse"];
+export type {
+  ApplicationListItem,
+  ApplicationReleaseResponse,
+  ApplicationResponse,
+};
 
 // ── Types for tRPC-migrated domains ───────────────────────────────────────────
 // These shapes match the tRPC output schemas exactly and replace the openapi-
@@ -251,6 +261,39 @@ class ApiService {
     // outputs. The chain editor needs both, so ask for the full records.
     return this.request<components["schemas"]["NodeMetadata"][]>(
       '/api/nodes/metadata?fields=full'
+    );
+  }
+
+  /**
+   * Applications — mini apps as their own resource.
+   *
+   * The web client reaches these through tRPC; mobile has no applications
+   * router, so it uses the REST door onto the same service. Both serialize
+   * identically, so the protocol response types describe either one.
+   */
+  async listApplications(projectId?: string): Promise<ApplicationListItem[]> {
+    const query = projectId
+      ? `?project_id=${encodeURIComponent(projectId)}`
+      : '';
+    return this.request<ApplicationListItem[]>(`/api/applications${query}`);
+  }
+
+  async getApplication(id: string): Promise<ApplicationResponse> {
+    return this.request<ApplicationResponse>(
+      `/api/applications/${encodeURIComponent(id)}`
+    );
+  }
+
+  /**
+   * The released snapshot of an app, or null when nothing is published yet.
+   * It carries the graph each operation was pinned to at publish time, which
+   * is what lets a published app run without fetching its workflows.
+   */
+  async getReleasedApplicationDocument(
+    id: string
+  ): Promise<ApplicationReleaseResponse | null> {
+    return this.request<ApplicationReleaseResponse | null>(
+      `/api/applications/${encodeURIComponent(id)}/released-document`
     );
   }
 

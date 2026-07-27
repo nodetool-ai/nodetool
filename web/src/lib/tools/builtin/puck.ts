@@ -4,33 +4,35 @@
  * tools. Both tool sets are registered globally, so an agent in the builder's
  * chat can shape the app and the workflow it binds to in one conversation.
  *
- * An app document lives on its workflow's `app_doc` field, so every tool takes
- * a `workflow_id` naming which open app builder to act on — the same id the
- * graph tools use. The open ids are listed in the ui_context system prompt
- * block; `getPuckAgentHandler` throws a descriptive error listing them when the
- * requested workflow has no app builder open.
+ * An app is its own resource (an `applications` row), so every tool takes an
+ * `application_id` naming which open app builder to act on. There is no
+ * workflow-id fallback: the workflows an app runs are named by its operations
+ * (`target_workflow_id`), which is a different thing from the app's identity.
+ * The open ids are listed in the ui_context system prompt block;
+ * `getPuckAgentHandler` throws a descriptive error listing them when the
+ * requested application has no app builder open.
  */
 import { z } from "zod";
 
 import { FrontendToolRegistry } from "../frontendTools";
 import { getPuckAgentHandler } from "../../../components/appbuilder/puck/puckAgentBridge";
 
-const workflowIdParam = z
+const applicationIdParam = z
   .string()
   .describe(
-    "Id of the workflow whose app document to operate on. The open app " +
+    "Id of the application whose app document to operate on. The open app " +
       "builders are listed in the ui_context block."
   );
 
 FrontendToolRegistry.register({
   name: "ui_app_get_snapshot",
   description:
-    "Read a workflow's open App Builder: every placed widget (id, type, props, " +
+    "Read an open App Builder: every placed widget (id, type, props, " +
     "parent), the selected widget, the page title, and the available widget " +
     "types. Call this first to see what's on the page before editing.",
-  parameters: z.object({ workflow_id: workflowIdParam }),
-  async execute({ workflow_id }) {
-    return { ok: true, ...getPuckAgentHandler(workflow_id).getSnapshot() };
+  parameters: z.object({ application_id: applicationIdParam }),
+  async execute({ application_id }) {
+    return { ok: true, ...getPuckAgentHandler(application_id).getSnapshot() };
   }
 });
 
@@ -40,11 +42,11 @@ FrontendToolRegistry.register({
     "List the widget types the App Builder supports and their fields (props). " +
     "Use this to learn valid `type` values and which props each widget accepts " +
     "(e.g. label, binding, events).",
-  parameters: z.object({ workflow_id: workflowIdParam }),
-  async execute({ workflow_id }) {
+  parameters: z.object({ application_id: applicationIdParam }),
+  async execute({ application_id }) {
     return {
       ok: true,
-      types: getPuckAgentHandler(workflow_id).listComponentTypes()
+      types: getPuckAgentHandler(application_id).listComponentTypes()
     };
   }
 });
@@ -60,7 +62,7 @@ FrontendToolRegistry.register({
     "workflow tools. To nest inside a Panel or Columns widget, pass parent_id " +
     "(and slot: 'content' | 'left' | 'right').",
   parameters: z.object({
-    workflow_id: workflowIdParam,
+    application_id: applicationIdParam,
     type: z
       .string()
       .describe("Widget type, e.g. 'Heading', 'TextInput', 'Button'."),
@@ -84,8 +86,8 @@ FrontendToolRegistry.register({
       .optional()
       .describe("Insertion index within the target list.")
   }),
-  async execute({ workflow_id, type, props, parent_id, slot, index }) {
-    const component = getPuckAgentHandler(workflow_id).addComponent({
+  async execute({ application_id, type, props, parent_id, slot, index }) {
+    const component = getPuckAgentHandler(application_id).addComponent({
       type,
       props: props as Record<string, unknown> | undefined,
       parentId: parent_id ?? null,
@@ -102,7 +104,7 @@ FrontendToolRegistry.register({
     "Merge props into an existing widget (e.g. set its binding, label, or " +
     "events). The widget's id cannot be changed.",
   parameters: z.object({
-    workflow_id: workflowIdParam,
+    application_id: applicationIdParam,
     id: z
       .string()
       .describe(
@@ -110,8 +112,8 @@ FrontendToolRegistry.register({
       ),
     props: z.record(z.string(), z.unknown()).describe("Props to merge.")
   }),
-  async execute({ workflow_id, id, props }) {
-    const component = getPuckAgentHandler(workflow_id).updateComponent(
+  async execute({ application_id, id, props }) {
+    const component = getPuckAgentHandler(application_id).updateComponent(
       id,
       props as Record<string, unknown>
     );
@@ -126,13 +128,13 @@ FrontendToolRegistry.register({
   name: "ui_app_remove_component",
   description: "Remove a widget (and anything nested inside it) from the app.",
   parameters: z.object({
-    workflow_id: workflowIdParam,
+    application_id: applicationIdParam,
     id: z
       .string()
       .describe("Widget id to remove — a component inside the app.")
   }),
-  async execute({ workflow_id, id }) {
-    const removed = getPuckAgentHandler(workflow_id).removeComponent(id);
+  async execute({ application_id, id }) {
+    const removed = getPuckAgentHandler(application_id).removeComponent(id);
     return { ok: removed, removed_id: removed ? id : null };
   }
 });
@@ -143,7 +145,7 @@ FrontendToolRegistry.register({
     "Select a widget so its properties show in the inspector (or pass null to " +
     "clear the selection).",
   parameters: z.object({
-    workflow_id: workflowIdParam,
+    application_id: applicationIdParam,
     id: z
       .string()
       .nullable()
@@ -152,8 +154,8 @@ FrontendToolRegistry.register({
         "Widget id to select — a component inside the app. Null or omitted clears the selection."
       )
   }),
-  async execute({ workflow_id, id }) {
-    getPuckAgentHandler(workflow_id).selectComponent(id ?? null);
+  async execute({ application_id, id }) {
+    getPuckAgentHandler(application_id).selectComponent(id ?? null);
     return { ok: true };
   }
 });
@@ -190,11 +192,11 @@ FrontendToolRegistry.register({
     "List the app's operation bindings: each one names a workflow the app can " +
     "run, with its input and output mappings and its concurrency policy. " +
     "Widget bindings address an operation by id (op:<opId>/in:<nodeId>).",
-  parameters: z.object({ workflow_id: workflowIdParam }),
-  async execute({ workflow_id }) {
+  parameters: z.object({ application_id: applicationIdParam }),
+  async execute({ application_id }) {
     return {
       ok: true,
-      operations: getPuckAgentHandler(workflow_id).listOperations()
+      operations: getPuckAgentHandler(application_id).listOperations()
     };
   }
 });
@@ -208,7 +210,7 @@ FrontendToolRegistry.register({
     "ui_app_get_binding_targets. An input with no mapping takes its bound " +
     "widget's value; an output with no mapping displays.",
   parameters: z.object({
-    workflow_id: workflowIdParam,
+    application_id: applicationIdParam,
     id: z
       .string()
       .optional()
@@ -234,7 +236,7 @@ FrontendToolRegistry.register({
     timeout_ms: z.number().int().optional()
   }),
   async execute({
-    workflow_id,
+    application_id,
     id,
     name,
     target_workflow_id,
@@ -244,7 +246,7 @@ FrontendToolRegistry.register({
     outputs,
     timeout_ms
   }) {
-    const operation = getPuckAgentHandler(workflow_id).addOperation({
+    const operation = getPuckAgentHandler(application_id).addOperation({
       id,
       name,
       workflowId: target_workflow_id,
@@ -264,7 +266,7 @@ FrontendToolRegistry.register({
     "Change an operation binding. Input and output mappings merge per node id, " +
     "so one input can be remapped without restating the others.",
   parameters: z.object({
-    workflow_id: workflowIdParam,
+    application_id: applicationIdParam,
     id: z.string().describe("Operation id to update."),
     name: z.string().optional(),
     target_workflow_id: z
@@ -284,7 +286,7 @@ FrontendToolRegistry.register({
     timeout_ms: z.number().int().optional()
   }),
   async execute({
-    workflow_id,
+    application_id,
     id,
     name,
     target_workflow_id,
@@ -294,7 +296,7 @@ FrontendToolRegistry.register({
     outputs,
     timeout_ms
   }) {
-    const operation = getPuckAgentHandler(workflow_id).updateOperation(id, {
+    const operation = getPuckAgentHandler(application_id).updateOperation(id, {
       ...(name !== undefined ? { name } : {}),
       ...(target_workflow_id !== undefined
         ? { workflowId: target_workflow_id }
@@ -320,11 +322,11 @@ FrontendToolRegistry.register({
     "Remove an operation binding. Widgets still bound to it (op:<opId>/...) " +
     "stop resolving, so re-bind or remove them too.",
   parameters: z.object({
-    workflow_id: workflowIdParam,
+    application_id: applicationIdParam,
     id: z.string().describe("Operation id to remove.")
   }),
-  async execute({ workflow_id, id }) {
-    const removed = getPuckAgentHandler(workflow_id).removeOperation(id);
+  async execute({ application_id, id }) {
+    const removed = getPuckAgentHandler(application_id).removeOperation(id);
     return { ok: removed, removed_id: removed ? id : null };
   }
 });
@@ -342,11 +344,11 @@ FrontendToolRegistry.register({
   description:
     "List the app's declared variables — the app state widgets read and write " +
     "and operation outputs can land in. Widgets bind to one as var:<id>.",
-  parameters: z.object({ workflow_id: workflowIdParam }),
-  async execute({ workflow_id }) {
+  parameters: z.object({ application_id: applicationIdParam }),
+  async execute({ application_id }) {
     return {
       ok: true,
-      variables: getPuckAgentHandler(workflow_id).listVariables()
+      variables: getPuckAgentHandler(application_id).listVariables()
     };
   }
 });
@@ -357,7 +359,7 @@ FrontendToolRegistry.register({
     "Declare an app variable. Only user-scoped variables may persist — " +
     "`persist` is forced false on an instance-scoped one.",
   parameters: z.object({
-    workflow_id: workflowIdParam,
+    application_id: applicationIdParam,
     id: z
       .string()
       .optional()
@@ -374,8 +376,8 @@ FrontendToolRegistry.register({
       .optional()
       .describe("Persist across sessions. User scope only.")
   }),
-  async execute({ workflow_id, id, name, type, default: def, scope, persist }) {
-    const variable = getPuckAgentHandler(workflow_id).declareVariable({
+  async execute({ application_id, id, name, type, default: def, scope, persist }) {
+    const variable = getPuckAgentHandler(application_id).declareVariable({
       id,
       name,
       type,
@@ -393,7 +395,7 @@ FrontendToolRegistry.register({
     "Change a declared variable. Narrowing the scope to 'instance' clears " +
     "`persist`, since only user-scoped variables may persist.",
   parameters: z.object({
-    workflow_id: workflowIdParam,
+    application_id: applicationIdParam,
     id: z.string().describe("Variable id to update."),
     name: z.string().optional(),
     type: z
@@ -404,8 +406,8 @@ FrontendToolRegistry.register({
     scope: variableScope.optional(),
     persist: z.boolean().optional()
   }),
-  async execute({ workflow_id, id, name, type, default: def, scope, persist }) {
-    const variable = getPuckAgentHandler(workflow_id).updateVariable(id, {
+  async execute({ application_id, id, name, type, default: def, scope, persist }) {
+    const variable = getPuckAgentHandler(application_id).updateVariable(id, {
       ...(name !== undefined ? { name } : {}),
       ...(type !== undefined ? { type } : {}),
       ...(def !== undefined ? { default: def } : {}),
@@ -424,11 +426,11 @@ FrontendToolRegistry.register({
   description:
     "Remove a declared variable. Widgets bound to var:<id> stop resolving.",
   parameters: z.object({
-    workflow_id: workflowIdParam,
+    application_id: applicationIdParam,
     id: z.string().describe("Variable id to remove.")
   }),
-  async execute({ workflow_id, id }) {
-    const removed = getPuckAgentHandler(workflow_id).removeVariable(id);
+  async execute({ application_id, id }) {
+    const removed = getPuckAgentHandler(application_id).removeVariable(id);
     return { ok: removed, removed_id: removed ? id : null };
   }
 });
@@ -444,11 +446,11 @@ FrontendToolRegistry.register({
   description:
     "List the app's resource bindings — the document collections its pickers " +
     "and resource actions may reach.",
-  parameters: z.object({ workflow_id: workflowIdParam }),
-  async execute({ workflow_id }) {
+  parameters: z.object({ application_id: applicationIdParam }),
+  async execute({ application_id }) {
     return {
       ok: true,
-      resources: getPuckAgentHandler(workflow_id).listResources()
+      resources: getPuckAgentHandler(application_id).listResources()
     };
   }
 });
@@ -461,7 +463,7 @@ FrontendToolRegistry.register({
     "document (fixed_id); one of the two is required. `operations` is what the " +
     "app may do with it, defaulting to read-only.",
   parameters: z.object({
-    workflow_id: workflowIdParam,
+    application_id: applicationIdParam,
     id: z
       .string()
       .optional()
@@ -479,7 +481,7 @@ FrontendToolRegistry.register({
       .describe("Allowed operations. Defaults to ['read'].")
   }),
   async execute({
-    workflow_id,
+    application_id,
     id,
     name,
     kind,
@@ -487,7 +489,7 @@ FrontendToolRegistry.register({
     fixed_id,
     operations
   }) {
-    const resource = getPuckAgentHandler(workflow_id).addResource({
+    const resource = getPuckAgentHandler(application_id).addResource({
       id,
       name,
       kind,
@@ -504,11 +506,11 @@ FrontendToolRegistry.register({
     "Remove a resource binding. Pickers and resource actions pointing at it " +
     "stop resolving.",
   parameters: z.object({
-    workflow_id: workflowIdParam,
+    application_id: applicationIdParam,
     id: z.string().describe("Resource binding id to remove.")
   }),
-  async execute({ workflow_id, id }) {
-    const removed = getPuckAgentHandler(workflow_id).removeResource(id);
+  async execute({ application_id, id }) {
+    const removed = getPuckAgentHandler(application_id).removeResource(id);
     return { ok: removed, removed_id: removed ? id : null };
   }
 });
@@ -526,11 +528,11 @@ FrontendToolRegistry.register({
     "Call this before binding a widget instead of guessing a name. An " +
     "operation over a workflow this editor has not loaded reports " +
     "ioAvailable: false and no node lists.",
-  parameters: z.object({ workflow_id: workflowIdParam }),
-  async execute({ workflow_id }) {
+  parameters: z.object({ application_id: applicationIdParam }),
+  async execute({ application_id }) {
     return {
       ok: true,
-      ...getPuckAgentHandler(workflow_id).getBindingTargets()
+      ...getPuckAgentHandler(application_id).getBindingTargets()
     };
   }
 });
@@ -539,11 +541,11 @@ FrontendToolRegistry.register({
   name: "ui_app_set_title",
   description: "Set the app's page title (shown at the top of the app).",
   parameters: z.object({
-    workflow_id: workflowIdParam,
+    application_id: applicationIdParam,
     title: z.string()
   }),
-  async execute({ workflow_id, title }) {
-    getPuckAgentHandler(workflow_id).setRootProps({ title });
+  async execute({ application_id, title }) {
+    getPuckAgentHandler(application_id).setRootProps({ title });
     return { ok: true, title };
   }
 });

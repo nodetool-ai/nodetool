@@ -32,6 +32,8 @@ import {
 } from "../../ui_primitives";
 
 interface PuckAppEditorProps {
+  /** The application being edited — the id the agent's `ui_app_*` tools take. */
+  applicationId: string;
   workflow: Workflow;
   data: Data;
   onPublish: (data: Data) => void;
@@ -152,6 +154,7 @@ const PreviewWidthToggle: React.FC<{
  * an inert design-mode runtime so widget previews render without running.
  */
 const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
+  applicationId,
   workflow,
   data,
   onPublish,
@@ -172,7 +175,7 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
   );
   const designRuntime = useAppRuntime(workflow, true);
   // Property components resolved by WorkflowInputWidget (AudioProperty) read
-  // the workflow's node store via NodeContext — same wrap as WorkflowAppView.
+  // the workflow's node store via NodeContext — same wrap as the runtime view.
   const nodeStore = useWorkflowManager((s) => s.nodeStores[workflow.id]);
   const [previewWidth, setPreviewWidth] = useState<PreviewWidth>("fit");
 
@@ -183,6 +186,7 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
           {/* Lets the agent's ui_app_* tools drive this editor. Renders nothing. */}
           <PuckAgentBinder
             config={appConfig}
+            applicationId={applicationId}
             workflowId={workflow.id}
             meta={meta}
             onMetaChange={handleMetaChange}
@@ -217,6 +221,7 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
       )
     }),
     [
+      applicationId,
       onClose,
       onPublish,
       onToggleAgent,

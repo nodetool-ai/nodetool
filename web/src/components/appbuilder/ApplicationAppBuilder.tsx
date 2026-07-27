@@ -32,7 +32,7 @@ export interface ApplicationAppBuilderProps {
 /**
  * A workflow-shaped stand-in for an app that has no operation bound yet, so a
  * brand-new app still opens on a canvas. It contributes no bindable inputs or
- * outputs; the id keeps the agent bridge's per-editor key unique.
+ * outputs.
  */
 const placeholderWorkflow = (id: string, name: string): Workflow => ({
   id,
@@ -147,6 +147,7 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
   return (
     <AppBuilderShell
       key={`${applicationId}:${seed}`}
+      applicationId={applicationId}
       document={document}
       workflow={editorWorkflow}
       agentWorkflowId={workflow?.id}

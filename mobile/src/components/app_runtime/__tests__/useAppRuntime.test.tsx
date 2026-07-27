@@ -50,7 +50,7 @@ jest.mock("../../../services/api", () => ({
 }));
 
 import { useAppRuntime } from "../useAppRuntime";
-import { disposeAppRuntimeStore, workflowInstanceId } from "../appRuntimeStore";
+import { disposeAppRuntimeStore, appInstanceId } from "../appRuntimeStore";
 import { variableStorageKey } from "../variablePersistence";
 
 const makeWorkflow = (id: string): Workflow =>
@@ -102,7 +102,7 @@ const doc = (
 });
 
 const renderRuntime = (workflowId: string, document: ApplicationDocument) => {
-  disposeAppRuntimeStore(workflowInstanceId(workflowId));
+  disposeAppRuntimeStore(appInstanceId(workflowId));
   return renderHook(() =>
     useAppRuntime(makeWorkflow(workflowId), { document })
   );
@@ -219,7 +219,7 @@ describe("variable defaults and persistence", () => {
       });
     });
 
-    const key = variableStorageKey(workflowInstanceId("wf-persist"));
+    const key = variableStorageKey(appInstanceId("wf-persist"));
     await waitFor(async () =>
       expect(JSON.parse((await AsyncStorage.getItem(key)) ?? "{}")).toEqual({
         tone: "casual",

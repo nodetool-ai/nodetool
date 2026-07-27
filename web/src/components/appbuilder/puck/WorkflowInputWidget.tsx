@@ -47,6 +47,8 @@ import { useWidgetRuntime } from "./useWidgetRuntime";
 export interface WorkflowInputWidgetProps {
   id: string;
   binding?: string;
+  /** Overrides the input node's own name — app wording beats graph wording. */
+  label?: string;
   events?: AppEvent[];
 }
 
@@ -200,7 +202,7 @@ const InputControl: React.FC<{
 export const WorkflowInputWidget: React.FC<WorkflowInputWidgetProps> = (
   props
 ) => {
-  const { io } = useAppRuntimeContext();
+  const { ioFor } = useAppRuntimeContext();
   const ref = useBindingRef(props.binding, "write");
   const { value, setValue, emit } = useWidgetRuntime({
     id: props.id,
@@ -209,15 +211,20 @@ export const WorkflowInputWidget: React.FC<WorkflowInputWidgetProps> = (
     events: props.events
   });
 
+  // An app binds several workflows, so the node lives in the graph of the
+  // operation the binding names — not necessarily the default one.
+  const io = ioFor(ref?.kind === "input" ? ref.operationId : undefined);
+
   // The binding resolves to a node ID; a legacy document's bare name resolves
   // through the scope, and only a scope-less surface falls back to the name.
-  const input = useMemo(
-    () =>
+  const input = useMemo(() => {
+    const found =
       ref?.kind === "input"
         ? io.inputs.find((i) => i.nodeId === ref.nodeId)
-        : io.inputs.find((i) => i.name === props.binding),
-    [io.inputs, props.binding, ref]
-  );
+        : io.inputs.find((i) => i.name === props.binding);
+    if (!found || !props.label) return found;
+    return { ...found, name: props.label, label: props.label };
+  }, [io.inputs, props.binding, props.label, ref]);
 
   if (!input) {
     return (
@@ -277,7 +284,9 @@ export const FixedKindInputWidget: React.FC<
     () => ({
       nodeId: props.id,
       nodeType: FIXED_KIND_NODE_TYPE[kind],
-      name: props.binding || props.id,
+      // The control labels itself from `name`, so the widget's own label wins
+      // over the raw binding token.
+      name: props.label || props.binding || props.id,
       label: props.label || props.binding || kind,
       kind,
       description: props.description

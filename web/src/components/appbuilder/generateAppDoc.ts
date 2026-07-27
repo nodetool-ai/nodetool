@@ -1,19 +1,17 @@
 /**
- * Auto-generates a Puck app document from a workflow graph: one WorkflowInput
- * widget per Input node, a Run button, a Progress bar, and a display widget per
- * Output node picked by output type. Mirrors the template generator's layout
- * (Try-it panel + Results panel in two columns) and its deterministic
- * slug-based ids, so regenerating the same graph yields the same doc.
+ * Scaffolds a Puck layout from a workflow graph: one WorkflowInput widget per
+ * Input node, a Run button, a Progress bar, and a display widget per Output
+ * node picked by output type. Deterministic slug-based ids, so scaffolding the
+ * same graph twice yields the same layout.
+ *
+ * This is an editor convenience inside an app the user already created — it
+ * fills a blank canvas. Nothing here persists a document; apps live in the
+ * `applications` table.
  */
 import type { Data } from "@puckeditor/core";
 
 import { Workflow } from "../../stores/ApiTypes";
 import { extractWorkflowIO, WorkflowOutputIO } from "./workflowIO";
-import { AppDocument } from "./appData";
-import {
-  APP_SCHEMA_VERSION,
-  DEFAULT_OPERATION_ID
-} from "@nodetool-ai/app-runtime";
 import type { ComponentNode } from "./puck/puckDataOps";
 
 const slugify = (name: string): string =>
@@ -169,20 +167,3 @@ export const generateAppData = (workflow: Workflow): Data => {
     zones: {}
   } as Data;
 };
-
-export const generateAppDoc = (workflow: Workflow): AppDocument => ({
-  schemaVersion: APP_SCHEMA_VERSION,
-  ui: generateAppData(workflow),
-  operations: [
-    {
-      id: DEFAULT_OPERATION_ID,
-      name: "Run",
-      workflowId: workflow.id,
-      inputs: {},
-      outputs: {},
-      policy: "replace"
-    }
-  ],
-  resources: [],
-  variables: []
-});

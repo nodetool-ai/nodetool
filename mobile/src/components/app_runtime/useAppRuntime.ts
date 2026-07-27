@@ -46,7 +46,7 @@ import { AppRuntimeContextValue } from "./AppRuntimeContext";
 import {
   AppRuntimeStore,
   getAppRuntimeStore,
-  workflowInstanceId,
+  appInstanceId,
 } from "./appRuntimeStore";
 import {
   extractVariableNames,
@@ -81,23 +81,27 @@ interface PendingStart {
 
 export interface AppRuntimeOptions {
   /**
-   * The app document, when the app has one. A legacy app running straight off
-   * a workflow gets a synthesized single-operation document instead, so both
-   * shapes take one code path.
+   * The app document. A document with no operations gets a synthesized one
+   * bound to the loaded workflow, so both shapes take one code path.
    */
   document?: ApplicationDocument;
+  /**
+   * What the instance's state (and its persisted variables) is keyed by —
+   * the application id. Defaults to the workflow id.
+   */
+  instanceKey?: string;
 }
 
 export const useAppRuntime = (
   workflow: Workflow | undefined,
   options: AppRuntimeOptions = {}
 ): AppRuntimeContextValue => {
-  const { document } = options;
+  const { document, instanceKey } = options;
   const workflowId = workflow?.id;
   const io = useMemo(() => extractWorkflowIO(workflow), [workflow]);
 
-  // Every operation a widget's run/cancel can name. A legacy app running
-  // straight off a workflow gets the one implicit operation.
+  // Every operation a widget's run/cancel can name. A document that declares
+  // none gets the one implicit operation over the loaded workflow.
   const operations: OperationBinding[] = useMemo(
     () =>
       document?.operations.length
@@ -110,12 +114,12 @@ export const useAppRuntime = (
   /**
    * Mobile holds exactly one workflow per app screen.
    *
-   * A document whose operations all name one workflow *is* this screen's app —
-   * it is stored on the workflow it was opened from — so it runs the loaded
-   * graph even when the id it carries is stale (a copied workflow keeps the
-   * original's app document). Only a document that mixes several workflows can
-   * name one this screen does not hold, and that operation refuses to run
-   * rather than running the loaded graph under another operation's name.
+   * A document whose operations all name one workflow is running that one, so
+   * it runs the loaded graph even when the id it carries is stale (a copied
+   * workflow keeps the original id). Only a document that mixes several
+   * workflows can name one this screen does not hold, and that operation
+   * refuses to run rather than running the loaded graph under another
+   * operation's name.
    */
   const isRunnable = useMemo(() => {
     const workflowIds = new Set(
@@ -186,7 +190,9 @@ export const useAppRuntime = (
     []
   );
 
-  const instanceId = workflowInstanceId(workflowId ?? "__app_runtime__");
+  const instanceId = appInstanceId(
+    instanceKey ?? workflowId ?? "__app_runtime__"
+  );
 
   // Kept in the instance registry so values survive an editor↔app toggle.
   const store: AppRuntimeStore = useMemo(() => {

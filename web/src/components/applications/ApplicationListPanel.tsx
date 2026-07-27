@@ -307,8 +307,9 @@ export const CreateApplicationButton = memo(function CreateApplicationButton() {
 });
 
 /**
- * Creates an app from a workflow's legacy `app_doc`, binding that workflow as
- * the app's first operation.
+ * One-way scaffold: creates a new app bound to the picked workflow as its
+ * first operation. The app is a real, separate resource from that moment on —
+ * nothing syncs back to the workflow.
  */
 export const CreateApplicationFromWorkflowButton = memo(
   function CreateApplicationFromWorkflowButton() {
@@ -342,9 +343,9 @@ export const CreateApplicationFromWorkflowButton = memo(
 
     return (
       <>
-        <Tooltip title="New app from workflow" placement="right-start">
+        <Tooltip title="Create app from workflow" placement="right-start">
           <ToolbarIconButton
-            ariaLabel="New app from workflow"
+            ariaLabel="Create app from workflow"
             onClick={() => setOpen(true)}
             tabIndex={-1}
             icon={<AccountTreeOutlinedIcon />}
@@ -353,7 +354,7 @@ export const CreateApplicationFromWorkflowButton = memo(
         <Dialog
           open={open}
           onClose={() => setOpen(false)}
-          title="New app from workflow"
+          title="Create app from workflow"
         >
           <div css={pickerStyles()}>
             {isLoading ? (
@@ -583,7 +584,7 @@ const ApplicationListPanel = () => {
             description={
               filterValue
                 ? "Try a different search term."
-                : "Create an app with the + button above, or build one from a workflow."
+                : "Create an app with the + button above, or scaffold one from a workflow."
             }
           />
         </FlexColumn>

@@ -27,6 +27,8 @@ function writeValidBundle(dir: string): void {
   }
   fs.mkdirSync(path.join(dir, "examples", "nodetool-base"), { recursive: true });
   fs.writeFileSync(path.join(dir, "examples", "nodetool-base", "hello.json"), "{}");
+  fs.mkdirSync(path.join(dir, "examples", "apps"), { recursive: true });
+  fs.writeFileSync(path.join(dir, "examples", "apps", "hello.app.json"), "{}");
   fs.mkdirSync(path.join(dir, "assets", "nodetool-base"), { recursive: true });
   fs.writeFileSync(path.join(dir, "assets", "nodetool-base", "hello.jpg"), "x");
   fs.mkdirSync(path.join(dir, "_modules", "webgpu", "dist"), { recursive: true });
@@ -84,6 +86,13 @@ describe("verify-backend-bundle", () => {
     const { status, output } = runVerify(tempDir);
     expect(status).toBe(1);
     expect(output).toContain("examples/nodetool-base");
+  });
+
+  it("fails when example apps are missing", () => {
+    fs.rmSync(path.join(tempDir, "examples", "apps"), { recursive: true });
+    const { status, output } = runVerify(tempDir);
+    expect(status).toBe(1);
+    expect(output).toContain("examples/apps");
   });
 
   it("fails when package assets are missing", () => {

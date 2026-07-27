@@ -1,9 +1,7 @@
 import {
   generateAppData,
-  generateAppDoc,
   displayWidgetForOutput
 } from "../generateAppDoc";
-import { APP_SCHEMA_VERSION } from "../appData";
 import type { ComponentNode } from "../puck/puckDataOps";
 import { Workflow } from "../../../stores/ApiTypes";
 
@@ -139,14 +137,5 @@ describe("generateAppData", () => {
     );
     const ids = results.map((n) => n.props.id);
     expect(new Set(ids).size).toBe(ids.length);
-  });
-});
-
-describe("generateAppDoc", () => {
-  it("wraps the layout in a schema-versioned application document", () => {
-    const doc = generateAppDoc(makeWorkflow(graph));
-    expect(doc.schemaVersion).toBe(APP_SCHEMA_VERSION);
-    expect(doc.ui.content).toHaveLength(1);
-    expect(doc.operations).toHaveLength(1);
   });
 });

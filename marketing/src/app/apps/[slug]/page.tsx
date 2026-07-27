@@ -150,6 +150,11 @@ export default async function MiniAppPage({
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-400">
               {tagline}
             </p>
+            {entry.note && (
+              <p className="mt-4 max-w-2xl rounded-xl border border-white/10 bg-slate-900/40 px-4 py-3 text-sm leading-relaxed text-slate-400">
+                {entry.note}
+              </p>
+            )}
             <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
               <SmartDownloadButton
                 icon={<Download className="h-5 w-5" />}
@@ -160,7 +165,9 @@ export default async function MiniAppPage({
                 className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#0a0a14]/70 px-8 py-3.5 text-sm font-semibold text-white transition-all hover:border-white/25 hover:bg-white/5"
               >
                 <Workflow className="h-4 w-4" />
-                See the workflow behind it
+                {entry.workflows.length > 1
+                  ? `See the ${entry.workflows.length} workflows behind it`
+                  : "See the workflow behind it"}
               </a>
             </div>
           </div>
@@ -274,17 +281,22 @@ export default async function MiniAppPage({
                 It&apos;s an app until you want more
               </h2>
               <p className="mt-4 max-w-2xl leading-relaxed text-slate-300">
-                Every mini app is a real NodeTool workflow underneath. Open the
-                canvas to swap models, change prompts, or add steps — then
-                publish your remix as a new app for your team.
+                {entry.workflows.length > 1
+                  ? "Every screen in this app runs a real NodeTool workflow. Open any of them on the canvas to swap models, change prompts, or add steps — then publish your remix as a new app for your team."
+                  : "Every mini app is a real NodeTool workflow underneath. Open the canvas to swap models, change prompts, or add steps — then publish your remix as a new app for your team."}
               </p>
-              <a
-                href={entry.templateRoute}
-                className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-sky-400 transition-colors hover:text-sky-300"
-              >
-                Explore the {entry.name} workflow
-                <ArrowRight className="h-4 w-4" />
-              </a>
+              <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3">
+                {entry.workflows.map((workflow) => (
+                  <a
+                    key={workflow.slug}
+                    href={workflow.route}
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-sky-400 transition-colors hover:text-sky-300"
+                  >
+                    Explore the {workflow.name} workflow
+                    <ArrowRight className="h-4 w-4" />
+                  </a>
+                ))}
+              </div>
             </div>
           </div>
         </section>

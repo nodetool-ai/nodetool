@@ -25,6 +25,22 @@ jest.mock("../../../hooks/useApplications", () => ({
   })
 }));
 
+const openTab = jest.fn();
+jest.mock("../../../stores/WorkspaceTabsStore", () => ({
+  tabId: (type: string, ref: string) => `${type}:${ref}`,
+  useWorkspaceTabsStore: (selector: (s: unknown) => unknown) =>
+    selector({ openTab, activeTabId: "application:app-1" })
+}));
+
+const linkedProps = jest.fn();
+jest.mock("../LinkedWorkflowsMenu", () => ({
+  __esModule: true,
+  default: (props: { applicationId: string; active?: boolean }) => {
+    linkedProps(props);
+    return <div data-testid="linked-workflows">{props.applicationId}</div>;
+  }
+}));
+
 jest.mock("../../appbuilder/ApplicationAppBuilder", () => ({
   __esModule: true,
   default: ({ applicationId }: { applicationId: string }) => (
@@ -69,6 +85,16 @@ describe("ApplicationSurface", () => {
 
     expect(screen.getByTestId("governance")).toHaveTextContent("app-1");
     expect(screen.queryByTestId("app-builder")).not.toBeInTheDocument();
+  });
+
+  it("links its workflows without opening one", () => {
+    renderSurface();
+
+    expect(screen.getByTestId("linked-workflows")).toHaveTextContent("app-1");
+    expect(linkedProps).toHaveBeenCalledWith(
+      expect.objectContaining({ applicationId: "app-1", active: true })
+    );
+    expect(openTab).not.toHaveBeenCalled();
   });
 
   it("reports an app that could not be loaded", () => {

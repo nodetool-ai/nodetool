@@ -92,7 +92,11 @@ export default async function TemplatePage({
 
   const steps = runSteps(entry);
   const related = relatedTemplates(entry, templateEntries, 9);
-  const miniApp = miniAppEntries.find((a) => a.slug === entry.slug);
+  // A curated mini app binds several templates, so the link back runs through
+  // the app's workflow list rather than a shared slug.
+  const miniApp = miniAppEntries.find((a) =>
+    a.workflows.some((w) => w.slug === entry.slug),
+  );
   const summary =
     entry.summary ||
     `${entry.name} is a ready-to-run NodeTool workflow. Open it in Studio, connect your keys, and run it — then edit any node to make it yours.`;

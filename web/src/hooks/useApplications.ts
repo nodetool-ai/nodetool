@@ -7,9 +7,19 @@
  * released pointer, and a budget change moves usage.
  */
 
+import { useMemo } from "react";
+import { useQueries } from "@tanstack/react-query";
+import {
+  parseApplicationDocument,
+  type OperationBinding
+} from "@nodetool-ai/app-runtime";
+
 import { trpc } from "../trpc/client";
+import { fetchWorkflowById, workflowQueryKey } from "../serverState/useWorkflow";
+import type { Workflow } from "../stores/ApiTypes";
 
 const LIST_STALE_TIME = 30_000;
+const WORKFLOW_STALE_TIME = 60_000;
 
 /**
  * True when a mutation lost the `baseUpdatedAt` compare-and-set — the record
@@ -132,3 +142,96 @@ export const useApplicationUsage = (id: string | null | undefined) =>
 /** Recent runs of the released app, newest first. */
 export const useApplicationInvocations = (id: string | null | undefined) =>
   trpc.applications.invocations.useQuery({ id: id ?? "" }, { enabled: !!id });
+
+/**
+ * One workflow an app's operations bind, as the app surface presents it: the
+ * live workflow (name + graph, prefetched in the background), which operations
+ * use it, and whether the current release pinned its graph.
+ */
+export interface LinkedWorkflow {
+  workflowId: string;
+  /** Live name, or the id while loading / when the workflow is gone. */
+  name: string;
+  /** Every operation of the app that runs this workflow. */
+  operations: Array<{ id: string; name: string }>;
+  /** Graph version the release froze, null when nothing is pinned. */
+  pinnedVersion: number | null;
+  /** True when the released snapshot carries a frozen graph for it. */
+  isPinned: boolean;
+  isLoading: boolean;
+  /** Set when the workflow could not be loaded — a broken link. */
+  error: Error | null;
+}
+
+const operationsOf = (document: unknown): OperationBinding[] =>
+  parseApplicationDocument(document)?.operations ?? [];
+
+/**
+ * The workflows an app links, with their graphs fetched in the background.
+ *
+ * Graphs are read under the shared `["workflow", id]` key, so a link that the
+ * app surface prefetched is already in cache when the user opens the workflow
+ * in its own tab — the fetch happens once per workflow, not once per surface.
+ * `enabled` is the app tab's focus: an app sitting in a background tab costs
+ * nothing.
+ */
+export const useLinkedWorkflows = (
+  applicationId: string | null | undefined,
+  enabled = true
+): { links: LinkedWorkflow[]; isLoading: boolean } => {
+  const { data: application } = useApplication(applicationId);
+  const { data: release } = useReleasedApplicationDocument(applicationId);
+
+  const operations = useMemo(
+    () => operationsOf(application?.document),
+    [application?.document]
+  );
+
+  const workflowIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const operation of operations) {
+      if (operation.workflowId) ids.add(operation.workflowId);
+    }
+    return [...ids].sort();
+  }, [operations]);
+
+  const results = useQueries({
+    queries: workflowIds.map((id) => ({
+      queryKey: workflowQueryKey(id),
+      queryFn: () => fetchWorkflowById(id),
+      enabled: enabled && Boolean(applicationId),
+      staleTime: WORKFLOW_STALE_TIME,
+      retry: false
+    }))
+  });
+
+  const pins = useMemo(() => {
+    const map = new Map<string, { version: number | null; pinned: boolean }>();
+    for (const pinned of release?.workflows ?? []) {
+      map.set(pinned.workflowId, {
+        version: pinned.version ?? null,
+        pinned: pinned.graph !== null && pinned.graph !== undefined
+      });
+    }
+    return map;
+  }, [release?.workflows]);
+
+  const links = workflowIds.map((id, index) => {
+    const result = results[index];
+    const workflow = result?.data as Workflow | undefined;
+    const pin = pins.get(id);
+    return {
+      workflowId: id,
+      name: workflow?.name || id,
+      operations: operations
+        .filter((operation) => operation.workflowId === id)
+        .map((operation) => ({ id: operation.id, name: operation.name })),
+      pinnedVersion: pin?.version ?? null,
+      isPinned: pin?.pinned ?? false,
+      isLoading: result?.isLoading ?? false,
+      error: (result?.error as Error | null) ?? null
+    };
+  });
+
+  return { links, isLoading: results.some((result) => result.isLoading) };
+};

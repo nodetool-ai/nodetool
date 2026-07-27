@@ -189,6 +189,54 @@ export const patchApplicationInput = z
   });
 export type PatchApplicationInput = z.infer<typeof patchApplicationInput>;
 
+// ── Application bundle ──────────────────────────────────────────────────────
+// The interchange format for examples, export, and import. Mirrors
+// `ApplicationBundle` in `@nodetool-ai/app-runtime`: one JSON document
+// carrying an app plus the full graph of every workflow its operations bind.
+// Inside a bundle an operation's `workflowId` holds `workflows[].key`, not a
+// real id; import creates the workflows and rewrites the keys. An
+// asset-carrying bundle is this JSON inside the existing `.nodetool` zip,
+// with graph refs left as `bundle://`.
+
+export const APPLICATION_BUNDLE_SCHEMA_VERSION = 1;
+
+export const bundledWorkflow = z.object({
+  /** Bundle-local id the app's operations reference in place of a workflow id. */
+  key: z.string().min(1),
+  name: z.string(),
+  description: z.string().optional(),
+  graph,
+  /**
+   * A stable identity for this workflow across installs. An importer that
+   * already has the workflow this names reuses it instead of creating a
+   * duplicate row, which is what lets two shipped example apps bind the same
+   * template. Absent on a hand-exported bundle, which always creates fresh
+   * workflows.
+   */
+  sourceId: z.string().optional(),
+  /** What the release pinned; null for a draft export, which pins nothing. */
+  version: z.number().nullable().default(null),
+  graphHash: z.string().nullable().default(null)
+});
+export type BundledWorkflowSchema = z.infer<typeof bundledWorkflow>;
+
+export const applicationBundle = z.object({
+  schemaVersion: z.number().default(APPLICATION_BUNDLE_SCHEMA_VERSION),
+  name: z.string().default("Untitled app"),
+  description: z.string().default(""),
+  app: applicationDocument,
+  workflows: z.array(bundledWorkflow).default([])
+});
+export type ApplicationBundleSchema = z.infer<typeof applicationBundle>;
+
+export const importApplicationBundleInput = z.object({
+  bundle: applicationBundle,
+  projectId: z.string().default("default")
+});
+export type ImportApplicationBundleInput = z.infer<
+  typeof importApplicationBundleInput
+>;
+
 // ── Budgets and release telemetry ───────────────────────────────────────────
 
 export const budgetPeriod = z.enum(["day", "month", "total"]);

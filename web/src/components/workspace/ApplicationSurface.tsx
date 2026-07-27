@@ -3,7 +3,9 @@ import { memo, useCallback, useState, type MouseEvent } from "react";
 import ApplicationGovernancePanel from "../applications/ApplicationGovernancePanel";
 import ApplicationAppBuilder from "../appbuilder/ApplicationAppBuilder";
 import ApplicationRunView from "../appbuilder/ApplicationRunView";
+import LinkedWorkflowsMenu from "./LinkedWorkflowsMenu";
 import { useApplication } from "../../hooks/useApplications";
+import { tabId, useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import {
   Box,
   Caption,
@@ -31,6 +33,11 @@ type ApplicationView = "design" | "run" | "settings";
 const ApplicationSurface = ({ refId }: ApplicationSurfaceProps) => {
   const { data: application, isLoading, isError, error } = useApplication(refId);
   const [view, setView] = useState<ApplicationView>("design");
+  // Background tabs stay mounted, so the linked graphs only load once this
+  // app is the focused tab.
+  const isActiveTab = useWorkspaceTabsStore(
+    (state) => state.activeTabId === tabId("application", refId)
+  );
 
   const handleViewChange = useCallback(
     (_event: MouseEvent<HTMLElement>, next: ApplicationView | null) => {
@@ -77,17 +84,20 @@ const ApplicationSurface = ({ refId }: ApplicationSurfaceProps) => {
             </Caption>
           )}
         </Box>
-        <ToggleGroup
-          segmented
-          exclusive
-          value={view}
-          onChange={handleViewChange}
-          aria-label="App view"
-        >
-          <ToggleOption value="design">Design</ToggleOption>
-          <ToggleOption value="run">Run</ToggleOption>
-          <ToggleOption value="settings">Settings</ToggleOption>
-        </ToggleGroup>
+        <FlexRow align="center" gap={SPACING.sm}>
+          <LinkedWorkflowsMenu applicationId={application.id} active={isActiveTab} />
+          <ToggleGroup
+            segmented
+            exclusive
+            value={view}
+            onChange={handleViewChange}
+            aria-label="App view"
+          >
+            <ToggleOption value="design">Design</ToggleOption>
+            <ToggleOption value="run">Run</ToggleOption>
+            <ToggleOption value="settings">Settings</ToggleOption>
+          </ToggleGroup>
+        </FlexRow>
       </FlexRow>
       <Box sx={{ flex: 1, minHeight: 0 }}>
         {view === "design" ? (

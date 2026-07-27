@@ -30,9 +30,12 @@ export const createAppRuntimeStore = (initial?: Partial<AppInstanceState>) =>
 
 const appRuntimeStores = new Map<string, AppRuntimeStore>();
 
-/** The instance id an app opened over a workflow uses. */
-export const workflowInstanceId = (workflowId: string): string =>
-  `app:${workflowId}`;
+/**
+ * The instance id one open app uses. The key is the application id, so two
+ * apps binding the same workflow keep separate state (and separate persisted
+ * variables).
+ */
+export const appInstanceId = (key: string): string => `app:${key}`;
 
 export const getAppRuntimeStore = (instanceId: string): AppRuntimeStore => {
   let store = appRuntimeStores.get(instanceId);

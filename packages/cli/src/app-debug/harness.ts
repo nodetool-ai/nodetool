@@ -12,7 +12,7 @@
  */
 import { mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { resolveTarget } from "../debug/target.js";
+import { resolveAppTarget, type AppTargetDeps } from "./app-target.js";
 import { previewValue } from "../debug/collector.js";
 import type {
   DebugGraph,
@@ -33,7 +33,6 @@ import {
   documentOperations,
   extractAppIO,
   operationSpec,
-  parseAppDocument,
   parseAppSpec,
   validateApp,
   type AppContext
@@ -55,10 +54,15 @@ import type {
 } from "./types.js";
 
 export interface AppDebugDeps {
-  /** Load a workflow by DB id, including its `app_doc`. */
+  /** Load a workflow by DB id, including its legacy `app_doc`. */
   loadFromDb: (
     id: string
   ) => Promise<{ graph: DebugGraph; app_doc?: unknown } | null>;
+  /**
+   * Load an application by DB id. Without it a bare id is only ever read as a
+   * workflow, which is what a caller with no database wants.
+   */
+  loadApplication?: AppTargetDeps["loadApplication"];
   /** Progress/log sink. */
   onLog?: (line: string) => void;
   /** Injected for tests; defaults to the kernel server runner. */
@@ -266,13 +270,18 @@ function buildAppVerdict(
   return { ok, headline, issues, warnings };
 }
 
-/** The graph an operation runs, resolved against the host or the database. */
+/**
+ * The graph an operation runs: one the target carries (a bundle's workflows,
+ * the host workflow), else the database.
+ */
 async function resolveOperationGraph(
   operation: OperationBinding,
-  host: { workflowId: string | null; graph: DebugGraph },
+  host: { workflowId: string | null; graph: DebugGraph; graphs: Map<string, DebugGraph> },
   loadFromDb: AppDebugDeps["loadFromDb"]
 ): Promise<{ graph: DebugGraph | null; unavailable: string | null }> {
   const target = operation.workflowId;
+  const carried = host.graphs.get(target);
+  if (carried) return { graph: carried, unavailable: null };
   if (!target || target === "self" || target === host.workflowId) {
     return { graph: host.graph, unavailable: null };
   }
@@ -301,7 +310,10 @@ export async function runAppDebug(
   const log = deps.onLog ?? (() => {});
   const allowRuns = options.run ?? true;
 
-  const resolved = await resolveTarget(ref, deps.loadFromDb);
+  const resolved = await resolveAppTarget(ref, {
+    loadFromDb: deps.loadFromDb,
+    ...(deps.loadApplication ? { loadApplication: deps.loadApplication } : {})
+  });
   const outDir = options.outDir ? resolve(options.outDir) : defaultOutDir(ref);
   await mkdir(join(outDir, "server"), { recursive: true });
   await writeFile(
@@ -318,8 +330,9 @@ export async function runAppDebug(
   }
 
   const io = extractAppIO(resolved.graph);
-  // Parsed up front to resolve operations; `parseAppSpec` reports any issue.
-  const { document } = parseAppDocument(resolved.appDoc);
+  // The target loader already parsed the document; `parseAppSpec` reports any
+  // issue it hit.
+  const document = resolved.document;
 
   // Resolve every declared operation against a real graph before parsing the
   // widgets: a binding into a second operation resolves against that
@@ -336,7 +349,11 @@ export async function runAppDebug(
     for (const binding of documentOperations(document)) {
       const { graph, unavailable } = await resolveOperationGraph(
         binding,
-        { workflowId: resolved.info.workflowId, graph: resolved.graph },
+        {
+          workflowId: resolved.info.workflowId,
+          graph: resolved.graph,
+          graphs: resolved.graphs
+        },
         deps.loadFromDb
       );
       const operationIO: AppIO | null =
@@ -354,7 +371,8 @@ export async function runAppDebug(
   const { spec, issues: parseIssues, warnings: parseWarnings } = parseAppSpec(
     resolved.appDoc,
     io,
-    document ? context : undefined
+    document ? context : undefined,
+    { document, issue: resolved.issue }
   );
   const validation = spec
     ? validateApp(spec, io, context)
@@ -366,7 +384,13 @@ export async function runAppDebug(
     generatedAt: new Date().toISOString(),
     target: resolved.info,
     app: spec
-      ? { version: spec.version, title: spec.title, widgetCount: spec.widgets.length }
+      ? {
+          version: spec.version,
+          // A document keeps its title in the Puck root; an application row
+          // keeps it as the row's name.
+          title: spec.title ?? resolved.appName,
+          widgetCount: spec.widgets.length
+        }
       : null,
     spec,
     io: {
@@ -456,7 +480,13 @@ export async function runAppDebug(
                 runWorkflow(
                   op.id,
                   graph,
-                  graph === resolved.graph ? resolved.info.workflowId : op.workflowId,
+                  // A bundle's operations name bundle-local keys, so there is
+                  // no workflow id to attribute the run to.
+                  resolved.operationsReferenceKeys
+                    ? null
+                    : graph === resolved.graph
+                      ? resolved.info.workflowId
+                      : op.workflowId,
                   timeoutMs,
                   params
                 )

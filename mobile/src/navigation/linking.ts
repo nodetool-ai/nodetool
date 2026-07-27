@@ -45,6 +45,8 @@ export const linking: LinkingOptions<RootStackParamList> = {
       Chat: 'chat/:threadId?',
       Threads: 'threads',
       Documents: 'documents',
+      Apps: 'apps',
+      App: 'app/:applicationId',
       // Specific document kinds first — `document/:kind/:id` would otherwise
       // swallow all of them.
       StoryboardEditor: 'document/storyboard/:id',

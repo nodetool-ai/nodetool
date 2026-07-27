@@ -84,14 +84,8 @@ import ChatComposerLayout from "./components/chat/containers/ChatComposerLayout"
 const GlobalChat = React.lazy(
   () => import("./components/chat/containers/GlobalChat")
 );
-const WorkflowAppView = React.lazy(
-  () => import("./components/appbuilder/WorkflowAppView")
-);
 const AcceptSharePage = React.lazy(
   () => import("./components/workflows/AcceptSharePage")
-);
-const AppBuilderPage = React.lazy(
-  () => import("./components/appbuilder/AppBuilderPage")
 );
 const ModelsPage = React.lazy(
   () => import("./components/hugging_face/model_list/ModelsPage")
@@ -146,10 +140,10 @@ const SketchEditorPage = React.lazy(
 const WorkspaceShell = React.lazy(
   () => import("./components/workspace/WorkspaceShell")
 );
-import {
-  WorkflowEditorRedirect,
-  WorkflowAppRedirect
-} from "./components/workspace/RouteRedirects";
+import { WorkflowEditorRedirect } from "./components/workspace/RouteRedirects";
+const LegacyAppRedirect = React.lazy(
+  () => import("./components/applications/LegacyAppRedirect")
+);
 
 // Defer frontend tool registrations until after initial render. The module list
 // lives in builtin/index.ts so this path and the agent WebSocket bridge
@@ -289,19 +283,13 @@ function getRoutes() {
       element: <Login />
     },
     {
-      path: "/apps/:workflowId?",
-      element: (
-        <ProtectedRoute>
-          <WorkflowAppRedirect />
-        </ProtectedRoute>
-      )
-    },
-    {
+      // Legacy links keyed by workflow id. An app is its own resource now, so
+      // these resolve to the app built on that workflow, or 404.
       path: "/miniapp/:workflowId",
       element: (
         <ProtectedRoute>
           <React.Suspense fallback={<LoadingSpinner />}>
-            <WorkflowAppView />
+            <LegacyAppRedirect />
           </React.Suspense>
         </ProtectedRoute>
       )
@@ -313,25 +301,6 @@ function getRoutes() {
           <React.Suspense fallback={<LoadingSpinner />}>
             <AcceptSharePage />
           </React.Suspense>
-        </ProtectedRoute>
-      )
-    },
-    {
-      path: "/app-builder/:workflowId",
-      element: (
-        <ProtectedRoute>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              width: "100%",
-              height: "100%"
-            }}
-          >
-            <React.Suspense fallback={<LoadingSpinner />}>
-              <AppBuilderPage />
-            </React.Suspense>
-          </div>
         </ProtectedRoute>
       )
     },

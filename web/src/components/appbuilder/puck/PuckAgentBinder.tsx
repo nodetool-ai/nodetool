@@ -37,7 +37,12 @@ import type { WorkflowState } from "../workflowState";
 
 interface PuckAgentBinderProps {
   config: Config;
-  /** Workflow whose `app_doc` this editor is editing — the app's identity. */
+  /** The application this editor is editing — the app's identity. */
+  applicationId: string;
+  /**
+   * Host workflow whose inputs and outputs `getBindingTargets` resolves node
+   * ids against. Not the app's identity; an app may bind several workflows.
+   */
   workflowId: string;
   /** Operations, variables, and resources of the document being edited. */
   meta: AppDocMeta;
@@ -48,6 +53,7 @@ interface PuckAgentBinderProps {
 
 const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
   config,
+  applicationId,
   workflowId,
   meta,
   onMetaChange,
@@ -86,7 +92,7 @@ const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
 
     const handler: PuckAgentHandler = {
       getSnapshot: () => ({
-        workflowId,
+        applicationId,
         rootProps: (working.current.root.props ?? {}) as Record<string, unknown>,
         selectedId:
           (puckRef.current.selectedItem?.props.id as string | undefined) ?? null,
@@ -217,18 +223,18 @@ const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
         bindingTargets(metaRef.current, workflowId, workflowStateRef.current)
     };
 
-    setPuckAgentHandler(workflowId, handler);
+    setPuckAgentHandler(applicationId, handler);
     return () => {
-      // Only clear our own registration — a second editor for the same workflow
+      // Only clear our own registration — a second editor for the same app
       // may have taken the slot over in the meantime.
       if (
-        hasPuckAgentHandler(workflowId) &&
-        getPuckAgentHandler(workflowId) === handler
+        hasPuckAgentHandler(applicationId) &&
+        getPuckAgentHandler(applicationId) === handler
       ) {
-        setPuckAgentHandler(workflowId, null);
+        setPuckAgentHandler(applicationId, null);
       }
     };
-  }, [config, slotFields, workflowId]);
+  }, [applicationId, config, slotFields, workflowId]);
 
   return null;
 };

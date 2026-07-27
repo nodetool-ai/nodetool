@@ -7,6 +7,11 @@ import React from "react";
 import { fireEvent, render, screen, act } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+import {
+  parseApplicationDocument,
+  type ApplicationDocument,
+} from "@nodetool-ai/app-runtime";
+
 import type { Workflow } from "../../../types/workflow";
 import { documentKindInfo } from "../../../documents/kinds";
 
@@ -48,7 +53,7 @@ jest.mock("../../../documents/backends", () => ({
   }),
 }));
 
-import WorkflowAppView from "../WorkflowAppView";
+import ApplicationAppView from "../ApplicationAppView";
 
 interface WidgetNode {
   type: string;
@@ -83,12 +88,11 @@ const pinnedBinding = (kind: string, fixedId: string) => ({
   operations: ["read"],
 });
 
-const makeWorkflow = (id: string, doc: unknown): Workflow =>
+const makeWorkflow = (id: string): Workflow =>
   ({
     id,
     name: "Board app",
     description: "",
-    app_doc: doc,
     graph: { nodes: [], edges: [] },
   }) as unknown as Workflow;
 
@@ -98,7 +102,10 @@ const renderApp = (doc: unknown) => {
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <WorkflowAppView workflow={makeWorkflow(`wf-${Math.random()}`, doc)} />
+      <ApplicationAppView
+        document={parseApplicationDocument(doc) as ApplicationDocument}
+        workflow={makeWorkflow(`wf-${Math.random()}`)}
+      />
     </QueryClientProvider>
   );
 };

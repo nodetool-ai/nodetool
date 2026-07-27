@@ -662,6 +662,224 @@ describe("runAppDebug — execution bindings", () => {
   });
 });
 
+describe("runAppDebug target kinds", () => {
+  const GRAPH = {
+    nodes: [
+      {
+        id: "in1",
+        type: "nodetool.input.StringInput",
+        data: { name: "prompt", value: "hello" }
+      },
+      { id: "out1", type: "nodetool.output.StringOutput", data: { name: "result" } }
+    ],
+    edges: []
+  };
+
+  /** The same app, as a v3 document, bound to `workflowId`. */
+  const APP_DOCUMENT = (workflowId: string) => ({
+    schemaVersion: 3,
+    ui: {
+      root: { props: { title: "Demo App" } },
+      content: [
+        { type: "TextInput", props: { id: "TextInput-1", binding: "prompt" } },
+        { type: "Markdown", props: { id: "Markdown-1", binding: "result" } },
+        {
+          type: "Button",
+          props: {
+            id: "Button-1",
+            label: "Run",
+            events: [{ trigger: "click", kind: "run" }]
+          }
+        }
+      ],
+      zones: {}
+    },
+    operations: [
+      {
+        id: "main",
+        name: "Run",
+        workflowId,
+        inputs: {},
+        outputs: {},
+        policy: "replace"
+      }
+    ],
+    resources: [],
+    variables: []
+  });
+
+  const ANSWER = [
+    { type: "output_update", node_id: "out1", output_name: "output", value: "the answer" },
+    { type: "job_update", status: "completed" }
+  ];
+
+  /** What every target kind must agree on, whatever it was named as. */
+  const shapeOf = (report: Awaited<ReturnType<typeof runAppDebug>>) => ({
+    app: report.app,
+    io: report.io,
+    validation: report.validation,
+    interactions: report.interactions,
+    values: report.values,
+    widgets: report.widgets,
+    verdict: report.verdict,
+    invocations: report.invocations.map(({ id, ...rest }) => rest)
+  });
+
+  const runTarget = async (
+    ref: string,
+    extra: Partial<Parameters<typeof runAppDebug>[2]> = {}
+  ) =>
+    runAppDebug(
+      ref,
+      { params: { prompt: "what is it?" }, outDir: mkdtempSync(join(tmpdir(), "app-bundle-")) },
+      { loadFromDb: async () => null, runOnServer: stubRunner(ANSWER), ...extra }
+    );
+
+  it("reports the same shape for a workflow app_doc, an application id, and a bundle file", async () => {
+    const legacy = await runTarget(workflowFile());
+
+    const fromApplication = await runTarget("app-1", {
+      loadFromDb: async () => ({ graph: GRAPH }) as never,
+      loadApplication: async (id: string) => ({
+        id,
+        name: "Demo App",
+        description: "",
+        document: JSON.stringify(APP_DOCUMENT("wf1"))
+      })
+    });
+
+    const dir = mkdtempSync(join(tmpdir(), "app-bundle-file-"));
+    const bundleFile = join(dir, "my.app.json");
+    writeFileSync(
+      bundleFile,
+      JSON.stringify({
+        schemaVersion: 1,
+        name: "Demo App",
+        description: "",
+        app: APP_DOCUMENT("demo"),
+        workflows: [{ key: "demo", name: "Demo", graph: GRAPH }]
+      }),
+      "utf8"
+    );
+    const fromBundle = await runTarget(bundleFile);
+
+    expect(fromApplication.verdict.ok).toBe(true);
+    expect(shapeOf(fromApplication)).toEqual(shapeOf(legacy));
+    expect(shapeOf(fromBundle)).toEqual(shapeOf(legacy));
+
+    expect(legacy.target.source).toBe("json");
+    expect(fromApplication.target.source).toBe("application");
+    expect(fromBundle.target.source).toBe("bundle");
+  });
+
+  it("writes the same bundle files for an application target", async () => {
+    const outDir = mkdtempSync(join(tmpdir(), "app-bundle-"));
+    await runAppDebug(
+      "app-1",
+      { outDir },
+      {
+        loadFromDb: async () => ({ graph: GRAPH }) as never,
+        loadApplication: async (id: string) => ({
+          id,
+          name: "Demo App",
+          document: APP_DOCUMENT("wf1")
+        }),
+        runOnServer: stubRunner(ANSWER)
+      }
+    );
+    for (const file of ["report.json", "report.md", "app.json", "workflow.json"]) {
+      expect(existsSync(join(outDir, file))).toBe(true);
+    }
+    expect(existsSync(join(outDir, "server", "run-1.messages.jsonl"))).toBe(true);
+  });
+
+  it("runs a bundle's second workflow without touching the database", async () => {
+    const runOnServer = stubRunner(ANSWER);
+    const loadFromDb = vi.fn(async () => null);
+    const dir = mkdtempSync(join(tmpdir(), "app-bundle-file-"));
+    const bundleFile = join(dir, "two.app.json");
+    const app = APP_DOCUMENT("first");
+    writeFileSync(
+      bundleFile,
+      JSON.stringify({
+        schemaVersion: 1,
+        name: "Two-workflow app",
+        app: {
+          ...app,
+          ui: {
+            ...app.ui,
+            content: [
+              ...app.ui.content,
+              {
+                type: "Button",
+                props: {
+                  id: "Button-2",
+                  label: "Refine",
+                  events: [
+                    { trigger: "click", kind: "run", operationId: "refine" }
+                  ]
+                }
+              },
+              {
+                type: "Markdown",
+                props: { id: "Markdown-2", binding: "op:refine/out:out1" }
+              }
+            ]
+          },
+          operations: [
+            ...app.operations,
+            {
+              id: "refine",
+              name: "Refine",
+              workflowId: "second",
+              inputs: {},
+              outputs: {},
+              policy: "replace"
+            }
+          ]
+        },
+        workflows: [
+          { key: "first", name: "First", graph: GRAPH },
+          { key: "second", name: "Second", graph: GRAPH }
+        ]
+      }),
+      "utf8"
+    );
+
+    const report = await runAppDebug(
+      bundleFile,
+      {
+        interact: [{ click: "Button-1" }, { click: "Button-2" }],
+        outDir: mkdtempSync(join(tmpdir(), "app-bundle-"))
+      },
+      { loadFromDb, runOnServer }
+    );
+
+    expect(loadFromDb).not.toHaveBeenCalled();
+    expect(report.verdict.ok).toBe(true);
+    expect(report.invocations.map((i) => i.operationId)).toEqual(["main", "refine"]);
+    expect(runOnServer).toHaveBeenCalledTimes(2);
+    // A bundle key is not a workflow id, so nothing hands one to the runner.
+    expect(runOnServer.mock.calls.every(([input]) => input.workflowId == null)).toBe(
+      true
+    );
+  });
+
+  it("explains an id that is neither an application nor a workflow", async () => {
+    await expect(
+      runAppDebug(
+        "nope",
+        { outDir: mkdtempSync(join(tmpdir(), "app-bundle-")) },
+        {
+          loadFromDb: async () => null,
+          loadApplication: async () => null,
+          runOnServer: stubRunner(ANSWER)
+        }
+      )
+    ).rejects.toThrow(/No application or workflow found: nope/);
+  });
+});
+
 describe("defaultInteractions", () => {
   it("falls back to an on-change run input when there is no run button", () => {
     const { spec } = parseAppSpec(

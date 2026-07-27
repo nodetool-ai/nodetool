@@ -56,6 +56,8 @@ describe('linking', () => {
       'Chat',
       'Threads',
       'Documents',
+      'Apps',
+      'App',
       'StoryboardEditor',
       'ScriptEditor',
       'TimelineViewer',
@@ -104,6 +106,14 @@ describe('linking', () => {
       expect(routeForPath('/document/mindmap/d1')).toEqual({
         name: 'DocumentViewer',
         params: { kind: 'mindmap', id: 'd1' },
+      });
+    });
+
+    it('routes app/:applicationId to a single app screen', () => {
+      expect(routeForPath('/apps').name).toBe('Apps');
+      expect(routeForPath('/app/a1')).toEqual({
+        name: 'App',
+        params: { applicationId: 'a1' },
       });
     });
 

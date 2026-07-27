@@ -885,10 +885,20 @@ export const useAppRuntime = (
     []
   );
 
+  // Widgets bound to a non-default operation need that operation's graph
+  // surface, not the host workflow's.
+  const ioFor = useCallback(
+    (operationId?: string) =>
+      operationRuntimesRef.current.get(operationId ?? defaultOperation.id)?.io ??
+      EMPTY_IO,
+    [defaultOperation.id]
+  );
+
   return useMemo(
     () => ({
       store,
       io,
+      ioFor,
       scope,
       operation: defaultOperation,
       operations,
@@ -903,6 +913,7 @@ export const useAppRuntime = (
     [
       store,
       io,
+      ioFor,
       scope,
       defaultOperation,
       operations,

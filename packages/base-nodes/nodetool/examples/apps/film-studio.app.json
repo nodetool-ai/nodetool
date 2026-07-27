@@ -1,0 +1,2337 @@
+{
+  "schemaVersion": 1,
+  "name": "Film Studio",
+  "description": "The showcase run: one brief drives a directed short, an editable rough cut, and the poster that sells it.",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {
+          "title": "Film Studio"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "🎬 Film Studio",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "Brief → direction → storyboard → cut → key art."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "💸 This app spends real money — Veo 3.1 video and Replicate MusicGen. Run it once, deliberately."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-the-film",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-film",
+                  "title": "The film",
+                  "content": [
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note",
+                        "text": "💸 Each run of Produce or Rough cut uses Veo and Replicate credits."
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-brief",
+                        "binding": "var:brief",
+                        "label": "Your film in one line",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-style",
+                        "binding": "var:style",
+                        "label": "Visual style",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-produce-shot-count",
+                        "binding": "op:produce/in:shot_count",
+                        "label": "Number of shots",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-produce",
+                        "label": "Shoot my film",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "produce",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-cut",
+                        "label": "Give me the rough cut",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "cut",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-film-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-produce",
+                        "binding": "op:produce/exec#progress",
+                        "label": "Directing, storyboarding & shooting…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-produce-direction",
+                        "text": "Direction document",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-produce-direction",
+                        "binding": "op:produce/out:direction_out",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-produce-storyboard",
+                        "text": "Storyboard keyframes",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-produce-storyboard",
+                        "binding": "op:produce/out:storyboard_out",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-produce-film",
+                        "text": "Finished film",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-produce-film",
+                        "binding": "op:produce/out:film_out",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    },
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-cut",
+                        "binding": "op:cut/exec#progress",
+                        "label": "Cutting the timeline…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-cut-film",
+                        "text": "Editable rough cut",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-cut-film",
+                        "binding": "op:cut/out:film_out",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-key-art",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-key-art",
+                  "title": "Key art",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-poster-movie-title",
+                        "binding": "op:poster/in:movie_title_input",
+                        "label": "Movie title",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "in-poster-genre",
+                        "binding": "op:poster/in:genre_input",
+                        "label": "Genre",
+                        "options": [
+                          {
+                            "value": "Sci-Fi Thriller"
+                          },
+                          {
+                            "value": "Action"
+                          },
+                          {
+                            "value": "Horror"
+                          },
+                          {
+                            "value": "Fantasy"
+                          },
+                          {
+                            "value": "Neo-noir"
+                          },
+                          {
+                            "value": "Romance"
+                          },
+                          {
+                            "value": "Comedy"
+                          },
+                          {
+                            "value": "Drama"
+                          },
+                          {
+                            "value": "Documentary"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-poster",
+                        "label": "Make my poster",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "poster",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-key-art-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-poster",
+                        "binding": "op:poster/exec#progress",
+                        "label": "Designing your poster…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-poster-poster",
+                        "text": "Your poster",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-poster-poster",
+                        "binding": "op:poster/out:poster_output",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "produce",
+        "name": "Produce",
+        "workflowId": "script",
+        "inputs": {
+          "brief": {
+            "from": "variable",
+            "variableId": "brief"
+          },
+          "style": {
+            "from": "variable",
+            "variableId": "style"
+          }
+        },
+        "outputs": {},
+        "policy": "queue",
+        "timeoutMs": 1800000
+      },
+      {
+        "id": "cut",
+        "name": "Rough cut",
+        "workflowId": "timeline",
+        "inputs": {
+          "brief": {
+            "from": "variable",
+            "variableId": "brief"
+          }
+        },
+        "outputs": {},
+        "policy": "queue",
+        "timeoutMs": 1800000
+      },
+      {
+        "id": "poster",
+        "name": "Poster",
+        "workflowId": "posters",
+        "inputs": {
+          "style_input": {
+            "from": "variable",
+            "variableId": "style"
+          }
+        },
+        "outputs": {},
+        "policy": "queue"
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "brief",
+        "name": "Brief",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "A lighthouse keeper follows her own beam to the thing it will no longer stop pointing at.",
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "style",
+        "name": "Visual style",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "Anamorphic, sodium amber against blue-black sea, fine grain",
+        "scope": "instance",
+        "persist": false
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "script",
+      "name": "Script to Screen",
+      "description": "Full production spine: a Director agent turns your brief into a direction document (characters, style bible, shot list, narration, music). A style frame anchors every keyframe for consistency, keyframes form a cheap storyboard you can approve before video spend, then each shot is animated, cut together, and mixed with voiceover and music.",
+      "sourceId": "nodetool-base/Script to Screen",
+      "graph": {
+        "edges": [
+          {
+            "id": "e_brief_dirprompt",
+            "source": "brief",
+            "sourceHandle": "output",
+            "target": "director_prompt",
+            "targetHandle": "BRIEF",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_style_dirprompt",
+            "source": "style",
+            "sourceHandle": "output",
+            "target": "director_prompt",
+            "targetHandle": "STYLE",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_count_dirprompt",
+            "source": "shot_count",
+            "sourceHandle": "output",
+            "target": "director_prompt",
+            "targetHandle": "COUNT",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_dirprompt_director",
+            "source": "director_prompt",
+            "sourceHandle": "output",
+            "target": "director",
+            "targetHandle": "prompt",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_director_directionout",
+            "source": "director",
+            "sourceHandle": "text",
+            "target": "direction_out",
+            "targetHandle": "value",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_director_proddata",
+            "source": "director",
+            "sourceHandle": "text",
+            "target": "production_data",
+            "targetHandle": "context",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_director_shotlistprompt",
+            "source": "director",
+            "sourceHandle": "text",
+            "target": "shotlist_prompt",
+            "targetHandle": "DIRECTION",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_count_shotlistprompt",
+            "source": "shot_count",
+            "sourceHandle": "output",
+            "target": "shotlist_prompt",
+            "targetHandle": "COUNT",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_shotlistprompt_shotlist",
+            "source": "shotlist_prompt",
+            "sourceHandle": "output",
+            "target": "shot_list",
+            "targetHandle": "prompt",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_proddata_styleframe",
+            "source": "production_data",
+            "sourceHandle": "style_frame_prompt",
+            "target": "style_frame",
+            "targetHandle": "prompt",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_shotitem_keyframeprompt",
+            "source": "shot_list",
+            "sourceHandle": "item",
+            "target": "keyframe_prompt",
+            "targetHandle": "SHOT",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_style_keyframeprompt",
+            "source": "style",
+            "sourceHandle": "output",
+            "target": "keyframe_prompt",
+            "targetHandle": "STYLE",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_styleframe_keyframe",
+            "source": "style_frame",
+            "sourceHandle": "output",
+            "target": "keyframe",
+            "targetHandle": "image",
+            "ui_properties": {
+              "className": "image"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_keyframeprompt_keyframe",
+            "source": "keyframe_prompt",
+            "sourceHandle": "output",
+            "target": "keyframe",
+            "targetHandle": "prompt",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_keyframe_storyboardcollect",
+            "source": "keyframe",
+            "sourceHandle": "output",
+            "target": "storyboard_collect",
+            "targetHandle": "input_item",
+            "ui_properties": {
+              "className": "image"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_storyboardcollect_storyboardout",
+            "source": "storyboard_collect",
+            "sourceHandle": "output",
+            "target": "storyboard_out",
+            "targetHandle": "value",
+            "ui_properties": {
+              "className": "list"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_shotitem_motionprompt",
+            "source": "shot_list",
+            "sourceHandle": "item",
+            "target": "motion_prompt",
+            "targetHandle": "SHOT",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_keyframe_animate",
+            "source": "keyframe",
+            "sourceHandle": "output",
+            "target": "animate",
+            "targetHandle": "image",
+            "ui_properties": {
+              "className": "image"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_motionprompt_animate",
+            "source": "motion_prompt",
+            "sourceHandle": "output",
+            "target": "animate",
+            "targetHandle": "prompt",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_animate_clipscollect",
+            "source": "animate",
+            "sourceHandle": "output",
+            "target": "clips_collect",
+            "targetHandle": "input_item",
+            "ui_properties": {
+              "className": "video"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_clipscollect_cut",
+            "source": "clips_collect",
+            "sourceHandle": "output",
+            "target": "cut",
+            "targetHandle": "clips",
+            "ui_properties": {
+              "className": "list"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_proddata_tts",
+            "source": "production_data",
+            "sourceHandle": "narration",
+            "target": "narration_tts",
+            "targetHandle": "text",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_proddata_music",
+            "source": "production_data",
+            "sourceHandle": "music_prompt",
+            "target": "music",
+            "targetHandle": "prompt",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_cut_mixvo",
+            "source": "cut",
+            "sourceHandle": "output",
+            "target": "mix_vo",
+            "targetHandle": "video",
+            "ui_properties": {
+              "className": "video"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_tts_mixvo",
+            "source": "narration_tts",
+            "sourceHandle": "audio",
+            "target": "mix_vo",
+            "targetHandle": "audio",
+            "ui_properties": {
+              "className": "audio"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_mixvo_mixmusic",
+            "source": "mix_vo",
+            "sourceHandle": "output",
+            "target": "mix_music",
+            "targetHandle": "video",
+            "ui_properties": {
+              "className": "video"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_music_mixmusic",
+            "source": "music",
+            "sourceHandle": "audio",
+            "target": "mix_music",
+            "targetHandle": "audio",
+            "ui_properties": {
+              "className": "audio"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_mixmusic_filmout",
+            "source": "mix_music",
+            "sourceHandle": "output",
+            "target": "film_out",
+            "targetHandle": "value",
+            "ui_properties": {
+              "className": "video"
+            },
+            "edge_type": "data"
+          }
+        ],
+        "nodes": [
+          {
+            "id": "comment_main",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# 🎬 Script to Screen\n\nThe full production spine in one graph:\n\n**1. Direction** — a Director agent turns your brief into a direction document: characters with fixed descriptors, a style bible, a numbered shot list, narration, and music direction.\n**2. Storyboard** — a style frame anchors every keyframe (image-to-image), so characters and grade stay consistent. Keyframes cost cents; check them before the video spend.\n**3. Shoot** — each keyframe is animated with its shot's motion direction.\n**4. Post** — clips are cut together, then narration and music are mixed in.\n\n**Cost control:** bypass the Animate node (right-click → Bypass) to iterate on direction and storyboard cheaply. Re-enable it when the stills look right."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 40,
+                "y": -260
+              },
+              "zIndex": 0,
+              "width": 520,
+              "height": 260,
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "brief",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "Brief",
+              "value": "A lighthouse keeper discovers the beam of her lamp has started bending toward something beneath the waves — and tonight it refuses to point anywhere else."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 40,
+                "y": 60
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "1️⃣ Brief",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "style",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "Visual Style",
+              "value": "moody coastal nocturne, sodium-lamp amber against deep blue-black sea, drifting fog, anamorphic lens flares, fine film grain, painterly realism"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 40,
+                "y": 320
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "2️⃣ Visual style",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "shot_count",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "Shot Count",
+              "value": "5"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 40,
+                "y": 580
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "3️⃣ Shot count",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "director_prompt",
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "You are directing a short film. Write a complete DIRECTION DOCUMENT for this brief.\n\nBrief: {{ BRIEF }}\nVisual style: {{ STYLE }}\nShot count: {{ COUNT }}\n\nReturn Markdown with exactly these sections:\n\n## TITLE\nOne evocative title.\n\n## LOGLINE\nOne sentence.\n\n## CHARACTERS\nEach recurring character or subject on its own line as `Name: <one fixed visual descriptor sentence>`. These exact descriptor sentences will be pasted into every shot prompt, so make them concrete: age, build, hair, wardrobe, distinguishing detail.\n\n## STYLE BIBLE\n3-4 lines: palette, light, lens, texture. Consistent with the visual style above.\n\n## SHOT LIST\nExactly {{ COUNT }} numbered shots. Each shot is one line: `N. VISUAL: <subject + setting, reusing the exact character descriptors> | CAMERA: <framing, lens, angle> | MOTION: <what moves in the shot, including camera movement>`.\n\n## NARRATION\nA voiceover script read over the whole film — about 2 seconds of speech per shot, written to land against the shot order. Plain sentences, no headings.\n\n## MUSIC\nOne line describing the score: genre, mood, instrumentation, tempo."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 400,
+                "y": 60
+              },
+              "zIndex": 0,
+              "width": 320,
+              "height": 480,
+              "title": "Build director brief",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {
+              "BRIEF": "",
+              "STYLE": "",
+              "COUNT": "5"
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "director",
+            "type": "nodetool.agents.Agent",
+            "data": {
+              "model": {
+                "type": "language_model",
+                "provider": "openai",
+                "id": "gpt-5-mini",
+                "name": "GPT-5 mini",
+                "path": null,
+                "supported_tasks": []
+              },
+              "system": "You are a film director and screenwriter. You write tight, concrete direction documents. Every line is visual and specific — no vague adjectives, no meta commentary. You keep character descriptors identical wherever they recur.",
+              "max_tokens": 100000
+            },
+            "ui_properties": {
+              "position": {
+                "x": 770,
+                "y": 100
+              },
+              "zIndex": 0,
+              "width": 330,
+              "height": 360,
+              "title": "4️⃣ Director — write the direction",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "direction_out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "direction"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1160,
+                "y": -60
+              },
+              "title": "📋 Direction document",
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "production_data",
+            "type": "nodetool.generators.StructuredOutputGenerator",
+            "data": {
+              "model": {
+                "type": "language_model",
+                "provider": "openai",
+                "id": "gpt-5-mini",
+                "name": "GPT-5 mini",
+                "path": null,
+                "supported_tasks": []
+              },
+              "instructions": "The context is a film direction document. Extract three fields:\n- narration: the full NARRATION section verbatim, as one block of plain text with no headings.\n- music_prompt: the MUSIC line as a single music-generation prompt (genre, mood, instrumentation, tempo). Instrumental only — state 'instrumental, no vocals'.\n- style_frame_prompt: one text-to-image prompt for a single 16:9 master style frame that establishes the film's world: the main character (exact descriptor from CHARACTERS), the key location, and the STYLE BIBLE's palette and light. No text, no titles, no watermark.",
+              "context": "",
+              "max_tokens": 4096
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1160,
+                "y": 140
+              },
+              "zIndex": 0,
+              "width": 300,
+              "height": 300,
+              "title": "5️⃣ Extract production data",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {
+              "narration": {
+                "type": "str",
+                "optional": false,
+                "type_args": []
+              },
+              "music_prompt": {
+                "type": "str",
+                "optional": false,
+                "type_args": []
+              },
+              "style_frame_prompt": {
+                "type": "str",
+                "optional": false,
+                "type_args": []
+              }
+            }
+          },
+          {
+            "id": "style_frame",
+            "type": "nodetool.image.TextToImage",
+            "data": {
+              "model": {
+                "type": "image_model",
+                "provider": "huggingface_fal_ai",
+                "id": "fal-ai/flux/schnell",
+                "name": "FLUX.1 Schnell",
+                "path": null,
+                "supported_tasks": []
+              },
+              "negative_prompt": "",
+              "aspect_ratio": "16:9",
+              "resolution": "2K",
+              "timeout_seconds": 0
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1540,
+                "y": 480
+              },
+              "zIndex": 0,
+              "width": 300,
+              "height": 320,
+              "title": "6️⃣ Master style frame",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "shotlist_prompt",
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "From the direction document below, output exactly {{ COUNT }} lines, one per shot from the SHOT LIST, in order. No numbering, no labels, no extra lines.\n\nEach line must be self-contained for an image model that sees nothing else: merge the shot's VISUAL, CAMERA and MOTION with the exact character descriptor sentences from CHARACTERS and the palette and light from STYLE BIBLE. Keep the `| MOTION: ...` part at the end of each line, verbatim.\n\nDirection document:\n{{ DIRECTION }}"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1160,
+                "y": 520
+              },
+              "zIndex": 0,
+              "width": 320,
+              "height": 330,
+              "title": "Build shot-list prompt",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {
+              "COUNT": "5",
+              "DIRECTION": ""
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "shot_list",
+            "type": "nodetool.generators.ListGenerator",
+            "data": {
+              "model": {
+                "type": "language_model",
+                "provider": "openai",
+                "id": "gpt-5-mini",
+                "name": "GPT-5 mini",
+                "path": null,
+                "supported_tasks": []
+              },
+              "max_tokens": 100000
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1540,
+                "y": 100
+              },
+              "zIndex": 0,
+              "width": 300,
+              "height": 240,
+              "title": "7️⃣ Stream the shots",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "keyframe_prompt",
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "Cinematic film still, 16:9.\n\nShot: {{ SHOT }}\n\nVisual style: {{ STYLE }}. Dramatic volumetric lighting, rich cinematic color grading, fine film grain, atmospheric depth, photoreal detail. No on-screen text, no titles, no logos, no watermark, no distorted anatomy."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1900,
+                "y": 100
+              },
+              "zIndex": 0,
+              "width": 320,
+              "height": 330,
+              "title": "Build keyframe prompt",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {
+              "SHOT": "",
+              "STYLE": ""
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "keyframe",
+            "type": "nodetool.image.ImageToImage",
+            "data": {
+              "model": {
+                "type": "image_model",
+                "provider": "huggingface_fal_ai",
+                "id": "fal-ai/flux/schnell",
+                "name": "FLUX.1 Schnell",
+                "path": null,
+                "supported_tasks": []
+              },
+              "negative_prompt": "",
+              "strength": 0.82,
+              "aspect_ratio": "16:9",
+              "resolution": "2K",
+              "timeout_seconds": 0
+            },
+            "ui_properties": {
+              "position": {
+                "x": 2280,
+                "y": 300
+              },
+              "zIndex": 0,
+              "width": 320,
+              "height": 340,
+              "title": "8️⃣ Storyboard keyframes (anchored to style frame)",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "storyboard_collect",
+            "type": "nodetool.control.Collect",
+            "data": {},
+            "ui_properties": {
+              "position": {
+                "x": 2660,
+                "y": 80
+              },
+              "zIndex": 0,
+              "width": 160,
+              "height": 140,
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "storyboard_out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "storyboard"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 2880,
+                "y": 80
+              },
+              "title": "🖼️ Storyboard — approve before video spend",
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "motion_prompt",
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "Animate this exact scene. {{ SHOT }}\n\nFollow the MOTION direction precisely: move only what it names, keep everything else stable. Preserve the framing, subjects and grade of the reference image. Cinematic, subtle, no jump cuts, no morphing, no added text."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 2280,
+                "y": 700
+              },
+              "zIndex": 0,
+              "width": 320,
+              "height": 260,
+              "title": "Build motion prompt",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {
+              "SHOT": ""
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "animate",
+            "type": "nodetool.video.ImageToVideo",
+            "data": {
+              "model": {
+                "type": "video_model",
+                "provider": "gemini",
+                "id": "veo-3.1-generate-preview",
+                "name": "Veo 3.1 Preview",
+                "path": null,
+                "supported_tasks": []
+              },
+              "negative_prompt": "",
+              "aspect_ratio": "16:9",
+              "resolution": "720p",
+              "duration": 4,
+              "timeout_seconds": 0
+            },
+            "ui_properties": {
+              "position": {
+                "x": 2660,
+                "y": 420
+              },
+              "zIndex": 0,
+              "width": 330,
+              "height": 240,
+              "title": "9️⃣ Animate each shot (the expensive step)",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "clips_collect",
+            "type": "nodetool.control.Collect",
+            "data": {},
+            "ui_properties": {
+              "position": {
+                "x": 3050,
+                "y": 460
+              },
+              "zIndex": 0,
+              "width": 160,
+              "height": 140,
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "cut",
+            "type": "nodetool.video.Concat",
+            "data": {},
+            "ui_properties": {
+              "position": {
+                "x": 3270,
+                "y": 420
+              },
+              "zIndex": 0,
+              "width": 300,
+              "height": 240,
+              "title": "🎞️ Cut the shots together",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {
+              "clips": ""
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "narration_tts",
+            "type": "nodetool.audio.TextToSpeech",
+            "data": {
+              "model": {
+                "type": "tts_model",
+                "provider": "openai",
+                "id": "tts-1",
+                "name": "TTS 1",
+                "path": null,
+                "voices": [
+                  "alloy",
+                  "echo",
+                  "fable",
+                  "onyx",
+                  "nova",
+                  "shimmer"
+                ],
+                "selected_voice": "onyx"
+              },
+              "speed": 1
+            },
+            "ui_properties": {
+              "position": {
+                "x": 3270,
+                "y": 720
+              },
+              "zIndex": 0,
+              "width": 300,
+              "height": 220,
+              "title": "🎙️ Narration",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "music",
+            "type": "nodetool.audio.TextToMusic",
+            "data": {
+              "model": {
+                "type": "music_model",
+                "provider": "replicate",
+                "id": "meta/musicgen",
+                "name": "MusicGen",
+                "path": null
+              },
+              "lyrics": "",
+              "duration": 30
+            },
+            "ui_properties": {
+              "position": {
+                "x": 3650,
+                "y": 900
+              },
+              "zIndex": 0,
+              "width": 300,
+              "height": 240,
+              "title": "🎵 Score",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "mix_vo",
+            "type": "nodetool.video.AddAudio",
+            "data": {
+              "volume": 1,
+              "mix": true
+            },
+            "ui_properties": {
+              "position": {
+                "x": 3650,
+                "y": 480
+              },
+              "zIndex": 0,
+              "width": 280,
+              "height": 220,
+              "title": "Mix in narration",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "mix_music",
+            "type": "nodetool.video.AddAudio",
+            "data": {
+              "volume": 0.3,
+              "mix": true
+            },
+            "ui_properties": {
+              "position": {
+                "x": 4000,
+                "y": 540
+              },
+              "zIndex": 0,
+              "width": 280,
+              "height": 220,
+              "title": "Mix in score",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "film_out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "film"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 4350,
+                "y": 560
+              },
+              "title": "🎬 Final film",
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    },
+    {
+      "key": "timeline",
+      "name": "Directed Film to Timeline",
+      "description": "Turn a one-line brief into an editable rough cut. A Director agent writes a screenplay of shots, each shot is fanned out into a keyframe prompt, rendered as a still, animated into a clip, then all clips are collected, appended to a timeline sequence, and rendered to a single video you can keep editing.",
+      "sourceId": "nodetool-base/Directed Film to Timeline",
+      "graph": {
+        "edges": [
+          {
+            "id": "e_brief_director",
+            "source": "brief",
+            "sourceHandle": "output",
+            "target": "director",
+            "targetHandle": "brief",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_director_shots",
+            "source": "director",
+            "sourceHandle": "screenplay",
+            "target": "shots",
+            "targetHandle": "screenplay",
+            "ui_properties": {
+              "className": "dict"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_shots_keyframe",
+            "source": "shots",
+            "sourceHandle": "shot_prompt",
+            "target": "keyframe",
+            "targetHandle": "prompt",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_keyframe_animate",
+            "source": "keyframe",
+            "sourceHandle": "output",
+            "target": "animate",
+            "targetHandle": "image",
+            "ui_properties": {
+              "className": "image"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_animate_collect",
+            "source": "animate",
+            "sourceHandle": "output",
+            "target": "clips_collect",
+            "targetHandle": "input_item",
+            "ui_properties": {
+              "className": "video"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_collect_addclips",
+            "source": "clips_collect",
+            "sourceHandle": "output",
+            "target": "add_clips",
+            "targetHandle": "clips",
+            "ui_properties": {
+              "className": "list"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_addclips_render",
+            "source": "add_clips",
+            "sourceHandle": "output",
+            "target": "render",
+            "targetHandle": "timeline",
+            "ui_properties": {
+              "className": "timeline"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_render_filmout",
+            "source": "render",
+            "sourceHandle": "output",
+            "target": "film_out",
+            "targetHandle": "value",
+            "ui_properties": {
+              "className": "video"
+            },
+            "edge_type": "data"
+          }
+        ],
+        "nodes": [
+          {
+            "id": "comment_main",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# 🎬 Directed Film to Timeline\n\nA brief becomes an editable rough cut in one graph:\n\n**1. Direct** — the Director agent turns your brief into a typed screenplay (shots with action, camera, and a shared style bible).\n**2. Fan out** — Screenplay Shots streams one composed prompt per shot.\n**3. Storyboard** — each prompt renders a keyframe still.\n**4. Shoot** — each keyframe is animated into a clip.\n**5. Assemble** — clips are collected, appended to a timeline sequence, and rendered to a single video.\n\nThe rendered timeline is a real editable sequence — reopen it in the timeline editor to trim, reorder, or add audio."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 40,
+                "y": -240
+              },
+              "zIndex": 0,
+              "width": 560,
+              "height": 240,
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "brief",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "Brief",
+              "value": "A lighthouse keeper discovers the beam of her lamp has started bending toward something beneath the waves — and tonight it refuses to point anywhere else."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 40,
+                "y": 100
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "1️⃣ Brief",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "director",
+            "type": "nodetool.creative.Director",
+            "data": {
+              "model": {
+                "type": "language_model",
+                "provider": "openai",
+                "id": "gpt-5-mini",
+                "name": "GPT-5 mini",
+                "path": null,
+                "supported_tasks": []
+              },
+              "brief": "",
+              "style": "moody coastal nocturne, sodium-lamp amber against deep blue-black sea, drifting fog, anamorphic lens flares, fine film grain, painterly realism",
+              "shot_count": 5,
+              "aspect_ratio": "16:9",
+              "max_tokens": 8192
+            },
+            "ui_properties": {
+              "position": {
+                "x": 400,
+                "y": 80
+              },
+              "zIndex": 0,
+              "width": 320,
+              "height": 320,
+              "title": "2️⃣ Director — write the screenplay",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "shots",
+            "type": "nodetool.creative.ScreenplayShots",
+            "data": {},
+            "ui_properties": {
+              "position": {
+                "x": 780,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 280,
+              "height": 200,
+              "title": "3️⃣ Fan out one prompt per shot",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "keyframe",
+            "type": "nodetool.image.TextToImage",
+            "data": {
+              "model": {
+                "type": "image_model",
+                "provider": "huggingface_fal_ai",
+                "id": "fal-ai/flux/schnell",
+                "name": "FLUX.1 Schnell",
+                "path": null,
+                "supported_tasks": []
+              },
+              "prompt": "",
+              "negative_prompt": "",
+              "aspect_ratio": "16:9",
+              "resolution": "2K",
+              "timeout_seconds": 0
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1120,
+                "y": 80
+              },
+              "zIndex": 0,
+              "width": 320,
+              "height": 320,
+              "title": "4️⃣ Storyboard keyframes",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "animate",
+            "type": "nodetool.video.ImageToVideo",
+            "data": {
+              "model": {
+                "type": "video_model",
+                "provider": "gemini",
+                "id": "veo-3.1-generate-preview",
+                "name": "Veo 3.1 Preview",
+                "path": null,
+                "supported_tasks": []
+              },
+              "prompt": "Animate this scene with subtle, cinematic motion. Preserve the framing, subjects, and grade of the reference image. No jump cuts, no morphing, no added text.",
+              "negative_prompt": "",
+              "aspect_ratio": "16:9",
+              "resolution": "720p",
+              "duration": 4,
+              "timeout_seconds": 0
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1500,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 330,
+              "height": 240,
+              "title": "5️⃣ Animate each shot",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "clips_collect",
+            "type": "nodetool.control.Collect",
+            "data": {},
+            "ui_properties": {
+              "position": {
+                "x": 1890,
+                "y": 160
+              },
+              "zIndex": 0,
+              "width": 160,
+              "height": 140,
+              "title": "6️⃣ Collect the clips",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "add_clips",
+            "type": "nodetool.timeline.AddClips",
+            "data": {
+              "timeline": {
+                "type": "timeline",
+                "id": null,
+                "data": null
+              },
+              "name": "Directed Film",
+              "image_duration_ms": 4000
+            },
+            "ui_properties": {
+              "position": {
+                "x": 2110,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "height": 220,
+              "title": "7️⃣ Assemble into a timeline",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "render",
+            "type": "nodetool.timeline.RenderTimeline",
+            "data": {
+              "timeline": {
+                "type": "timeline",
+                "id": null,
+                "data": null
+              },
+              "include_audio": true
+            },
+            "ui_properties": {
+              "position": {
+                "x": 2470,
+                "y": 140
+              },
+              "zIndex": 0,
+              "width": 300,
+              "height": 200,
+              "title": "8️⃣ Render the rough cut",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "film_out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "film"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 2830,
+                "y": 180
+              },
+              "title": "🎬 Rough cut",
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    },
+    {
+      "key": "posters",
+      "name": "Movie Posters",
+      "description": "Turn a title, genre, and visual style into finished theatrical one-sheet posters. An art-direction agent first writes a key-art brief (positioning, palette, typography), which drives every generated poster — the differentiator is the agent-authored creative strategy, not a raw prompt.",
+      "sourceId": "nodetool-base/Movie Posters",
+      "graph": {
+        "edges": [
+          {
+            "id": "bdf22e6b-0b03-4434-b628-210a75c1e2b6",
+            "source": "style_input",
+            "sourceHandle": "output",
+            "target": "strategy_prompt_formatter",
+            "targetHandle": "STYLE",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "b7ac2972-706a-400d-92b4-038aa9e10107",
+            "source": "movie_title_input",
+            "sourceHandle": "output",
+            "target": "strategy_prompt_formatter",
+            "targetHandle": "MOVIE_TITLE",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "a391366e-3c3b-47a2-bfc0-6f9f93216b4b",
+            "source": "genre_input",
+            "sourceHandle": "output",
+            "target": "strategy_prompt_formatter",
+            "targetHandle": "GENRE",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "20ea6047-5cab-4a83-9981-4796d91abfeb",
+            "source": "923fb0f1-8bd4-406a-ba73-9ec3137c20cd",
+            "sourceHandle": "output",
+            "target": "prompt_list_generator",
+            "targetHandle": "prompt",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "f02d1dd1-0297-41f8-a913-85a86692f5c8",
+            "source": "prompt_list_generator",
+            "sourceHandle": "item",
+            "target": "68bb0948-5e25-485e-81e1-9a1a7f2c1e92",
+            "targetHandle": "scene",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "2844bd3f-a3eb-49c8-9654-4ccee70d629a",
+            "source": "strategy_prompt_formatter",
+            "sourceHandle": "output",
+            "target": "04757c8a-dad6-48f3-a45f-459f54e26b7b",
+            "targetHandle": "instructions",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "c9bf0132-eb1f-4ced-94bd-ac71c06f2716",
+            "source": "04757c8a-dad6-48f3-a45f-459f54e26b7b",
+            "sourceHandle": "positioning",
+            "target": "923fb0f1-8bd4-406a-ba73-9ec3137c20cd",
+            "targetHandle": "positioning",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "d61bd3de-3300-4bf4-b50f-aa8d91966d88",
+            "source": "04757c8a-dad6-48f3-a45f-459f54e26b7b",
+            "sourceHandle": "audience_insight",
+            "target": "923fb0f1-8bd4-406a-ba73-9ec3137c20cd",
+            "targetHandle": "audience_insight",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "1413c180-2dc4-4d43-b43d-fa6f4724ef64",
+            "source": "68bb0948-5e25-485e-81e1-9a1a7f2c1e92",
+            "sourceHandle": "output",
+            "target": "0276f606-d899-4487-be65-4615564507cc",
+            "targetHandle": "prompt",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "genre_input-e28b581f-8dda-4fbc-8365-da9f22aa350d",
+            "source": "genre_input",
+            "sourceHandle": "output",
+            "target": "e28b581f-8dda-4fbc-8365-da9f22aa350d",
+            "targetHandle": "input_value",
+            "edge_type": "data"
+          },
+          {
+            "id": "e28b581f-8dda-4fbc-8365-da9f22aa350d-923fb0f1-8bd4-406a-ba73-9ec3137c20cd",
+            "source": "e28b581f-8dda-4fbc-8365-da9f22aa350d",
+            "sourceHandle": "output",
+            "target": "923fb0f1-8bd4-406a-ba73-9ec3137c20cd",
+            "targetHandle": "genre",
+            "edge_type": "data"
+          },
+          {
+            "id": "98707bc7-6c54-4b89-894d-86e65e5cdba9",
+            "source": "e28b581f-8dda-4fbc-8365-da9f22aa350d",
+            "sourceHandle": "output",
+            "target": "68bb0948-5e25-485e-81e1-9a1a7f2c1e92",
+            "targetHandle": "genre",
+            "ui_properties": {
+              "className": "any"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "movie_title_input-dd61b3bb-e050-4598-83e9-effbd91478ae",
+            "source": "movie_title_input",
+            "sourceHandle": "output",
+            "target": "dd61b3bb-e050-4598-83e9-effbd91478ae",
+            "targetHandle": "input_value",
+            "edge_type": "data"
+          },
+          {
+            "id": "dd61b3bb-e050-4598-83e9-effbd91478ae-923fb0f1-8bd4-406a-ba73-9ec3137c20cd",
+            "source": "dd61b3bb-e050-4598-83e9-effbd91478ae",
+            "sourceHandle": "output",
+            "target": "923fb0f1-8bd4-406a-ba73-9ec3137c20cd",
+            "targetHandle": "title",
+            "edge_type": "data"
+          },
+          {
+            "id": "3c3a71e1-4c46-4895-93d7-7cf2356e235e",
+            "source": "dd61b3bb-e050-4598-83e9-effbd91478ae",
+            "sourceHandle": "output",
+            "target": "68bb0948-5e25-485e-81e1-9a1a7f2c1e92",
+            "targetHandle": "title",
+            "ui_properties": {
+              "className": "any"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "090b632c-8a78-4713-803a-ab457f715c5a",
+            "source": "04757c8a-dad6-48f3-a45f-459f54e26b7b",
+            "sourceHandle": "design",
+            "target": "68bb0948-5e25-485e-81e1-9a1a7f2c1e92",
+            "targetHandle": "design",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "ad36005f-efb1-43fa-93af-5102c55085bd",
+            "source": "04757c8a-dad6-48f3-a45f-459f54e26b7b",
+            "sourceHandle": "core_visual_concept",
+            "target": "68bb0948-5e25-485e-81e1-9a1a7f2c1e92",
+            "targetHandle": "core_visual_concept",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_poster_out",
+            "source": "0276f606-d899-4487-be65-4615564507cc",
+            "sourceHandle": "output",
+            "target": "poster_output",
+            "targetHandle": "value",
+            "ui_properties": {
+              "className": "image"
+            },
+            "edge_type": "data"
+          }
+        ],
+        "nodes": [
+          {
+            "id": "comment-intro",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": {
+                "root": {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "detail": 0,
+                          "format": 0,
+                          "mode": "normal",
+                          "style": "",
+                          "text": "🎬 Movie Posters",
+                          "type": "text",
+                          "version": 1
+                        }
+                      ],
+                      "direction": null,
+                      "format": "",
+                      "indent": 0,
+                      "type": "heading",
+                      "version": 1,
+                      "tag": "h1"
+                    },
+                    {
+                      "children": [
+                        {
+                          "detail": 0,
+                          "format": 0,
+                          "mode": "normal",
+                          "style": "",
+                          "text": "From a title, genre, and visual style, design a batch of theatrical poster concepts. An art-direction agent writes the key-art brief — positioning, palette, typography — and that brief drives every poster the image model renders.",
+                          "type": "text",
+                          "version": 1
+                        }
+                      ],
+                      "direction": null,
+                      "format": "",
+                      "indent": 0,
+                      "type": "paragraph",
+                      "version": 1,
+                      "textFormat": 0,
+                      "textStyle": ""
+                    },
+                    {
+                      "children": [
+                        {
+                          "detail": 0,
+                          "format": 1,
+                          "mode": "normal",
+                          "style": "",
+                          "text": "Pipeline:",
+                          "type": "text",
+                          "version": 1
+                        },
+                        {
+                          "detail": 0,
+                          "format": 0,
+                          "mode": "normal",
+                          "style": "",
+                          "text": " Title / Genre / Style → Art-direction agent → Poster concepts → Text-to-Image",
+                          "type": "text",
+                          "version": 1
+                        }
+                      ],
+                      "direction": null,
+                      "format": "",
+                      "indent": 0,
+                      "type": "paragraph",
+                      "version": 1,
+                      "textFormat": 1,
+                      "textStyle": ""
+                    },
+                    {
+                      "children": [
+                        {
+                          "detail": 0,
+                          "format": 1,
+                          "mode": "normal",
+                          "style": "",
+                          "text": "Try this:",
+                          "type": "text",
+                          "version": 1
+                        },
+                        {
+                          "detail": 0,
+                          "format": 0,
+                          "mode": "normal",
+                          "style": "",
+                          "text": " swap the visual style (e.g. neo-noir, retro synthwave, watercolor) to reshape the whole poster.",
+                          "type": "text",
+                          "version": 1
+                        }
+                      ],
+                      "direction": null,
+                      "format": "",
+                      "indent": 0,
+                      "type": "paragraph",
+                      "version": 1,
+                      "textFormat": 1,
+                      "textStyle": ""
+                    }
+                  ],
+                  "direction": null,
+                  "format": "",
+                  "indent": 0,
+                  "type": "root",
+                  "version": 1
+                }
+              }
+            },
+            "ui_properties": {
+              "position": {
+                "x": 38,
+                "y": -194
+              },
+              "zIndex": 0,
+              "width": 460,
+              "height": 180,
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "strategy_prompt_formatter",
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "You are the art director on a major studio's key-art team.\n\nFilm brief:\n- Title: {{ MOVIE_TITLE }}\n- Genre: {{ GENRE }}\n- Visual style: {{ STYLE }}\n\nDesign the theatrical one-sheet strategy. Commit to bold, specific choices that fit the genre and honor the requested visual style. Return only Markdown, no preamble, with exactly these sections:\n\nPositioning: one or two sentences on the promise the poster must make at a glance.\n\nAudience Insight: who is pulled toward this film and the emotional hook that lands them.\n\nCore Visual Concept: the single big-idea image the poster is built around — the hero subject, its symbolism, and the frozen moment.\n\nDesign:\n- Color Palette: up to 5 swatches, each as Name + #hex + the emotion it carries.\n- Imagery: hero focus, composition, and lighting.\n- Typography: title font family plus its texture and mood.\nKeep every design choice consistent with the {{ STYLE }} style."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 619,
+                "y": 123
+              },
+              "zIndex": 0,
+              "width": 361,
+              "height": 563,
+              "title": "Write art-direction brief",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {
+              "MOVIE_TITLE": "Singularity",
+              "GENRE": "Sci-Fi Thriller",
+              "STYLE": "Neo-noir, high-contrast, cinematic"
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "movie_title_input",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "value": "Singularity",
+              "name": "Movie Title"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 279,
+                "y": 50
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "Movie title",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "genre_input",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "value": "Sci-Fi Thriller",
+              "name": "Genre"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 279,
+                "y": 330
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "Genre",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "style_input",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "value": "Neo-noir, high-contrast, cinematic",
+              "name": "Visual Style"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 279,
+                "y": 610
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "Visual style",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "prompt_list_generator",
+            "type": "nodetool.generators.ListGenerator",
+            "data": {
+              "model": {
+                "type": "language_model",
+                "provider": "openai",
+                "id": "gpt-5-mini",
+                "name": "GPT-5 mini",
+                "path": null,
+                "supported_tasks": []
+              },
+              "max_tokens": 100000
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 1662,
+                "y": 237
+              },
+              "zIndex": 0,
+              "width": 456,
+              "height": 340,
+              "title": "Generate poster concepts",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "0276f606-d899-4487-be65-4615564507cc",
+            "type": "nodetool.image.TextToImage",
+            "data": {
+              "model": {
+                "type": "image_model",
+                "provider": "huggingface_fal_ai",
+                "id": "fal-ai/flux/schnell",
+                "name": "FLUX.1 Schnell",
+                "path": null,
+                "supported_tasks": []
+              },
+              "negative_prompt": "",
+              "aspect_ratio": "3:4",
+              "resolution": "2K",
+              "timeout_seconds": 0
+            },
+            "ui_properties": {
+              "selected": true,
+              "position": {
+                "x": 2608,
+                "y": 187
+              },
+              "zIndex": 0,
+              "width": 509,
+              "height": 588,
+              "title": "Render posters",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "68bb0948-5e25-485e-81e1-9a1a7f2c1e92",
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "Cinematic {{ genre }} movie poster, theatrical one-sheet.\n\nScene: {{ scene }}\nCore visual concept: {{ core_visual_concept }}\nArt direction: {{ design }}\n\nA single hero subject dominates the frame with strong visual hierarchy, dramatic cinematic lighting, and rich depth. The movie title \"{{ title }}\" is set large across the lower third in premium typography that matches the art direction, with a short tagline above it. A bottom billing block carries credits, studio logos, and a release date in authentic Hollywood layout. Balanced negative space, poster-grade composition, award-winning key art."
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 2148,
+                "y": 169
+              },
+              "zIndex": 0,
+              "width": 410,
+              "height": 555,
+              "title": "Compose poster image prompt",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {
+              "title": "",
+              "genre": "",
+              "design": "",
+              "core_visual_concept": "",
+              "scene": ""
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "923fb0f1-8bd4-406a-ba73-9ec3137c20cd",
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "You are pitching poster concepts for the film \"{{ title }}\" ({{ genre }}).\n\nPositioning: {{ positioning }}\nAudience insight: {{ audience_insight }}\n\nGenerate distinct theatrical poster concepts. Each concept is ONE self-contained line describing a single striking image: the hero subject, the setting, the framing, and the mood. Vary the ideas across the set — different angles, symbols, and emotional beats — while staying true to the genre and positioning. One concept per line, no numbering and no commentary."
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 1352,
+                "y": 304
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "Draft poster concepts",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {
+              "positioning": "",
+              "audience_insight": "",
+              "title": "",
+              "genre": ""
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "04757c8a-dad6-48f3-a45f-459f54e26b7b",
+            "type": "nodetool.generators.StructuredOutputGenerator",
+            "data": {
+              "system_prompt": "You are a film key-art director turning a creative brief into structured fields.\n\nGoal\n- Read <INSTRUCTIONS> (the art-direction brief) and any <CONTEXT>, then produce a single JSON object matching <JSON_SCHEMA> exactly.\n\nOutput format (MANDATORY)\n- Output exactly ONE fenced code block labeled json containing ONLY the JSON object:\n\n  ```json\n  { ...single JSON object matching <JSON_SCHEMA>... }\n  ```\n- No prose before or after the block.\n\nGeneration rules\n- Fill every field with concrete, vivid, production-ready detail — no placeholders, no hedging.\n- Keep all fields internally consistent with the film's genre and visual style.\n- Honor every constraint in <JSON_SCHEMA> (types, enums, formats).\n\nValidation\n- Ensure the final JSON validates against <JSON_SCHEMA> exactly.",
+              "model": {
+                "type": "language_model",
+                "provider": "openai",
+                "id": "gpt-5-mini",
+                "name": "GPT-5 mini",
+                "path": null,
+                "supported_tasks": []
+              },
+              "context": "",
+              "max_tokens": 4096,
+              "image": [],
+              "audio": []
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1010,
+                "y": 299
+              },
+              "zIndex": 0,
+              "width": 282,
+              "title": "Art-direction brief → fields",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {
+              "positioning": {
+                "type": "str",
+                "optional": false,
+                "type_args": []
+              },
+              "design": {
+                "type": "str",
+                "optional": false,
+                "type_args": []
+              },
+              "audience_insight": {
+                "type": "str",
+                "optional": false,
+                "type_args": []
+              },
+              "core_visual_concept": {
+                "type": "str",
+                "optional": false,
+                "type_args": []
+              }
+            }
+          },
+          {
+            "id": "e28b581f-8dda-4fbc-8365-da9f22aa350d",
+            "type": "nodetool.control.Reroute",
+            "data": {},
+            "ui_properties": {
+              "position": {
+                "x": 1231,
+                "y": 641
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "dd61b3bb-e050-4598-83e9-effbd91478ae",
+            "type": "nodetool.control.Reroute",
+            "data": {},
+            "ui_properties": {
+              "position": {
+                "x": 1210,
+                "y": 591
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "poster_output",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "Poster"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 3200,
+                "y": 187
+              },
+              "zIndex": 0,
+              "width": 320,
+              "title": "Poster",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    }
+  ]
+}

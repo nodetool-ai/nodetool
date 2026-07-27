@@ -4,17 +4,17 @@ title: "Building Mini Apps"
 description: "Recipes for building Mini Apps: one-shot generators, streaming apps, batch galleries, live parameter tuning, two-step review flows, and resource editors."
 ---
 
-Eight app shapes, each built step by step. They share a base recipe; the
+Nine app shapes, each built step by step. They share a base recipe; the
 differences are which widgets you place and what they bind to.
 
-New to Mini Apps? Read [Mini Apps](mini-apps.md) first for how bindings,
+New to Mini Apps? Read [Mini Apps](mini-apps.md) first for how apps, bindings,
 operations, and instance state fit together. The widget list, binding grammar,
 and full schema are in the [Reference](mini-apps-reference.md).
 
 ## Before you start
 
-The graph decides what the app can expose. Get this right first and the app is
-twenty minutes of layout:
+The workflows decide what the app can expose. Get this right first and the app
+is twenty minutes of layout:
 
 1. **Every value the user changes needs an Input node.** Its `name` is what the
    widget binds to. A value with no Input node cannot be edited from the app,
@@ -24,34 +24,39 @@ twenty minutes of layout:
 3. **Give inputs sensible defaults.** An app whose first Run needs the user to
    type into four empty fields gets abandoned. Defaults make the first run one
    click.
-4. **Run the workflow once in the editor.** Debug the graph as a graph. An app
+4. **Run each workflow once in its own tab.** Debug the graph as a graph. An app
    over a broken workflow only tells you the app is broken.
 
 ## The base recipe
 
 Every app below starts here.
 
-1. Open the workflow and switch the tab mode to **App**.
-2. Click **App Builder**.
-3. If the workflow has no app document yet, generate one from the graph's
-   Input/Output nodes and edit that, or start from an empty canvas.
+1. Open the **Apps** panel in the left sidebar.
+2. Click **New app** for an empty document, or **New app from workflow** to
+   scaffold one operation and a widget per Input and Output node. Either way the
+   app opens as its own workspace tab.
+3. Switch the tab to **Design** to open App Builder.
 4. Drag widgets from the palette onto the canvas.
 5. Select a widget and set its **binding** in the right-hand panel. The picker
-   lists what the live graph offers: Input nodes for write widgets, Output nodes
-   and variables for read widgets.
+   lists what the operation's live graph offers: Input nodes for write widgets,
+   Output nodes and variables for read widgets.
 6. Add a **Button**, and give it an **On click** event with the **Run workflow**
    action.
 7. Click **Save**.
-8. Switch back to App mode and use it. Then run
-   `nodetool app debug <workflow_id>` to check the wiring the way the runtime
+8. Switch the tab to **Run** and use it. Then run
+   `nodetool app debug <application_id>` to check the wiring the way the runtime
    sees it.
 
-**Ask Agent** in App Builder opens the builder agent, which reads the workflow
-and edits the document through the `ui_app_*` tools. It can place widgets, set
-bindings, declare variables and operations, and add the Input, Output, or Set
-Variable nodes a layout needs. It is the fastest way to do the parts the visual
-editor does not expose: multiple operations, typed variables with scopes, and
-resource bindings.
+To edit a graph while you build, open **Linked workflows** on the app tab and
+click the workflow. It opens as a normal workflow tab; the app tab stays where
+it is.
+
+**Ask Agent** in App Builder opens the builder agent, which reads the app's
+workflows and edits the document through the `ui_app_*` tools. It can place
+widgets, set bindings, declare variables and operations, and add the Input,
+Output, or Set Variable nodes a layout needs. It is the fastest way to do the
+parts the visual editor does not expose: multiple operations, typed variables
+with scopes, and resource bindings.
 
 ---
 
@@ -127,8 +132,8 @@ about Mini Apps. Bind it.
 4. If a fresh set should replace the previous one, give the operation the
    `replace` policy so a second click cancels the run in flight first.
 
-The shipped workflow templates use exactly this pattern; open one from the
-[Templates Gallery](templates-gallery.md) in App Builder to see it wired.
+The shipped example apps use exactly this pattern. Install one from the
+[Templates Gallery](templates-gallery.md) and open it in Design to see it wired.
 
 ## 5. Live parameter tuning
 
@@ -261,5 +266,5 @@ resource provider outside the browser. Test these in the app.
 - [Mini Apps](mini-apps.md) — how the runtime works
 - [Mini App Reference](mini-apps-reference.md) — widgets, bindings, schema
 - [App Builder](app-builder.md) — the editor
-- [Templates Gallery](templates-gallery.md) — shipped workflows that already carry apps
+- [Templates Gallery](templates-gallery.md) — shipped example apps and workflows
 - [Workflow Debugging](workflow-debugging.md) — debugging the graph underneath

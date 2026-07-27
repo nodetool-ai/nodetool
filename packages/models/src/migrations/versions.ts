@@ -6,6 +6,13 @@
  * instead of separate Python module files.
  */
 
+import { randomUUID } from "node:crypto";
+
+import {
+  liftLegacyAppDoc,
+  type ApplicationDocument
+} from "@nodetool-ai/app-runtime";
+
 import type { MigrationDBAdapter } from "./db-adapter.js";
 
 export interface MigrationDef {
@@ -16,6 +23,62 @@ export interface MigrationDef {
   up: (db: MigrationDBAdapter) => Promise<void>;
   down: (db: MigrationDBAdapter) => Promise<void>;
 }
+
+const newRowId = (): string => randomUUID().replace(/-/g, "");
+
+/**
+ * The capability summary an `application_versions` row carries, derived from
+ * the document's bindings. Duplicated from `deriveCapabilities` in
+ * `application.ts` on purpose: a migration must keep writing the shape it was
+ * written against even after the model layer moves on.
+ */
+const capabilitiesOf = (document: ApplicationDocument): string => {
+  const workflows = new Map<
+    string,
+    { workflowId: string; version?: number }
+  >();
+  for (const operation of document.operations) {
+    workflows.set(`${operation.workflowId}@${operation.workflowVersion ?? ""}`, {
+      workflowId: operation.workflowId,
+      version: operation.workflowVersion
+    });
+  }
+  const resources = new Map<string, Set<string>>();
+  for (const binding of document.resources) {
+    const seen = resources.get(binding.kind) ?? new Set<string>();
+    for (const op of binding.operations) seen.add(op);
+    resources.set(binding.kind, seen);
+  }
+  return JSON.stringify({
+    workflows: [...workflows.values()],
+    resources: [...resources.entries()].map(([kind, ops]) => ({
+      kind,
+      operations: [...ops]
+    }))
+  });
+};
+
+/** The workflows an application's stored document binds. */
+const boundWorkflowIds = (rawDocument: unknown): string[] => {
+  let value: unknown = rawDocument;
+  if (typeof value === "string") {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      return [];
+    }
+  }
+  if (typeof value !== "object" || value === null) return [];
+  const operations = (value as { operations?: unknown }).operations;
+  if (!Array.isArray(operations)) return [];
+  return operations
+    .map((op) =>
+      typeof op === "object" && op !== null
+        ? (op as { workflowId?: unknown }).workflowId
+        : undefined
+    )
+    .filter((id): id is string => typeof id === "string" && id.length > 0);
+};
 
 export const migrations: MigrationDef[] = [
   // ── 001: Create workflows ──────────────────────────────────────────
@@ -2150,6 +2213,124 @@ export const migrations: MigrationDef[] = [
     },
     async down() {
       // no-op: SQLite cannot drop columns portably, and leaving them is inert.
+    }
+  },
+
+  // ── Lift workflow.app_doc into the applications table ───────────────
+  // An app used to live on the workflow that hosted it. Every stored
+  // `app_doc` becomes an application row of its own and the column is
+  // cleared; the column itself is dropped a release later, once old clients
+  // that still read it have upgraded.
+  //
+  // A workflow that was already turned into an application by
+  // `create({ fromWorkflowId })` has a fork in the wild: two documents, the
+  // application's possibly newer. The application wins — its draft is left
+  // untouched — and the `app_doc` is written as an unreleased
+  // `application_versions` row so the divergent copy shows up in the app's
+  // version history instead of vanishing.
+  //
+  // Idempotent by construction: a lifted workflow's `app_doc` is NULL, so a
+  // second run sees nothing to migrate.
+  {
+    version: "20260726_000002",
+    name: "lift_workflow_app_docs_to_applications",
+    createsTables: [],
+    modifiesTables: [
+      "nodetool_workflows",
+      "applications",
+      "application_versions"
+    ],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_workflows"))) return;
+      if (!(await db.tableExists("applications"))) return;
+      if (!(await db.columnExists("nodetool_workflows", "app_doc"))) return;
+
+      const hosts = await db.fetchall(
+        `SELECT id, user_id, name, description, app_doc, created_at, updated_at
+           FROM nodetool_workflows
+          WHERE app_doc IS NOT NULL AND app_doc <> ''`
+      );
+      if (hosts.length === 0) return;
+
+      // Which application already binds which workflow. Read once and matched
+      // in memory so the migration needs no dialect-specific JSON operators.
+      const existing = await db.fetchall(
+        "SELECT id, document, created_at FROM applications"
+      );
+      const appsByWorkflow = new Map<string, string>();
+      for (const row of [...existing].sort((a, b) =>
+        String(a.created_at ?? "").localeCompare(String(b.created_at ?? "")) ||
+        String(a.id).localeCompare(String(b.id))
+      )) {
+        for (const workflowId of boundWorkflowIds(row.document)) {
+          if (!appsByWorkflow.has(workflowId)) {
+            appsByWorkflow.set(workflowId, String(row.id));
+          }
+        }
+      }
+
+      for (const host of hosts) {
+        const workflowId = String(host.id);
+        const document = liftLegacyAppDoc({
+          id: workflowId,
+          app_doc: host.app_doc
+        });
+        const now = new Date().toISOString();
+
+        if (document) {
+          const applicationId = appsByWorkflow.get(workflowId);
+          if (applicationId) {
+            // The application wins. Archive the fork as an unreleased version.
+            const highest = await db.fetchone(
+              "SELECT MAX(version) AS value FROM application_versions WHERE application_id = ?",
+              [applicationId]
+            );
+            const nextVersion = Number(highest?.value ?? 0) + 1;
+            await db.execute(
+              `INSERT INTO application_versions
+                 (id, application_id, version, document, capabilities, released, created_at)
+               VALUES (?, ?, ?, ?, ?, 0, ?)`,
+              [
+                newRowId(),
+                applicationId,
+                nextVersion,
+                JSON.stringify(document),
+                capabilitiesOf(document),
+                now
+              ]
+            );
+          } else {
+            const createdId = newRowId();
+            await db.execute(
+              `INSERT INTO applications
+                 (id, user_id, project_id, name, description, document, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+              [
+                createdId,
+                String(host.user_id ?? ""),
+                "default",
+                String(host.name || "Untitled app"),
+                String(host.description ?? ""),
+                JSON.stringify(document),
+                String(host.created_at ?? now),
+                String(host.updated_at ?? now)
+              ]
+            );
+            appsByWorkflow.set(workflowId, createdId);
+          }
+        }
+
+        // Cleared whether or not the document parsed: an `app_doc` no code
+        // reads and no parser accepts is not worth carrying forward.
+        await db.execute(
+          "UPDATE nodetool_workflows SET app_doc = NULL WHERE id = ?",
+          [workflowId]
+        );
+      }
+    },
+    async down() {
+      // no-op: the lifted documents are the canonical copy now, and pushing
+      // them back onto workflows would resurrect the storage this removes.
     }
   }
 ];
