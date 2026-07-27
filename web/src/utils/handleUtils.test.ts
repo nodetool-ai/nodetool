@@ -161,7 +161,7 @@ describe("findInputHandle", () => {
         dynamic_properties: {},
         workflow_id: "wf-1",
         dynamic_inputs: {
-          layer_in_0: makeType("image"),
+          layer_in_0: { type: makeType("image") },
         },
       },
     });
@@ -202,6 +202,26 @@ describe("findInputHandle", () => {
     });
 
     expect(findInputHandle(node, "out_only", meta)).toBeUndefined();
+  });
+
+  it("resolves a pass-through name in both directions", () => {
+    // Prompt variables are mirrored onto dynamic_inputs *and* dynamic_outputs;
+    // the same name must stay an input handle so the incoming edge isn't
+    // dropped on load.
+    const meta = makeMetadata({ properties: [] });
+    const node = makeNode({
+      data: {
+        properties: {},
+        selectable: true,
+        dynamic_properties: { var_1: "" },
+        workflow_id: "wf-1",
+        dynamic_inputs: { var_1: { type: makeType("image") } },
+        dynamic_outputs: { var_1: makeType("image") },
+      },
+    });
+
+    expect(findInputHandle(node, "var_1", meta)!.type.type).toBe("image");
+    expect(findOutputHandle(node, "var_1", meta)!.type.type).toBe("image");
   });
 });
 
@@ -286,6 +306,24 @@ describe("getAllInputHandles", () => {
 
     const handles = getAllInputHandles(node, meta);
     expect(handles.find((h) => h.name === "out_only")).toBeUndefined();
+  });
+
+  it("keeps pass-through names as input handles", () => {
+    const meta = makeMetadata({ properties: [] });
+    const node = makeNode({
+      data: {
+        properties: {},
+        selectable: true,
+        dynamic_properties: { var_1: "" },
+        workflow_id: "wf-1",
+        dynamic_inputs: { var_1: { type: makeType("image") } },
+        dynamic_outputs: { var_1: makeType("image") },
+      },
+    });
+
+    expect(
+      getAllInputHandles(node, meta).find((h) => h.name === "var_1")
+    ).toBeDefined();
   });
 });
 

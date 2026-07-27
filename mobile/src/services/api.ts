@@ -1,5 +1,10 @@
 import { components } from '../api';
 import type {
+  ApplicationListItem,
+  ApplicationReleaseResponse,
+  ApplicationResponse,
+} from '@nodetool-ai/protocol/api-schemas/applications.js';
+import type {
   Workflow as AppWorkflow,
 } from '../types/ApiTypes';
 import { useAuthStore } from '../stores/AuthStore';
@@ -58,6 +63,11 @@ export type AssetSearchResult = components["schemas"]["AssetSearchResult"];
 export type AssetWithPath = components["schemas"]["AssetWithPath"];
 export type JobResponse = components["schemas"]["JobResponse"];
 export type JobListResponse = components["schemas"]["JobListResponse"];
+export type {
+  ApplicationListItem,
+  ApplicationReleaseResponse,
+  ApplicationResponse,
+};
 
 // ── Types for tRPC-migrated domains ───────────────────────────────────────────
 // These shapes match the tRPC output schemas exactly and replace the openapi-
@@ -247,7 +257,44 @@ class ApiService {
   }
 
   async getNodeMetadata() {
-    return this.request<components["schemas"]["NodeMetadata"][]>('/api/nodes/metadata');
+    // `fields` defaults to "summary" server-side, which omits properties and
+    // outputs. The chain editor needs both, so ask for the full records.
+    return this.request<components["schemas"]["NodeMetadata"][]>(
+      '/api/nodes/metadata?fields=full'
+    );
+  }
+
+  /**
+   * Applications — mini apps as their own resource.
+   *
+   * The web client reaches these through tRPC; mobile has no applications
+   * router, so it uses the REST door onto the same service. Both serialize
+   * identically, so the protocol response types describe either one.
+   */
+  async listApplications(projectId?: string): Promise<ApplicationListItem[]> {
+    const query = projectId
+      ? `?project_id=${encodeURIComponent(projectId)}`
+      : '';
+    return this.request<ApplicationListItem[]>(`/api/applications${query}`);
+  }
+
+  async getApplication(id: string): Promise<ApplicationResponse> {
+    return this.request<ApplicationResponse>(
+      `/api/applications/${encodeURIComponent(id)}`
+    );
+  }
+
+  /**
+   * The released snapshot of an app, or null when nothing is published yet.
+   * It carries the graph each operation was pinned to at publish time, which
+   * is what lets a published app run without fetching its workflows.
+   */
+  async getReleasedApplicationDocument(
+    id: string
+  ): Promise<ApplicationReleaseResponse | null> {
+    return this.request<ApplicationReleaseResponse | null>(
+      `/api/applications/${encodeURIComponent(id)}/released-document`
+    );
   }
 
   async saveWorkflow(workflow: {
@@ -319,7 +366,16 @@ class ApiService {
 
   resolveUrl(urlOrPath: string | null | undefined): string | null {
     if (!urlOrPath) {return null;}
-    if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
+    // Workflow outputs and node properties reference stored assets by URN.
+    // React Native's image loader has no handler for the scheme, so map it to
+    // the HTTP endpoint (same mapping as web's resolveUri).
+    if (urlOrPath.startsWith('asset://')) {
+      const assetId = urlOrPath.slice('asset://'.length);
+      return `${getSharedApiHost()}/api/storage/${assetId}`;
+    }
+    // Anything else already carrying a scheme (http, https, file, data,
+    // content, blob) is fetchable as-is; only bare paths get the API host.
+    if (/^[a-z][a-z0-9+.-]*:/i.test(urlOrPath)) {
       return urlOrPath;
     }
     return `${getSharedApiHost()}${urlOrPath.startsWith('/') ? '' : '/'}${urlOrPath}`;

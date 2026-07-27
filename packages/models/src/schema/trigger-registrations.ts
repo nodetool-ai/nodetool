@@ -20,6 +20,15 @@ export const triggerRegistrations = sqliteTable(
     cursor: text("cursor"),
     last_fired_at: text("last_fired_at"),
     last_error: text("last_error"),
+    // Operational safety (PRD O1, F8). `enabled` stays the single armed/
+    // disarmed bit; `disabled_reason` records who disarmed it and why, so a
+    // registration the dispatcher gave up on is distinguishable from one the
+    // user switched off.
+    disabled_reason: text("disabled_reason"),
+    consecutive_failures: integer("consecutive_failures").notNull().default(0),
+    run_count: integer("run_count").notNull().default(0),
+    expires_at: text("expires_at"),
+    max_runs: integer("max_runs"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

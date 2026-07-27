@@ -1,5 +1,4 @@
 import { useCallback, useMemo } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
 import { useWebsocketRunner } from "../stores/WorkflowRunner";
 import { useRunningJobs } from "./useRunningJobs";
 import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
@@ -30,7 +29,6 @@ export interface FloatingToolbarActions {
   handleSave: () => Promise<void>;
   handleDownload: () => void;
   handleAutoLayout: () => void;
-  handleRunAsApp: () => void;
   handleEditWorkflow: () => void;
   handleToggleNodeMenu: () => void;
   handleToggleTrace: () => void;
@@ -45,9 +43,6 @@ export interface FloatingToolbarActions {
 }
 
 export const useFloatingToolbarActions = (): FloatingToolbarActions => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const path = location.pathname;
 
   const nodeStore = useNodeStoreRef();
   const workflow = useNodes((state) => state.workflow);
@@ -306,13 +301,6 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     autoLayout();
   }, [autoLayout]);
 
-  const handleRunAsApp = useCallback(() => {
-    const workflowId = path.split("/").pop();
-    if (workflowId) {
-      navigate(`/apps/${workflowId}`);
-    }
-  }, [navigate, path]);
-
   const handleEditWorkflow = useCallback(() => {
     handlePanelViewChange("settings");
   }, [handlePanelViewChange]);
@@ -342,7 +330,7 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     toggleMiniMap();
   }, [toggleMiniMap]);
 
-  return {
+  return useMemo(() => ({
     handleRun,
     handleStop,
     handlePause,
@@ -350,7 +338,6 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     handleSave,
     handleDownload,
     handleAutoLayout,
-    handleRunAsApp,
     handleEditWorkflow,
     handleToggleNodeMenu,
     handleToggleTrace,
@@ -360,5 +347,22 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     isSuspended,
     queuePosition,
     pendingRunCount
-  };
+  }), [
+    handleRun,
+    handleStop,
+    handlePause,
+    handleResume,
+    handleSave,
+    handleDownload,
+    handleAutoLayout,
+    handleEditWorkflow,
+    handleToggleNodeMenu,
+    handleToggleTrace,
+    handleToggleMiniMap,
+    isWorkflowRunning,
+    isPaused,
+    isSuspended,
+    queuePosition,
+    pendingRunCount
+  ]);
 };

@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import React, { useCallback, createElement, memo, useMemo } from "react";
 import { shallow } from "zustand/shallow";
-import { Property } from "../../stores/ApiTypes";
+import { Property, TypeMetadata } from "../../stores/ApiTypes";
 import { PropertyHandleTooltipContext } from "../../contexts/PropertyHandleTooltipContext";
 import { useContextMenuActions } from "../../stores/ContextMenuStore";
 import StringProperty from "../properties/StringProperty";
@@ -33,6 +33,9 @@ import { deriveCodeIOUpdates } from "../../utils/codeOutputInference";
 import { InspectorHeaderResetProvider } from "../../contexts/InspectorPropertyHeaderContext";
 import { getComponentForProperty } from "./PropertyInput.resolver";
 import type { PropertyProps } from "./PropertyInput.types";
+import DynamicSlotTypePicker from "./DynamicSlotTypePicker";
+import { normalizeDynamicSlot, slotType } from "../../utils/dynamicSlots";
+import { isSchemaDrivenDynamicNode } from "../../utils/dynamicSlotTypes";
 
 export type { PropertyProps } from "./PropertyInput.types";
 
@@ -94,6 +97,13 @@ const propertyInputContainerStyles = (theme: Theme) =>
 
     "&:hover .action-icons, &:hover .reset-button.is-active": {
       opacity: 1
+    },
+
+    // Touch devices have no hover; keep the action icons and reset reachable.
+    "@media (pointer: coarse)": {
+      ".action-icons, .reset-button.is-active": {
+        opacity: 1
+      }
     },
 
     ".action-icon": {
@@ -410,7 +420,11 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
 
   const [isEditingName, setIsEditingName] = React.useState(false);
   const [editedName, setEditedName] = React.useState(property.name);
-  const { handleDeleteProperty, handleUpdatePropertyName } = useDynamicProperty(
+  const {
+    handleDeleteProperty,
+    handleUpdatePropertyName,
+    handleUpdatePropertyType
+  } = useDynamicProperty(
     id,
     (data?.dynamic_properties as Record<string, unknown>) || {}
   );
@@ -474,6 +488,32 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   const handleDeleteClick = useCallback(() => {
     handleDeleteProperty(property.name);
   }, [handleDeleteProperty, property.name]);
+
+  // Type picker. Hidden on schema-driven nodes (FAL/Kie/Replicate/Comfy,
+  // workflow/subgraph): their resolvers rewrite `dynamic_inputs` wholesale, so
+  // a user-picked type would not survive.
+  const nodeMetadataForSlot = useMetadataStore((state) =>
+    state.getMetadata(nodeType)
+  );
+  const slotNode = isDynamicProperty ? findNode(id) : undefined;
+  const canEditSlotType =
+    isDynamicProperty &&
+    !isConnected &&
+    slotNode !== undefined &&
+    !isSchemaDrivenDynamicNode(slotNode);
+  const slotTypeValue = useMemo(
+    () =>
+      slotType(
+        normalizeDynamicSlot(slotNode?.data?.dynamic_inputs?.[property.name])
+      ),
+    [slotNode, property.name]
+  );
+  const handleSlotTypeChange = useCallback(
+    (type: TypeMetadata) => {
+      handleUpdatePropertyType(property.name, type);
+    },
+    [handleUpdatePropertyType, property.name]
+  );
 
   const hasTopRightPropertyActions =
     componentType === StringProperty ||
@@ -558,6 +598,14 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       {canvasResetButton}
       {isDynamicProperty && !hideActionIcons && (
         <div className="action-icons">
+          {canEditSlotType && (
+            <DynamicSlotTypePicker
+              propertyName={property.name}
+              value={slotTypeValue}
+              nodeMetadata={nodeMetadataForSlot}
+              onChange={handleSlotTypeChange}
+            />
+          )}
           <Edit
             className="action-icon"
             onClick={handleEditNameClick}

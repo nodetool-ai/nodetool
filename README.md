@@ -147,7 +147,7 @@ npm install -g @nodetool-ai/cli
 nodetool serve
 
 # Interactive chat with agent mode
-nodetool-chat --agent --provider anthropic --model claude-sonnet-4-6
+nodetool-chat --agent --provider anthropic --model claude-sonnet-5
 
 # Run a TypeScript DSL workflow
 nodetool workflows run my-workflow.ts
@@ -196,6 +196,26 @@ ______________________________________________________________________
 ### Quick Start
 
 ```bash
+./start.sh          # API server on http://localhost:7777
+./start.sh full     # API + web UI on http://localhost:3000
+```
+
+That's the whole setup. On first run `start.sh` checks your Node version, copies
+`.env.example` to `.env`, installs dependencies, rebuilds the native SQLite
+module, and builds the backend packages — then starts the server. Every run
+after skips straight to starting it. Other modes:
+
+```bash
+./start.sh web      # web UI only
+./start.sh check    # typecheck + lint + test
+./start.sh doctor   # report what's set up and what isn't
+PORT=8080 ./start.sh
+```
+
+<details>
+<summary>Doing it by hand</summary>
+
+```bash
 nvm use                    # Activate Node 22.22.1 (reads .nvmrc)
 npm install
 npm run build:packages     # Build all TS packages in dependency order
@@ -204,6 +224,19 @@ npm run build:packages     # Build all TS packages in dependency order
 # Uses tsx --watch for the backend, so startup skips a full websocket package rebuild.
 npm run dev
 ```
+
+`npm run build:packages` is not optional on a fresh checkout: `base-nodes` and
+the other decorator packages resolve from `dist/`, so until it has run once the
+server starts with no node types registered.
+
+</details>
+
+### Working with Claude Code
+
+The repo ships a starter kit in [`.claude/`](.claude/README.md): a SessionStart
+hook that installs dependencies in web sessions, slash commands (`/serve`,
+`/verify`, `/onboard`), and 18 NodeTool skills covering workflow building,
+custom nodes, the API, deployment, and troubleshooting.
 
 ### Python Nodes (optional)
 

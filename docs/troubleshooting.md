@@ -4,7 +4,7 @@ title: "Troubleshooting Guide"
 description: "Debugging and fixing common NodeTool workflow issues."
 ---
 
-Step-by-step troubleshooting for common NodeTool issues. For installation-specific problems (GPU drivers, CUDA, platform issues), see [Installation Troubleshooting](installation.md#troubleshooting-installation).
+Step-by-step troubleshooting for common NodeTool issues. For installation-specific problems (GPU drivers, CUDA, platform issues), see [Installation Troubleshooting](installation.md#if-installing-goes-wrong).
 
 **Jump to:**
 - [Quick Diagnostic Checklist](#quick-diagnostic-checklist) — Start here
@@ -498,7 +498,7 @@ Include these details when asking for help:
 ## Related Documentation
 
 - [Workflow Debugging Guide](workflow-debugging.md) – Step-by-step debugging with Preview nodes and logs
-- [Installation Troubleshooting](installation.md#troubleshooting-installation) – Hardware, CUDA, and installation issues
+- [Installation Troubleshooting](installation.md#if-installing-goes-wrong) – Hardware, CUDA, and installation issues
 - [Getting Started](getting-started.md) – Basics of running workflows
 - [Workflow Editor](workflow-editor.md) – Using the visual editor
 - [Key Concepts](key-concepts.md) – Understanding nodes and connections

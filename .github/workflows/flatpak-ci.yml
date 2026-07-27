@@ -73,7 +73,7 @@ jobs:
             web/node_modules
             electron/node_modules
             ~/.npm
-          key: node-modules-${{ runner.os }}-${{ hashFiles('web/package-lock.json', 'electron/package-lock.json') }}
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             node-modules-${{ runner.os }}-
       

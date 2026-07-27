@@ -3,6 +3,10 @@ import {
   isWithinRoot,
   normalizeStorageKey,
   joinStorageKey,
+  assetObjectKey,
+  assetKeyCandidates,
+  assetKeyOwner,
+  RESERVED_KEY_PREFIXES
 } from "../src/storage-keys.js";
 
 describe("isWithinRoot", () => {
@@ -94,5 +98,56 @@ describe("joinStorageKey", () => {
     expect(() => joinStorageKey("../etc", "passwd")).toThrow(
       "Invalid storage key"
     );
+  });
+});
+
+describe("assetObjectKey", () => {
+  it("prefixes the file name with the owner", () => {
+    expect(assetObjectKey("user-1", "abc.png")).toBe("user-1/abc.png");
+  });
+
+  it("rejects a userId that would escape its own prefix", () => {
+    expect(() => assetObjectKey("a/b", "abc.png")).toThrow("Invalid userId");
+    expect(() => assetObjectKey("a\\b", "abc.png")).toThrow("Invalid userId");
+  });
+
+  it("rejects an empty userId", () => {
+    expect(() => assetObjectKey("", "abc.png")).toThrow("userId is required");
+  });
+
+  it("rejects a userId colliding with a runtime prefix", () => {
+    for (const reserved of RESERVED_KEY_PREFIXES) {
+      expect(() => assetObjectKey(reserved, "abc.png")).toThrow("reserved");
+    }
+  });
+
+  it("still rejects traversal in the file name", () => {
+    expect(() => assetObjectKey("user-1", "../secret")).toThrow(
+      "Invalid storage key"
+    );
+  });
+});
+
+describe("assetKeyCandidates", () => {
+  it("prefers the owner-prefixed key over the legacy flat key", () => {
+    expect(assetKeyCandidates("user-1", "abc.png")).toEqual([
+      "user-1/abc.png",
+      "abc.png"
+    ]);
+  });
+});
+
+describe("assetKeyOwner", () => {
+  it("reads the owner from a prefixed key", () => {
+    expect(assetKeyOwner("user-1/abc.png")).toBe("user-1");
+    expect(assetKeyOwner("user-1/nested/abc.png")).toBe("user-1");
+  });
+
+  it("returns null for a legacy flat key", () => {
+    expect(assetKeyOwner("abc.png")).toBeNull();
+  });
+
+  it("ignores a leading slash rather than reporting an empty owner", () => {
+    expect(assetKeyOwner("/abc.png")).toBeNull();
   });
 });

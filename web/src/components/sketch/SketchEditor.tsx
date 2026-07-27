@@ -41,6 +41,7 @@ import React, { memo, forwardRef, useEffect } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
+import ViewSidebarOutlinedIcon from "@mui/icons-material/ViewSidebarOutlined";
 import {
   Chip,
   CollapsibleSection,
@@ -64,7 +65,6 @@ import {
   useSketchIsMobile
 } from "./hooks";
 import {
-  ConnectedModePromptBar,
   ConnectedStatusBar,
   ConnectedToolbar,
   ConnectedToolTopBar,
@@ -111,7 +111,9 @@ export interface SketchEditorHandle {
 const PRESET_SWATCH_SIZE = 18;
 
 /** Bright, uppercase, letter-spaced label for the right-panel section headers. */
-const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+const SectionTitle: React.FC<{ children: React.ReactNode }> = ({
+  children
+}) => (
   <Text
     size="small"
     sx={{
@@ -187,9 +189,14 @@ export interface SketchEditorProps {
   onExportMask?: (dataUrl: string | null) => void;
   /** When true, window keyboard shortcuts for the editor are disabled (e.g. shortcuts help open). */
   suspendKeyboardShortcuts?: boolean;
-  /** Document-level actions rendered at the trailing edge of the top mode bar
-   * (e.g. Save/Done when embedded in an asset tab). */
+  /** Compact document actions rendered inline at the trailing edge of the tool
+   * bar (e.g. Save/Done when embedded in an asset tab). Keep to one or two
+   * buttons — the bar shares its row with the tool settings. */
   headerActions?: React.ReactNode;
+  /** Document actions appended to the tool bar's overflow menu. Receives the
+   * menu's close callback, and returns an array — MUI's Menu rejects a
+   * Fragment child. */
+  menuItems?: (close: () => void) => React.ReactNode[];
 }
 
 const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
@@ -202,7 +209,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
       onExportImage,
       onExportMask,
       suspendKeyboardShortcuts,
-      headerActions
+      headerActions,
+      menuItems
     },
     ref
   ) {
@@ -213,6 +221,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
     // every child so the column's reserved width also collapses, letting
     // the canvas grow into the freed space.
     const panelsHidden = useSketchStore((s) => s.panelsHidden);
+    const togglePanelsHidden = useSketchStore((s) => s.togglePanelsHidden);
     const assistantPanelOpen = useSketchStore((s) => s.assistantPanelOpen);
 
     // On narrow/touch viewports the fixed side columns can't sit beside the
@@ -221,13 +230,15 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
     const isMobile = useSketchIsMobile();
     const mobilePanelsOpen = useSketchStore((s) => s.mobilePanelsOpen);
     const setMobilePanelsOpen = useSketchStore((s) => s.setMobilePanelsOpen);
-    const setAssistantPanelOpen = useSketchStore((s) => s.setAssistantPanelOpen);
+    const setAssistantPanelOpen = useSketchStore(
+      (s) => s.setAssistantPanelOpen
+    );
 
     // The mobile panels sheet is a mobile-only surface. Clear its flag when the
     // viewport grows to desktop (rotate/resize) so it doesn't silently reopen
     // the next time the viewport shrinks back to mobile. Also keep the two
     // mobile bottom sheets mutually exclusive: when the Assistant opens (its
-    // toggle lives in the prompt bar), close the panels sheet so two stacked
+    // toggle lives in the tool bar menu), close the panels sheet so two stacked
     // SwipeableDrawer modals never fight over focus/scroll.
     useEffect(() => {
       if (!mobilePanelsOpen) {
@@ -373,7 +384,9 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
               session.layerActions.handleToggleExposedOutput
             }
             onLayerOpacityChange={session.layerActions.handleSetLayerOpacity}
-            onLayerBlendModeChange={session.layerActions.handleSetLayerBlendMode}
+            onLayerBlendModeChange={
+              session.layerActions.handleSetLayerBlendMode
+            }
             onRenameLayer={session.layerActions.handleRenameLayer}
             onAddGroup={session.layerActions.handleAddGroup}
             onToggleGroupCollapsed={
@@ -425,10 +438,6 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
 
     return (
       <FlexColumn className="sketch-editor" css={styles(theme)} gap={0}>
-        {/* Top mode / prompt bar — full editor width above the 3-column body.
-          Renders nothing without a bound document (in-node modal). */}
-        <ConnectedModePromptBar trailingActions={headerActions} />
-
         <FlexRow
           className="sketch-editor__body"
           sx={{ flex: 1, minHeight: 0, width: "100%", overflow: "hidden" }}
@@ -541,8 +550,32 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
                 onCropCancelPreview={
                   session.canvasActions.handleCropCancelPreview
                 }
+                headerActions={headerActions}
+                menuItems={menuItems}
               />
             </Container>
+
+            {/* Restoring the chrome is otherwise Tab-only, and a touch device
+              has no Tab key — keep one always-visible affordance on the bare
+              canvas. */}
+            {panelsHidden && (
+              <Tooltip title="Show panels">
+                <Fab
+                  className="sketch-editor__show-panels-fab"
+                  size="small"
+                  aria-label="Show panels"
+                  onClick={togglePanelsHidden}
+                  sx={{
+                    position: "absolute",
+                    top: (t) => t.spacing(1),
+                    right: (t) => t.spacing(1),
+                    zIndex: Z_INDEX.raised + 2
+                  }}
+                >
+                  <ViewSidebarOutlinedIcon fontSize="small" />
+                </Fab>
+              </Tooltip>
+            )}
           </FlexColumn>
 
           {/* Right column: color, layers, canvas size sections. The wrapper

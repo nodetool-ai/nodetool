@@ -12,6 +12,9 @@
       "path": "../agents"
     },
     {
+      "path": "../app-runtime"
+    },
+    {
       "path": "../auth"
     },
     {
@@ -58,6 +61,9 @@
     },
     {
       "path": "../models"
+    },
+    {
+      "path": "../model-pricing"
     },
     {
       "path": "../node-sdk"

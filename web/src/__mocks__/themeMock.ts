@@ -14,6 +14,17 @@ const mockTheme = createTheme({
     text: {
       primary: "#fff"
     },
+    // MUI derives these track colors when a real palette is built; the mock
+    // declares them so LinearProgress-based primitives render under Jest.
+    LinearProgress: {
+      primaryBg: "#3a5a72",
+      secondaryBg: "#3a3a3a",
+      errorBg: "#5a3a3a",
+      infoBg: "#3a4a5a",
+      successBg: "#3a5a3a",
+      warningBg: "#5a4a3a",
+      inheritBg: "#444444"
+    },
     // Add the custom palette properties
     c_hl1: "#77b4e6",
     c_white: "#FCFCFC",
@@ -235,6 +246,12 @@ const zIndexScale = {
 };
 (mockTheme as any).palette.Switch = {
   defaultColor: "#9e9e9e"
+};
+
+// LinearProgress track colors, which MUI reads off `vars.palette` in CSS
+// variables mode.
+(mockTheme as any).vars.palette.LinearProgress = {
+  ...(mockTheme as any).palette.LinearProgress
 };
 
 // Add theme.alpha() method for MUI v7 CSS variables mode

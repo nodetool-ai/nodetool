@@ -191,6 +191,12 @@ const styles = (theme: Theme) =>
       },
       "& .tile:hover .tile-actions": {
         opacity: 1
+      },
+      // Touch devices have no hover; keep the output action buttons reachable.
+      "@media (pointer: coarse)": {
+        ".actions": { opacity: 1 },
+        ".image-view-actions": { opacity: 1 },
+        ".tile-actions": { opacity: 1 }
       }
     },
     tableStyles(theme)

@@ -423,7 +423,7 @@ describe("MigrationRunner", () => {
 // ── Built-in migrations smoke test ───────────────────────────────────
 
 describe("Built-in migrations", () => {
-  const EXPECTED_BUILT_IN_MIGRATION_COUNT = 48;
+  const EXPECTED_BUILT_IN_MIGRATION_COUNT = 54;
 
   it("should have correct count of migrations", () => {
     expect(migrations.length).toBe(EXPECTED_BUILT_IN_MIGRATION_COUNT);
@@ -478,6 +478,20 @@ describe("Built-in migrations", () => {
     expect(
       await adapter.columnExists("nodetool_messages", "provider_session")
     ).toBe(true);
+
+    // The trigger safety counters are added by migration onto a table an
+    // earlier migration created.
+    for (const column of [
+      "disabled_reason",
+      "consecutive_failures",
+      "run_count",
+      "expires_at",
+      "max_runs"
+    ]) {
+      expect(
+        await adapter.columnExists("trigger_registrations", column)
+      ).toBe(true);
+    }
   });
 
   it("should be idempotent (running twice produces same result)", async () => {

@@ -20,6 +20,7 @@ import { memo, useCallback, useMemo } from "react";
 import { Workflow } from "../../stores/ApiTypes";
 import { BASE_URL } from "../../stores/BASE_URL";
 import { getNodeDisplayName, getNodeNamespace } from "../../utils/nodeDisplay";
+import { WorkflowTriggerIndicator } from "./WorkflowTriggerIndicator";
 
 interface WorkflowCardProps {
   workflow: Workflow;
@@ -134,6 +135,16 @@ const cardStyles = (theme: Theme) =>
       padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.xs,
       textTransform: "uppercase"
+    },
+    ".trigger-badge": {
+      position: "absolute",
+      bottom: getSpacingPx(SPACING.md),
+      left: getSpacingPx(SPACING.md),
+      backgroundColor: theme.vars.palette.c_scrim,
+      backdropFilter: "blur(4px)",
+      borderRadius: BORDER_RADIUS.pill,
+      padding: getSpacingPx(SPACING.xs),
+      zIndex: Z_INDEX.base + 5
     },
     ".matched-nodes": {
       position: "absolute",
@@ -344,6 +355,10 @@ const WorkflowCard = ({
           {packageBadge && (
             <Text className="package-badge">{packageBadge}</Text>
           )}
+          <WorkflowTriggerIndicator
+            workflowId={workflow.id}
+            className="trigger-badge"
+          />
           {nodesOnlySearch && matchedNodes.length > 0 && (
             <Box className="matched-nodes">
               {matchedNodes.slice(0, 3).map((match) => (

@@ -59,8 +59,9 @@ export default function ShowcaseHubPage() {
             Made with NodeTool
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-slate-300">
-            Images and video generated with NodeTool workflows. Pick any shot to
-            see the exact model, workflow, and prompt — then remix it in the app.
+            Images and video made with NodeTool workflows. Pick any shot to see
+            the exact model, workflow, and prompt behind it, then make your own
+            version in the app.
           </p>
         </section>
 

@@ -1,13 +1,16 @@
 /**
  * `nodetool app debug` — the app-builder debug harness command.
  *
- * Runs an app-builder mini app (the `app_doc` on a workflow) headlessly:
- * validates every widget binding against the workflow's inputs/outputs/
- * variables, simulates the app's interactions (a Run button click by default,
- * or a scripted `--interact` sequence), executes the workflow on the kernel
- * runner, and reports each widget's final value. Writes a debug bundle and
- * prints an agent-friendly verdict. Heavy dependencies load lazily inside the
- * action so command registration stays light and unit-testable.
+ * Runs a mini app headlessly: validates every widget binding against its
+ * workflows' inputs/outputs/variables, simulates the app's interactions (a Run
+ * button click by default, or a scripted `--interact` sequence), executes the
+ * workflows on the kernel runner, and reports each widget's final value. Writes
+ * a debug bundle and prints an agent-friendly verdict.
+ *
+ * The target can be an application id, an ApplicationBundle JSON file, or —
+ * legacy — a workflow id or workflow file whose `app_doc` is lifted into an
+ * application document. Heavy dependencies load lazily inside the action so
+ * command registration stays light and unit-testable.
  */
 import type { Command } from "commander";
 
@@ -26,14 +29,14 @@ export function registerAppCommands(program: Command): void {
     .description("Work with app-builder mini apps");
 
   app
-    .command("debug <workflow_id_or_file>")
+    .command("debug <application_id_or_file>")
     .description(
-      "Run an app-builder app headlessly (validate widget wiring, simulate interactions, execute the workflow) and collect a debug bundle"
+      "Run a mini app headlessly (validate widget wiring, simulate interactions, execute the workflows) and collect a debug bundle. Takes an application id, an ApplicationBundle JSON file, or a workflow id/file carrying a legacy app_doc"
     )
     .option("--params <json>", "Reactive values applied before interactions, keyed by input name")
     .option(
       "--interact <json>",
-      'Scripted interaction steps, e.g. \'[{"set":{"key":"prompt","value":"hi"}},{"click":"Button-1"}]\''
+      'Scripted interaction steps: set, change, click, run (by operation id), cancel — e.g. \'[{"set":{"key":"prompt","value":"hi"}},{"run":"main"}]\''
     )
     .option("--no-run", "Static wiring check only — never execute the workflow")
     .option(
@@ -46,7 +49,7 @@ export function registerAppCommands(program: Command): void {
     .option("--json", "Print the full AppDebugReport as JSON to stdout")
     .action(async (ref: string, opts: AppDebugCliOptions) => {
       try {
-        const { initDb, Workflow } = await import("@nodetool-ai/models");
+        const { initDb, Application, Workflow } = await import("@nodetool-ai/models");
         const { initMasterKey } = await import("@nodetool-ai/security");
         const { getDefaultDbPath } = await import("@nodetool-ai/config");
         const { runAppDebug } = await import("../app-debug/index.js");
@@ -82,6 +85,17 @@ export function registerAppCommands(program: Command): void {
                 graph: { nodes: never[]; edges: never[] };
                 app_doc?: unknown;
               } | null>,
+            loadApplication: async (id: string) => {
+              const application = await Application.findById(id);
+              return application
+                ? {
+                    id: application.id,
+                    name: application.name,
+                    description: application.description,
+                    document: application.document
+                  }
+                : null;
+            },
             onLog: (line) => console.error(line.trimEnd())
           }
         );
@@ -104,6 +118,14 @@ function printAppSummary(report: {
   validation: { warnings: string[] };
   app: { title: string | null; widgetCount: number } | null;
   runs: Array<{ status: string; summary: { counts: { errored: number } } }>;
+  invocations: Array<{
+    id: string;
+    operationId: string;
+    status: string;
+    decision: string;
+    timedOutMs: number | null;
+  }>;
+  variables: Record<string, unknown>;
   widgets: Array<{
     id: string;
     type: string;
@@ -125,6 +147,15 @@ function printAppSummary(report: {
       `  run ${i + 1}: ${run.status} (${run.summary.counts.errored} node error(s))`
     );
   });
+  for (const inv of report.invocations) {
+    const state =
+      inv.timedOutMs != null ? `timed out after ${inv.timedOutMs}ms` : inv.status;
+    console.log(`  ${inv.operationId} (${inv.decision}): ${state}`);
+  }
+  const variables = Object.keys(report.variables);
+  if (variables.length > 0) {
+    console.log(`  variables: ${variables.join(", ")}`);
+  }
   const bound = report.widgets.filter((w) => w.bindingMode === "read" && w.binding);
   if (bound.length > 0) {
     const filled = bound.filter((w) => w.hasValue).length;

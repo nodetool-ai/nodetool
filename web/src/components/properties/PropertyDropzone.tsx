@@ -148,6 +148,10 @@ const PropertyDropzone = ({
       ".dropzone:hover .asset-actions": {
         opacity: 1
       },
+      // Touch devices have no hover; keep the asset actions reachable.
+      "@media (pointer: coarse)": {
+        ".asset-actions": { opacity: 1 }
+      },
       ".asset-action-button": {
         backgroundColor: theme.vars.palette.c_scrim,
         color: theme.vars.palette.grey[100],
@@ -432,6 +436,12 @@ const PropertyDropzone = ({
           return (
             <iframe
               src={uri}
+              // Asset bytes are user content served from the app's own origin.
+              // An empty sandbox drops it into an opaque origin so a stored
+              // .html document can't run script against the session, matching
+              // every other HTML iframe in the app. The storage endpoint also
+              // serves .html as text/plain; this is the second lock.
+              sandbox=""
               style={{ width: "100%", height: "400px", border: "none" }}
               allow="fullscreen"
               title="Text viewer"

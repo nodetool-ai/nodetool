@@ -58,23 +58,76 @@ const emitUploadProgress = (
   });
 };
 
+/**
+ * Upload the bytes straight to the storage backend (Supabase/S3) using a
+ * server-minted, key-scoped target, then have the server confirm what landed.
+ * The file never passes through the API.
+ *
+ * Returns null when the backend has no direct-upload path (the local file
+ * store), which is the signal to fall back to the multipart POST below.
+ */
+const uploadAssetDirect = async (
+  payload: AssetCreatePayload,
+  file: File,
+  onUploadProgress?: (progressEvent: UploadProgressEvent) => void
+): Promise<Asset | null> => {
+  const created = await trpcClient.assets.createUpload.mutate({
+    name: payload.name ?? file.name,
+    content_type: payload.content_type || file.type || "application/octet-stream",
+    parent_id: payload.parent_id ?? "",
+    size: file.size,
+    ...(payload.workflow_id ? { workflow_id: payload.workflow_id } : {})
+  });
+
+  if (!created.upload) {
+    return null;
+  }
+
+  const response = await fetch(created.upload.url, {
+    method: created.upload.method,
+    headers: created.upload.headers,
+    body: file
+  });
+  if (!response.ok) {
+    throw new Error(
+      `Upload to storage failed with status ${response.status}`
+    );
+  }
+
+  emitUploadProgress(onUploadProgress, file.size, file.size);
+  return normalizeAssetUrls(
+    (await trpcClient.assets.finalizeUpload.mutate({
+      asset_id: created.asset_id
+    })) as Asset
+  );
+};
+
 const uploadAsset = async (
   payload: AssetCreatePayload,
   file?: File,
   onUploadProgress?: (progressEvent: UploadProgressEvent) => void,
   errorMessage = "Failed to create asset"
 ): Promise<Asset> => {
+  // Provide basic progress feedback even though fetch-based uploads
+  // don't stream progress events.
+  const total = file?.size ?? 1;
+  emitUploadProgress(onUploadProgress, 0, total);
+
+  if (file) {
+    try {
+      const direct = await uploadAssetDirect(payload, file, onUploadProgress);
+      if (direct) return direct;
+    } catch (error) {
+      normalizeAssetError(error, errorMessage);
+    }
+  }
+
   const formData = new FormData();
   formData.append("json", JSON.stringify(payload));
 
   if (file) {
     formData.append("file", file);
   }
-
-  // Provide basic progress feedback even though fetch-based uploads
-  // don't stream progress events.
-  const total = file?.size ?? 1;
-  emitUploadProgress(onUploadProgress, 0, total);
 
   try {
     const response = await restFetch("/api/assets/", {

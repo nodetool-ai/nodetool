@@ -545,4 +545,54 @@ describe("graphNodeToReactFlowNode", () => {
       expect(result.position).toEqual({ x: 0, y: 0 });
     });
   });
+
+  describe("dynamic slots", () => {
+    const imageType = {
+      type: "image",
+      optional: false,
+      values: null,
+      type_args: [],
+      type_name: null
+    };
+
+    it("restores dynamic_inputs from the graph node", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        dynamic_properties: { picture: null },
+        dynamic_inputs: { picture: { type: imageType, description: "pic" } }
+      });
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.data.dynamic_inputs).toEqual({
+        picture: { type: imageType, description: "pic" }
+      });
+    });
+
+    it("normalizes a legacy flat declaration on the way in", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        dynamic_properties: { picture: null },
+        dynamic_inputs: {
+          picture: { type: "image", optional: false, type_args: [] }
+        }
+      } as unknown as Partial<GraphNode>);
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.data.dynamic_inputs).toEqual({ picture: { type: imageType } });
+    });
+
+    it("leaves dynamic_inputs undefined for a legacy node with none", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        dynamic_properties: { anything: "" }
+      });
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.data.dynamic_inputs).toBeUndefined();
+      expect(result.data.dynamic_properties).toEqual({ anything: "" });
+    });
+  });
 });

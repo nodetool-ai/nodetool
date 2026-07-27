@@ -54,3 +54,39 @@ describe("control context property metadata", () => {
     expect(result.value.maximum).toBeUndefined();
   });
 });
+
+describe("control context property metadata – typed dynamic slots", () => {
+  it("infers the JSON type from a declared slot instead of sniffing the value", () => {
+    const node: NodeDescriptor = {
+      id: "n1",
+      type: "test.Dynamic",
+      supports_dynamic_inputs: true,
+      // A whole-number value would sniff as "integer"; the slot says float.
+      properties: { amount: 2, tags: null },
+      dynamic_properties: { amount: 2, tags: null },
+      dynamic_inputs: {
+        amount: {
+          type: { type: "float" },
+          description: "How much",
+          min: 0,
+          max: 10
+        },
+        tags: { type: { type: "list", type_args: [{ type: "str" }] } },
+        unset: { type: { type: "bool" } }
+      }
+    };
+
+    const runner = new WorkflowRunner("test-job", {
+      resolveExecutor: () => ({ process: async () => ({}) })
+    });
+    const result = (runner as any)._buildControlActionProperties(node);
+
+    expect(result.amount.type).toBe("number");
+    expect(result.amount.description).toBe("How much");
+    expect(result.amount.minimum).toBe(0);
+    expect(result.amount.maximum).toBe(10);
+    expect(result.tags.type).toBe("array");
+    // Declared slots appear even with no saved value.
+    expect(result.unset.type).toBe("boolean");
+  });
+});

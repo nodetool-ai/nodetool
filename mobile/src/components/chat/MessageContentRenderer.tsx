@@ -10,8 +10,10 @@ import {
   Image,
   StyleSheet,
   Dimensions,
+  TouchableOpacity,
 } from 'react-native';
-import { Audio, Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { MediaPlayerView } from '../media/MediaPlayerView';
 import { MessageContent } from '../../types/ApiTypes';
 import { useTheme } from '../../hooks/useTheme';
 import { apiService } from '../../services/api';
@@ -74,13 +76,7 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
       }
       return (
         <View style={styles.mediaContainer}>
-          <Video
-            source={{ uri: videoUri }}
-            style={styles.video}
-            useNativeControls
-            resizeMode={ResizeMode.CONTAIN}
-            isLooping={false}
-          />
+          <MediaPlayerView uri={videoUri} style={styles.video} />
         </View>
       );
     }
@@ -111,67 +107,30 @@ interface AudioPlayerProps {
 }
 
 const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, colors }) => {
-  const [sound, setSound] = React.useState<Audio.Sound | null>(null);
-  const [isPlaying, setIsPlaying] = React.useState(false);
-  const [position, setPosition] = React.useState(0);
-  const [duration, setDuration] = React.useState(0);
+  const player = useAudioPlayer({ uri });
+  const status = useAudioPlayerStatus(player);
 
-  const onPlaybackStatusUpdate = React.useCallback((status: AVPlaybackStatus) => {
-    if (status.isLoaded) {
-      setPosition(status.positionMillis || 0);
-      setIsPlaying(status.isPlaying);
-      if (status.didJustFinish) {
-        setIsPlaying(false);
-        setPosition(0);
-      }
-    }
-  }, []);
+  const isPlaying = status.playing;
+  const position = status.didJustFinish ? 0 : status.currentTime;
+  const duration = status.duration;
 
-  const loadSound = React.useCallback(async () => {
-    try {
-      const { Audio } = await import('expo-av');
-      const { sound: loadedSound, status } = await Audio.Sound.createAsync(
-        { uri },
-        { shouldPlay: false },
-        onPlaybackStatusUpdate
-      );
-      setSound(loadedSound);
-      if (status.isLoaded && status.durationMillis) {
-        setDuration(status.durationMillis);
-      }
-    } catch (error) {
-      console.error('Failed to load audio:', error);
-    }
-  }, [uri, onPlaybackStatusUpdate]);
-
-  React.useEffect(() => {
-    loadSound();
-    return () => {
-      if (sound) {
-        sound.unloadAsync();
-      }
-    };
-  }, [loadSound, sound]);
-
-  const togglePlayback = async () => {
-    if (!sound) {return;}
-    
+  const togglePlayback = () => {
     if (isPlaying) {
-      await sound.pauseAsync();
-    } else {
-      await sound.playAsync();
+      player.pause();
+      return;
     }
+    if (status.didJustFinish) {
+      player.seekTo(0);
+    }
+    player.play();
   };
 
-  const formatTime = (ms: number): string => {
-    const totalSeconds = Math.floor(ms / 1000);
+  const formatTime = (seconds: number): string => {
+    const totalSeconds = Math.floor(seconds);
     const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    const rest = totalSeconds % 60;
+    return `${minutes}:${rest.toString().padStart(2, '0')}`;
   };
-
-  // Import TouchableOpacity directly to fix type issues
-  const { TouchableOpacity } = require('react-native');
 
   return (
     <View style={styles.audioPlayerContainer}>

@@ -6,7 +6,12 @@
  * validates and produces a GraphData object for WorkflowRunner.
  */
 
-import type { NodeDescriptor, Edge, GraphData } from "@nodetool-ai/protocol";
+import type {
+  NodeDescriptor,
+  Edge,
+  GraphData,
+  DynamicSlotMeta
+} from "@nodetool-ai/protocol";
 
 /** The node type used for LLM-driven steps in planned graphs. */
 export const AGENT_NODE_TYPE = "nodetool.agents.Agent";
@@ -78,6 +83,38 @@ export class GraphBuilder {
 
     this._nodes.set(id, descriptor);
     return errors;
+  }
+
+  /**
+   * Declare a typed dynamic input slot on a node.
+   *
+   * Dynamic nodes accept input handles that aren't in their static metadata.
+   * Declaring the slot records the type the handle carries, so the validator
+   * and the runner can check it like any other input. An existing declaration
+   * is never overwritten — the first one wins, and a slot already declared by
+   * the node's own schema stays authoritative.
+   *
+   * Returns an array of validation errors (empty = success).
+   */
+  declareDynamicInput(
+    nodeId: string,
+    name: string,
+    meta: DynamicSlotMeta
+  ): string[] {
+    if (this._built) {
+      return ["Graph has already been finalized."];
+    }
+    const node = this._nodes.get(nodeId);
+    if (!node) {
+      return [`Node '${nodeId}' does not exist.`];
+    }
+    if (!name) {
+      return ["Dynamic input name must be a non-empty string."];
+    }
+    const slots = node.dynamic_inputs ?? {};
+    if (slots[name]) return [];
+    node.dynamic_inputs = { ...slots, [name]: meta };
+    return [];
   }
 
   /**

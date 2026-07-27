@@ -35,6 +35,18 @@ describe("HoverActionGroup", () => {
     expect(box).toHaveStyle({ opacity: "1" });
   });
 
+  // A pointer without hover can never trigger the reveal, so the group must
+  // opt out of hiding entirely there.
+  it("reveals the actions where hover is unavailable", () => {
+    renderGroup();
+    // Emotion inserts through the CSSOM, so the <style> tags read as empty.
+    const sheets = Array.from(document.styleSheets)
+      .flatMap((sheet) => Array.from(sheet.cssRules))
+      .map((rule) => rule.cssText)
+      .join("");
+    expect(sheets).toMatch(/@media \(hover: none\) \{[^}]*opacity: 1/);
+  });
+
   it("applies configured transition duration", () => {
     const { container } = renderGroup({ transitionMs: 300 });
     const box = container.firstChild as HTMLElement;

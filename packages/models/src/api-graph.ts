@@ -16,6 +16,8 @@ export interface ApiNode {
   data: Record<string, unknown>;
   ui_properties?: Record<string, unknown>;
   dynamic_properties?: Record<string, unknown>;
+  /** Typed dynamic input slot declarations; empty means every slot is `any`. */
+  dynamic_inputs?: Record<string, unknown>;
   dynamic_outputs?: Record<string, unknown>;
 }
 
@@ -50,6 +52,7 @@ export function toApiNode(node: NodeDescriptor): ApiNode {
     data: (node.properties as Record<string, unknown>) ?? {},
     ui_properties: node.ui_properties ?? {},
     dynamic_properties: node.dynamic_properties ?? {},
+    dynamic_inputs: (node.dynamic_inputs as Record<string, unknown>) ?? {},
     dynamic_outputs: (node.dynamic_outputs as Record<string, unknown>) ?? {}
   };
 }

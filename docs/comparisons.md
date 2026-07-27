@@ -34,7 +34,7 @@ Creative AI is a tab graveyard:
 
 One canvas, every model, your keys:
 
-**One canvas for every modality.** Wire Flux to GPT-5 to ElevenLabs to Wan in a single graph. Outputs flow as typed edges — image, audio, text, embeddings — not pasted strings.
+**One canvas for every modality.** Wire Flux to GPT-5.6 to ElevenLabs to Wan in a single graph. Outputs flow as typed edges — image, audio, text, embeddings — not pasted strings.
 
 **BYOK to every provider.** OpenAI, Anthropic, Gemini, Replicate, FAL, Kie, ElevenLabs, MiniMax, HuggingFace. Pay them directly. No credit markup, no provider lock-in.
 

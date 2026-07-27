@@ -42,10 +42,10 @@ jest.mock("../../../stores/ModelDownloadStore", () => ({
   useModelDownloadStore: () => ({ downloads: {}, openDialog: jest.fn() })
 }));
 
-const renderMenu = () =>
+const renderMenu = (onAction?: () => void) =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <RailAppMenu />
+      <RailAppMenu onAction={onAction} />
     </ThemeProvider>
   );
 
@@ -85,4 +85,26 @@ it("keeps Dashboard on its route (not a tab)", async () => {
 
   expect(useWorkspaceTabsStore.getState().tabs).toHaveLength(0);
   expect(mockNavigate).toHaveBeenCalledWith("/dashboard");
+});
+
+it("reports the pick to its host so the mobile sheet can dismiss", async () => {
+  const user = userEvent.setup();
+  const onAction = jest.fn();
+  renderMenu(onAction);
+
+  await user.click(screen.getByRole("button", { name: /open app menu/i }));
+  await user.click(screen.getByRole("menuitem", { name: /settings/i }));
+
+  expect(onAction).toHaveBeenCalledTimes(1);
+});
+
+it("does not report a dismissed menu as a pick", async () => {
+  const user = userEvent.setup();
+  const onAction = jest.fn();
+  renderMenu(onAction);
+
+  await user.click(screen.getByRole("button", { name: /open app menu/i }));
+  await user.keyboard("{Escape}");
+
+  expect(onAction).not.toHaveBeenCalled();
 });

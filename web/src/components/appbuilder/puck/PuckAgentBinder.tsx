@@ -21,16 +21,43 @@ import {
   removeComponent,
   updateComponentProps
 } from "./puckDataOps";
+import {
+  addOperation,
+  addResource,
+  bindingTargets,
+  declareVariable,
+  removeOperation,
+  removeResource,
+  removeVariable,
+  updateOperation,
+  updateVariable,
+  type AppDocMeta
+} from "@nodetool-ai/app-runtime";
+import type { WorkflowState } from "../workflowState";
 
 interface PuckAgentBinderProps {
   config: Config;
-  /** Workflow whose `app_doc` this editor is editing — the app's identity. */
+  /** The application this editor is editing — the app's identity. */
+  applicationId: string;
+  /**
+   * Host workflow whose inputs and outputs `getBindingTargets` resolves node
+   * ids against. Not the app's identity; an app may bind several workflows.
+   */
   workflowId: string;
+  /** Operations, variables, and resources of the document being edited. */
+  meta: AppDocMeta;
+  onMetaChange: (next: AppDocMeta) => void;
+  /** Host workflow's bindable surface, for `getBindingTargets`. */
+  workflowState: WorkflowState;
 }
 
 const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
   config,
-  workflowId
+  applicationId,
+  workflowId,
+  meta,
+  onMetaChange,
+  workflowState
 }) => {
   const puck = usePuck();
   const slotFields = useMemo(() => getSlotFields(config), [config]);
@@ -43,16 +70,29 @@ const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
   const puckRef = useRef(puck);
   puckRef.current = puck;
 
+  // Same trick for the document's non-UI half: Puck does not own it, the page
+  // does, so the handler reads the latest value and writes edits forward.
+  const metaRef = useRef<AppDocMeta>(meta);
+  metaRef.current = meta;
+  const onMetaChangeRef = useRef(onMetaChange);
+  onMetaChangeRef.current = onMetaChange;
+  const workflowStateRef = useRef<WorkflowState>(workflowState);
+  workflowStateRef.current = workflowState;
+
   useEffect(() => {
     const rand = () => Math.random().toString(36).slice(2, 8);
     const apply = (next: Data) => {
       working.current = next;
       puckRef.current.dispatch({ type: "setData", data: next });
     };
+    const applyMeta = (next: AppDocMeta) => {
+      metaRef.current = next;
+      onMetaChangeRef.current(next);
+    };
 
     const handler: PuckAgentHandler = {
       getSnapshot: () => ({
-        workflowId,
+        applicationId,
         rootProps: (working.current.root.props ?? {}) as Record<string, unknown>,
         selectedId:
           (puckRef.current.selectedItem?.props.id as string | undefined) ?? null,
@@ -121,21 +161,80 @@ const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
           ...working.current,
           root: { ...root, props: { ...(root.props ?? {}), ...props } }
         });
-      }
+      },
+
+      listOperations: () => metaRef.current.operations,
+      addOperation: (input) => {
+        const { meta: next, operation } = addOperation(metaRef.current, input);
+        applyMeta(next);
+        return operation;
+      },
+      updateOperation: (id, patch) => {
+        const { meta: next, operation } = updateOperation(
+          metaRef.current,
+          id,
+          patch
+        );
+        if (!operation) return null;
+        applyMeta(next);
+        return operation;
+      },
+      removeOperation: (id) => {
+        const { meta: next, removed } = removeOperation(metaRef.current, id);
+        if (removed) applyMeta(next);
+        return removed;
+      },
+
+      listVariables: () => metaRef.current.variables,
+      declareVariable: (input) => {
+        const { meta: next, variable } = declareVariable(metaRef.current, input);
+        applyMeta(next);
+        return variable;
+      },
+      updateVariable: (id, patch) => {
+        const { meta: next, variable } = updateVariable(
+          metaRef.current,
+          id,
+          patch
+        );
+        if (!variable) return null;
+        applyMeta(next);
+        return variable;
+      },
+      removeVariable: (id) => {
+        const { meta: next, removed } = removeVariable(metaRef.current, id);
+        if (removed) applyMeta(next);
+        return removed;
+      },
+
+      listResources: () => metaRef.current.resources,
+      addResource: (input) => {
+        const { meta: next, resource } = addResource(metaRef.current, input);
+        applyMeta(next);
+        return resource;
+      },
+      removeResource: (id) => {
+        const { meta: next, removed } = removeResource(metaRef.current, id);
+        if (removed) applyMeta(next);
+        return removed;
+      },
+
+      getBindingTargets: () =>
+        bindingTargets(metaRef.current, workflowId, workflowStateRef.current)
     };
 
-    setPuckAgentHandler(workflowId, handler);
+    setPuckAgentHandler(applicationId, handler);
     return () => {
-      // Only clear our own registration — a second editor for the same workflow
+      // Only clear our own registration — a second editor for the same app
       // may have taken the slot over in the meantime.
       if (
-        hasPuckAgentHandler(workflowId) &&
-        getPuckAgentHandler(workflowId) === handler
+        hasPuckAgentHandler(applicationId) &&
+        getPuckAgentHandler(applicationId) === handler
       ) {
-        setPuckAgentHandler(workflowId, null);
+        setPuckAgentHandler(applicationId, null);
       }
     };
-  }, [config, slotFields, workflowId]);
+  }, [applicationId, config, slotFields, workflowId]);
 
   return null;
 };

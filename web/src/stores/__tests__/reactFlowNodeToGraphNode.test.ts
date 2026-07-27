@@ -651,4 +651,69 @@ describe("reactFlowNodeToGraphNode", () => {
       expect(getUiProperties(result)?.height).toBe(80);
     });
   });
+
+  describe("dynamic slots", () => {
+    it("serializes dynamic_inputs onto the graph node", () => {
+      const node = createMockReactFlowNode({
+        data: createMockNodeData({
+          dynamic_properties: { picture: null },
+          dynamic_inputs: {
+            picture: {
+              type: {
+                type: "image",
+                optional: false,
+                values: null,
+                type_args: [],
+                type_name: null
+              },
+              description: "a picture"
+            }
+          }
+        })
+      });
+
+      const result = reactFlowNodeToGraphNode(node);
+
+      expect(result.dynamic_inputs).toEqual({
+        picture: {
+          type: {
+            type: "image",
+            optional: false,
+            values: null,
+            type_args: [],
+            type_name: null
+          },
+          description: "a picture"
+        }
+      });
+    });
+
+    it("normalizes a legacy flat declaration on the way out", () => {
+      const node = createMockReactFlowNode({
+        data: createMockNodeData({
+          dynamic_properties: { picture: null },
+          dynamic_inputs: {
+            // Flat resolver shape that older sessions may still hold.
+            picture: { type: "image", type_args: [], optional: false } as never
+          }
+        })
+      });
+
+      const result = reactFlowNodeToGraphNode(node);
+
+      expect(result.dynamic_inputs?.picture.type).toEqual({
+        type: "image",
+        optional: false,
+        values: null,
+        type_args: [],
+        type_name: null
+      });
+    });
+
+    it("omits dynamic_inputs for a node with no typed slots", () => {
+      const result = reactFlowNodeToGraphNode(createMockReactFlowNode());
+
+      expect(result.dynamic_inputs).toBeUndefined();
+    });
+  });
 });

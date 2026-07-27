@@ -41,6 +41,7 @@ import { ApiErrorCode } from "../../error-codes.js";
 import { router, publicProcedure } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
+import { syncRegistrations } from "../../triggers/registration-sync.js";
 import {
   listInput,
   listOutput,
@@ -85,6 +86,22 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
 const log = createLogger("nodetool.websocket.trpc.workflows");
+
+/**
+ * Reconcile `trigger_registrations` against the workflow's current graph.
+ * Non-fatal by design — a broken trigger sync must not stop the user's graph
+ * from saving, so failures are logged and swallowed here.
+ */
+async function syncTriggerRegistrations(workflow: WorkflowModel): Promise<void> {
+  try {
+    await syncRegistrations(workflow, {});
+  } catch (error) {
+    log.error("Trigger registration sync failed", {
+      workflowId: workflow.id,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
 
 /**
  * The caller's effective role on a workflow:
@@ -509,6 +526,8 @@ export const workflowsRouter = router({
         app_doc: appDoc
       })) as WorkflowModel;
 
+      await syncTriggerRegistrations(workflow);
+
       return toWorkflowResponse(workflow);
     }),
 
@@ -554,6 +573,7 @@ export const workflowsRouter = router({
         if (input.html_app !== undefined) existing.html_app = input.html_app;
         if (input.app_doc !== undefined) existing.app_doc = input.app_doc;
         await existing.save();
+        await syncTriggerRegistrations(existing);
         return toWorkflowResponse(existing);
       }
 
@@ -577,6 +597,8 @@ export const workflowsRouter = router({
         html_app: input.html_app ?? null,
         app_doc: input.app_doc ?? null
       })) as WorkflowModel;
+
+      await syncTriggerRegistrations(workflow);
 
       return toWorkflowResponse(workflow);
     }),

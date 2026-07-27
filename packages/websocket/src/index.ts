@@ -9,6 +9,7 @@ export {
   handleApiRequest,
   handleNodeHttpRequest,
   createHttpApiServer,
+  getAssetFileName,
   type HttpApiOptions,
   type WorkflowRequestBody
 } from "./http-api.js";

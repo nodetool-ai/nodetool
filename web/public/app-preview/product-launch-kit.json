@@ -1,0 +1,629 @@
+{
+  "slug": "product-launch-kit",
+  "name": "Product Launch Kit",
+  "emoji": "📦",
+  "description": "Stage a product photo into lifestyle mockups, then — deliberately, because it costs real money — turn the same photo into a launch video.",
+  "tagline": "One product photo in, mockups and a launch video out.",
+  "note": "💸 Mockups need OpenAI and FAL. The launch video runs on Veo and costs credits per run, so it has its own button.",
+  "featured": false,
+  "image": "/app-preview/img/product-launch-kit.jpg",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {
+          "title": "Product Launch Kit"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "📦 Product Launch Kit",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "One product photo in, mockups and a launch video out."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "💸 Mockups need OpenAI and FAL. The launch video runs on Veo and costs credits per run, so it has its own button."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-your-product",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-your-product",
+                  "title": "Your product",
+                  "content": [
+                    {
+                      "type": "ImageInput",
+                      "props": {
+                        "id": "in-productphoto",
+                        "binding": "var:productPhoto",
+                        "label": "Product photo",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-audience",
+                        "binding": "var:audience",
+                        "label": "Who is it for?",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-mockups-product-name",
+                        "binding": "op:mockups/in:10",
+                        "label": "Product name",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-mockups-product-description",
+                        "binding": "op:mockups/in:11",
+                        "label": "Describe the product",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "NumberInput",
+                      "props": {
+                        "id": "in-mockups-num-scenes",
+                        "binding": "op:mockups/in:13",
+                        "label": "How many scenes?",
+                        "min": 1,
+                        "max": 6,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-mockups",
+                        "label": "Generate mockups",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "mockups",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-your-product-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-mockups",
+                        "binding": "op:mockups/exec#progress",
+                        "label": "Staging your mockups…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-mockups-mockup",
+                        "text": "Mockups",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-mockups-mockup",
+                        "binding": "op:mockups/out:output-mockup",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-mockups-scene",
+                        "text": "Shot list",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-mockups-scene",
+                        "binding": "op:mockups/out:output-scene",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-launch-video",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-launch-video",
+                  "title": "Launch video",
+                  "content": [
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note",
+                        "text": "💸 One run of this uses the Veo video model and costs credits."
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-video-campaign-brief",
+                        "binding": "op:video/in:5",
+                        "label": "Campaign brief",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-video-key-features",
+                        "binding": "op:video/in:7",
+                        "label": "Key features",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-video",
+                        "label": "Generate the launch video",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "video",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-launch-video-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-video",
+                        "binding": "op:video/exec#progress",
+                        "label": "Producing your spot…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-video-product-video",
+                        "text": "Launch video",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-video-product-video",
+                        "binding": "op:video/out:output-product-video",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "mockups",
+        "name": "Mockups",
+        "workflowId": "mockups",
+        "inputs": {
+          "5": {
+            "from": "variable",
+            "variableId": "productPhoto"
+          },
+          "12": {
+            "from": "variable",
+            "variableId": "audience"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      },
+      {
+        "id": "video",
+        "name": "Launch video",
+        "workflowId": "video",
+        "inputs": {
+          "6": {
+            "from": "variable",
+            "variableId": "audience"
+          },
+          "ada8f51f-0155-4178-a07c-9415be82534a": {
+            "from": "variable",
+            "variableId": "productPhoto"
+          }
+        },
+        "outputs": {},
+        "policy": "queue",
+        "timeoutMs": 900000
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "productPhoto",
+        "name": "Product photo",
+        "type": {
+          "type": "image",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "audience",
+        "name": "Target audience",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "people who hike on weekends",
+        "scope": "instance",
+        "persist": false
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "mockups",
+      "name": "Product Mockup Generator",
+      "graph": {
+        "nodes": [
+          {
+            "id": "5",
+            "type": "nodetool.input.ImageInput",
+            "data": {
+              "name": "product_image",
+              "value": {
+                "type": "image",
+                "uri": "",
+                "asset_id": null,
+                "data": null,
+                "metadata": null
+              },
+              "description": "The product image to place in scenes"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1340,
+                "y": 509
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false,
+              "title": "3️⃣ Product image"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "10",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "product_name",
+              "value": "Premium Wireless Headphones",
+              "description": "Name of the product"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 130
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false,
+              "title": "1️⃣ Product name"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "11",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "product_description",
+              "value": "Sleek, modern over-ear wireless headphones with active noise cancellation. Matte black finish with brushed-silver accents and memory-foam ear cushions.",
+              "description": "Brief product description for context"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 827
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false,
+              "title": "5️⃣ Product description"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "12",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "target_audience",
+              "value": "Tech-savvy professionals, music enthusiasts, and remote workers",
+              "description": "Target customer demographic"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 583
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false,
+              "title": "4️⃣ Target audience"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "13",
+            "type": "nodetool.input.IntegerInput",
+            "data": {
+              "name": "num_scenes",
+              "value": 6,
+              "description": "Number of scene variations to generate",
+              "min": 2,
+              "max": 12
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 367
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false,
+              "title": "2️⃣ Scene count"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-mockup",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "mockup"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 2620,
+                "y": 479
+              },
+              "selectable": true
+            }
+          },
+          {
+            "id": "output-scene",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "scene"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 2000,
+                "y": 0
+              },
+              "selectable": true
+            }
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "video",
+      "name": "Product Video Generator",
+      "graph": {
+        "nodes": [
+          {
+            "id": "5",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "campaign_brief",
+              "value": "Launch video for the Aurora Trail smart fitness watch, highlighting outdoor adventure tracking.",
+              "description": "Short description of the campaign concept"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 50,
+                "y": -197
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "1️⃣ Campaign brief",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "6",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "target_audience",
+              "value": "active millennials who enjoy weekend hiking and fitness challenges",
+              "description": "Primary audience for the marketing video"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 50,
+                "y": 83
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "2️⃣ Target audience",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "7",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "key_features",
+              "value": "GPS navigation, heart-rate analytics, adaptive coaching, water resistance",
+              "description": "Key product features to highlight"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 50,
+                "y": 363
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "3️⃣ Key features",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "ada8f51f-0155-4178-a07c-9415be82534a",
+            "type": "nodetool.input.ImageInput",
+            "data": {
+              "name": "image_input_1",
+              "value": {
+                "uri": "/api/storage/4a816f674eda4358b8140c50917ae78e.bin",
+                "type": "image"
+              },
+              "description": "Product photo to animate into the launch video"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 50,
+                "y": 643
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "4️⃣ Product image",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-product-video",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "product_video"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1763,
+                "y": 357
+              },
+              "selectable": true
+            }
+          }
+        ],
+        "edges": []
+      }
+    }
+  ],
+  "values": {
+    "op:mockups/in:10": "Premium Wireless Headphones",
+    "op:mockups/in:11": "Sleek, modern over-ear wireless headphones with active noise cancellation. Matte black finish with brushed-silver accents and memory-foam ear cushions.",
+    "op:mockups/in:13": 6,
+    "op:mockups/out:output-mockup": {
+      "$demo": "image"
+    },
+    "op:video/in:5": "Launch video for the Aurora Trail smart fitness watch, highlighting outdoor adventure tracking.",
+    "op:video/in:7": "GPS navigation, heart-rate analytics, adaptive coaching, water resistance",
+    "op:video/out:output-product-video": {
+      "$demo": "video"
+    },
+    "var:audience": "people who hike on weekends"
+  }
+}

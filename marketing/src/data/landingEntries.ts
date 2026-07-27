@@ -209,18 +209,18 @@ export const landingEntries: LandingEntry[] = [
     eyebrow: "For local-first builders",
     headline: "Local-First AI Workflows",
     subhead:
-      "Your models, your machine, your data. NodeTool Studio runs open-weight image, video, audio, and LLM workflows locally — no account to start, nothing sent to a server you don't control.",
+      "Your models, your machine, your data. NodeTool Studio runs image, video, audio, and text workflows on your own computer using open models. There is no account to create and nothing is sent to a server you do not control.",
     featuredTemplate: "image-enhance",
     highlights: [
       "Open-weight models on Apple Silicon, NVIDIA, or CPU",
       "No account required, nothing phones home",
-      "Add cloud APIs only when you want them — BYOK",
+      "Add cloud providers only when you want them, using your own keys",
     ],
     sections: ["features", "use-cases"],
     faqs: [
       {
         q: "Does NodeTool work fully offline?",
-        a: "Yes for local models. Download the weights once and run image, audio, and LLM workflows with no network. Cloud providers are opt-in per node.",
+        a: "Yes, with local models. Download them once and run image, audio, and text workflows with no internet connection. Cloud providers are only used where you choose to add them.",
       },
       {
         q: "What hardware do I need?",

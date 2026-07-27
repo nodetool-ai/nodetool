@@ -3,7 +3,9 @@ import type {
   StorageAdapter,
   StorageEntry,
   StorageListResult,
-  StorageStat
+  StorageStat,
+  UploadTarget,
+  UploadUrlOptions
 } from "./storage-adapter.js";
 import { assertUploadWithinLimit } from "./storage-limits.js";
 import { joinStorageKey, normalizeStorageKey } from "./storage-keys.js";
@@ -229,5 +231,34 @@ export class S3StorageAdapter implements StorageAdapter {
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Presigned PUT for `key`, so a client uploads straight to S3. Returns
+   * `null` when the injected client can't presign (test fakes). The URL
+   * authorises a write to this one key; it does not bound the body, so the
+   * caller must verify size and type after the upload lands.
+   */
+  async createUploadUrl(
+    key: string,
+    opts: UploadUrlOptions = {}
+  ): Promise<UploadTarget | null> {
+    const client = this.getClient();
+    if (!client.presignPutObject) return null;
+    const objectKey = joinStorageKey(this.prefix ?? undefined, key);
+    const expiresIn = Math.min(opts.expiresIn ?? 3600, 604800);
+    const url = await client.presignPutObject({
+      bucket: this.bucket,
+      key: objectKey,
+      expiresIn
+    });
+    const headers: Record<string, string> = {};
+    if (opts.contentType) headers["content-type"] = opts.contentType;
+    return {
+      url,
+      method: "PUT",
+      headers,
+      expiresAt: Date.now() + expiresIn * 1000
+    };
   }
 }

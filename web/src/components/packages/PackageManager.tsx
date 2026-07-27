@@ -227,7 +227,16 @@ function PackageManager() {
   }, [showSearch]);
 
   return (
-    <FlexRow sx={{ width: "100%", height: "100%", minHeight: 0 }}>
+    <Box
+      sx={{
+        display: "flex",
+        // The rail stacks above the list on a phone (see PackageRail).
+        flexDirection: { xs: "column", sm: "row" },
+        width: "100%",
+        height: "100%",
+        minHeight: 0
+      }}
+    >
       <PackageRail
         tab={tab}
         onTab={handleTab}
@@ -237,7 +246,10 @@ function PackageManager() {
       />
 
       <FlexColumn sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>
-        <FlexColumn gap={0} sx={{ flexShrink: 0, pt: 2.75, px: 3.75 }}>
+        <FlexColumn
+          gap={0}
+          sx={{ flexShrink: 0, pt: 2.75, px: { xs: 1.75, sm: 3.75 } }}
+        >
           {model.isSoftware && (
             <FlexRow
               gap={1.75}
@@ -313,7 +325,7 @@ function PackageManager() {
                       : `Update all (${model.bulkUpdate.count})`}
                   </EditorButton>
                 )}
-                <Box sx={{ width: 250 }}>
+                <Box sx={{ width: { xs: "100%", sm: 250 } }}>
                   <SearchInput
                     ref={searchRef}
                     value={q}
@@ -411,7 +423,7 @@ function PackageManager() {
           )}
         </FlexColumn>
       </FlexColumn>
-    </FlexRow>
+    </Box>
   );
 }
 

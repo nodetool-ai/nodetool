@@ -17,7 +17,7 @@ The provider is registered under `PROVIDER_IDS.OPENAI = "openai"` in
 
 | Model type | What to do |
 |---|---|
-| Chat / LLM (e.g. `gpt-5`, `o3`) | Nothing — the list is fetched live from `https://api.openai.com/v1/models` |
+| Chat / LLM (e.g. `gpt-5.6`) | Nothing — the list is fetched live from `https://api.openai.com/v1/models` and filtered to the gpt-5 family |
 | Image (e.g. `gpt-image-3`) | Add one entry to `getAvailableImageModels()` (~line 249) and one pricing entry if quality-based |
 | Video (e.g. `sora-3`) | Add one entry to `getAvailableVideoModels()` (~line 232) |
 | TTS / ASR / Embedding | Add one entry to the matching static getter |
@@ -41,36 +41,52 @@ The provider is registered under `PROVIDER_IDS.OPENAI = "openai"` in
 
 ### Chat / LLM models — dynamic
 
-`getAvailableLanguageModels()` (line 178) makes a live `GET` request to
-`https://api.openai.com/v1/models` using the stored API key, then maps every
-returned `id` to a `LanguageModel` object:
+`getAvailableLanguageModels()` makes a live `GET` request to
+`https://api.openai.com/v1/models` using the stored API key, then maps the
+returned ids to `LanguageModel` objects:
 
 ```typescript
-// openai-provider.ts lines 178–203
 async getAvailableLanguageModels(): Promise<LanguageModel[]> {
+  const isOpenAI = this.provider === PROVIDER_IDS.OPENAI;
   const response = await this._fetch("https://api.openai.com/v1/models", {
     headers: { Authorization: `Bearer ${this.apiKey}` }
   });
-  if (!response.ok) return [];
+  if (!response.ok) return isOpenAI ? OPENAI_FALLBACK_MODELS : [];
   const payload = await response.json() as { data?: Array<{ id?: string }> };
-  return (payload.data ?? [])
-    .filter((row): row is { id: string } => typeof row.id === "string")
-    .map((row) => ({ id: row.id, name: row.id, provider: "openai" }));
+  const models = (payload.data ?? [])
+    .filter((row): row is { id: string } => typeof row.id === "string" && row.id.length > 0)
+    .filter((row) => !isOpenAI || isOpenAIResponsesModel(row.id))
+    .map((row) => ({ id: row.id, name: row.id, provider: this.provider }));
+  return models.length === 0 && isOpenAI ? OPENAI_FALLBACK_MODELS : models;
 }
 ```
 
-A new chat model released by OpenAI appears in NodeTool automatically the next
-time the model list is refreshed — no code change needed.
+Two filters shape the result. `isOpenAIResponsesModel()` keeps only the gpt-5
+family — everything older (`gpt-4o`, `gpt-4.1`, the o-series) is retired on the
+`openai` provider, and audio/realtime/transcribe variants are excluded because
+the Responses API doesn't serve them. OpenAI-compatible subclasses set their own
+provider id, skip the filter, and keep their full catalog.
 
-**Tool support** is controlled by `hasToolSupport()` (line 174):
+When the request fails or returns nothing, the provider falls back to
+`OPENAI_FALLBACK_MODELS`: `gpt-5.6` (plus `-sol`, `-terra`, `-luna`), `gpt-5.5`,
+`gpt-5.5-pro`, `gpt-5.4` with its `-pro`/`-mini`/`-nano` tiers, and `gpt-5`,
+`gpt-5-mini`, `gpt-5-nano`. Add new releases there so they show up before a
+successful live fetch.
+
+A new gpt-5-family chat model released by OpenAI appears in NodeTool
+automatically the next time the model list is refreshed — no code change needed.
+
+**Tool support** is controlled by `hasToolSupport()`:
 
 ```typescript
 async hasToolSupport(model: string): Promise<boolean> {
+  if (this.usesResponsesApi(model)) return true;
   return !(model.startsWith("o1") || model.startsWith("o3"));
 }
 ```
 
-If a new model needs to opt out of tool use, add its prefix here.
+Responses-API models always support tools. If a Chat Completions model on a
+compatible subclass needs to opt out, add its prefix here.
 
 ### Image, video, TTS, ASR, and embedding models — static
 

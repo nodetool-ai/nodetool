@@ -69,7 +69,10 @@ const TRPC_CODE_BY_API_CODE: Record<ApiErrorCode, TRPCError["code"]> = {
   [ApiErrorCode.ASSET_UPLOAD_FAILED]: "INTERNAL_SERVER_ERROR",
   [ApiErrorCode.PYTHON_BRIDGE_UNAVAILABLE]: "INTERNAL_SERVER_ERROR",
   [ApiErrorCode.TIMELINE_NO_MEDIA_OUTPUT]: "BAD_REQUEST",
-  [ApiErrorCode.SKETCH_NO_IMAGE_OUTPUT]: "BAD_REQUEST"
+  [ApiErrorCode.SKETCH_NO_IMAGE_OUTPUT]: "BAD_REQUEST",
+  // A budget refusal is the caller asking for more than the app is allowed to
+  // spend, not a server fault.
+  [ApiErrorCode.BUDGET_EXCEEDED]: "FORBIDDEN"
 };
 
 export function throwApiError(

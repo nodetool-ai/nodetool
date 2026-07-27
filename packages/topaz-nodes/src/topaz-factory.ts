@@ -8,6 +8,7 @@
  */
 
 import {
+  applyContentCardBody,
   BaseNode,
   classifyFields,
   classNameToTitle,
@@ -219,6 +220,8 @@ export function createTopazNodeClass(spec: TopazManifestEntry): NodeClass {
     value: { output: spec.outputType },
     configurable: true
   });
+  // Enhancers return an image or a video — preview it in the node body.
+  applyContentCardBody(TopazNodeClass);
 
   const { inlineFields, inputFields } = computeFieldClassification(spec.fields);
   Object.defineProperty(TopazNodeClass, "inlineFields", {

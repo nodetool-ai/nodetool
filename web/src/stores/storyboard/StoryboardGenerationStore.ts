@@ -20,8 +20,7 @@ import {
   globalWebSocketManager,
   type WebSocketMessage
 } from "../../lib/websocket/GlobalWebSocketManager";
-import type { OutputUpdate } from "../ApiTypes";
-import { normalizeOutputUpdateValue } from "../outputUpdateValue";
+import { normalizeOutputUpdateValue, isOutputUpdate } from "../outputUpdateValue";
 import { useStoryboardStore } from "./StoryboardStore";
 import { syncShotClipToTimeline } from "./timelineSync";
 
@@ -378,14 +377,8 @@ const handleShotJobMessage = (jobId: string, message: WebSocketMessage): void =>
     return;
   }
 
-  if (
-    message.type === "output_update" &&
-    message.node_id === context.outputNodeId
-  ) {
-    jobOutputs.set(
-      jobId,
-      normalizeOutputUpdateValue(message as unknown as OutputUpdate)
-    );
+  if (isOutputUpdate(message) && message.node_id === context.outputNodeId) {
+    jobOutputs.set(jobId, normalizeOutputUpdateValue(message));
     return;
   }
 

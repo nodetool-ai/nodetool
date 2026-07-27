@@ -104,6 +104,17 @@ export function verifyBackendBundle(bundleDir, { requireWebgpu = true } = {}) {
     summary.push(`${exampleJsons.length} example workflow(s) staged`);
   }
 
+  const exampleApps = (listFiles(path.join(bundleDir, "examples", "apps")) ?? [])
+    .filter((f) => f.toLowerCase().endsWith(".app.json"));
+  if (exampleApps.length === 0) {
+    errors.push(
+      "examples/apps/ is missing or has no app bundles — the packaged app " +
+        "would offer no example apps to install."
+    );
+  } else {
+    summary.push(`${exampleApps.length} example app bundle(s) staged`);
+  }
+
   const assets = listFiles(path.join(bundleDir, "assets", "nodetool-base"));
   if (!assets || assets.length === 0) {
     errors.push(

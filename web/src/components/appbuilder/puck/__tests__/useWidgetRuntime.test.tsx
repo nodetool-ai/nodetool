@@ -1,37 +1,30 @@
 import React from "react";
 import { renderHook, act } from "@testing-library/react";
-import {
-  AppRuntimeContext,
-  type AppRuntimeContextValue
-} from "../../runtime/AppRuntimeContext";
-import { createAppRuntimeStore } from "../../runtime/appRuntimeStore";
+import type { AppInstanceState } from "@nodetool-ai/app-runtime";
+
+import type { AppRuntimeContextValue } from "../../runtime/AppRuntimeContext";
+import { makeTestRuntime } from "../../__tests__/testRuntime";
 import { useWidgetRuntime } from "../useWidgetRuntime";
 
 const makeWrapper = (
-  initialValues: Record<string, unknown> = {},
+  initial: Partial<AppInstanceState> = {},
   overrides: Partial<AppRuntimeContextValue> = {}
-): React.FC<{ children: React.ReactNode }> => {
-  const store = createAppRuntimeStore(initialValues);
-  const value: AppRuntimeContextValue = {
-    store,
-    io: { inputs: [], outputs: [] },
-    designMode: false,
-    dispatch: jest.fn(),
-    setValue: jest.fn((key, v) => store.getState().setValue(key, v)),
-    getNodeProperty: jest.fn(),
-    ...overrides
-  };
-  return ({ children }) => (
-    <AppRuntimeContext.Provider value={value}>
-      {children}
-    </AppRuntimeContext.Provider>
-  );
-};
+): React.FC<{ children: React.ReactNode }> =>
+  makeTestRuntime(initial, overrides).wrapper;
 
 describe("useWidgetRuntime", () => {
   describe("read binding", () => {
     it("returns the bound value for a read widget", () => {
-      const wrapper = makeWrapper({ result: "hello" });
+      const wrapper = makeWrapper({
+        outputs: {
+          "main:out1": {
+            value: "hello",
+            invocationId: "j1",
+            status: "done",
+            revision: 1
+          }
+        }
+      });
       const { result } = renderHook(
         () =>
           useWidgetRuntime({
@@ -45,7 +38,7 @@ describe("useWidgetRuntime", () => {
     });
 
     it("returns undefined when no binding is set on a read widget", () => {
-      const wrapper = makeWrapper({ result: "hello" });
+      const wrapper = makeWrapper();
       const { result } = renderHook(
         () =>
           useWidgetRuntime({
@@ -59,8 +52,8 @@ describe("useWidgetRuntime", () => {
   });
 
   describe("write binding", () => {
-    it("falls back to component id as state key when no binding is set", () => {
-      const wrapper = makeWrapper({ "widget-2": "local" });
+    it("holds its value in view state when no binding is set", () => {
+      const wrapper = makeWrapper({ view: { "widget-2:value": "local" } });
       const { result } = renderHook(
         () =>
           useWidgetRuntime({
@@ -72,8 +65,10 @@ describe("useWidgetRuntime", () => {
       expect(result.current.value).toBe("local");
     });
 
-    it("uses the binding as the state key when provided", () => {
-      const wrapper = makeWrapper({ prompt: "hey" });
+    it("reads the bound input node's slot when a binding is provided", () => {
+      const wrapper = makeWrapper({
+        inputs: { "main:in1": { value: "hey", dirty: true, revision: 1 } }
+      });
       const { result } = renderHook(
         () =>
           useWidgetRuntime({
@@ -89,7 +84,7 @@ describe("useWidgetRuntime", () => {
 
   describe("none binding", () => {
     it("returns undefined when binding mode is none", () => {
-      const wrapper = makeWrapper({ anything: "nope" });
+      const wrapper = makeWrapper({ variables: { anything: "nope" } });
       const { result } = renderHook(
         () =>
           useWidgetRuntime({

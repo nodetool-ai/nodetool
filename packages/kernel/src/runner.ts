@@ -24,6 +24,7 @@ import type {
 } from "@nodetool-ai/protocol";
 import { TypeMetadata } from "@nodetool-ai/protocol";
 
+// Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
 const log = createLogger("nodetool.kernel.runner");
 
 /** Node type that publishes to a variable channel (see runtime VariableChannel). */
@@ -61,6 +62,7 @@ import { withWorkflowSpan } from "@nodetool-ai/runtime/tracing";
 import { isControlEdge, isDataEdge } from "@nodetool-ai/protocol";
 import { Graph, GraphValidationError } from "./graph.js";
 import { rewriteBypassedNodes } from "./graph-utils.js";
+import { dynamicSlotPropertyTypes } from "./dynamic-slots.js";
 import { NodeInbox } from "./inbox.js";
 import { NodeActor, type NodeExecutor } from "./actor.js";
 import { syntheticEdgeId } from "./edge-ids.js";
@@ -134,6 +136,20 @@ export interface RunJobRequest {
 
   /** Optional parent workflow ID for sub-graph execution. */
   parent_id?: string;
+
+  /**
+   * Wake-up payload for a trigger-driven run. Mirrors
+   * `@nodetool-ai/protocol`'s `RunJobRequest.trigger_event`, redeclared here
+   * (like {@link NodeValidationIssue}) to avoid a circular dependency. When
+   * present, propagated onto `WorkflowRunnerOptions.executionContext` as
+   * `triggerEvent` at the start of the run so actors can read it via
+   * `ProcessingContext`.
+   */
+  trigger_event?: {
+    node_id: string;
+    payload: unknown;
+    input_id: string;
+  };
 }
 
 export interface WorkflowRunnerOptions {
@@ -515,6 +531,8 @@ export class WorkflowRunner {
     // re-published each time rather than wired once at construction.
     if (this._options.executionContext) {
       this._options.executionContext.signal = this._abortController.signal;
+      this._options.executionContext.triggerEvent =
+        request.trigger_event ?? null;
     }
 
     try {
@@ -608,6 +626,7 @@ export class WorkflowRunner {
       // checked first, then suspend takes priority over node errors so a
       // human-in-the-loop pause isn't masked by an incidental sibling error.
       if (!this._cancelled && this._suspend) {
+        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
         log.info("Workflow suspended", {
           jobId: request.job_id,
           nodeId: this._suspend.node_id,
@@ -634,6 +653,7 @@ export class WorkflowRunner {
         const error = [...this._nodeErrors]
           .map(([nodeId, msg]) => `Node "${nodeId}" failed: ${msg}`)
           .join("; ");
+        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
         log.error("Workflow failed", { jobId: request.job_id, error });
         this._emit({
           type: "job_update",
@@ -651,6 +671,7 @@ export class WorkflowRunner {
       }
 
       const status = this._cancelled ? "cancelled" : "completed";
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.info("Workflow completed", { jobId: request.job_id, status });
 
       this._emit({
@@ -667,6 +688,7 @@ export class WorkflowRunner {
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.error("Workflow failed", { jobId: request.job_id, error: message });
       // Drain active edges on error for front-end cleanup
       this._drainActiveEdges();
@@ -737,6 +759,7 @@ export class WorkflowRunner {
   }
 
   cancel(): void {
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
     log.info("Job cancelled", { jobId: this.jobId });
     // Latch the request so a cancel before run() survives _resetRunState. §17.
     this._cancelRequested = true;
@@ -766,7 +789,9 @@ export class WorkflowRunner {
         this._graph.findNode(edge.target) !== undefined
     );
     if (validEdges.length < this._graph.edges.length) {
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.warn("Filtered invalid edges", {
+        // Stryker disable next-line ArithmeticOperator: diagnostic log arg only
         removed: this._graph.edges.length - validEdges.length,
         remaining: validEdges.length
       });
@@ -1231,7 +1256,9 @@ export class WorkflowRunner {
     const pendingNodes = this._checkPendingInboxWork();
     if (pendingNodes.length > 0) {
       log.warn(
+        // Stryker disable next-line StringLiteral: diagnostic log args only
         "Pending inbox work detected after all actors completed — possible data loss",
+        // Stryker disable next-line ObjectLiteral: diagnostic log args only
         {
           pendingNodes
         }
@@ -1370,6 +1397,7 @@ export class WorkflowRunner {
 
       const value = outputs[edge.sourceHandle];
       if (value === undefined) {
+        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
         log.debug("_sendMessages skip edge (no matching output)", {
           sourceNodeId,
           sourceHandle: edge.sourceHandle,
@@ -1380,12 +1408,14 @@ export class WorkflowRunner {
 
       const targetInbox = this._inboxes.get(edge.target);
       if (!targetInbox) {
+        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
         log.debug("_sendMessages skip edge (no target inbox)", {
           target: edge.target
         });
         continue;
       }
 
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.debug("_sendMessages delivering", {
         sourceNodeId,
         sourceHandle: edge.sourceHandle,
@@ -1873,6 +1903,7 @@ export class WorkflowRunner {
     if (this._options.executionContext) {
       this._options.executionContext.emit(msg);
     }
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
     log.debug("Message emitted", { jobId: this.jobId, type: msg.type });
   }
 
@@ -1964,8 +1995,14 @@ export class WorkflowRunner {
   ): Record<string, Record<string, unknown>> {
     const result: Record<string, Record<string, unknown>> = {};
 
-    const propTypes = (node.propertyTypes ?? {}) as Record<string, string>;
     const props = (node.properties ?? {}) as Record<string, unknown>;
+    const slotTypes = dynamicSlotPropertyTypes(node.dynamic_inputs);
+    // Declared dynamic slots type their handles; the registry map wins on a
+    // name collision.
+    const propTypes: Record<string, string> = {
+      ...slotTypes,
+      ...((node.propertyTypes ?? {}) as Record<string, string>)
+    };
 
     // Build the schema from registry-declared property types so the LLM sees
     // every argument the node accepts, even when the node has no saved values.
@@ -1997,7 +2034,8 @@ export class WorkflowRunner {
         jsonType = "boolean";
       }
 
-      const meta = node.propertyMeta?.[name] as
+      const slot = node.dynamic_inputs?.[name];
+      const meta = (node.propertyMeta?.[name] ?? slot) as
         | { description?: string; min?: number; max?: number }
         | undefined;
       result[name] = {

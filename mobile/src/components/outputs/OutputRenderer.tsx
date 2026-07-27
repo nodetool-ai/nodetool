@@ -9,7 +9,7 @@ import {
   Linking,
   TouchableOpacity,
 } from "react-native";
-import { Video, ResizeMode } from "expo-av";
+import { MediaPlayerView } from "../media/MediaPlayerView";
 import SyntaxHighlighter from "react-native-syntax-highlighter";
 import {
   atomDark,
@@ -180,15 +180,7 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
           </Text>
         );
       }
-      return (
-        <Video
-          source={{ uri: audioUri }}
-          style={styles.audioPlayer}
-          useNativeControls
-          resizeMode={ResizeMode.CONTAIN}
-          isLooping={false}
-        />
-      );
+      return <MediaPlayerView uri={audioUri} style={styles.audioPlayer} />;
     }
 
     case "video": {
@@ -200,15 +192,7 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
           </Text>
         );
       }
-      return (
-        <Video
-          source={{ uri: videoUri }}
-          style={styles.video}
-          useNativeControls
-          resizeMode={ResizeMode.CONTAIN}
-          isLooping={false}
-        />
-      );
+      return <MediaPlayerView uri={videoUri} style={styles.video} />;
     }
 
     case "html": {

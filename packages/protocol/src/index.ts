@@ -16,10 +16,13 @@ export {
 export * from "./toolSchemas.js";
 export * from "./creative.js";
 export * from "./builtin-packs.js";
+export * from "./triggers.js";
 export * from "./cloud-profile.js";
 export * from "./agent-protocol.js";
 export {
   type Platform,
+  type NodeEffect,
+  REACTIVE_EFFECTS,
   ALL_PLATFORMS,
   SERVER_PLATFORMS,
   NODE_AND_BROWSER_PLATFORMS,

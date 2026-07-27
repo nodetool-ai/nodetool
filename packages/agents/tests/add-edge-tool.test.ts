@@ -102,3 +102,109 @@ describe("AddEdgeTool type validation", () => {
     expect(result.status).toBe("edge_added");
   });
 });
+
+describe("AddEdgeTool typed dynamic slots", () => {
+  function dynamicSetup() {
+    const builder = new GraphBuilder();
+    const registry = mockRegistry({
+      "test.StringSource": {
+        outputs: [{ name: "output", type: { type: "str" } }]
+      },
+      "test.ImageSource": {
+        outputs: [{ name: "output", type: { type: "image" } }]
+      },
+      "test.UntypedSource": {
+        supports_dynamic_outputs: true
+      },
+      "test.Template": {
+        properties: [{ name: "template", type: { type: "str" } }],
+        supports_dynamic_inputs: true
+      }
+    });
+    builder.addNode("str", "test.StringSource");
+    builder.addNode("img", "test.ImageSource");
+    builder.addNode("loose", "test.UntypedSource");
+    builder.addNode("tpl", "test.Template");
+    return { builder, tool: new AddEdgeTool(builder, registry) };
+  }
+
+  it("declares the slot from the source output type", async () => {
+    const { builder, tool } = dynamicSetup();
+    const result = (await tool.process(ctx, {
+      source: "img",
+      source_handle: "output",
+      target: "tpl",
+      target_handle: "portrait"
+    })) as { status: string; declared_dynamic_input?: string };
+
+    expect(result.status).toBe("edge_added");
+    expect(result.declared_dynamic_input).toBe("image");
+    expect(builder.getNode("tpl")?.dynamic_inputs?.["portrait"]).toEqual({
+      type: { type: "image" }
+    });
+  });
+
+  it("rejects a mismatched edge into an already-declared slot", async () => {
+    const { tool } = dynamicSetup();
+    await tool.process(ctx, {
+      source: "img",
+      source_handle: "output",
+      target: "tpl",
+      target_handle: "portrait"
+    });
+
+    const result = (await tool.process(ctx, {
+      source: "str",
+      source_handle: "output",
+      target: "tpl",
+      target_handle: "portrait"
+    })) as { status: string; errors?: string[] };
+
+    expect(result.status).toBe("error");
+    expect(result.errors?.[0]).toMatch(/Type mismatch/);
+  });
+
+  it("accepts a matching edge into an already-declared slot", async () => {
+    const { builder, tool } = dynamicSetup();
+    builder.addNode("img2", "test.ImageSource");
+    await tool.process(ctx, {
+      source: "img",
+      source_handle: "output",
+      target: "tpl",
+      target_handle: "portrait"
+    });
+
+    const result = (await tool.process(ctx, {
+      source: "img2",
+      source_handle: "output",
+      target: "tpl",
+      target_handle: "portrait"
+    })) as { status: string };
+    expect(result.status).toBe("edge_added");
+  });
+
+  it("leaves the slot undeclared when the source type is unknown", async () => {
+    const { builder, tool } = dynamicSetup();
+    const result = (await tool.process(ctx, {
+      source: "loose",
+      source_handle: "anything",
+      target: "tpl",
+      target_handle: "field"
+    })) as { status: string; declared_dynamic_input?: string };
+
+    expect(result.status).toBe("edge_added");
+    expect(result.declared_dynamic_input).toBeUndefined();
+    expect(builder.getNode("tpl")?.dynamic_inputs).toBeUndefined();
+  });
+
+  it("never declares a slot for a static property", async () => {
+    const { builder, tool } = dynamicSetup();
+    await tool.process(ctx, {
+      source: "str",
+      source_handle: "output",
+      target: "tpl",
+      target_handle: "template"
+    });
+    expect(builder.getNode("tpl")?.dynamic_inputs).toBeUndefined();
+  });
+});

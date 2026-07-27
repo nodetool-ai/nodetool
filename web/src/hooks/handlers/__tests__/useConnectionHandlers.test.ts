@@ -1401,9 +1401,21 @@ describe("useConnectionHandlers", () => {
 
       result.current.onConnectEnd(mockEvent as any, {} as any);
 
-      // New dynamic input is named after the upstream node's title.
+      // New dynamic input is named after the upstream node's title, and
+      // declared with the dragged output's type (connect-time inference).
       expect(mockUpdateNodeData).toHaveBeenCalledWith("dynamicNode", {
-        dynamic_properties: { "My Text": "" }
+        dynamic_properties: { "My Text": "" },
+        dynamic_inputs: {
+          "My Text": {
+            type: {
+              type: "str",
+              optional: false,
+              values: null,
+              type_args: [],
+              type_name: null
+            }
+          }
+        }
       });
       // The dropped edge connects to the freshly-created input handle.
       expect(mockOnConnect).toHaveBeenCalledWith({

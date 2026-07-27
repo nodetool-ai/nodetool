@@ -11,6 +11,7 @@
 
 import { createLogger } from "@nodetool-ai/config";
 import type {
+  DynamicSlotMeta,
   Edge,
   NodeDescriptor,
   HydratedNodeDescriptor,
@@ -27,6 +28,7 @@ import {
   TypeMetadata
 } from "@nodetool-ai/protocol";
 import { syntheticEdgeId } from "./edge-ids.js";
+import { dynamicSlotPropertyTypes } from "./dynamic-slots.js";
 
 // ---------------------------------------------------------------------------
 // Graph errors
@@ -91,10 +93,10 @@ function nodeTypeToJsonSchema(typeStr: string | undefined): string {
     case "float":
     case "number":
       return "number";
-    // Stryker disable next-line StringLiteral: equivalent — the "str" case falls through to "string", which returns the same value as the default branch
+    // Stryker disable StringLiteral: equivalent — both labels return "string", the same value as the default branch
     case "str":
-    // Stryker disable next-line StringLiteral: equivalent — "string" maps to "string", identical to the default branch
     case "string":
+      // Stryker restore StringLiteral
       return "string";
     case "bool":
     case "boolean":
@@ -243,7 +245,6 @@ export class Graph {
       // Merge dynamic_properties into the node's properties so that
       // dynamic nodes (e.g. WorkflowNode) receive user-provided values
       // for inputs that aren't connected via edges.
-      // Stryker disable next-line all: equivalent — Object.assign with a non-object dynamic_properties value adds no keys (no-op)
       if (
         nodeObj.dynamic_properties &&
         typeof nodeObj.dynamic_properties === "object"
@@ -254,11 +255,30 @@ export class Graph {
         );
       }
 
+      // Declared dynamic slots are real, typed handles: register their type
+      // in propertyTypes so the undefined-property guard below keeps them and
+      // downstream type lookups see a type instead of `any`. Only merged into
+      // an existing non-empty map — synthesizing propertyTypes here would
+      // switch the guard on for a node that had no type map at all.
+      const slotTypes = dynamicSlotPropertyTypes(
+        nodeObj.dynamic_inputs as Record<string, DynamicSlotMeta> | undefined
+      );
+      if (
+        Object.keys(slotTypes).length > 0 &&
+        nodeObj.propertyTypes != null &&
+        typeof nodeObj.propertyTypes === "object" &&
+        Object.keys(nodeObj.propertyTypes as Record<string, unknown>).length > 0
+      ) {
+        nodeObj.propertyTypes = {
+          ...slotTypes,
+          ...(nodeObj.propertyTypes as Record<string, string>)
+        };
+      }
+
       if (!allowUndefinedProperties) {
         // Only validate against propertyTypes when it is explicitly provided.
         // Using properties itself as a source of truth would defeat the purpose
         // of this check, since every property key would always be "defined".
-        // Stryker disable next-line all: these operands all guard the same thing — a non-object or empty propertyTypes disables the check (the empty-object case has a dedicated test)
         const hasPropertyTypes =
           nodeObj.propertyTypes != null &&
           typeof nodeObj.propertyTypes === "object" &&
@@ -383,6 +403,13 @@ export class Graph {
         properties: mergedProperties,
         propertyTypes: {
           ...resolvedPropertyTypes,
+          // Declared dynamic slots type their handles, but never shadow a
+          // static property the registry already declares.
+          ...Object.fromEntries(
+            Object.entries(
+              dynamicSlotPropertyTypes(node.dynamic_inputs)
+            ).filter(([name]) => !Object.hasOwn(resolvedPropertyTypes, name))
+          ),
           ...(node.propertyTypes ?? {})
         },
         outputs: {
@@ -480,6 +507,7 @@ export class Graph {
     for (const edge of edges) {
       if (isControlEdge(edge)) controlledIds.add(edge.target);
     }
+    // Stryker disable next-line ConditionalExpression: equivalent — with no control edges the map below returns every node unchanged, so the early return only avoids allocating a new array
     if (controlledIds.size === 0) return nodes;
     return nodes.map((node) =>
       // Stryker disable next-line ConditionalExpression,LogicalOperator,BooleanLiteral: equivalent — re-copying an already-controlled node yields the same is_controlled value; the guard only preserves object identity (a micro-optimization)
@@ -539,8 +567,8 @@ export class Graph {
   getControllerNodes(): NodeDescriptor[];
   getControllerNodes(targetId: string): NodeDescriptor[];
   getControllerNodes(targetId?: string): NodeDescriptor[] {
-    // Stryker disable next-line all: redundant ternary — getControlEdges(undefined) already returns all control edges, identical to getControlEdges()
     const controlEdges =
+      // Stryker disable next-line ConditionalExpression: redundant ternary — getControlEdges(undefined) already returns all control edges, identical to getControlEdges()
       targetId === undefined
         ? this.getControlEdges()
         : this.getControlEdges(targetId);
@@ -660,8 +688,8 @@ export class Graph {
 
     const isInScope = (node: NodeDescriptor): boolean => {
       const directlyInScope = (node.parent_id ?? null) === parentId;
-      // Stryker disable next-line ConditionalExpression: the `!= null` guard is redundant — groupNodeIds only holds real node-id strings, so has(null/undefined) is already false
       const inScopedGroup =
+        // Stryker disable next-line ConditionalExpression: the `!= null` guard is redundant — groupNodeIds only holds real node-id strings, so has(null/undefined) is already false
         node.parent_id != null && groupNodeIds.has(node.parent_id);
       return directlyInScope || inScopedGroup;
     };

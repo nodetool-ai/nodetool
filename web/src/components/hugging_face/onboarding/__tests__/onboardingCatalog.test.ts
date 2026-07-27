@@ -1,4 +1,5 @@
 import {
+  HUGGINGFACE_PACK_REPO_ID,
   ONBOARDING_MODELS,
   ONBOARDING_ENGINES,
   ONBOARDING_NODE_PACKS,
@@ -39,6 +40,18 @@ describe("onboardingCatalog data", () => {
     for (const pack of ONBOARDING_NODE_PACKS) {
       expect(pack.repoId).toMatch(/^[^/]+\/[^/]+$/);
     }
+  });
+
+  it("does not offer the base pack — base nodes ship with NodeTool", () => {
+    expect(
+      ONBOARDING_NODE_PACKS.some((p) => p.repoId.endsWith("/nodetool-base"))
+    ).toBe(false);
+  });
+
+  it("offers the Hugging Face pack under the id used for auto-install", () => {
+    expect(
+      ONBOARDING_NODE_PACKS.some((p) => p.repoId === HUGGINGFACE_PACK_REPO_ID)
+    ).toBe(true);
   });
 
   it("marks exactly one bundled engine (Ollama)", () => {

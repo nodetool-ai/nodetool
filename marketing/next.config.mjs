@@ -54,10 +54,80 @@ const nextConfig = {
       'youtube-thumbnail-pipeline': 'hook-and-thumbnail-factory',
       'story-to-video-generator': 'movie-trailer-generator',
     };
-    return Object.entries(merges).flatMap(([from, to]) => [
-      { source: `/apps/${from}`, destination: `/apps/${to}`, permanent: true },
-      { source: `/templates/${from}`, destination: `/templates/${to}`, permanent: true },
-    ]);
+
+    // Mini apps stopped being one generated form per template: the shipped set
+    // is 11 curated apps (docs/plans/example-apps.md), so every /apps/<template>
+    // page below is gone. A template a curated app now binds sends its old page
+    // to that app; the rest send theirs to the workflow's own template page.
+    const absorbedByApp = {
+      'image-enhance': 'photo-studio',
+      'photo-enhancement-suite': 'photo-studio',
+      'transcribe-audio': 'meeting-room',
+      'meeting-transcript-summarizer': 'meeting-room',
+      'concept-art-iteration-board': 'concept-studio',
+      'pokemon-maker': 'concept-studio',
+      'research-agent': 'research-desk',
+      'hacker-news-agent': 'research-desk',
+      'summarize-rss': 'research-desk',
+      'chat-with-your-documents': 'ask-your-documents',
+      'private-assistant': 'ask-your-documents',
+      'brand-asset-generator': 'brand-and-social',
+      'hook-and-thumbnail-factory': 'brand-and-social',
+      'social-media-calendar-filler': 'brand-and-social',
+      'product-mockup-generator': 'product-launch-kit',
+      'product-video-generator': 'product-launch-kit',
+      'script-to-screen': 'film-studio',
+      'directed-film-to-timeline': 'film-studio',
+      'movie-posters': 'film-studio',
+      'flashcard-generator': 'study-buddy',
+      'prompt-template': 'study-buddy',
+      'data-generator': 'dataset-builder',
+      'model-arena': 'model-arena',
+    };
+    const workflowOnly = [
+      'ad-creative-factory',
+      'audio-to-image',
+      'cold-outreach-co-pilot',
+      'color-boost-video',
+      'conditional-logic-engine',
+      'image-to-audio-story',
+      'image-to-video-animation',
+      'movie-trailer-generator',
+      'music-video-visualizer',
+      'podcast-repurposing-studio',
+      'research-paper-summarizer',
+      'seo-content-engine',
+      'workflow-as-a-tool',
+    ];
+
+    // A merged slug resolves to its absorbing template first, so an old link
+    // reaches its destination in one hop rather than a chain.
+    const appDestination = (slug) => {
+      const template = merges[slug] ?? slug;
+      const app = absorbedByApp[template];
+      return app ? `/apps/${app}` : `/templates/${template}`;
+    };
+    const retiredApps = [
+      ...Object.keys(merges),
+      ...Object.keys(absorbedByApp),
+      ...workflowOnly,
+    ];
+
+    return [
+      ...Object.entries(merges).map(([from, to]) => ({
+        source: `/templates/${from}`,
+        destination: `/templates/${to}`,
+        permanent: true,
+      })),
+      ...retiredApps
+        .map((slug) => ({
+          source: `/apps/${slug}`,
+          destination: appDestination(slug),
+          permanent: true,
+        }))
+        // Model Arena kept its slug as a curated app; it redirects to itself.
+        .filter((r) => r.source !== r.destination),
+    ];
   },
 };
 

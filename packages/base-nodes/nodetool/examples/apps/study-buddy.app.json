@@ -1,0 +1,785 @@
+{
+  "schemaVersion": 1,
+  "name": "Study Buddy",
+  "description": "Structured data an app renders better than a graph does: the cards land in a table, the explanation beside them.",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {
+          "title": "Study Buddy"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "🃏 Study Buddy",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "A deck of flashcards and the concept behind it, side by side."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "🔑 Needs an OpenAI key. Your topic persists between sessions."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-your-deck",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-your-deck",
+                  "title": "Your deck",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-topic",
+                        "binding": "var:topic",
+                        "label": "Study topic",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "NumberInput",
+                      "props": {
+                        "id": "in-cards-num-cards",
+                        "binding": "op:cards/in:num_cards_input",
+                        "label": "How many cards?",
+                        "min": 3,
+                        "max": 30,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "in-explain-audience",
+                        "binding": "op:explain/in:input_audience",
+                        "label": "Explain it to…",
+                        "options": [
+                          {
+                            "value": "a curious 10-year-old"
+                          },
+                          {
+                            "value": "a new teammate"
+                          },
+                          {
+                            "value": "an expert"
+                          },
+                          {
+                            "value": "someone in a hurry"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-cards",
+                        "label": "Make flashcards",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "cards",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-explain",
+                        "label": "Explain the concept",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "explain",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-your-deck-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-cards",
+                        "binding": "op:cards/exec#progress",
+                        "label": "Writing cards…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-cards-flashcards",
+                        "text": "Flashcards",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Table",
+                      "props": {
+                        "id": "out-cards-flashcards",
+                        "binding": "op:cards/out:flashcards_output"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-explain-explanation",
+                        "text": "The concept behind this deck",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-explain-explanation",
+                        "binding": "op:explain/out:explanation_output",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "cards",
+        "name": "Cards",
+        "workflowId": "cards",
+        "inputs": {
+          "topic_input": {
+            "from": "variable",
+            "variableId": "topic"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      },
+      {
+        "id": "explain",
+        "name": "Explain",
+        "workflowId": "explain",
+        "inputs": {
+          "input_topic": {
+            "from": "variable",
+            "variableId": "topic"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "topic",
+        "name": "Topic",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "Python data structures",
+        "scope": "user",
+        "persist": true
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "cards",
+      "name": "Flashcard Generator",
+      "description": "Generate study flashcards as structured front/back card objects and store them persistently in a database. Enter any topic and get instant flashcards that are saved for future review.",
+      "sourceId": "nodetool-base/Flashcard Generator",
+      "graph": {
+        "nodes": [
+          {
+            "id": "topic_input",
+            "parent_id": null,
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "topic",
+              "value": "Python Programming",
+              "description": "Enter the topic you want to study"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 76,
+                "y": 171
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1️⃣ Topic"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "num_cards_input",
+            "parent_id": null,
+            "type": "nodetool.input.IntegerInput",
+            "data": {
+              "name": "num_cards",
+              "value": 5,
+              "min": 3,
+              "max": 15,
+              "description": "How many flashcards to generate"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 76,
+                "y": 291
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "2️⃣ Card count"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "create_table",
+            "parent_id": null,
+            "type": "lib.sqlite.CreateTable",
+            "data": {
+              "database_name": "flashcards.db",
+              "table_name": "study_cards",
+              "columns": {
+                "type": "record_type",
+                "columns": [
+                  {
+                    "name": "id",
+                    "data_type": "int"
+                  },
+                  {
+                    "name": "front",
+                    "data_type": "string"
+                  },
+                  {
+                    "name": "back",
+                    "data_type": "string"
+                  },
+                  {
+                    "name": "category",
+                    "data_type": "string"
+                  }
+                ]
+              },
+              "add_primary_key": true,
+              "if_not_exists": true
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 696,
+                "y": 522
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "🗄️ Create card table"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "format_prompt",
+            "parent_id": null,
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "You are a study-flashcard writer. Create {{NUM_CARDS}} flashcards that teach {{TOPIC}} to a first-time learner.\n\nRules for every card:\n- \"front\": one clear question, term, or prompt — no compound questions.\n- \"back\": a concise, accurate answer, 1-2 sentences, no unexplained jargon.\n- \"category\": a short (2-3 word) tag grouping related cards (e.g. a sub-topic of {{TOPIC}}).\n- Cover distinct sub-topics — no duplicate or near-duplicate fronts.\n\nReturn exactly {{NUM_CARDS}} cards as rows with columns front, back, category. No commentary outside the rows."
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 386,
+                "y": 167
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "3️⃣ Build prompt"
+            },
+            "dynamic_properties": {
+              "TOPIC": "Python Programming",
+              "NUM_CARDS": "5"
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "generate_flashcards",
+            "parent_id": null,
+            "type": "nodetool.generators.DataGenerator",
+            "data": {
+              "model": {
+                "type": "language_model",
+                "provider": "openai",
+                "id": "gpt-5-mini",
+                "name": "GPT-5 mini",
+                "path": null,
+                "supported_tasks": []
+              },
+              "max_tokens": 4096,
+              "columns": {
+                "type": "record_type",
+                "columns": [
+                  {
+                    "name": "front",
+                    "data_type": "string"
+                  },
+                  {
+                    "name": "back",
+                    "data_type": "string"
+                  },
+                  {
+                    "name": "category",
+                    "data_type": "string"
+                  }
+                ]
+              }
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 776,
+                "y": 65
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "4️⃣ Generate flashcards"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "insert_flashcard",
+            "parent_id": null,
+            "type": "lib.sqlite.Insert",
+            "data": {},
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 1126,
+                "y": 220
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "5️⃣ Save to database"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "query_all",
+            "parent_id": null,
+            "type": "lib.sqlite.Query",
+            "data": {
+              "where": "",
+              "order_by": "id DESC",
+              "limit": 10
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 1206,
+                "y": 630
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "6️⃣ Read all cards"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "603e6bfa-2d6d-4aed-81a8-a533b8f77fad",
+            "parent_id": null,
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# 🃏 Flashcard Generator\n\nEnter a topic; an AI writes each card as a structured front/back/category object (not a markdown blob), so downstream steps can store, query, and render them as real data — then saves the deck to SQLite and reads it back for review.\n\n**Pipeline:** Topic + card count → build prompt → generate card objects → insert into SQLite → query all\n\n**Try this:** change the topic or card count. Cards persist across runs — rerun to add more to the same deck."
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": -605,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 460,
+              "height": 180,
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "flashcards_output",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "Flashcards"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1140,
+                "y": 65
+              },
+              "zIndex": 0,
+              "width": 260,
+              "title": "Flashcards",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "40602323-e39f-48d6-95fa-26a1d3a17fbc",
+            "source": "topic_input",
+            "sourceHandle": "output",
+            "target": "format_prompt",
+            "targetHandle": "TOPIC",
+            "ui_properties": null
+          },
+          {
+            "id": "b2b1f9d0-9f1b-4b7a-8e9b-6f2a5b3c9d11",
+            "source": "num_cards_input",
+            "sourceHandle": "output",
+            "target": "format_prompt",
+            "targetHandle": "NUM_CARDS",
+            "ui_properties": null
+          },
+          {
+            "id": "244c407b-37b4-45d9-8b7d-0aa091c973c5",
+            "source": "format_prompt",
+            "sourceHandle": "output",
+            "target": "generate_flashcards",
+            "targetHandle": "prompt",
+            "ui_properties": null
+          },
+          {
+            "id": "a39fe817-b16a-43b3-ae96-2788a8a023ee",
+            "source": "generate_flashcards",
+            "sourceHandle": "record",
+            "target": "insert_flashcard",
+            "targetHandle": "data",
+            "ui_properties": null
+          },
+          {
+            "id": "0a0e761d-50bf-432d-a346-922a503b370c",
+            "source": "create_table",
+            "sourceHandle": "database_name",
+            "target": "query_all",
+            "targetHandle": "database_name",
+            "ui_properties": {
+              "className": "str"
+            }
+          },
+          {
+            "id": "c07f93c7-6adf-4e34-a79f-971f39d264b9",
+            "source": "create_table",
+            "sourceHandle": "table_name",
+            "target": "query_all",
+            "targetHandle": "table_name",
+            "ui_properties": {
+              "className": "str"
+            }
+          },
+          {
+            "id": "6d344c9b-d47e-42a7-90c1-4e2471efae7e",
+            "source": "create_table",
+            "sourceHandle": "database_name",
+            "target": "insert_flashcard",
+            "targetHandle": "database_name",
+            "ui_properties": {
+              "className": "str"
+            }
+          },
+          {
+            "id": "510c3a40-032a-406f-a592-12e5c8fc1c79",
+            "source": "create_table",
+            "sourceHandle": "table_name",
+            "target": "insert_flashcard",
+            "targetHandle": "table_name",
+            "ui_properties": {
+              "className": "str"
+            }
+          },
+          {
+            "id": "922eb1a6-d8d8-4211-addf-92b198ebb22b",
+            "source": "create_table",
+            "sourceHandle": "columns",
+            "target": "query_all",
+            "targetHandle": "columns",
+            "ui_properties": {
+              "className": "record_type"
+            }
+          },
+          {
+            "id": "e_flashcards_out",
+            "source": "generate_flashcards",
+            "sourceHandle": "dataframe",
+            "target": "flashcards_output",
+            "targetHandle": "value",
+            "ui_properties": {
+              "className": "dataframe"
+            },
+            "edge_type": "data"
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    },
+    {
+      "key": "explain",
+      "name": "Prompt Template",
+      "description": "The starter pattern behind almost every NodeTool workflow: typed inputs fill a reusable prompt template, an LLM answers it, the output renders. Explains a topic for any audience — swap the prompt to reuse the pattern for anything.",
+      "sourceId": "nodetool-base/Prompt Template",
+      "graph": {
+        "edges": [
+          {
+            "id": "e_topic_to_prompt",
+            "source": "input_topic",
+            "sourceHandle": "output",
+            "target": "prompt_template",
+            "targetHandle": "topic",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_audience_to_prompt",
+            "source": "input_audience",
+            "sourceHandle": "output",
+            "target": "prompt_template",
+            "targetHandle": "audience",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_prompt_to_llm",
+            "source": "prompt_template",
+            "sourceHandle": "output",
+            "target": "llm",
+            "targetHandle": "prompt",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e_llm_to_output",
+            "source": "llm",
+            "sourceHandle": "text",
+            "target": "explanation_output",
+            "targetHandle": "value",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          }
+        ],
+        "nodes": [
+          {
+            "id": "comment_tutorial",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# 📝 Prompt Template\n\nThe pattern behind most NodeTool workflows: **Input → Prompt template → LLM → Output**.\n\n- **Inputs** collect typed values (here: two strings) that the person running the app fills in.\n- **Prompt template** is a Jinja string with `{{ placeholders }}` — it separates *what varies* (the inputs) from *what stays fixed* (your instructions), so you can restyle the whole task without touching the graph.\n- **LLM** (the Agent node) reads the filled-in prompt and answers. It has no tools attached — that's what makes it a plain LLM call instead of a research agent.\n- **Output** exposes the LLM's answer to the app UI.\n\n**Try this:** change Topic and Audience, or rewrite the prompt template to ask for something else entirely (a recipe, a code review, a bedtime story) — the shape of the graph never has to change."
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": -520,
+                "y": 40
+              },
+              "zIndex": 0,
+              "width": 480,
+              "height": 320,
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "input_topic",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "Topic",
+              "description": "The concept to explain (e.g., Photosynthesis, Compound Interest, Black Holes)",
+              "value": "Photosynthesis"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 50,
+                "y": 60
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "1️⃣ Topic",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "input_audience",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "Audience",
+              "description": "Who the explanation is for (e.g., curious 10-year-old, first-year med student, busy executive)",
+              "value": "curious 10-year-old"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 50,
+                "y": 320
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "2️⃣ Audience",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "prompt_template",
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "Explain the following topic so that the given audience genuinely understands it.\n\nTopic: {{ topic }}\nAudience: {{ audience }}\n\nWrite your explanation in exactly four parts, in this order:\n1. **In one sentence** — the core idea, no jargon.\n2. **Analogy** — compare it to something the audience already knows.\n3. **Example** — a concrete, everyday instance of it in action.\n4. **Common misconception** — one thing people often get wrong about it, corrected.\n\nMatch your vocabulary and tone to the audience. Keep the whole answer under 200 words."
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 390,
+                "y": 50
+              },
+              "zIndex": 0,
+              "width": 340,
+              "height": 380,
+              "title": "3️⃣ Fill template",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {
+              "topic": "Photosynthesis",
+              "audience": "curious 10-year-old"
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "llm",
+            "type": "nodetool.agents.Agent",
+            "data": {
+              "model": {
+                "type": "language_model",
+                "provider": "openai",
+                "id": "gpt-5-mini",
+                "name": "GPT-5 mini",
+                "path": null,
+                "supported_tasks": []
+              },
+              "system": "You are a patient, precise teacher. You tailor explanations exactly to the stated audience, use the requested structure, and never pad your answer with filler like \"great question\" or restating the prompt."
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 800,
+                "y": 65
+              },
+              "zIndex": 0,
+              "width": 320,
+              "height": 380,
+              "title": "4️⃣ Ask the LLM",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "explanation_output",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "Explanation"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1200,
+                "y": 65
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "Explanation",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    }
+  ]
+}

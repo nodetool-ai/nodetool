@@ -1,6 +1,7 @@
 import { Node } from "@xyflow/react";
 import { Node as GraphNode } from "./ApiTypes";
 import { NodeData } from "./NodeData";
+import { normalizeDynamicSlots } from "../utils/dynamicSlots";
 import { NodeUIProperties, DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import { NODE_COLLAPSED_STRIP_HEIGHT_PX } from "./collapseNodeLayout";
 import {
@@ -77,6 +78,8 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
     }
   }
 
+  const dynamic_inputs = normalizeDynamicSlots(node.data?.dynamic_inputs);
+
   return {
     id: node.id,
     type: node.type || "",
@@ -84,6 +87,7 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
     parent_id: node.parentId,
     ui_properties: ui_properties,
     dynamic_properties: node.data?.dynamic_properties || {},
+    ...(Object.keys(dynamic_inputs).length > 0 ? { dynamic_inputs } : {}),
     dynamic_outputs: node.data?.dynamic_outputs || {}
   };
 }

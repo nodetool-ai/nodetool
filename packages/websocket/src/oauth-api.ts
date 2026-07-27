@@ -7,8 +7,13 @@
  */
 
 import { createHash, randomBytes } from "node:crypto";
-import { createLogger } from "@nodetool-ai/config";
-import { OAuthCredential } from "@nodetool-ai/models";
+import { createLogger, isGoogleWorkspaceEnabled } from "@nodetool-ai/config";
+import {
+  OAuthCredential,
+  storeGoogleCredential,
+  deleteGoogleCredentials,
+  GOOGLE_CREDENTIAL_PROVIDER
+} from "@nodetool-ai/models";
 import {
   OAuthClient,
   LocalCallbackServer,
@@ -1019,6 +1024,105 @@ async function handleOpenAIDisconnect(
   return jsonResponse({ success: true, removed: credentials.length });
 }
 
+// ── Google Workspace Endpoints ───────────────────────────────────────
+//
+// Unlike the flows above, there is no authorization round-trip here. The user
+// already signed in with Google through Supabase, which handed the browser a
+// Google `provider_token` (and, with `access_type=offline`, a
+// `provider_refresh_token`). Supabase does not expose those server-side, so the
+// web app posts them once per login and the server keeps them for agent tools
+// and workflow nodes.
+
+interface GoogleSessionBody {
+  access_token?: unknown;
+  refresh_token?: unknown;
+  expires_at?: unknown;
+  scope?: unknown;
+  email?: unknown;
+  account_id?: unknown;
+}
+
+/** Coerce Supabase's `expires_at` (unix seconds or ISO string) to ISO. */
+function toIsoExpiry(value: unknown): string | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return new Date(value * 1000).toISOString();
+  }
+  if (typeof value === "string" && value) {
+    const parsed = Date.parse(value);
+    if (!Number.isNaN(parsed)) return new Date(parsed).toISOString();
+  }
+  return null;
+}
+
+async function handleGoogleSession(
+  request: Request,
+  getUserId: () => string
+): Promise<Response> {
+  if (request.method !== "POST")
+    return errorResponse(405, "Method not allowed");
+  if (!isGoogleWorkspaceEnabled()) {
+    return errorResponse(404, "Google Workspace integration is not enabled");
+  }
+
+  let body: GoogleSessionBody;
+  try {
+    body = (await request.json()) as GoogleSessionBody;
+  } catch {
+    return errorResponse(400, "Invalid JSON body");
+  }
+
+  const accessToken =
+    typeof body.access_token === "string" ? body.access_token : "";
+  if (!accessToken) {
+    return errorResponse(400, "access_token is required");
+  }
+
+  const userId = getUserId();
+  const email = typeof body.email === "string" ? body.email : null;
+  const credential = await storeGoogleCredential({
+    userId,
+    // One credential row per Google account. The email is the stable identity
+    // the user recognises; fall back to the NodeTool user id.
+    accountId:
+      (typeof body.account_id === "string" && body.account_id) ||
+      email ||
+      userId,
+    accessToken,
+    refreshToken:
+      typeof body.refresh_token === "string" ? body.refresh_token : null,
+    email,
+    scope: typeof body.scope === "string" ? body.scope : null,
+    expiresAt: toIsoExpiry(body.expires_at)
+  });
+
+  logger.info("Google session token stored", { accountId: credential.account_id });
+  return jsonResponse({ success: true, token: toTokenMetadata(credential) });
+}
+
+async function handleGoogleTokens(getUserId: () => string): Promise<Response> {
+  if (!isGoogleWorkspaceEnabled()) {
+    return jsonResponse({ enabled: false, tokens: [] });
+  }
+  const credentials = await OAuthCredential.listForUserAndProvider(
+    getUserId(),
+    GOOGLE_CREDENTIAL_PROVIDER
+  );
+  return jsonResponse({
+    enabled: true,
+    tokens: credentials.map(toTokenMetadata)
+  });
+}
+
+async function handleGoogleDisconnect(
+  request: Request,
+  getUserId: () => string
+): Promise<Response> {
+  if (request.method !== "POST")
+    return errorResponse(405, "Method not allowed");
+  const removed = await deleteGoogleCredentials(getUserId());
+  return jsonResponse({ success: true, removed });
+}
+
 // ── Simple hash helper (replicates Python's hash() for fallback) ─────
 
 function hashCode(str: string): number {
@@ -1084,6 +1188,14 @@ export async function handleOAuthRequest(
       return handleOpenAITokens(getUserId);
     case "/api/oauth/openai/disconnect":
       return handleOpenAIDisconnect(request, getUserId);
+
+    // Google Workspace (token comes from the Supabase Google login)
+    case "/api/oauth/google/session":
+      return handleGoogleSession(request, getUserId);
+    case "/api/oauth/google/tokens":
+      return handleGoogleTokens(getUserId);
+    case "/api/oauth/google/disconnect":
+      return handleGoogleDisconnect(request, getUserId);
 
     default:
       return null;

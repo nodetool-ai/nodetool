@@ -10,6 +10,7 @@ import {
   ToolbarIconButton
 } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 
 import AudioPlayer from "../audio/AudioPlayer";
 import AssetActionsMenu from "./AssetActionsMenu";
@@ -192,9 +193,9 @@ const AssetGrid: React.FC<AssetGridProps> = ({
 
   const theme = useTheme();
 
-  // Folders are always shown in fullscreen; in the sidebar they follow the
-  // user's toggle. Either way, hide the tree entirely when there are no
-  // folders to show.
+  // Folders are shown by default on the wide fullscreen page; elsewhere they
+  // follow the user's toggle. Either way, hide the tree entirely when there
+  // are no folders to show.
   const hasFolders = useMemo(
     () => !!folderTree && Object.keys(folderTree).length > 0,
     [folderTree]
@@ -206,10 +207,14 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     !forceGlobalAssets &&
     !!currentWorkflowId &&
     workflowFilter === currentWorkflowId;
+  // The fullscreen page docks the folder tree beside the grid and pins it
+  // open. On a phone that 300px pane leaves no room for the grid and there is
+  // no control to close it, so narrow viewports fall back to the sidebar
+  // behaviour: folders stack above the grid and follow the toolbar toggle.
+  const isNarrow = useMediaQuery(theme.breakpoints.down("sm"));
+  const foldersDocked = Boolean(isFullscreenAssets) && !isNarrow;
   const effectiveFoldersVisible =
-    !isWorkflowOutputScope &&
-    hasFolders &&
-    (Boolean(isFullscreenAssets) || foldersVisible);
+    !isWorkflowOutputScope && hasFolders && (foldersDocked || foldersVisible);
 
   const user = useAuth((state) => state.user);
 
@@ -294,24 +299,24 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         position: api.getPanel("asset-files")
           ? {
               referencePanel: "asset-files",
-              direction: isFullscreenAssets ? "left" : "above"
+              direction: foldersDocked ? "left" : "above"
             }
           : undefined,
-        ...(isFullscreenAssets
+        ...(foldersDocked
           ? { initialWidth: initialFoldersPanelWidth }
           : { initialHeight: FOLDERS_PANEL_HEIGHT })
       });
 
       const groupApi = foldersPanel?.group?.api ?? foldersPanel?.group;
       if (groupApi && typeof groupApi.setSize === "function") {
-        if (isFullscreenAssets) {
+        if (foldersDocked) {
           groupApi.setSize({ width: initialFoldersPanelWidth });
         } else {
           groupApi.setSize({ height: FOLDERS_PANEL_HEIGHT });
         }
       }
     },
-    [isFullscreenAssets, initialFoldersPanelWidth]
+    [isFullscreenAssets, foldersDocked, initialFoldersPanelWidth]
   );
 
   useEffect(() => {
@@ -375,7 +380,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         <AssetActionsMenu
           maxItemSize={maxItemSize}
           onUploadFiles={uploadFiles}
-          isFullscreenAssets={isFullscreenAssets}
+          isFullscreenAssets={foldersDocked}
           hideFolderControls={isWorkflowOutputScope}
         />
       )}

@@ -7,14 +7,22 @@ interface MockManagerShape {
   config: { url: string; headers?: Record<string, string> };
   callbacks: Record<string, ((...args: unknown[]) => void) | undefined>;
   connected: boolean;
+  state: string;
   sent: unknown[];
   destroyed: boolean;
+  resumeCalls: number;
+  pauseCalls: number;
   setCallbacks: (cb: Record<string, unknown>) => void;
   isConnected: () => boolean;
+  getState: () => string;
   connect: () => Promise<void>;
   send: (msg: unknown) => void;
   destroy: () => void;
+  resumeFromBackground: () => void;
+  pauseForBackground: () => void;
   emit: (data: Record<string, unknown>) => void;
+  drop: () => void;
+  reopen: () => void;
 }
 
 jest.mock('./WebSocketManager', () => {
@@ -24,8 +32,11 @@ jest.mock('./WebSocketManager', () => {
     config: { url: string; headers?: Record<string, string> };
     callbacks: Record<string, ((...args: unknown[]) => void) | undefined> = {};
     connected = false;
+    state = 'disconnected';
     sent: unknown[] = [];
     destroyed = false;
+    resumeCalls = 0;
+    pauseCalls = 0;
     constructor(config: { url: string; headers?: Record<string, string> }) {
       this.config = config;
       instances.push(this as unknown as MockManagerShape);
@@ -36,9 +47,11 @@ jest.mock('./WebSocketManager', () => {
     isConnected() {
       return this.connected;
     }
+    getState() {
+      return this.state;
+    }
     async connect() {
-      this.connected = true;
-      this.callbacks.onOpen?.();
+      this.reopen();
     }
     send(msg: unknown) {
       this.sent.push(msg);
@@ -46,13 +59,50 @@ jest.mock('./WebSocketManager', () => {
     destroy() {
       this.destroyed = true;
       this.connected = false;
+      this.state = 'disconnected';
+    }
+    resumeFromBackground() {
+      this.resumeCalls++;
+    }
+    pauseForBackground() {
+      this.pauseCalls++;
     }
     emit(data: Record<string, unknown>) {
       this.callbacks.onMessage?.(data);
     }
+    /** Simulate the socket dying (e.g. iOS suspending it). */
+    drop() {
+      this.connected = false;
+      this.state = 'disconnected';
+      this.callbacks.onClose?.(1006, 'suspended');
+    }
+    /** Simulate the transport (re)opening the socket. */
+    reopen() {
+      this.connected = true;
+      this.state = 'connected';
+      this.callbacks.onOpen?.();
+    }
   }
   return { WebSocketManager: MockWebSocketManager };
 });
+
+// Controllable stand-in for the AppState-backed lifecycle module. The service
+// subscribes lazily (on the first connection), so this is only touched from
+// inside tests — after the const below is initialized.
+const mockLifecycle = {
+  listeners: new Set<(event: 'foreground' | 'background') => void>(),
+  emit(event: 'foreground' | 'background') {
+    mockLifecycle.listeners.forEach((listener) => listener(event));
+  },
+};
+
+jest.mock('../hooks/useAppLifecycle', () => ({
+  isAppForeground: () => true,
+  subscribeAppLifecycle: (listener: (event: 'foreground' | 'background') => void) => {
+    mockLifecycle.listeners.add(listener);
+    return () => mockLifecycle.listeners.delete(listener);
+  },
+}));
 
 jest.mock('./api', () => ({
   apiService: { getWebSocketUrl: (path: string) => `ws://test.local${path}` },
@@ -164,5 +214,116 @@ describe('WebSocketService', () => {
     expect(managerInstances()).toHaveLength(2);
     expect(latestManager().config.url).toBe('ws://test.local/other');
     expect(latestManager().config.headers).toEqual({ Authorization: 'Bearer tok-123' });
+  });
+
+  describe('app lifecycle', () => {
+    it('asks the transport to reconnect when the app is foregrounded', async () => {
+      await webSocketService.ensureConnection('/ws');
+      latestManager().drop();
+
+      mockLifecycle.emit('foreground');
+
+      expect(latestManager().resumeCalls).toBe(1);
+    });
+
+    it('pauses the transport reconnect timer when the app is backgrounded', async () => {
+      await webSocketService.ensureConnection('/ws');
+
+      mockLifecycle.emit('background');
+
+      expect(latestManager().pauseCalls).toBe(1);
+    });
+
+    it('does nothing on foreground when there is no connection to resume', () => {
+      mockLifecycle.emit('foreground');
+      mockLifecycle.emit('background');
+
+      expect(managerInstances()).toHaveLength(0);
+    });
+
+    it('keeps delivering messages to existing subscribers after a reconnect', async () => {
+      await webSocketService.ensureConnection('/ws');
+      const received: Record<string, unknown>[] = [];
+      const unsubscribe = webSocketService.subscribe('wf-1', (m) => received.push(m));
+
+      const manager = latestManager();
+      manager.drop();
+      mockLifecycle.emit('foreground');
+      manager.reopen();
+
+      manager.emit({ type: 'node_update', workflow_id: 'wf-1', status: 'running' });
+
+      expect(received).toHaveLength(1);
+      unsubscribe();
+    });
+
+    it('re-attaches running jobs server-side after a reconnect', async () => {
+      await webSocketService.ensureConnection('/ws');
+      const manager = latestManager();
+      const unsubscribe = webSocketService.subscribe('wf-1', jest.fn());
+
+      manager.emit({
+        type: 'job_update',
+        status: 'running',
+        job_id: 'job-1',
+        workflow_id: 'wf-1',
+      });
+
+      manager.drop();
+      mockLifecycle.emit('foreground');
+      manager.reopen();
+
+      expect(manager.sent).toEqual([
+        {
+          type: 'reconnect_job',
+          command: 'reconnect_job',
+          data: { job_id: 'job-1', workflow_id: 'wf-1' },
+        },
+      ]);
+      unsubscribe();
+    });
+
+    it('does not re-attach jobs that already finished', async () => {
+      await webSocketService.ensureConnection('/ws');
+      const manager = latestManager();
+
+      manager.emit({ type: 'job_update', status: 'running', job_id: 'job-1', workflow_id: 'wf-1' });
+      manager.emit({ type: 'job_update', status: 'completed', job_id: 'job-1', workflow_id: 'wf-1' });
+
+      manager.drop();
+      manager.reopen();
+
+      expect(manager.sent).toEqual([]);
+    });
+
+    it('sends no reconnect_job on the first connection', async () => {
+      await webSocketService.ensureConnection('/ws');
+
+      expect(latestManager().sent).toEqual([]);
+    });
+
+    it('reuses an in-flight reconnect instead of replacing the transport', async () => {
+      await webSocketService.ensureConnection('/ws');
+      const manager = latestManager();
+      manager.connected = false;
+      manager.state = 'reconnecting';
+
+      await webSocketService.ensureConnection('/ws');
+
+      expect(managerInstances()).toHaveLength(1);
+      expect(manager.destroyed).toBe(false);
+    });
+
+    it('replaces a dead transport when a caller needs a connection', async () => {
+      await webSocketService.ensureConnection('/ws');
+      const first = latestManager();
+      first.connected = false;
+      first.state = 'failed';
+
+      await webSocketService.ensureConnection('/ws');
+
+      expect(managerInstances()).toHaveLength(2);
+      expect(first.destroyed).toBe(true);
+    });
   });
 });

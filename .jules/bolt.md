@@ -64,3 +64,6 @@
 ## 2026-07-16 - O(N*E) Graph inputNodes and outputNodes Bottleneck
 **Learning:** Found an O(N*E) bottleneck in \`packages/kernel/src/graph.ts\` where \`inputNodes\` and \`outputNodes\` were filtering all nodes and calling \`findDataEdges\` or \`findOutgoingEdges\` internally, leading to nested loops and excessive edge iteration. For large graphs, this caused noticeable delays.
 **Action:** Replaced the iterative approach inside \`.filter()\` with a single pass over \`this.edges\` to pre-compute a \`Set\` of node IDs that have incoming or outgoing data edges, dropping the complexity to O(N + E).
+## 2024-12-05 - O(N*E) bottleneck in WebSocket runner output processing
+**Learning:** Found an O(N*E) bottleneck in `packages/websocket/src/unified-websocket-runner.ts` inside `_streamJobMessagesInner` where `graphNodes.find((n) => n.id === nodeId)` was called for every output/node update message processed. Since `graphNodes` can be large and the runner streams many updates per job, this caused unnecessary CPU time.
+**Action:** Replaced the O(N) `.find()` lookup inside the message streaming loop with an O(1) `Map` lookup by extracting `graphNodes` into a pre-computed map before the loop.

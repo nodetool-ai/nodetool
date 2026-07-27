@@ -6,13 +6,18 @@
  * moved to the tRPC `collections` router.
  */
 
+import { createLogger } from "@nodetool-ai/config";
+import { getMaxUploadBytes } from "@nodetool-ai/storage";
 import {
   getDefaultVectorProvider,
   CollectionNotFoundError,
   splitDocument
 } from "@nodetool-ai/vectorstore";
-import type { HttpApiOptions } from "./http-api.js";
+import { getUserId, type HttpApiOptions } from "./http-api.js";
 import { notifyResourceChange } from "./resource-events.js";
+import { canAccessCollection } from "./lib/collection-access.js";
+
+const log = createLogger("nodetool.websocket.collection-api");
 
 function jsonResponse(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -39,7 +44,7 @@ function normalizePath(pathname: string): string {
 export async function handleCollectionRequest(
   request: Request,
   pathname: string,
-  _options: HttpApiOptions
+  options: HttpApiOptions
 ): Promise<Response | null> {
   pathname = normalizePath(pathname);
 
@@ -55,15 +60,41 @@ export async function handleCollectionRequest(
     return errorResponse(400, "Expected multipart/form-data");
   }
 
+  const collectionName = decodeURIComponent(indexMatch[1]);
+  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
+
   try {
     const provider = getDefaultVectorProvider();
-    const collectionName = decodeURIComponent(indexMatch[1]);
     const collection = await provider.getCollection({ name: collectionName });
+
+    // Same ownership rule the tRPC router enforces, and the same 404-not-403
+    // response for someone else's collection so this endpoint can't be used to
+    // probe for names. See lib/collection-access.ts.
+    if (
+      !canAccessCollection(
+        collection.metadata as Record<string, string | number | boolean>,
+        userId
+      )
+    ) {
+      return errorResponse(404, "Collection not found");
+    }
 
     const formData = await request.formData();
     const file = formData.get("file");
     if (!file || !(file instanceof File)) {
       return errorResponse(400, "No file provided");
+    }
+
+    // The whole file is read into a string and chunked in memory, so cap it at
+    // the same limit storage uploads use rather than relying on Fastify's
+    // 100 MB body limit.
+    const max = getMaxUploadBytes();
+    if (file.size > max) {
+      return errorResponse(
+        413,
+        `Upload exceeds maximum size: ${file.size} > ${max} bytes ` +
+          `(set NODETOOL_MAX_UPLOAD_BYTES to raise the limit)`
+      );
     }
 
     const text = await file.text();
@@ -96,7 +127,12 @@ export async function handleCollectionRequest(
     if (err instanceof CollectionNotFoundError) {
       return errorResponse(404, "Collection not found");
     }
-    const msg = err instanceof Error ? err.message : String(err);
-    return errorResponse(500, `Vector store error: ${msg}`);
+    // Log the detail, return a generic message: provider errors carry SQL
+    // text, file paths, and upstream URLs that shouldn't reach the client.
+    log.error("Collection index failed", {
+      collection: collectionName,
+      error: err instanceof Error ? err.message : String(err)
+    });
+    return errorResponse(500, "Vector store error");
   }
 }

@@ -14,6 +14,18 @@ module.exports = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   moduleNameMapper: {
     '^expo-clipboard$': '<rootDir>/__mocks__/expo-clipboard.js',
+    // Shared mini-app runtime core, compiled from source (mirrors metro.config.js).
+    '^@nodetool-ai/app-runtime$':
+      '<rootDir>/../packages/app-runtime/src/index.ts',
+    // Shared timeline engine (split/trim/factories), also from source.
+    '^@nodetool-ai/timeline$': '<rootDir>/../packages/timeline/src/index.ts',
+    '^@nodetool-ai/gpu$': '<rootDir>/../packages/gpu/src/index.ts',
+    // Dependency-free protocol module, wired on its own so `zod` (reached via
+    // the package entry point's `toolSchemas`) stays out of mobile.
+    '^@nodetool-ai/protocol/triggers$':
+      '<rootDir>/../packages/protocol/src/triggers.ts',
+    // Those packages' sources use ESM `.js` specifiers for their own modules.
+    '^(\\.{1,2}/.+)\\.js$': '$1',
   },
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',

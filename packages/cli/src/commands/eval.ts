@@ -137,6 +137,59 @@ const graphPlannerSuite: EvalSuite = {
   }
 };
 
+/** Sub-agent execution suite (RunSubtaskTool + inherited toolset). */
+const subtaskSuite: EvalSuite = {
+  id: "subtask",
+  description:
+    "Run the sub-agent execution eval suite (run_subtask delegates to a child agent that runs the inherited tools) against a provider/model",
+  async listCases() {
+    const { SUBTASK_EVAL_CASES } = await import("@nodetool-ai/agents");
+    return SUBTASK_EVAL_CASES.map((c) => ({
+      id: c.id,
+      description: c.description,
+      needsModelProviders: c.needsModelProviders
+    }));
+  },
+  async run(deps) {
+    const { SUBTASK_EVAL_CASES, runSubtaskEval, formatSubtaskReport } =
+      await import("@nodetool-ai/agents");
+
+    let cases = SUBTASK_EVAL_CASES;
+    if (deps.caseIds) {
+      const wanted = new Set(deps.caseIds);
+      cases = SUBTASK_EVAL_CASES.filter((c) => wanted.has(c.id));
+      const missing = [...wanted].filter(
+        (id) => !cases.some((c) => c.id === id)
+      );
+      if (missing.length > 0) {
+        throw new Error(`Unknown case ids: ${missing.join(", ")} (see --list)`);
+      }
+    }
+
+    console.log(
+      `Running ${cases.length} subtask case(s) with ${deps.providerId}/${deps.model}` +
+        (deps.providers && Object.keys(deps.providers).length > 0
+          ? ""
+          : " (no model providers — model-dependent cases skipped)")
+    );
+
+    const report = await runSubtaskEval({
+      provider: deps.provider,
+      model: deps.model,
+      providers: deps.providers,
+      cases,
+      maxIterations: deps.maxIterations,
+      onEvent: deps.onEvent
+    });
+
+    return {
+      report,
+      formatted: formatSubtaskReport(report),
+      successRate: report.summary.successRate
+    };
+  }
+};
+
 /** Minimal shape of a tool-loop case, enough for `--list` + id filtering. */
 interface ToolLoopCaseLike {
   id: string;
@@ -228,6 +281,7 @@ function makeToolLoopSuite(
 /** All evaluation suites exposed under `nodetool eval <suite>`. */
 export const EVAL_SUITES: readonly EvalSuite[] = [
   graphPlannerSuite,
+  subtaskSuite,
   makeToolLoopSuite(
     "tool-loop",
     "Run the frontend graph-editor tool-loop eval suite (ui_* graph tools) against a provider/model and report metrics",

@@ -54,32 +54,38 @@ jest.mock('@expo/vector-icons', () => {
   };
 });
 
-// Mock expo-av for audio/video playback
-jest.mock('expo-av', () => ({
-  Video: jest.fn().mockImplementation(({ testID, ...props }) => {
+// Mock expo-video for video playback
+jest.mock('expo-video', () => ({
+  useVideoPlayer: jest.fn(() => ({
+    play: jest.fn(),
+    pause: jest.fn(),
+    replace: jest.fn(),
+    loop: false,
+  })),
+  VideoView: jest.fn().mockImplementation(({ testID, ...props }) => {
     const React = require('react');
     const { View } = require('react-native');
     return React.createElement(View, { testID: testID || 'mock-video', ...props });
   }),
-  Audio: {
-    Sound: {
-      createAsync: jest.fn().mockResolvedValue({
-        sound: {
-          playAsync: jest.fn(),
-          pauseAsync: jest.fn(),
-          unloadAsync: jest.fn(),
-          setOnPlaybackStatusUpdate: jest.fn(),
-        },
-        status: { isLoaded: true, durationMillis: 60000 },
-      }),
-    },
-    setAudioModeAsync: jest.fn(),
-  },
-  ResizeMode: {
-    CONTAIN: 'contain',
-    COVER: 'cover',
-    STRETCH: 'stretch',
-  },
+}));
+
+// Mock expo-audio for audio playback
+jest.mock('expo-audio', () => ({
+  useAudioPlayer: jest.fn(() => ({
+    play: jest.fn(),
+    pause: jest.fn(),
+    seekTo: jest.fn(),
+    replace: jest.fn(),
+    remove: jest.fn(),
+  })),
+  useAudioPlayerStatus: jest.fn(() => ({
+    isLoaded: true,
+    playing: false,
+    currentTime: 0,
+    duration: 60,
+    didJustFinish: false,
+  })),
+  setAudioModeAsync: jest.fn(),
 }));
 
 // Mock react-syntax-highlighter
@@ -127,6 +133,105 @@ jest.mock('expo-document-picker', () => ({
     canceled: false,
     assets: [{ uri: 'file:///test/document.pdf', name: 'document.pdf', mimeType: 'application/pdf' }],
   }),
+}));
+
+// Mock expo-notifications (no notification service in Jest)
+jest.mock('expo-notifications', () => ({
+  setNotificationHandler: jest.fn(),
+  getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
+  requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
+  scheduleNotificationAsync: jest.fn().mockResolvedValue('notification-id'),
+  setNotificationChannelAsync: jest.fn().mockResolvedValue(undefined),
+  addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  getLastNotificationResponseAsync: jest.fn().mockResolvedValue(null),
+  AndroidImportance: { DEFAULT: 3, HIGH: 4 },
+}));
+
+// Mock expo-media-library (no photo library in Jest).
+// v56 moved these onto the /legacy subpath — the root re-exports are
+// deprecated stubs that throw at runtime — so both specifiers are mocked.
+// The factories are written out per specifier rather than shared through a
+// variable: babel-plugin-jest-hoist requires an inline function.
+jest.mock('expo-media-library', () => ({
+  getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
+  requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
+  saveToLibraryAsync: jest.fn().mockResolvedValue(undefined),
+  createAssetAsync: jest.fn().mockResolvedValue({ id: 'asset-1' }),
+  PermissionStatus: { GRANTED: 'granted', DENIED: 'denied', UNDETERMINED: 'undetermined' },
+}));
+jest.mock('expo-media-library/legacy', () => ({
+  getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
+  requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
+  saveToLibraryAsync: jest.fn().mockResolvedValue(undefined),
+  createAssetAsync: jest.fn().mockResolvedValue({ id: 'asset-1' }),
+  PermissionStatus: { GRANTED: 'granted', DENIED: 'denied', UNDETERMINED: 'undetermined' },
+}));
+
+// Mock expo-file-system (downloads for save-to-library). Same /legacy story.
+jest.mock('expo-file-system', () => ({
+  cacheDirectory: 'file:///cache/',
+  documentDirectory: 'file:///documents/',
+  downloadAsync: jest.fn().mockResolvedValue({ uri: 'file:///cache/download.png', status: 200 }),
+  deleteAsync: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('expo-file-system/legacy', () => ({
+  cacheDirectory: 'file:///cache/',
+  documentDirectory: 'file:///documents/',
+  downloadAsync: jest.fn().mockResolvedValue({ uri: 'file:///cache/download.png', status: 200 }),
+  deleteAsync: jest.fn().mockResolvedValue(undefined),
+}));
+
+// Mock expo-speech-recognition (no speech recognizer in Jest)
+jest.mock('expo-speech-recognition', () => ({
+  ExpoSpeechRecognitionModule: {
+    requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
+    getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
+    start: jest.fn(),
+    stop: jest.fn(),
+    abort: jest.fn(),
+    getSupportedLocales: jest.fn().mockResolvedValue({ locales: ['en-US'] }),
+    isRecognitionAvailable: jest.fn().mockReturnValue(true),
+  },
+  // A bare no-op: a test that needs native events installs its own
+  // implementation to capture listeners. Rendering the composer without one
+  // still works — the mic just never transitions.
+  useSpeechRecognitionEvent: jest.fn(),
+}));
+
+// Mock @sentry/react-native (no crash SDK in Jest)
+jest.mock('@sentry/react-native', () => ({
+  init: jest.fn(),
+  captureException: jest.fn(),
+  setUser: jest.fn(),
+  wrap: jest.fn((component) => component),
+}));
+
+// Mock expo-haptics (no taptic engine in Jest)
+jest.mock('expo-haptics', () => ({
+  impactAsync: jest.fn().mockResolvedValue(undefined),
+  notificationAsync: jest.fn().mockResolvedValue(undefined),
+  selectionAsync: jest.fn().mockResolvedValue(undefined),
+  ImpactFeedbackStyle: { Light: 'light', Medium: 'medium', Heavy: 'heavy' },
+  NotificationFeedbackType: { Success: 'success', Warning: 'warning', Error: 'error' },
+}));
+
+// Mock expo-linking
+jest.mock('expo-linking', () => ({
+  createURL: jest.fn((path) => `nodetool://${path}`),
+  getInitialURL: jest.fn().mockResolvedValue(null),
+  addEventListener: jest.fn(() => ({ remove: jest.fn() })),
+  parse: jest.fn(() => ({ path: '', queryParams: {} })),
+}));
+
+// Mock @react-native-community/netinfo (no native network module in Jest)
+jest.mock('@react-native-community/netinfo', () => ({
+  __esModule: true,
+  default: {
+    addEventListener: jest.fn(() => jest.fn()),
+    fetch: jest.fn().mockResolvedValue({ isConnected: true, isInternetReachable: true }),
+  },
+  addEventListener: jest.fn(() => jest.fn()),
+  fetch: jest.fn().mockResolvedValue({ isConnected: true, isInternetReachable: true }),
 }));
 
 // Silence console methods to reduce noise in tests

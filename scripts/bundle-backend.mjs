@@ -1008,6 +1008,23 @@ async function main() {
     console.warn(`  Warning: examples directory not found, skipping: ${examplesSrc}`);
   }
 
+  // The example app bundles sit next to the example workflows, which is where
+  // the server looks for them (`exampleAppsDir` defaults to that sibling).
+  const exampleAppsSrc = path.join(BASE_NODES_NODETOOL_DIR, "examples", "apps");
+  const exampleAppsDest = path.join(BUNDLE_DIR, "examples", "apps");
+  if (fs.existsSync(exampleAppsSrc)) {
+    await fsp.mkdir(path.dirname(exampleAppsDest), { recursive: true });
+    await copyDir(exampleAppsSrc, exampleAppsDest);
+    const appCount = (await fsp.readdir(exampleAppsDest)).filter((f) =>
+      f.toLowerCase().endsWith(".app.json")
+    ).length;
+    console.log(`  Copied ${appCount} example app bundle(s) to examples/apps/`);
+  } else {
+    console.warn(
+      `  Warning: example apps directory not found, skipping: ${exampleAppsSrc}`
+    );
+  }
+
   if (fs.existsSync(assetsSrc)) {
     await fsp.mkdir(path.dirname(assetsDest), { recursive: true });
     await copyDir(assetsSrc, assetsDest);

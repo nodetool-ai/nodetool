@@ -43,7 +43,11 @@ import { NodeInputs } from "../../node/NodeInputs";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 
-import type { NodeMetadata, Property } from "../../../stores/ApiTypes";
+import type {
+  NodeMetadata,
+  Property,
+  TypeMetadata
+} from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useDynamicProperty } from "../../../hooks/nodes/useDynamicProperty";
@@ -59,6 +63,7 @@ import {
 } from "./promptComposer/promptEditorState";
 import { variablesInPrompt } from "./promptComposer/promptTokens";
 import { PromptComposerContext } from "./promptComposer/promptComposerContext";
+import { useVariablePassthroughOutputs } from "./promptComposer/useVariablePassthroughOutputs";
 import { useGraphVariableNames } from "./useGraphVariables";
 import { PROMPT_NODE_TYPE } from "../../../constants/nodeTypes";
 
@@ -246,6 +251,14 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
   const knownVariables = useMemo(
     () => new Set(variableNames),
     [variableNames]
+  );
+
+  // Each variable also gets an output handle carrying its raw value.
+  useVariablePassthroughOutputs(
+    id,
+    variableNames,
+    data.dynamic_inputs ?? {},
+    (data.dynamic_outputs ?? {}) as Record<string, TypeMetadata>
   );
 
   // Variables defined by Set Variable nodes anywhere in the workflow. They

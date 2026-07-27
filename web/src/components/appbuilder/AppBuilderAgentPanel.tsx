@@ -55,6 +55,9 @@ with a wrong node id / property) renders nothing — copy names and ids from
 \`get_workflow\`, never guess. Build incrementally; keep labels concise.`;
 
 interface AppBuilderAgentPanelProps {
+  /** The app being edited — the id the `ui_app_*` tools take. */
+  applicationId: string;
+  /** Workflow the `ui_*` graph tools and the chat thread target. */
   workflowId: string;
 }
 
@@ -65,6 +68,7 @@ interface AppBuilderAgentPanelProps {
  * target this workflow.
  */
 const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
+  applicationId,
   workflowId
 }) => {
   const {
@@ -133,11 +137,11 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
     await newWorkflowThread(workflowId);
   }, [newWorkflowThread, workflowId]);
 
-  // The App Builder is a route, not a workspace tab, so it names its own
-  // focused document — the workflow whose `app_doc` the ui_app_* tools edit.
+  // The App Builder names its own focused document — the application the
+  // ui_app_* tools edit, which is not the workflow the graph tools edit.
   const appBuilderUiContext = useMemo<BuildUiContextOptions>(
-    () => ({ focused: { type: "app", id: workflowId } }),
-    [workflowId]
+    () => ({ focused: { type: "app", id: applicationId } }),
+    [applicationId]
   );
 
   const messages = getCurrentMessagesSync();

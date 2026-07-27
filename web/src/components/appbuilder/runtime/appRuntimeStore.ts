@@ -1,96 +1,68 @@
 /**
- * Per-app reactive state store.
+ * Per-app-instance reactive state store.
  *
- * One store instance backs one running app. Widgets subscribe to individual
- * state keys, so a streaming output that updates `state["result"]` re-renders
- * only the widgets bound to `result`. This is the reactive core: state in,
- * render out.
+ * The state shape and every transition come from `@nodetool-ai/app-runtime`;
+ * this file only wraps the pure reducer in a Zustand vanilla store so widgets
+ * can subscribe to a single slot. Values live in four namespaces — inputs,
+ * outputs, variables, and widget-local view state — so a widget's own value can
+ * never collide with a workflow output, and two operations over the same
+ * workflow never collide with each other.
  */
 import { createStore } from "zustand/vanilla";
+import {
+  applyEvent,
+  createInstanceState,
+  type AppInstanceState,
+  type AppStateEvent
+} from "@nodetool-ai/app-runtime";
 
-export type RuntimeRunnerState =
-  | "idle"
-  | "connecting"
-  | "running"
-  | "error";
-
-export interface RuntimeProgress {
-  current: number;
-  total: number;
-}
-
-export interface AppRuntimeState {
-  /** Reactive values: workflow inputs, streamed outputs, and local UI vars. */
-  values: Record<string, unknown>;
-  runnerState: RuntimeRunnerState;
-  progress: RuntimeProgress | null;
-  error: string | null;
-  lastRunDuration: number | null;
-
-  setValue: (key: string, value: unknown) => void;
-  setValues: (values: Record<string, unknown>) => void;
-  toggleValue: (key: string) => void;
-  setRunnerState: (state: RuntimeRunnerState) => void;
-  setProgress: (progress: RuntimeProgress | null) => void;
-  setError: (error: string | null) => void;
-  setLastRunDuration: (duration: number | null) => void;
-  /** Clear streamed outputs/progress/error before a fresh run (keeps inputs). */
-  clearOutputs: (outputKeys: string[]) => void;
+export interface AppRuntimeState extends AppInstanceState {
+  /** The only way to mutate the store: one pure reducer, one event at a time. */
+  dispatchEvent: (event: AppStateEvent) => void;
 }
 
 export type AppRuntimeStore = ReturnType<typeof createAppRuntimeStore>;
 
-export const createAppRuntimeStore = (
-  initialValues: Record<string, unknown> = {}
-) =>
+export const createAppRuntimeStore = (initial?: Partial<AppInstanceState>) =>
   createStore<AppRuntimeState>((set) => ({
-    values: { ...initialValues },
-    runnerState: "idle",
-    progress: null,
-    error: null,
-    lastRunDuration: null,
-
-    setValue: (key, value) =>
-      set((s) => ({ values: { ...s.values, [key]: value } })),
-    setValues: (values) =>
-      set((s) => ({ values: { ...s.values, ...values } })),
-    toggleValue: (key) =>
-      set((s) => ({ values: { ...s.values, [key]: !s.values[key] } })),
-    setRunnerState: (runnerState) => set({ runnerState }),
-    setProgress: (progress) => set({ progress }),
-    setError: (error) => set({ error }),
-    setLastRunDuration: (lastRunDuration) => set({ lastRunDuration }),
-    clearOutputs: (outputKeys) =>
-      set((s) => {
-        if (outputKeys.length === 0) {
-          return { progress: null, error: null };
-        }
-        const values = { ...s.values };
-        for (const key of outputKeys) {
-          delete values[key];
-        }
-        return { values, progress: null, error: null };
-      })
+    ...createInstanceState(),
+    ...initial,
+    dispatchEvent: (event) => set((state) => applyEvent(state, event))
   }));
 
 /**
- * Registry of live app stores keyed by workflow id. Values persist across
- * mounts, so switching a workflow tab between Edit and View (or leaving and
- * revisiting a published app) keeps streamed outputs and typed inputs.
- * Design-mode canvases use an unregistered ephemeral store instead.
+ * Live app stores keyed by app-instance id. Two apps built on the same workflow
+ * get two stores; a design canvas gets an unregistered ephemeral one, so widget
+ * writes there never leak into the published app's state.
+ *
+ * A workflow-hosted instance is disposed when its workflow closes
+ * (`WorkflowManagerStore.removeWorkflow`). An application-keyed instance has no
+ * such close event — it lives for the session so its values survive View↔Edit
+ * switches and refetches.
  */
 const appRuntimeStores = new Map<string, AppRuntimeStore>();
 
-export const getAppRuntimeStore = (workflowId: string): AppRuntimeStore => {
-  let store = appRuntimeStores.get(workflowId);
+/**
+ * The instance id one open app uses. The key is the app's identity — the
+ * application record when it has one, otherwise the host workflow — so two
+ * applications over the same workflow keep separate state.
+ */
+export const appInstanceId = (identity: string): string => `app:${identity}`;
+
+/** The instance id of an app hosted straight by a workflow, with no record. */
+export const workflowInstanceId = (workflowId: string): string =>
+  appInstanceId(`workflow:${workflowId}`);
+
+export const getAppRuntimeStore = (instanceId: string): AppRuntimeStore => {
+  let store = appRuntimeStores.get(instanceId);
   if (!store) {
     store = createAppRuntimeStore();
-    appRuntimeStores.set(workflowId, store);
+    appRuntimeStores.set(instanceId, store);
   }
   return store;
 };
 
-/** Drop a workflow's app state. Call when the workflow is closed/deleted. */
-export const disposeAppRuntimeStore = (workflowId: string): void => {
-  appRuntimeStores.delete(workflowId);
+/** Drop an app instance's state. Call when the app is closed/deleted. */
+export const disposeAppRuntimeStore = (instanceId: string): void => {
+  appRuntimeStores.delete(instanceId);
 };

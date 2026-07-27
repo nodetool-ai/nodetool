@@ -1,4 +1,4 @@
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import type {
   SketchDocumentLike,
   LayerWorkflowBinding
@@ -72,6 +72,7 @@ export class ImageDocument extends DBModel {
   declare document: string;
   declare thumbnail_asset_id: string | null;
   declare created_at: string;
+  declare revision: number;
   declare updated_at: string;
 
   constructor(data: Record<string, unknown>) {
@@ -121,11 +122,14 @@ export class ImageDocument extends DBModel {
     });
     this.thumbnail_asset_id ??= null;
     this.created_at ??= now;
+    this.revision ??= 0;
     this.updated_at ??= now;
   }
 
   override beforeSave(): void {
     this.updated_at = nextUpdatedAtAfter(this.updated_at);
+    // Resource refs carry this; every write must move it forward.
+    this.revision = (this.revision ?? 0) + 1;
     assertValidDocumentData(JSON.parse(this.document) as ImageDocumentData);
   }
 
@@ -239,7 +243,7 @@ export class ImageDocument extends DBModel {
     const now = nextUpdatedAtAfter(expectedUpdatedAt);
     const rows = await db
       .update(imageDocuments)
-      .set({ ...fields, updated_at: now })
+      .set({ ...fields, revision: sql`${imageDocuments.revision} + 1`, updated_at: now })
       .where(
         and(
           eq(imageDocuments.id, id),
@@ -268,6 +272,7 @@ export class ImageDocument extends DBModel {
       .update(imageDocuments)
       .set({
         document: JSON.stringify(data),
+        revision: sql`${imageDocuments.revision} + 1`,
         updated_at: now
       })
       .where(

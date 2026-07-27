@@ -43,7 +43,7 @@
 - [FAQ hub](https://nodetool.ai/faq): all questions, grouped by category.
 - [What is NodeTool?](https://nodetool.ai/faq/what-is-nodetool)
 - [Is NodeTool open source?](https://nodetool.ai/faq/is-nodetool-open-source)
-- [What is BYOK, and what does it mean for me?](https://nodetool.ai/faq/what-is-byok)
+- [What does "bring your own keys" mean for me?](https://nodetool.ai/faq/what-is-byok)
 - [Does NodeTool mark up model pricing?](https://nodetool.ai/faq/does-nodetool-mark-up-model-pricing)
 - [Studio or Cloud — which should I use?](https://nodetool.ai/faq/studio-or-cloud)
 - [Which models are supported?](https://nodetool.ai/faq/which-models-are-supported)
@@ -53,7 +53,7 @@
 - [Is there an open source alternative to Figma Weave?](https://nodetool.ai/faq/open-source-figma-weave-alternative)
 - [What is a node-based workflow?](https://nodetool.ai/faq/what-is-a-node-based-workflow)
 - [What is a diffusion model?](https://nodetool.ai/faq/what-is-a-diffusion-model)
-- [What is RAG (retrieval-augmented generation)?](https://nodetool.ai/faq/what-is-rag)
+- [How can a model answer from my own documents?](https://nodetool.ai/faq/what-is-rag)
 - [What is a planning agent?](https://nodetool.ai/faq/what-is-a-planning-agent)
 
 ## Ideas

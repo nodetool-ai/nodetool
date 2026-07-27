@@ -59,8 +59,10 @@ describe('ApiService request (via getNodeMetadata)', () => {
 
     expect(result).toEqual([{ node_type: 'a' }]);
     expect(mockFetch).toHaveBeenCalledTimes(1);
+    // `fields=full` is required: the server defaults to a slim summary that
+    // omits `properties` and `outputs`, which the chain editor dereferences.
     expect(mockFetch).toHaveBeenCalledWith(
-      'http://localhost:7777/api/nodes/metadata',
+      'http://localhost:7777/api/nodes/metadata?fields=full',
       expect.objectContaining({ signal: expect.any(Object) })
     );
   });
@@ -175,5 +177,33 @@ describe('ApiService.uploadAsset', () => {
         parentId: 'root',
       })
     ).rejects.toMatchObject({ status: 413 });
+  });
+});
+
+describe('ApiService.resolveUrl', () => {
+  it('maps an asset:// URN to the storage endpoint', () => {
+    // React Native's image loader has no asset:// handler, so an unmapped URN
+    // surfaces as "No suitable image URL loader found".
+    expect(
+      apiService.resolveUrl('asset://5262eb0ff8f14873ac673ace9eff8ad8.png')
+    ).toBe(
+      'http://localhost:7777/api/storage/5262eb0ff8f14873ac673ace9eff8ad8.png'
+    );
+  });
+
+  it('leaves absolute URLs untouched', () => {
+    expect(apiService.resolveUrl('https://cdn.example.com/a.png')).toBe(
+      'https://cdn.example.com/a.png'
+    );
+  });
+
+  it('prefixes relative paths with the API host', () => {
+    expect(apiService.resolveUrl('/api/assets/1')).toBe(
+      'http://localhost:7777/api/assets/1'
+    );
+  });
+
+  it('returns null for empty input', () => {
+    expect(apiService.resolveUrl(undefined)).toBeNull();
   });
 });

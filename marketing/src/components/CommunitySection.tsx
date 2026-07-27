@@ -18,7 +18,7 @@ const variants = {
         Made with <span className="text-blue-400">working creatives</span>
       </>
     ),
-    body: "NodeTool is AGPL-3.0 open source. Star the repo, jump into Discord, and trade workflows with other artists, motion designers, and studios using it for real work.",
+    body: "NodeTool is open source under AGPL-3.0. Star the project on GitHub, join us on Discord, and share workflows with the artists, motion designers, and studios already using it on real jobs.",
     card: "rounded-3xl border border-white/10 bg-slate-900/40 backdrop-blur-xl p-8 md:p-16 text-center overflow-hidden relative",
     topBar:
       "absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50",
@@ -35,7 +35,7 @@ const variants = {
         </span>
       </>
     ),
-    body: "Trade workflows, swap prompts, and ship work with other working creatives. NodeTool is open source under AGPL-3.0.",
+    body: "Share workflows and prompts, and compare notes with other working creatives. NodeTool is open source under AGPL-3.0.",
     card: "rounded-3xl border border-white/10 bg-gradient-to-br from-rose-500/10 via-teal-500/10 to-cyan-500/10 backdrop-blur-xl p-8 md:p-16 text-center overflow-hidden relative",
     topBar:
       "absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500 via-teal-500 to-cyan-500 opacity-50",
@@ -48,7 +48,7 @@ const variants = {
         Made with <span className="text-amber-400">marketing teams</span>
       </>
     ),
-    body: "NodeTool is AGPL-3.0 open source. Star the repo, jump into Discord, and trade campaign workflows with other marketers running production at scale.",
+    body: "NodeTool is open source under AGPL-3.0. Star the project on GitHub, join us on Discord, and share campaign workflows with marketers producing at volume.",
     card: "rounded-3xl border border-white/10 bg-gradient-to-br from-amber-500/10 via-emerald-500/10 to-cyan-500/10 backdrop-blur-xl p-8 md:p-16 text-center overflow-hidden relative",
     topBar:
       "absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 via-emerald-500 to-cyan-500 opacity-50",

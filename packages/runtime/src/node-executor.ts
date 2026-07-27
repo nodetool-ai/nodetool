@@ -121,6 +121,23 @@ export interface StreamingOutputs {
 }
 
 // ---------------------------------------------------------------------------
+// Trigger events (wake-up-call runs)
+// ---------------------------------------------------------------------------
+
+/**
+ * A durably stored trigger input delivered into a run. Mirrors
+ * `RunJobRequest.trigger_event` and `ProcessingContext.triggerEvent`.
+ * `node_id` names the trigger node the event targets; `payload` is the
+ * adapter-captured event data; `input_id` is the idempotency key of the
+ * `trigger_inputs` row that produced this run.
+ */
+export interface TriggerEvent {
+  node_id: string;
+  payload: unknown;
+  input_id: string;
+}
+
+// ---------------------------------------------------------------------------
 // Node execution interface (implemented by actual node classes)
 // ---------------------------------------------------------------------------
 
@@ -168,4 +185,14 @@ export interface NodeExecutor {
 
   /** Called once during graph initialization. */
   initialize?(): Promise<void>;
+
+  /**
+   * Trigger entry point. Called instead of genProcess()/run() when the run
+   * carries a `trigger_event` targeting this node: emit the event payload
+   * on the declared output slots and return — no live listening.
+   */
+  emitTriggerEvent?(
+    event: TriggerEvent,
+    outputs: StreamingOutputs
+  ): Promise<void>;
 }

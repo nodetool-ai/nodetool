@@ -25,6 +25,7 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import useMetadataStore from "../../stores/MetadataStore";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import { computeSearchResults } from "../../utils/nodeSearch";
 import {
   QUICK_ACTION_BUTTONS,
@@ -86,6 +87,7 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
 }) => {
   const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
+  const autoFocusEnabled = useAutoFocusEnabled();
   const allMetadata = useMetadataStore((s) => s.metadata);
   const getMetadata = useMetadataStore((s) => s.getMetadata);
 
@@ -143,15 +145,22 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
   });
 
   return (
-    <Dialog open={open} onClose={onClose} title="Add Node" minWidth={520}>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title="Add Node"
+      minWidth="min(520px, 100vw - 32px)"
+    >
       <FlexColumn gap={2} sx={{ minHeight: 400, maxHeight: "70vh" }}>
+        {/* autoFocus is skipped on touch, where the virtual keyboard would
+            cover the node list the dialog just opened to show. */}
         <TextInput
           fullWidth
           size="small"
           placeholder="Search nodes..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          autoFocus
+          autoFocus={autoFocusEnabled}
           slotProps={{
             input: {
               startAdornment: (

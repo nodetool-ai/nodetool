@@ -16,6 +16,10 @@
 import { createLogger } from "@nodetool-ai/config";
 import { Secret } from "./secret.js";
 import { resolveCodexAccessToken } from "./codex-token.js";
+import {
+  GOOGLE_ACCESS_TOKEN_KEY,
+  resolveGoogleAccessToken
+} from "./google-token.js";
 
 const log = createLogger("nodetool.models.secret-helper");
 
@@ -55,6 +59,21 @@ export async function getSecret(
       return await resolveCodexAccessToken(resolvedUserId);
     } catch (err) {
       log.error("Codex token resolution failed", {
+        userId: resolvedUserId,
+        error: String(err)
+      });
+      return null;
+    }
+  }
+
+  // The Google Workspace bearer comes from the user's Google login, not from a
+  // stored Secret, and may need a refresh. Resolve it directly — never cache,
+  // since the value rotates roughly hourly.
+  if (key === GOOGLE_ACCESS_TOKEN_KEY) {
+    try {
+      return await resolveGoogleAccessToken(resolvedUserId);
+    } catch (err) {
+      log.error("Google token resolution failed", {
         userId: resolvedUserId,
         error: String(err)
       });

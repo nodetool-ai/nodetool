@@ -1,176 +1,79 @@
 [
   {
-    "slug": "ad-creative-factory",
-    "name": "Ad Creative Factory",
-    "featured": false
+    "slug": "photo-studio",
+    "name": "Photo Studio",
+    "emoji": "📸",
+    "featured": true,
+    "workflows": 2
   },
   {
-    "slug": "audio-to-image",
-    "name": "Audio To Image",
-    "featured": false
+    "slug": "meeting-room",
+    "name": "Meeting Room",
+    "emoji": "🎧",
+    "featured": true,
+    "workflows": 3
   },
   {
-    "slug": "brand-asset-generator",
-    "name": "Brand Asset Generator",
-    "featured": true
+    "slug": "concept-studio",
+    "name": "Concept Studio",
+    "emoji": "🖌️",
+    "featured": true,
+    "workflows": 3
   },
   {
-    "slug": "chat-with-your-documents",
-    "name": "Chat With Your Documents",
-    "featured": false
+    "slug": "research-desk",
+    "name": "Research Desk",
+    "emoji": "🕵️",
+    "featured": true,
+    "workflows": 3
   },
   {
-    "slug": "cold-outreach-co-pilot",
-    "name": "Cold Outreach Co-Pilot",
-    "featured": false
+    "slug": "ask-your-documents",
+    "name": "Ask Your Documents",
+    "emoji": "📄",
+    "featured": false,
+    "workflows": 2
   },
   {
-    "slug": "color-boost-video",
-    "name": "Color Boost Video",
-    "featured": false
+    "slug": "brand-and-social",
+    "name": "Brand & Social",
+    "emoji": "🎨",
+    "featured": true,
+    "workflows": 3
   },
   {
-    "slug": "concept-art-iteration-board",
-    "name": "Concept Art Iteration Board",
-    "featured": true
+    "slug": "product-launch-kit",
+    "name": "Product Launch Kit",
+    "emoji": "📦",
+    "featured": false,
+    "workflows": 2
   },
   {
-    "slug": "conditional-logic-engine",
-    "name": "Conditional Logic Engine",
-    "featured": false
+    "slug": "film-studio",
+    "name": "Film Studio",
+    "emoji": "🎬",
+    "featured": true,
+    "workflows": 3
   },
   {
-    "slug": "data-generator",
-    "name": "Data Generator",
-    "featured": false
-  },
-  {
-    "slug": "flashcard-generator",
-    "name": "Flashcard Generator",
-    "featured": false
-  },
-  {
-    "slug": "hacker-news-agent",
-    "name": "Hacker News Agent",
-    "featured": false
-  },
-  {
-    "slug": "hook-and-thumbnail-factory",
-    "name": "Hook & Thumbnail Factory",
-    "featured": true
-  },
-  {
-    "slug": "image-enhance",
-    "name": "Image Enhance",
-    "featured": true
-  },
-  {
-    "slug": "image-to-audio-story",
-    "name": "Image To Audio Story",
-    "featured": false
-  },
-  {
-    "slug": "image-to-video-animation",
-    "name": "Image to Video Animation",
-    "featured": false
-  },
-  {
-    "slug": "meeting-transcript-summarizer",
-    "name": "Meeting Transcript Summarizer",
-    "featured": false
+    "slug": "study-buddy",
+    "name": "Study Buddy",
+    "emoji": "🃏",
+    "featured": false,
+    "workflows": 2
   },
   {
     "slug": "model-arena",
     "name": "Model Arena",
-    "featured": false
+    "emoji": "⚖️",
+    "featured": false,
+    "workflows": 1
   },
   {
-    "slug": "movie-posters",
-    "name": "Movie Posters",
-    "featured": true
-  },
-  {
-    "slug": "movie-trailer-generator",
-    "name": "Movie Trailer Generator",
-    "featured": false
-  },
-  {
-    "slug": "music-video-visualizer",
-    "name": "Music Video Visualizer",
-    "featured": true
-  },
-  {
-    "slug": "photo-enhancement-suite",
-    "name": "Photo Enhancement Suite",
-    "featured": false
-  },
-  {
-    "slug": "podcast-repurposing-studio",
-    "name": "Podcast Repurposing Studio",
-    "featured": false
-  },
-  {
-    "slug": "pokemon-maker",
-    "name": "Pokemon Maker",
-    "featured": true
-  },
-  {
-    "slug": "private-assistant",
-    "name": "Private Assistant",
-    "featured": false
-  },
-  {
-    "slug": "product-mockup-generator",
-    "name": "Product Mockup Generator",
-    "featured": true
-  },
-  {
-    "slug": "product-video-generator",
-    "name": "Product Video Generator",
-    "featured": false
-  },
-  {
-    "slug": "prompt-template",
-    "name": "Prompt Template",
-    "featured": false
-  },
-  {
-    "slug": "research-agent",
-    "name": "Research Agent",
-    "featured": false
-  },
-  {
-    "slug": "research-paper-summarizer",
-    "name": "Research Paper Summarizer",
-    "featured": false
-  },
-  {
-    "slug": "seo-content-engine",
-    "name": "SEO Content Engine",
-    "featured": false
-  },
-  {
-    "slug": "script-to-screen",
-    "name": "Script to Screen"
-  },
-  {
-    "slug": "social-media-calendar-filler",
-    "name": "Social Media Calendar Filler",
-    "featured": false
-  },
-  {
-    "slug": "summarize-rss",
-    "name": "Summarize RSS",
-    "featured": false
-  },
-  {
-    "slug": "transcribe-audio",
-    "name": "Transcribe Audio",
-    "featured": false
-  },
-  {
-    "slug": "workflow-as-a-tool",
-    "name": "Workflow As A Tool",
-    "featured": false
+    "slug": "dataset-builder",
+    "name": "Dataset Builder",
+    "emoji": "🧮",
+    "featured": false,
+    "workflows": 1
   }
 ]

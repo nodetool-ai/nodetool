@@ -4,9 +4,11 @@
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { NodeRegistry, NodeMetadata } from "@nodetool-ai/node-sdk";
+import { slotTypeToString } from "@nodetool-ai/node-sdk";
 import { TypeMetadata } from "@nodetool-ai/protocol";
 import { Tool } from "./base-tool.js";
 import { type GraphBuilder } from "../graph-builder.js";
+import { toSlotTypeRecord } from "../dynamic-slots.js";
 
 /** Render a node's TypeMetadata into the string form TypeMetadata.fromString parses. */
 function typeMetaToString(
@@ -97,6 +99,10 @@ export class AddEdgeTool extends Tool {
 
     let sourceType: string | undefined;
     let targetType: string | undefined;
+    /** Type metadata of the source output, reused to declare a new slot. */
+    let sourceTypeMeta: NodeMetadata["outputs"][number]["type"] | undefined;
+    /** Set when the edge lands on a dynamic input with no declaration yet. */
+    let undeclaredDynamicSlot = false;
 
     // A reserved handle like `__value__` is used by dynamic nodes and never
     // appears in static metadata.
@@ -124,6 +130,7 @@ export class AddEdgeTool extends Tool {
           );
         } else if (output) {
           sourceType = typeMetaToString(output.type);
+          sourceTypeMeta = output.type;
         }
       }
     }
@@ -147,6 +154,18 @@ export class AddEdgeTool extends Tool {
           );
         } else if (input) {
           targetType = typeMetaToString(input.type);
+        } else if (
+          meta.supports_dynamic_inputs === true &&
+          !isReservedHandle(targetHandle)
+        ) {
+          // Dynamic slot. A declared one is type-checked like any other input;
+          // an undeclared one stays permissive and gets declared below from the
+          // source output's type.
+          const declared = slotTypeToString(
+            targetNode.dynamic_inputs?.[targetHandle]
+          );
+          if (declared) targetType = declared;
+          else undeclaredDynamicSlot = true;
         }
       }
     }
@@ -180,8 +199,20 @@ export class AddEdgeTool extends Tool {
       return { status: "error", errors };
     }
 
+    // Give the new slot the source output's type, so later edges and inline
+    // values on the same handle are checked instead of silently accepted.
+    // Untypable sources leave the slot undeclared, i.e. `any` as before.
+    let declaredType: string | undefined;
+    if (undeclaredDynamicSlot && sourceTypeMeta && sourceType) {
+      this.builder.declareDynamicInput(target, targetHandle, {
+        type: toSlotTypeRecord(sourceTypeMeta)
+      });
+      declaredType = sourceType;
+    }
+
     return {
       status: "edge_added",
+      ...(declaredType ? { declared_dynamic_input: declaredType } : {}),
       from: `${source}.${sourceHandle}`,
       to: `${target}.${targetHandle}`,
       total_edges: this.builder.edgeCount

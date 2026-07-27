@@ -28,6 +28,10 @@ const hoverStyles = css({
   },
   "&:hover .image-view-actions": {
     opacity: 1
+  },
+  // Touch devices have no hover; keep the copy/download/viewer buttons reachable.
+  "@media (pointer: coarse)": {
+    ".image-view-actions": { opacity: 1 }
   }
 });
 

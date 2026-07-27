@@ -20,7 +20,12 @@ npm run lint             # oxlint src
 npm run lint:fix         # oxlint --fix
 npm start                # Expo dev server
 npm run ios | android | web
+npm run build:preview    # EAS cloud build (also: build:dev, build:production)
 ```
+
+Cloud builds go through EAS (`eas.json`), by hand with the scripts above or from
+the `EAS Build (mobile)` GitHub workflow, which authenticates with the
+`EAS_TOKEN` secret. See [README.md § Building for Production](README.md#building-for-production).
 
 ## Important: not in the npm workspaces
 
@@ -33,6 +38,14 @@ npm run ios | android | web
   the dists aren't built.
 - Use **Node 22.22.1** (repo root `.nvmrc`; `nvm use`).
 
+`@nodetool-ai/app-runtime` is the exception: it is dependency-free TypeScript
+and is compiled **from source**, so it needs no build. Three places must agree —
+`metro.config.js` (bundler; it also maps the package's ESM `.js` specifiers back
+to `.ts`), `paths` in `tsconfig.json` (types), and `moduleNameMapper` in
+`jest.config.js` (tests). Wire any further shared package the same way.
+`app.json` turns off `experiments.onDemandFilesystem` for the same reason —
+read the comment at the top of `metro.config.js` before changing any of it.
+
 ## Stack
 
 - React Native 0.85 + Expo SDK 56, React 19, TypeScript 6.
@@ -44,6 +57,18 @@ npm run ios | android | web
   workflow/job messages; `WebSocketManager` is the per-connection chat socket.
 - **Auth**: Supabase + Google Sign-In (`stores/AuthStore.ts`, `services/supabase.ts`).
 - **UI**: React Native core components with `StyleSheet` (no MUI / web primitives here).
+- **Mini apps**: `components/app_runtime/` renders an application document (fetched over
+  `/api/applications/*` by `hooks/useApplications.ts`) with native widgets on
+  top of `@nodetool-ai/app-runtime` — the same core the web runtime and the CLI `app debug`
+  harness use. See [ARCHITECTURE.md § Mini apps](ARCHITECTURE.md#mini-apps-srccomponentsapp_runtime).
+- **Documents**: `documents/` + the document screens open storyboards, scripts, timelines,
+  and sketches. No tabs — one document per pushed screen. Edits are expected to come from
+  the chat agent through the `ui_*` tools registered there, so `kinds.ts` tracks
+  `agentEditable` separately from `surface`: the timeline has no touch editor but the agent
+  writes it. Each kind's transport lives in `backends.ts` (scripts are not a
+  `resources.*` kind — their table has no `revision`), which is why the store's
+  concurrency token is opaque.
+  See [ARCHITECTURE.md § Documents](ARCHITECTURE.md#documents-srcdocuments).
 
 ## Testing
 

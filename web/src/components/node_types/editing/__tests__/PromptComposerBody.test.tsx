@@ -43,6 +43,11 @@ jest.mock("../../../node/NodeOutputs", () => ({
   NodeOutputs: () => <div data-testid="node-outputs" />
 }));
 
+// Covered by its own test; needs a NodeContext this suite does not provide.
+jest.mock("../promptComposer/useVariablePassthroughOutputs", () => ({
+  useVariablePassthroughOutputs: jest.fn()
+}));
+
 jest.mock("../../../node/NodeProgress", () => ({
   __esModule: true,
   default: () => <div data-testid="node-progress" />

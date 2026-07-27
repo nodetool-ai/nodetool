@@ -18,7 +18,7 @@ export default async function Image({
   const name = c?.name ?? "your tools";
   return ogImage(
     `${name} alternatives`,
-    "The open source, BYOK canvas for image, video, audio, and text.",
+    "The open-source canvas for image, video, audio, and text, run with your own keys.",
     {
       image: c?.og.image ?? "screen_canvas.png",
       accent: c?.og.accent ?? "blue",

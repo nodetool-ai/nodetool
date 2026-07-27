@@ -1,4 +1,4 @@
-import { pgTable, text, index } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, index } from "drizzle-orm/pg-core";
 import { jsonText } from "./helpers.js";
 import type { StoryboardDocument } from "../storyboard.js";
 
@@ -12,6 +12,12 @@ export const storyboards = pgTable(
     document: jsonText<StoryboardDocument>()("document").notNull(),
     /** Timeline sequence this board was assembled into, if any. */
     timeline_id: text("timeline_id"),
+    /**
+     * Monotonic write counter. Resource providers hand it out inside a
+     * `ResourceRef` and reject a write whose ref is behind — optimistic
+     * concurrency for interactive editing widgets.
+     */
+    revision: integer("revision").notNull().default(0),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

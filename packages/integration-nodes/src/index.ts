@@ -3,6 +3,7 @@ export * from "./nodes/lib-graphql.js";
 export * from "./nodes/lib-s3.js";
 export * from "./nodes/lib-supabase.js";
 export * from "./nodes/lib-notion.js";
+export * from "./nodes/lib-google.js";
 export * from "./nodes/lib-twilio.js";
 export * from "./nodes/apify.js";
 export * from "./nodes/lib-mail.js";

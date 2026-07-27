@@ -43,53 +43,52 @@ Two settings differ from a vanilla Stryker setup and exist for concrete reasons
 
 ## Current baseline
 
-This is the baseline captured when the harness was added. Unlike
-`@nodetool-ai/security` (a small, fully-hardened 100% package), the kernel is
-large and these numbers are a **starting point to ratchet up**, not a finished
-target.
+Captured from a full run of 3,889 mutants (~21 min on 4 cores). Eleven of the
+thirteen mutated files are at 100%; the execution core is not, and is where the
+remaining work is.
 
 ```
 File                    | % score | % covered | killed | timeout | survived | no cov
 ------------------------|---------|-----------|--------|---------|----------|-------
-actor.ts                |   53.66 |     64.83 |    406 |       5 |      223 |    132
-channel.ts              |   75.89 |     77.98 |     83 |       2 |       24 |      3
-correlation-analysis.ts |   65.54 |     74.38 |    326 |       5 |      114 |     60
-durable-inbox.ts        |   63.57 |     63.57 |     81 |       1 |       47 |      0
+actor.ts                |   83.43 |     88.38 |    694 |      21 |       94 |     48
+correlation-analysis.ts |  100.00 |    100.00 |    440 |       4 |        0 |      0
+durable-inbox.ts        |  100.00 |    100.00 |    113 |       1 |        0 |      0
 edge-ids.ts             |  100.00 |    100.00 |      4 |       0 |        0 |      0
-graph-utils.ts          |   72.38 |     83.97 |    126 |       5 |       25 |     25
-graph.ts                |   66.99 |     69.73 |    404 |       6 |      178 |     24
-inbox.ts                |   84.98 |     89.58 |    204 |      11 |       25 |     13
-io.ts                   |   80.52 |     88.57 |     62 |       0 |        8 |      7
-runner.ts               |   50.30 |     55.99 |    421 |       4 |      334 |     86
-suspendable.ts          |   63.64 |     68.29 |     28 |       0 |       13 |      3
-trigger-manager.ts      |   33.59 |     53.75 |     43 |       0 |       37 |     48
-trigger-wakeup.ts       |   53.75 |     54.43 |     43 |       0 |       36 |      1
-trigger.ts              |   74.65 |     76.81 |     53 |       0 |       16 |      2
+graph-utils.ts          |  100.00 |    100.00 |    157 |       5 |        0 |      0
+graph.ts                |  100.00 |    100.00 |    594 |       6 |        0 |      0
+inbox.ts                |  100.00 |    100.00 |    235 |      12 |        0 |      0
+io.ts                   |  100.00 |    100.00 |     78 |       0 |        0 |      0
+runner.ts               |   79.73 |     80.66 |    826 |       0 |      198 |     12
+suspendable.ts          |  100.00 |    100.00 |     27 |       0 |        0 |      0
+trigger-manager.ts      |   99.03 |     99.03 |    102 |       0 |        1 |      0
+trigger-wakeup.ts       |  100.00 |    100.00 |     99 |       0 |        0 |      0
+trigger.ts              |  100.00 |    100.00 |     68 |       1 |        0 |      0
 ------------------------|---------|-----------|--------|---------|----------|-------
-All files               |   61.02 |     68.26 |   2284 |      39 |     1080 |    404
+All files               |   90.81 |     92.25 |   3437 |      50 |      293 |     60
 ```
 
 - **`% score`** counts every mutant (no-coverage mutants count against you).
 - **`% covered`** scores only mutants that at least one test exercised — the
   fairer measure of test *quality* vs. test *reach*.
 
-The config gate (`stryker.config.json`) **breaks below 55%**, a few points under
-the current 61% so it gates a test-quality regression while absorbing
+The config gate (`stryker.config.json`) **breaks below 85%**, a few points under
+the current 90.81% so it gates a test-quality regression while absorbing
 run-to-run timeout variance. Raise `thresholds.break` (and `low`/`high`) as the
 suite is hardened — treat the baseline as a floor that only moves up.
 
 ## Where to focus
 
-Ranked by surviving mutants (highest leverage first):
+Only two files still have meaningful survivors, and both are the execution core:
 
-1. **`runner.ts`** (334 survived, 50%) and **`actor.ts`** (223, 54%) — the
-   execution core. Many survivors are *no-coverage* (86 / 132), so start by
-   covering untested branches, then pin observable behaviour on the rest.
-2. **`graph.ts`** (178) and **`correlation-analysis.ts`** (114) — graph
-   validation and join/scope logic; survivors here are usually missing boundary
-   and error-path assertions.
-3. **`trigger-manager.ts`** (33% score, 48 no-coverage) — lowest-scoring file;
-   largely a coverage gap.
+1. **`runner.ts`** (198 survived, 79.73%) — the largest remaining block is
+   span-attribute and message-payload literals in the correlation and
+   edge-counter regions, best attacked from the correlation test files rather
+   than a runner fixture.
+2. **`actor.ts`** (94 survived, 48 no-coverage, 83.43%) — the no-coverage
+   cluster is in `isReady`'s list-input branches and `collect()` for multi-edge
+   list handles gated on `inbox.isOpen`. Reaching those needs a max-scope list
+   handle with a live driver, i.e. a real correlation graph rather than a
+   synthetic actor.
 
 When killing a mutant, target **observable behaviour**, not implementation
 details — each test should pin one externally-meaningful property and read as
@@ -107,3 +106,21 @@ The most common class here is **logger-name string literals**
 (`createLogger("nodetool.kernel.trigger")` → `createLogger("")`): the logger
 name is a diagnostic label for humans, not a behavioural contract, so it is
 deliberately not asserted.
+
+Suppression is the one tool here that can *lie*. A wrong or misplaced `disable`
+raises the score without any test behind it, and nothing in the report flags it.
+Two failure modes have already been found in this package:
+
+- **A wrong equivalence claim.** Two guards in `graph.ts` were suppressed as
+  "equivalent" when they were load-bearing: a string-valued `dynamic_properties`
+  spreads its character indices into node properties via `Object.assign`, and a
+  string-valued `propertyTypes` derives bogus declared keys. Both are now killed
+  by tests instead.
+- **A comment on the wrong line.** `next-line` binds to exactly one line, so a
+  comment above a multi-line `log.warn(...)` or a chained template covers only
+  the first line — the mutants on lines 2+ survive, and the comment reads as if
+  they were handled.
+
+Before suppressing, apply the mutant by hand and confirm no test *could*
+observe it. If writing the test is merely awkward, that is not equivalence —
+leave the mutant surviving rather than papering over it.

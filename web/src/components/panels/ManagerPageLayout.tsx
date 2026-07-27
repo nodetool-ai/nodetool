@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { Box, EditorButton, FlexColumn, FlexRow, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 
@@ -108,9 +108,10 @@ const ManagerPageLayout: React.FC<ManagerPageLayoutProps> = ({
   children
 }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
 
   return (
-    <Box css={styles(theme)} className="manager-page">
+    <Box css={cssStyles} className="manager-page">
       <header className="manager-page-hero">
         {icon && <span className="manager-page-icon">{icon}</span>}
         <FlexColumn className="manager-page-titles" gap={0}>
