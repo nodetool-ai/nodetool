@@ -161,7 +161,7 @@ describe("findInputHandle", () => {
         dynamic_properties: {},
         workflow_id: "wf-1",
         dynamic_inputs: {
-          layer_in_0: makeType("image"),
+          layer_in_0: { type: makeType("image") },
         },
       },
     });
@@ -215,7 +215,7 @@ describe("findInputHandle", () => {
         selectable: true,
         dynamic_properties: { var_1: "" },
         workflow_id: "wf-1",
-        dynamic_inputs: { var_1: makeType("image") },
+        dynamic_inputs: { var_1: { type: makeType("image") } },
         dynamic_outputs: { var_1: makeType("image") },
       },
     });
@@ -316,7 +316,7 @@ describe("getAllInputHandles", () => {
         selectable: true,
         dynamic_properties: { var_1: "" },
         workflow_id: "wf-1",
-        dynamic_inputs: { var_1: makeType("image") },
+        dynamic_inputs: { var_1: { type: makeType("image") } },
         dynamic_outputs: { var_1: makeType("image") },
       },
     });

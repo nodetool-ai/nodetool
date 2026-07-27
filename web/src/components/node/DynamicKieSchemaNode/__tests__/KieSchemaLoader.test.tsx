@@ -90,9 +90,13 @@ describe("KieSchemaLoader", () => {
           },
           dynamic_inputs: {
             prompt: {
-              type: "str",
-              optional: false,
-              type_args: []
+              type: {
+                type: "str",
+                optional: false,
+                values: null,
+                type_args: [],
+                type_name: null
+              }
             }
           },
           model_id: "old/model"
@@ -116,9 +120,13 @@ describe("KieSchemaLoader", () => {
           },
           dynamic_inputs: {
             prompt: {
-              type: "str",
-              optional: false,
-              type_args: []
+              type: {
+                type: "str",
+                optional: false,
+                values: null,
+                type_args: [],
+                type_name: null
+              }
             }
           },
           model_id: "old/model"
@@ -138,18 +146,24 @@ describe("KieSchemaLoader", () => {
         },
         dynamic_inputs: {
           prompt: {
-            type: "str",
-            optional: false,
-            description: "Prompt",
-            type_args: [],
-            values: undefined
+            type: {
+              type: "str",
+              optional: false,
+              values: null,
+              type_args: [],
+              type_name: null
+            },
+            description: "Prompt"
           },
           duration: {
-            type: "float",
-            optional: true,
-            default: 15,
-            type_args: [],
-            values: undefined
+            type: {
+              type: "float",
+              optional: true,
+              values: null,
+              type_args: [],
+              type_name: null
+            },
+            default: 15
           }
         },
         dynamic_outputs: {

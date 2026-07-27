@@ -19,6 +19,7 @@ import { useEffect } from "react";
 import { shallow } from "zustand/shallow";
 
 import type { TypeMetadata } from "../../../../stores/ApiTypes";
+import type { DynamicSlotDeclaration } from "../../../../stores/NodeData";
 import { useNodes } from "../../../../contexts/NodeContext";
 import useMetadataStore from "../../../../stores/MetadataStore";
 import { findOutputHandle } from "../../../../utils/handleUtils";
@@ -35,7 +36,7 @@ const ANY_TYPE: TypeMetadata = {
 export const useVariablePassthroughOutputs = (
   nodeId: string,
   variableNames: string[],
-  dynamicInputs: Record<string, TypeMetadata>,
+  dynamicInputs: Record<string, DynamicSlotDeclaration>,
   dynamicOutputs: Record<string, TypeMetadata>
 ): void => {
   const { edges, findNode, updateNodeData } = useNodes(
@@ -78,11 +79,16 @@ export const useVariablePassthroughOutputs = (
       next[name] = sourceHandle?.type ?? ANY_TYPE;
     }
 
-    if (isEqual(dynamicInputs, next) && isEqual(dynamicOutputs, next)) {
+    const nextSlots: Record<string, DynamicSlotDeclaration> = {};
+    for (const [name, type] of Object.entries(next)) {
+      nextSlots[name] = { type };
+    }
+
+    if (isEqual(dynamicInputs, nextSlots) && isEqual(dynamicOutputs, next)) {
       return;
     }
     updateNodeData(nodeId, {
-      dynamic_inputs: next,
+      dynamic_inputs: nextSlots,
       dynamic_outputs: next
     });
   }, [

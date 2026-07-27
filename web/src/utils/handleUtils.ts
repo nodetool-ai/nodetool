@@ -7,6 +7,7 @@ import {
   TypeMetadata
 } from "../stores/ApiTypes";
 import { inferOutputType } from "./outputTypeInference";
+import { ANY_TYPE, normalizeDynamicSlot, slotType } from "./dynamicSlots";
 
 /**
  * Represents an output handle (either static or dynamic)
@@ -109,25 +110,9 @@ export function findInputHandle(
   // while API metadata may omit supports_dynamic_inputs.
   const earlyDynamicInputs = node.data.dynamic_inputs || {};
   if (earlyDynamicInputs[handleName] !== undefined) {
-    const inputMeta = earlyDynamicInputs[handleName];
-    const type = inputMeta
-      ? {
-          type: inputMeta.type,
-          optional: inputMeta.optional ?? false,
-          values: inputMeta.values ?? null,
-          type_args: inputMeta.type_args ?? [],
-          type_name: inputMeta.type_name ?? null
-        }
-      : {
-          type: "any",
-          optional: false,
-          values: null,
-          type_args: [],
-          type_name: null
-        };
     return {
       name: handleName,
-      type,
+      type: slotType(normalizeDynamicSlot(earlyDynamicInputs[handleName])),
       isDynamic: true
     };
   }
@@ -242,24 +227,11 @@ export function getAllInputHandles(
       return;
     }
     const inputMeta = dynamicInputs[name];
-    const type = inputMeta
-      ? {
-          type: inputMeta.type,
-          optional: inputMeta.optional ?? false,
-          values: inputMeta.values ?? null,
-          type_args: inputMeta.type_args ?? [],
-          type_name: inputMeta.type_name ?? null
-        }
-      : {
-          type: "any",
-          optional: false,
-          values: null,
-          type_args: [],
-          type_name: null
-        };
     handles.push({
       name,
-      type,
+      type: inputMeta
+        ? slotType(normalizeDynamicSlot(inputMeta))
+        : { ...ANY_TYPE },
       isDynamic: true
     });
   });

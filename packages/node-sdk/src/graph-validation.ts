@@ -9,7 +9,14 @@
  * Takes a {@link GraphValidationRegistry} (the slice of NodeRegistry it needs)
  * so it can be unit-tested with a fake and reused by the CLI and agent tools.
  */
+import type { DynamicSlotMeta } from "@nodetool-ai/protocol";
 import type { NodeMetadata } from "./metadata.js";
+import {
+  slotTypeToString,
+  typeMetaToString,
+  typesIncompatible,
+  valueIncompatibleWithType
+} from "./type-compat.js";
 import type { NodePropertyValidationIssue } from "./validation.js";
 
 /** A node in either kernel (`properties`) or ReactFlow (`data`) shape. */
@@ -18,6 +25,10 @@ export interface GraphValidationNode {
   type?: unknown;
   properties?: Record<string, unknown>;
   data?: Record<string, unknown>;
+  /** Inline values of dynamic input slots. */
+  dynamic_properties?: Record<string, unknown>;
+  /** Typed declarations for dynamic input slots (undeclared slot = `any`). */
+  dynamic_inputs?: Record<string, DynamicSlotMeta>;
   dynamic_outputs?: unknown;
 }
 
@@ -36,11 +47,31 @@ export interface GraphValidationInput {
   edges?: GraphValidationEdge[];
 }
 
-export type GraphValidationSeverity = "error" | "warning";
+/**
+ * `info` is below the `--warnings-as-errors` ratchet: it reports something
+ * worth knowing about a graph that is not a defect. An untyped dynamic slot
+ * is the motivating case — every workflow saved before typed slots has one
+ * per dynamic edge, and none of them are broken.
+ */
+export type GraphValidationSeverity = "error" | "warning" | "info";
 
 export interface GraphValidationIssue {
   severity: GraphValidationSeverity;
-  /** Stable category: "unknown_node" | "duplicate_id" | "property" | "dangling_edge" | "unknown_handle" | "type_mismatch" | "fan_in". */
+  /**
+   * Stable category: "unknown_node" | "duplicate_id" | "property" |
+   * "dangling_edge" | "unknown_handle" | "type_mismatch" | "fan_in" |
+   * "untyped_dynamic_slot" | "dynamic_type_mismatch".
+   *
+   * - "untyped_dynamic_slot" (info): an edge targets a dynamic input that
+   *   carries no `dynamic_inputs` declaration, so its type cannot be checked.
+   *   Legacy graphs produce one per dynamic edge; never an error, and below
+   *   the warnings-as-errors ratchet.
+   * - "dynamic_type_mismatch" (warning): an inline `dynamic_properties` value
+   *   does not match its slot's declared type.
+   * - "type_mismatch": a warning for declared properties (best-effort), an
+   *   error when the target is a *declared* dynamic slot whose type the source
+   *   output cannot satisfy.
+   */
   code: string;
   nodeId?: string;
   nodeType?: string;
@@ -52,7 +83,7 @@ export interface GraphValidationReport {
   ok: boolean;
   nodeCount: number;
   edgeCount: number;
-  counts: { errors: number; warnings: number };
+  counts: { errors: number; warnings: number; info: number };
   issues: GraphValidationIssue[];
 }
 
@@ -86,40 +117,41 @@ export function isEditorOnlyType(nodeType: string): boolean {
   );
 }
 
-type TypeMeta = NodeMetadata["properties"][number]["type"];
-
-function typeMetaToString(tm: TypeMeta | undefined): string {
-  if (!tm) return "";
-  const args = (tm.type_args ?? []).map(typeMetaToString).filter(Boolean);
-  return args.length > 0 ? `${tm.type}[${args.join(", ")}]` : tm.type;
-}
-
 /** Handles like `__control__` / `__output__` are framework-internal, not props. */
 function isReservedHandle(handle: string): boolean {
   return handle.startsWith("__") && handle.endsWith("__");
 }
 
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  return value as Record<string, unknown>;
+}
+
 /**
- * Conservative type compatibility: only flag a mismatch when both sides are
- * known, concrete scalars that clearly differ. `any`/`object`/`union`/empty and
- * any generic container (type_args) are treated as compatible to avoid false
- * positives — this check only ever warns, it never blocks.
+ * Typed dynamic slot declarations of a node, from either graph shape: the
+ * kernel/runner node carries `dynamic_inputs` at the top level, a ReactFlow
+ * node carries it inside `data`.
  */
-function typesIncompatible(sourceType: string, targetType: string): boolean {
-  if (!sourceType || !targetType) return false;
-  if (sourceType === targetType) return false;
-  const permissive = new Set(["any", "object", "union", "list", "dict"]);
-  const base = (t: string): string => {
-    const i = t.indexOf("[");
-    return i >= 0 ? t.slice(0, i) : t;
-  };
-  const s = base(sourceType);
-  const t = base(targetType);
-  if (permissive.has(s) || permissive.has(t)) return false;
-  if (s !== sourceType || t !== targetType) return false; // generic container — skip
-  const numeric = new Set(["int", "float"]);
-  if (numeric.has(s) && numeric.has(t)) return false;
-  return s !== t;
+function readDynamicInputs(
+  node: GraphValidationNode
+): Record<string, DynamicSlotMeta> {
+  const own = asRecord(node.dynamic_inputs);
+  if (own) return own as Record<string, DynamicSlotMeta>;
+  const fromData = asRecord(node.data?.dynamic_inputs);
+  return (fromData ?? {}) as Record<string, DynamicSlotMeta>;
+}
+
+/** Inline dynamic slot values, from either graph shape. */
+function readDynamicProperties(
+  node: GraphValidationNode
+): Record<string, unknown> {
+  return (
+    asRecord(node.dynamic_properties) ??
+    asRecord(node.data?.dynamic_properties) ??
+    {}
+  );
 }
 
 interface NormEdge {
@@ -301,6 +333,10 @@ export function validateGraph(
       }
     }
 
+    // True when targetType came from a declared dynamic slot: the user asked
+    // for that type explicitly, so a mismatch is an error, not a guess.
+    let typedDynamicSlot = false;
+
     if (targetMeta && e.targetHandle && !isReservedHandle(e.targetHandle)) {
       const inp = targetMeta.properties.find((p) => p.name === e.targetHandle);
       const supportsDynamicIn = targetMeta.supports_dynamic_inputs === true;
@@ -315,26 +351,70 @@ export function validateGraph(
         });
       } else if (inp) {
         targetType = typeMetaToString(inp.type);
+      } else {
+        const slot = readDynamicInputs(targetNode)[e.targetHandle];
+        const slotType = slotTypeToString(slot);
+        if (slotType) {
+          targetType = slotType;
+          typedDynamicSlot = true;
+        } else {
+          issues.push({
+            severity: "info",
+            code: "untyped_dynamic_slot",
+            edgeId: e.id,
+            nodeId: e.target,
+            nodeType: String(targetNode.type ?? ""),
+            message: `Edge "${e.id}" targets dynamic input "${e.targetHandle}" on ${String(targetNode.type)}, which declares no type — the connection is not type-checked`
+          });
+        }
       }
     }
 
     if (typesIncompatible(sourceType, targetType)) {
       issues.push({
-        severity: "warning",
+        severity: typedDynamicSlot ? "error" : "warning",
         code: "type_mismatch",
         edgeId: e.id,
-        message: `Edge "${e.id}" connects ${String(sourceNode.type)}.${e.sourceHandle} (${sourceType}) → ${String(targetNode.type)}.${e.targetHandle} (${targetType}) — types may be incompatible`
+        nodeId: e.target,
+        nodeType: String(targetNode.type ?? ""),
+        message: typedDynamicSlot
+          ? `Edge "${e.id}" connects ${String(sourceNode.type)}.${e.sourceHandle} (${sourceType}) → dynamic input ${String(targetNode.type)}.${e.targetHandle}, declared as ${targetType}`
+          : `Edge "${e.id}" connects ${String(sourceNode.type)}.${e.sourceHandle} (${sourceType}) → ${String(targetNode.type)}.${e.targetHandle} (${targetType}) — types may be incompatible`
       });
     }
   }
 
+  // ── Inline dynamic values against their declared slot types ──────────────
+  for (const node of nodes) {
+    const slots = readDynamicInputs(node);
+    const slotNames = Object.keys(slots);
+    if (slotNames.length === 0) continue;
+    const id = String(node.id ?? "");
+    const values = readDynamicProperties(node);
+    const connected = connectedByNode.get(id);
+    for (const name of slotNames) {
+      if (connected?.has(name)) continue;
+      const typeStr = slotTypeToString(slots[name]);
+      if (valueIncompatibleWithType(values[name], typeStr)) {
+        issues.push({
+          severity: "warning",
+          code: "dynamic_type_mismatch",
+          nodeId: id,
+          nodeType: String(node.type ?? ""),
+          message: `Dynamic input "${name}" on node "${id}" is declared as ${typeStr} but holds a ${typeof values[name]}`
+        });
+      }
+    }
+  }
+
   const errors = issues.filter((i) => i.severity === "error").length;
-  const warnings = issues.length - errors;
+  const warnings = issues.filter((i) => i.severity === "warning").length;
+  const info = issues.filter((i) => i.severity === "info").length;
   return {
     ok: errors === 0,
     nodeCount: nodes.length,
     edgeCount: edges.length,
-    counts: { errors, warnings },
+    counts: { errors, warnings, info },
     issues
   };
 }

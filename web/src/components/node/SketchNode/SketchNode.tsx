@@ -925,11 +925,13 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
       }
       if (nextIn[k] === undefined) {
         nextIn[k] = {
-          type: "image",
-          type_args: [],
-          optional: true,
-          values: null,
-          type_name: null
+          type: {
+            type: "image",
+            type_args: [],
+            optional: true,
+            values: null,
+            type_name: null
+          }
         };
       }
     }

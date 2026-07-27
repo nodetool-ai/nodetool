@@ -11,6 +11,7 @@
 
 import { createLogger } from "@nodetool-ai/config";
 import type {
+  DynamicSlotMeta,
   Edge,
   NodeDescriptor,
   HydratedNodeDescriptor,
@@ -27,6 +28,7 @@ import {
   TypeMetadata
 } from "@nodetool-ai/protocol";
 import { syntheticEdgeId } from "./edge-ids.js";
+import { dynamicSlotPropertyTypes } from "./dynamic-slots.js";
 
 // ---------------------------------------------------------------------------
 // Graph errors
@@ -253,6 +255,26 @@ export class Graph {
         );
       }
 
+      // Declared dynamic slots are real, typed handles: register their type
+      // in propertyTypes so the undefined-property guard below keeps them and
+      // downstream type lookups see a type instead of `any`. Only merged into
+      // an existing non-empty map — synthesizing propertyTypes here would
+      // switch the guard on for a node that had no type map at all.
+      const slotTypes = dynamicSlotPropertyTypes(
+        nodeObj.dynamic_inputs as Record<string, DynamicSlotMeta> | undefined
+      );
+      if (
+        Object.keys(slotTypes).length > 0 &&
+        nodeObj.propertyTypes != null &&
+        typeof nodeObj.propertyTypes === "object" &&
+        Object.keys(nodeObj.propertyTypes as Record<string, unknown>).length > 0
+      ) {
+        nodeObj.propertyTypes = {
+          ...slotTypes,
+          ...(nodeObj.propertyTypes as Record<string, string>)
+        };
+      }
+
       if (!allowUndefinedProperties) {
         // Only validate against propertyTypes when it is explicitly provided.
         // Using properties itself as a source of truth would defeat the purpose
@@ -381,6 +403,13 @@ export class Graph {
         properties: mergedProperties,
         propertyTypes: {
           ...resolvedPropertyTypes,
+          // Declared dynamic slots type their handles, but never shadow a
+          // static property the registry already declares.
+          ...Object.fromEntries(
+            Object.entries(
+              dynamicSlotPropertyTypes(node.dynamic_inputs)
+            ).filter(([name]) => !Object.hasOwn(resolvedPropertyTypes, name))
+          ),
           ...(node.propertyTypes ?? {})
         },
         outputs: {

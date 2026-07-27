@@ -5,6 +5,7 @@ import { useNodes } from "../../../contexts/NodeContext";
 import { BASE_URL } from "../../../stores/BASE_URL";
 import { TypeMetadata } from "../../../stores/ApiTypes";
 import { resolveFalSchemaClient } from "../../../utils/falDynamicSchema";
+import { normalizeDynamicSlots } from "../../../utils/dynamicSlots";
 import { NodeData } from "../../../stores/NodeData";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
@@ -67,10 +68,9 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = memo(({
           ...(meta.type_name != null && { type_name: meta.type_name })
         } as TypeMetadata;
       }
-      const dynamic_inputs: Record<
-        string,
-        TypeMetadata & { description?: string }
-      > = {};
+      // Resolver-flat shape; normalized to slot declarations before it lands
+      // in the store (see `utils/dynamicSlots.ts`).
+      const dynamic_inputs: Record<string, Record<string, unknown>> = {};
       for (const [k, v] of Object.entries(resolved.dynamic_inputs ?? {})) {
         const meta = v as {
           type: string;
@@ -105,7 +105,9 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = memo(({
       updateNodeData(nodeId, {
         dynamic_properties,
         dynamic_inputs:
-          Object.keys(dynamic_inputs).length > 0 ? dynamic_inputs : undefined,
+          Object.keys(dynamic_inputs).length > 0
+            ? normalizeDynamicSlots(dynamic_inputs)
+            : undefined,
         dynamic_outputs,
         ...(resolved.endpoint_id != null && {
           endpoint_id: resolved.endpoint_id

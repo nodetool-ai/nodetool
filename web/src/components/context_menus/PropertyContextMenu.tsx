@@ -16,9 +16,20 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import SettingsBackupRestoreIcon from "@mui/icons-material/SettingsBackupRestore";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import CategoryIcon from "@mui/icons-material/Category";
 import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
-import { Property } from "../../stores/ApiTypes";
+import { Property, TypeMetadata } from "../../stores/ApiTypes";
+import {
+  defaultValueForType,
+  normalizeDynamicSlots
+} from "../../utils/dynamicSlots";
+import {
+  allowedSlotTypes,
+  isSchemaDrivenDynamicNode,
+  slotTypeKey,
+  slotTypeLabel
+} from "../../utils/dynamicSlotTypes";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { serializeValue } from "../../utils/serializeValue";
@@ -128,6 +139,40 @@ const PropertyContextMenuComponent: React.FC = () => {
     closeContextMenu();
   };
 
+  // Slot-type entries. Only for user-owned dynamic slots — schema-driven
+  // nodes rewrite `dynamic_inputs` wholesale, so a pick there wouldn't stick.
+  const slotTypeNode = isDynamicProperty && nodeId ? findNode(nodeId) : undefined;
+  const slotTypeOptions =
+    slotTypeNode && handleId && !isSchemaDrivenDynamicNode(slotTypeNode)
+      ? allowedSlotTypes(
+          slotTypeNode.type ? metadata?.[slotTypeNode.type] : undefined
+        )
+      : null;
+
+  const handleSetSlotType = (type: TypeMetadata) => {
+    if (!handleId) {
+      closeContextMenu();
+      return;
+    }
+    for (const nid of resolvePropertyMenuTargetNodeIds(nodeId, payload)) {
+      const node = findNode(nid);
+      if (!node) {
+        continue;
+      }
+      updateNodeData(nid, {
+        dynamic_properties: {
+          ...node.data.dynamic_properties,
+          [handleId]: defaultValueForType(type)
+        },
+        dynamic_inputs: {
+          ...normalizeDynamicSlots(node.data.dynamic_inputs),
+          [handleId]: { type }
+        }
+      });
+    }
+    closeContextMenu();
+  };
+
   const handleRemoveDynamicProperty = (
     event?: React.MouseEvent<HTMLElement>
   ) => {
@@ -142,7 +187,12 @@ const PropertyContextMenuComponent: React.FC = () => {
         if (node?.data.dynamic_properties) {
           const { [handleId]: _, ...remainingProperties } =
             node.data.dynamic_properties;
-          updateNodeData(nid, { dynamic_properties: remainingProperties });
+          const remainingSlots = normalizeDynamicSlots(node.data.dynamic_inputs);
+          delete remainingSlots[handleId];
+          updateNodeData(nid, {
+            dynamic_properties: remainingProperties,
+            dynamic_inputs: remainingSlots
+          });
         }
       }
     }
@@ -333,6 +383,23 @@ const PropertyContextMenuComponent: React.FC = () => {
       )}
 
       {isDynamicProperty && <Divider />}
+      {slotTypeOptions !== null && (
+        <MenuItem disabled>
+          <Text size="small">Slot Type</Text>
+        </MenuItem>
+      )}
+      {slotTypeOptions?.map((option) => (
+        <ContextMenuItem
+          key={slotTypeKey(option)}
+          onClick={() => handleSetSlotType(option)}
+          label={slotTypeLabel(option)}
+          addButtonClassName={`set-slot-type set-slot-type-${slotTypeKey(
+            option
+          )}`}
+          IconComponent={<CategoryIcon />}
+          tooltip={`Declare "${propertyName}" as ${slotTypeLabel(option)}`}
+        />
+      ))}
       {isDynamicProperty && (
         <ContextMenuItem
           onClick={handleRemoveDynamicProperty}

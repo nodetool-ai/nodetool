@@ -30,6 +30,7 @@ import { migrateGraphNodeTypes } from "@nodetool-ai/protocol";
 import { autoLayout } from "../core/graph";
 import { isConnectable, isCollectType } from "../utils/TypeHandler";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
+import { isTypedSlot, normalizeDynamicSlots } from "../utils/dynamicSlots";
 import { addExposedInput } from "../utils/exposedInputs";
 import { WorkflowAttributes } from "./ApiTypes";
 import { wouldCreateCycle } from "../utils/graphCycle";
@@ -656,11 +657,18 @@ export const createNodeStore = (
             const isDynamicProperty =
               targetNode?.data.dynamic_properties[connection.targetHandle] !==
               undefined;
+            // A *typed* dynamic slot is gated like a static handle; only
+            // undeclared (legacy) slots keep the promiscuous bypass.
+            const targetSlot = targetNode?.data.dynamic_inputs?.[
+              connection.targetHandle
+            ];
+            const isUntypedDynamicProperty =
+              isDynamicProperty && !isTypedSlot(targetSlot);
             if (
               !srcNode ||
               !targetNode ||
               !(
-                isDynamicProperty ||
+                isUntypedDynamicProperty ||
                 isControlEdge ||
                 get().validateConnection(connection, srcNode, targetNode)
               )
@@ -743,6 +751,30 @@ export const createNodeStore = (
             // (those have their own surfaces) and for properties already
             // declared as a handle by metadata (`input_fields` / inline rows
             // render their own handle).
+            // Connect-time type inference: an undeclared dynamic slot adopts
+            // the source output's type, so most slots end up typed with no
+            // user effort. Slots that already carry a declaration are left be.
+            if (
+              isUntypedDynamicProperty &&
+              !isControlEdge &&
+              connection.sourceHandle
+            ) {
+              const srcMetadata = useMetadataStore
+                .getState()
+                .getMetadata(srcNode.type || "");
+              const srcHandle = srcMetadata
+                ? findOutputHandle(srcNode, connection.sourceHandle, srcMetadata)
+                : undefined;
+              if (srcHandle && srcHandle.type.type !== "any") {
+                get().updateNodeData(targetNode.id, {
+                  dynamic_inputs: {
+                    ...normalizeDynamicSlots(targetNode.data.dynamic_inputs),
+                    [connection.targetHandle]: { type: srcHandle.type }
+                  }
+                });
+              }
+            }
+
             if (!isDynamicProperty && !isControlEdge) {
               const targetMetadata = useMetadataStore
                 .getState()
@@ -1403,6 +1435,7 @@ export const createNodeStore = (
                 selectable: true,
                 workflow_id: get().workflow.id,
                 dynamic_properties: {},
+                dynamic_inputs: {},
                 title: defaultTitle
               },
               targetPosition: Position.Left,

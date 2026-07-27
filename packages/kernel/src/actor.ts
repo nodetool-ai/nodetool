@@ -32,6 +32,7 @@ import { NodeInbox, type MessageEnvelope } from "./inbox.js";
 import { NodeInputs, NodeOutputs } from "./io.js";
 import { WorkflowSuspendedError } from "./suspendable.js";
 import type { NodeAnalysis } from "./correlation-analysis.js";
+import { applyDynamicSlotTypes } from "./dynamic-slots.js";
 import {
   iterationRootId,
   projectLineageKey,
@@ -430,10 +431,10 @@ export class NodeActor {
             this._emitNodeStatus("warning", undefined, warning);
           }
           const outputs = await this._executor.process(
-            {
+            this._applyDynamicSlots({
               ...(this.node.properties ?? {}),
               ...(this.node.dynamic_properties ?? {})
-            },
+            }),
             this._executionContext
           );
           this._latestResult = outputs;
@@ -688,7 +689,8 @@ export class NodeActor {
             if (this.inbox.isOpen(h)) return false;
           } else if (!emptySticky.has(h)) {
             // Allow node properties / dynamic_properties to supply defaults:
-            // _executeWithInputs already merges them. So an empty-scope
+            // _executeWithInputs already merges them (and type-checks the
+            // ones with a declared slot in dynamic_inputs). So an empty-scope
             // handle without an envelope is treated as "use the node's
             // declared default" if the handle has no open upstream.
             if (this.inbox.isOpen(h)) return false;
@@ -1053,6 +1055,18 @@ export class NodeActor {
   }
 
   /**
+   * Coerce and check every input that has a declared dynamic slot on this
+   * node (`dynamic_inputs`). Slots without a declaration are untyped and
+   * pass through untouched. Throws on a value that cannot fit its declared
+   * type; the caller's catch turns that into a node error.
+   */
+  private _applyDynamicSlots(
+    inputs: Record<string, unknown>
+  ): Record<string, unknown> {
+    return applyDynamicSlotTypes(this.node, inputs);
+  }
+
+  /**
    * Execute process or genProcess with the given inputs.
    */
   private async _executeWithInputs(
@@ -1069,6 +1083,7 @@ export class NodeActor {
         ...inputs
       };
     }
+    inputs = this._applyDynamicSlots(inputs);
 
     // Inject _control_context for controller nodes (Python parity:
     // process_streaming_node_with_inputs / _is_controller / _build_control_context)
@@ -1399,12 +1414,12 @@ export class NodeActor {
         // Merge node properties as defaults (matching _executeWithInputs behavior)
         const baseProps = this.node.properties ?? {};
         const dynProps = this.node.dynamic_properties ?? {};
-        const merged = {
+        const merged = this._applyDynamicSlots({
           ...baseProps,
           ...dynProps,
           ...inputs,
           ...this._currentControlProperties
-        };
+        });
         const outputs = await this._executor.process(
           merged,
           this._executionContext

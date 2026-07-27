@@ -802,6 +802,11 @@ export interface NodeMetadata {
   output_correlation?: Record<string, OutputCorrelation>;
   supports_dynamic_outputs: boolean;
   /**
+   * Types a user may pick for a dynamic input slot on this node. Unset means
+   * the full type palette.
+   */
+  allowed_dynamic_slot_types?: PropertyTypeMetadata[];
+  /**
    * Per-type cache lifetime for partial runs (seconds, or the `"forever"`
    * sentinel — never `Infinity`, which JSON-serializes to `null`). Only
    * consulted for Computed nodes; unset / `0` means never reuse.
@@ -842,6 +847,16 @@ export interface IndexResponse {
 // Node (API transport shape)
 // ---------------------------------------------------------------------------
 
+/** API-transport form of a typed dynamic input slot declaration. */
+export interface DynamicSlotMetadata {
+  type: PropertyTypeMetadata;
+  description?: string;
+  default?: unknown;
+  required?: boolean;
+  min?: number;
+  max?: number;
+}
+
 export interface Node {
   id: string;
   parent_id?: string | null;
@@ -849,6 +864,7 @@ export interface Node {
   data?: unknown;
   ui_properties?: unknown;
   dynamic_properties?: Record<string, unknown>;
+  dynamic_inputs?: Record<string, DynamicSlotMetadata>;
   dynamic_outputs?: Record<string, PropertyTypeMetadata>;
   [key: string]: unknown;
 }

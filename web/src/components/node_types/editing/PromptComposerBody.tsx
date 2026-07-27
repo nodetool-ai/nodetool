@@ -257,7 +257,7 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
   useVariablePassthroughOutputs(
     id,
     variableNames,
-    (data.dynamic_inputs ?? {}) as Record<string, TypeMetadata>,
+    data.dynamic_inputs ?? {},
     (data.dynamic_outputs ?? {}) as Record<string, TypeMetadata>
   );
 
