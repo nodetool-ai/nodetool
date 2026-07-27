@@ -153,6 +153,10 @@ const styles = (theme: Theme) =>
       ".video-preview:hover .video-preview-actions": {
         opacity: 1
       },
+      // Touch devices have no hover; keep the video preview actions reachable.
+      "@media (pointer: coarse)": {
+        ".video-preview-actions": { opacity: 1 }
+      },
       ".video-preview-actions button": {
         width: 24,
         height: 24,

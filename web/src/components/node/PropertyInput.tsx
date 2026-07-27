@@ -99,6 +99,13 @@ const propertyInputContainerStyles = (theme: Theme) =>
       opacity: 1
     },
 
+    // Touch devices have no hover; keep the action icons and reset reachable.
+    "@media (pointer: coarse)": {
+      ".action-icons, .reset-button.is-active": {
+        opacity: 1
+      }
+    },
+
     ".action-icon": {
       fontSize: "var(--fontSizeBig)",
       cursor: "pointer",

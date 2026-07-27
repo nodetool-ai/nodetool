@@ -9,6 +9,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback";
 import { isMac } from "../../utils/platform";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import type { NodeMetadata } from "../../stores/ApiTypes";
 
 const styles = (theme: Theme) =>
@@ -145,6 +146,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
 }) => {
   const theme = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
+  const autoFocusEnabled = useAutoFocusEnabled();
   const [localSearchTerm, setLocalSearchTerm] = useState(externalSearchTerm);
 
   // Debounced search - store handles search ID management internally
@@ -173,11 +175,13 @@ const SearchInput: React.FC<SearchInputProps> = ({
     inputRef.current?.focus();
   }, [resetSearch]);
 
+  // Skipped on touch, where the virtual keyboard would cover the menu that
+  // just opened.
   React.useEffect(() => {
-    if (focusSearchInput) {
+    if (focusSearchInput && autoFocusEnabled) {
       inputRef.current?.focus();
     }
-  }, [focusSearchInput]);
+  }, [focusSearchInput, autoFocusEnabled]);
 
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

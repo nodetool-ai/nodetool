@@ -145,6 +145,10 @@ const styles = (theme: Theme) =>
     ".col-tile:hover .col-remove, .col-tile:focus-within .col-remove": {
       opacity: 1
     },
+    // Touch devices have no hover; keep the remove button reachable.
+    "@media (pointer: coarse)": {
+      ".col-remove": { opacity: 1 }
+    },
     ".col-empty": {
       gridColumn: "1 / -1",
       flex: 1,

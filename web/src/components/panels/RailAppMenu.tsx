@@ -64,12 +64,21 @@ const menuStyles = () =>
     padding: `${getSpacingPx(SPACING.xs)} 0`
   });
 
+export interface RailAppMenuProps {
+  /**
+   * Called after an item opens something (a page tab, Help, Downloads). The
+   * mobile panel sheet uses it to dismiss itself so the destination isn't
+   * hidden behind it.
+   */
+  onAction?: () => void;
+}
+
 /**
  * The app menu docked at the top of the workspace rail. The logo opens a menu
  * carrying the global actions that used to live in the old header's right cluster:
  * Settings, Help, and Downloads (with live progress when active).
  */
-const RailAppMenu: React.FC = () => {
+const RailAppMenu: React.FC<RailAppMenuProps> = ({ onAction }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const anchorRef = useRef<HTMLButtonElement>(null);
@@ -95,6 +104,11 @@ const RailAppMenu: React.FC = () => {
   useCombo(["Control", "/"], handleShowKeyboardShortcuts);
 
   const close = useCallback(() => setOpen(false), []);
+  // Closing after an item was picked, as opposed to dismissing the popover.
+  const finish = useCallback(() => {
+    setOpen(false);
+    onAction?.();
+  }, [onAction]);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
 
   // Open an app page (Settings, Costs, …) as a workspace tab and focus the
@@ -108,15 +122,15 @@ const RailAppMenu: React.FC = () => {
         title: PAGE_TAB_TITLES[key]
       });
       navigate("/workspace");
-      close();
+      finish();
     },
-    [openTab, navigate, close]
+    [openTab, navigate, finish]
   );
 
   const goDashboard = useCallback(() => {
     navigate("/dashboard");
-    close();
-  }, [navigate, close]);
+    finish();
+  }, [navigate, finish]);
 
   const goExamples = useCallback(() => openPage("examples"), [openPage]);
   const goTutorials = useCallback(() => openPage("tutorials"), [openPage]);
@@ -130,8 +144,8 @@ const RailAppMenu: React.FC = () => {
 
   const openHelp = useCallback(() => {
     handleOpenHelp();
-    close();
-  }, [handleOpenHelp, close]);
+    finish();
+  }, [handleOpenHelp, finish]);
 
   const { downloads, openDownloadsDialog } = useModelDownloadStore(
     useShallow((state) => ({
@@ -153,8 +167,8 @@ const RailAppMenu: React.FC = () => {
 
   const openDownloads = useCallback(() => {
     openDownloadsDialog();
-    close();
-  }, [openDownloadsDialog, close]);
+    finish();
+  }, [openDownloadsDialog, finish]);
 
   return (
     <>

@@ -12,6 +12,7 @@ import {
 } from "../ui_primitives";
 import Search from "@mui/icons-material/Search";
 import { IMAGE_SIZE_PRESETS, PresetOption } from "../../config/constants";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 
 interface ImageSizePresetsMenuProps {
   anchorEl: null | HTMLElement;
@@ -31,6 +32,8 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
   currentHeight
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
+  // Skipped on touch, where the virtual keyboard would cover the preset list.
+  const autoFocusEnabled = useAutoFocusEnabled();
 
   const handleClose = useCallback(() => {
     onClose();
@@ -117,7 +120,7 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
           value={searchQuery}
           onChange={handleSearchChange}
           onKeyDown={handleSearchKeyDown}
-          autoFocus
+          autoFocus={autoFocusEnabled}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">

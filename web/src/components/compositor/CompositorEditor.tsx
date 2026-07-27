@@ -63,7 +63,12 @@ const styles = (theme: Theme) =>
       width: "100%",
       height: "100%",
       display: "flex",
-      minHeight: 0
+      minHeight: 0,
+      // Below the panel width the stage would be squeezed to nothing, so the
+      // panel drops under the stage instead of docking beside it.
+      [theme.breakpoints.down("sm")]: {
+        flexDirection: "column"
+      }
     },
     ".stage-pane": {
       flex: "1 1 auto",
@@ -80,7 +85,13 @@ const styles = (theme: Theme) =>
       minHeight: 0,
       padding: theme.spacing(1),
       gap: theme.spacing(1),
-      overflowY: "auto"
+      overflowY: "auto",
+      [theme.breakpoints.down("sm")]: {
+        flex: "0 1 auto",
+        width: "100%",
+        borderLeft: "none",
+        borderTop: `1px solid ${theme.vars.palette.divider}`
+      }
     },
     ".size-row .field": {
       flex: 1,

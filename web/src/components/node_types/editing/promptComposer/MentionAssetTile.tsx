@@ -78,6 +78,10 @@ const styles = (theme: Theme) =>
     },
     "&:hover .thumb img": { transform: "scale(1.06)" },
     "&:hover .rename-button, &.selected .rename-button": { opacity: 1 },
+    // Touch devices have no hover; keep the rename button reachable.
+    "@media (pointer: coarse)": {
+      ".rename-button": { opacity: 1 }
+    },
     "&.selected": {
       borderColor: theme.vars.palette.primary.main,
       background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.12)`,

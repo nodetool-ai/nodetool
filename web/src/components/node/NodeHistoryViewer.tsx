@@ -114,6 +114,10 @@ const styles = (theme: Theme) =>
     "&:hover .node-history-overlay, &:focus-within .node-history-overlay": {
       opacity: 1
     },
+    // Touch devices have no hover; keep the history controls reachable.
+    "@media (pointer: coarse)": {
+      ".node-history-overlay": { opacity: 1 }
+    },
     ".overlay-cluster": {
       pointerEvents: "auto",
       display: "inline-flex",

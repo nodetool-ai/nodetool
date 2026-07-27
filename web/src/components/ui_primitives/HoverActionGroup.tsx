@@ -69,6 +69,9 @@ export const HoverActionGroup: React.FC<HoverActionGroupProps> = memo(
       if (revealOnFocusWithin) {
         revealStyles["&:focus-within"] = { opacity: 1 };
       }
+      // A pointer that cannot hover never reveals the actions, leaving them
+      // invisible but still tappable. Show them outright instead.
+      revealStyles["@media (hover: none)"] = { opacity: 1 };
     }
 
     return (

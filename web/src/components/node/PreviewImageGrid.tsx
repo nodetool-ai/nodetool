@@ -233,6 +233,10 @@ const styles = (theme: Theme, gap: number) =>
     ".tile:hover .tile-actions": {
       opacity: 1
     },
+    // Touch devices have no hover; keep the per-tile actions reachable.
+    "@media (pointer: coarse)": {
+      ".tile-actions": { opacity: 1 }
+    },
     ".tile-action-btn": {
       width: 24,
       height: 24,
