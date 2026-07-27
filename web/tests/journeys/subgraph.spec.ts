@@ -123,16 +123,18 @@ test.describe("Subgraph feature", () => {
   });
 
   /**
-   * PRE-EXISTING FAILURE — not caused by moving this spec into the journey
-   * suite. Creating a SubgraphNode works (the test above passes), but
-   * double-clicking it never opens a `.subgraph-tab`, so every test that
-   * depends on the tab opening times out. Reproduced identically against both
-   * the hermetic backend and real providers (`NODETOOL_FAKE_PROVIDERS=0`).
+   * UNIMPLEMENTED SURFACE, not a broken one. Creating a SubgraphNode works
+   * (the test above passes) and double-clicking it does call
+   * `SubgraphTabsStore.openTab`, but the workspace shell renders no subgraph
+   * tab strip and no subgraph canvas: `SubgraphTabsStore.tabs` is read only by
+   * `PanelRight`, to pick which store the inspector shows. There is no
+   * `.subgraph-tab` element in the app, so this test and the two below assert
+   * against markup that does not exist.
    *
-   * This spec previously lived at `tests/subgraph-e2e.spec.ts`, where no CI
-   * workflow ran it — which is why the regression went unnoticed. Marked fixme
-   * so the nightly journey run stays meaningful; remove once the tab-opening
-   * path is fixed.
+   * Kept as fixme rather than deleted: the store, the open path and the
+   * inspector wiring are all still there, so these describe the surface that
+   * has to come back. Remove the fixme once the workspace shell hosts subgraph
+   * tabs again.
    */
   test.fixme("opens a violet-accented tab when double-clicked", async ({ page }) => {
     await gotoEditor(page);
@@ -205,16 +207,18 @@ test.describe("Subgraph feature", () => {
   });
 
   /**
-   * PRE-EXISTING FAILURE — not caused by moving this spec into the journey
-   * suite. Creating a SubgraphNode works (the test above passes), but
-   * double-clicking it never opens a `.subgraph-tab`, so every test that
-   * depends on the tab opening times out. Reproduced identically against both
-   * the hermetic backend and real providers (`NODETOOL_FAKE_PROVIDERS=0`).
+   * UNIMPLEMENTED SURFACE, not a broken one. Creating a SubgraphNode works
+   * (the test above passes) and double-clicking it does call
+   * `SubgraphTabsStore.openTab`, but the workspace shell renders no subgraph
+   * tab strip and no subgraph canvas: `SubgraphTabsStore.tabs` is read only by
+   * `PanelRight`, to pick which store the inspector shows. There is no
+   * `.subgraph-tab` element in the app, so this test and the two below assert
+   * against markup that does not exist.
    *
-   * This spec previously lived at `tests/subgraph-e2e.spec.ts`, where no CI
-   * workflow ran it — which is why the regression went unnoticed. Marked fixme
-   * so the nightly journey run stays meaningful; remove once the tab-opening
-   * path is fixed.
+   * Kept as fixme rather than deleted: the store, the open path and the
+   * inspector wiring are all still there, so these describe the surface that
+   * has to come back. Remove the fixme once the workspace shell hosts subgraph
+   * tabs again.
    */
   test.fixme("subgraph canvas accepts new nodes via pane context menu", async ({
     page
@@ -307,16 +311,18 @@ test.describe("Subgraph feature", () => {
   });
 
   /**
-   * PRE-EXISTING FAILURE — not caused by moving this spec into the journey
-   * suite. Creating a SubgraphNode works (the test above passes), but
-   * double-clicking it never opens a `.subgraph-tab`, so every test that
-   * depends on the tab opening times out. Reproduced identically against both
-   * the hermetic backend and real providers (`NODETOOL_FAKE_PROVIDERS=0`).
+   * UNIMPLEMENTED SURFACE, not a broken one. Creating a SubgraphNode works
+   * (the test above passes) and double-clicking it does call
+   * `SubgraphTabsStore.openTab`, but the workspace shell renders no subgraph
+   * tab strip and no subgraph canvas: `SubgraphTabsStore.tabs` is read only by
+   * `PanelRight`, to pick which store the inspector shows. There is no
+   * `.subgraph-tab` element in the app, so this test and the two below assert
+   * against markup that does not exist.
    *
-   * This spec previously lived at `tests/subgraph-e2e.spec.ts`, where no CI
-   * workflow ran it — which is why the regression went unnoticed. Marked fixme
-   * so the nightly journey run stays meaningful; remove once the tab-opening
-   * path is fixed.
+   * Kept as fixme rather than deleted: the store, the open path and the
+   * inspector wiring are all still there, so these describe the surface that
+   * has to come back. Remove the fixme once the workspace shell hosts subgraph
+   * tabs again.
    */
   test.fixme("switches back to parent workflow tab and closes subgraph tab", async ({
     page

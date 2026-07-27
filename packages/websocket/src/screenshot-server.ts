@@ -21,6 +21,7 @@
 import {
   initTestDb,
   getDb,
+  Application,
   Workflow,
   Thread,
   Message,
@@ -173,7 +174,7 @@ const MINI_APP_DOC: Record<string, unknown> = {
     {
       id: "main",
       name: "Run",
-      workflowId: "",
+      workflowId: "wf-mini-app",
       inputs: {},
       outputs: {},
       policy: "replace"
@@ -182,6 +183,29 @@ const MINI_APP_DOC: Record<string, unknown> = {
   resources: [],
   variables: []
 };
+
+/**
+ * The mini app as its own `applications` row.
+ *
+ * An app used to be a workflow — its document lived on `workflow.app_doc` and
+ * ran at `/apps/<workflowId>`. Apps are their own resource now: they are opened
+ * as a workspace tab and their operations name the workflows they bind. The
+ * journey suite drives that surface, so the fixture is an application row whose
+ * one operation points at `wf-mini-app`.
+ */
+const MOCK_APPLICATIONS = [
+  {
+    id: "app-mini-app",
+    user_id: USER_ID,
+    project_id: "default",
+    name: "Echo Mini App",
+    description:
+      "Deterministic mini app used by the user-journey suite: echoes its input to an Output widget",
+    document: JSON.stringify(MINI_APP_DOC),
+    created_at: "2024-09-01T09:00:00Z",
+    updated_at: "2024-12-14T10:00:00Z"
+  }
+];
 
 // Use real node types registered by @nodetool-ai/base-nodes so the editor
 // renders nodes instead of crashing on unknown types.
@@ -1362,6 +1386,11 @@ async function seedDatabase(): Promise<void> {
     await Workflow.create(wf);
   }
 
+  // Applications
+  for (const app of MOCK_APPLICATIONS) {
+    await Application.create(app);
+  }
+
   // Threads
   for (const thread of MOCK_THREADS) {
     await Thread.create(thread);
@@ -1509,7 +1538,7 @@ async function seedDatabase(): Promise<void> {
   }
 
   console.log(
-    `[screenshot-server] Seeded ${MOCK_WORKFLOWS.length} workflows, ${MOCK_TEMPLATES.length} templates, ${MOCK_THREADS.length} threads, ${MOCK_MESSAGES.length} messages, ${MOCK_ASSETS.length} assets, 1 sketch document, 3 timeline sequences, ${demoSecrets.length} secrets`
+    `[screenshot-server] Seeded ${MOCK_WORKFLOWS.length} workflows, ${MOCK_TEMPLATES.length} templates, ${MOCK_APPLICATIONS.length} applications, ${MOCK_THREADS.length} threads, ${MOCK_MESSAGES.length} messages, ${MOCK_ASSETS.length} assets, 1 sketch document, 3 timeline sequences, ${demoSecrets.length} secrets`
   );
 }
 
