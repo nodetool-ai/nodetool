@@ -18,6 +18,18 @@
         "simulator": true
       }
     },
+    "development-testflight": {
+      "extends": "development",
+      "distribution": "store",
+      "autoIncrement": true,
+      "channel": "development",
+      "ios": {
+        "buildConfiguration": "Release"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
+    },
     "preview": {
       "extends": "base",
       "distribution": "internal",
@@ -40,6 +52,7 @@
     }
   },
   "submit": {
+    "development-testflight": {},
     "production": {}
   }
 }

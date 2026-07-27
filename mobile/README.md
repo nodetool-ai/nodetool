@@ -66,7 +66,14 @@ Then:
 - Press `i` to open in iOS Simulator (macOS only)
 - Press `a` to open in Android Emulator
 - Press `w` to open in web browser
-- Scan the QR code with Expo Go app on your phone
+- Scan the QR code with a **development build** on your phone (see
+  [Testing a PR on a phone](#testing-a-pr-on-a-phone))
+
+Not Expo Go: it ships a fixed set of native modules, and this app's plugins
+include three that are not among them —
+`@react-native-google-signin/google-signin`, `@sentry/react-native`, and
+`expo-speech-recognition`. Sign-in and speech fail there even when the bundle
+loads.
 
 ### Platform-specific
 
@@ -170,22 +177,50 @@ consistency:
 Builds run on **EAS Build** (Expo's cloud build service) against the EAS project
 declared in `app.json` (`extra.eas.projectId`, owner `mgeorgi`).
 
-### Testing a PR on a phone without signing it
+### Testing a PR on a phone
 
 `.github/workflows/expo-preview.yml` publishes every PR that touches `mobile/`
 as an **EAS Update** and comments a QR code on the pull request. Scan it with
-**Expo Go** to run that PR's code on a device.
-
-This is the way onto an iOS device that a company-managed phone allows: Expo Go
-is an ordinary App Store app, so it installs where an EAS
-internal-distribution build cannot — those need an ad-hoc provisioning profile,
-which embeds an allow-list of device UDIDs and which MDM policies routinely
-block. Publishing a bundle also costs no build credits and takes a couple of
-minutes instead of a queue wait.
-
-The tradeoff: Expo Go ships a fixed set of native modules, so a PR that adds or
-changes native code needs a real build. Updates are keyed to the PR's head ref
+the development build to run that PR's code on a device — no rebuild, no queue
+wait, no build credits. Updates are keyed to the PR's head ref
 (`eas update --branch`), so each PR gets its own channel.
+
+The tradeoff: an update carries only JS. A PR that adds or changes native code
+needs a new build of the client itself.
+
+Install the client once, from the `development-testflight` profile.
+
+#### Why TestFlight, and not Expo Go or an internal build
+
+Two doors are shut on a company-managed iPhone, and TestFlight is the one that
+is open:
+
+- **Expo Go** ships a fixed set of native modules. This app's plugins include
+  three that are not among them (`@react-native-google-signin/google-signin`,
+  `@sentry/react-native`, `expo-speech-recognition`), so sign-in and speech
+  fail there whatever the SDK. The App Store build of Expo Go is also pinned to
+  an older SDK than this project targets — only the newest build is installable
+  on a physical iPhone, and newer ones wait on Apple review.
+- **EAS internal distribution** signs with an ad-hoc provisioning profile,
+  which embeds an allow-list of device UDIDs. MDM policies routinely refuse
+  those profiles, and no credential setup changes that.
+- **TestFlight** is ordinary App Store distribution: no UDID allow-list, and
+  managed devices accept it. A development build sent there keeps every native
+  module the app actually uses.
+
+Building it needs iOS credentials on the Expo servers, which is a one-time
+interactive step (see [Troubleshooting](#troubleshooting-builds)). Unlike the
+ad-hoc case it is a _distribution_ certificate, so nothing has to be installed
+on the test device.
+
+```bash
+# One-time: build the client and send it to TestFlight, then install from
+# TestFlight on the phone.
+npm run eas -- build --profile development-testflight --platform ios --auto-submit
+```
+
+From CI: Actions → _EAS Build (mobile)_ → _Run workflow_ →
+profile `development-testflight`, with `wait` and `submit` checked.
 
 ### From CI (preferred)
 
@@ -223,13 +258,14 @@ Anything the scripts don't cover goes through the CLI directly, e.g.
 `eas.json` profiles all extend `base`, which pins Node to 22.22.1 so cloud
 builds use the same version as the repo (`.nvmrc`):
 
-| Profile                 | Use                                                       |
-| ----------------------- | --------------------------------------------------------- |
-| `development`           | Dev client on a physical device, internal distribution    |
-| `development-simulator` | Same, but an iOS Simulator build                          |
-| `preview`               | Testing builds — Android APK you can sideload             |
-| `preview-simulator`     | Same, but an iOS Simulator build — needs no Apple account |
-| `production`            | Store builds — Android AAB, version auto-incremented      |
+| Profile                  | Use                                                                         |
+| ------------------------ | --------------------------------------------------------------------------- |
+| `development`            | Dev client on a physical device, internal distribution                      |
+| `development-simulator`  | Same, but an iOS Simulator build                                            |
+| `development-testflight` | Dev client signed for the store — the TestFlight path onto a managed device |
+| `preview`                | Testing builds — Android APK you can sideload                               |
+| `preview-simulator`      | Same, but an iOS Simulator build — needs no Apple account                   |
+| `production`             | Store builds — Android AAB, version auto-incremented                        |
 
 `cli.appVersionSource` is `remote`, so EAS owns the build number; the
 `production` profile increments it on every build.
@@ -263,9 +299,13 @@ eas build --platform ios --local
 
   An ad-hoc profile only installs on devices whose UDID is registered
   (`npx eas-cli device:create`), and adding a device means rebuilding. Once the
-  credentials exist, `--non-interactive` CI builds reuse them. To smoke-test
-  iOS without an Apple Developer account, build the `preview-simulator` profile
-  — a Simulator build needs no signing at all.
+  credentials exist, `--non-interactive` CI builds reuse them.
+
+  If the device refuses the profile rather than the build failing to make one —
+  a managed phone under MDM — no credential setup will help; ad-hoc is what is
+  being blocked. Use `development-testflight` instead. To smoke-test iOS
+  without an Apple Developer account at all, build `preview-simulator`; a
+  Simulator build needs no signing.
 
 - **Build failures**: Check the build logs in Expo dashboard
 - **Timeouts**: Larger apps may need increased build timeout settings

@@ -23,6 +23,7 @@ on:
           [
             development,
             development-simulator,
+            development-testflight,
             preview,
             preview-simulator,
             production
@@ -32,7 +33,8 @@ on:
         type: boolean
         default: false
       submit:
-        description: Submit the finished build to the stores (production only)
+        description: Submit the finished build (production → App Store,
+          development-testflight → TestFlight)
         type: boolean
         default: false
   push:
@@ -150,7 +152,7 @@ jobs:
           # login can mint those the first time, so CI can never recover on its
           # own — say what to do instead of leaving the raw EAS message.
           if [ "$status" -ne 0 ] && grep -qi "couldn't find any credentials" build.err; then
-            echo "::error::No iOS credentials on the Expo servers for profile '$PROFILE'. Run 'cd mobile && npx eas-cli credentials --platform ios' once from a machine signed in to the Apple Developer account (an ad-hoc profile also needs each test device's UDID registered). To smoke-test without an Apple account, use the 'preview-simulator' profile or build '--platform android'."
+            echo "::error::No iOS credentials on the Expo servers for profile '$PROFILE'. Run 'cd mobile && npx eas-cli credentials --platform ios' once from a machine signed in to the Apple Developer account (an ad-hoc profile also needs each test device's UDID registered). If the test device refuses the profile rather than the build failing to make one — a phone under MDM — ad-hoc is what is blocked: build 'development-testflight' and install from TestFlight instead. To smoke-test without an Apple account, use 'preview-simulator' or build '--platform android'."
           fi
           exit "$status"
 
@@ -175,13 +177,17 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       # `--latest` picks the build this job just queued, since the wait above
-      # means it is the newest one for the profile.
+      # means it is the newest one for the profile. Only the two profiles that
+      # produce a store-signed binary have a matching `submit` profile in
+      # eas.json; an internal-distribution build has nowhere to be submitted.
       - name: Submit
-        if: (github.event_name == 'push' || inputs.submit) && env.PROFILE == 'production'
+        if: >-
+          (github.event_name == 'push' || inputs.submit) &&
+          (env.PROFILE == 'production' || env.PROFILE == 'development-testflight')
         working-directory: mobile
         run: |
           eas submit \
             --non-interactive \
             --platform "$PLATFORM" \
-            --profile production \
+            --profile "$PROFILE" \
             --latest
