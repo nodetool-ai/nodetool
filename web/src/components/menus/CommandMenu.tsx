@@ -40,6 +40,7 @@ import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { areNodesEqualIgnoringPosition } from "../../utils/nodeEquality";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useCanvasChatDockStore } from "../../stores/CanvasChatDockStore";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 
 // Icons — Workflow
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
@@ -722,6 +723,7 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
 }) => {
   const [pastePosition, setPastePosition] = useState({ x: 0, y: 0 });
   const input = useRef<HTMLInputElement>(null);
+  const autoFocusEnabled = useAutoFocusEnabled();
   const focusInputTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const executeAndClose = useCallback(
@@ -739,8 +741,9 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
     });
   }, [executeAndClose, reactFlowWrapper]);
 
+  // Skipped on touch, where the virtual keyboard would cover the command list.
   useEffect(() => {
-    if (open) {
+    if (open && autoFocusEnabled) {
       if (focusInputTimeoutRef.current) {
         clearTimeout(focusInputTimeoutRef.current);
       }
@@ -752,7 +755,7 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
         clearTimeout(focusInputTimeoutRef.current);
       }
     };
-  }, [open]);
+  }, [open, autoFocusEnabled]);
 
   useEffect(() => {
     return () => {

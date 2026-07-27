@@ -35,6 +35,7 @@ import { filterTypesByInputType } from "../node_menu/typeFilterUtils";
 import { rankSearchNodes } from "../../utils/nodeSearch";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import NodeItem from "../node_menu/NodeItem";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 
 const NODE_ROW_HEIGHT = 28;
 
@@ -110,6 +111,7 @@ const OutputContextMenu: React.FC = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const autoFocusEnabled = useAutoFocusEnabled();
   const scrollRef = useRef<HTMLDivElement>(null);
   const recentNodes = useRecentNodesStore((state) => state.recentNodes);
   const recentNodeTypes = useMemo(
@@ -431,8 +433,9 @@ const OutputContextMenu: React.FC = () => {
     ]
   );
 
+  // Skipped on touch, where the virtual keyboard would cover the menu.
   useEffect(() => {
-    if (!menuPosition) {
+    if (!menuPosition || !autoFocusEnabled) {
       return;
     }
     const timeout = window.setTimeout(() => {
@@ -440,7 +443,7 @@ const OutputContextMenu: React.FC = () => {
       searchInputRef.current?.select();
     }, 0);
     return () => window.clearTimeout(timeout);
-  }, [menuPosition]);
+  }, [menuPosition, autoFocusEnabled]);
 
   const saveLabel = `Save${
     sourceType?.type === "string"

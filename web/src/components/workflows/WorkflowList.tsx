@@ -21,6 +21,7 @@ import WorkflowListView from "./WorkflowListView";
 import SharedWithMeSection from "./SharedWithMeSection";
 import WorkflowFormModal from "./WorkflowFormModal";
 import { usePanelStore } from "../../stores/PanelStore";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import { useFavoriteWorkflowIds } from "../../stores/FavoriteWorkflowsStore";
 import { useSelectedTags } from "../../stores/WorkflowListViewStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -55,10 +56,14 @@ const WorkflowList = () => {
   const queryClient = useQueryClient();
   const [filterValue, setFilterValue] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+  const autoFocusEnabled = useAutoFocusEnabled();
 
+  // Skipped on touch, where the virtual keyboard would cover the list.
   useEffect(() => {
-    searchRef.current?.focus();
-  }, []);
+    if (autoFocusEnabled) {
+      searchRef.current?.focus();
+    }
+  }, [autoFocusEnabled]);
   const [workflowsToDelete, setWorkflowsToDelete] = useState<
     WorkflowAttributes[]
   >([]);
