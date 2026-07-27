@@ -123,6 +123,39 @@ const styles = (theme: Theme) =>
     },
     ".model-list-section": {
       marginBottom: theme.spacing(6)
+    },
+    // Phone width: the 300px category rail plus the 280px info rail leave the
+    // model list nothing to occupy, and the header row overflows sideways.
+    // Stack the rails, cap the category list, and drop the purely
+    // informational one.
+    [theme.breakpoints.down("sm")]: {
+      ".model-list-header": {
+        flexWrap: "wrap",
+        justifyContent: "flex-start",
+        padding: "0.75em 1em"
+      },
+      ".main": {
+        flexDirection: "column"
+      },
+      ".sidebar": {
+        width: "100%",
+        minWidth: 0,
+        maxWidth: "none",
+        height: "auto",
+        maxHeight: "35vh",
+        flexShrink: 0,
+        borderRight: "none",
+        borderBottom: `1px solid ${theme.vars.palette.divider}`
+      },
+      ".content": {
+        height: "auto",
+        flex: "1 1 auto",
+        minHeight: 0,
+        padding: "1em 0.75em 2em 0.75em"
+      },
+      ".right-sidebar": {
+        display: "none"
+      }
     }
   });
 
