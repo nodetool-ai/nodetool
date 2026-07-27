@@ -15,10 +15,10 @@
  *
  * What it does NOT fork is the tool *contract*: names, descriptions, and Zod
  * parameter shapes are copied verbatim from the builtin file — the single
- * source of truth the browser tools also expose. The widget catalog mirrors the
- * Puck config (`web/src/components/appbuilder/puck/config.tsx`): a representative
- * set of display / input / action / layout widgets, with the layout widgets
- * (Panel, Columns) carrying the same slot fields the real editor nests into.
+ * source of truth the browser tools also expose. Nor does it fork the widget
+ * catalog: types, labels, fields, and slots come from `WIDGET_CATALOG`, the
+ * same table the Puck config is checked against, so a model driving this bridge
+ * sees every widget the editor offers.
  */
 
 import { z } from "zod";
@@ -34,6 +34,9 @@ import {
   removeVariable,
   updateOperation,
   updateVariable,
+  widgetFields,
+  widgetSlots,
+  WIDGET_CATALOG,
   type AppDocMeta,
   type BindableWorkflow,
   type InputMapping,
@@ -53,61 +56,11 @@ import type {
   ToolLoopEvalCase
 } from "../tool-loop-eval.js";
 
-/** One widget type in the catalog: its fields and which of them are slots. */
-interface WidgetTypeDef {
-  label: string;
-  /** Field name → field kind (text, textarea, number, select, slot, ...). */
-  fields: Record<string, string>;
-}
-
-/**
- * The widget catalog: the full component set from the Puck config
- * (`web/src/components/appbuilder/puck/config.tsx`), kept 1:1 so a model
- * discovering types via `ui_app_list_component_types` sees the same catalog the
- * browser exposes. Only the type/label/field-kind metadata the `ui_app_*` tools
- * surface matters here — render functions and default props are the browser's
- * concern. Layout widgets (Panel/Columns) carry `slot` fields; nesting a widget
- * targets one of them. Keep this in sync when the frontend config's components
- * change.
- */
-const WIDGET_TYPES: Record<string, WidgetTypeDef> = {
-  // ── Display ──
-  Heading: { label: "Heading", fields: { text: "text", level: "select", binding: "custom" } },
-  Text: { label: "Text", fields: { text: "textarea", binding: "custom" } },
-  Markdown: { label: "Markdown", fields: { text: "textarea", binding: "custom" } },
-  Image: { label: "Image", fields: { binding: "custom", fit: "select", height: "number", placeholder: "text" } },
-  Audio: { label: "Audio", fields: { binding: "custom", placeholder: "text" } },
-  Video: { label: "Video", fields: { binding: "custom", height: "number", placeholder: "text" } },
-  Json: { label: "JSON", fields: { binding: "custom" } },
-  Output: { label: "Output", fields: { binding: "custom", placeholder: "text" } },
-  Progress: { label: "Progress", fields: { label: "text", binding: "custom" } },
-  // ── Inputs ──
-  WorkflowInput: { label: "Workflow Input", fields: { binding: "custom", events: "array" } },
-  TextInput: { label: "Text Input", fields: { binding: "custom", label: "text", placeholder: "text", multiline: "radio", events: "array" } },
-  NumberInput: { label: "Number Input", fields: { binding: "custom", label: "text", min: "number", max: "number", step: "number", events: "array" } },
-  Slider: { label: "Slider", fields: { binding: "custom", label: "text", min: "number", max: "number", step: "number", events: "array" } },
-  Switch: { label: "Switch", fields: { binding: "custom", label: "text", events: "array" } },
-  Select: { label: "Select", fields: { binding: "custom", label: "text", options: "array", events: "array" } },
-  ImageInput: { label: "Image Input", fields: { binding: "custom", label: "text", events: "array" } },
-  AudioInput: { label: "Audio Input", fields: { binding: "custom", label: "text", events: "array" } },
-  VideoInput: { label: "Video Input", fields: { binding: "custom", label: "text", events: "array" } },
-  DocumentInput: { label: "Document Input", fields: { binding: "custom", label: "text", events: "array" } },
-  ColorInput: { label: "Color Input", fields: { binding: "custom", label: "text", events: "array" } },
-  // ── Actions ──
-  Button: { label: "Button", fields: { label: "text", variant: "select", color: "select", events: "array" } },
-  // ── Layout ──
-  Container: { label: "Panel", fields: { title: "text", content: "slot" } },
-  Columns: { label: "Columns", fields: { gap: "number", left: "slot", right: "slot" } },
-  Divider: { label: "Divider", fields: {} }
-};
-
-/** Map of widget type → its slot field names (mirrors `getSlotFields`). */
-const SLOT_FIELDS: Record<string, string[]> = Object.fromEntries(
-  Object.entries(WIDGET_TYPES).map(([type, def]) => [
+/** The widget types the tools expose, with the fields each one accepts. */
+const WIDGET_TYPES = Object.fromEntries(
+  Object.entries(WIDGET_CATALOG).map(([type, descriptor]) => [
     type,
-    Object.entries(def.fields)
-      .filter(([, kind]) => kind === "slot")
-      .map(([name]) => name)
+    { label: descriptor.label, fields: widgetFields(type) }
   ])
 );
 
@@ -171,7 +124,7 @@ function slotArrays(
   node: ComponentNode
 ): { slot: string; items: ComponentNode[] }[] {
   const result: { slot: string; items: ComponentNode[] }[] = [];
-  for (const slot of SLOT_FIELDS[node.type] ?? []) {
+  for (const slot of widgetSlots(node.type)) {
     const value = node.props[slot];
     if (Array.isArray(value)) {
       result.push({ slot, items: value as ComponentNode[] });
@@ -391,8 +344,9 @@ export function createAppToolBridge(
         "name) or directly to any node property (props.binding = " +
         "'node:<nodeId>#<property>'), display widgets to Output nodes or " +
         "Variables, and other state to Variables. Add those nodes first with the " +
-        "workflow tools. To nest inside a Panel or Columns widget, pass parent_id " +
-        "(and slot: 'content' | 'left' | 'right').",
+        "workflow tools. To nest inside a layout widget, pass parent_id and the " +
+        "slot it holds children in: Panel and Accordion use 'content', Columns " +
+        "'left' | 'right', Tabs 'tab1' | 'tab2' | 'tab3'.",
       z.object({
         application_id: applicationIdParam,
         type: z
@@ -406,12 +360,18 @@ export function createAppToolBridge(
           .string()
           .nullable()
           .optional()
-          .describe("Id of a Panel/Columns widget in this app to nest inside."),
+          .describe(
+            "Id of a layout widget (Panel, Columns, Tabs, Accordion) in this app to nest inside."
+          ),
         slot: z
           .string()
           .nullable()
           .optional()
-          .describe("Slot of the parent: 'content', 'left', or 'right'."),
+          .describe(
+            "Slot of the parent: 'content' (Panel, Accordion), 'left' | 'right' " +
+              "(Columns), or 'tab1' | 'tab2' | 'tab3' (Tabs). Defaults to the " +
+              "parent's first slot."
+          ),
         index: z
           .number()
           .int()
@@ -421,7 +381,7 @@ export function createAppToolBridge(
       async ({ application_id: _app, type, props, parent_id, slot, index }) => {
         // The real tool/handler doesn't validate `type` — Puck inserts whatever
         // string it's given — so the bridge stays permissive too. An unknown
-        // type just has no slots (SLOT_FIELDS lookup defaults to []).
+        // type just has no slots (widgetSlots defaults to []).
         const id = nextId(type as string);
         const node: ComponentNode = {
           type: type as string,
@@ -441,7 +401,7 @@ export function createAppToolBridge(
         } else {
           content = mapTree(content, (n) => {
             if (n.props.id !== parentId) return n;
-            const slots = SLOT_FIELDS[n.type] ?? [];
+            const slots = widgetSlots(n.type);
             const targetSlot =
               wanted && slots.includes(wanted) ? wanted : slots[0];
             if (!targetSlot) return n;
@@ -912,7 +872,7 @@ const APP_SYSTEM_PROMPT = `You are an assistant building a mini web app in the A
 The app is a tree of widgets bound to one or more workflows. Every ui_app_* tool takes the \`application_id\` of the app you are editing — the id named in the objective, never a workflow id. Use the ui_app_* tools:
 - Call ui_app_get_snapshot first to see the placed widgets, the page title, and the available widget types.
 - Call ui_app_list_component_types to learn valid widget \`type\` values and their props.
-- Add widgets with ui_app_add_component. To nest inside a Panel (Container) or Columns widget, pass parent_id and slot ('content', 'left', or 'right').
+- Add widgets with ui_app_add_component. To nest inside a layout widget, pass parent_id and the slot it holds children in: Panel (Container) and Accordion use 'content', Columns 'left'/'right', Tabs 'tab1'/'tab2'/'tab3'.
 - Edit a widget's props with ui_app_update_component (its id cannot change); remove one with ui_app_remove_component.
 - Set the page title with ui_app_set_title.
 
@@ -1139,6 +1099,59 @@ export const APP_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AppBridgeFinalState>
               s.components.some(
                 (c) =>
                   c.id === "switch-1" && c.props.binding === "var:dark_mode"
+              )
+          }
+        ]
+      }
+    },
+    {
+      // The widget the objective needs is only reachable if the model reads the
+      // catalog: Table and Tabs are not in the handful of types the tool
+      // descriptions name.
+      id: "tabbed-results",
+      description:
+        "Discover a display widget beyond the examples and nest it in a Tabs slot",
+      objective:
+        "Put a Table of the workflow's rows output in the first tab of the app's Tabs widget.",
+      createBridge: () =>
+        createAppToolBridge({
+          workflowId: "wf-app",
+          workflow: {
+            inputs: [],
+            outputs: [{ nodeId: "out-1", name: "rows", label: "Rows" }],
+            variables: []
+          },
+          components: [{ type: "Tabs", id: "tabs-1", props: { tab1Label: "Results" } }]
+        }),
+      systemPrompt: APP_SYSTEM_PROMPT,
+      userPrompt:
+        "Objective: App 'app-1' (application_id 'app-1') has a Tabs widget (id 'tabs-1') whose first tab is empty. " +
+        "The workflow emits a list of rows. Add a widget that shows those rows as a table inside the first tab, " +
+        "and bind it to the rows output — look the widget type and the binding token up with the tools rather than guessing.",
+      expect: {
+        requiredTools: ["ui_app_add_component"],
+        noErrorResults: true,
+        minToolCalls: 2,
+        maxToolCalls: 12,
+        finalState: [
+          {
+            name: "tableInFirstTab",
+            detail: "no Table widget nested in the Tabs widget's tab1 slot",
+            test: (s) =>
+              s.components.some(
+                (c) =>
+                  c.type === "Table" &&
+                  c.parentId === "tabs-1" &&
+                  c.slot === "tab1"
+              )
+          },
+          {
+            name: "tableBoundToRowsOutput",
+            detail: "the Table is not bound to op:main/out:out-1",
+            test: (s) =>
+              s.components.some(
+                (c) =>
+                  c.type === "Table" && c.props.binding === "op:main/out:out-1"
               )
           }
         ]

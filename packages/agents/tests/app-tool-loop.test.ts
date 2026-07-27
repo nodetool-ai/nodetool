@@ -12,6 +12,7 @@ import type {
   ProviderStreamItem,
   ProviderTool
 } from "@nodetool-ai/runtime";
+import { WIDGET_CATALOG } from "@nodetool-ai/app-runtime";
 import { runToolLoopEval } from "../src/evals/tool-loop-eval.js";
 import {
   createAppToolBridge,
@@ -131,6 +132,46 @@ describe("createAppToolBridge", () => {
       "left",
       "right"
     ]);
+  });
+
+  it("offers every widget in the shared catalog, not a subset", async () => {
+    // This list used to be a hand-copied subset, so a model driving the bridge
+    // never saw the widgets the editor had gained since (Table, Tabs, the
+    // resource widgets, …) and the eval scored a smaller surface than ships.
+    const bridge = createAppToolBridge();
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+    const listed = (await byName["ui_app_list_component_types"].execute({
+      application_id: APP
+    })) as {
+      types: { type: string; label: string; fields: { name: string }[] }[];
+    };
+    expect(listed.types.map((t) => t.type).sort()).toEqual(
+      Object.keys(WIDGET_CATALOG).sort()
+    );
+    const table = listed.types.find((t) => t.type === "Table");
+    expect(table?.label).toBe("Table");
+    expect(table?.fields.map((f) => f.name)).toContain("binding");
+
+    const snap = (await byName["ui_app_get_snapshot"].execute({
+      application_id: APP
+    })) as { componentTypes: string[] };
+    expect(snap.componentTypes.sort()).toEqual(Object.keys(WIDGET_CATALOG).sort());
+  });
+
+  it("nests a widget inside the Tabs widget's slots", async () => {
+    const bridge = createAppToolBridge({
+      components: [{ type: "Tabs", id: "tabs-1" }]
+    });
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+
+    await byName["ui_app_add_component"].execute({
+      application_id: APP,
+      type: "Table",
+      parent_id: "tabs-1",
+      slot: "tab2"
+    });
+    const nested = bridge.finalState().components.find((c) => c.type === "Table");
+    expect(nested).toMatchObject({ parentId: "tabs-1", slot: "tab2" });
   });
 
   it("nests a widget inside a Panel's content slot", async () => {
@@ -624,6 +665,34 @@ describe("APP_TOOL_LOOP_CASES", () => {
       provider: createScriptedProvider(script),
       model: "test-model",
       cases: [APP_TOOL_LOOP_CASES[4]]
+    });
+    const r = report.cases[0];
+    expect(r.accepted).toBe(true);
+    expect(r.score).toBe(1);
+  });
+
+  it("tabbed-results: nesting a Table in the Tabs widget's first tab passes", async () => {
+    const script: ScriptedCall[] = [
+      { name: "ui_app_list_component_types", args: { application_id: APP } },
+      {
+        name: "ui_app_get_binding_targets",
+        args: { application_id: APP }
+      },
+      {
+        name: "ui_app_add_component",
+        args: {
+          application_id: APP,
+          type: "Table",
+          parent_id: "tabs-1",
+          slot: "tab1",
+          props: { binding: "op:main/out:out-1" }
+        }
+      }
+    ];
+    const report = await runToolLoopEval({
+      provider: createScriptedProvider(script),
+      model: "test-model",
+      cases: [APP_TOOL_LOOP_CASES[5]]
     });
     const r = report.cases[0];
     expect(r.accepted).toBe(true);

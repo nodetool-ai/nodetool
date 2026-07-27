@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { WIDGET_CATALOG, isKnownWidget, widgetMode } from "../src/widgets.js";
+import {
+  WIDGET_CATALOG,
+  isKnownWidget,
+  widgetFields,
+  widgetMode,
+  widgetSlots
+} from "../src/widgets.js";
 
 describe("widget catalog", () => {
   it("covers every widget the editor palette offers", () => {
@@ -71,8 +77,52 @@ describe("widget catalog", () => {
 
 describe("Table", () => {
   it("is a read widget, so it binds an output slot", () => {
-    expect(WIDGET_CATALOG.Table).toEqual({ label: "Table", mode: "read" });
+    expect(WIDGET_CATALOG.Table.label).toBe("Table");
     expect(widgetMode("Table")).toBe("read");
     expect(isKnownWidget("Table")).toBe(true);
+  });
+});
+
+describe("widgetFields", () => {
+  it("appends the logic props every bindable widget carries", () => {
+    expect(widgetFields("Heading")).toEqual({
+      text: "text",
+      level: "select",
+      binding: "custom",
+      visibleWhen: "custom",
+      disabledWhen: "custom",
+      format: "text"
+    });
+  });
+
+  it("omits the format template on widgets that render no formattable value", () => {
+    // A media widget shows a ref, not text — a template has nothing to rewrite.
+    expect(widgetFields("Image").format).toBeUndefined();
+    expect(widgetFields("Image").visibleWhen).toBe("custom");
+    expect(widgetFields("Slider").format).toBeUndefined();
+  });
+
+  it("gives layout widgets their own fields only", () => {
+    expect(widgetFields("Columns")).toEqual({
+      gap: "number",
+      left: "slot",
+      right: "slot"
+    });
+    expect(widgetFields("Divider")).toEqual({});
+  });
+
+  it("declares fields for every widget in the catalog", () => {
+    for (const [type, descriptor] of Object.entries(WIDGET_CATALOG)) {
+      expect(descriptor.fields, type).toBeDefined();
+      // Slots are children props, so each one must be a declared slot field.
+      for (const slot of widgetSlots(type)) {
+        expect(descriptor.fields[slot], `${type}.${slot}`).toBe("slot");
+      }
+    }
+  });
+
+  it("reports no fields for an unknown type rather than throwing", () => {
+    expect(widgetFields("Bogus")).toEqual({});
+    expect(widgetSlots("Bogus")).toEqual([]);
   });
 });

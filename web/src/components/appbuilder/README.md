@@ -25,11 +25,16 @@ framework-independent core the web runtime, the CLI `app debug` harness, and the
   node in the graph editor does not break an app. Bare names still resolve —
   that is the legacy `workflow.app_doc` form, read on import only.
 - The **widget catalog** lives in `@nodetool-ai/app-runtime` (`src/widgets.ts`)
-  — one table the Puck config, the CLI `app debug` harness, the `app-tools`
-  evals, and the mobile renderer all read. A new widget is added there first,
-  then implemented in `puck/widgets.tsx` and in
-  `mobile/src/components/app_runtime/widgets.tsx`; a type missing from either
-  renderer shows as an unknown widget on that surface.
+  — one table carrying each type's label, binding mode, editor fields, and
+  slots, read by the CLI `app debug` harness, the `app-tools` eval bridge (what
+  `ui_app_list_component_types` reports headlessly), and the mobile renderer. A
+  new widget is added there first, then implemented in `puck/config.tsx` +
+  `puck/widgets.tsx` and in `mobile/src/components/app_runtime/widgets.tsx`; a
+  type missing from either renderer shows as an unknown widget on that surface.
+  The Puck config declares its own fields (it holds the render functions and
+  default props), so `puck/__tests__/configCatalog.test.ts` asserts the two
+  agree type for type and field for field — that test is what keeps the agent
+  from being offered a widget the editor cannot place, or the reverse.
 - **Widgets** bind one slot (read for displays, two-way for inputs) and emit
   **events** (`click` / `change`) that dispatch **actions** (`run`, `cancel`,
   `setVariable`, `toggleVariable`, `resourceCommand`, `openResource`). A `run`
