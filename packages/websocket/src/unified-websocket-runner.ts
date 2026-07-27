@@ -1405,7 +1405,8 @@ export const DEFAULT_RUN_JOB_EXECUTION_OPTIONS: Readonly<RunJobExecutionOptions>
   });
 
 export function resolveRunJobExecutionOptions(
-  value: RunJobRequest["execution_options"]
+  value: RunJobRequest["execution_options"],
+  sdkDefaults = false
 ): RunJobExecutionOptions {
   return {
     persistence: value?.persistence === "session" ? "session" : "job",
@@ -1414,7 +1415,10 @@ export function resolveRunJobExecutionOptions(
         ? value.event_detail
         : "full",
     assetPersistence:
-      value?.asset_persistence === "temporary" ? "temporary" : "auto"
+      value?.asset_persistence === "temporary" ||
+      (value?.asset_persistence == null && sdkDefaults)
+        ? "temporary"
+        : "auto"
   };
 }
 
@@ -2316,7 +2320,10 @@ export class UnifiedWebSocketRunner {
     // other tabs). Best-effort, mirroring startJobInner's persistence. It flips
     // to "running" in startJobInner when a slot frees.
     if (
-      resolveRunJobExecutionOptions(req.execution_options).persistence === "job"
+      resolveRunJobExecutionOptions(
+        req.execution_options,
+        req.require_terminal_result === true
+      ).persistence === "job"
     ) {
       try {
         const existing = await Job.get(jobId);
@@ -2449,7 +2456,8 @@ export class UnifiedWebSocketRunner {
     const workflowId = req.workflow_id ?? null;
     const jobId = req.job_id ?? randomUUID();
     const executionOptions = resolveRunJobExecutionOptions(
-      req.execution_options
+      req.execution_options,
+      req.require_terminal_result === true
     );
     const acceptedAt = req._accepted_at_ms ?? performance.now();
     const preparationStartedAt = performance.now();
@@ -3112,8 +3120,10 @@ export class UnifiedWebSocketRunner {
       // Mark the persisted queued row cancelled so it leaves the queue in
       // jobs.list too (not just the in-memory queue).
       if (
-        resolveRunJobExecutionOptions(queued.execution_options).persistence ===
-        "job"
+        resolveRunJobExecutionOptions(
+          queued.execution_options,
+          queued.require_terminal_result === true
+        ).persistence === "job"
       ) {
         try {
           const job = await Job.get(jobId);

@@ -136,7 +136,7 @@ export const sdkV1Capabilities = z.object({
       defaults: z.object({
         persistence: z.literal("job"),
         event_detail: z.literal("full"),
-        asset_persistence: z.literal("auto")
+        asset_persistence: z.literal("temporary")
       })
     })
     .optional(),
@@ -150,6 +150,18 @@ export const sdkV1Capabilities = z.object({
   })
 });
 export type SdkV1Capabilities = z.infer<typeof sdkV1Capabilities>;
+
+export const sdkV1TemporaryAssetUpload = z.object({
+  version: z.literal(1),
+  uri: z.string().min(1),
+  name: z.string().min(1),
+  content_type: z.string().min(1),
+  size: z.number().int().nonnegative(),
+  expires_at: sdkV1Timestamp.nullable()
+});
+export type SdkV1TemporaryAssetUpload = z.infer<
+  typeof sdkV1TemporaryAssetUpload
+>;
 
 export const sdkV1AssetReference = z.object({
   asset_id: sdkV1OpaqueId,

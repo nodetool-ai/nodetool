@@ -33,8 +33,8 @@ schema-validating builders for:
   attaching, provisioning, or falling back to a different target.
 
 `GET /api/sdk/v1/capabilities`, `POST /api/sdk/v1/preflight`,
-`get_capabilities`, and `preflight_workflow` are available by default. A
-deployment can disable them with
+`POST /api/sdk/v1/assets/temporary`, `get_capabilities`, and
+`preflight_workflow` are available by default. A deployment can disable them with
 `NODETOOL_DISABLE_SDK_LIFECYCLE_V1=1`. Their HTTP and WebSocket adapters share
 the same providers and authenticated principal. Submission, snapshot,
 subscription, and lifecycle cancellation operations remain planned.
@@ -45,6 +45,15 @@ operations marked `x-nodetool-implementation: planned` are not server
 endpoints. AsyncAPI lifecycle operations are marked `partial` while their
 capability and preflight variants are implemented and later variants remain
 planned.
+
+The capability profile `temporary_asset_upload = available` advertises the
+multipart temporary-input route. It writes directly to configured temporary
+storage and returns a runtime-resolvable URI. It deliberately creates no Asset
+row, thumbnail, asset-list entry, or durable provenance record. The temporary
+store's retention policy owns cleanup. SDK execution defaults generated-asset
+persistence to `temporary`; callers explicitly request `auto` when normal
+asset autosave is required. Unannotated non-SDK `run_job` behavior remains
+`auto`.
 
 ## Identifiers and time
 

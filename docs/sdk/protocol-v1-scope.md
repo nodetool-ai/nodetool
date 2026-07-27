@@ -28,6 +28,7 @@ The current public discovery operations are:
 | Node-type inventory | `GET /api/sdk/v1/node-types`                 | `get_node_type_inventory` |
 | Capabilities        | `GET /api/sdk/v1/capabilities`               | `get_capabilities`        |
 | Workflow preflight  | `POST /api/sdk/v1/preflight`                 | `preflight_workflow`      |
+| Temporary input     | `POST /api/sdk/v1/assets/temporary`          | -                         |
 
 The same workflow-interface services and authorization rules back all
 transports.
@@ -72,8 +73,9 @@ asset profiles are still being designed.
 
 The lifecycle vocabulary and state-machine semantics are defined in
 `docs/sdk/lifecycle-v1-draft.md` and generated as
-`packages/protocol/schema/sdk-v1.lifecycle.schema.json`. Capabilities and
-preflight are additive and enabled by default. Deployments can disable
+`packages/protocol/schema/sdk-v1.lifecycle.schema.json`. Capabilities,
+preflight, and temporary SDK input upload are additive and enabled by default.
+Deployments can disable
 lifecycle v1 with `NODETOOL_DISABLE_SDK_LIFECYCLE_V1=1`; later job operations
 remain explicitly marked planned. AsyncAPI lifecycle entries are marked
 partial because their union contains both implemented and planned commands.
@@ -131,7 +133,7 @@ user owns a requested workflow.
 | -------------------------------------------- | --------------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1` | Enabled unless exactly `1`  | WebSocket/API server        | Emergency kill switch for SDK workflow summaries, interfaces, and node-type inventory                                   |
 | `NODETOOL_REQUIRE_SDK_AUTH_V1`               | Disabled unless exactly `1` | Fastify authentication hook | Require verified identity for SDK discovery even when the server otherwise runs in local mode                           |
-| `NODETOOL_DISABLE_SDK_LIFECYCLE_V1`          | Enabled unless exactly `1`  | WebSocket/API server        | Emergency kill switch for HTTP/WebSocket capabilities and preflight; later job-lifecycle operations remain unregistered |
+| `NODETOOL_DISABLE_SDK_LIFECYCLE_V1`          | Enabled unless exactly `1`  | WebSocket/API server        | Emergency kill switch for capabilities, preflight, and temporary SDK input upload; later job-lifecycle operations remain unregistered |
 
 The two additive SDK profiles are available without special server startup.
 Their kill switches preserve the existing non-SDK workflow, execution, asset,
@@ -144,7 +146,7 @@ These areas require separate versioning or capability advertisement before
 they become public SDK behavior:
 
 - acknowledged job submission, snapshots, replay, and cancellation;
-- canonical asset upload, download, retention, and result manifests;
+- durable canonical asset retention, leases/cleanup, and result manifests;
 - agent chat and tool-call transport;
 - offline workflow/model bundles.
 

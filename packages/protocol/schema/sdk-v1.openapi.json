@@ -16,6 +16,75 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/sdk/v1/assets/temporary": {
+      "post": {
+        "operationId": "uploadTemporaryAsset",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "file": {
+                    "contentMediaType": "application/octet-stream",
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.lifecycle.schema.json#/$defs/TemporaryAssetUpload"
+                }
+              }
+            },
+            "description": "Temporary storage URI without persistent asset metadata"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Invalid multipart upload"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Upload exceeds the configured limit"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "SDK lifecycle is unavailable"
+          }
+        },
+        "summary": "Upload one transient workflow input without asset autosave"
+      }
+    },
     "/api/sdk/v1/capabilities": {
       "get": {
         "operationId": "getCapabilities",

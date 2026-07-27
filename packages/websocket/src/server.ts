@@ -936,7 +936,8 @@ const apiOptions: HttpApiOptions = {
     profiles: {
       discovery: "available",
       execution: "available",
-      preflight: "available"
+      preflight: "available",
+      temporary_asset_upload: "available"
     },
     authModes: enforceAuth ? ["bearer"] : ["trusted_local"],
     assetUriSchemes: ["asset"],

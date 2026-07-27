@@ -65,7 +65,7 @@ export function buildSdkV1Capabilities(
       defaults: {
         persistence: "job",
         event_detail: "full",
-        asset_persistence: "auto"
+        asset_persistence: "temporary"
       }
     },
     limits: {

@@ -147,6 +147,17 @@ describe("run_job execution option defaults", () => {
       })
     ).toEqual(DEFAULT_RUN_JOB_EXECUTION_OPTIONS);
   });
+
+  it("defaults SDK runs to temporary assets without changing ordinary runs", () => {
+    expect(resolveRunJobExecutionOptions(undefined, true)).toEqual({
+      persistence: "job",
+      eventDetail: "full",
+      assetPersistence: "temporary"
+    });
+    expect(
+      resolveRunJobExecutionOptions({ asset_persistence: "auto" }, true)
+    ).toEqual(DEFAULT_RUN_JOB_EXECUTION_OPTIONS);
+  });
 });
 
 /** Run streamJobMessages to completion for a resolved/rejected executePromise. */

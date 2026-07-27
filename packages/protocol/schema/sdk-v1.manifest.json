@@ -10,13 +10,13 @@
       "media_type": "application/vnd.oai.openapi+json;version=3.1",
       "path": "sdk-v1.openapi.json",
       "profile": "discovery",
-      "sha256": "f32c97399cfd2de511a92e3f4f99244a9afd49ee5b4ee5d4f5c7cae199139c84"
+      "sha256": "e236c382bcb190969362032d45711c69a7fdde97d5fa1cd7a8fb2a15dcd8f85d"
     },
     {
       "media_type": "application/schema+json",
       "path": "sdk-v1.lifecycle.schema.json",
       "profile": "lifecycle-draft",
-      "sha256": "637dfa54390be2e7a8aab3b7d7ef16cb85ccca10fc7cce368336cef1af20c3b5"
+      "sha256": "4198b554ab11cdb1d8fad71aadf8b7b5cddbd5fb9b49f5fe4d95ddf915658101"
     },
     {
       "media_type": "application/schema+json",

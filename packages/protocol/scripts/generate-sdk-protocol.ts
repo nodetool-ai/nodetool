@@ -43,6 +43,7 @@ import {
   sdkV1SubmitJobResponse,
   sdkV1SubscribeJobRequest,
   sdkV1SubscribeJobResponse,
+  sdkV1TemporaryAssetUpload,
   sdkV1TerminalJobStatus,
   sdkV1ValidationIssue
 } from "../src/api-schemas/sdk-lifecycle-v1.js";
@@ -151,9 +152,7 @@ function lifecycleSchemaReference(name: string): JsonValue {
   };
 }
 
-function errorResponses(
-  statuses: ReadonlyArray<[string, string]>
-): JsonValue {
+function errorResponses(statuses: ReadonlyArray<[string, string]>): JsonValue {
   return Object.fromEntries(
     statuses.map(([status, description]) => [
       status,
@@ -215,6 +214,7 @@ export function generateSdkProtocolArtifacts(): Record<string, string> {
       SubmitJobResponse: component(sdkV1SubmitJobResponse),
       SubscribeJobRequest: component(sdkV1SubscribeJobRequest, "input"),
       SubscribeJobResponse: component(sdkV1SubscribeJobResponse),
+      TemporaryAssetUpload: component(sdkV1TemporaryAssetUpload),
       TerminalJobStatus: component(sdkV1TerminalJobStatus),
       ValidationIssue: component(sdkV1ValidationIssue)
     },
@@ -260,6 +260,47 @@ export function generateSdkProtocolArtifacts(): Record<string, string> {
             ...errorResponses([["503", "Capabilities are unavailable"]])
           },
           summary: "Get public SDK capabilities"
+        }
+      },
+      "/api/sdk/v1/assets/temporary": {
+        post: {
+          operationId: "uploadTemporaryAsset",
+          requestBody: {
+            content: {
+              "multipart/form-data": {
+                schema: {
+                  additionalProperties: false,
+                  properties: {
+                    file: {
+                      contentMediaType: "application/octet-stream",
+                      format: "binary",
+                      type: "string"
+                    }
+                  },
+                  required: ["file"],
+                  type: "object"
+                }
+              }
+            },
+            required: true
+          },
+          responses: {
+            "200": {
+              content: {
+                "application/json": {
+                  schema: lifecycleSchemaReference("TemporaryAssetUpload")
+                }
+              },
+              description:
+                "Temporary storage URI without persistent asset metadata"
+            },
+            ...errorResponses([
+              ["400", "Invalid multipart upload"],
+              ["413", "Upload exceeds the configured limit"],
+              ["503", "SDK lifecycle is unavailable"]
+            ])
+          },
+          summary: "Upload one transient workflow input without asset autosave"
         }
       },
       "/api/sdk/v1/jobs": {
@@ -340,7 +381,8 @@ export function generateSdkProtocolArtifacts(): Record<string, string> {
                   schema: lifecycleSchemaReference("CancelJobResponse")
                 }
               },
-              description: "Cancellation acknowledgement or existing terminal state"
+              description:
+                "Cancellation acknowledgement or existing terminal state"
             },
             ...errorResponses([
               ["404", "Job not found, inaccessible, or expired"]
@@ -366,9 +408,7 @@ export function generateSdkProtocolArtifacts(): Record<string, string> {
               in: "query",
               name: "limit",
               required: false,
-              schema: schemaReference(
-                "NodeTypeInventoryInput/properties/limit"
-              )
+              schema: schemaReference("NodeTypeInventoryInput/properties/limit")
             }
           ],
           responses: {
@@ -453,9 +493,7 @@ export function generateSdkProtocolArtifacts(): Record<string, string> {
               in: "query",
               name: "limit",
               required: false,
-              schema: schemaReference(
-                "WorkflowSummariesInput/properties/limit"
-              )
+              schema: schemaReference("WorkflowSummariesInput/properties/limit")
             },
             {
               in: "query",
@@ -527,8 +565,7 @@ export function generateSdkProtocolArtifacts(): Record<string, string> {
         url: "http://127.0.0.1:7777"
       }
     ],
-    "x-nodetool-kill-switch":
-      "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1",
+    "x-nodetool-kill-switch": "NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1",
     "x-nodetool-status": "draft"
   });
 
@@ -595,17 +632,13 @@ export function generateSdkProtocolArtifacts(): Record<string, string> {
       receiveLifecycleRpcResponse: {
         action: "receive",
         channel: { $ref: "#/channels/sdkRpc" },
-        messages: [
-          { $ref: "#/channels/sdkRpc/messages/lifecycleRpcResponse" }
-        ],
+        messages: [{ $ref: "#/channels/sdkRpc/messages/lifecycleRpcResponse" }],
         "x-nodetool-implementation": "partial"
       },
       receiveSdkRpcResponse: {
         action: "receive",
         channel: { $ref: "#/channels/sdkRpc" },
-        messages: [
-          { $ref: "#/channels/sdkRpc/messages/sdkRpcResponse" }
-        ]
+        messages: [{ $ref: "#/channels/sdkRpc/messages/sdkRpcResponse" }]
       },
       sendSdkRpcRequest: {
         action: "send",
@@ -615,9 +648,7 @@ export function generateSdkProtocolArtifacts(): Record<string, string> {
       sendLifecycleRpcRequest: {
         action: "send",
         channel: { $ref: "#/channels/sdkRpc" },
-        messages: [
-          { $ref: "#/channels/sdkRpc/messages/lifecycleRpcRequest" }
-        ],
+        messages: [{ $ref: "#/channels/sdkRpc/messages/lifecycleRpcRequest" }],
         "x-nodetool-implementation": "partial"
       }
     },
@@ -657,16 +688,12 @@ export function generateSdkProtocolArtifacts(): Record<string, string> {
     }
   };
   const manifest = serialize({
-    artifacts: Object.entries(contractArtifacts).map(
-      ([path, artifact]) => ({
-        media_type: artifact.mediaType,
-        path,
-        profile: artifact.profile,
-        sha256: createHash("sha256")
-          .update(artifact.content)
-          .digest("hex")
-      })
-    ),
+    artifacts: Object.entries(contractArtifacts).map(([path, artifact]) => ({
+      media_type: artifact.mediaType,
+      path,
+      profile: artifact.profile,
+      sha256: createHash("sha256").update(artifact.content).digest("hex")
+    })),
     default_websocket_encoding: "messagepack",
     generated_from: "@nodetool-ai/protocol",
     manifest_version: 1,

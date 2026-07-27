@@ -58,6 +58,7 @@ describe("generated public SDK protocol artifacts", () => {
 
     expect(openApi.openapi).toBe("3.1.0");
     expect(Object.keys(openApi.paths)).toEqual([
+      "/api/sdk/v1/assets/temporary",
       "/api/sdk/v1/capabilities",
       "/api/sdk/v1/jobs",
       "/api/sdk/v1/jobs/{job_id}",
