@@ -67,11 +67,11 @@ export default function ProvidersHubPage() {
             Every provider, bring your own key
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-slate-300">
-            NodeTool integrates {providerEntries.length} model providers — media
-            aggregators serving {aggregatorModels.toLocaleString()}+ image,
-            video, audio, and 3D models, plus direct LLM and voice APIs. Every
-            one is a node on the canvas, called with your own key at the
-            provider&apos;s list price — no credits, no markup.
+            NodeTool connects to {providerEntries.length} model providers. Between
+            them they offer more than {aggregatorModels.toLocaleString()} image,
+            video, audio, and 3D models, alongside text and voice services. Each
+            provider is a block on the canvas that runs on your own key at the
+            provider&apos;s list price, with no credits and no markup.
           </p>
         </section>
 

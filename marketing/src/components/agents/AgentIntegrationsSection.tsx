@@ -118,8 +118,8 @@ export default function AgentIntegrationsSection({
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            The same models the studios use — wired into agents that know when to
-            reach for them. Hand your agent a brief and it picks the right tool for
+            The same models the studios use, in the hands of agents that know when
+            to reach for them. Hand your agent a brief and it picks the right tool for
             the shot.
           </motion.p>
         </div>

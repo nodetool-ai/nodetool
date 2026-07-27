@@ -48,8 +48,8 @@ export default function SolutionsHub() {
               What do you want to build?
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-400">
-              Outcome and audience landing pages — each with a runnable NodeTool workflow you can
-              open in Studio and make your own.
+              Pages grouped by what you want to make and who you are, each with a
+              NodeTool workflow you can open in Studio and adapt.
             </p>
           </div>
         </section>

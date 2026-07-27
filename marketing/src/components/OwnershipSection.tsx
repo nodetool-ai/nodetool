@@ -12,17 +12,17 @@ const features = [
   },
   {
     title: "Provider prices, no credits",
-    body: "No proprietary tokens. No minimum top-up. You pay providers what they charge. The same Seedance call that costs $0.18 on KIE costs $0.18 in NodeTool.",
+    body: "No in-house credits and no minimum top-up. You pay providers exactly what they charge: a Seedance run that costs $0.18 on KIE costs $0.18 in NodeTool.",
     icon: Shield,
   },
   {
     title: "Open source, always",
-    body: "Both editions — Studio (desktop) and Cloud (hosted) — share the same AGPL-3.0 codebase. No closed-source layer, no “pro tier” hiding the good features. Self-host any time.",
+    body: "Studio on the desktop and Cloud in the browser are built from the same AGPL-3.0 source. Nothing is held back for a paid tier, and you can host it yourself at any time.",
     icon: Globe,
   },
   {
     title: "Run models on your own machine",
-    body: "MLX, Ollama, llama.cpp, vLLM, LM Studio — fully supported. Runs offline once models are downloaded. Local is a feature, not a religion.",
+    body: "MLX, Ollama, llama.cpp, vLLM, and LM Studio are supported by default. Once a model is downloaded, it keeps running with no internet connection.",
     icon: Cpu,
   },
 ];

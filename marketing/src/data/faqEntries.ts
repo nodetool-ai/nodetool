@@ -10,8 +10,8 @@ import type { PageEntry } from "./types";
  *      that renders `<FaqBlock surface="…" />` (see components/FaqBlock.tsx).
  *
  * The `surfaces` field is what wires a row onto those inline blocks. Glossary
- * terms ship here as the `glossary` category (What is BYOK / RAG / a node-based
- * workflow / a diffusion model) rather than duplicating the docs-site glossary
+ * terms ship here as the `glossary` category (node-based workflow, diffusion
+ * model, RAG, planning agent) rather than duplicating the docs-site glossary
  * wholesale — that would create cross-domain duplicate content between
  * nodetool.ai and docs.nodetool.ai.
  */
@@ -77,7 +77,7 @@ const seeds: FaqSeed[] = [
     slug: "what-is-nodetool",
     question: "What is NodeTool?",
     answerMd:
-      "NodeTool is the open creative AI workspace. Every major model from every major provider — FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, and more — wired into one node-based canvas you run on your own machine or in the browser. Image, video, music, and text live on the same canvas, alongside planning agents that run multi-step jobs.",
+      "NodeTool is the open creative AI workspace. Every major model from every major provider, including FAL, KIE, OpenAI, Anthropic, Gemini, and Replicate, sits on one visual canvas that you run on your own machine or in the browser. Image, video, music, and text share that canvas, alongside agents that carry out longer jobs step by step.",
     category: "general",
     relatedRoute: "/",
     surfaces: ["agents", "comparison"],
@@ -86,16 +86,16 @@ const seeds: FaqSeed[] = [
     slug: "is-nodetool-open-source",
     question: "Is NodeTool open source?",
     answerMd:
-      "Yes. The full codebase is **AGPL-3.0** on [GitHub](https://github.com/nodetool-ai/nodetool). Studio and Cloud share the same source — no closed-source layer, no \"pro\" tier hiding the good features. Self-host any time.",
+      "Yes. The whole project is **AGPL-3.0** on [GitHub](https://github.com/nodetool-ai/nodetool). Studio and Cloud are built from the same source, and nothing is held back for a paid tier. You can host it yourself at any time.",
     category: "general",
     relatedRoute: "/studio",
     surfaces: ["comparison"],
   },
   {
     slug: "what-is-byok",
-    question: "What is BYOK, and what does it mean for me?",
+    question: "What does \"bring your own keys\" mean for me?",
     answerMd:
-      "BYOK is **bring your own keys**. You connect your own provider accounts and pay each provider directly at their list price. NodeTool never marks up model calls, never issues proprietary credits, and never runs inference on its own servers. Your keys, your bill, your data.",
+      "It means you connect your own provider accounts and pay each provider directly at their list price. NodeTool never adds a markup, never sells its own credits, and never runs models on its own servers. Your keys, your bill, your data. You will sometimes see this written as **BYOK**.",
     category: "byok",
     relatedRoute: "/pricing",
     surfaces: ["agents", "comparison", "models"],
@@ -113,7 +113,7 @@ const seeds: FaqSeed[] = [
     slug: "studio-or-cloud",
     question: "Studio or Cloud — which should I use?",
     answerMd:
-      "Studio is the desktop app: free, open source, runs on your machine, and supports local models via MLX, Ollama, and GGUF. Cloud is the same workspace in the browser — zero setup, no GPU required, and your keys still go to providers directly. Same workflows either way.",
+      "Studio is the desktop app: free, open source, running on your machine, with support for local models through MLX, Ollama, and GGUF. Cloud is the same workspace in the browser, with nothing to install and no graphics card needed, and your keys still go straight to the providers. The workflows are the same either way.",
     category: "editions",
     relatedRoute: "/cloud",
     surfaces: [],
@@ -122,7 +122,7 @@ const seeds: FaqSeed[] = [
     slug: "which-models-are-supported",
     question: "Which models are supported?",
     answerMd:
-      "Frontier models including Flux, Seedance, Wan, Veo, Kling, Hailuo, Qwen Image, Whisper, ElevenLabs, and Suno — called through providers like FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, Together, Groq, Mistral, OpenRouter, and HuggingFace. Local inference runs via MLX, Ollama, llama.cpp, vLLM, and LM Studio.",
+      "The leading models, including Flux, Seedance, Wan, Veo, Kling, Hailuo, Qwen Image, Whisper, ElevenLabs, and Suno, reached through providers such as FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, Together, Groq, Mistral, OpenRouter, and HuggingFace. Models can also run on your own computer through MLX, Ollama, llama.cpp, vLLM, and LM Studio.",
     category: "models",
     relatedRoute: "/studio",
     surfaces: ["agents", "models"],
@@ -140,7 +140,7 @@ const seeds: FaqSeed[] = [
     slug: "how-is-nodetool-different-from-comfyui",
     question: "How is NodeTool different from ComfyUI?",
     answerMd:
-      "ComfyUI is a node editor for diffusion models. NodeTool is the studio around it: image, video, music, and words on one canvas, every major model a click away, and editing tools — masks, inpaint, relight, layers — built in. Both are node-based and open source.",
+      "ComfyUI is an editor for image models. NodeTool is the studio around it: image, video, music, and words on one canvas, every major model a click away, and editing tools such as masks, inpaint, relight, and layers built in. Both are open source and both work by connecting blocks on a canvas.",
     category: "comparison",
     relatedRoute: "/vs/comfyui",
     surfaces: ["comparison"],
@@ -150,7 +150,7 @@ const seeds: FaqSeed[] = [
     question:
       "How is NodeTool different from Weavy (now Figma Weave) and other closed canvases?",
     answerMd:
-      "Closed canvases lock you into a credit system and a curated model roster. NodeTool is open source and BYOK. Your workflows, files, and keys belong to you, and you can switch providers the moment a better model ships.",
+      "Closed tools tie you to a credit system and a hand-picked list of models. NodeTool is open source and runs on your own provider keys. Your workflows, files, and keys belong to you, and you can switch providers the moment a better model appears.",
     category: "comparison",
     relatedRoute: "/vs/weavy",
     surfaces: ["comparison"],
@@ -159,7 +159,7 @@ const seeds: FaqSeed[] = [
     slug: "open-source-figma-weave-alternative",
     question: "Is there an open source alternative to Figma Weave?",
     answerMd:
-      "Yes. Figma Weave (formerly Weavy, acquired by Figma in October 2025) is closed source, hosted-only, and billed in its own AI credits. NodeTool covers the same node-based media workflows as an **AGPL-3.0** open-source workspace: image, video, audio, and text on one canvas, BYOK at provider prices, running as a desktop app, in the browser, or self-hosted.",
+      "Yes. Figma Weave (formerly Weavy, acquired by Figma in October 2025) is closed source, hosted only, and billed in its own AI credits. NodeTool covers the same kind of media work as an **AGPL-3.0** open-source workspace: image, video, audio, and text on one canvas, run with your own keys at provider prices, as a desktop app, in the browser, or on your own server.",
     category: "comparison",
     relatedRoute: "/vs/figma-weave",
     surfaces: ["comparison"],
@@ -169,7 +169,7 @@ const seeds: FaqSeed[] = [
     slug: "what-is-a-node-based-workflow",
     question: "What is a node-based workflow?",
     answerMd:
-      "A node-based workflow is a pipeline you build by connecting boxes (nodes) on a canvas instead of writing code. Each node does one thing — load an image, call a model, crop a video — and edges carry data from one node's output to the next node's input. The whole graph runs top to bottom, so you can see and rewire every step.",
+      "A node-based workflow is one you build by connecting boxes on a canvas instead of writing code. Each box does one thing, such as loading an image, running a model, or cropping a video, and the lines between them carry the result of one step into the next. The whole thing runs from start to finish, so you can watch every step and rearrange it whenever you like.",
     category: "glossary",
     relatedRoute: "/",
     surfaces: [],
@@ -178,16 +178,16 @@ const seeds: FaqSeed[] = [
     slug: "what-is-a-diffusion-model",
     question: "What is a diffusion model?",
     answerMd:
-      "A diffusion model generates images (or video, or audio) by starting from random noise and removing it step by step until a coherent result emerges, guided by your prompt. Flux, Stable Diffusion, and most image generators are diffusion models. In NodeTool you run them as nodes alongside everything else.",
+      "A diffusion model makes an image, video, or sound by starting from random noise and clearing it away step by step, guided by your prompt, until a clear result appears. Flux, Stable Diffusion, and most image generators work this way. In NodeTool you run them as blocks alongside everything else.",
     category: "glossary",
     relatedRoute: "/creatives",
     surfaces: [],
   },
   {
     slug: "what-is-rag",
-    question: "What is RAG (retrieval-augmented generation)?",
+    question: "How can a model answer from my own documents?",
     answerMd:
-      "RAG is **retrieval-augmented generation**: before a language model answers, it retrieves relevant chunks from your own documents and feeds them in as context, so the answer is grounded in your data instead of only the model's training. NodeTool has built-in vector search and document nodes to build RAG pipelines on the canvas.",
+      "Before the model answers, NodeTool searches your documents and passes the most relevant passages along with your question, so the answer comes from your material rather than the model's general training. The search and document blocks are built in, so you can put this together on the canvas. The technique is often called **RAG**, short for retrieval-augmented generation.",
     category: "glossary",
     relatedRoute: "/developers",
     surfaces: [],
@@ -196,7 +196,7 @@ const seeds: FaqSeed[] = [
     slug: "what-is-a-planning-agent",
     question: "What is a planning agent?",
     answerMd:
-      "A planning agent takes a goal, breaks it into steps, picks a model or tool for each step, and executes them in order — adjusting as it goes. In NodeTool an agent is a node on the canvas, so you can wire its output into the rest of your workflow.",
+      "A planning agent takes a goal, breaks it into steps, picks a model or tool for each step, and works through them in order, adjusting as it goes. In NodeTool an agent is a block on the canvas, so its results feed into the rest of your workflow.",
     category: "glossary",
     relatedRoute: "/agents",
     surfaces: ["agents"],
@@ -255,7 +255,7 @@ export const faqPageEntries: PageEntry[] = [
     route: FAQ_BASE,
     title: "NodeTool FAQ — open creative AI workspace",
     description:
-      "Answers about NodeTool: BYOK pricing, Studio vs Cloud, supported models, how it compares, and a short glossary.",
+      "Answers about NodeTool: pricing with your own keys, Studio compared with Cloud, supported models, comparisons, and a short glossary.",
     priority: 0.6,
     changeFrequency: "monthly",
     indexable: true,

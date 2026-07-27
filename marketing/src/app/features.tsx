@@ -19,11 +19,11 @@ export type Feature = {
 
 export const features = [
   {
-    name: "🔗 Snap nodes together",
+    name: "🔗 Snap blocks together",
     description: (
       <>
-        Drag any model into your canvas — image, video, audio, text, agents,
-        or custom code. Connect with one click and run.
+        Drag any model onto your canvas: image, video, audio, text, agents, or
+        your own code. Connect them with one click and press run.
       </>
     ),
     icon: CodeBracketIcon,
@@ -36,9 +36,10 @@ export const features = [
     name: "☁️ Every model, your keys",
     description: (
       <>
-        One canvas, every major provider. Video with Seedance, Kling, Veo, and
-        Runway; music with Suno; images with Flux and Ideogram via FAL or KIE;
-        plus OpenAI, Anthropic, Gemini — and local models via MLX, Ollama, and GGUF.
+        One canvas, every major provider. Video from Seedance, Kling, Veo, and
+        Runway, music from Suno, images from Flux and Ideogram through FAL or
+        KIE, plus OpenAI, Anthropic, and Gemini. Local models run through MLX,
+        Ollama, and GGUF.
       </>
     ),
     icon: FolderIcon,
@@ -51,9 +52,9 @@ export const features = [
     name: "🚀 Deploy to RunPod",
     description: (
       <>
-        Ship workflows to RunPod with one command. GPU acceleration,
-        auto-scaling, multi-region, and custom Docker images — for workflows
-        that outgrow your laptop.
+        Send a workflow to RunPod with one command and it runs on rented GPUs,
+        adding capacity as demand rises. For work that has outgrown your
+        laptop.
       </>
     ),
     icon: CloudArrowUpIcon,
@@ -65,7 +66,7 @@ export const features = [
   {
     name: "💬 Chat interface",
     description:
-      "Trigger and re-run any workflow through a chat interface — same nodes, different surface.",
+      "Start and repeat any workflow from a chat window, using the same workflow behind the scenes.",
     icon: ChatBubbleBottomCenterTextIcon,
     href: "#",
     gif: "/chat.png",
@@ -75,7 +76,7 @@ export const features = [
   {
     name: "🤖 Agent nodes",
     description:
-      "Drop in a planning agent that calls models and tools to finish a multi-step task. Used as a node, not a separate framework.",
+      "Add an agent that plans a multi-step job and calls the models and tools it needs. It is a block on the canvas, not a separate system to learn.",
     icon: PuzzlePieceIcon,
     href: "#",
     gif: "/agents.png",
@@ -83,9 +84,9 @@ export const features = [
     height: 400,
   },
   {
-    name: "📁 Vector store & RAG",
+    name: "📁 Answers from your documents",
     description:
-      "Built-in SQLite-vec embedded vector store. Build assistants that know your documents — no extra database to run.",
+      "Store your documents inside NodeTool and build assistants that can answer from them. There is no separate database to set up.",
     icon: FolderIcon,
     href: "#",
     gif: "/vector-db.jpg",

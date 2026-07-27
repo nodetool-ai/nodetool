@@ -67,9 +67,9 @@ export default function ModelsHubPage() {
             Every top model, as a node
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-slate-300">
-            Image and video&apos;s best models — run each in a visual AI
-            workflow, chain them, and put any two through the same prompt.
-            Bring-your-own-key at provider prices.
+            The best image and video models available today. Run any of them in a
+            visual workflow, put them one after another, or give two the same
+            prompt and compare. You use your own keys at provider prices.
           </p>
         </section>
 

@@ -29,7 +29,7 @@ export type ProviderCategory = "aggregator" | "llm" | "media";
 
 export const CATEGORY_LABEL: Record<ProviderCategory, string> = {
   aggregator: "Model aggregators",
-  llm: "LLM & AI APIs",
+  llm: "Language & voice APIs",
   media: "Media & 3D",
 };
 
@@ -71,7 +71,7 @@ export interface ProviderEntry extends PageEntry {
   name: string;
   /** Provider home page. */
   url: string;
-  /** BYOK env var NodeTool reads. */
+  /** Environment variable NodeTool reads for your key. */
   byokEnv: string;
   /** Logo asset path under /public. */
   logo: string;
@@ -204,11 +204,11 @@ const aggregators: ProviderEntry[] = [
     byokEnv: "REPLICATE_API_TOKEN",
     accent: "blue",
     tagline:
-      "Run Replicate's image, video, and audio models in a visual AI workflow — hundreds of community and first-party models, BYOK at Replicate's list price.",
+      "Run Replicate's image, video, and audio models in a visual AI workflow — hundreds of community and first-party models, run with your own key at Replicate's list price.",
     blurb: [
       "Replicate hosts a large, fast-moving catalog of open and commercial models behind one API — image, video, and audio generators from FLUX and Stable Diffusion to Kling, Wan, and more. NodeTool surfaces each as a node you can drop onto the canvas.",
       "Chain Replicate models into a pipeline — prompt to image, image to video, transcript to speech — and the whole graph is reusable and shareable. Because every model is a node, comparing two Replicate models on the same prompt is a matter of wiring both into the same input.",
-      "Replicate is BYOK in NodeTool: set your `REPLICATE_API_TOKEN` and calls go straight to Replicate at their price. The model list below comes from the Replicate node manifest, so it tracks what the provider ships.",
+      "Replicate runs on your own key in NodeTool: set your `REPLICATE_API_TOKEN` and calls go straight to Replicate at their price. The model list below comes from the Replicate node manifest, so it tracks what the provider ships.",
     ],
     strengths: ["Image", "Video", "Audio"],
     faq: [
@@ -238,7 +238,7 @@ const aggregators: ProviderEntry[] = [
     blurb: [
       "Kie serves a curated set of top generative models — video (Veo, Kling, Seedance, Hailuo), image (Seedream, FLUX, GPT-Image), and audio including Suno music generation. NodeTool exposes each Kie model as its own node.",
       "Build a Kie pipeline on the canvas: write a prompt, generate an image, animate it, add a Suno soundtrack — one graph, edited freely and re-run on demand. Any Kie node can be swapped for a model on another provider without rewiring the rest.",
-      "Kie is BYOK: NodeTool calls it with your `KIE_API_KEY` at Kie's list price. The catalog below is generated from Kie's node manifest.",
+      "Kie runs on your own key: NodeTool calls it with your `KIE_API_KEY` at Kie's list price. The catalog below is generated from Kie's node manifest.",
     ],
     strengths: ["Video", "Image", "Audio"],
     faq: [
@@ -264,13 +264,13 @@ const aggregators: ProviderEntry[] = [
     byokEnv: "TOGETHER_API_KEY",
     accent: "cyan",
     tagline:
-      "Run Together AI's image and video models in a visual AI workflow — FLUX, Seedream, Kling, Veo and more, BYOK at Together's list price.",
+      "Run Together AI's image and video models in a visual AI workflow — FLUX, Seedream, Kling, Veo and more, run with your own key at Together's list price.",
     blurb: [
-      "Together AI runs a broad inference platform; NodeTool integrates its image and video generation models — FLUX, Seedream, and popular video models — as nodes on the canvas. (Together also serves open LLMs; those are reachable in chat via the Together provider id.)",
+      "Together AI hosts a wide range of models; NodeTool integrates its image and video generation models — FLUX, Seedream, and popular video models — as nodes on the canvas. (Together also serves open text models; those are reachable in chat via the Together provider id.)",
       "Drop a Together model into a graph, chain it with models from other providers, and share the whole pipeline as one file. Because each model is a node, putting two through the same prompt is a wiring change, not a rewrite.",
-      "Together is BYOK in NodeTool: set `TOGETHER_API_KEY` and calls go to Together at their price. The model list below is generated from Together's node manifest.",
+      "Together runs on your own key in NodeTool: set `TOGETHER_API_KEY` and calls go to Together at their price. The model list below is generated from Together's node manifest.",
     ],
-    strengths: ["Image", "Video", "LLMs"],
+    strengths: ["Image", "Video", "Text"],
     faq: [
       {
         q: "How do I connect Together AI?",
@@ -278,7 +278,7 @@ const aggregators: ProviderEntry[] = [
       },
       {
         q: "Which Together AI models does NodeTool support?",
-        a: "The image and video generation models are nodes (catalog below); Together's open-weight LLMs are available in chat and agent nodes via the Together provider.",
+        a: "The image and video generation models are nodes (catalog below); Together's open text models are available in chat and agent nodes via the Together provider.",
       },
       {
         q: "Is there a NodeTool fee on Together AI?",
@@ -296,9 +296,9 @@ const aggregators: ProviderEntry[] = [
     tagline:
       "Run AtlasCloud's chat, image and video models in a visual AI workflow — DeepSeek, Seedance, GPT-Image and more, called with your own key at AtlasCloud's price.",
     blurb: [
-      "AtlasCloud serves chat, image and video models through a single API. NodeTool exposes each image and video model as a node, and AtlasCloud's LLMs appear in the regular model picker alongside every other chat provider.",
+      "AtlasCloud serves chat, image and video models through a single API. NodeTool exposes each image and video model as a node, and AtlasCloud's text models appear in the regular model picker alongside every other chat provider.",
       "Wire an AtlasCloud image model into a video model, add an upscaler, and you have a repeatable pipeline you can re-run and share. Swapping AtlasCloud for another provider is a single node change.",
-      "AtlasCloud is BYOK: NodeTool calls it with your `ATLASCLOUD_API_KEY` at their list price. The catalog below comes from AtlasCloud's node manifest.",
+      "AtlasCloud runs on your own key: NodeTool calls it with your `ATLASCLOUD_API_KEY` at their list price. The catalog below comes from AtlasCloud's node manifest.",
     ],
     strengths: ["Chat", "Image", "Video"],
     faq: [
@@ -328,7 +328,7 @@ const aggregators: ProviderEntry[] = [
     blurb: [
       "Topaz Labs specializes in image and video enhancement — upscaling, denoising, and restoration. NodeTool integrates its models as nodes, so you can add a Topaz upscale step to the end of any generation pipeline.",
       "Generate an image or video with any provider, then route it through a Topaz node to sharpen and enlarge it — all in one graph. The pipeline is reusable and shareable as a single file.",
-      "Topaz is BYOK in NodeTool: set `TOPAZ_API_KEY` and calls go to Topaz at their price. The model list below is generated from Topaz's node manifest.",
+      "Topaz runs on your own key in NodeTool: set `TOPAZ_API_KEY` and calls go to Topaz at their price. The model list below is generated from Topaz's node manifest.",
     ],
     strengths: ["Image", "Video", "Upscaling"],
     faq: [
@@ -349,7 +349,7 @@ const aggregators: ProviderEntry[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Direct LLM & AI APIs (curated)
+// Direct language & voice APIs (curated)
 // ---------------------------------------------------------------------------
 
 const llmProviders: ProviderEntry[] = [
@@ -363,7 +363,7 @@ const llmProviders: ProviderEntry[] = [
     tagline:
       "Run Anthropic's Claude models in NodeTool chat and agent nodes — long-context reasoning, vision, and tool use, called with your own Anthropic key.",
     blurb: [
-      "Anthropic's Claude family is built for reliable reasoning, long context, and tool use. In NodeTool, Claude powers chat nodes, the planning agent, and any node that calls an LLM — wire it into a workflow to summarize, extract, route, or drive multi-step agents.",
+      "Anthropic's Claude family is built for reliable reasoning, long context, and tool use. In NodeTool, Claude powers chat nodes, the planning agent, and any node that calls a language model — wire it into a workflow to summarize, extract, route, or drive multi-step agents.",
       "Claude is bring-your-own-key: set `ANTHROPIC_API_KEY` and NodeTool calls Anthropic directly at their list price. Switching a workflow from Claude to another model is a single change on the node.",
     ],
     strengths: ["Reasoning", "Long context", "Vision", "Tools"],
@@ -371,12 +371,12 @@ const llmProviders: ProviderEntry[] = [
     highlights: [
       { name: "Claude Opus", desc: "Anthropic's most capable model for hard reasoning and agentic work.", kind: "Chat" },
       { name: "Claude Sonnet", desc: "Balanced speed and capability — the everyday workhorse.", kind: "Chat" },
-      { name: "Claude Haiku", desc: "Fast, low-cost model for high-volume and latency-sensitive tasks.", kind: "Chat" },
+      { name: "Claude Haiku", desc: "Fast, low-cost model for high-volume work where speed matters.", kind: "Chat" },
     ],
     faq: [
       {
         q: "How do I use Claude in NodeTool?",
-        a: "Add your `ANTHROPIC_API_KEY` in settings, then pick an Anthropic model on any chat, agent, or LLM node. NodeTool streams the response back onto the canvas.",
+        a: "Add your `ANTHROPIC_API_KEY` in settings, then pick an Anthropic model on any chat, agent, or text block. NodeTool streams the response back onto the canvas.",
       },
       {
         q: "Does NodeTool support Claude tool use and agents?",
@@ -407,7 +407,7 @@ const llmProviders: ProviderEntry[] = [
       { name: "GPT (flagship)", desc: "General-purpose chat and vision across the GPT series.", kind: "Chat" },
       { name: "Reasoning models", desc: "Step-by-step reasoning for math, code, and planning.", kind: "Reasoning" },
       { name: "GPT-Image", desc: "Text-to-image and image editing with strong prompt following.", kind: "Image" },
-      { name: "Whisper", desc: "Robust speech-to-text transcription.", kind: "Transcription" },
+      { name: "Whisper", desc: "Accurate speech-to-text transcription.", kind: "Transcription" },
     ],
     faq: [
       {
@@ -432,16 +432,16 @@ const llmProviders: ProviderEntry[] = [
     byokEnv: "GEMINI_API_KEY",
     accent: "blue",
     tagline:
-      "Run Google's Gemini models in NodeTool — long-context multimodal chat with image and audio understanding, called with your own Gemini API key.",
+      "Run Google's Gemini models in NodeTool — chat that reads long documents, images, and audio, called with your own Gemini API key.",
     blurb: [
-      "Google's Gemini models handle text, images, and audio in a single long-context window, which makes them a strong fit for document understanding, multimodal extraction, and agents. In NodeTool, Gemini is available on chat, agent, and LLM nodes.",
+      "Google's Gemini models handle text, images, and audio in a single long-context window, which suits document work, pulling details out of images, and agents. In NodeTool, Gemini is available on chat, agent, and text blocks.",
       "Gemini is bring-your-own-key: set `GEMINI_API_KEY` and NodeTool calls Google directly at list price. Related Google media models (Imagen, Veo) are also reachable through the media aggregators NodeTool integrates.",
     ],
-    strengths: ["Long context", "Multimodal", "Vision", "Tools"],
+    strengths: ["Long context", "Text, image & audio", "Vision", "Tools"],
     capabilities: ["Chat", "Vision", "Audio input", "Tool use", "Streaming"],
     highlights: [
-      { name: "Gemini Pro", desc: "Google's most capable multimodal model for complex tasks.", kind: "Chat" },
-      { name: "Gemini Flash", desc: "Fast, cost-efficient multimodal model for high volume.", kind: "Chat" },
+      { name: "Gemini Pro", desc: "Google's most capable model for complex work across text, images, and audio.", kind: "Chat" },
+      { name: "Gemini Flash", desc: "Fast, low-cost model for high volume across text, images, and audio.", kind: "Chat" },
       { name: "Imagen", desc: "Google's image generation model (via media providers).", kind: "Image" },
       { name: "Veo", desc: "Google's text-to-video model (via media providers).", kind: "Video" },
     ],
@@ -452,7 +452,7 @@ const llmProviders: ProviderEntry[] = [
       },
       {
         q: "Can Gemini read images and audio in NodeTool?",
-        a: "Yes — Gemini is multimodal, so you can wire images or audio into a Gemini node and prompt over them in one long-context call.",
+        a: "Yes. Gemini reads images and audio as well as text, so you can feed them into a Gemini block and ask questions about them in one go.",
       },
       {
         q: "What does Gemini cost in NodeTool?",
@@ -470,14 +470,14 @@ const llmProviders: ProviderEntry[] = [
     tagline:
       "Run xAI's Grok models in NodeTool chat and agent nodes — capable reasoning with tool use, called with your own xAI key.",
     blurb: [
-      "xAI's Grok models are general-purpose chat and reasoning models with tool-use support. In NodeTool, Grok slots into chat nodes, agents, and any LLM step in a workflow.",
+      "xAI's Grok models are general-purpose chat and reasoning models with tool-use support. In NodeTool, Grok slots into chat nodes, agents, and any text step in a workflow.",
       "Grok is bring-your-own-key: set `XAI_API_KEY` and NodeTool calls xAI directly at list price. Swap Grok for another model on the node whenever you want to compare.",
     ],
     strengths: ["Reasoning", "Tools", "Chat"],
     capabilities: ["Chat", "Reasoning", "Tool use", "Streaming"],
     highlights: [
       { name: "Grok (flagship)", desc: "xAI's most capable reasoning and chat model.", kind: "Chat" },
-      { name: "Grok (fast)", desc: "Lower-latency tier for high-volume chat.", kind: "Chat" },
+      { name: "Grok (fast)", desc: "Faster tier for high-volume chat.", kind: "Chat" },
     ],
     faq: [
       {
@@ -504,7 +504,7 @@ const llmProviders: ProviderEntry[] = [
     tagline:
       "Run Mistral's chat, vision, and code models in NodeTool — efficient open-weight and commercial models, called with your own Mistral key.",
     blurb: [
-      "Mistral AI ships a family of efficient models: general chat (Mistral Large and smaller tiers), Pixtral for vision, and Codestral for code. In NodeTool they power chat, agent, and LLM nodes.",
+      "Mistral AI ships a family of efficient models: general chat (Mistral Large and smaller tiers), Pixtral for vision, and Codestral for code. In NodeTool they power chat, agent, and text blocks.",
       "Mistral is bring-your-own-key: set `MISTRAL_API_KEY` and NodeTool calls Mistral directly at list price.",
     ],
     strengths: ["Efficient", "Vision", "Code"],
@@ -537,12 +537,12 @@ const llmProviders: ProviderEntry[] = [
     byokEnv: "GROQ_API_KEY",
     accent: "rose",
     tagline:
-      "Run open models on Groq's ultra-fast inference in NodeTool — very high tokens-per-second chat, called with your own Groq key.",
+      "Run open models on Groq's very fast servers in NodeTool — very high tokens-per-second chat, called with your own Groq key.",
     blurb: [
-      "Groq runs open-weight models (Llama and others) on custom LPU hardware for very low latency and high throughput. In NodeTool, Groq is the pick when a chat or agent step needs to be fast — the same open models, served quickly.",
+      "Groq runs open-weight models (Llama and others) on custom hardware built for speed. In NodeTool, Groq is the pick when a chat or agent step needs to be fast — the same open models, served quickly.",
       "Groq is bring-your-own-key: set `GROQ_API_KEY` and NodeTool calls Groq directly at list price.",
     ],
-    strengths: ["Fast inference", "Open models", "Low latency"],
+    strengths: ["Fast responses", "Open models", "Speed"],
     capabilities: ["Chat", "Tool use", "Streaming"],
     highlights: [
       { name: "Llama (Groq-served)", desc: "Meta's open Llama models at very high tokens/sec.", kind: "Chat" },
@@ -551,7 +551,7 @@ const llmProviders: ProviderEntry[] = [
     faq: [
       {
         q: "Why use Groq in NodeTool?",
-        a: "Speed. Groq serves open models with very low latency, which helps agent loops and high-volume chat nodes finish faster.",
+        a: "Speed. Groq serves open models very quickly, so agents and high-volume chat steps finish sooner.",
       },
       {
         q: "How do I connect Groq?",
@@ -573,7 +573,7 @@ const llmProviders: ProviderEntry[] = [
     tagline:
       "Run DeepSeek's chat and reasoning models in NodeTool — strong reasoning at low cost, called with your own DeepSeek key.",
     blurb: [
-      "DeepSeek's models are known for strong reasoning and coding at a low price point, with a dedicated reasoning variant. In NodeTool they power chat, agent, and LLM nodes.",
+      "DeepSeek's models are known for strong reasoning and coding at a low price point, with a dedicated reasoning variant. In NodeTool they power chat, agent, and text blocks.",
       "DeepSeek is bring-your-own-key: set `DEEPSEEK_API_KEY` and NodeTool calls DeepSeek directly at list price.",
     ],
     strengths: ["Reasoning", "Code", "Low cost"],
@@ -605,7 +605,7 @@ const llmProviders: ProviderEntry[] = [
     byokEnv: "COHERE_API_KEY",
     accent: "cyan",
     tagline:
-      "Run Cohere's Command, Embed, and Rerank models in NodeTool — chat plus best-in-class retrieval for RAG, called with your own Cohere key.",
+      "Run Cohere's Command, Embed, and Rerank models in NodeTool — chat plus document search that keeps answers grounded in your own material, called with your own Cohere key.",
     blurb: [
       "Cohere focuses on enterprise retrieval: Command for chat, Embed for embeddings, and Rerank for reordering search results. In NodeTool, that makes Cohere a natural backbone for RAG pipelines built on the vector store.",
       "Cohere is bring-your-own-key: set `COHERE_API_KEY` and NodeTool calls Cohere directly at list price.",
@@ -650,7 +650,7 @@ const llmProviders: ProviderEntry[] = [
     highlights: [
       { name: "Frontier chat models", desc: "Flagship models from major labs behind one endpoint.", kind: "Chat" },
       { name: "Open-weight models", desc: "A large catalog of open models across hosts.", kind: "Chat" },
-      { name: "Automatic routing", desc: "Fallback and price/latency routing across providers.", kind: "Routing" },
+      { name: "Automatic routing", desc: "Sends each request to the cheapest or fastest provider, with a fallback if one is down.", kind: "Routing" },
     ],
     faq: [
       {
@@ -675,15 +675,15 @@ const llmProviders: ProviderEntry[] = [
     byokEnv: "HF_TOKEN",
     accent: "amber",
     tagline:
-      "Run Hugging Face-hosted models in NodeTool — open models across text, image, and audio through Inference, called with your own HF token.",
+      "Run Hugging Face-hosted models in NodeTool — open models across text, image, and audio, called with your own Hugging Face token.",
     blurb: [
-      "Hugging Face hosts the open-model ecosystem and serves many of them through its Inference API and partner providers. In NodeTool, that opens a large set of open text, image, and audio models as nodes.",
+      "Hugging Face hosts most of the open models in circulation and serves many of them itself or through partner providers. In NodeTool that gives you a large set of open text, image, and audio models to work with.",
       "Hugging Face is bring-your-own-key: set `HF_TOKEN` and NodeTool calls Hugging Face directly at their price.",
     ],
     strengths: ["Open models", "Text", "Image", "Audio"],
     capabilities: ["Chat", "Image gen", "Audio", "Embeddings"],
     highlights: [
-      { name: "Open LLMs", desc: "Llama, Qwen, Mistral and more served via Inference.", kind: "Chat" },
+      { name: "Open text models", desc: "Llama, Qwen, Mistral, and more, hosted by Hugging Face.", kind: "Chat" },
       { name: "Open image models", desc: "FLUX, Stable Diffusion and other open generators.", kind: "Image" },
       { name: "Audio models", desc: "Open speech and audio models from the Hub.", kind: "Audio" },
     ],
@@ -694,7 +694,7 @@ const llmProviders: ProviderEntry[] = [
       },
       {
         q: "Which Hugging Face models are available?",
-        a: "Open models served through Hugging Face Inference and its partner providers — text, image, and audio.",
+        a: "Open text, image, and audio models served by Hugging Face and its partner providers.",
       },
       {
         q: "What does Hugging Face cost in NodeTool?",
@@ -710,12 +710,12 @@ const llmProviders: ProviderEntry[] = [
     byokEnv: "CEREBRAS_API_KEY",
     accent: "emerald",
     tagline:
-      "Run open models on Cerebras' wafer-scale inference in NodeTool — extreme tokens-per-second chat, called with your own Cerebras key.",
+      "Run open models on Cerebras hardware in NodeTool for exceptionally fast chat, called with your own Cerebras key.",
     blurb: [
-      "Cerebras serves open models on wafer-scale hardware for some of the fastest inference available. In NodeTool it's a low-latency backend for chat and agent nodes that run the same open models.",
+      "Cerebras serves open models on unusually large chips, which makes it one of the fastest options available. In NodeTool it is the quick choice for chat and agent steps running those same open models.",
       "Cerebras is bring-your-own-key: set `CEREBRAS_API_KEY` and NodeTool calls Cerebras directly at list price.",
     ],
-    strengths: ["Fastest inference", "Open models"],
+    strengths: ["Fastest responses", "Open models"],
     capabilities: ["Chat", "Tool use", "Streaming"],
     highlights: [
       { name: "Llama (Cerebras-served)", desc: "Open Llama models at extreme tokens/sec.", kind: "Chat" },
@@ -724,7 +724,7 @@ const llmProviders: ProviderEntry[] = [
     faq: [
       {
         q: "Why use Cerebras in NodeTool?",
-        a: "Latency. Cerebras serves open models extremely fast, which speeds up agent loops and interactive chat nodes.",
+        a: "Speed. Cerebras serves open models very quickly, which shortens agent runs and keeps chat responsive.",
       },
       {
         q: "How do I connect Cerebras?",
@@ -746,7 +746,7 @@ const llmProviders: ProviderEntry[] = [
     tagline:
       "Run Moonshot's Kimi models in NodeTool — long-context chat and agentic coding, called with your own Kimi key.",
     blurb: [
-      "Moonshot AI's Kimi models are known for very long context and strong agentic coding. NodeTool speaks to them through the Anthropic-compatible endpoint, so Kimi drives chat, agent, and LLM nodes.",
+      "Moonshot AI's Kimi models are known for very long context and strong agentic coding. NodeTool speaks to them through the Anthropic-compatible endpoint, so Kimi drives chat, agent, and text blocks.",
       "Moonshot is bring-your-own-key: set `KIMI_API_KEY` and NodeTool calls Moonshot directly at list price.",
     ],
     strengths: ["Long context", "Agentic", "Code"],

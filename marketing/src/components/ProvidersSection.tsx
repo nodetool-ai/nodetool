@@ -53,7 +53,7 @@ export default function ProvidersSection({
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Bring your own API keys — no markup, no middleman.
+            Bring your own API keys. No markup, no middleman.
           </motion.p>
         </div>
 
@@ -70,7 +70,7 @@ export default function ProvidersSection({
               <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/5 to-purple-500/5 pointer-events-none" />
               <Image
                 src="/screen_llms.png"
-                alt="List of available LLM providers"
+                alt="List of available model providers"
                 width={1400}
                 height={900}
                 className="w-full h-auto opacity-90 transition-opacity group-hover:opacity-100"
@@ -101,7 +101,7 @@ export default function ProvidersSection({
             },
             {
               title: "Mix and Match",
-              description: "Use different providers within a single workflow. Switch models with one click.",
+              description: "Use several providers in the same workflow, and switch models with one click.",
               icon: Zap,
               color: "text-purple-400",
               bg: "bg-purple-500/10",
@@ -109,7 +109,7 @@ export default function ProvidersSection({
             },
             {
               title: "No Middleman",
-              description: "Direct API calls from your machine. No markup, no tracking.",
+              description: "Requests go straight from your machine to the provider. No markup, no tracking.",
               icon: ShieldCheck,
               color: "text-emerald-400",
               bg: "bg-emerald-500/10",

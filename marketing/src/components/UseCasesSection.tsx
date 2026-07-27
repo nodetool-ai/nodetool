@@ -43,7 +43,7 @@ export default function UseCasesSection({
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Image, video, audio, text, agents, RAG — all on the same canvas. Wire the models you want, switch when better ones ship.
+            Image, video, audio, text, agents, and answers drawn from your own documents, all on the same canvas. Choose the models you want and switch whenever a better one arrives.
           </motion.p>
         </div>
 

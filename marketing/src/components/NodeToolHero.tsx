@@ -34,10 +34,10 @@ export default function NodeToolHero() {
           </h1>
 
           <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-300 md:text-lg">
-            Make films, posters, product videos, and music on one node-based
-            canvas, with every major model from every major provider. Your own
-            keys, provider prices — and when the next model ships, you&apos;re
-            one node swap away.
+            Make films, posters, product videos, and music on a single visual
+            canvas, using every major model from every major provider. You bring
+            your own keys and pay provider prices. When a new model arrives, you
+            switch to it in one click.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">

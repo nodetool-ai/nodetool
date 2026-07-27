@@ -47,7 +47,7 @@ export default function ChatUISection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Skip the canvas when you don&apos;t need it. Ask in plain English, the right workflow runs, results stream back inline.
+            Skip the canvas when you don&apos;t need it. Ask in plain English, the right workflow runs, and the results come back in the conversation.
           </motion.p>
         </div>
 

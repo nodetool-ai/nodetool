@@ -43,8 +43,8 @@ export default function TasksHub() {
               AI tasks, done on one canvas
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-400">
-              Pick a capability — the models that do it, the templates that wire it, and how to run
-              it yourself with your own keys.
+              Pick what you want to do, then see the models that do it, the templates
+              that put them together, and how to run it with your own keys.
             </p>
           </div>
         </section>

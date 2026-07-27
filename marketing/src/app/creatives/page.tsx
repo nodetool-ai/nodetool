@@ -28,19 +28,19 @@ const creativeFeatures = [
   {
     title: "Visual Workflow Canvas",
     description:
-      "Snap nodes into complete creative workflows — the whole process on one screen, from brief to render.",
+      "Snap blocks together into complete creative workflows, so the whole process sits on one screen, from brief to final render.",
     icon: Layers,
     image: "/screen_canvas.png",
     features: [
       "Infinite canvas",
-      "Watch every node run live",
-      "Reusable node groups",
+      "Watch every step run live",
+      "Reusable groups you can save",
     ],
   },
   {
     title: "Image generation & editing",
     description:
-      "Run Flux, Qwen-Image, Nano-Banana, Z-Image, gpt-image, and friends. Generate, mask, inpaint, outpaint, relight, and upscale — all on the canvas.",
+      "Run Flux, Qwen-Image, Nano-Banana, Z-Image, gpt-image, and the rest. Generate, mask, inpaint, outpaint, relight, and upscale, all on the canvas.",
     icon: Wand2,
     image: "/disaster_girl.mp4",
     features: ["Masks, inpaint, outpaint", "Multi-model support", "Batch processing"],
@@ -48,7 +48,7 @@ const creativeFeatures = [
   {
     title: "Video workflows",
     description:
-      "Wire Seedance, Kling, Veo, Runway, and Sora alongside your edit nodes. Generate, transform, and stitch — without exporting between tools.",
+      "Put Seedance, Kling, Veo, Runway, and Sora next to your editing steps. Generate, transform, and join clips without exporting between tools.",
     icon: Video,
     image: "/sora.mp4",
     features: [
@@ -60,7 +60,7 @@ const creativeFeatures = [
   {
     title: "Audio on the same surface",
     description:
-      "Compose with Suno, generate voice with ElevenLabs, transcribe with Whisper. Same canvas, same nodes, no extra tabs.",
+      "Write music with Suno, make voices with ElevenLabs, and turn speech into text with Whisper. Same canvas, no extra tabs.",
     icon: Music,
     image: "/suno.png",
     features: ["Stem separation", "Music generation", "Voice generation"],
@@ -138,8 +138,9 @@ export default function CreativesPage() {
                 </h1>
 
                 <p className="text-lg md:text-xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed">
-                  Every model. Your keys. Your canvas. Wire Seedance, Kling, Veo, Runway,
-                  Luma, Suno, and Flux on one open-source canvas — no marked-up credits, no lock-in.
+                  Every model. Your keys. Your canvas. Bring Seedance, Kling, Veo,
+                  Runway, Luma, Suno, and Flux together in one open-source workspace,
+                  with no marked-up credits and nothing locking you in.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
@@ -405,8 +406,8 @@ export default function CreativesPage() {
                 </span>
               </h2>
               <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-                The same models the studios use — Seedance, Kling, Luma, Suno, Flux —
-                wired into one node-based canvas, with masks, inpaint, outpaint,
+                The same models the studios use, including Seedance, Kling, Luma,
+                Suno, and Flux, on one visual canvas with masks, inpaint, outpaint,
                 relight, upscale, and compositing built in.
               </p>
             </motion.div>
@@ -520,7 +521,7 @@ export default function CreativesPage() {
                 {
                   title: "Every model on one canvas",
                   description:
-                    "Seedance, Kling, Veo, Runway, Luma, Suno, ElevenLabs, Flux, Ideogram, and more — switch the moment a better one ships.",
+                    "Seedance, Kling, Veo, Runway, Luma, Suno, ElevenLabs, Flux, Ideogram, and more. Switch the moment a better one arrives.",
                   icon: Zap,
                   color: "text-amber-400",
                   bgColor: "bg-teal-500/10",
@@ -570,8 +571,8 @@ export default function CreativesPage() {
                 </span>
               </h2>
               <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto">
-                Download NodeTool, plug in the providers you already pay for,
-                and start wiring your next piece on a canvas you actually own.
+                Download NodeTool, connect the providers you already pay for,
+                and start your next piece on a canvas you actually own.
               </p>
               <a
                 href="https://github.com/nodetool-ai/nodetool/releases"
