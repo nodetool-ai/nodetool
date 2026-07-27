@@ -19,7 +19,14 @@ on:
         description: eas.json build profile
         type: choice
         default: preview
-        options: [development, development-simulator, preview, production]
+        options:
+          [
+            development,
+            development-simulator,
+            preview,
+            preview-simulator,
+            production
+          ]
       wait:
         description: Wait for the build to finish (needed to submit)
         type: boolean
@@ -121,12 +128,31 @@ jobs:
           if [ "${{ github.event_name == 'push' || inputs.wait || inputs.submit }}" = "true" ]; then
             WAIT_FLAG=--wait
           fi
-          eas build \
-            --non-interactive \
-            --platform "$PLATFORM" \
-            --profile "$PROFILE" \
-            "$WAIT_FLAG" \
-            --json | tee build.json
+          # eas puts the JSON result on stdout and everything else — queue
+          # progress, credential errors — on stderr. Route stdout to build.json
+          # and pipe stderr through `tee` so it still streams into the job log
+          # during a long `--wait`, while leaving a copy to grep below. `tee` is
+          # the last pipeline member, so bash waits for it: no read-before-flush
+          # race. `set -e` is off so the hint below runs; the exit code is
+          # re-raised at the end.
+          set +e
+          { eas build \
+              --non-interactive \
+              --platform "$PLATFORM" \
+              --profile "$PROFILE" \
+              "$WAIT_FLAG" \
+              --json >build.json; echo $? >build.status; } 2>&1 | tee build.err
+          set -e
+          status=$(cat build.status)
+
+          # An iOS device build needs a distribution certificate and an ad-hoc
+          # provisioning profile on the Expo servers. Only an interactive Apple
+          # login can mint those the first time, so CI can never recover on its
+          # own — say what to do instead of leaving the raw EAS message.
+          if [ "$status" -ne 0 ] && grep -qi "couldn't find any credentials" build.err; then
+            echo "::error::No iOS credentials on the Expo servers for profile '$PROFILE'. Run 'cd mobile && npx eas-cli credentials --platform ios' once from a machine signed in to the Apple Developer account (an ad-hoc profile also needs each test device's UDID registered). To smoke-test without an Apple account, use the 'preview-simulator' profile or build '--platform android'."
+          fi
+          exit "$status"
 
       - name: Summarize
         if: always() && steps.build.outcome != 'skipped'

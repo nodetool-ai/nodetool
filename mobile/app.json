@@ -16,6 +16,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "ai.nodetool.mobile",
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [
@@ -50,6 +51,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/ce40c43d-6adf-4476-98b1-761aa4d29c40"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     },
     "extra": {
       "supabaseUrl": "https://zmytgmyiwfmdajmxjbag.supabase.co",

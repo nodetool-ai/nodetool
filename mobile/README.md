@@ -23,7 +23,8 @@ React Native mobile application for running NodeTool Mini Apps and AI Chat.
 React Native 0.85 + Expo SDK 56, React 19, TypeScript 6. Server state via a
 tRPC v11 client + TanStack Query v5 (REST via the global `fetch` — no Axios),
 local state via Zustand v5, realtime via WebSocket + MsgPack, auth via Supabase
-+ Google Sign-In. See [ARCHITECTURE.md](ARCHITECTURE.md) for details.
+
+- Google Sign-In. See [ARCHITECTURE.md](ARCHITECTURE.md) for details.
 
 ## Prerequisites
 
@@ -61,6 +62,7 @@ npm start
 ```
 
 Then:
+
 - Press `i` to open in iOS Simulator (macOS only)
 - Press `a` to open in Android Emulator
 - Press `w` to open in web browser
@@ -133,7 +135,7 @@ mobile/
    - Tap stop button to halt generation
    - Tap + to start a new conversation
 3. **Browse Mini Apps**: View the list of available workflows
-4. **Run a Mini App**: 
+4. **Run a Mini App**:
    - Select a mini app from the list
    - Fill in the required inputs
    - Tap "Run" to execute the workflow
@@ -142,11 +144,13 @@ mobile/
 ## Server Configuration
 
 The app stores the server URL in AsyncStorage. You can:
+
 - Set it in the Settings screen
 - Test the connection before saving
 - The default value is `http://localhost:7777`
 
 For local development with a device/emulator:
+
 - iOS Simulator: Use `http://localhost:7777`
 - Android Emulator: Use `http://10.0.2.2:7777` (Android's localhost proxy)
 - Physical Device: Use your computer's IP address (e.g., `http://192.168.1.100:7777`)
@@ -155,6 +159,7 @@ For local development with a device/emulator:
 
 This app shares types and patterns with the web application and the backend protocol for
 consistency:
+
 - API/domain types come from the backend protocol via `src/types/ApiTypes.ts`.
 - Server state goes through a tRPC v11 client + TanStack Query v5; REST-only endpoints use
   the `fetch`-based `services/api.ts` (no Axios).
@@ -165,13 +170,30 @@ consistency:
 Builds run on **EAS Build** (Expo's cloud build service) against the EAS project
 declared in `app.json` (`extra.eas.projectId`, owner `mgeorgi`).
 
+### Testing a PR on a phone without signing it
+
+`.github/workflows/expo-preview.yml` publishes every PR that touches `mobile/`
+as an **EAS Update** and comments a QR code on the pull request. Scan it with
+**Expo Go** to run that PR's code on a device.
+
+This is the way onto an iOS device that a company-managed phone allows: Expo Go
+is an ordinary App Store app, so it installs where an EAS
+internal-distribution build cannot — those need an ad-hoc provisioning profile,
+which embeds an allow-list of device UDIDs and which MDM policies routinely
+block. Publishing a bundle also costs no build credits and takes a couple of
+minutes instead of a queue wait.
+
+The tradeoff: Expo Go ships a fixed set of native modules, so a PR that adds or
+changes native code needs a real build. Updates are keyed to the PR's head ref
+(`eas update --branch`), so each PR gets its own channel.
+
 ### From CI (preferred)
 
 The `.github/workflows/eas-build.yml` workflow authenticates with the
 `EAS_TOKEN` repository secret (an Expo access token, passed to eas-cli as
 `EXPO_TOKEN`). Builds cost credits, so no ordinary push starts one:
 
-- **Manual**: Actions → *EAS Build (mobile)* → *Run workflow*. Pick the platform
+- **Manual**: Actions → _EAS Build (mobile)_ → _Run workflow_. Pick the platform
   and profile; `wait` blocks on the EAS queue, `submit` uploads the finished
   production build to the stores.
 - **Release**: pushing a `mobile-v*` tag builds the `production` profile for
@@ -201,12 +223,13 @@ Anything the scripts don't cover goes through the CLI directly, e.g.
 `eas.json` profiles all extend `base`, which pins Node to 22.22.1 so cloud
 builds use the same version as the repo (`.nvmrc`):
 
-| Profile                   | Use                                                       |
-| ------------------------- | --------------------------------------------------------- |
-| `development`             | Dev client on a physical device, internal distribution     |
-| `development-simulator`   | Same, but an iOS Simulator build                           |
-| `preview`                 | Testing builds — Android APK you can sideload              |
-| `production`              | Store builds — Android AAB, version auto-incremented       |
+| Profile                 | Use                                                       |
+| ----------------------- | --------------------------------------------------------- |
+| `development`           | Dev client on a physical device, internal distribution    |
+| `development-simulator` | Same, but an iOS Simulator build                          |
+| `preview`               | Testing builds — Android APK you can sideload             |
+| `preview-simulator`     | Same, but an iOS Simulator build — needs no Apple account |
+| `production`            | Store builds — Android AAB, version auto-incremented      |
 
 `cli.appVersionSource` is `remote`, so EAS owns the build number; the
 `production` profile increments it on every build.
@@ -227,11 +250,28 @@ eas build --platform ios --local
 
 ### Troubleshooting Builds
 
-- **Missing credentials**: Run `eas credentials` to configure store credentials
+- **`EAS CLI couldn't find any credentials suitable for internal distribution`**
+  (iOS): a valid `EAS_TOKEN` is not enough. An iOS build that runs on a device
+  needs a distribution certificate and an ad-hoc provisioning profile stored on
+  the Expo servers, and only an interactive Apple login can create them the
+  first time:
+
+  ```bash
+  cd mobile
+  npx eas-cli credentials --platform ios     # sign in to the Apple Developer account
+  ```
+
+  An ad-hoc profile only installs on devices whose UDID is registered
+  (`npx eas-cli device:create`), and adding a device means rebuilding. Once the
+  credentials exist, `--non-interactive` CI builds reuse them. To smoke-test
+  iOS without an Apple Developer account, build the `preview-simulator` profile
+  — a Simulator build needs no signing at all.
+
 - **Build failures**: Check the build logs in Expo dashboard
 - **Timeouts**: Larger apps may need increased build timeout settings
 
 For more details, see:
+
 - [EAS Build Documentation](https://docs.expo.dev/build/introduction/)
 - [EAS Submit Documentation](https://docs.expo.dev/submit/introduction/)
 - [Mobile Architecture](ARCHITECTURE.md)
@@ -239,12 +279,14 @@ For more details, see:
 ## Troubleshooting
 
 ### Cannot connect to server
+
 - Ensure the NodeTool server is running
 - Check the server URL in Settings
 - For physical devices, ensure your device and server are on the same network
 - For Android emulator, use `http://10.0.2.2:7777` instead of `localhost:7777`
 
 ### App crashes on startup
+
 - Clear the app data and restart
 - Check that all dependencies are installed: `npm install`
 - Try resetting the Metro bundler: `npm start --reset-cache`
