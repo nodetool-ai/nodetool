@@ -247,7 +247,11 @@ class ApiService {
   }
 
   async getNodeMetadata() {
-    return this.request<components["schemas"]["NodeMetadata"][]>('/api/nodes/metadata');
+    // `fields` defaults to "summary" server-side, which omits properties and
+    // outputs. The chain editor needs both, so ask for the full records.
+    return this.request<components["schemas"]["NodeMetadata"][]>(
+      '/api/nodes/metadata?fields=full'
+    );
   }
 
   async saveWorkflow(workflow: {
@@ -319,7 +323,16 @@ class ApiService {
 
   resolveUrl(urlOrPath: string | null | undefined): string | null {
     if (!urlOrPath) {return null;}
-    if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
+    // Workflow outputs and node properties reference stored assets by URN.
+    // React Native's image loader has no handler for the scheme, so map it to
+    // the HTTP endpoint (same mapping as web's resolveUri).
+    if (urlOrPath.startsWith('asset://')) {
+      const assetId = urlOrPath.slice('asset://'.length);
+      return `${getSharedApiHost()}/api/storage/${assetId}`;
+    }
+    // Anything else already carrying a scheme (http, https, file, data,
+    // content, blob) is fetchable as-is; only bare paths get the API host.
+    if (/^[a-z][a-z0-9+.-]*:/i.test(urlOrPath)) {
       return urlOrPath;
     }
     return `${getSharedApiHost()}${urlOrPath.startsWith('/') ? '' : '/'}${urlOrPath}`;

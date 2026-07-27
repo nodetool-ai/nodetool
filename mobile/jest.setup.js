@@ -54,32 +54,38 @@ jest.mock('@expo/vector-icons', () => {
   };
 });
 
-// Mock expo-av for audio/video playback
-jest.mock('expo-av', () => ({
-  Video: jest.fn().mockImplementation(({ testID, ...props }) => {
+// Mock expo-video for video playback
+jest.mock('expo-video', () => ({
+  useVideoPlayer: jest.fn(() => ({
+    play: jest.fn(),
+    pause: jest.fn(),
+    replace: jest.fn(),
+    loop: false,
+  })),
+  VideoView: jest.fn().mockImplementation(({ testID, ...props }) => {
     const React = require('react');
     const { View } = require('react-native');
     return React.createElement(View, { testID: testID || 'mock-video', ...props });
   }),
-  Audio: {
-    Sound: {
-      createAsync: jest.fn().mockResolvedValue({
-        sound: {
-          playAsync: jest.fn(),
-          pauseAsync: jest.fn(),
-          unloadAsync: jest.fn(),
-          setOnPlaybackStatusUpdate: jest.fn(),
-        },
-        status: { isLoaded: true, durationMillis: 60000 },
-      }),
-    },
-    setAudioModeAsync: jest.fn(),
-  },
-  ResizeMode: {
-    CONTAIN: 'contain',
-    COVER: 'cover',
-    STRETCH: 'stretch',
-  },
+}));
+
+// Mock expo-audio for audio playback
+jest.mock('expo-audio', () => ({
+  useAudioPlayer: jest.fn(() => ({
+    play: jest.fn(),
+    pause: jest.fn(),
+    seekTo: jest.fn(),
+    replace: jest.fn(),
+    remove: jest.fn(),
+  })),
+  useAudioPlayerStatus: jest.fn(() => ({
+    isLoaded: true,
+    playing: false,
+    currentTime: 0,
+    duration: 60,
+    didJustFinish: false,
+  })),
+  setAudioModeAsync: jest.fn(),
 }));
 
 // Mock react-syntax-highlighter

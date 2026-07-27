@@ -18,7 +18,8 @@ import {
   type NativeTouchEvent,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Video, ResizeMode, Audio } from 'expo-av';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { MediaPlayerView } from '../components/media/MediaPlayerView';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { apiService, type Asset } from '../services/api';
@@ -342,10 +343,6 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
   const [isSavingRename, setIsSavingRename] = useState(false);
   const [isSavingToLibrary, setIsSavingToLibrary] = useState(false);
   const [isImageZoomed, setIsImageZoomed] = useState(false);
-  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
-  const [audioPosition, setAudioPosition] = useState(0);
-  const [audioDuration, setAudioDuration] = useState(0);
-  const soundRef = useRef<Audio.Sound | null>(null);
 
   const utils = trpc.useUtils();
   const assetQuery = trpc.assets.get.useQuery({ id: assetId });
@@ -373,64 +370,30 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
     });
   }, [navigation, asset?.name]);
 
-  // Audio playback lifecycle
-  useEffect(() => {
+  // Audio playback. The player is created unconditionally (hook rules) and
+  // stays sourceless until the asset resolves to an audio URL.
+  const audioSource = useMemo(() => {
     const uri = apiService.resolveUrl(asset?.get_url);
-    const isAudio = asset?.content_type?.startsWith('audio/');
-    if (!uri || !isAudio) {return;}
-
-    let isCancelled = false;
-    (async () => {
-      try {
-        const { sound, status } = await Audio.Sound.createAsync(
-          { uri },
-          { shouldPlay: false },
-          (s) => {
-            if (!s.isLoaded) {return;}
-            setAudioPosition(s.positionMillis || 0);
-            setIsAudioPlaying(s.isPlaying);
-            if (s.didJustFinish) {
-              setIsAudioPlaying(false);
-              setAudioPosition(0);
-            }
-          }
-        );
-        if (isCancelled) {
-          await sound.unloadAsync();
-          return;
-        }
-        soundRef.current = sound;
-        if (status.isLoaded && status.durationMillis) {
-          setAudioDuration(status.durationMillis);
-        }
-      } catch (err) {
-        console.error('Failed to load audio:', err);
-      }
-    })();
-
-    return () => {
-      isCancelled = true;
-      const existing = soundRef.current;
-      soundRef.current = null;
-      if (existing) {
-        existing.unloadAsync().catch(() => undefined);
-      }
-    };
+    if (!uri || !asset?.content_type?.startsWith('audio/')) {return null;}
+    return { uri };
   }, [asset?.get_url, asset?.content_type]);
 
-  const toggleAudio = useCallback(async () => {
-    const sound = soundRef.current;
-    if (!sound) {return;}
-    try {
-      if (isAudioPlaying) {
-        await sound.pauseAsync();
-      } else {
-        await sound.playAsync();
-      }
-    } catch (err) {
-      console.error('Audio playback error:', err);
+  const audioPlayer = useAudioPlayer(audioSource);
+  const audioStatus = useAudioPlayerStatus(audioPlayer);
+  const isAudioPlaying = audioStatus.playing;
+  const audioPosition = audioStatus.didJustFinish ? 0 : audioStatus.currentTime;
+  const audioDuration = audioStatus.duration;
+
+  const toggleAudio = useCallback(() => {
+    if (isAudioPlaying) {
+      audioPlayer.pause();
+      return;
     }
-  }, [isAudioPlaying]);
+    if (audioStatus.didJustFinish) {
+      audioPlayer.seekTo(0);
+    }
+    audioPlayer.play();
+  }, [audioPlayer, isAudioPlaying, audioStatus.didJustFinish]);
 
   const handleOpenRename = useCallback(() => {
     if (!asset) {return;}
@@ -570,13 +533,7 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
             onZoomChange={setIsImageZoomed}
           />
         ) : isVideo && url ? (
-          <Video
-            source={{ uri: url }}
-            style={styles.previewVideo}
-            useNativeControls
-            resizeMode={ResizeMode.CONTAIN}
-            isLooping={false}
-          />
+          <MediaPlayerView uri={url} style={styles.previewVideo} />
         ) : isAudio ? (
           <View style={styles.audioPreview}>
             <View style={[styles.audioIconWrap, { backgroundColor: colors.primaryMuted }]}>
@@ -776,11 +733,11 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
   );
 }
 
-function formatAudioTime(ms: number): string {
-  const totalSeconds = Math.floor(ms / 1000);
+function formatAudioTime(seconds: number): string {
+  const totalSeconds = Math.floor(seconds);
   const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  const rest = totalSeconds % 60;
+  return `${minutes}:${rest.toString().padStart(2, '0')}`;
 }
 
 function iconForContentType(contentType: string): keyof typeof Ionicons.glyphMap {

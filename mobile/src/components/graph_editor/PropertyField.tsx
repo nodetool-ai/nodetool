@@ -643,13 +643,17 @@ const VideoWidget: React.FC<{
 };
 
 /** Extract URI from value — handles {uri: ...}, {id: ...}, or raw string */
+/**
+ * The URI a media widget can actually load. Property values carry `asset://`
+ * URNs, which no native loader understands, so resolve before rendering.
+ */
 function extractUri(value: unknown): string | null {
   if (!value) {return null;}
-  if (typeof value === "string") {return value;}
+  if (typeof value === "string") {return apiService.resolveUrl(value);}
   if (typeof value === "object") {
     const v = value as Record<string, unknown>;
-    if (typeof v.uri === "string") {return v.uri;}
-    if (typeof v.id === "string") {return v.id;}
+    if (typeof v.uri === "string") {return apiService.resolveUrl(v.uri);}
+    if (typeof v.id === "string") {return apiService.resolveUrl(v.id);}
   }
   return null;
 }
