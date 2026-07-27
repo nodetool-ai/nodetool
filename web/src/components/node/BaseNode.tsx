@@ -279,7 +279,8 @@ const getNodeStyles = (colors: string[]) =>
     },
 
     "&.is-loading::before": {
-      opacity: 1
+      opacity: 1,
+      borderRadius: BORDER_RADIUS.xl
     }
   });
 
