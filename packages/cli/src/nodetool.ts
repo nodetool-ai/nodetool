@@ -1493,6 +1493,44 @@ models
   });
 
 // ---------------------------------------------------------------------------
+// storage
+// ---------------------------------------------------------------------------
+
+const storage = program
+  .command("storage")
+  .description("Maintain the asset storage backend");
+
+storage
+  .command("migrate-keys")
+  .description(
+    "Move asset objects under their owner's prefix (<userId>/<assetId>.<ext>)"
+  )
+  .option("--dry-run", "Report what would move without writing anything")
+  .option("--user-id <id>", "Migrate only this user's objects")
+  .option("--json", "Output the report as JSON")
+  .action(async (opts) => {
+    await setupDb();
+    const { migrateStorageKeys, formatMigrateKeysReport } = await import(
+      "./commands/storage.js"
+    );
+    try {
+      const report = await migrateStorageKeys({
+        dryRun: Boolean(opts.dryRun),
+        ...(opts.userId ? { userId: opts.userId } : {})
+      });
+      if (opts.json) {
+        console.log(JSON.stringify(report, null, 2));
+      } else {
+        console.log(formatMigrateKeysReport(report, Boolean(opts.dryRun)));
+      }
+      if (report.failed > 0) process.exit(1);
+    } catch (e) {
+      console.error(String(e));
+      process.exit(1);
+    }
+  });
+
+// ---------------------------------------------------------------------------
 // secrets
 // ---------------------------------------------------------------------------
 

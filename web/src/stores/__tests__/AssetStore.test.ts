@@ -19,6 +19,8 @@ jest.mock("../../trpc/client", () => ({
       list: { query: jest.fn() },
       get: { query: jest.fn() },
       create: { mutate: jest.fn() },
+      createUpload: { mutate: jest.fn() },
+      finalizeUpload: { mutate: jest.fn() },
       update: { mutate: jest.fn() },
       delete: { mutate: jest.fn() },
       children: { query: jest.fn() },
@@ -57,6 +59,7 @@ import { trpcClient } from "../../trpc/client";
 const mockRestFetch = restFetch as jest.Mock;
 const mockAuthHeader = authHeader as jest.Mock;
 
+const createUploadMutate = trpcClient.assets.createUpload.mutate as jest.Mock;
 const listQuery = trpcClient.assets.list.query as jest.Mock;
 const getQuery = trpcClient.assets.get.query as jest.Mock;
 const updateMutate = trpcClient.assets.update.mutate as jest.Mock;
@@ -83,6 +86,15 @@ describe("AssetStore", () => {
     });
 
     jest.clearAllMocks();
+
+    // Default to a backend with no client-direct upload, so these tests keep
+    // exercising the multipart REST fallback. The direct path has its own
+    // describe block below.
+    createUploadMutate.mockResolvedValue({
+      asset_id: "mock-id",
+      key: "user-1/mock-id.png",
+      upload: null
+    });
 
     // Mock URL APIs used by download()
     (window as any).URL = {
@@ -202,6 +214,87 @@ describe("AssetStore", () => {
 
       expect(mockRestFetch).toHaveBeenCalledWith("/api/assets/", expect.objectContaining({ method: "POST", body: expect.any(FormData) }));
       expect(result).toEqual(mockAsset);
+    });
+
+    describe("client-direct upload (cloud storage backends)", () => {
+      const finalizeMutate = trpcClient.assets.finalizeUpload
+        .mutate as jest.Mock;
+      const uploadTarget = {
+        asset_id: "direct-id",
+        key: "test-user/direct-id.jpg",
+        upload: {
+          url: "https://xyz.supabase.co/storage/v1/object/upload/sign/assets/test-user/direct-id.jpg?token=t",
+          method: "PUT" as const,
+          headers: { "content-type": "image/jpeg" },
+          expires_at: 1_800_000_000_000
+        }
+      };
+      const finalized: Asset = {
+        id: "direct-id",
+        name: "test.jpg",
+        content_type: "image/jpeg",
+        size: 12,
+        created_at: "2026-07-27T00:00:00Z",
+        parent_id: "",
+        user_id: "test-user",
+        get_url: "/assets/direct-id",
+        workflow_id: null,
+        thumb_url: null,
+        metadata: {}
+      };
+      let fetchMock: jest.Mock;
+      let originalFetch: typeof global.fetch;
+
+      beforeEach(() => {
+        createUploadMutate.mockResolvedValue(uploadTarget);
+        finalizeMutate.mockResolvedValue(finalized);
+        fetchMock = jest.fn().mockResolvedValue({ ok: true, status: 200 });
+        originalFetch = global.fetch;
+        (global as any).fetch = fetchMock;
+      });
+
+      afterEach(() => {
+        global.fetch = originalFetch;
+      });
+
+      it("sends the bytes to storage and never through the API", async () => {
+        const file = new File(["test content"], "test.jpg", {
+          type: "image/jpeg"
+        });
+        const result = await useAssetStore.getState().createAsset(file);
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          uploadTarget.upload.url,
+          expect.objectContaining({
+            method: "PUT",
+            headers: uploadTarget.upload.headers,
+            body: file
+          })
+        );
+        expect(mockRestFetch).not.toHaveBeenCalled();
+        expect(finalizeMutate).toHaveBeenCalledWith({ asset_id: "direct-id" });
+        expect(result.id).toBe("direct-id");
+      });
+
+      it("declares the real byte size so the server can pre-check the cap", async () => {
+        const file = new File(["test content"], "test.jpg", {
+          type: "image/jpeg"
+        });
+        await useAssetStore.getState().createAsset(file);
+        expect(createUploadMutate).toHaveBeenCalledWith(
+          expect.objectContaining({ size: file.size })
+        );
+      });
+
+      it("surfaces a failed storage upload instead of finalizing", async () => {
+        fetchMock.mockResolvedValue({ ok: false, status: 403 });
+        const file = new File(["x"], "test.jpg", { type: "image/jpeg" });
+
+        await expect(
+          useAssetStore.getState().createAsset(file)
+        ).rejects.toThrow();
+        expect(finalizeMutate).not.toHaveBeenCalled();
+      });
     });
 
     it("uploads valid clipboard PNG payload as image", async () => {

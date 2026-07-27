@@ -31,7 +31,7 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Agent WS  | `/ws/agent`                       | WebSocket         | Bearer header or `api_key` query when enforced | yes                         | Agent runtime |
 | Extension WS | `/ws/extension`                | WebSocket         | Follows global auth settings                   | yes                         | Browser extension channel |
 | Download WS | `/ws/download`                  | WebSocket         | Follows global auth settings                   | yes                         | Model/file downloads |
-| Storage   | `/api/storage/*`                  | `HEAD/GET`        | Depends on `AUTH_PROVIDER`                     | streaming for `GET`         | Asset bytes, scoped to the caller's assets. Read-only: writes go through the asset API, deletes through tRPC `storage.delete` |
+| Storage   | `/api/storage/*`                  | `HEAD/GET`        | Depends on `AUTH_PROVIDER`                     | streaming for `GET`         | Asset bytes at `<userId>/<assetId>.<ext>`, scoped to the caller. Read-only: writes go through the asset API, deletes through tRPC `storage.delete` |
 | Health    | `/health`                         | `GET`             | none                                           | no                          | JSON: `{status, timestamp, uptime, services}` (`200`/`503`) |
 | Health    | `/api/health`                     | `GET`             | none                                           | no                          | JSON: `{version, uptime}` |
 | Liveness  | `/ready`                          | `GET`             | none                                           | no                          | Always `200` with `{status:"ok"}` |
@@ -206,6 +206,25 @@ Response:
 curl "http://localhost:7777/api/workflows" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
+
+### Uploading an Asset
+
+On a cloud storage backend (Supabase or S3) the bytes go straight from the
+client to the bucket — the API only mints a target and confirms the result.
+
+1. `assets.createUpload` (tRPC) with the file's name, content type, parent
+   folder, and size. It creates the asset row, picks the storage key
+   (`<userId>/<assetId>.<ext>` — never the client's choice), and returns a
+   short-lived upload target.
+2. Send the bytes to `upload.url` with `upload.method` and `upload.headers`.
+3. `assets.finalizeUpload` with the returned `asset_id`. The server reads the
+   object's real size back off the bucket, records it, and generates a
+   thumbnail. A missing, empty, or over-cap upload is rejected and the pending
+   row removed.
+
+`upload` comes back `null` on the local file backend, which has no
+direct-upload concept; fall back to the multipart `POST /api/assets`. The web
+client does this automatically.
 
 ### Health Check
 
