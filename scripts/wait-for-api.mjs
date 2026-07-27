@@ -1,24 +1,32 @@
 #!/usr/bin/env node
 
 /**
- * Block until the backend health endpoint responds (or time out).
+ * Block until the backend liveness endpoint responds (or time out).
  * Used by `npm run dev` so Vite does not spam proxy errors while tsx bootstraps.
  */
 
 const host = process.env.HOST ?? "127.0.0.1";
 const port = Number(process.env.PORT ?? 7777);
-const url = `http://${host}:${port}/health`;
+// `/ready` is a lightweight liveness probe; `/health` runs a DB ping and can
+// exceed a short per-attempt timeout while the server is still starting.
+const url = `http://${host}:${port}/ready`;
 const maxWaitMs = 120_000;
 const pollMs = 400;
+const fetchTimeoutMs = 5_000;
 
 function isBenignFetchError(err) {
+  if (err?.name === "TimeoutError" || err?.name === "AbortError") {
+    return true;
+  }
   const code = err?.cause?.code ?? err?.code;
   return code === "ECONNREFUSED" || code === "EHOSTUNREACH" || code === "ETIMEDOUT";
 }
 
 async function ready() {
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(2_000) });
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(fetchTimeoutMs)
+    });
     return res.ok;
   } catch (err) {
     if (!isBenignFetchError(err)) {

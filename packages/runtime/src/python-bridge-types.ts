@@ -212,7 +212,7 @@ export interface PythonBridgeOptions {
   /**
    * Max time to wait for the initial worker.status fetch during connect()
    * (0 = no timeout). Guards against a silent worker hanging connect()
-   * forever. Default ~10000ms.
+   * forever. Default ~30000ms.
    */
   statusTimeoutMs?: number;
   /**

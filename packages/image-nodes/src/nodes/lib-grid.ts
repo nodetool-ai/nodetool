@@ -1,7 +1,13 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import sharp from "sharp";
+import { loadSharp, SHARP_UNAVAILABLE_MESSAGE } from "./image-io.js";
 import { decodeImage } from "./lib-image-utils.js";
+
+async function requireSharp() {
+  const sharp = await loadSharp();
+  if (!sharp) throw new Error(SHARP_UNAVAILABLE_MESSAGE);
+  return sharp;
+}
 
 async function loadImageBuffer(
   image: unknown,
@@ -129,6 +135,7 @@ export class SliceImageGridLibNode extends BaseNode {
   declare rows: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const sharp = await requireSharp();
     const imageInput = this.image;
     const src = await loadImageBuffer(imageInput, context);
     const srcSharp = sharp(src, { failOn: "none" });
@@ -224,6 +231,7 @@ export class CombineImageGridLibNode extends BaseNode {
   declare columns: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const sharp = await requireSharp();
     const tileInputs = (this.tiles ?? []) as unknown[];
     if (!Array.isArray(tileInputs) || tileInputs.length === 0) {
       throw new Error("No tiles provided for combining.");
