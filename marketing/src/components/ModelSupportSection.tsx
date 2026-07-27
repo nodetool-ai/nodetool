@@ -98,7 +98,7 @@ export default function ModelSupportSection({
                     >
                         The newest models,{" "}
                         <span className="text-white">
-                            the day they ship.
+                            the day they arrive.
                         </span>
                     </motion.h2>
 
@@ -109,9 +109,9 @@ export default function ModelSupportSection({
                         transition={{ duration: 0.25, delay: 0.05 }}
                         className="text-lg text-slate-400 leading-relaxed"
                     >
-                        Frontier image, video, audio, and language models from
-                        every major provider — or running on your own machine
-                        when you want them local.
+                        The leading image, video, audio, and language models from
+                        every major provider, or the same kind of models running
+                        on your own computer when you prefer that.
                     </motion.p>
                 </div>
 

@@ -9,12 +9,12 @@ import { faqByCategory, faqEntries } from "@/data/faqEntries";
 export const metadata: Metadata = {
   title: "NodeTool FAQ — the open creative AI workspace",
   description:
-    "Answers about NodeTool: BYOK pricing, Studio vs Cloud, supported models, how it compares to other tools, and a short glossary of terms like BYOK, RAG, and diffusion models.",
+    "Answers about NodeTool: how pricing with your own API keys works, Studio compared with Cloud, which models are supported, how it compares with other tools, and a short glossary of common terms.",
   alternates: { canonical: "/faq" },
   openGraph: {
     title: "NodeTool FAQ",
     description:
-      "BYOK pricing, Studio vs Cloud, supported models, comparisons, and a short glossary.",
+      "Pricing with your own keys, Studio compared with Cloud, supported models, comparisons, and a short glossary.",
     url: "https://nodetool.ai/faq",
     type: "website",
   },
@@ -62,8 +62,8 @@ export default function FaqHubPage() {
             Frequently asked questions
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-slate-300">
-            What NodeTool is, how BYOK pricing works, Studio vs Cloud, which
-            models run, and a short glossary of the terms.
+            What NodeTool is, how pricing works when you use your own API keys,
+            how Studio and Cloud differ, which models run, and a short glossary.
           </p>
         </section>
 

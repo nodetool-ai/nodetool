@@ -66,8 +66,9 @@ export default function UseCasesShowcase() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 leading-relaxed"
           >
-            Real workflows you can open, run, and rewire. Each one is complete,
-            not a demo, and built from the same nodes you get on day one.
+            Real workflows you can open, run, and change. Each one runs from the
+            brief to the finished piece without leaving the canvas, and every one
+            is built from the blocks you get on day one.
           </motion.p>
         </div>
 

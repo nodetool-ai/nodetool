@@ -28,7 +28,7 @@ export async function generateMetadata({
   const c = getCompetitor(slug);
   if (!c) return {};
   const title = `${c.name} alternatives (${yearToken()}) — why teams choose NodeTool`;
-  const description = `${c.limitation} Compare NodeTool and other ${c.category.toLowerCase()} alternatives — open source, BYOK, one canvas for image, video, audio, and text.`;
+  const description = `${c.limitation} Compare NodeTool with other ${c.category.toLowerCase()} alternatives: open source, run with your own keys, one canvas for image, video, audio, and text.`;
   return {
     title,
     description,
@@ -131,9 +131,10 @@ export default async function AlternativesPage({
             Looking for a {c.name} alternative?
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-slate-300">
-            {c.limitation} If that&apos;s what has you looking, here are the
-            alternatives worth weighing — and why teams pick NodeTool, the open
-            source, BYOK canvas for image, video, audio, and text.
+            {c.limitation} If that is what brought you here, these are the
+            alternatives worth weighing, and why teams pick NodeTool: an
+            open-source canvas for image, video, audio, and text that runs on
+            your own keys.
           </p>
         </section>
 

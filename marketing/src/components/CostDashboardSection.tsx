@@ -102,9 +102,9 @@ export default function CostDashboardSection() {
             See what every run actually costs
           </h3>
           <p className="mt-4 text-lg leading-relaxed text-slate-300">
-            NodeTool tracks the cost of every node run and totals it by
-            workflow, provider, or model. You bring your own keys and pay
-            providers directly, so the numbers are the real ones.
+            NodeTool records what each step costs and adds it up by workflow,
+            provider, or model. Because you use your own keys and pay providers
+            directly, these are the amounts you are actually billed.
           </p>
         </div>
 
@@ -370,16 +370,16 @@ export default function CostDashboardSection() {
         <div className="mx-auto mt-12 grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-3">
           {[
             {
-              title: "Cost per node",
-              body: "Every run priced on its own, grouped by node, workflow, provider, or model.",
+              title: "Cost per step",
+              body: "Every run is priced on its own and can be grouped by step, workflow, provider, or model.",
             },
             {
               title: "No markup",
-              body: "Pay OpenAI, fal.ai, and the rest directly with your own keys. NodeTool takes zero cut.",
+              body: "Pay OpenAI, fal.ai, and the rest directly with your own keys. NodeTool takes no cut.",
             },
             {
               title: "Export anytime",
-              body: "Pull the full breakdown to CSV for your own books, billing, or client invoices.",
+              body: "Download the full breakdown as a spreadsheet for your own books or client invoices.",
             },
           ].map(({ title, body }) => (
             <div key={title}>

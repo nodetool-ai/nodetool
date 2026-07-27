@@ -13,7 +13,7 @@ const BASE_URL = "https://nodetool.ai";
 export const metadata: Metadata = {
   title: "AI Workflow Templates — NodeTool",
   description:
-    "Browse ready-to-run NodeTool AI workflow templates for image, video, audio, agents, and marketing. Open any one in Studio and run it with your own keys.",
+    "Browse ready-to-run NodeTool workflow templates for image, video, audio, agents, and marketing. Open any of them in Studio and run it with your own keys.",
   alternates: { canonical: `${BASE_URL}/templates` },
 };
 
@@ -87,8 +87,8 @@ export default function TemplatesHub() {
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-400">
               Ready-to-run NodeTool workflows for image, video, audio, agents,
-              and marketing. Open any one in Studio, connect your keys, and run
-              it — then rewire the nodes to make it yours.
+              and marketing. Open one in Studio, connect your keys, and run it,
+              then rearrange it to suit your own work.
             </p>
             <div className="mt-8">
               <SmartDownloadButton

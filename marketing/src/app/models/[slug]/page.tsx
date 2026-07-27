@@ -353,7 +353,7 @@ function ProviderTable({ model }: { model: ModelEntry }) {
               <tr className="bg-slate-900/60 text-sm">
                 <th className="px-5 py-4 font-medium text-slate-400">Provider</th>
                 <th className="px-5 py-4 font-medium text-slate-400">
-                  BYOK env var
+                  Setting for your key
                 </th>
               </tr>
             </thead>

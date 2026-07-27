@@ -18,7 +18,7 @@ export const staticEntries: PageEntry[] = [
   { route: "/cloud", title: "NodeTool Cloud", description: "Run NodeTool workflows in the cloud.", priority: 0.9, changeFrequency: "weekly", indexable: true },
   { route: "/pricing", title: "Pricing", description: "Free Studio, your own keys, pay providers directly.", priority: 0.8, changeFrequency: "weekly", indexable: true },
   { route: "/agents", title: "AI Agents", description: "Build planning agents on a visual canvas.", priority: 0.8, changeFrequency: "monthly", indexable: true },
-  { route: "/creatives", title: "For Creatives", description: "A node-based canvas for creative AI work.", priority: 0.8, changeFrequency: "monthly", indexable: true },
+  { route: "/creatives", title: "For Creatives", description: "A visual canvas for creative AI work.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/developers", title: "For Developers", description: "Wire every major model into one canvas.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/marketing", title: "For Marketing", description: "Produce campaign assets with AI workflows.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   // /vs/* and /alternatives/* come from the competitorEntries engine module.

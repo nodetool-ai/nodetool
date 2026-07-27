@@ -41,7 +41,7 @@ const useCases: UseCase[] = [
   {
     name: "Video Ad Director",
     description:
-      "An agent that storyboards a 15-second spot, picks Seedance for the hero shot and Kling for B-roll, animates the cuts, and drops a Suno track underneath. Bring your brief — it'll bring the cut.",
+      "An agent that storyboards a 15-second spot, picks Seedance for the hero shot and Kling for B-roll, animates the cuts, and lays a Suno track underneath. You bring the brief, it brings the cut.",
     icon: Film,
     iconBgFrom: "from-amber-600/20",
     iconBgTo: "to-rose-600/20",
@@ -59,7 +59,7 @@ const useCases: UseCase[] = [
   {
     name: "Batch Retouching Agent",
     description:
-      "Hand it a folder of raw shots. It color-matches to your reference, upscales, removes the bins in the background, and exports the keepers. Your repeatable retouching, run while you sleep.",
+      "Hand it a folder of raw shots. It matches color to your reference, upscales, removes the clutter in the background, and exports the keepers while you get on with something else.",
     icon: Camera,
     iconBgFrom: "from-emerald-600/20",
     iconBgTo: "to-teal-600/20",
@@ -77,7 +77,7 @@ const useCases: UseCase[] = [
   {
     name: "Variant Explorer",
     description:
-      "Ten alts of the hero frame in five aspect ratios, ranked by how on-brief they are. The agent fans out across providers, scores the results, and surfaces only the cuts worth your time.",
+      "Ten versions of the hero frame in five aspect ratios, ranked by how closely they match the brief. The agent works across providers, scores the results, and shows you only the ones worth your time.",
     icon: LayoutGrid,
     iconBgFrom: "from-indigo-600/20",
     iconBgTo: "to-cyan-600/20",
@@ -148,7 +148,7 @@ export default function AgentUseCasesSection({
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Open one, swap in your style guide, point it at the providers you already pay
+            Open one, add your style guide, point it at the providers you already pay
             for, and let it run while you direct. Starter workflows live in the{" "}
             <a
               href="https://github.com/nodetool-ai/nodetool/tree/main/examples"

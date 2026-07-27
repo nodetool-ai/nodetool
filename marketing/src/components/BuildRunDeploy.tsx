@@ -45,17 +45,17 @@ export default function BuildRunDeploy() {
       <div className="scroll-fade grid grid-cols-1 gap-6 md:grid-cols-3">
         <Card
           step="01"
-          title="Wire your canvas"
+          title="Build your canvas"
           icon={<Workflow className="h-6 w-6" />}
           accent="blue"
-          description="Drag in models, edits, and assets. Connect them. Every model from every provider lives on the same canvas."
+          description="Drag in models, edits, and files, then connect them. Every model from every provider sits on the same canvas."
         >
           <BuildVisual />
         </Card>
 
         <Card
           step="02"
-          title="Render with your keys"
+          title="Run it with your own keys"
           icon={<PlayCircle className="h-6 w-6" />}
           accent="fuchsia"
           description="Bring your own keys to FAL, KIE, OpenAI, Anthropic, Gemini, Replicate. Pay providers directly. Watch results stream in."
@@ -68,7 +68,7 @@ export default function BuildRunDeploy() {
           title="Edit and finish"
           icon={<Wand2 className="h-6 w-6" />}
           accent="amber"
-          description="Drop the generated image or clip into the built-in editors. Crop, mask, cut, and arrange on the timeline — no export, no second app."
+          description="Send the image or clip straight into the built-in editors. Crop, mask, cut, and arrange on the timeline. Nothing to export, no second app to open."
         >
           <EditVisual />
         </Card>
@@ -179,10 +179,10 @@ function BuildVisual() {
 function RunVisual() {
   const lines = [
     "Workflow started",
-    "LLM response received",
+    "Text written",
     "Image generated",
-    "Data transformed",
-    "Workflow completed",
+    "Clip assembled",
+    "Workflow finished",
   ];
   return (
     <div className="grid grid-cols-[1fr_auto] gap-3">

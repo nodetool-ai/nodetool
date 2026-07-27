@@ -27,19 +27,19 @@ const marketingBenefits = [
   {
     title: "Output at campaign volume",
     description:
-      "One workflow, run across every SKU, market, or audience segment. The cost that matters is cost-per-asset at scale, not the polish of a single hero shot.",
+      "Build one workflow and run it for every product, market, or audience. What matters at that scale is the cost of each asset, not the polish of a single hero shot.",
     icon: TrendingUp,
   },
   {
     title: "Every model, your keys",
     description:
-      "Flux, Veo, Kling, Seedance, Suno, ElevenLabs, and more, called with your own provider keys at list price. No credit packs, no per-seat markup.",
+      "Flux, Veo, Kling, Seedance, Suno, ElevenLabs, and more, all run with your own provider keys at list price. No credit packs and no per-seat markup.",
     icon: Zap,
   },
   {
     title: "Brand consistency, built in",
     description:
-      "Lock a palette, a voice, or a product shot into the workflow once. Every asset it produces inherits it — no manual re-briefing per output.",
+      "Set a palette, a tone of voice, or a product shot once, and every asset the workflow produces follows it. There is no need to re-brief for each output.",
     icon: Palette,
   },
 ];
@@ -60,13 +60,13 @@ const upcomingWorkflows = [
   {
     title: "Cold Outreach Co-Pilot",
     description:
-      "Research a prospect list and draft personalized outreach at volume, without losing the personal read.",
+      "Research a list of prospects and draft personalized outreach at volume, while it still reads as though a person wrote it.",
     icon: Mail,
   },
   {
     title: "Hook & Thumbnail Factory",
     description:
-      "Batch-generate and A/B-test video hooks and thumbnail concepts from a video title and description.",
+      "Generate video hooks and thumbnail ideas in batches from a title and description, then test them against each other.",
     icon: Youtube,
   },
 ];
@@ -138,9 +138,9 @@ export default function MarketingSegmentPage() {
 
                 <p className="text-lg md:text-xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed">
                   Product videos, ad creative, social calendars, and brand
-                  assets from every major model, called with your own keys,
-                  on one node-based canvas. No marked-up credits, no lock-in
-                  — built for output volume, not one-off polish.
+                  assets from every major model, run with your own keys on one
+                  visual canvas. No marked-up credits, nothing locking you in,
+                  and built for steady output rather than one-off polish.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
@@ -254,12 +254,12 @@ export default function MarketingSegmentPage() {
                 </h3>
                 <p className="text-lg text-slate-400 leading-relaxed mb-6">
                   Turn a campaign brief and a single product photo into a
-                  cinematic 16:9 product video. Your inputs feed a prompt, an
-                  agent directs the shot, and a text-to-video model renders
-                  it, ready to re-run across every SKU in the line.
+                  cinematic 16:9 product video. Your inputs shape the prompt, an
+                  agent directs the shot, and a video model renders it, ready to
+                  run again for every product in the line.
                 </p>
                 <ul className="space-y-3 mb-8">
-                  {["Brief → Prompt → Agent → Text-to-Video", "Re-runnable per SKU or market", "Your own keys for every model in the workflow"].map(
+                  {["Brief, prompt, agent, then video", "Run it again per product or market", "Your own keys for every model in the workflow"].map(
                     (item) => (
                       <li key={item} className="flex items-center gap-3 text-slate-300">
                         <Check className="w-5 h-5 text-emerald-400" />
@@ -314,8 +314,9 @@ export default function MarketingSegmentPage() {
                 More marketing workflows on the way
               </h2>
               <p className="text-lg text-slate-400 leading-relaxed">
-                The Product Video Generator ships today. These are next up —
-                same pattern: brief in, campaign out.
+                The Product Video Generator is available today. These are next,
+                and they follow the same pattern: a brief goes in, a campaign
+                comes out.
               </p>
             </motion.div>
 
@@ -364,7 +365,7 @@ export default function MarketingSegmentPage() {
                 </span>
               </h2>
               <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto">
-                Download NodeTool, plug in the providers you already pay for,
+                Download NodeTool, connect the providers you already pay for,
                 and build the workflow that produces your next campaign.
               </p>
               <SmartDownloadButton

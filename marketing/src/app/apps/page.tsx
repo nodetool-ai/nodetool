@@ -13,7 +13,7 @@ const BASE_URL = "https://nodetool.ai";
 export const metadata: Metadata = {
   title: "AI Mini Apps — NodeTool",
   description:
-    "Ready-to-use AI mini apps built with NodeTool's App Builder: type, click Run, get results. Every app runs on an editable visual workflow you own.",
+    "Ready-to-use AI mini apps built with NodeTool's app builder: fill in a field, press Run, and get your result. Each one is powered by a visual workflow you can open and change.",
   alternates: { canonical: `${BASE_URL}/apps` },
 };
 
@@ -82,10 +82,9 @@ export default function AppsHub() {
               AI apps anyone can use
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-400">
-              A mini app is a clean screen with a few inputs and a Run button —
-              no canvas, no nodes, no jargon. Each one ships with NodeTool,
-              drives one or more real workflows, and opens them on the canvas
-              whenever you&apos;re curious.
+              A mini app is a simple screen with a few fields and a Run button.
+              Each one comes with NodeTool and is powered by real workflows, which
+              you can open on the canvas whenever you want to see how they work.
             </p>
             <div className="mt-8">
               <SmartDownloadButton

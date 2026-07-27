@@ -60,8 +60,8 @@ export default function IdeasHubPage() {
             AI workflow ideas
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-slate-300">
-            What to build on the canvas — grouped by category, drawn from the
-            example workflows that ship with NodeTool.
+            What to build on the canvas, grouped by category and drawn from the
+            example workflows included with NodeTool.
           </p>
         </section>
 
