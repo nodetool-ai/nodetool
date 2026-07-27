@@ -101,6 +101,17 @@ const DRIVE_EXPORT_FORMATS: Record<string, string> = {
 };
 
 /**
+ * Escape a phrase for a single-quoted Drive query literal.
+ *
+ * Backslashes go first: escaping only the quote would turn an input containing
+ * `\'` into `\\'`, where the backslash escapes itself and the quote closes the
+ * literal early — letting the rest of the phrase run as query syntax.
+ */
+function escapeDriveLiteral(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+
+/**
  * List Drive files matching a query.
  *
  * `q` is Drive's own query syntax. A bare phrase is wrapped into a full-text
@@ -118,7 +129,7 @@ export async function driveSearchFiles(
     ? "trashed = false"
     : isDriveQuery
       ? raw
-      : `fullText contains '${raw.replace(/'/g, "\\'")}' and trashed = false`;
+      : `fullText contains '${escapeDriveLiteral(raw)}' and trashed = false`;
 
   const url = `${DRIVE_API}/files${query({
     q,
@@ -241,8 +252,7 @@ interface GmailRawMessage {
 }
 
 function decodeBase64Url(data: string): string {
-  return Buffer.from(data.replace(/-/g, "+").replace(/_/g, "/"), "base64")
-    .toString("utf8");
+  return Buffer.from(data, "base64url").toString("utf8");
 }
 
 function header(part: GmailPayloadPart | undefined, name: string): string {
@@ -332,11 +342,7 @@ export async function gmailSendMessage(
     opts.body
   ].filter((line): line is string => line !== null);
 
-  const raw = Buffer.from(lines.join("\r\n"), "utf8")
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
+  const raw = Buffer.from(lines.join("\r\n"), "utf8").toString("base64url");
 
   return request<{ id: string; threadId: string }>(
     token,

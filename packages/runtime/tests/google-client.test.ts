@@ -79,6 +79,18 @@ describe("drive", () => {
     expect(q).toBe("fullText contains 'quarterly report' and trashed = false");
   });
 
+  it("escapes backslashes before quotes so a phrase cannot break out of the literal", async () => {
+    mockFetch(() => jsonReply({ files: [] }));
+    // Escaping only the quote would yield `\\'`, closing the literal early and
+    // letting `and trashed = true` run as query syntax.
+    await driveSearchFiles(TOKEN, { q: "a\\' and trashed = true and 'b" });
+
+    const q = new URL(calls[0].url).searchParams.get("q");
+    expect(q).toBe(
+      "fullText contains 'a\\\\\\' and trashed = true and \\'b' and trashed = false"
+    );
+  });
+
   it("passes Drive query syntax through untouched", async () => {
     mockFetch(() => jsonReply({ files: [] }));
     await driveSearchFiles(TOKEN, { q: "name contains 'budget'" });
