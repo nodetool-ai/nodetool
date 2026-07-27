@@ -1,111 +1,149 @@
 ---
 layout: page
 title: "Key Concepts"
-description: "Core concepts behind NodeTool workflows, assets, sketches, and timelines."
+description: "The ideas behind NodeTool workflows, assets, sketches, and timelines, explained without jargon."
 ---
 
-The ideas you need to build on the canvas.
+The handful of ideas you need before building anything. No prior experience
+assumed. If you want a quick definition of a single word instead, the
+[Glossary](glossary.md) is faster.
 
 ---
 
 ## What NodeTool is
 
-A node-based canvas for creative AI. You wire **nodes** instead of writing code. Each node is a single operation: a model call, a transform, a tool.
+A visual way to use AI. Instead of writing code, you place boxes on a page and
+draw lines between them. Each box does one job, and the lines carry results from
+one box to the next.
 
-- **Your machine.** Local models run on your hardware. Outputs stay on disk.
-- **Your keys.** Cloud calls go directly to OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, and others. No credit markup.
-- **Mixed.** Local and cloud models in the same graph.
-- **Open.** AGPL-3.0. Self-host the same code we host.
+- **It runs on your computer.** Models that run locally use your own hardware,
+  and what they produce stays on your disk.
+- **You bring your own accounts.** When a workflow uses an online AI service
+  such as OpenAI, Anthropic, Gemini, FAL, KIE, or Replicate, the request goes
+  straight from your machine to that company and they bill you their normal
+  price. NodeTool adds nothing on top.
+- **You can mix the two.** One workflow can use a local model for one step and
+  an online service for the next.
+- **It's open source.** Licensed AGPL-3.0. The code we host is the code you can
+  run yourself.
 
 ---
 
-## Building blocks
+## The building blocks
 
 ### Nodes
 
-A **node** does one thing.
+A **node** is one box that does one thing.
 
-| Node | Does | Example |
+| Node | What it does | Example |
 |------|------|---------|
-| **Image Generator** | Image from text | "Sunset over mountains" → image |
-| **Agent** | Plans and executes a multi-step task | "Summarize this document" → structured summary |
-| **TextToSpeech** | Text → audio | Blog post → narration |
-| **Filter** | Drop items that don't match | Conditional branching |
+| **Image Generator** | Turns a description into a picture | "Sunset over mountains" → an image |
+| **Agent** | Works out the steps for a task and carries them out | "Summarize this document" → an organized summary |
+| **TextToSpeech** | Reads text aloud | A blog post → an audio file |
+| **Filter** | Throws away items that don't match a rule | Keep only the good results |
 
-Each node has inputs (left), outputs (right), and settings (right panel when selected).
+Every node takes things in on its left side, sends results out its right side,
+and has settings that appear in the panel on the right when you click it.
 
 ### Workflows
 
-A **workflow** is connected nodes. When you run it, inputs enter on the left, each node executes when its inputs are ready, results stream into preview and output nodes on the right.
+A **workflow** is a set of nodes joined by lines. When you run it, your input
+enters on the left, each node starts as soon as everything it needs has arrived,
+and results appear on the right as they are produced.
 
-Examples:
-- Prompt → image model → save
-- PDF → chunk → index → search → answer
-- Story → characters → portraits → video
+Examples of what a workflow can be:
 
-Workflows are the automation layer. Use them when you want a repeatable pipeline: generate media, transform files, call models, index documents, or prepare assets for another editor surface.
+- A description, into an image model, saved as a file.
+- A PDF, split into pieces, filed away, then searched to answer a question.
+- A story, turned into character descriptions, then portraits, then a video.
+
+Reach for a workflow when you want to do the same thing repeatedly: produce
+media, convert files, ask a model something, index documents, or prepare
+material for one of the other editors below.
 
 ### Connections
 
-Lines between ports. Types are checked — image outputs only connect to image inputs. Drag from an output port to an input port. Hover to inspect data in flight.
+The lines between nodes. Drag from a node's output on the right to another
+node's input on the left. NodeTool checks that the two ends match, so an image
+output only connects to an input that accepts images and you can't wire
+something nonsensical. Hover over a line to see what is passing through it.
 
 ### Assets
 
-An **asset** is a stored file: image, video, audio, PDF, text file, 3D model, or any other media a node can read or write. Assets live in the Asset Explorer and can be reused across workflows, sketches, timelines, and chats.
+An **asset** is any file NodeTool stores for you: an image, video, audio clip,
+PDF, text file, 3D model, or anything else a node can read or write. Assets live
+in the Asset Explorer and can be used again in any workflow, sketch, timeline,
+or chat.
 
-Assets are the shared material between surfaces:
+Assets are the common currency between the different editors:
 
-- Drop an image asset onto the workflow canvas to create an image input.
-- Save a workflow output as an asset so you can use it later.
-- Drag video, audio, or image assets onto a timeline as clips.
-- Open an image asset in the Sketch Editor for painting, masking, or layered edits.
-- Put document assets in collections for indexing and RAG.
+- Drag an image asset onto a workflow and it becomes an input.
+- Save a workflow's result as an asset to use later.
+- Drag video, audio, or images onto a timeline to become clips.
+- Open an image asset in the Sketch Editor to paint on it.
+- Group document assets into a collection so an AI can search them.
 
 ### Sketches
 
-A **sketch** is a layered image document. It is for painting, masking, retouching, compositing, and generating image layers in place.
+A **sketch** is an image made of stacked layers, the way Photoshop or GIMP work.
+Use it to paint, hide parts of an image, retouch, combine images, or have AI
+generate a layer in place.
 
-Sketches sit between manual editing and workflow automation:
+A sketch sits between editing by hand and automating with a workflow:
 
-- Start with a blank canvas or open an existing image asset.
-- Paint or build up layers by hand.
-- Bind a layer to an image workflow so it can regenerate when inputs change.
-- Render the sketch back into an image asset.
-- Use the rendered image in a workflow or timeline.
+- Start from a blank page or an image you already have.
+- Paint, or build the picture up in layers.
+- Attach a layer to an image workflow so it regenerates when its inputs change.
+- Flatten the sketch back into an ordinary image asset.
+- Use that image in a workflow or a timeline.
 
 ### Timelines
 
-A **timeline** is a multi-track media sequence. It holds clips arranged over time: video, audio, still images, overlays, and generated clips.
+A **timeline** arranges media over time on parallel tracks, the way a video
+editor does. It holds video, audio, still images, overlays, and clips generated
+by AI.
 
-Timelines are where outputs become finished media:
+Timelines are where results become finished media:
 
-- Drag existing assets into tracks as imported clips.
-- Add a generated clip backed by a workflow.
-- Trim, split, reorder, and layer clips.
-- Regenerate stale generated clips when the bound workflow or parameters change.
-- Export the sequence to a video asset.
+- Drag existing assets onto tracks.
+- Add a clip that is produced by a workflow.
+- Trim, split, reorder, and stack clips.
+- Regenerate a generated clip after you change its settings.
+- Export the whole sequence as a video asset.
 
 ### Agents
 
-An agent node takes a natural-language goal, breaks it into steps, and uses tools (web search, files, code) to finish. Use it when the path isn't fixed.
+An **agent** node takes a goal written in plain English, works out the steps
+itself, and uses tools such as web search, file access, or running code to get
+there. Use one when you can describe the outcome but not the exact steps. A
+normal node does one fixed thing; an agent decides what to do.
 
 ### Mini-Apps
 
-An app of its own: a form or dashboard that runs one or more workflows, with the graphs hidden. Created and opened from the Apps panel. Share with people who shouldn't have to read a node graph. See [Mini Apps](mini-apps.md).
+A **Mini-App** is a form or dashboard built on top of one or more workflows,
+with the nodes and lines hidden. Create and open them from the Apps panel. Give
+one to someone who should never have to look at a canvas. See
+[Mini Apps](mini-apps.md).
 
 ---
 
 ## How everything fits together
 
-NodeTool has one common loop:
+Most work in NodeTool follows one loop:
 
-1. **Collect or create assets.** Upload files, generate outputs from workflows, paint sketches, or export timelines.
-2. **Build workflows around them.** Workflows read assets, call models, transform media, and write new assets.
-3. **Edit the result in a surface built for the medium.** Use sketches for layered still images and timelines for time-based media.
-4. **Feed the edited result back into workflows.** A rendered sketch or exported timeline is just another asset.
-5. **Share the workflow or final output.** Keep the graph for repeatable work, expose it as a Mini-App, or publish the exported asset.
+1. **Get some material.** Upload files, produce them with a workflow, paint a
+   sketch, or export a timeline. All of it becomes assets.
+2. **Build a workflow around them.** It reads assets, calls models, converts
+   media, and writes new assets.
+3. **Polish the result in the right editor.** Sketches for still images,
+   timelines for anything with a duration.
+4. **Feed the polished result back in.** A flattened sketch or an exported video
+   is just another asset a workflow can read.
+5. **Share it.** Keep the workflow to run again, wrap it as a Mini-App, or
+   publish the finished file.
 
-The surfaces are separate because they solve different editing problems, but they share the same asset store and model/provider system.
+The editors are separate because painting an image and cutting a video are
+different problems, but they share one pool of assets and one set of AI services.
 
 {% mermaid %}
 graph LR
@@ -118,68 +156,76 @@ graph LR
     B --> F[Mini-App]
 {% endmermaid %}
 
-### Example: make a short product video
+### Worked example: a short product video
 
-1. Upload product photos as assets.
-2. Use a workflow to generate copy, background images, and voiceover.
-3. Open a hero image in a sketch to mask and retouch it.
-4. Drag the image, voiceover, and generated clips into a timeline.
-5. Bind one clip to an image-to-video workflow and regenerate until it fits.
-6. Export the timeline as the final video asset.
+1. Upload your product photos as assets.
+2. Run a workflow that writes the copy, makes background images, and records a
+   voiceover.
+3. Open the main photo in a sketch to touch it up and cut out the background.
+4. Drag the image, the voiceover, and the generated clips onto a timeline.
+5. Attach one clip to an image-to-video workflow and regenerate it until it
+   looks right.
+6. Export the timeline as your finished video.
 
 ---
 
 ## Models
 
-| Type | Output | Use |
+A **model** is a trained AI you call from a node. You don't train it; you use
+it.
+
+| Kind of model | Produces | Used for |
 |------|--------|-----|
 | Image | Pictures | Posters, concept art, mockups |
 | Video | Clips | Animation, motion |
-| Audio | Sound | Narration, music, SFX |
-| Text | Tokens | Scripts, summaries, analysis |
+| Audio | Sound | Narration, music, effects |
+| Text | Words | Scripts, summaries, analysis |
 
-### Local vs. cloud
+### On your machine, or online
 
-| | Local | Cloud |
+| | On your machine | Online service |
 |--|-------|-------|
-| Cost | Free after download | Provider's price, billed to your key |
-| Where | Your machine | Provider's servers |
-| Speed | Your hardware | Provider's hardware |
-| Internet | Offline OK | Required |
-| Setup | Download (4–20 GB each) | Paste API key |
+| Cost | Free once downloaded | The provider's price, billed to your account |
+| Where it runs | Your computer | Their servers |
+| Speed | Depends on your hardware | Depends on theirs |
+| Internet | Works offline | Required |
+| To set up | Download 4-20 GB per model | Paste an API key |
 
-Mix freely. Pick the best model for the job per node.
-
----
-
-## Glossary
-
-| Term | Meaning |
-|------|---------|
-| **Workflow** | Connected nodes |
-| **Node** | One operation |
-| **Edge / connection** | Data flow between nodes |
-| **Input / output** | Entry and exit ports |
-| **Preview** | Node that displays intermediate data |
-| **Run** | Execute the graph |
-| **Asset** | Stored file used by workflows, sketches, timelines, chats, or collections |
-| **Sketch** | Layered image document for painting, masking, compositing, and image generation |
-| **Timeline** | Multi-track sequence for arranging video, audio, image, and generated clips |
-| **Clip** | Media item placed on a timeline track |
-| **Generated clip / layer** | Timeline clip or sketch layer backed by a workflow or model call |
-| **Stale** | Generated output whose inputs, prompt, or bound workflow changed since the last generation |
-| **Model** | A trained network you call from a node |
-| **Provider** | Where the model runs (local, OpenAI, FAL, …) |
+You can mix them and choose per node, so an expensive online model can handle
+the one step that needs it while the rest runs locally.
 
 ---
 
-## How a run works
+## Words you'll see
+
+| Term | What it means |
+|------|------|
+| **Workflow** | Nodes joined by lines |
+| **Node** | One box that does one job |
+| **Edge / connection** | A line carrying data between nodes |
+| **Input / output** | Where data enters and leaves a node |
+| **Preview** | A node that displays whatever reaches it, for checking your work |
+| **Run** | Execute the workflow |
+| **Asset** | A stored file used by workflows, sketches, timelines, chats, or collections |
+| **Sketch** | A layered image document for painting, masking, and combining |
+| **Timeline** | Tracks for arranging video, audio, and images over time |
+| **Clip** | One piece of media placed on a timeline track |
+| **Generated clip / layer** | A clip or layer produced by a workflow instead of imported |
+| **Stale** | A generated result whose settings changed since it was last produced |
+| **Model** | The trained AI a node calls |
+| **Provider** | Whoever runs the model: your own machine, OpenAI, FAL, and so on |
+
+---
+
+## What happens when you press Run
 
 On <kbd>Ctrl/⌘ + Enter</kbd>:
 
-1. NodeTool walks the graph for dependencies.
-2. Each node runs the moment its inputs are ready. Independent nodes run in parallel.
-3. Results stream live into preview and output nodes.
+1. NodeTool reads the lines to work out which node depends on which.
+2. Each node starts the moment its inputs have arrived. Nodes that don't depend
+   on each other run at the same time.
+3. Results appear in preview and output nodes while they are still being
+   produced, rather than only at the end.
 
 {% mermaid %}
 graph LR
@@ -190,39 +236,48 @@ graph LR
     D --> F[Preview: Text]
 {% endmermaid %}
 
-The Agent runs first; Image Generator and Text Writer then run in parallel since both depend only on the Agent.
+Here the Agent goes first. Image Generator and Text Writer both wait only on the
+Agent, so once it finishes they run side by side.
 
-The graph is a DAG — data flows one way, no cycles. The runner schedules the order.
+Data always flows one way and a workflow can never loop back on itself. That
+restriction is what lets NodeTool figure out the running order for you, so you
+never specify it.
 
 ---
 
-## For developers
+## If you write code
 
-| Component | Role |
+Everything above is also available as a TypeScript API, so you can build and run
+the same workflows from code.
+
+| Piece | What it is |
 |-----------|------|
-| **Graph** | Nodes + connections. Build with `workflow(...)`, execute with `run(...)` or `runGraph(...)` (`@nodetool-ai/dsl` `packages/dsl/src/core.ts`). |
-| **DSL** | [TypeScript DSL](developer/ts-dsl-guide.md) (`@nodetool-ai/dsl`) — typed factories for building graphs in code. |
-| **WorkflowRunner** | The runner. Schedules nodes, manages GPU, streams progress. |
-| **ProcessingContext** | Runtime — user, auth, assets, cache (`@nodetool-ai/runtime`). |
+| **Graph** | Nodes plus connections. Build one with `workflow(...)`, run it with `run(...)` or `runGraph(...)` (`@nodetool-ai/dsl`, `packages/dsl/src/core.ts`). |
+| **DSL** | The [TypeScript DSL](developer/ts-dsl-guide.md) (`@nodetool-ai/dsl`), typed factory functions for building graphs in code. |
+| **WorkflowRunner** | Schedules the nodes, manages the GPU, streams progress back. |
+| **ProcessingContext** | Everything a running node can reach: user, auth, assets, cache (`@nodetool-ai/runtime`). |
 
-### Node type resolution
+### How a node type is found
 
-A workflow references nodes by type string (`package.Namespace.Class`). The runner resolves it via:
+A saved workflow refers to nodes by a type string (`package.Namespace.Class`).
+The runner resolves it in this order:
 
-1. In-memory registry (with and without trailing `Node`)
-2. Dynamic import by type path
-3. Installed packages registry
-4. Fallback match by class name
+1. The in-memory registry, with and without a trailing `Node`
+2. A dynamic import of the type path
+3. The installed packages registry
+4. A fallback match on class name
 
-Graphs load without pre-importing every node module.
+That is why loading a graph doesn't require importing every node module first.
 
-See the [Developer Guide](developer/) and [Custom Nodes](developer/custom-nodes-guide.md).
+See the [Developer Guide](developer/) and
+[Custom Nodes](developer/custom-nodes-guide.md).
 
 ---
 
 ## Next
 
-- [Getting Started](getting-started.md)
+- [Quick Start](getting-started.md) — run something in 10 minutes
+- [Glossary](glossary.md) — single-word definitions
 - [Workflow Editor](workflow-editor.md)
 - [Asset Management](asset-management.md)
 - [Sketch Editor](sketch-editor.md)

@@ -120,8 +120,8 @@ More patterns — pipelines, data, RAG, email — in the [Cookbook]({{ '/cookboo
 
 <ol class="step-sequence">
   <li><a href="{{ '/installation' | relative_url }}">Download NodeTool</a> for macOS, Windows, or Linux.</li>
-  <li><a href="{{ '/getting-started' | relative_url }}#step-2--run-a-workflow">Open a template, press Run.</a></li>
-  <li><a href="{{ '/getting-started' | relative_url }}#step-3--edit">Edit, re-run, ship as a Mini-App.</a></li>
+  <li><a href="{{ '/getting-started' | relative_url }}#step-2--run-a-ready-made-example">Open a template, press Run.</a></li>
+  <li><a href="{{ '/getting-started' | relative_url }}#step-3--change-something">Edit, re-run, ship as a Mini-App.</a></li>
 </ol>
 
 ## Explore
