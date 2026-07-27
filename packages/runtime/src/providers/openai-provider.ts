@@ -27,12 +27,13 @@ import {
   WEB_SEARCH_TOOL_NAME
 } from "./types.js";
 
-type SharpFn = typeof import("sharp");
-type SharpModule = SharpFn | { default: SharpFn };
+type SharpModuleNs = typeof import("sharp");
+type SharpFn = SharpModuleNs["default"];
+type SharpModule = SharpModuleNs | { default: SharpFn };
 async function loadSharp(): Promise<SharpFn> {
   const mod = await importHidden<SharpModule>("sharp");
   if (!mod) throw new Error("sharp requires Node");
-  return (mod as { default?: SharpFn }).default ?? (mod as SharpFn);
+  return (mod as { default?: SharpFn }).default ?? (mod as unknown as SharpFn);
 }
 
 const log = createLogger("nodetool.runtime.providers.openai");
