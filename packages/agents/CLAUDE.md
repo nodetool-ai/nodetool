@@ -114,7 +114,7 @@ Primitive globals pass by value (no sync).
 nodetool-chat --agent
 
 # With specific provider and model
-nodetool-chat --agent --provider anthropic --model claude-sonnet-4-6
+nodetool-chat --agent --provider anthropic --model claude-sonnet-5
 
 # With workspace directory
 nodetool-chat --agent --workspace /path/to/project
@@ -150,7 +150,7 @@ const agent = new Agent({
   name: "my-agent",
   objective: "Research and summarize AI trends",
   provider,          // BaseProvider instance
-  model: "claude-sonnet-4-6",
+  model: "claude-sonnet-5",
   tools: [readFileTool, writeFileTool, searchTool],
   outputSchema: {    // Optional: structured output
     type: "object",
@@ -381,7 +381,7 @@ averages). Run it against any registered provider:
 
 ```bash
 npm run dev:nodetool -- eval graph-planner --list
-npm run dev:nodetool -- eval graph-planner -p anthropic -m claude-sonnet-4-6
+npm run dev:nodetool -- eval graph-planner -p anthropic -m claude-sonnet-5
 npm run dev:nodetool -- eval graph-planner -p ollama -m qwen-3.5:4b --cases summarize
 npm run dev:nodetool -- eval graph-planner -p openai -m gpt-5.4-mini --json --out report.json
 npm run dev:nodetool -- eval graph-planner -p anthropic -m ... --min-success 0.8  # CI gate
@@ -445,7 +445,7 @@ handler calls, so that half of the contract cannot drift.
 
 ```bash
 npm run dev:nodetool -- eval timeline-tools --list
-npm run dev:nodetool -- eval script-tools -p anthropic -m claude-sonnet-4-6
+npm run dev:nodetool -- eval script-tools -p anthropic -m claude-sonnet-5
 npm run dev:nodetool -- eval sketch-tools -p ollama -m qwen-3.5:4b --cases compose-layers
 npm run dev:nodetool -- eval model3d-tools -p openai -m gpt-5.4-mini --min-success 0.8  # CI gate
 ```
@@ -497,7 +497,7 @@ Cases + tools live in `src/evals/subtask-cases.ts`, the runner in
 
 ```bash
 npm run dev:nodetool -- eval subtask --list
-npm run dev:nodetool -- eval subtask -p anthropic -m claude-sonnet-4-6
+npm run dev:nodetool -- eval subtask -p anthropic -m claude-sonnet-5
 npm run dev:nodetool -- eval subtask -p openai -m gpt-5.4-mini --cases all-tools
 IS_SANDBOX=1 npm run dev:nodetool -- eval subtask \
   -p claude_agent_sdk -m sonnet --max-iterations 40 --no-find-model
@@ -641,7 +641,7 @@ Use separate models for planning vs execution to optimize cost/quality:
 ```typescript
 const agent = new Agent({
   model: "claude-haiku-4-5",           // Fast/cheap for step execution
-  planningModel: "claude-sonnet-4-6",  // Better for plan decomposition
+  planningModel: "claude-sonnet-5",  // Better for plan decomposition
   reasoningModel: "claude-opus-4-6",   // Best for complex reasoning
   ...
 });

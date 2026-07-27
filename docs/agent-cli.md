@@ -95,15 +95,15 @@ objective: Research the latest AI trends
 # Model configuration
 model:
   provider: openai     # AI provider
-  id: gpt-4o           # Model identifier
-  name: GPT-4o         # Display name (optional)
+  id: gpt-5.6           # Model identifier
+  name: GPT-5.6         # Display name (optional)
 
 # Planning agent (optional)
 planning_agent:
   enabled: true        # set false to plan with the main model instead
   model:
     provider: openai
-    id: gpt-4o-mini
+    id: gpt-5-mini
 
 # Available tools
 tools:
@@ -148,8 +148,8 @@ workspace:
 ```yaml
 model:
   provider: openai        # Provider name
-  id: gpt-4o              # Model ID
-  name: GPT-4o            # Display name (optional)
+  id: gpt-5.6              # Model ID
+  name: GPT-5.6            # Display name (optional)
 ```
 
 Supported providers include:
@@ -327,7 +327,7 @@ system_prompt: |
 
 ### Model Selection
 
-- **Planning model**: Use a fast, cost-effective model (`gpt-4o-mini`, a small Claude model)
+- **Planning model**: Use a fast, cost-effective model (`gpt-5-mini`, a small Claude model)
 - **Main model**: Use a stronger model for the actual reasoning
 - **Code tasks**: Models with large context windows
 
@@ -360,7 +360,7 @@ planning_agent:
   enabled: true
   model:
     provider: openai
-    id: gpt-4o-mini
+    id: gpt-5-mini
 ```
 
 ### Use a local model to avoid rate limits

@@ -58,7 +58,7 @@ story. [See all use cases →]({{ '/use-cases' | relative_url }})
 
 ## What you can do
 
-* **Mix models from every vendor** — Wire Flux next to GPT-5 next to ElevenLabs in one graph. Pick the best model per step, not per project.
+* **Mix models from every vendor** — Wire Flux next to GPT-5.6 next to ElevenLabs in one graph. Pick the best model per step, not per project.
 * **Run frontier models locally** — Ollama, MLX, and GGUF on your hardware. Works offline. Files never leave your disk.
 * **Bring your own keys** — Pay OpenAI, Anthropic, Gemini, Replicate, FAL, and ElevenLabs directly. No credit markup, no provider tax.
 * **Ship a workflow as a Mini-App** — Hide the graph, expose just inputs and outputs. Share a link, no install required.

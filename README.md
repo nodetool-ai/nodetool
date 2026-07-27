@@ -147,7 +147,7 @@ npm install -g @nodetool-ai/cli
 nodetool serve
 
 # Interactive chat with agent mode
-nodetool-chat --agent --provider anthropic --model claude-sonnet-4-6
+nodetool-chat --agent --provider anthropic --model claude-sonnet-5
 
 # Run a TypeScript DSL workflow
 nodetool workflows run my-workflow.ts

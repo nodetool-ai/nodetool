@@ -371,7 +371,7 @@ const agent = new Agent({
   name: "researcher",
   objective: "Research TypeScript ORMs and write a comparison report",
   provider: openaiProvider,
-  model: "gpt-4o",
+  model: "gpt-5.6",
   tools: [new GoogleSearchTool(), new BrowserTool(), new WriteFileTool()],
   workspace: "/tmp/research-output",
   maxSteps: 10,
@@ -398,7 +398,7 @@ const agent = new Agent({
   name: "extractor",
   objective: "Extract all email addresses from this text: ...",
   provider: openaiProvider,
-  model: "gpt-4o",
+  model: "gpt-5.6",
   tools: [],
   outputSchema: {
     type: "object",
@@ -424,7 +424,7 @@ const { emails } = agent.getResults() as { emails: string[] };
 | `name` | required | Agent identifier |
 | `objective` | required | Goal to achieve |
 | `provider` | required | LLM provider instance (`BaseProvider`) |
-| `model` | required | Model ID (e.g. `"gpt-4o"`) |
+| `model` | required | Model ID (e.g. `"gpt-5.6"`) |
 | `planningModel` | same as `model` | Alternative model for the planning phase |
 | `reasoningModel` | same as `model` | Alternative model for reasoning-heavy steps |
 | `tools` | `[]` | Array of `Tool` instances |

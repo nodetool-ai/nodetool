@@ -32,7 +32,7 @@ is optional for development.
 
 ```json
 {
-  "model": "gpt-4",
+  "model": "gpt-5.6",
   "messages": [
     {"role": "user", "content": "Hello, how are you?"}
   ],
@@ -53,7 +53,7 @@ client = openai.OpenAI(
 )
 
 response = client.chat.completions.create(
-    model="gpt-4",
+    model="gpt-5.6",
     messages=[
         {"role": "user", "content": "Hello, how are you?"}
     ],
@@ -98,7 +98,7 @@ const socket = new WebSocket("ws://localhost:7777/ws?api_key=YOUR_KEY");
 const message = {
   role: "user",
   content: "Hello world",
-  model: "gpt-3.5-turbo" // or any supported model
+  model: "gpt-5-mini" // or any supported model
 };
 
 socket.onmessage = async (event) => {

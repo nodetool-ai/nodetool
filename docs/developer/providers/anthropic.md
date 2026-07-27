@@ -73,8 +73,10 @@ This shape is not valid for every current model. The provider uses adaptive
 thinking for models that require it. Anthropic's
 [extended thinking guide](https://platform.claude.com/docs/en/build-with-claude/extended-thinking)
 requires adaptive configuration for Claude Fable 5, Claude Mythos 5 and
-Preview, Claude Opus 4.8 and 4.7, and Claude Sonnet 5. Sonnet 5 enables adaptive
-thinking by default; Fable and Mythos do not allow thinking to be disabled.
+Preview, Claude Opus 5, Claude Opus 4.8 and 4.7, and Claude Sonnet 5. Opus 5 and
+Sonnet 5 enable adaptive thinking by default; Opus 5 only accepts disabled
+thinking at effort `high` or lower, and Fable and Mythos do not allow thinking to
+be disabled at all.
 Manual `budget_tokens` is deprecated but still accepted for Claude Opus 4.6 and
 Claude Sonnet 4.6. Claude Haiku 4.5 also accepts manual thinking. Manual budgets
 must be at least 1,024 tokens and less than `max_tokens`.

@@ -9,7 +9,7 @@ system_prompt: |
 
 model:
   provider: openai
-  id: gpt-4o-mini
+  id: gpt-5-mini
 
 planning_agent:
   enabled: true
