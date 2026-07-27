@@ -42,7 +42,7 @@ export interface ConnectedToolTopBarProps {
   /** Compact host actions rendered inline at the trailing edge. */
   headerActions?: React.ReactNode;
   /** Host actions appended to the bar's overflow menu. */
-  menuItems?: (close: () => void) => React.ReactNode;
+  menuItems?: (close: () => void) => React.ReactNode[];
 }
 
 export const ConnectedToolTopBar = memo(function ConnectedToolTopBar(

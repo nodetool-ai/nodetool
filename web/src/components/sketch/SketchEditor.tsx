@@ -194,8 +194,9 @@ export interface SketchEditorProps {
    * buttons — the bar shares its row with the tool settings. */
   headerActions?: React.ReactNode;
   /** Document actions appended to the tool bar's overflow menu. Receives the
-   * menu's close callback. */
-  menuItems?: (close: () => void) => React.ReactNode;
+   * menu's close callback, and returns an array — MUI's Menu rejects a
+   * Fragment child. */
+  menuItems?: (close: () => void) => React.ReactNode[];
 }
 
 const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(

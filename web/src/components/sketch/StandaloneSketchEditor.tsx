@@ -167,50 +167,51 @@ const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
     // chrome stays one slim row. "Save as Asset" opens a folder popover
     // anchored to its own menu item, so it leaves the menu open and closes
     // both once a folder is chosen.
-    const documentMenuItems = (close: () => void) => (
-      <>
-        <EditorMenuItem
-          onClick={() => {
-            close();
-            handleSave();
-          }}
-          disabled={saving}
-          data-testid="sketch-save-document"
-        >
-          <ListItemIcon>
-            <SaveOutlinedIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>{saving ? "Saving…" : "Save"}</ListItemText>
-        </EditorMenuItem>
-        <EditorMenuItem
-          onClick={(e) => {
-            closeMenuRef.current = close;
-            setSaveAsAssetAnchor(e.currentTarget);
-          }}
-          disabled={savingAsAsset}
-          data-testid="sketch-save-as-asset"
-        >
-          <ListItemIcon>
-            <AddPhotoAlternateOutlinedIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>
-            {savingAsAsset ? "Saving…" : "Save as Asset"}
-          </ListItemText>
-        </EditorMenuItem>
-        <EditorMenuItem
-          onClick={() => {
-            close();
-            handleExportPng();
-          }}
-          data-testid="sketch-export-png"
-        >
-          <ListItemIcon>
-            <FileDownloadOutlinedIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Export PNG</ListItemText>
-        </EditorMenuItem>
-      </>
-    );
+    const documentMenuItems = (close: () => void) => [
+      <EditorMenuItem
+        key="save"
+        onClick={() => {
+          close();
+          handleSave();
+        }}
+        disabled={saving}
+        data-testid="sketch-save-document"
+      >
+        <ListItemIcon>
+          <SaveOutlinedIcon fontSize="small" />
+        </ListItemIcon>
+        <ListItemText>{saving ? "Saving…" : "Save"}</ListItemText>
+      </EditorMenuItem>,
+      <EditorMenuItem
+        key="save-as-asset"
+        onClick={(e) => {
+          closeMenuRef.current = close;
+          setSaveAsAssetAnchor(e.currentTarget);
+        }}
+        disabled={savingAsAsset}
+        data-testid="sketch-save-as-asset"
+      >
+        <ListItemIcon>
+          <AddPhotoAlternateOutlinedIcon fontSize="small" />
+        </ListItemIcon>
+        <ListItemText>
+          {savingAsAsset ? "Saving…" : "Save as Asset"}
+        </ListItemText>
+      </EditorMenuItem>,
+      <EditorMenuItem
+        key="export-png"
+        onClick={() => {
+          close();
+          handleExportPng();
+        }}
+        data-testid="sketch-export-png"
+      >
+        <ListItemIcon>
+          <FileDownloadOutlinedIcon fontSize="small" />
+        </ListItemIcon>
+        <ListItemText>Export PNG</ListItemText>
+      </EditorMenuItem>
+    ];
 
     // Show the spinner until we've captured a seed for this documentId.
     // Using `seed` (not the live query state) keeps the canvas mounted across

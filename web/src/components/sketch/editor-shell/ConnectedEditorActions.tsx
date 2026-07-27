@@ -41,8 +41,9 @@ export interface ConnectedEditorActionsProps {
   inlineActions?: React.ReactNode;
   /** Host-supplied menu entries appended to the overflow menu. Receives the
    * menu's close callback so an item can dismiss it (or keep it open while a
-   * follow-up popover of its own is anchored inside). */
-  menuItems?: (close: () => void) => React.ReactNode;
+   * follow-up popover of its own is anchored inside). Returns an array — MUI's
+   * Menu rejects a Fragment child. */
+  menuItems?: (close: () => void) => React.ReactNode[];
 }
 
 /** Zoom the document to fit the canvas region, with a small margin. */
@@ -188,7 +189,7 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
           <ListItemText>Hide panels</ListItemText>
         </EditorMenuItem>
 
-        {menuItems ? <Divider /> : null}
+        {menuItems ? <Divider key="host-divider" /> : null}
         {menuItems?.(closeMenu)}
       </EditorMenu>
     </FlexRow>
