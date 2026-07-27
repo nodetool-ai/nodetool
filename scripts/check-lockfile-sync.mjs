@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-// Guards the two ways the root lockfile drifts out of sync with the workspace
-// manifests. Both broke the release build (run 30198644988): a Dependabot PR
-// bumped electron/package.json and regenerated a *nested* electron/package-lock
-// that npm never reads in a workspace install, so the root package-lock.json
-// kept the old resolutions and every release job died in `npm ci` with EUSAGE.
+// Guards the ways a lockfile drifts out of sync with the manifests it resolves.
+// Both root failures below broke the release build (run 30198644988): a
+// Dependabot PR bumped electron/package.json and regenerated a *nested*
+// electron/package-lock that npm never reads in a workspace install, so the root
+// package-lock.json kept the old resolutions and every release job died in
+// `npm ci` with EUSAGE.
 //
 // PR CI missed it because setup-build caches node_modules on the root lockfile
 // hash: a PR that touches no root lockfile hits the cache and skips `npm ci`
@@ -14,6 +15,16 @@
 //      makes tooling (Dependabot, humans) update the wrong file.
 //   2. The root lock satisfies every workspace manifest, verified with the same
 //      resolver the release build uses: `npm ci --dry-run`.
+//   3. The same resolver check for `mobile/`, which is deliberately not a root
+//      workspace and carries its own real lockfile. It has the identical
+//      cache-skip hole (quality-checks.yml keys mobile/node_modules on
+//      `hashFiles('mobile/package-lock.json')`, so a PR that edits only
+//      mobile/package.json hits the cache and never runs `npm ci`), plus a
+//      failure mode the root does not have: an unresolvable peer tree. Run
+//      30246386256 bumped `@react-native/jest-preset` to 0.86.1 against
+//      react-native's `peerOptional @react-native/jest-preset@"0.85.3"` and
+//      every job that installs mobile deps died on ERESOLVE. `npm ci --dry-run`
+//      catches both in seconds, before the expensive legs run.
 
 import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
@@ -57,23 +68,45 @@ async function checkNoNestedLockfiles(dirs) {
   return false;
 }
 
-function checkRootLockInSync() {
+/**
+ * Resolve `dir`'s lockfile against its manifests with the same resolver the
+ * release build uses. Catches both a stale lock and a tree npm cannot resolve
+ * at all (conflicting peer ranges).
+ */
+function checkLockResolves(dir, { label, remedy }) {
   try {
     execFileSync("npm", ["ci", "--dry-run", "--ignore-scripts", "--no-audit", "--no-fund"], {
-      cwd: repoRoot,
+      cwd: join(repoRoot, dir),
       stdio: ["ignore", "ignore", "pipe"],
       encoding: "utf8"
     });
     return true;
   } catch (error) {
-    console.error("Root package-lock.json is out of sync with the workspace manifests.\n");
+    console.error(`${label}\n`);
     console.error(error.stderr?.trim() || error.message);
-    console.error("\nRun `npm install` at the repo root and commit the updated package-lock.json.");
+    console.error(`\n${remedy}`);
     return false;
   }
 }
 
 const dirs = await workspaceDirs();
-const ok = (await checkNoNestedLockfiles(dirs)) && checkRootLockInSync();
-if (!ok) process.exit(1);
-console.log(`Lockfile check passed (${dirs.length} workspaces, root lock in sync).`);
+// Every check runs — one failure must not hide another.
+const results = [
+  await checkNoNestedLockfiles(dirs),
+  checkLockResolves(".", {
+    label: "Root package-lock.json does not resolve against the workspace manifests.",
+    remedy: "Run `npm install` at the repo root and commit the updated package-lock.json."
+  }),
+  checkLockResolves("mobile", {
+    label: "mobile/package-lock.json does not resolve against mobile/package.json.",
+    remedy:
+      "If the lock is merely stale, run `npm install --prefix mobile` and commit it.\n" +
+      "If npm reported ERESOLVE, a dependency was moved out of lockstep with the\n" +
+      "Expo SDK — react-native and the @react-native/* and expo-* packages are\n" +
+      "pinned together and only move during `npx expo install --fix`."
+  })
+];
+if (results.includes(false)) process.exit(1);
+console.log(
+  `Lockfile check passed (${dirs.length} workspaces, root and mobile locks in sync).`
+);
