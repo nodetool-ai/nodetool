@@ -149,6 +149,36 @@ const styles = (theme: Theme) =>
     },
     ".footer-actions": {
       gap: getSpacingPx(SPACING.md)
+    },
+    // The 320px picker column left a phone-width dialog nothing for the tabs
+    // beside it. Stack the two sections and scroll the body instead.
+    [theme.breakpoints.down("sm")]: {
+      ".modal-content": {
+        width: "100%",
+        maxHeight: "100%",
+        borderRadius: 0,
+        border: "none"
+      },
+      ".modal-body": {
+        flexDirection: "column",
+        overflow: "auto"
+      },
+      ".picker-section": {
+        flex: "0 0 auto",
+        width: "100%",
+        borderRight: "none",
+        borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
+        padding: getSpacingPx(SPACING.lg),
+        overflow: "visible"
+      },
+      ".tabs-section": {
+        flex: "0 0 auto",
+        overflow: "visible"
+      },
+      ".tab-content": {
+        padding: getSpacingPx(SPACING.lg),
+        overflow: "visible"
+      }
     }
   });
 

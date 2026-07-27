@@ -187,6 +187,12 @@ const tableStyles = (theme: Theme) =>
     ".list-container": {
       flex: 1,
       minHeight: 0
+    },
+
+    // Hover-revealed row details are unreachable on touch — show them.
+    "@media (hover: none)": {
+      ".row .copy-btn": { opacity: 1 },
+      ".timestamp": { opacity: 1 }
     }
   });
 

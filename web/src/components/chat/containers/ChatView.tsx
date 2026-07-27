@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import type { Theme } from "@mui/material/styles";
 import { useCallback, useMemo, memo } from "react";
 import {
@@ -263,10 +264,14 @@ const ChatView = ({
     const id = threadId ?? state.currentThreadId;
     return (id && state.todosByThread[id]) || NO_TODOS;
   });
-  const showTodoSidebar = todos.length > 0;
   const effectiveThreadId = useGlobalChatStore(
     (state) => threadId ?? state.currentThreadId
   );
+  // The two rails are 280px and 300px of fixed width. Below `md` they leave
+  // the conversation itself almost no room, so they drop out entirely on
+  // phones and narrow panels.
+  const railsFit = useMediaQuery(theme.breakpoints.up("md"));
+  const showTodoSidebar = railsFit && todos.length > 0;
 
   return (
     <div className="chat-view" css={cssStyles}>
@@ -320,7 +325,7 @@ const ChatView = ({
         )}
       </div>
       {showTodoSidebar && <TodoSidebar todos={todos} />}
-      {effectiveThreadId && (
+      {railsFit && effectiveThreadId && (
         <ThreadMemorySidebar threadId={effectiveThreadId} />
       )}
     </div>
