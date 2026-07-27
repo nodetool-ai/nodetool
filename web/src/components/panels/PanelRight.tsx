@@ -6,7 +6,7 @@ import { useMediaQuery } from "@mui/material";
 import Inspector from "../Inspector";
 import { useResizeRightPanel } from "../../hooks/handlers/useResizeRightPanel";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
-import { memo, useCallback, useEffect } from "react";
+import { memo, useCallback, useEffect, useMemo } from "react";
 import isEqual from "../../utils/isEqual";
 import { NodeContext } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -161,6 +161,7 @@ const PanelRight: React.FC = () => {
     : bottomPanelVisible
       ? bottomPanelSize
       : BOTTOM_PANEL_HEADER_HEIGHT;
+  const panelRightStyles = useMemo(() => styles(theme, bottomOffset, isVisible), [theme, bottomOffset, isVisible]);
 
   const activeSubgraphTab = useSubgraphTabsStore((state) =>
     state.activeKey
@@ -227,7 +228,7 @@ const PanelRight: React.FC = () => {
         <InspectorVisibilitySync activeNodeStore={activeNodeStore} />
       )}
       <div
-        css={styles(theme, bottomOffset, isVisible)}
+        css={panelRightStyles}
         className="panel-right-container"
         aria-hidden={!isVisible}
       >

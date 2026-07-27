@@ -48,16 +48,24 @@ npm run electron:dev # Electron dev (auto-rebuilds native modules)
 - Python 3.11+ with conda (optional, for Python nodes)
 
 ```bash
-# First-time setup
+# First-time setup — start.sh does all of it, then starts the server
+./start.sh           # API on :7777   (full | web | check | doctor)
+
+# Or by hand:
 nvm use              # Reads .nvmrc, activates Node 22.22.1
 npm install          # Install all workspace dependencies
 npm run build:packages  # Build backend packages
 ```
 
+In Claude Code **web** sessions, `.claude/hooks/session-start.sh` installs
+dependencies before the session starts, so `npm run typecheck`/`lint`/`test`
+work immediately. Slash commands: `/serve`, `/verify`, `/onboard`. See
+[.claude/README.md](.claude/README.md).
+
 ## Architecture
 
 ```
-packages/           # 55 npm workspace packages (TypeScript backend)
+packages/           # 58 npm workspace packages (TypeScript backend)
   protocol/         # Shared message types — base dependency for everything
   config/           # Configuration loading, logging
   security/         # Secret storage, encryption
@@ -74,11 +82,16 @@ packages/           # 55 npm workspace packages (TypeScript backend)
   websocket/        # Fastify HTTP + WebSocket server (main API, port 7777)
   cli/              # nodetool CLI
   vectorstore/      # SQLite-vec for RAG
+  app-runtime/      # Mini-app document, bindings, instance state, streaming fold
+                    # (shared by web, the CLI `app debug` harness, and mobile)
+  model-pricing/    # Unit price for a selected FAL/kie model (web + runner)
   ...
 
 web/                # React 19 + Vite + MUI + Zustand + ReactFlow
 electron/           # Electron 39 desktop app
-mobile/             # React Native / Expo
+mobile/             # React Native / Expo (documents open one-per-screen, no tabs;
+                    # edits come through the chat agent's ui_* tools —
+                    # see mobile/ARCHITECTURE.md § Documents)
 demo/               # Remotion harness for product-demo videos (replays recorded
                     # graph-UI "casts"; see demo/README.md and web/src/demo/)
 ```
@@ -142,7 +155,7 @@ npm run typecheck   # Must pass before committing
 - **Packaged Electron backend flattens file paths**. esbuild bundles the backend into one `server.mjs`, so anything resolved relative to `import.meta.url` (provider `*-manifest.json`, examples, `package://` assets) lives elsewhere in the packaged app than in dev. Data files a package loads at runtime must be declared in `PACKAGE_RUNTIME_ASSETS` (`packages/config/src/package-asset-registry.ts`) and loaded via `loadPackageAssetJson` from `@nodetool-ai/config` — the registry drives staging (`scripts/bundle-backend.mjs`) and artifact verification (`scripts/verify-backend-bundle.mjs`), and unregistered loads throw in dev. See [electron/src/AGENTS.md § Packaged file layout](electron/src/AGENTS.md).
 - **WebSocket messages use MsgPack**, not JSON. Use the existing serialization helpers.
 - **Don't create new WebSocket instances** — use `GlobalWebSocketManager` singleton.
-- **Mobile typecheck** requires building protocol first: `cd packages/protocol && npm run build`.
+- **Mobile typecheck** requires building protocol first: `cd packages/protocol && npm run build`. The one shared package mobile compiles from **source** (no build) is `@nodetool-ai/app-runtime`, wired in `mobile/metro.config.js`, `tsconfig.json` and `jest.config.js` — all three must agree.
 - **`mobile/` is intentionally NOT a root workspace** (it has its own Expo/React Native dependency tree that must not be hoisted). Its scripts use `npm --prefix mobile …`, not `npm --workspace=mobile …` — the latter will fail. Do not "standardize" these to `--workspace`.
 - **`npm install` fails in sandboxed/proxied environments** (CI sandboxes, Claude Code on the web): `keytar` needs `apt-get install -y libsecret-1-dev` first; `electron` and `onnxruntime-node` download binaries in postinstall, which proxies can 403 (`ELECTRON_SKIP_BINARY_DOWNLOAD=1` covers Electron; onnxruntime has no skip var). Any postinstall failure rolls back the whole `node_modules` tree. For lint/typecheck-only work, `npm install --ignore-scripts` sidesteps all of it. Details: [AGENTS.md § Install in sandboxed / proxied environments](AGENTS.md#install-in-sandboxed--proxied-environments).
 - **Native module install is a single command**: a clean checkout builds with `npm ci` (or `npm install`) alone — no manual follow-up. The native `better-sqlite3` rebuild runs from the **root** `postinstall` (`electron/scripts/rebuild-native.mjs`), which fires *after* npm has fully reified the tree. It deliberately does **not** run from the electron workspace's own postinstall: that fired mid-reify and raced npm's atomic renames of node-gyp's deps (`tinyglobby`), giving intermittent `Cannot find module 'tinyglobby'` failures. If you ever hit a `NODE_MODULE_VERSION` mismatch, force a rebuild with `npm run rebuild:native` (root) or `npm --prefix electron run rebuild:native`.
@@ -167,7 +180,7 @@ npm run chat -- [flags]
 ```bash
 # Interactive agent chat
 npm run dev:chat -- --agent --provider openai --model gpt-5.4-mini
-npm run dev:chat -- --agent --provider anthropic --model claude-sonnet-4-6
+npm run dev:chat -- --agent --provider anthropic --model claude-sonnet-5
 
 # Piped input (non-interactive)
 echo "research 5 AI topics" | npm run dev:chat -- --agent --provider openai --model gpt-5.4-mini
@@ -185,7 +198,7 @@ Chat flags:
                          moonshot, minimax, cerebras, together, openrouter,
                          huggingface, replicate, kie, aki, ollama, lmstudio
                          (any registry provider id also works, e.g. vllm, llama_cpp)
--m, --model <id>         Model ID (e.g. claude-sonnet-4-6, gpt-5.4-mini)
+-m, --model <id>         Model ID (e.g. claude-sonnet-5, gpt-5.4-mini)
 -w, --workspace <path>   Workspace directory for file tools
 --tools <list>           Comma-separated tool names
 -u, --url <ws-url>       Connect to WebSocket server instead of local provider
@@ -296,38 +309,69 @@ graph overview in one call). The browser surface is exposed in `web/` as
 
 ### nodetool app debug (App-Builder Debug Harness)
 
-Runs an app-builder mini app (the Puck document on `workflow.app_doc`)
-**headlessly** for agent debugging: validates every widget binding against the
-workflow's inputs/outputs/variables, simulates the app the way the web runtime
-does (seed input defaults, apply params, click the Run button or a scripted
-interaction sequence), executes the workflow on the kernel runner, folds the
-streamed messages into the app's reactive values, and reports each widget's
-final state plus a verdict. Accepts a workflow id or a JSON file carrying
-`graph` + `app_doc`.
+Runs a mini app **headlessly** for agent debugging: validates every widget
+binding against the workflow's inputs/outputs/variables, simulates the app the
+way the web runtime does (seed input defaults, apply params, click the Run
+button or a scripted interaction sequence), executes the workflow on the kernel
+runner, folds the streamed messages into the app's reactive values, and reports
+each widget's final state plus a verdict.
+
+Three target kinds, all producing the same report: an **application id** (read
+straight from the applications table, no server), an **ApplicationBundle JSON
+file** (the app plus the full graphs of the workflows it binds — operations
+reference bundle keys, so it runs without touching the database), and — legacy
+— a **workflow id or workflow JSON file** carrying `graph` + `app_doc`, whose
+document is lifted onto the host workflow.
 
 ```bash
-npm run dev:nodetool -- app debug <workflow_id>
+npm run dev:nodetool -- app debug <application_id>
+npm run dev:nodetool -- app debug my.app.json          # ApplicationBundle file
 npm run dev:nodetool -- app debug workflow.json --params '{"prompt":"hi"}'
 npm run dev:nodetool -- app debug <id> --no-run       # static wiring check only
 npm run dev:nodetool -- app debug <id> --json         # full AppDebugReport for agents
 
 # Scripted interactions: set values, change inputs, click widgets (by
-# component id, unique type, or unique label)
+# component id, unique type, or unique label), and run or cancel an
+# operation by id
 npm run dev:nodetool -- app debug <id> --interact \
   '[{"set":{"key":"prompt","value":"hi"}},{"click":"Button-1"}]'
+npm run dev:nodetool -- app debug <id> --interact \
+  '[{"set":{"key":"tone","value":"terse","operationId":"draft"}},{"run":"draft"},{"cancel":"draft"}]'
 ```
+
+The harness runs **every** declared operation, not just the first: each resolves
+its own graph, and state is keyed per operation.
 
 The verdict catches app-level failures a workflow-only run can't: bindings that
 reference missing inputs/outputs/variables, apps with no run trigger, and
-display widgets that never receive a value from a completed run. The bundle
-(`nodetool-debug/app-<id>-<ts>/`) contains `report.json`/`report.md`,
-`app.json` (the app document), `workflow.json`, and
-`server/run-N.messages.jsonl` per triggered run. Harness code:
-`packages/cli/src/app-debug/`.
+display widgets that never receive a value from a completed run. It also catches
+what the operation/variable layer makes mis-configurable — an output mapped to
+an undeclared variable, a mapping keyed on a node the workflow lacks, an event
+naming an operation the document never declares, a widget showing execution
+state of an operation nothing can run, and an elapsed `timeoutMs`. A
+`persist: true` variable that is `instance`-scoped warns rather than being
+silently downgraded.
 
-Every shipped workflow template carries a generated mini app on its `app_doc`
-(`node scripts/generate-template-apps.mjs` — curation table + Output-node
-augmentation + preview bundles in `web/public/app-preview/`). Marketing
+The bundle (`nodetool-debug/app-<id>-<ts>/`) contains `report.json`/`report.md`,
+`app.json` (the app document), `workflow.json`, and
+`server/run-N.messages.jsonl` per triggered run. The report carries final
+variable values, the activity label stream, and each invocation's policy
+decision, so an agent can see why a run was replaced, queued, or timed out.
+Harness code: `packages/cli/src/app-debug/`.
+
+Not simulated headlessly: `visibleWhen`/`disabledWhen`/`format`, so a widget
+hidden by a condition is reported as if visible; and `from: "resource"` params,
+which have no provider outside the browser.
+
+The shipped example apps are curated `ApplicationBundle` files in
+`packages/base-nodes/nodetool/examples/apps/`, built from the spec in
+`scripts/example-apps/apps.mjs` by `node scripts/build-example-apps.mjs`. The
+build resolves every workflow, input, and output by name against the shipped
+template graphs, validates each bundle with `nodetool app debug --no-run`, and
+writes the preview bundles in `web/public/app-preview/`. Example workflows
+carry no `app_doc`. The server lists them at `GET /api/applications/examples`
+and installs one with `POST /api/applications/examples/:slug/install`, which
+goes through the normal bundle import. Marketing
 screenshots come from `web/scripts/screenshot-app-previews.mjs` (renders
 `web/app-preview.html` headlessly → `marketing/public/apps/<slug>.png`), and
 the `/apps/*` landing pages are generated by
@@ -391,7 +435,7 @@ and cost. Cases and expectations live in
 
 ```bash
 npm run dev:nodetool -- eval graph-planner --list                     # show cases
-npm run dev:nodetool -- eval graph-planner -p anthropic -m claude-sonnet-4-6
+npm run dev:nodetool -- eval graph-planner -p anthropic -m claude-sonnet-5
 npm run dev:nodetool -- eval graph-planner -p ollama -m qwen-3.5:4b --cases summarize,branch-both-paths
 npm run dev:nodetool -- eval graph-planner -p openai -m gpt-5.4-mini --json --out report.json
 npm run dev:nodetool -- eval graph-planner -p anthropic -m ... --min-success 0.8   # non-zero exit below threshold
@@ -407,7 +451,7 @@ metrics, and `--min-success` CI gate as `graph-planner`. Details:
 
 ```bash
 npm run dev:nodetool -- eval timeline-tools --list
-npm run dev:nodetool -- eval script-tools -p anthropic -m claude-sonnet-4-6
+npm run dev:nodetool -- eval script-tools -p anthropic -m claude-sonnet-5
 npm run dev:nodetool -- eval sketch-tools -p ollama -m qwen-3.5:4b --min-success 0.8
 ```
 
@@ -427,7 +471,9 @@ npm run dev:nodetool -- affected --json
 
 ### nodetool workflows
 
-Requires a running server (localhost:7777 or `--api-url`).
+Reads and writes the local database directly — no running server needed. Pass
+`--api-url <url>` (or set `NODETOOL_API_URL`) to target a remote server instead.
+The same applies to `jobs`, `assets`, and `models list/ollama/huggingface`.
 
 ```bash
 npm run dev:nodetool -- workflows list                          # List all workflows
@@ -512,6 +558,20 @@ npm run dev:nodetool -- costs by-provider                       # Grouped by pro
 npm run dev:nodetool -- costs by-model --provider openai        # Grouped by model
 ```
 
+### nodetool storage
+
+Asset objects live at `<userId>/<assetId>.<ext>` so the owner is the leading
+path segment — the boundary a Supabase RLS policy or S3 bucket policy can
+enforce on the object itself. `migrate-keys` moves objects written under the
+older flat layout. Required on Supabase/S3 when upgrading; the local file
+backend falls back to the flat key on a miss.
+
+```bash
+npm run dev:nodetool -- storage migrate-keys --dry-run     # Report, write nothing
+npm run dev:nodetool -- storage migrate-keys               # Move them
+npm run dev:nodetool -- storage migrate-keys --user-id <id> --json
+```
+
 ### nodetool secrets
 
 ```bash
@@ -532,7 +592,10 @@ npm run dev:nodetool -- info --json
 
 ### Global Options
 
-Most server-calling commands accept `--api-url <url>` (default: `http://localhost:7777`, env: `NODETOOL_API_URL`).
+The read commands (`workflows`, `jobs`, `assets`, `models`) hit the local
+database, providers, and caches by default — no server required. Pass
+`--api-url <url>` (env: `NODETOOL_API_URL`) to route through a remote server
+instead.
 
 ### Observing Agent Execution
 
@@ -598,7 +661,7 @@ Each line in the file is one span:
   "status": { "code": "OK" },
   "attributes": {
     "agent.objective": "...", "agent.kind": "plan",
-    "agent.provider": "anthropic", "agent.model": "claude-sonnet-4-6",
+    "agent.provider": "anthropic", "agent.model": "claude-sonnet-5",
     "gen_ai.usage.input_tokens": 150, "gen_ai.usage.output_tokens": 80
   },
   "events": [],

@@ -1,0 +1,669 @@
+{
+  "slug": "meeting-room",
+  "name": "Meeting Room",
+  "emoji": "🎧",
+  "description": "Transcribe a recording, summarize it into notes and action items, then ask follow-up questions of the transcript on a local model.",
+  "tagline": "Recording in, minutes out — then question the transcript.",
+  "note": "🎙️ Transcription uses FAL Whisper and the summary uses OpenAI. The follow-up questions run on a local Ollama model, so they cost nothing.",
+  "featured": true,
+  "image": "/app-preview/img/meeting-room.jpg",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {
+          "title": "Meeting Room"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "🎧 Meeting Room",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "Recording in, minutes out — then question the transcript."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "🎙️ Transcription uses FAL Whisper and the summary uses OpenAI. The follow-up questions run on a local Ollama model, so they cost nothing."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-the-recording",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-recording",
+                  "title": "The recording",
+                  "content": [
+                    {
+                      "type": "AudioInput",
+                      "props": {
+                        "id": "in-transcribe-audio",
+                        "binding": "op:transcribe/in:7",
+                        "label": "Meeting recording",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "operationId": "transcribe",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-transcribe",
+                        "label": "Transcribe",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "transcribe",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-recording-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-transcribe",
+                        "binding": "op:transcribe/exec#progress",
+                        "label": "Transcribing…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-transcript",
+                        "text": "Transcript",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-transcript",
+                        "binding": "var:transcript",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-the-minutes",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-minutes",
+                  "title": "The minutes",
+                  "content": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-summarize",
+                        "label": "Summarize the meeting",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "summarize",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-minutes-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-summarize",
+                        "binding": "op:summarize/exec#progress",
+                        "label": "Writing the minutes…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-summarize-summary",
+                        "text": "Meeting notes",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-summarize-summary",
+                        "binding": "op:summarize/out:summary_output",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-summarize-action-items",
+                        "text": "Action items",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Table",
+                      "props": {
+                        "id": "out-summarize-action-items",
+                        "binding": "op:summarize/out:action_items_output"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-summarize-transcript",
+                        "text": "Transcript used",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-summarize-transcript",
+                        "binding": "op:summarize/out:transcript_output",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-ask-the-transcript",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-ask-the-transcript",
+                  "title": "Ask the transcript",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-ask-question",
+                        "binding": "op:ask/in:question_input",
+                        "label": "Your question",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "in-ask-tone",
+                        "binding": "op:ask/in:tone_input",
+                        "label": "Answer tone",
+                        "options": [
+                          {
+                            "value": "concise and neutral"
+                          },
+                          {
+                            "value": "friendly and warm"
+                          },
+                          {
+                            "value": "professional"
+                          },
+                          {
+                            "value": "detailed and thorough"
+                          },
+                          {
+                            "value": "plain and simple"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-ask",
+                        "label": "Ask locally",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "ask",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-ask-the-transcript-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-ask",
+                        "binding": "op:ask/exec#progress",
+                        "label": "Thinking locally…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-ask-answer",
+                        "text": "Answer",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-ask-answer",
+                        "binding": "op:ask/out:output-answer",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "transcribe",
+        "name": "Transcribe",
+        "workflowId": "transcribe",
+        "inputs": {},
+        "outputs": {
+          "output-transcript": {
+            "to": "variable",
+            "variableId": "transcript"
+          }
+        },
+        "policy": "replace"
+      },
+      {
+        "id": "summarize",
+        "name": "Summarize",
+        "workflowId": "summarize",
+        "inputs": {
+          "transcript_input": {
+            "from": "variable",
+            "variableId": "transcript"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      },
+      {
+        "id": "ask",
+        "name": "Ask",
+        "workflowId": "assistant",
+        "inputs": {
+          "document_input": {
+            "from": "variable",
+            "variableId": "transcript"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "transcript",
+        "name": "Transcript",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "",
+        "scope": "instance",
+        "persist": false
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "transcribe",
+      "name": "Transcribe Audio",
+      "graph": {
+        "nodes": [
+          {
+            "id": "7",
+            "parent_id": null,
+            "type": "nodetool.input.AudioInput",
+            "data": {
+              "name": "audio",
+              "description": "Audio clip with speech to transcribe (any common format)",
+              "value": {}
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 50,
+                "y": 50
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1️⃣ Audio input"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-transcript",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "transcript"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 680,
+                "y": 79
+              },
+              "width": 260,
+              "title": "3️⃣ Transcript",
+              "selectable": true
+            }
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "summarize",
+      "name": "Meeting Transcript Summarizer",
+      "graph": {
+        "nodes": [
+          {
+            "id": "recording_input",
+            "parent_id": null,
+            "type": "nodetool.input.AudioInput",
+            "data": {
+              "name": "Recording",
+              "description": "A meeting recording to transcribe. Leave empty if you paste a transcript below instead.",
+              "value": {
+                "uri": "https://app.nodetool.ai/examples/remove_silence.mp3",
+                "type": "audio"
+              }
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 50,
+                "y": 40
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "1️⃣ Recording (optional)",
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "transcript_input",
+            "parent_id": null,
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "Transcript",
+              "description": "Already have a transcript? Paste it here to skip transcription entirely.",
+              "value": "",
+              "line_mode": "multiline"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 50,
+                "y": 300
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "1️⃣ Or paste a transcript (optional)",
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "transcript_output",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "Transcript"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1100,
+                "y": 560
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "Transcript",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "summary_output",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "Summary"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1450,
+                "y": 40
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "Summary",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "action_items_output",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "Action Items"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1800,
+                "y": 300
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "Action Items",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "assistant",
+      "name": "Private Assistant",
+      "graph": {
+        "nodes": [
+          {
+            "id": "document_input",
+            "parent_id": null,
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "document",
+              "value": "Team sync — Thursday\n- Launch date moved to March 14 (was March 7) to finish the accessibility fixes.\n- Priya owns the onboarding rewrite; first draft due Monday.\n- Budget: $8k left for Q1, reserved for the usability study.\n- Open risk: the billing migration hasn't been tested on staging yet.\n- Decision: ship the mobile app in the second wave, not at launch.",
+              "description": "The private text the assistant may read — meeting notes, a doc, an email thread. This is the ONLY source the model is allowed to answer from; nothing is sent to the cloud."
+            },
+            "ui_properties": {
+              "selected": false,
+              "title": "1️⃣ Document",
+              "position": {
+                "x": 60,
+                "y": 80
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "question_input",
+            "parent_id": null,
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "question",
+              "value": "When do we launch, and what's the biggest open risk?",
+              "description": "What to ask about the document. The assistant answers only from the text above and says so when the answer isn't there."
+            },
+            "ui_properties": {
+              "selected": false,
+              "title": "2️⃣ Question",
+              "position": {
+                "x": 60,
+                "y": 360
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "tone_input",
+            "parent_id": null,
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "tone",
+              "value": "concise and neutral",
+              "description": "The answer's voice — e.g. \"concise and neutral\", \"friendly\", \"executive summary\". Parametrized so the app can expose it as a control."
+            },
+            "ui_properties": {
+              "selected": false,
+              "title": "3️⃣ Tone",
+              "position": {
+                "x": 60,
+                "y": 600
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-answer",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "answer"
+            },
+            "ui_properties": {
+              "selected": false,
+              "title": "6️⃣ Answer",
+              "position": {
+                "x": 1220,
+                "y": 220
+              },
+              "width": 300,
+              "selectable": true
+            }
+          }
+        ],
+        "edges": []
+      }
+    }
+  ],
+  "values": {
+    "var:transcript": "",
+    "op:summarize/out:summary_output": "**Decisions**\n- Ship the pricing page Friday\n- Maya owns the launch email",
+    "op:ask/in:question_input": "When do we launch, and what's the biggest open risk?",
+    "op:ask/in:tone_input": "concise and neutral",
+    "op:ask/out:output-answer": "The standup moved to **9:30am on Tuesdays**, and Priya is covering the on-call rotation next week."
+  }
+}

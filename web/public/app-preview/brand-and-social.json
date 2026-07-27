@@ -1,0 +1,997 @@
+{
+  "slug": "brand-and-social",
+  "name": "Brand & Social",
+  "emoji": "🎨",
+  "description": "Fill in your brand once — the asset kit, the thumbnail factory, and the content calendar all read the same values.",
+  "tagline": "One brand identity drives three deliverables.",
+  "note": "🔑 Needs OpenAI and FAL keys. Your brand name, audience, and voice persist between sessions.",
+  "featured": true,
+  "image": "/app-preview/img/brand-and-social.jpg",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {
+          "title": "Brand & Social"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "🎨 Brand & Social",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "One brand identity drives three deliverables."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "🔑 Needs OpenAI and FAL keys. Your brand name, audience, and voice persist between sessions."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-your-brand",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-your-brand",
+                  "title": "Your brand",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-brandname",
+                        "binding": "var:brandName",
+                        "label": "Brand name",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-audience",
+                        "binding": "var:audience",
+                        "label": "Who is it for?",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-voice",
+                        "binding": "var:voice",
+                        "label": "Brand voice",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-kit-brand-description",
+                        "binding": "op:kit/in:in_brand_description",
+                        "label": "Describe your brand",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-kit-tagline",
+                        "binding": "op:kit/in:in_tagline",
+                        "label": "Tagline",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ColorInput",
+                      "props": {
+                        "id": "in-kit-primary-color",
+                        "binding": "op:kit/in:in_primary_color",
+                        "label": "Primary color",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-kit",
+                        "label": "Generate brand assets",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "kit",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-your-brand-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-kit",
+                        "binding": "op:kit/exec#progress",
+                        "label": "Designing your assets…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-kit-social-assets",
+                        "text": "Your brand assets",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-kit-social-assets",
+                        "binding": "op:kit/out:out_assets",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-kit-brand-brief",
+                        "text": "Brand brief",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-kit-brand-brief",
+                        "binding": "op:kit/out:out_brief",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-hooks-and-thumbnails",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-hooks-and-thumbnails",
+                  "title": "Hooks & thumbnails",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-thumbnails-video-topic",
+                        "binding": "op:thumbnails/in:input_topic",
+                        "label": "What's your video about?",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "NumberInput",
+                      "props": {
+                        "id": "in-thumbnails-number-of-hooks",
+                        "binding": "op:thumbnails/in:input_count",
+                        "label": "How many hooks?",
+                        "min": 3,
+                        "max": 8,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-thumbnails",
+                        "label": "Make hooks & thumbnails",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "thumbnails",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-hooks-and-thumbnails-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-thumbnails",
+                        "binding": "op:thumbnails/exec#progress",
+                        "label": "Writing hooks & rendering thumbnails…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-thumbnails-thumbnail-gallery",
+                        "text": "Thumbnail gallery",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-thumbnails-thumbnail-gallery",
+                        "binding": "op:thumbnails/out:output_gallery",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-thumbnails-hooks",
+                        "text": "Hook ideas",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-thumbnails-hooks",
+                        "binding": "op:thumbnails/out:preview_hooks",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-thumbnails-thumbnail",
+                        "text": "Featured thumbnail",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-thumbnails-thumbnail",
+                        "binding": "op:thumbnails/out:preview_thumb",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-this-month-s-calendar",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-this-month-s-calendar",
+                  "title": "This month's calendar",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-calendar-monthly-theme",
+                        "binding": "op:calendar/in:monthly_theme",
+                        "label": "This month's theme",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "NumberInput",
+                      "props": {
+                        "id": "in-calendar-posts-per-week",
+                        "binding": "op:calendar/in:posts_per_week",
+                        "label": "Posts per week",
+                        "min": 1,
+                        "max": 7,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-calendar",
+                        "label": "Fill my calendar",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "calendar",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-this-month-s-calendar-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-calendar",
+                        "binding": "op:calendar/exec#progress",
+                        "label": "Filling your calendar…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-calendar-content-calendar",
+                        "text": "Content calendar",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Table",
+                      "props": {
+                        "id": "out-calendar-content-calendar",
+                        "binding": "op:calendar/out:output-content-calendar"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-calendar-post-images",
+                        "text": "Post visuals",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-calendar-post-images",
+                        "binding": "op:calendar/out:output-post-images",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-calendar-captions",
+                        "text": "Captions & hashtags",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-calendar-captions",
+                        "binding": "op:calendar/out:output-captions",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "kit",
+        "name": "Asset kit",
+        "workflowId": "brand",
+        "inputs": {
+          "in_brand_name": {
+            "from": "variable",
+            "variableId": "brandName"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      },
+      {
+        "id": "thumbnails",
+        "name": "Thumbnails",
+        "workflowId": "hooks",
+        "inputs": {
+          "input_audience": {
+            "from": "variable",
+            "variableId": "audience"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      },
+      {
+        "id": "calendar",
+        "name": "Calendar",
+        "workflowId": "calendar",
+        "inputs": {
+          "brand_name": {
+            "from": "variable",
+            "variableId": "brandName"
+          },
+          "target_audience": {
+            "from": "variable",
+            "variableId": "audience"
+          },
+          "brand_voice": {
+            "from": "variable",
+            "variableId": "voice"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "brandName",
+        "name": "Brand name",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "Aurora Labs",
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "audience",
+        "name": "Audience",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "outdoor-minded people in their 30s",
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "voice",
+        "name": "Brand voice",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "friendly and confident, never corporate",
+        "scope": "user",
+        "persist": true
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "brand",
+      "name": "Brand Asset Generator",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in_brand_name",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "brand_name",
+              "value": "Aurora Labs",
+              "description": "The brand name featured on every asset."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 40
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false,
+              "title": "1️⃣ Brand name"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in_brand_description",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "brand_description",
+              "value": "A climate-tech startup building friendly home-energy tools. Warm, optimistic and human, where nature meets precision engineering.",
+              "description": "One line on what the brand is and how it should feel."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 200
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false,
+              "title": "2️⃣ Brand vibe"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in_tagline",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "tagline",
+              "value": "Power that gives back",
+              "description": "Tagline overlaid on each image and fed to the brief."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 360
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false,
+              "title": "3️⃣ Tagline"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in_primary_color",
+            "type": "nodetool.input.ColorInput",
+            "data": {
+              "name": "primary_color",
+              "value": {
+                "type": "color",
+                "value": "#2F8F6B"
+              },
+              "description": "Brand color for the name overlay."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 520
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false,
+              "title": "4️⃣ Brand color"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out_assets",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "social_assets"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 2420,
+                "y": 100
+              },
+              "selectable": true
+            }
+          },
+          {
+            "id": "out_brief",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "brand_brief"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1080,
+                "y": 600
+              },
+              "selectable": true
+            }
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "hooks",
+      "name": "Hook & Thumbnail Factory",
+      "graph": {
+        "nodes": [
+          {
+            "id": "input_topic",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "Video Topic",
+              "description": "What the short-form video is about.",
+              "value": "How compound interest quietly builds wealth"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 40,
+                "y": 60
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "1️⃣ Video topic",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "input_audience",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "Target Audience",
+              "description": "Who you are making it for — shapes tone and references.",
+              "value": "Gen Z just starting to invest"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 40,
+                "y": 300
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "2️⃣ Target audience",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "input_count",
+            "type": "nodetool.input.IntegerInput",
+            "data": {
+              "name": "Number of Hooks",
+              "description": "How many hook lines (and thumbnails) to produce. Each thumbnail is one FLUX image, so higher counts cost and take proportionally longer.",
+              "value": 4,
+              "min": 1,
+              "max": 10
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 40,
+                "y": 540
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "3️⃣ How many hooks",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output_gallery",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "thumbnail_gallery"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 2580,
+                "y": 160
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "🖼️ Thumbnail gallery",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "preview_hooks",
+            "type": "nodetool.workflows.base_node.Preview",
+            "data": {
+              "name": "hooks"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 800,
+                "y": 600
+              },
+              "zIndex": 0,
+              "width": 360,
+              "height": 300,
+              "title": "🪝 Hook ideas",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "preview_thumb",
+            "type": "nodetool.workflows.base_node.Preview",
+            "data": {
+              "name": "thumbnail"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 1940,
+                "y": 540
+              },
+              "zIndex": 0,
+              "width": 360,
+              "height": 320,
+              "title": "🖼️ Latest thumbnail",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "calendar",
+      "name": "Social Media Calendar Filler",
+      "graph": {
+        "nodes": [
+          {
+            "id": "brand_name",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "value": "TechStartup Pro",
+              "name": "brand_name",
+              "description": "Name of the brand the calendar is for"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false,
+              "title": "1️⃣ Brand name"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "monthly_theme",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "value": "AI productivity tools and workflow automation",
+              "name": "monthly_theme",
+              "description": "Theme that ties the month's posts together"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 941
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false,
+              "title": "5️⃣ Monthly theme"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "target_audience",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "value": "Tech professionals, entrepreneurs, and startup founders aged 25-45",
+              "name": "target_audience",
+              "description": "Audience the content should speak to"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 697
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false,
+              "title": "4️⃣ Target audience"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "brand_voice",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "value": "Professional yet approachable, educational, inspiring, data-driven",
+              "name": "brand_voice",
+              "description": "Tone and personality for the posts"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 453
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false,
+              "title": "3️⃣ Brand voice"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "posts_per_week",
+            "type": "nodetool.input.IntegerInput",
+            "data": {
+              "value": 4,
+              "name": "posts_per_week",
+              "min": 1,
+              "max": 7,
+              "description": "How many posts to plan each week"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 237
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "bypassed": false,
+              "title": "2️⃣ Posts per week"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-content-calendar",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "content_calendar"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1040,
+                "y": 40
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "8️⃣ View calendar table",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-post-images",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "post_images"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 2400,
+                "y": 400
+              },
+              "selectable": true
+            }
+          },
+          {
+            "id": "output-captions",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "captions"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1350,
+                "y": 600
+              },
+              "selectable": true
+            }
+          }
+        ],
+        "edges": []
+      }
+    }
+  ],
+  "values": {
+    "op:kit/in:in_brand_description": "A climate-tech startup building friendly home-energy tools. Warm, optimistic and human, where nature meets precision engineering.",
+    "op:kit/in:in_tagline": "Power that gives back",
+    "op:kit/out:out_assets": {
+      "$demo": "image"
+    },
+    "op:kit/out:out_brief": "**Aurora Labs — brand direction.** Warm, optimistic, human. Nature meets precision engineering.",
+    "op:thumbnails/in:input_topic": "How compound interest quietly builds wealth",
+    "op:thumbnails/in:input_count": 4,
+    "op:thumbnails/out:output_gallery": {
+      "$demo": "image"
+    },
+    "op:thumbnails/out:preview_hooks": "1. “You're losing $100/month by not knowing this.”\n2. “$5 a day → $1M. Here's the math nobody shows you.”",
+    "op:calendar/in:monthly_theme": "AI productivity tools and workflow automation",
+    "op:calendar/in:posts_per_week": 4,
+    "op:calendar/out:output-post-images": {
+      "$demo": "image"
+    },
+    "var:brandName": "Aurora Labs",
+    "var:audience": "outdoor-minded people in their 30s",
+    "var:voice": "friendly and confident, never corporate"
+  }
+}

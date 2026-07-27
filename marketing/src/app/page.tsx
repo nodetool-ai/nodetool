@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import NodeToolHero from "../components/NodeToolHero";
+import StatusQuoSection from "../components/StatusQuoSection";
 import BuildRunDeploy from "../components/BuildRunDeploy";
 import OwnershipSection from "../components/OwnershipSection";
 import ModelSupportSection from "../components/ModelSupportSection";
@@ -249,6 +250,9 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Name the pain before showing the fix — the demo answers this block */}
+        <StatusQuoSection />
+
         {/* Demo video — surface the product immediately after the hero */}
         <section id="demo-video" aria-label="NodeTool Demo" className="rhythm-section relative scroll-mt-24">
           <div className={`${sectionContainer}`}>
@@ -295,11 +299,20 @@ export default function Home() {
         {/* Concrete proof right after the mental model: a complete, runnable workflow */}
         <UseCasesShowcase />
 
+        {/* Position vs. the alternatives — answers the status-quo block up top */}
+        <ComparisonSection reducedMotion={reducedMotion} />
+
+        {/* Ownership — the core pillar, kept adjacent to the model story it explains */}
+        <OwnershipSection reducedMotion={reducedMotion} />
+        <ModelSupportSection reducedMotion={reducedMotion} />
+
+        {/* Cost transparency — the payoff of your own keys: real per-run cost */}
+        <CostDashboardSection />
+
+        {/* --- Secondary: what's inside, once the narrative has landed --- */}
+
         {/* What the canvas does */}
         <FeaturesSection />
-
-        {/* What's in the canvas */}
-        <NodeMenuSection />
 
         {/* Assemble the generated clips — built-in timeline editor */}
         <TimelineEditorSection />
@@ -307,22 +320,17 @@ export default function Home() {
         {/* Paint and generate on one canvas — built-in sketch editor (sibling to the timeline editor) */}
         <SketchEditorSection />
 
+        {/* What's in the canvas */}
+        <NodeMenuSection />
+
         {/* Asset Manager — companion to the canvas story */}
         <AssetManagerSection />
 
         {/* Alternate interface: drive workflows by chat (payoff after canvas) */}
         <ChatUISection />
 
-        {/* Position vs. the alternatives — sets up the BYOK / your-stack story that follows */}
-        <ComparisonSection reducedMotion={reducedMotion} />
-
-        {/* Ownership block — three adjacent sections that share the BYOK / your-stack story */}
-        <OwnershipSection reducedMotion={reducedMotion} />
-        <ModelSupportSection reducedMotion={reducedMotion} />
+        {/* Local model library — supports the "runs on your machine" claim above */}
         <ModelManagerSection />
-
-        {/* Cost transparency — the payoff of BYOK: pay providers directly, see every node's real cost */}
-        <CostDashboardSection />
 
         {/* Templates Gallery */}
         {/* <ExamplesGrid /> */}
@@ -387,8 +395,9 @@ export default function Home() {
               Put every model on one canvas.
             </h2>
             <p className="mt-4 text-lg text-slate-300">
-              Free, open source, and yours to run. Download Studio — or try
-              Cloud in the browser, nothing to install.
+              Start the next piece and finish it in the same place. Free, open
+              source, and yours to run: download Studio, or try Cloud in the
+              browser with nothing to install.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <SmartDownloadButton

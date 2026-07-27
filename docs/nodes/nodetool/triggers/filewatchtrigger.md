@@ -13,7 +13,7 @@ namespace: "nodetool.triggers"
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| max_events | `int` | Maximum number of events to process (0 = unlimited) | `0` |
+| max_events | `int` | File events to emit before the node stops (0 = unlimited). Applies only while the node runs in the editor; the file-watch adapter keeps firing an activated trigger regardless. | `0` |
 | path | `str` | Path to watch (file or directory) | `.` |
 | recursive | `bool` | Watch subdirectories recursively | `false` |
 | patterns | `list[str]` | File patterns to watch (e.g., ['*.txt', '*.json']) | `["*"]` |

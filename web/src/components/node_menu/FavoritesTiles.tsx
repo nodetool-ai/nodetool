@@ -123,6 +123,10 @@ const tileStyles = (theme: Theme) =>
     },
     ".favorite-tile:hover .unfavorite-btn": {
       opacity: 1
+    },
+    // Touch devices have no hover; keep the unfavorite button reachable.
+    "@media (pointer: coarse)": {
+      ".unfavorite-btn": { opacity: 1 }
     }
   });
 

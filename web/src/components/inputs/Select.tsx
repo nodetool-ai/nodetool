@@ -16,6 +16,7 @@ import { Tooltip } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { selectStyles, portalOptionsStyles } from "./selectStyles";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 
 interface Option {
   value: string;
@@ -68,6 +69,7 @@ const Select: React.FC<SelectProps> = ({
   const selectRef = useRef<HTMLDivElement>(null);
   const optionsRef = useRef<HTMLUListElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const autoFocusEnabled = useAutoFocusEnabled();
   const { open, close, activeSelect, searchQuery, setSearchQuery } =
     useSelect();
   const id = useId();
@@ -162,11 +164,12 @@ const Select: React.FC<SelectProps> = ({
     };
   }, [close, activeSelect, id]);
 
+  // Skipped on touch, where the virtual keyboard would cover the options.
   useEffect(() => {
-    if (activeSelect === id && searchInputRef.current) {
-      searchInputRef.current.focus();
+    if (activeSelect === id && autoFocusEnabled) {
+      searchInputRef.current?.focus();
     }
-  }, [activeSelect, id]);
+  }, [activeSelect, id, autoFocusEnabled]);
 
   // Fuzzy-match the query against option labels, best matches first.
   const filteredOptions = useMemo(() => {

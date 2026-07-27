@@ -5,7 +5,7 @@
  */
 
 import { Node } from "@xyflow/react";
-import { NodeData } from "../../stores/NodeData";
+import { DynamicSlotDeclaration, NodeData } from "../../stores/NodeData";
 import { NodeMetadata, TypeMetadata } from "../../stores/ApiTypes";
 import {
   findOutputHandle,
@@ -42,6 +42,14 @@ const floatType: TypeMetadata = {
 
 const boolType: TypeMetadata = {
   type: "bool",
+  optional: false,
+  values: null,
+  type_args: [],
+  type_name: null
+};
+
+const imageType: TypeMetadata = {
+  type: "image",
   optional: false,
   values: null,
   type_args: [],
@@ -172,7 +180,8 @@ const createTestNode = (
   id: string,
   nodeType: string,
   dynamicProperties: Record<string, any> = {},
-  dynamicOutputs: Record<string, TypeMetadata> = {}
+  dynamicOutputs: Record<string, TypeMetadata> = {},
+  dynamicInputs: Record<string, DynamicSlotDeclaration> = {}
 ): Node<NodeData> => ({
   id,
   type: nodeType,
@@ -183,6 +192,7 @@ const createTestNode = (
     selectable: true,
     workflow_id: "test-workflow",
     dynamic_properties: dynamicProperties,
+    dynamic_inputs: dynamicInputs,
     dynamic_outputs: dynamicOutputs
   }
 });
@@ -295,6 +305,81 @@ describe("Connection Validation Integration Tests", () => {
         targetHandle!.type
       );
       expect(isCompatible).toBe(true);
+    });
+
+    it("refuses an incompatible source on a typed dynamic slot", () => {
+      const textNode = createTestNode("text1", "text.processor");
+      const dynamicNode = createTestNode(
+        "dynamic1",
+        "dynamic.processor",
+        { picture: null },
+        {},
+        { picture: { type: imageType } }
+      );
+
+      const sourceHandle = findOutputHandle(
+        textNode,
+        "processed_text",
+        textProcessorMetadata
+      );
+      const targetHandle = findInputHandle(
+        dynamicNode,
+        "picture",
+        dynamicProcessorMetadata
+      );
+
+      expect(targetHandle!.isDynamic).toBe(true);
+      expect(targetHandle!.type.type).toBe("image");
+      expect(isConnectable(sourceHandle!.type, targetHandle!.type)).toBe(false);
+    });
+
+    it("accepts a matching source on a typed dynamic slot", () => {
+      const textNode = createTestNode("text1", "text.processor");
+      const dynamicNode = createTestNode(
+        "dynamic1",
+        "dynamic.processor",
+        { note: "" },
+        {},
+        { note: { type: stringType } }
+      );
+
+      const sourceHandle = findOutputHandle(
+        textNode,
+        "processed_text",
+        textProcessorMetadata
+      );
+      const targetHandle = findInputHandle(
+        dynamicNode,
+        "note",
+        dynamicProcessorMetadata
+      );
+
+      expect(targetHandle!.type.type).toBe("str");
+      expect(isConnectable(sourceHandle!.type, targetHandle!.type)).toBe(true);
+    });
+
+    it("keeps an undeclared (legacy) dynamic slot promiscuous", () => {
+      // A workflow saved before typed slots existed: dynamic_properties with
+      // no dynamic_inputs. Every source type must still connect.
+      const textNode = createTestNode("text1", "text.processor");
+      const legacyNode = createTestNode("legacy1", "dynamic.processor", {
+        anything: ""
+      });
+
+      const sourceHandle = findOutputHandle(
+        textNode,
+        "processed_text",
+        textProcessorMetadata
+      );
+      const targetHandle = findInputHandle(
+        legacyNode,
+        "anything",
+        dynamicProcessorMetadata
+      );
+
+      expect(targetHandle!.type.type).toBe("any");
+      expect(isConnectable(sourceHandle!.type, targetHandle!.type)).toBe(true);
+      expect(isConnectable(imageType, targetHandle!.type)).toBe(true);
     });
 
     it("should validate connections from dynamic outputs", () => {

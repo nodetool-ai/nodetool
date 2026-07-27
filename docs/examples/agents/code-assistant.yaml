@@ -27,13 +27,13 @@ system_prompt: |
 
 model:
   provider: anthropic
-  id: claude-3-5-sonnet-20241022
+  id: claude-sonnet-5
 
 planning_agent:
   enabled: true
   model:
     provider: openai
-    id: gpt-4o-mini
+    id: gpt-5-mini
 
 tools:
   - write_file

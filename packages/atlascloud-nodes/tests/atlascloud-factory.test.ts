@@ -221,6 +221,84 @@ describe("resolveAssetForAtlas", () => {
     expect(out).toBe("https://cdn.example.org/secret.png");
   });
 
+  // An asset input the user left empty still arrives as a fully-shaped ref
+  // with every slot blank. That's an absent optional input — resolving it must
+  // yield null (field omitted) instead of failing the node with
+  // "Cannot resolve image asset for AtlasCloud — no usable uri or inline data".
+  it("returns null for a blank-but-shaped ref (unset optional input)", async () => {
+    const resolveAssetBytes = vi.fn();
+    const retrieve = vi.fn();
+    for (const blank of [
+      { type: "image", uri: "", asset_id: null, data: null, metadata: null },
+      { type: "image", uri: "   " },
+      { type: "video", uri: "", asset_id: "", data: "" },
+      { type: "image", data: new Uint8Array(0) }
+    ]) {
+      expect(
+        await resolveAssetForAtlas(
+          blank,
+          { storage: { retrieve }, resolveAssetBytes } as unknown as never,
+          "image"
+        )
+      ).toBeNull();
+    }
+    expect(resolveAssetBytes).not.toHaveBeenCalled();
+    expect(retrieve).not.toHaveBeenCalled();
+  });
+
+  it("passes a data: URI through unchanged", async () => {
+    const uri = "data:image/png;base64,AQID";
+    expect(await resolveAssetForAtlas({ uri }, undefined, "image")).toBe(uri);
+    expect(await resolveAssetForAtlas(uri, undefined, "image")).toBe(uri);
+    expect(
+      await resolveAssetForAtlas({ data: uri }, undefined, "image")
+    ).toBe(uri);
+  });
+
+  // Refs produced by local file nodes carry a file:// URI or an absolute path;
+  // neither is a public URL nor a storage key, so only the canonical resolver
+  // can materialize them.
+  it("resolves a file:// ref via the canonical resolver", async () => {
+    const { mkdtemp, writeFile } = await import("node:fs/promises");
+    const { tmpdir } = await import("node:os");
+    const { pathToFileURL } = await import("node:url");
+    const dir = await mkdtemp(join(tmpdir(), "atlas-"));
+    const file = join(dir, "pic.png");
+    await writeFile(file, Buffer.from([1, 2, 3]));
+
+    expect(
+      await resolveAssetForAtlas(
+        { type: "image", uri: pathToFileURL(file).href },
+        undefined,
+        "image"
+      )
+    ).toBe("data:image/png;base64,AQID");
+    expect(
+      await resolveAssetForAtlas({ type: "image", uri: file }, undefined, "image")
+    ).toBe("data:image/png;base64,AQID");
+  });
+
+  // Raw-RGBA in-flight images hold straight-alpha pixels, not an encoded file.
+  // Base64-ing them as-is would ship garbage labeled image/x-raw-rgba; they
+  // must be PNG-encoded and labeled image/png.
+  it("PNG-encodes a raw-RGBA in-flight image", async () => {
+    const out = await resolveAssetForAtlas(
+      {
+        type: "image",
+        mimeType: "image/x-raw-rgba",
+        width: 1,
+        height: 1,
+        data: Uint8Array.from([255, 0, 0, 255])
+      },
+      undefined,
+      "image"
+    );
+    expect(out).toMatch(/^data:image\/png;base64,/);
+    const bytes = Buffer.from(out!.split(",")[1], "base64");
+    // PNG magic — proof it went through the encoder, not a raw passthrough.
+    expect([...bytes.subarray(0, 4)]).toEqual([0x89, 0x50, 0x4e, 0x47]);
+  });
+
   it("returns null for an empty/null ref", async () => {
     expect(await resolveAssetForAtlas(null, undefined, "image")).toBeNull();
     expect(await resolveAssetForAtlas(undefined, undefined, "image")).toBeNull();
@@ -630,6 +708,88 @@ describe("createAtlasNodeClass.process", () => {
       prompt: "restyle now",
       video: "https://input/wired.mp4"
     });
+  });
+
+  // An empty optional image (Seedance's `last_image`) must not fail the node —
+  // it is simply omitted — while an empty *required* image fails locally with
+  // a message naming the input instead of a resolver-internal one.
+  it("omits an empty optional asset input and names an empty required one", async () => {
+    const submitted: { body: unknown } = { body: null };
+    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const u = String(url);
+      if (u.endsWith("/generateVideo")) {
+        submitted.body = JSON.parse(init!.body as string);
+        return {
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({ data: { id: "v" } })
+        } as Response;
+      }
+      if (u.includes("/prediction/v")) {
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers(),
+          text: async () =>
+            JSON.stringify({
+              data: { status: "completed", outputs: ["https://cdn/out.mp4"] }
+            })
+        } as Response;
+      }
+      if (u === "https://cdn/out.mp4") {
+        return {
+          ok: true,
+          arrayBuffer: async () => Uint8Array.from([1]).buffer
+        } as Response;
+      }
+      throw new Error(`unexpected: ${u}`);
+    }) as unknown as typeof fetch;
+
+    const spec = makeSpec({
+      title: "Seedance 2.0 — Image to Video",
+      modality: "video",
+      outputType: "video",
+      fields: [
+        { name: "prompt", type: "str", default: "" },
+        { name: "image", type: "image", default: null, required: true },
+        { name: "last_image", type: "image", default: null }
+      ]
+    });
+    const Cls = createAtlasNodeClass(spec) as unknown as new () => {
+      prompt: string;
+      image: unknown;
+      last_image: unknown;
+      process: (ctx: unknown) => Promise<Record<string, unknown>>;
+      setDynamic: (k: string, v: unknown) => void;
+    };
+
+    const node = new Cls();
+    node.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
+    node.prompt = "animate";
+    node.image = { type: "image", uri: "https://input/first.png" };
+    // The UI sends this shape for an image input the user never filled in.
+    node.last_image = {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    };
+
+    await node.process({ storage: null });
+    expect(submitted.body).toEqual({
+      model: "test/model/t2i",
+      prompt: "animate",
+      image: "https://input/first.png"
+    });
+
+    const missing = new Cls();
+    missing.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
+    missing.prompt = "animate";
+    missing.image = { type: "image", uri: "", asset_id: null, data: null };
+    await expect(missing.process({ storage: null })).rejects.toThrow(
+      'Seedance 2.0 — Image to Video: the image input "image" is empty'
+    );
   });
 
   it("propagates structured AtlasCloud job failures", async () => {

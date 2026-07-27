@@ -14,6 +14,7 @@
 import { create, StoreApi, UseBoundStore } from "zustand";
 import { apiService } from "../services/api";
 import { webSocketService } from "../services/WebSocketService";
+import { notifyRunFinished } from "../services/notifications";
 import { useAuthStore } from "./AuthStore";
 import {
   JobUpdate,
@@ -60,7 +61,11 @@ export type WorkflowRunner = {
 
   ensureConnection: () => Promise<void>;
   cleanup: () => void;
-  cancel: () => Promise<void>;
+  /**
+   * Cancel a run. Defaults to the runner's current job; an app that keeps
+   * several invocations of one workflow in flight passes the job it means.
+   */
+  cancel: (jobId?: string) => Promise<void>;
   resume: () => Promise<void>;
 };
 
@@ -212,22 +217,26 @@ export const createWorkflowRunnerStore = (
       );
     },
 
-    cancel: async () => {
-      const { job_id } = get();
-      if (job_id && workflowId) {
+    cancel: async (jobId?: string) => {
+      const target = jobId ?? get().job_id;
+      if (target && workflowId) {
         await webSocketService.send(
           {
             type: "cancel_job",
             command: "cancel_job",
             data: {
-              job_id,
+              job_id: target,
               workflow_id: workflowId,
             },
           },
           "/ws"
         );
       }
-      set({ state: "cancelled", statusMessage: "Cancelled" });
+      // Only the run the store is tracking changes its state; cancelling one of
+      // several app invocations must not report the whole runner as cancelled.
+      if (!jobId || jobId === get().job_id) {
+        set({ state: "cancelled", statusMessage: "Cancelled" });
+      }
     },
 
     resume: async () => {
@@ -271,6 +280,28 @@ function isWorkflowMessage(msg: Record<string, unknown>): msg is WorkflowMessage
 }
 
 /**
+ * Post a local notification for a run that just reached a terminal state, so a
+ * user who put the phone down still learns the job is done. Fire-and-forget —
+ * `notifyRunFinished` swallows its own failures.
+ */
+function notifyTerminal(
+  get: () => WorkflowRunner,
+  msg: Record<string, unknown>,
+  outcome: "completed" | "failed" | "cancelled",
+  error?: string
+) {
+  const state = get();
+  const jobId = state.job_id || (msg.job_id as string | undefined);
+  if (!jobId) {return;}
+  void notifyRunFinished({
+    jobId,
+    workflowName: state.workflow?.name,
+    outcome,
+    error,
+  });
+}
+
+/**
  * Central message handler — mirrors web's workflowUpdates.ts handleUpdate().
  */
 function handleMessage(
@@ -300,6 +331,7 @@ function handleMessage(
             results: msg.result,
             statusMessage: "Completed",
           });
+          notifyTerminal(get, msg, "completed");
           break;
         case "failed":
         case "timed_out":
@@ -307,9 +339,11 @@ function handleMessage(
             state: "error",
             statusMessage: `Failed: ${errorText}`,
           });
+          notifyTerminal(get, msg, "failed", errorText);
           break;
         case "cancelled":
           set({ state: "cancelled", statusMessage: "Cancelled" });
+          notifyTerminal(get, msg, "cancelled");
           break;
         case "running":
           set({

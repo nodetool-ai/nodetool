@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useEffect, useRef, useCallback } from "react";
+import { memo, useEffect, useMemo, useRef, useCallback } from "react";
 
 import {
   Text,
@@ -197,6 +197,7 @@ interface FindInWorkflowDialogProps {
 const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
   ({ workflowId: _workflowId }: FindInWorkflowDialogProps) => {
     const theme = useTheme();
+    const cssStyles = useMemo(() => styles(theme), [theme]);
     const inputRef = useRef<HTMLInputElement>(null);
     const listRef = useRef<HTMLUListElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -343,7 +344,7 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
       <Box
         ref={containerRef}
         className="find-dialog-container"
-        css={styles(theme)}
+        css={cssStyles}
       >
         <Box className="find-header">
           <Box className="search-icon-wrapper">

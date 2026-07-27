@@ -4,7 +4,7 @@
  *
  * The image counterpart to `videoModelOptions`: one source of truth for the
  * surfaces that generate images (the media chat composer, {@link MediaChatComposer},
- * and the sketch connected-mode prompt bar), so the two present identical,
+ * and the sketch generate popover), so the two present identical,
  * model-constrained options and can't drift apart.
  */
 

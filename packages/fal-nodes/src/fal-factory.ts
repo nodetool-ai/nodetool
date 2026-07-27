@@ -7,6 +7,7 @@
  */
 
 import {
+  applyContentCardBody,
   BaseNode,
   classifyFields,
   classNameToTitle,
@@ -560,13 +561,6 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
       value: true,
       configurable: true
     });
-    // Media generators render as a content card (image/video/audio/3D body).
-    // This is the metadata-driven equivalent of the frontend's old
-    // "fal.* namespace + media output" heuristic.
-    Object.defineProperty(FalNodeClass, "body", {
-      value: "content_card",
-      configurable: true
-    });
   }
 
   if (isImageOutput) {
@@ -620,6 +614,11 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
       configurable: true
     });
   }
+
+  // Preview-forward body for anything the editor can display. Read off the
+  // resolved outputs, not `spec.outputType` — endpoints that declare their
+  // media through `outputFields` carry a bare "dict"/"any" there.
+  applyContentCardBody(FalNodeClass);
 
   // Compute and set field classification
   const { inlineFields, inputFields } = computeFieldClassification(spec.inputFields);

@@ -77,6 +77,8 @@ export class LocalGetNodeInfoTool extends Tool {
         name: o.name,
         type: typeMetaToString(o.type)
       })),
+      supports_dynamic_inputs: meta.supports_dynamic_inputs ?? false,
+      supports_dynamic_outputs: meta.supports_dynamic_outputs ?? false,
       is_streaming_output: meta.is_streaming_output ?? false,
       is_streaming_input: meta.is_streaming_input ?? false,
       required_settings: meta.required_settings ?? [],

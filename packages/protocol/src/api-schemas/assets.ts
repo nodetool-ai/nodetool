@@ -67,6 +67,53 @@ export const createInput = z.object({
 });
 export type CreateInput = z.infer<typeof createInput>;
 
+// ── createUpload / finalizeUpload (client-direct upload) ─────────
+//
+// Two-step upload that keeps object bytes out of the API process. The server
+// creates the row, picks the storage key, and hands back a short-lived target
+// scoped to that one key; the client PUTs the bytes straight to the storage
+// backend and then calls `finalizeUpload`, which verifies what actually
+// landed. `upload` is null on backends with no direct-upload concept (the
+// local file store) — the client falls back to the multipart POST.
+
+export const uploadTarget = z.object({
+  url: z.string(),
+  method: z.enum(["PUT", "POST"]),
+  headers: z.record(z.string(), z.string()),
+  expires_at: z.number()
+});
+export type UploadTarget = z.infer<typeof uploadTarget>;
+
+export const createUploadInput = z.object({
+  name: z.string().min(1),
+  content_type: z.string().min(1),
+  parent_id: z.string().min(1),
+  /** Declared byte size, checked against the upload cap before minting. */
+  size: z.number().int().nonnegative(),
+  workflow_id: z.string().nullable().optional(),
+  node_id: z.string().nullable().optional(),
+  job_id: z.string().nullable().optional(),
+  timeline_id: z.string().nullable().optional(),
+  metadata: z.record(z.string(), z.unknown()).nullable().optional()
+});
+export type CreateUploadInput = z.infer<typeof createUploadInput>;
+
+export const createUploadOutput = z.object({
+  asset_id: z.string(),
+  /** Storage key the server assigned. Never chosen by the client. */
+  key: z.string(),
+  upload: uploadTarget.nullable()
+});
+export type CreateUploadOutput = z.infer<typeof createUploadOutput>;
+
+export const finalizeUploadInput = z.object({
+  asset_id: z.string().min(1)
+});
+export type FinalizeUploadInput = z.infer<typeof finalizeUploadInput>;
+
+export const finalizeUploadOutput = assetResponse;
+export type FinalizeUploadOutput = z.infer<typeof finalizeUploadOutput>;
+
 // ── update (PUT /api/assets/:id) ─────────────────────────────────
 // The `data` field (base64 or utf-8 content) is supported here for
 // small text/data writes; large binary uploads should go through the

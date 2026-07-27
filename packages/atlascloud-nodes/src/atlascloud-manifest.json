@@ -5,8 +5,8 @@
     "modality": "video",
     "modelId": "bytedance/seedance-2.0/text-to-video",
     "outputType": "video",
-    "title": "Seedance 2.0 \u2014 Text to Video",
-    "description": "AtlasCloud / ByteDance Seedance 2.0 \u2014 generates video from text with native audio. Supports adaptive aspect ratio.",
+    "title": "Seedance 2.0 — Text to Video",
+    "description": "AtlasCloud / ByteDance Seedance 2.0 — generates video from text with native audio. Supports adaptive aspect ratio.",
     "pollInterval": 5000,
     "maxAttempts": 600,
     "fields": [
@@ -51,13 +51,14 @@
           "720p-SR",
           "1080p",
           "1080p-SR",
-          "1440p-SR"
+          "1440p-SR",
+          "4k"
         ]
       },
       {
         "name": "ratio",
         "type": "enum",
-        "default": "16:9",
+        "default": "adaptive",
         "title": "Aspect Ratio",
         "description": "Aspect ratio of the output video. 'adaptive' lets the API choose.",
         "values": [
@@ -78,17 +79,30 @@
         "description": "Native synchronized audio (voice, sound effects, music)."
       },
       {
-        "name": "web_search",
-        "type": "bool",
-        "default": false,
-        "title": "Web Search",
-        "description": "Use web search to ground generation in real-time info."
-      },
-      {
         "name": "watermark",
         "type": "bool",
         "default": false,
         "title": "Watermark"
+      },
+      {
+        "name": "bitrate_mode",
+        "type": "enum",
+        "default": "standard",
+        "title": "Bitrate Mode",
+        "description": "Output video bitrate mode. 'high' encodes at a higher bitrate for a crisper, larger file; 'standard' uses the normal bitrate. Does not affect token cost.",
+        "values": [
+          "standard",
+          "high"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Seed integer used to control the randomness of generated content. Value range: [-1, 2^32-1]. The default -1 means a random seed is used.",
+        "min": -1,
+        "max": 4294967295
       }
     ]
   },
@@ -98,8 +112,8 @@
     "modality": "video",
     "modelId": "bytedance/seedance-2.0/image-to-video",
     "outputType": "video",
-    "title": "Seedance 2.0 \u2014 Image to Video",
-    "description": "AtlasCloud / ByteDance Seedance 2.0 \u2014 generates video from a first-frame image (and optional last frame) with native audio.",
+    "title": "Seedance 2.0 — Image to Video",
+    "description": "AtlasCloud / ByteDance Seedance 2.0 — generates video from a first-frame image (and optional last frame) with native audio.",
     "pollInterval": 5000,
     "maxAttempts": 600,
     "fields": [
@@ -159,13 +173,14 @@
           "720p-SR",
           "1080p",
           "1080p-SR",
-          "1440p-SR"
+          "1440p-SR",
+          "4k"
         ]
       },
       {
         "name": "ratio",
         "type": "enum",
-        "default": "16:9",
+        "default": "adaptive",
         "title": "Aspect Ratio",
         "description": "Aspect ratio of the output video. 'adaptive' lets the API choose.",
         "values": [
@@ -186,17 +201,30 @@
         "description": "Native synchronized audio (voice, sound effects, music)."
       },
       {
-        "name": "web_search",
-        "type": "bool",
-        "default": false,
-        "title": "Web Search",
-        "description": "Use web search to ground generation in real-time info."
-      },
-      {
         "name": "watermark",
         "type": "bool",
         "default": false,
         "title": "Watermark"
+      },
+      {
+        "name": "bitrate_mode",
+        "type": "enum",
+        "default": "standard",
+        "title": "Bitrate Mode",
+        "description": "Output video bitrate mode. 'high' encodes at a higher bitrate for a crisper, larger file; 'standard' uses the normal bitrate. Does not affect token cost.",
+        "values": [
+          "standard",
+          "high"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Seed integer used to control the randomness of generated content. Value range: [-1, 2^32-1]. The default -1 means a random seed is used.",
+        "min": -1,
+        "max": 4294967295
       }
     ]
   },
@@ -206,8 +234,8 @@
     "modality": "video",
     "modelId": "bytedance/seedance-2.0-fast/text-to-video",
     "outputType": "video",
-    "title": "Seedance 2.0 Fast \u2014 Text to Video",
-    "description": "AtlasCloud / ByteDance Seedance 2.0 Fast \u2014 accelerated T2V with native audio.",
+    "title": "Seedance 2.0 Fast — Text to Video",
+    "description": "AtlasCloud / ByteDance Seedance 2.0 Fast — accelerated T2V with native audio.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -257,7 +285,7 @@
       {
         "name": "ratio",
         "type": "enum",
-        "default": "16:9",
+        "default": "adaptive",
         "title": "Aspect Ratio",
         "description": "Aspect ratio of the output video. 'adaptive' lets the API choose.",
         "values": [
@@ -278,17 +306,30 @@
         "description": "Native synchronized audio (voice, sound effects, music)."
       },
       {
-        "name": "web_search",
-        "type": "bool",
-        "default": false,
-        "title": "Web Search",
-        "description": "Use web search to ground generation in real-time info."
-      },
-      {
         "name": "watermark",
         "type": "bool",
         "default": false,
         "title": "Watermark"
+      },
+      {
+        "name": "bitrate_mode",
+        "type": "enum",
+        "default": "standard",
+        "title": "Bitrate Mode",
+        "description": "Output video bitrate mode. 'high' encodes at a higher bitrate for a crisper, larger file; 'standard' uses the normal bitrate. Does not affect token cost.",
+        "values": [
+          "standard",
+          "high"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Seed integer used to control the randomness of generated content. Value range: [-1, 2^32-1]. The default -1 means a random seed is used.",
+        "min": -1,
+        "max": 4294967295
       }
     ]
   },
@@ -298,8 +339,8 @@
     "modality": "video",
     "modelId": "bytedance/seedance-2.0-fast/image-to-video",
     "outputType": "video",
-    "title": "Seedance 2.0 Fast \u2014 Image to Video",
-    "description": "AtlasCloud / ByteDance Seedance 2.0 Fast \u2014 accelerated I2V from a first-frame image with native audio.",
+    "title": "Seedance 2.0 Fast — Image to Video",
+    "description": "AtlasCloud / ByteDance Seedance 2.0 Fast — accelerated I2V from a first-frame image with native audio.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -364,7 +405,7 @@
       {
         "name": "ratio",
         "type": "enum",
-        "default": "16:9",
+        "default": "adaptive",
         "title": "Aspect Ratio",
         "description": "Aspect ratio of the output video. 'adaptive' lets the API choose.",
         "values": [
@@ -385,17 +426,30 @@
         "description": "Native synchronized audio (voice, sound effects, music)."
       },
       {
-        "name": "web_search",
-        "type": "bool",
-        "default": false,
-        "title": "Web Search",
-        "description": "Use web search to ground generation in real-time info."
-      },
-      {
         "name": "watermark",
         "type": "bool",
         "default": false,
         "title": "Watermark"
+      },
+      {
+        "name": "bitrate_mode",
+        "type": "enum",
+        "default": "standard",
+        "title": "Bitrate Mode",
+        "description": "Output video bitrate mode. 'high' encodes at a higher bitrate for a crisper, larger file; 'standard' uses the normal bitrate. Does not affect token cost.",
+        "values": [
+          "standard",
+          "high"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Seed integer used to control the randomness of generated content. Value range: [-1, 2^32-1]. The default -1 means a random seed is used.",
+        "min": -1,
+        "max": 4294967295
       }
     ]
   },
@@ -405,8 +459,8 @@
     "modality": "image",
     "modelId": "openai/gpt-image-2/text-to-image",
     "outputType": "image",
-    "title": "GPT Image 2 \u2014 Text to Image",
-    "description": "AtlasCloud / OpenAI GPT Image 2 \u2014 fast, cost-efficient text-to-image powered by GPT-5 guidance.",
+    "title": "GPT Image 2 — Text to Image",
+    "description": "AtlasCloud / OpenAI GPT Image 2 — fast, cost-efficient text-to-image powered by GPT-5 guidance.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -423,13 +477,18 @@
         "default": "1024x1024",
         "title": "Size",
         "values": [
+          "1024x1024",
           "1024x768",
           "768x1024",
-          "1024x1024",
           "1024x1536",
           "1536x1024",
-          "2560x1440",
-          "1440x2560",
+          "2048x2048",
+          "2048x1152",
+          "1152x2048",
+          "2560x1088",
+          "1088x2560",
+          "2880x2160",
+          "2160x2880",
           "3840x2160",
           "2160x3840"
         ]
@@ -474,8 +533,8 @@
     "modality": "image",
     "modelId": "openai/gpt-image-2/edit",
     "outputType": "image",
-    "title": "GPT Image 2 \u2014 Edit",
-    "description": "AtlasCloud / OpenAI GPT Image 2 \u2014 precise natural-language image editing (add/remove objects, retouch, swap backgrounds, etc.).",
+    "title": "GPT Image 2 — Edit",
+    "description": "AtlasCloud / OpenAI GPT Image 2 — precise natural-language image editing (add/remove objects, retouch, swap backgrounds, etc.).",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -501,10 +560,17 @@
         "title": "Size",
         "values": [
           "1024x1024",
+          "1024x768",
+          "768x1024",
           "1024x1536",
           "1536x1024",
           "2048x2048",
           "2048x1152",
+          "1152x2048",
+          "2560x1088",
+          "1088x2560",
+          "2880x2160",
+          "2160x2880",
           "3840x2160",
           "2160x3840"
         ]
@@ -548,8 +614,8 @@
     "modality": "image",
     "modelId": "google/nano-banana-2/text-to-image",
     "outputType": "image",
-    "title": "Nano Banana 2 \u2014 Text to Image",
-    "description": "AtlasCloud / Google Nano Banana 2 \u2014 fast 4K-capable text-to-image with native text rendering.",
+    "title": "Nano Banana 2 — Text to Image",
+    "description": "AtlasCloud / Google Nano Banana 2 — fast 4K-capable text-to-image with native text rendering.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -647,8 +713,8 @@
     "modality": "image",
     "modelId": "google/nano-banana-2/edit",
     "outputType": "image",
-    "title": "Nano Banana 2 \u2014 Edit",
-    "description": "AtlasCloud / Google Nano Banana 2 \u2014 guided-diffusion image editing (up to 14 input images).",
+    "title": "Nano Banana 2 — Edit",
+    "description": "AtlasCloud / Google Nano Banana 2 — guided-diffusion image editing (up to 14 input images).",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -754,8 +820,8 @@
     "modality": "video",
     "modelId": "bytedance/seedance-2.0/reference-to-video",
     "outputType": "video",
-    "title": "Seedance 2.0 \u2014 Reference to Video",
-    "description": "AtlasCloud / ByteDance Seedance 2.0 multimodal \u2014 generates video from reference images, videos, and/or audio. Refer to inputs in your prompt as 'image 1', 'video 1', etc.",
+    "title": "Seedance 2.0 — Reference to Video",
+    "description": "AtlasCloud / ByteDance Seedance 2.0 multimodal — generates video from reference images, videos, and/or audio. Refer to inputs in your prompt as 'image 1', 'video 1', etc.",
     "pollInterval": 5000,
     "maxAttempts": 600,
     "fields": [
@@ -820,13 +886,14 @@
           "720p-SR",
           "1080p",
           "1080p-SR",
-          "1440p-SR"
+          "1440p-SR",
+          "4k"
         ]
       },
       {
         "name": "ratio",
         "type": "enum",
-        "default": "16:9",
+        "default": "adaptive",
         "title": "Aspect Ratio",
         "description": "Aspect ratio of the output video. 'adaptive' lets the API choose.",
         "values": [
@@ -850,6 +917,26 @@
         "type": "bool",
         "default": false,
         "title": "Watermark"
+      },
+      {
+        "name": "bitrate_mode",
+        "type": "enum",
+        "default": "standard",
+        "title": "Bitrate Mode",
+        "description": "Output video bitrate mode. 'high' encodes at a higher bitrate for a crisper, larger file; 'standard' uses the normal bitrate. Does not affect token cost.",
+        "values": [
+          "standard",
+          "high"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Seed integer used to control the randomness of generated content. Value range: [-1, 2^32-1]. The default -1 means a random seed is used.",
+        "min": -1,
+        "max": 4294967295
       }
     ]
   },
@@ -859,8 +946,8 @@
     "modality": "video",
     "modelId": "bytedance/seedance-2.0-fast/reference-to-video",
     "outputType": "video",
-    "title": "Seedance 2.0 Fast \u2014 Reference to Video",
-    "description": "AtlasCloud / ByteDance Seedance 2.0 Fast multimodal \u2014 accelerated multimodal video gen from reference images/videos/audio.",
+    "title": "Seedance 2.0 Fast — Reference to Video",
+    "description": "AtlasCloud / ByteDance Seedance 2.0 Fast multimodal — accelerated multimodal video gen from reference images/videos/audio.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -930,7 +1017,7 @@
       {
         "name": "ratio",
         "type": "enum",
-        "default": "16:9",
+        "default": "adaptive",
         "title": "Aspect Ratio",
         "description": "Aspect ratio of the output video. 'adaptive' lets the API choose.",
         "values": [
@@ -954,6 +1041,26 @@
         "type": "bool",
         "default": false,
         "title": "Watermark"
+      },
+      {
+        "name": "bitrate_mode",
+        "type": "enum",
+        "default": "standard",
+        "title": "Bitrate Mode",
+        "description": "Output video bitrate mode. 'high' encodes at a higher bitrate for a crisper, larger file; 'standard' uses the normal bitrate. Does not affect token cost.",
+        "values": [
+          "standard",
+          "high"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Seed integer used to control the randomness of generated content. Value range: [-1, 2^32-1]. The default -1 means a random seed is used.",
+        "min": -1,
+        "max": 4294967295
       }
     ]
   },
@@ -963,8 +1070,8 @@
     "modality": "image",
     "modelId": "google/nano-banana-pro/text-to-image",
     "outputType": "image",
-    "title": "Nano Banana Pro \u2014 Text to Image",
-    "description": "AtlasCloud / Google Nano Banana Pro \u2014 higher-quality T2I with optional web grounding.",
+    "title": "Nano Banana Pro — Text to Image",
+    "description": "AtlasCloud / Google Nano Banana Pro — higher-quality T2I with optional web grounding.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -1041,8 +1148,8 @@
     "modality": "image",
     "modelId": "google/nano-banana-pro/edit",
     "outputType": "image",
-    "title": "Nano Banana Pro \u2014 Edit",
-    "description": "AtlasCloud / Google Nano Banana Pro \u2014 higher-quality image editing with optional web grounding.",
+    "title": "Nano Banana Pro — Edit",
+    "description": "AtlasCloud / Google Nano Banana Pro — higher-quality image editing with optional web grounding.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -1127,8 +1234,8 @@
     "modality": "image",
     "modelId": "google/nano-banana-pro/text-to-image-ultra",
     "outputType": "image",
-    "title": "Nano Banana Pro \u2014 Text to Image (Ultra)",
-    "description": "AtlasCloud / Google Nano Banana Pro Ultra \u2014 4K/8K text-to-image.",
+    "title": "Nano Banana Pro — Text to Image (Ultra)",
+    "description": "AtlasCloud / Google Nano Banana Pro Ultra — 4K/8K text-to-image.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -1185,8 +1292,8 @@
     "modality": "image",
     "modelId": "google/nano-banana-pro/edit-ultra",
     "outputType": "image",
-    "title": "Nano Banana Pro \u2014 Edit (Ultra)",
-    "description": "AtlasCloud / Google Nano Banana Pro Ultra \u2014 4K/8K image editing.",
+    "title": "Nano Banana Pro — Edit (Ultra)",
+    "description": "AtlasCloud / Google Nano Banana Pro Ultra — 4K/8K image editing.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -1251,8 +1358,8 @@
     "modality": "image",
     "modelId": "bytedance/seedream-v5.0-pro/text-to-image",
     "outputType": "image",
-    "title": "Seedream v5.0 Pro \u2014 Text to Image",
-    "description": "AtlasCloud / ByteDance Seedream v5.0 Pro \u2014 flagship next-generation text-to-image with stronger prompt adherence.",
+    "title": "Seedream v5.0 Pro — Text to Image",
+    "description": "AtlasCloud / ByteDance Seedream v5.0 Pro — flagship next-generation text-to-image with stronger prompt adherence.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -1296,6 +1403,17 @@
           "jpeg",
           "png"
         ]
+      },
+      {
+        "name": "thinking",
+        "type": "enum",
+        "default": "enabled",
+        "title": "Thinking",
+        "description": "Controls the deep-thinking phase of automatic prompt optimization.",
+        "values": [
+          "enabled",
+          "disabled"
+        ]
       }
     ]
   },
@@ -1305,8 +1423,8 @@
     "modality": "image",
     "modelId": "bytedance/seedream-v5.0-pro/edit",
     "outputType": "image",
-    "title": "Seedream v5.0 Pro \u2014 Edit",
-    "description": "AtlasCloud / ByteDance Seedream v5.0 Pro \u2014 professional image editing with up to 10 reference images, preserving identity, lighting, and color tones.",
+    "title": "Seedream v5.0 Pro — Edit",
+    "description": "AtlasCloud / ByteDance Seedream v5.0 Pro — professional image editing with up to 10 reference images, preserving identity, lighting, and color tones.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -1358,6 +1476,17 @@
           "jpeg",
           "png"
         ]
+      },
+      {
+        "name": "thinking",
+        "type": "enum",
+        "default": "enabled",
+        "title": "Thinking",
+        "description": "Controls the deep-thinking phase of automatic prompt optimization.",
+        "values": [
+          "enabled",
+          "disabled"
+        ]
       }
     ]
   },
@@ -1367,8 +1496,8 @@
     "modality": "image",
     "modelId": "google/nano-banana-2-lite/text-to-image",
     "outputType": "image",
-    "title": "Nano Banana 2 Lite \u2014 Text to Image",
-    "description": "AtlasCloud / Google Nano Banana 2 Lite \u2014 fast, cost-efficient 1K text-to-image with sub-2-second latency.",
+    "title": "Nano Banana 2 Lite — Text to Image",
+    "description": "AtlasCloud / Google Nano Banana 2 Lite — fast, cost-efficient 1K text-to-image with sub-2-second latency.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -1434,8 +1563,8 @@
     "modality": "image",
     "modelId": "google/nano-banana-2-lite/edit",
     "outputType": "image",
-    "title": "Nano Banana 2 Lite \u2014 Edit",
-    "description": "AtlasCloud / Google Nano Banana 2 Lite \u2014 fast multi-turn local edits (up to 14 input images).",
+    "title": "Nano Banana 2 Lite — Edit",
+    "description": "AtlasCloud / Google Nano Banana 2 Lite — fast multi-turn local edits (up to 14 input images).",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -1509,8 +1638,8 @@
     "modality": "image",
     "modelId": "microsoft/mai-image-2.5/text-to-image",
     "outputType": "image",
-    "title": "MAI Image 2.5 \u2014 Text to Image",
-    "description": "AtlasCloud / Microsoft MAI Image 2.5 \u2014 flagship high-quality text-to-image.",
+    "title": "MAI Image 2.5 — Text to Image",
+    "description": "AtlasCloud / Microsoft MAI Image 2.5 — flagship high-quality text-to-image.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -1527,7 +1656,7 @@
         "type": "str",
         "default": "1024*1024",
         "title": "Size",
-        "description": "Image dimensions in width*height format (e.g., 1024*1024, 1280*720). Minimum 768. The product of width \u00d7 height must not exceed 1,049,088."
+        "description": "Image dimensions in width*height format (e.g., 1024*1024, 1280*720). Minimum 768. The product of width × height must not exceed 1,049,088."
       }
     ]
   },
@@ -1537,8 +1666,8 @@
     "modality": "image",
     "modelId": "microsoft/mai-image-2.5/edit",
     "outputType": "image",
-    "title": "MAI Image 2.5 \u2014 Edit",
-    "description": "AtlasCloud / Microsoft MAI Image 2.5 \u2014 natural-language-guided image editing.",
+    "title": "MAI Image 2.5 — Edit",
+    "description": "AtlasCloud / Microsoft MAI Image 2.5 — natural-language-guided image editing.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -1566,8 +1695,8 @@
     "modality": "image",
     "modelId": "microsoft/mai-image-2.5-flash/text-to-image",
     "outputType": "image",
-    "title": "MAI Image 2.5 Flash \u2014 Text to Image",
-    "description": "AtlasCloud / Microsoft MAI Image 2.5 Flash \u2014 fast, cost-optimized text-to-image.",
+    "title": "MAI Image 2.5 Flash — Text to Image",
+    "description": "AtlasCloud / Microsoft MAI Image 2.5 Flash — fast, cost-optimized text-to-image.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -1584,7 +1713,7 @@
         "type": "str",
         "default": "1024*1024",
         "title": "Size",
-        "description": "Image dimensions in width*height format (e.g., 1024*1024, 1280*720). Minimum 768. The product of width \u00d7 height must not exceed 1,049,088."
+        "description": "Image dimensions in width*height format (e.g., 1024*1024, 1280*720). Minimum 768. The product of width × height must not exceed 1,049,088."
       }
     ]
   },
@@ -1594,8 +1723,8 @@
     "modality": "image",
     "modelId": "youchuan/v8.1/text-to-image",
     "outputType": "image",
-    "title": "Youchuan v8.1 \u2014 Text to Image",
-    "description": "AtlasCloud / Youchuan v8.1 \u2014 generates four images per task with optional native 2K HD.",
+    "title": "Youchuan v8.1 — Text to Image",
+    "description": "AtlasCloud / Youchuan v8.1 — generates four images per task with optional native 2K HD.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -1676,6 +1805,13 @@
           1,
           4
         ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Use the same seed and prompt to get reproducible results. -1 = random."
       }
     ]
   },
@@ -1685,8 +1821,8 @@
     "modality": "image",
     "modelId": "youchuan/v8.1/image-to-image",
     "outputType": "image",
-    "title": "Youchuan v8.1 \u2014 Image to Image",
-    "description": "AtlasCloud / Youchuan v8.1 \u2014 re-imagines an input image with text guidance; returns four images.",
+    "title": "Youchuan v8.1 — Image to Image",
+    "description": "AtlasCloud / Youchuan v8.1 — re-imagines an input image with text guidance; returns four images.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -1775,6 +1911,13 @@
           1,
           4
         ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Use the same seed and inputs to get reproducible results. -1 = random."
       }
     ]
   },
@@ -1784,8 +1927,8 @@
     "modality": "image",
     "modelId": "youchuan/v8.1/remove-background",
     "outputType": "image",
-    "title": "Youchuan v8.1 \u2014 Remove Background",
-    "description": "AtlasCloud / Youchuan v8.1 \u2014 automatic background removal.",
+    "title": "Youchuan v8.1 — Remove Background",
+    "description": "AtlasCloud / Youchuan v8.1 — automatic background removal.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -1805,8 +1948,8 @@
     "modality": "image",
     "modelId": "youchuan/v8.1/style-transfer",
     "outputType": "image",
-    "title": "Youchuan v8.1 \u2014 Style Transfer",
-    "description": "AtlasCloud / Youchuan v8.1 \u2014 applies an artistic style described in the prompt to an input image.",
+    "title": "Youchuan v8.1 — Style Transfer",
+    "description": "AtlasCloud / Youchuan v8.1 — applies an artistic style described in the prompt to an input image.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -1834,8 +1977,8 @@
     "modality": "image",
     "modelId": "youchuan/v8.1/blend",
     "outputType": "image",
-    "title": "Youchuan v8.1 \u2014 Blend",
-    "description": "AtlasCloud / Youchuan v8.1 \u2014 fuses 2-5 input images into blended results.",
+    "title": "Youchuan v8.1 — Blend",
+    "description": "AtlasCloud / Youchuan v8.1 — fuses 2-5 input images into blended results.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -1916,6 +2059,13 @@
           1,
           4
         ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Use the same seed and inputs to get reproducible results. -1 = random."
       }
     ]
   },
@@ -1925,8 +2075,8 @@
     "modality": "video",
     "modelId": "bytedance/seedance-2.0-mini/text-to-video",
     "outputType": "video",
-    "title": "Seedance 2.0 Mini \u2014 Text to Video",
-    "description": "AtlasCloud / ByteDance Seedance 2.0 Mini \u2014 lightweight text-to-video with native audio.",
+    "title": "Seedance 2.0 Mini — Text to Video",
+    "description": "AtlasCloud / ByteDance Seedance 2.0 Mini — lightweight text-to-video with native audio.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -2003,6 +2153,26 @@
         "default": false,
         "title": "Watermark",
         "description": "Whether to add a watermark."
+      },
+      {
+        "name": "bitrate_mode",
+        "type": "enum",
+        "default": "standard",
+        "title": "Bitrate Mode",
+        "description": "Output video bitrate mode. 'high' encodes at a higher bitrate for a crisper, larger file; 'standard' uses the normal bitrate. Does not affect token cost.",
+        "values": [
+          "standard",
+          "high"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Seed integer used to control the randomness of generated content. Value range: [-1, 2^32-1]. The default -1 means a random seed is used.",
+        "min": -1,
+        "max": 4294967295
       }
     ]
   },
@@ -2012,8 +2182,8 @@
     "modality": "video",
     "modelId": "bytedance/seedance-2.0-mini/image-to-video",
     "outputType": "video",
-    "title": "Seedance 2.0 Mini \u2014 Image to Video",
-    "description": "AtlasCloud / ByteDance Seedance 2.0 Mini \u2014 lightweight first/last-frame animation with native audio.",
+    "title": "Seedance 2.0 Mini — Image to Video",
+    "description": "AtlasCloud / ByteDance Seedance 2.0 Mini — lightweight first/last-frame animation with native audio.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -2104,6 +2274,26 @@
         "default": false,
         "title": "Watermark",
         "description": "Whether to add a watermark."
+      },
+      {
+        "name": "bitrate_mode",
+        "type": "enum",
+        "default": "standard",
+        "title": "Bitrate Mode",
+        "description": "Output video bitrate mode. 'high' encodes at a higher bitrate for a crisper, larger file; 'standard' uses the normal bitrate. Does not affect token cost.",
+        "values": [
+          "standard",
+          "high"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Seed integer used to control the randomness of generated content. Value range: [-1, 2^32-1]. The default -1 means a random seed is used.",
+        "min": -1,
+        "max": 4294967295
       }
     ]
   },
@@ -2113,8 +2303,8 @@
     "modality": "video",
     "modelId": "bytedance/seedance-2.0-mini/reference-to-video",
     "outputType": "video",
-    "title": "Seedance 2.0 Mini \u2014 Reference to Video",
-    "description": "AtlasCloud / ByteDance Seedance 2.0 Mini multimodal \u2014 generates video from reference images, videos, and/or audio. Refer to inputs in your prompt as 'image 1', 'video 1', etc.",
+    "title": "Seedance 2.0 Mini — Reference to Video",
+    "description": "AtlasCloud / ByteDance Seedance 2.0 Mini multimodal — generates video from reference images, videos, and/or audio. Refer to inputs in your prompt as 'image 1', 'video 1', etc.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -2211,6 +2401,26 @@
         "default": false,
         "title": "Watermark",
         "description": "Whether to add a watermark."
+      },
+      {
+        "name": "bitrate_mode",
+        "type": "enum",
+        "default": "standard",
+        "title": "Bitrate Mode",
+        "description": "Output video bitrate mode. 'high' encodes at a higher bitrate for a crisper, larger file; 'standard' uses the normal bitrate. Does not affect token cost.",
+        "values": [
+          "standard",
+          "high"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Seed integer used to control the randomness of generated content. Value range: [-1, 2^32-1]. The default -1 means a random seed is used.",
+        "min": -1,
+        "max": 4294967295
       }
     ]
   },
@@ -2220,8 +2430,8 @@
     "modality": "video",
     "modelId": "alibaba/happyhorse-1.1/text-to-video",
     "outputType": "video",
-    "title": "HappyHorse 1.1 \u2014 Text to Video",
-    "description": "AtlasCloud / Alibaba HappyHorse 1.1 \u2014 720P/1080P text-to-video, 3-15 second durations.",
+    "title": "HappyHorse 1.1 — Text to Video",
+    "description": "AtlasCloud / Alibaba HappyHorse 1.1 — 720P/1080P text-to-video, 3-15 second durations.",
     "pollInterval": 5000,
     "maxAttempts": 600,
     "fields": [
@@ -2270,6 +2480,15 @@
         "description": "Video duration in seconds.",
         "min": 3,
         "max": 15
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Random seed for video generation. Use -1 for a random seed.",
+        "min": -1,
+        "max": 2147483647
       }
     ]
   },
@@ -2279,8 +2498,8 @@
     "modality": "video",
     "modelId": "alibaba/happyhorse-1.1/image-to-video",
     "outputType": "video",
-    "title": "HappyHorse 1.1 \u2014 Image to Video",
-    "description": "AtlasCloud / Alibaba HappyHorse 1.1 \u2014 animates a first-frame image into a 3-15 second video.",
+    "title": "HappyHorse 1.1 — Image to Video",
+    "description": "AtlasCloud / Alibaba HappyHorse 1.1 — animates a first-frame image into a 3-15 second video.",
     "pollInterval": 5000,
     "maxAttempts": 600,
     "fields": [
@@ -2318,6 +2537,15 @@
         "description": "Video duration in seconds.",
         "min": 3,
         "max": 15
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Random seed for video generation. Use -1 for a random seed.",
+        "min": -1,
+        "max": 2147483647
       }
     ]
   },
@@ -2327,8 +2555,8 @@
     "modality": "video",
     "modelId": "alibaba/happyhorse-1.1/reference-to-video",
     "outputType": "video",
-    "title": "HappyHorse 1.1 \u2014 Reference to Video",
-    "description": "AtlasCloud / Alibaba HappyHorse 1.1 \u2014 generates video from 1-9 reference images with a text prompt.",
+    "title": "HappyHorse 1.1 — Reference to Video",
+    "description": "AtlasCloud / Alibaba HappyHorse 1.1 — generates video from 1-9 reference images with a text prompt.",
     "pollInterval": 5000,
     "maxAttempts": 600,
     "fields": [
@@ -2385,6 +2613,15 @@
         "description": "Video duration in seconds.",
         "min": 3,
         "max": 15
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Random seed for video generation. Use -1 for a random seed.",
+        "min": -1,
+        "max": 2147483647
       }
     ]
   },
@@ -2394,8 +2631,8 @@
     "modality": "video",
     "modelId": "google/gemini-omni-flash/text-to-video",
     "outputType": "video",
-    "title": "Gemini Omni Flash \u2014 Text to Video",
-    "description": "AtlasCloud / Google Gemini Omni Flash \u2014 cinematic text-to-video with synchronized native audio.",
+    "title": "Gemini Omni Flash — Text to Video",
+    "description": "AtlasCloud / Google Gemini Omni Flash — cinematic text-to-video with synchronized native audio.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -2448,6 +2685,13 @@
           "high",
           "low"
         ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. -1 means a random seed will be used."
       }
     ]
   },
@@ -2457,8 +2701,8 @@
     "modality": "video",
     "modelId": "google/gemini-omni-flash/image-to-video",
     "outputType": "video",
-    "title": "Gemini Omni Flash \u2014 Image to Video",
-    "description": "AtlasCloud / Google Gemini Omni Flash \u2014 cinematic animation from an input image, preserving subjects.",
+    "title": "Gemini Omni Flash — Image to Video",
+    "description": "AtlasCloud / Google Gemini Omni Flash — cinematic animation from an input image, preserving subjects.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -2519,6 +2763,13 @@
           "high",
           "low"
         ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. -1 means a random seed will be used."
       }
     ]
   },
@@ -2528,8 +2779,8 @@
     "modality": "video",
     "modelId": "google/gemini-omni-flash/reference-to-video",
     "outputType": "video",
-    "title": "Gemini Omni Flash \u2014 Reference to Video",
-    "description": "AtlasCloud / Google Gemini Omni Flash \u2014 video generation from 1-5 reference images, maintaining subject consistency.",
+    "title": "Gemini Omni Flash — Reference to Video",
+    "description": "AtlasCloud / Google Gemini Omni Flash — video generation from 1-5 reference images, maintaining subject consistency.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -2590,6 +2841,13 @@
           "high",
           "low"
         ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. -1 means a random seed will be used."
       }
     ]
   },
@@ -2599,8 +2857,8 @@
     "modality": "video",
     "modelId": "google/gemini-omni-flash/video-edit",
     "outputType": "video",
-    "title": "Gemini Omni Flash \u2014 Video Edit",
-    "description": "AtlasCloud / Google Gemini Omni Flash \u2014 edits an existing video from a text prompt with optional reference images.",
+    "title": "Gemini Omni Flash — Video Edit",
+    "description": "AtlasCloud / Google Gemini Omni Flash — edits an existing video from a text prompt with optional reference images.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -2648,6 +2906,13 @@
           "high",
           "low"
         ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. -1 means a random seed will be used."
       }
     ]
   },
@@ -2657,8 +2922,8 @@
     "modality": "video",
     "modelId": "bytedance/avatar-omni-human-v1.5",
     "outputType": "video",
-    "title": "Avatar Omni Human 1.5 \u2014 Audio to Video",
-    "description": "AtlasCloud / ByteDance Omni Human 1.5 \u2014 digital-human video from a portrait image and driving audio, with lip-sync and natural gestures.",
+    "title": "Avatar Omni Human 1.5 — Audio to Video",
+    "description": "AtlasCloud / ByteDance Omni Human 1.5 — digital-human video from a portrait image and driving audio, with lip-sync and natural gestures.",
     "pollInterval": 5000,
     "maxAttempts": 600,
     "fields": [
@@ -2674,7 +2939,7 @@
         "type": "image",
         "default": null,
         "title": "Portrait Image",
-        "description": "URL of the reference portrait image \u2014 a clear, front-facing face works best",
+        "description": "URL of the reference portrait image — a clear, front-facing face works best",
         "required": true
       },
       {
@@ -2695,6 +2960,13 @@
           720,
           1080
         ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Random seed; -1 for random"
       }
     ]
   },
@@ -2704,8 +2976,8 @@
     "modality": "video",
     "modelId": "kwaivgi/kling-v3.0-turbo/text-to-video",
     "outputType": "video",
-    "title": "Kling v3.0 Turbo \u2014 Text to Video",
-    "description": "AtlasCloud / KwaiVGI Kling v3.0 Turbo \u2014 dynamic cinematic text-to-video.",
+    "title": "Kling v3.0 Turbo — Text to Video",
+    "description": "AtlasCloud / KwaiVGI Kling v3.0 Turbo — dynamic cinematic text-to-video.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -2770,8 +3042,8 @@
     "modality": "video",
     "modelId": "kwaivgi/kling-v3.0-turbo/image-to-video",
     "outputType": "video",
-    "title": "Kling v3.0 Turbo \u2014 Image to Video",
-    "description": "AtlasCloud / KwaiVGI Kling v3.0 Turbo \u2014 image-to-video animation built on MVL technology.",
+    "title": "Kling v3.0 Turbo — Image to Video",
+    "description": "AtlasCloud / KwaiVGI Kling v3.0 Turbo — image-to-video animation built on MVL technology.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -2787,7 +3059,7 @@
         "type": "image",
         "default": null,
         "title": "Image",
-        "description": "Supported image formats: .jpg/.jpeg/.png. The size of the image file should not exceed 10MB, the width and height of the image should be no less than 300px, and the aspect ratio of\u2026",
+        "description": "Supported image formats: .jpg/.jpeg/.png. The size of the image file should not exceed 10MB, the width and height of the image should be no less than 300px, and the aspect ratio of…",
         "required": true
       },
       {
@@ -2831,8 +3103,8 @@
     "modality": "video",
     "modelId": "kwaivgi/kling-video-o3-4k/text-to-video",
     "outputType": "video",
-    "title": "Kling Video O3 4K \u2014 Text to Video",
-    "description": "AtlasCloud / KwaiVGI Kling Video O3 4K \u2014 high-quality 4K text-to-video with optional audio.",
+    "title": "Kling Video O3 4K — Text to Video",
+    "description": "AtlasCloud / KwaiVGI Kling Video O3 4K — high-quality 4K text-to-video with optional audio.",
     "pollInterval": 5000,
     "maxAttempts": 600,
     "fields": [
@@ -2890,6 +3162,17 @@
         "default": false,
         "title": "Multi-Shot",
         "description": "Whether to enable multi-shot generation."
+      },
+      {
+        "name": "shot_type",
+        "type": "enum",
+        "default": null,
+        "title": "Shot Type",
+        "description": "Multi-shot mode. customize = caller provides per-shot prompts; intelligence = model auto-splits the top-level prompt into shots. Required when multi_shot=true.",
+        "values": [
+          "customize",
+          "intelligence"
+        ]
       }
     ]
   },
@@ -2899,8 +3182,8 @@
     "modality": "video",
     "modelId": "kwaivgi/kling-video-o3-4k/image-to-video",
     "outputType": "video",
-    "title": "Kling Video O3 4K \u2014 Image to Video",
-    "description": "AtlasCloud / KwaiVGI Kling Video O3 4K \u2014 4K cinematic image-to-video with optional end frame and audio.",
+    "title": "Kling Video O3 4K — Image to Video",
+    "description": "AtlasCloud / KwaiVGI Kling Video O3 4K — 4K cinematic image-to-video with optional end frame and audio.",
     "pollInterval": 5000,
     "maxAttempts": 600,
     "fields": [
@@ -2961,6 +3244,17 @@
         "default": false,
         "title": "Multi-Shot",
         "description": "Whether to enable multi-shot generation."
+      },
+      {
+        "name": "shot_type",
+        "type": "enum",
+        "default": null,
+        "title": "Shot Type",
+        "description": "Multi-shot mode. customize = caller provides per-shot prompts; intelligence = model auto-splits the top-level prompt into shots. Required when multi_shot=true.",
+        "values": [
+          "customize",
+          "intelligence"
+        ]
       }
     ]
   },
@@ -2970,8 +3264,8 @@
     "modality": "video",
     "modelId": "youchuan/v8.1/image-to-video",
     "outputType": "video",
-    "title": "Youchuan v8.1 \u2014 Image to Video",
-    "description": "AtlasCloud / Youchuan v8.1 \u2014 four 5-second videos per task at 480p/720p from an input image.",
+    "title": "Youchuan v8.1 — Image to Video",
+    "description": "AtlasCloud / Youchuan v8.1 — four 5-second videos per task at 480p/720p from an input image.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -3020,8 +3314,8 @@
     "modality": "video",
     "modelId": "alibaba/wan-2.7/text-to-video",
     "outputType": "video",
-    "title": "Wan 2.7 \u2014 Text to Video",
-    "description": "AtlasCloud / Alibaba Wan 2.7 \u2014 generates video from text with multi-shot narrative, audio generation, and sound-image synchronization.",
+    "title": "Wan 2.7 — Text to Video",
+    "description": "AtlasCloud / Alibaba Wan 2.7 — generates video from text with multi-shot narrative, audio generation, and sound-image synchronization.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -3045,14 +3339,14 @@
         "type": "audio",
         "default": null,
         "title": "Audio (optional)",
-        "description": "URL of an audio file to use as the video soundtrack. Supported formats: wav, mp3. Duration: 2\u201330 seconds. Maximum file size: 15 MB. The alias `audio_url` is also accepted."
+        "description": "URL of an audio file to use as the video soundtrack. Supported formats: wav, mp3. Duration: 2–30 seconds. Maximum file size: 15 MB. The alias `audio_url` is also accepted."
       },
       {
         "name": "resolution",
         "type": "enum",
         "default": "1080P",
         "title": "Resolution",
-        "description": "Output video resolution. 720P and 1080P are native Wan 2.7 outputs. Choose 1080P-SR for sharper HD detail, cleaner edges, and better texture retention. For the same duration, 1080P\u2026",
+        "description": "Output video resolution. 720P and 1080P are native Wan 2.7 outputs. Choose 1080P-SR for sharper HD detail, cleaner edges, and better texture retention. For the same duration, 1080P…",
         "values": [
           "720P",
           "1080P",
@@ -3107,8 +3401,8 @@
     "modality": "video",
     "modelId": "alibaba/wan-2.7/image-to-video",
     "outputType": "video",
-    "title": "Wan 2.7 \u2014 Image to Video",
-    "description": "AtlasCloud / Alibaba Wan 2.7 \u2014 animates images into video with first-frame, first-and-last-frame, video continuation, and audio-driven modes.",
+    "title": "Wan 2.7 — Image to Video",
+    "description": "AtlasCloud / Alibaba Wan 2.7 — animates images into video with first-frame, first-and-last-frame, video continuation, and audio-driven modes.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -3131,28 +3425,28 @@
         "type": "image",
         "default": null,
         "title": "Image",
-        "description": "First-frame image URL for image-based generation modes. The video starts from this image. Supported formats: JPEG, JPG, PNG (transparent channel not supported), BMP, WEBP. Width an\u2026"
+        "description": "First-frame image URL for image-based generation modes. The video starts from this image. Supported formats: JPEG, JPG, PNG (transparent channel not supported), BMP, WEBP. Width an…"
       },
       {
         "name": "last_image",
         "type": "image",
         "default": null,
         "title": "Last Frame (optional)",
-        "description": "Last-frame image URL for end-frame control. Use it with `image` to generate a start-to-end transition, or with `video` to continue a clip toward a target ending frame. Supported fo\u2026"
+        "description": "Last-frame image URL for end-frame control. Use it with `image` to generate a start-to-end transition, or with `video` to continue a clip toward a target ending frame. Supported fo…"
       },
       {
         "name": "video",
         "type": "video",
         "default": null,
         "title": "Video (optional)",
-        "description": "Video clip URL for video continuation modes. The model extends the content of this clip. `last_image` can be added for end-frame control. Supported formats: mp4, mov. Duration: 2\u20131\u2026"
+        "description": "Video clip URL for video continuation modes. The model extends the content of this clip. `last_image` can be added for end-frame control. Supported formats: mp4, mov. Duration: 2–1…"
       },
       {
         "name": "audio",
         "type": "audio",
         "default": null,
         "title": "Audio (optional)",
-        "description": "Driving audio URL for image-based generation modes. The model uses this audio to drive lip-sync or action-matched video generation. Supported only with `image`, or with `image` and\u2026"
+        "description": "Driving audio URL for image-based generation modes. The model uses this audio to drive lip-sync or action-matched video generation. Supported only with `image`, or with `image` and…"
       },
       {
         "name": "resolution",
@@ -3198,8 +3492,8 @@
     "modality": "image",
     "modelId": "alibaba/wan-2.7/text-to-image",
     "outputType": "image",
-    "title": "Wan 2.7 \u2014 Text to Image",
-    "description": "AtlasCloud / Alibaba Wan 2.7 \u2014 fast text-to-image with strong prompt fidelity for illustration and photorealistic outputs.",
+    "title": "Wan 2.7 — Text to Image",
+    "description": "AtlasCloud / Alibaba Wan 2.7 — fast text-to-image with strong prompt fidelity for illustration and photorealistic outputs.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -3255,8 +3549,8 @@
     "modality": "image",
     "modelId": "alibaba/wan-2.7/image-edit",
     "outputType": "image",
-    "title": "Wan 2.7 \u2014 Image Edit",
-    "description": "AtlasCloud / Alibaba Wan 2.7 \u2014 edits and recomposes images from text instructions with multi-image references.",
+    "title": "Wan 2.7 — Image Edit",
+    "description": "AtlasCloud / Alibaba Wan 2.7 — edits and recomposes images from text instructions with multi-image references.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -3320,8 +3614,8 @@
     "modality": "image",
     "modelId": "alibaba/wan-2.7-pro/text-to-image",
     "outputType": "image",
-    "title": "Wan 2.7 Pro \u2014 Text to Image",
-    "description": "AtlasCloud / Alibaba Wan 2.7 Pro \u2014 higher-fidelity text-to-image with 4K-ready output.",
+    "title": "Wan 2.7 Pro — Text to Image",
+    "description": "AtlasCloud / Alibaba Wan 2.7 Pro — higher-fidelity text-to-image with 4K-ready output.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -3378,8 +3672,8 @@
     "modality": "image",
     "modelId": "alibaba/wan-2.7-pro/image-edit",
     "outputType": "image",
-    "title": "Wan 2.7 Pro \u2014 Image Edit",
-    "description": "AtlasCloud / Alibaba Wan 2.7 Pro \u2014 higher-quality image editing from text instructions with multi-image references.",
+    "title": "Wan 2.7 Pro — Image Edit",
+    "description": "AtlasCloud / Alibaba Wan 2.7 Pro — higher-quality image editing from text instructions with multi-image references.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -3443,8 +3737,8 @@
     "modality": "video",
     "modelId": "google/veo3.1/text-to-video",
     "outputType": "video",
-    "title": "Veo 3.1 \u2014 Text to Video",
-    "description": "AtlasCloud / Google Veo 3.1 \u2014 cinematic text-to-video with dynamic camera motion, lifelike detail, and optional audio.",
+    "title": "Veo 3.1 — Text to Video",
+    "description": "AtlasCloud / Google Veo 3.1 — cinematic text-to-video with dynamic camera motion, lifelike detail, and optional audio.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -3474,9 +3768,9 @@
         "title": "Duration (seconds)",
         "description": "The duration of the generated media in seconds.",
         "values": [
+          8,
           4,
-          6,
-          8
+          6
         ]
       },
       {
@@ -3520,8 +3814,8 @@
     "modality": "video",
     "modelId": "google/veo3.1/image-to-video",
     "outputType": "video",
-    "title": "Veo 3.1 \u2014 Image to Video",
-    "description": "AtlasCloud / Google Veo 3.1 \u2014 animates a first (and optional last) frame into cinematic video with realistic continuity and sound.",
+    "title": "Veo 3.1 — Image to Video",
+    "description": "AtlasCloud / Google Veo 3.1 — animates a first (and optional last) frame into cinematic video with realistic continuity and sound.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -3566,9 +3860,9 @@
         "title": "Duration (seconds)",
         "description": "The duration of the generated media in seconds.",
         "values": [
+          8,
           4,
-          6,
-          8
+          6
         ]
       },
       {
@@ -3612,8 +3906,8 @@
     "modality": "video",
     "modelId": "google/veo3.1-fast/text-to-video",
     "outputType": "video",
-    "title": "Veo 3.1 Fast \u2014 Text to Video",
-    "description": "AtlasCloud / Google Veo 3.1 Fast \u2014 speed-optimized text-to-video for rapid creative iteration.",
+    "title": "Veo 3.1 Fast — Text to Video",
+    "description": "AtlasCloud / Google Veo 3.1 Fast — speed-optimized text-to-video for rapid creative iteration.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -3643,9 +3937,9 @@
         "title": "Duration (seconds)",
         "description": "The duration of the generated media in seconds.",
         "values": [
+          8,
           4,
-          6,
-          8
+          6
         ]
       },
       {
@@ -3689,8 +3983,8 @@
     "modality": "video",
     "modelId": "google/veo3.1-fast/image-to-video",
     "outputType": "video",
-    "title": "Veo 3.1 Fast \u2014 Image to Video",
-    "description": "AtlasCloud / Google Veo 3.1 Fast \u2014 speed-optimized image-to-video for fast previews and iteration.",
+    "title": "Veo 3.1 Fast — Image to Video",
+    "description": "AtlasCloud / Google Veo 3.1 Fast — speed-optimized image-to-video for fast previews and iteration.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -3735,9 +4029,9 @@
         "title": "Duration (seconds)",
         "description": "The duration of the generated media in seconds.",
         "values": [
+          8,
           4,
-          6,
-          8
+          6
         ]
       },
       {
@@ -3781,8 +4075,8 @@
     "modality": "video",
     "modelId": "google/veo3.1-lite/text-to-video",
     "outputType": "video",
-    "title": "Veo 3.1 Lite \u2014 Text to Video",
-    "description": "AtlasCloud / Google Veo 3.1 Lite \u2014 cost-efficient text-to-video with synchronized audio at 720p/1080p.",
+    "title": "Veo 3.1 Lite — Text to Video",
+    "description": "AtlasCloud / Google Veo 3.1 Lite — cost-efficient text-to-video with synchronized audio at 720p/1080p.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -3843,8 +4137,8 @@
     "modality": "video",
     "modelId": "google/veo3.1-lite/image-to-video",
     "outputType": "video",
-    "title": "Veo 3.1 Lite \u2014 Image to Video",
-    "description": "AtlasCloud / Google Veo 3.1 Lite \u2014 cost-efficient image-to-video with synchronized audio at 720p/1080p.",
+    "title": "Veo 3.1 Lite — Image to Video",
+    "description": "AtlasCloud / Google Veo 3.1 Lite — cost-efficient image-to-video with synchronized audio at 720p/1080p.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -3861,7 +4155,7 @@
         "type": "image",
         "default": null,
         "title": "Image",
-        "description": "Initial image to animate (instance image). Accepts a public image URL, a data URL, or raw base64-encoded image bytes (e.g. PNG/JPEG inline data). Input image up to 8MB per Veo 3.1\u2026",
+        "description": "Initial image to animate (instance image). Accepts a public image URL, a data URL, or raw base64-encoded image bytes (e.g. PNG/JPEG inline data). Input image up to 8MB per Veo 3.1…",
         "required": true
       },
       {
@@ -3913,8 +4207,8 @@
     "modality": "image",
     "modelId": "qwen/qwen-image-2.0/text-to-image",
     "outputType": "image",
-    "title": "Qwen Image 2.0 \u2014 Text to Image",
-    "description": "AtlasCloud / Qwen Image 2.0 \u2014 text-to-image with enhanced quality and prompt understanding, up to 2K.",
+    "title": "Qwen Image 2.0 — Text to Image",
+    "description": "AtlasCloud / Qwen Image 2.0 — text-to-image with enhanced quality and prompt understanding, up to 2K.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -3948,8 +4242,8 @@
     "modality": "image",
     "modelId": "qwen/qwen-image-2.0/edit",
     "outputType": "image",
-    "title": "Qwen Image 2.0 \u2014 Edit",
-    "description": "AtlasCloud / Qwen Image 2.0 \u2014 instruction-driven image editing, up to 2K.",
+    "title": "Qwen Image 2.0 — Edit",
+    "description": "AtlasCloud / Qwen Image 2.0 — instruction-driven image editing, up to 2K.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -3991,8 +4285,8 @@
     "modality": "image",
     "modelId": "qwen/qwen-image-2.0-pro/text-to-image",
     "outputType": "image",
-    "title": "Qwen Image 2.0 Pro \u2014 Text to Image",
-    "description": "AtlasCloud / Qwen Image 2.0 Pro \u2014 professional-grade text-to-image with superior quality, up to 2K.",
+    "title": "Qwen Image 2.0 Pro — Text to Image",
+    "description": "AtlasCloud / Qwen Image 2.0 Pro — professional-grade text-to-image with superior quality, up to 2K.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -4026,8 +4320,8 @@
     "modality": "image",
     "modelId": "qwen/qwen-image-2.0-pro/edit",
     "outputType": "image",
-    "title": "Qwen Image 2.0 Pro \u2014 Edit",
-    "description": "AtlasCloud / Qwen Image 2.0 Pro \u2014 professional-grade image editing with advanced instruction understanding, up to 2K.",
+    "title": "Qwen Image 2.0 Pro — Edit",
+    "description": "AtlasCloud / Qwen Image 2.0 Pro — professional-grade image editing with advanced instruction understanding, up to 2K.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -4069,8 +4363,8 @@
     "modality": "image",
     "modelId": "bytedance/seedream-v5.0-lite",
     "outputType": "image",
-    "title": "Seedream v5.0 Lite \u2014 Text to Image",
-    "description": "AtlasCloud / ByteDance Seedream v5.0 Lite \u2014 next-generation text-to-image with enhanced typography and poster design.",
+    "title": "Seedream v5.0 Lite — Text to Image",
+    "description": "AtlasCloud / ByteDance Seedream v5.0 Lite — next-generation text-to-image with enhanced typography and poster design.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -4126,8 +4420,8 @@
     "modality": "image",
     "modelId": "bytedance/seedream-v5.0-lite/edit",
     "outputType": "image",
-    "title": "Seedream v5.0 Lite \u2014 Edit",
-    "description": "AtlasCloud / ByteDance Seedream v5.0 Lite \u2014 image editing that preserves facial features, lighting, and color tones.",
+    "title": "Seedream v5.0 Lite — Edit",
+    "description": "AtlasCloud / ByteDance Seedream v5.0 Lite — image editing that preserves facial features, lighting, and color tones.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -4191,8 +4485,8 @@
     "modality": "image",
     "modelId": "xai/grok-imagine-image-quality/text-to-image",
     "outputType": "image",
-    "title": "Grok Imagine Image Quality \u2014 Text to Image",
-    "description": "AtlasCloud / xAI Grok Imagine (Quality) \u2014 polished text-to-image at 1K or 2K with 13 aspect ratios.",
+    "title": "Grok Imagine Image Quality — Text to Image",
+    "description": "AtlasCloud / xAI Grok Imagine (Quality) — polished text-to-image at 1K or 2K with 13 aspect ratios.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -4258,8 +4552,8 @@
     "modality": "image",
     "modelId": "xai/grok-imagine-image-quality/edit",
     "outputType": "image",
-    "title": "Grok Imagine Image Quality \u2014 Edit",
-    "description": "AtlasCloud / xAI Grok Imagine (Quality) \u2014 edits one or more reference images from natural-language instructions at 1K or 2K.",
+    "title": "Grok Imagine Image Quality — Edit",
+    "description": "AtlasCloud / xAI Grok Imagine (Quality) — edits one or more reference images from natural-language instructions at 1K or 2K.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -4334,8 +4628,8 @@
     "modality": "video",
     "modelId": "xai/grok-imagine-video-v1.5/image-to-video",
     "outputType": "video",
-    "title": "Grok Imagine Video v1.5 \u2014 Image to Video",
-    "description": "AtlasCloud / xAI Grok Imagine Video v1.5 \u2014 animates a starting frame with natural-language motion prompts at 480p/720p/1080p.",
+    "title": "Grok Imagine Video v1.5 — Image to Video",
+    "description": "AtlasCloud / xAI Grok Imagine Video v1.5 — animates a starting frame with natural-language motion prompts at 480p/720p/1080p.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -4360,7 +4654,7 @@
         "type": "int",
         "default": 8,
         "title": "Duration (seconds)",
-        "description": "Length of generated video in seconds. Range: 1\u201315.",
+        "description": "Length of generated video in seconds. Range: 1–15.",
         "min": 1,
         "max": 15
       },
@@ -4400,8 +4694,8 @@
     "modality": "video",
     "modelId": "kwaivgi/kling-v3.0-pro/text-to-video",
     "outputType": "video",
-    "title": "Kling v3.0 Pro \u2014 Text to Video",
-    "description": "AtlasCloud / KwaiVGI Kling v3.0 Pro \u2014 premium text-to-video with multi-shot support and sound.",
+    "title": "Kling v3.0 Pro — Text to Video",
+    "description": "AtlasCloud / KwaiVGI Kling v3.0 Pro — premium text-to-video with multi-shot support and sound.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -4495,8 +4789,8 @@
     "modality": "video",
     "modelId": "kwaivgi/kling-v3.0-pro/image-to-video",
     "outputType": "video",
-    "title": "Kling v3.0 Pro \u2014 Image to Video",
-    "description": "AtlasCloud / KwaiVGI Kling v3.0 Pro \u2014 premium image-to-video with first/end-frame control and sound.",
+    "title": "Kling v3.0 Pro — Image to Video",
+    "description": "AtlasCloud / KwaiVGI Kling v3.0 Pro — premium image-to-video with first/end-frame control and sound.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -4519,7 +4813,7 @@
         "type": "image",
         "default": null,
         "title": "Image",
-        "description": "Supported image formats: .jpg/.jpeg/.png. The size of the image file should not exceed 10MB, the width and height of the image should be no less than 300px, and the aspect ratio of\u2026",
+        "description": "Supported image formats: .jpg/.jpeg/.png. The size of the image file should not exceed 10MB, the width and height of the image should be no less than 300px, and the aspect ratio of…",
         "required": true
       },
       {
@@ -4604,8 +4898,8 @@
     "modality": "video",
     "modelId": "kwaivgi/kling-v3.0-std/text-to-video",
     "outputType": "video",
-    "title": "Kling v3.0 Std \u2014 Text to Video",
-    "description": "AtlasCloud / KwaiVGI Kling v3.0 Standard \u2014 high-quality text-to-video generation.",
+    "title": "Kling v3.0 Std — Text to Video",
+    "description": "AtlasCloud / KwaiVGI Kling v3.0 Standard — high-quality text-to-video generation.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -4699,8 +4993,8 @@
     "modality": "video",
     "modelId": "kwaivgi/kling-v3.0-std/image-to-video",
     "outputType": "video",
-    "title": "Kling v3.0 Std \u2014 Image to Video",
-    "description": "AtlasCloud / KwaiVGI Kling v3.0 Standard \u2014 high-quality image-to-video generation.",
+    "title": "Kling v3.0 Std — Image to Video",
+    "description": "AtlasCloud / KwaiVGI Kling v3.0 Standard — high-quality image-to-video generation.",
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
@@ -4723,7 +5017,7 @@
         "type": "image",
         "default": null,
         "title": "Image",
-        "description": "Supported image formats: .jpg/.jpeg/.png. The size of the image file should not exceed 10MB, the width and height of the image should be no less than 300px, and the aspect ratio of\u2026",
+        "description": "Supported image formats: .jpg/.jpeg/.png. The size of the image file should not exceed 10MB, the width and height of the image should be no less than 300px, and the aspect ratio of…",
         "required": true
       },
       {
@@ -4809,8 +5103,8 @@
     "modality": "image",
     "modelId": "openai/gpt-image-1.5/text-to-image",
     "outputType": "image",
-    "title": "GPT Image 1.5 \u2014 Text to Image",
-    "description": "AtlasCloud / OpenAI GPT Image 1.5 \u2014 fast, cost-efficient text-to-image powered by GPT-5 guidance.",
+    "title": "GPT Image 1.5 — Text to Image",
+    "description": "AtlasCloud / OpenAI GPT Image 1.5 — fast, cost-efficient text-to-image powered by GPT-5 guidance.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -4865,8 +5159,8 @@
     "modality": "image",
     "modelId": "openai/gpt-image-1.5/edit",
     "outputType": "image",
-    "title": "GPT Image 1.5 \u2014 Edit",
-    "description": "AtlasCloud / OpenAI GPT Image 1.5 \u2014 precise natural-language image editing (add/remove objects, retouch, swap backgrounds, etc.).",
+    "title": "GPT Image 1.5 — Edit",
+    "description": "AtlasCloud / OpenAI GPT Image 1.5 — precise natural-language image editing (add/remove objects, retouch, swap backgrounds, etc.).",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [
@@ -4915,7 +5209,7 @@
         "type": "enum",
         "default": "high",
         "title": "Input Fidelity",
-        "description": "input fidelity, which allows you to better preserve details from the input images in the output. This is especially useful when using images that contain elements like faces or log\u2026",
+        "description": "input fidelity, which allows you to better preserve details from the input images in the output. This is especially useful when using images that contain elements like faces or log…",
         "values": [
           "low",
           "high"
@@ -4940,8 +5234,8 @@
     "modality": "image",
     "modelId": "z-image/turbo",
     "outputType": "image",
-    "title": "Z-Image Turbo \u2014 Text to Image",
-    "description": "AtlasCloud / Tongyi-MAI Z-Image Turbo \u2014 6B-parameter text-to-image generating photorealistic images in sub-second time.",
+    "title": "Z-Image Turbo — Text to Image",
+    "description": "AtlasCloud / Tongyi-MAI Z-Image Turbo — 6B-parameter text-to-image generating photorealistic images in sub-second time.",
     "pollInterval": 3000,
     "maxAttempts": 300,
     "fields": [

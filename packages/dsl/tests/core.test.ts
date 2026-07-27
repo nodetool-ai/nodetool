@@ -245,14 +245,17 @@ describe("run / runGraph", () => {
   //   nodetool.test.ErrorNode → throws
 
   beforeAll(async () => {
-    // Warm up lazy runtime/module initialization once for this suite.
+    // Warm up lazy runtime/module initialization once for this suite. The
+    // first run() pulls in the whole kernel module graph; on a cold, slow CI
+    // runner that transform/import can exceed a tight budget, so allow ample
+    // headroom here (the per-test cost is negligible once warmed).
     const warmupNode = createNode<SingleOutput<number, "value">>(
       "nodetool.test.Constant",
       { value: 0 },
       { outputNames: ["value"], defaultOutput: "value" }
     );
     await run(workflow(warmupNode));
-  }, 45000);
+  }, 120000);
 
   test("run() executes a single source node and returns its outputs", async () => {
     const a = createNode<SingleOutput<number, "value">>(

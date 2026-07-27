@@ -6,6 +6,13 @@
  * instead of separate Python module files.
  */
 
+import { randomUUID } from "node:crypto";
+
+import {
+  liftLegacyAppDoc,
+  type ApplicationDocument
+} from "@nodetool-ai/app-runtime";
+
 import type { MigrationDBAdapter } from "./db-adapter.js";
 
 export interface MigrationDef {
@@ -16,6 +23,62 @@ export interface MigrationDef {
   up: (db: MigrationDBAdapter) => Promise<void>;
   down: (db: MigrationDBAdapter) => Promise<void>;
 }
+
+const newRowId = (): string => randomUUID().replace(/-/g, "");
+
+/**
+ * The capability summary an `application_versions` row carries, derived from
+ * the document's bindings. Duplicated from `deriveCapabilities` in
+ * `application.ts` on purpose: a migration must keep writing the shape it was
+ * written against even after the model layer moves on.
+ */
+const capabilitiesOf = (document: ApplicationDocument): string => {
+  const workflows = new Map<
+    string,
+    { workflowId: string; version?: number }
+  >();
+  for (const operation of document.operations) {
+    workflows.set(`${operation.workflowId}@${operation.workflowVersion ?? ""}`, {
+      workflowId: operation.workflowId,
+      version: operation.workflowVersion
+    });
+  }
+  const resources = new Map<string, Set<string>>();
+  for (const binding of document.resources) {
+    const seen = resources.get(binding.kind) ?? new Set<string>();
+    for (const op of binding.operations) seen.add(op);
+    resources.set(binding.kind, seen);
+  }
+  return JSON.stringify({
+    workflows: [...workflows.values()],
+    resources: [...resources.entries()].map(([kind, ops]) => ({
+      kind,
+      operations: [...ops]
+    }))
+  });
+};
+
+/** The workflows an application's stored document binds. */
+const boundWorkflowIds = (rawDocument: unknown): string[] => {
+  let value: unknown = rawDocument;
+  if (typeof value === "string") {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      return [];
+    }
+  }
+  if (typeof value !== "object" || value === null) return [];
+  const operations = (value as { operations?: unknown }).operations;
+  if (!Array.isArray(operations)) return [];
+  return operations
+    .map((op) =>
+      typeof op === "object" && op !== null
+        ? (op as { workflowId?: unknown }).workflowId
+        : undefined
+    )
+    .filter((id): id is string => typeof id === "string" && id.length > 0);
+};
 
 export const migrations: MigrationDef[] = [
   // ── 001: Create workflows ──────────────────────────────────────────
@@ -1937,6 +2000,337 @@ export const migrations: MigrationDef[] = [
       );
       await db.execute("DROP INDEX IF EXISTS idx_thread_memory_user");
       await db.execute("DROP TABLE IF EXISTS nodetool_thread_memories");
+    }
+  },
+
+  // ── Create applications ─────────────────────────────────────────────
+  // Mini apps get their own identity. Before this, an app *was* a workflow
+  // (`workflow.app_doc`), so it could expose exactly one operation and had no
+  // history. An application row owns a UI document plus typed bindings, and
+  // each binding names a workflow.
+  {
+    version: "20260725_000000",
+    name: "create_applications",
+    createsTables: ["applications", "application_versions"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS applications (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          project_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          description TEXT NOT NULL DEFAULT '',
+          document TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_application_user
+        ON applications (user_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_application_project
+        ON applications (project_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_application_updated
+        ON applications (updated_at)
+      `);
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS application_versions (
+          id TEXT PRIMARY KEY,
+          application_id TEXT NOT NULL,
+          version INTEGER NOT NULL,
+          document TEXT NOT NULL,
+          capabilities TEXT NOT NULL,
+          released INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_application_version_app
+        ON application_versions (application_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_application_version_released
+        ON application_versions (released)
+      `);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_application_version_released");
+      await db.execute("DROP INDEX IF EXISTS idx_application_version_app");
+      await db.execute("DROP TABLE IF EXISTS application_versions");
+      await db.execute("DROP INDEX IF EXISTS idx_application_updated");
+      await db.execute("DROP INDEX IF EXISTS idx_application_project");
+      await db.execute("DROP INDEX IF EXISTS idx_application_user");
+      await db.execute("DROP TABLE IF EXISTS applications");
+    }
+  },
+
+  // ── Add revision to the resource document tables ────────────────────
+  // Mini-app resource bindings hand widgets a `ResourceRef { kind, id,
+  // revision }`. A write carrying a stale revision is rejected, so an
+  // interactive editing widget cannot silently clobber a concurrent edit.
+  {
+    version: "20260725_000001",
+    name: "add_revision_to_resource_documents",
+    createsTables: [],
+    modifiesTables: ["timeline_sequences", "storyboards", "image_documents"],
+    async up(db) {
+      for (const table of [
+        "timeline_sequences",
+        "storyboards",
+        "image_documents"
+      ]) {
+        if (!(await db.columnExists(table, "revision"))) {
+          await db.execute(
+            `ALTER TABLE ${table} ADD COLUMN revision INTEGER NOT NULL DEFAULT 0`
+          );
+        }
+      }
+    },
+    async down(db) {
+      for (const table of [
+        "timeline_sequences",
+        "storyboards",
+        "image_documents"
+      ]) {
+        if (await db.columnExists(table, "revision")) {
+          await db.execute(`ALTER TABLE ${table} DROP COLUMN revision`);
+        }
+      }
+    }
+  },
+
+  // ── Create application budgets and the invocation ledger ────────────
+  // A published app runs on the creator's secrets, so runs are checked against
+  // a hard budget before the job is created and settled from the run's actual
+  // provider cost afterwards. The ledger doubles as release telemetry, keyed by
+  // (application_id, version, invocation_id).
+  {
+    version: "20260725_000002",
+    name: "create_application_budgets",
+    createsTables: ["application_budgets", "application_invocations"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS application_budgets (
+          application_id TEXT PRIMARY KEY,
+          period TEXT NOT NULL DEFAULT 'month',
+          max_usd REAL,
+          max_invocations INTEGER,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS application_invocations (
+          id TEXT PRIMARY KEY,
+          application_id TEXT NOT NULL,
+          version INTEGER,
+          invocation_id TEXT NOT NULL,
+          operation_id TEXT NOT NULL DEFAULT '',
+          estimated_usd REAL NOT NULL DEFAULT 0,
+          actual_usd REAL,
+          status TEXT NOT NULL DEFAULT 'running',
+          created_at TEXT NOT NULL,
+          settled_at TEXT
+        )
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_application_invocation_app
+        ON application_invocations (application_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_application_invocation_created
+        ON application_invocations (created_at)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_application_invocation_invocation
+        ON application_invocations (invocation_id)
+      `);
+    },
+    async down(db) {
+      await db.execute(
+        "DROP INDEX IF EXISTS idx_application_invocation_invocation"
+      );
+      await db.execute("DROP INDEX IF EXISTS idx_application_invocation_created");
+      await db.execute("DROP INDEX IF EXISTS idx_application_invocation_app");
+      await db.execute("DROP TABLE IF EXISTS application_invocations");
+      await db.execute("DROP TABLE IF EXISTS application_budgets");
+    }
+  },
+
+  // ── Pin the graphs an application release runs ──────────────────────
+  // A release used to copy the draft document and nothing else, so it ran
+  // whatever the workflow happened to hold at run time. Publishing now freezes
+  // each referenced workflow's graph onto the snapshot.
+  {
+    version: "20260726_000000",
+    name: "add_workflow_graphs_to_application_versions",
+    createsTables: [],
+    modifiesTables: ["application_versions"],
+    async up(db) {
+      if (!(await db.columnExists("application_versions", "workflow_graphs"))) {
+        await db.execute(
+          "ALTER TABLE application_versions ADD COLUMN workflow_graphs TEXT"
+        );
+      }
+    },
+    async down() {
+      // SQLite cannot drop a column on older engines; the column is nullable
+      // and unread by prior code, so leaving it is harmless.
+    }
+  },
+
+  // ── Operational safety columns on trigger_registrations ────────────
+  // A trigger that fails every time used to keep firing forever. These
+  // columns hold the counters the dispatcher settles against so it can
+  // disarm a registration and say why (PRD O1), plus the two bounds a
+  // registration may carry (F8).
+  {
+    version: "20260726_000001",
+    name: "add_trigger_registration_safety_columns",
+    createsTables: [],
+    modifiesTables: ["trigger_registrations"],
+    async up(db) {
+      if (!(await db.tableExists("trigger_registrations"))) return;
+      const columns: Array<[string, string]> = [
+        ["disabled_reason", "TEXT"],
+        ["consecutive_failures", "INTEGER NOT NULL DEFAULT 0"],
+        ["run_count", "INTEGER NOT NULL DEFAULT 0"],
+        ["expires_at", "TEXT"],
+        ["max_runs", "INTEGER"]
+      ];
+      for (const [name, type] of columns) {
+        if (await db.columnExists("trigger_registrations", name)) continue;
+        await db.execute(
+          `ALTER TABLE trigger_registrations ADD COLUMN ${name} ${type}`
+        );
+      }
+    },
+    async down() {
+      // no-op: SQLite cannot drop columns portably, and leaving them is inert.
+    }
+  },
+
+  // ── Lift workflow.app_doc into the applications table ───────────────
+  // An app used to live on the workflow that hosted it. Every stored
+  // `app_doc` becomes an application row of its own and the column is
+  // cleared; the column itself is dropped a release later, once old clients
+  // that still read it have upgraded.
+  //
+  // A workflow that was already turned into an application by
+  // `create({ fromWorkflowId })` has a fork in the wild: two documents, the
+  // application's possibly newer. The application wins — its draft is left
+  // untouched — and the `app_doc` is written as an unreleased
+  // `application_versions` row so the divergent copy shows up in the app's
+  // version history instead of vanishing.
+  //
+  // Idempotent by construction: a lifted workflow's `app_doc` is NULL, so a
+  // second run sees nothing to migrate.
+  {
+    version: "20260726_000002",
+    name: "lift_workflow_app_docs_to_applications",
+    createsTables: [],
+    modifiesTables: [
+      "nodetool_workflows",
+      "applications",
+      "application_versions"
+    ],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_workflows"))) return;
+      if (!(await db.tableExists("applications"))) return;
+      if (!(await db.columnExists("nodetool_workflows", "app_doc"))) return;
+
+      const hosts = await db.fetchall(
+        `SELECT id, user_id, name, description, app_doc, created_at, updated_at
+           FROM nodetool_workflows
+          WHERE app_doc IS NOT NULL AND app_doc <> ''`
+      );
+      if (hosts.length === 0) return;
+
+      // Which application already binds which workflow. Read once and matched
+      // in memory so the migration needs no dialect-specific JSON operators.
+      const existing = await db.fetchall(
+        "SELECT id, document, created_at FROM applications"
+      );
+      const appsByWorkflow = new Map<string, string>();
+      for (const row of [...existing].sort((a, b) =>
+        String(a.created_at ?? "").localeCompare(String(b.created_at ?? "")) ||
+        String(a.id).localeCompare(String(b.id))
+      )) {
+        for (const workflowId of boundWorkflowIds(row.document)) {
+          if (!appsByWorkflow.has(workflowId)) {
+            appsByWorkflow.set(workflowId, String(row.id));
+          }
+        }
+      }
+
+      for (const host of hosts) {
+        const workflowId = String(host.id);
+        const document = liftLegacyAppDoc({
+          id: workflowId,
+          app_doc: host.app_doc
+        });
+        const now = new Date().toISOString();
+
+        if (document) {
+          const applicationId = appsByWorkflow.get(workflowId);
+          if (applicationId) {
+            // The application wins. Archive the fork as an unreleased version.
+            const highest = await db.fetchone(
+              "SELECT MAX(version) AS value FROM application_versions WHERE application_id = ?",
+              [applicationId]
+            );
+            const nextVersion = Number(highest?.value ?? 0) + 1;
+            await db.execute(
+              `INSERT INTO application_versions
+                 (id, application_id, version, document, capabilities, released, created_at)
+               VALUES (?, ?, ?, ?, ?, 0, ?)`,
+              [
+                newRowId(),
+                applicationId,
+                nextVersion,
+                JSON.stringify(document),
+                capabilitiesOf(document),
+                now
+              ]
+            );
+          } else {
+            const createdId = newRowId();
+            await db.execute(
+              `INSERT INTO applications
+                 (id, user_id, project_id, name, description, document, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+              [
+                createdId,
+                String(host.user_id ?? ""),
+                "default",
+                String(host.name || "Untitled app"),
+                String(host.description ?? ""),
+                JSON.stringify(document),
+                String(host.created_at ?? now),
+                String(host.updated_at ?? now)
+              ]
+            );
+            appsByWorkflow.set(workflowId, createdId);
+          }
+        }
+
+        // Cleared whether or not the document parsed: an `app_doc` no code
+        // reads and no parser accepts is not worth carrying forward.
+        await db.execute(
+          "UPDATE nodetool_workflows SET app_doc = NULL WHERE id = ?",
+          [workflowId]
+        );
+      }
+    },
+    async down() {
+      // no-op: the lifted documents are the canonical copy now, and pushing
+      // them back onto workflows would resurrect the storage this removes.
     }
   }
 ];

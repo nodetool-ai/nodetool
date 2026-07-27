@@ -1,4 +1,5 @@
 import type { TypeMetadata, Workflow } from "../../../stores/ApiTypes";
+import type { DynamicSlotDeclaration } from "../../../stores/NodeData";
 
 /** Map input node types to TypeMetadata types */
 export const INPUT_TYPE_MAP: Record<string, string> = {
@@ -30,7 +31,7 @@ export const OUTPUT_TYPE_MAP: Record<string, string> = {
  * Input nodes become dynamic inputs; Output nodes become dynamic outputs.
  */
 interface DynamicIO {
-  dynamic_inputs: Record<string, TypeMetadata & { description?: string }>;
+  dynamic_inputs: Record<string, DynamicSlotDeclaration>;
   dynamic_outputs: Record<string, TypeMetadata>;
   dynamic_properties: Record<string, unknown>;
 }
@@ -45,10 +46,7 @@ export function extractDynamicIO(workflow: Workflow): DynamicIO {
     ? graph.nodes
     : Object.values(graph.nodes);
 
-  const dynamic_inputs: Record<
-    string,
-    TypeMetadata & { description?: string }
-  > = {};
+  const dynamic_inputs: Record<string, DynamicSlotDeclaration> = {};
   const dynamic_outputs: Record<string, TypeMetadata> = {};
   const dynamic_properties: Record<string, unknown> = {};
 
@@ -68,9 +66,13 @@ export function extractDynamicIO(workflow: Workflow): DynamicIO {
     if (INPUT_TYPE_MAP[nodeType]) {
       const resolvedType = INPUT_TYPE_MAP[nodeType];
       dynamic_inputs[inputName] = {
-        type: resolvedType,
-        optional: true,
-        type_args: [] as TypeMetadata[],
+        type: {
+          type: resolvedType,
+          optional: true,
+          values: null,
+          type_args: [] as TypeMetadata[],
+          type_name: null
+        },
         description: (properties.description as string) ?? ""
       };
       dynamic_properties[inputName] = properties.value ?? "";

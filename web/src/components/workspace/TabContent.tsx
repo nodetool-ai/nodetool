@@ -1,6 +1,5 @@
 import type { WorkspaceTab } from "../../stores/WorkspaceTabsStore";
 import WorkflowEditorSurface from "./WorkflowEditorSurface";
-import WorkflowAppView from "../appbuilder/WorkflowAppView";
 import ImageSurface from "./ImageSurface";
 import SketchSurface from "./SketchSurface";
 import TextSurface from "./TextSurface";
@@ -9,6 +8,7 @@ import AudioSurface from "./AudioSurface";
 import TimelineSurface from "./TimelineSurface";
 import StoryboardSurface from "./StoryboardSurface";
 import ScriptSurface from "./ScriptSurface";
+import ApplicationSurface from "./ApplicationSurface";
 import ChatSurface from "./ChatSurface";
 import PageSurface from "./PageSurface";
 import { isPageTabKey } from "./pageTabs";
@@ -19,19 +19,14 @@ interface TabContentProps {
 }
 
 /**
- * Resolves a workspace tab's `(type, mode)` to its editor surface. Workflow has
- * a bespoke split (Edit → node editor, View → the app runtime); every other
- * type delegates to a `{ refId, mode, active }` surface that wraps the
- * existing viewer/editor for that document type.
+ * Resolves a workspace tab's `(type, mode)` to its editor surface. Most types
+ * delegate to a `{ refId, mode, active }` surface that wraps the existing
+ * viewer/editor for that document type.
  */
 const TabContent = ({ tab, active }: TabContentProps) => {
   switch (tab.type) {
     case "workflow":
-      return tab.mode === "edit" ? (
-        <WorkflowEditorSurface workflowId={tab.ref} active={active} />
-      ) : (
-        <WorkflowAppView workflowId={tab.ref} embedded />
-      );
+      return <WorkflowEditorSurface workflowId={tab.ref} active={active} />;
     case "image":
       return <ImageSurface refId={tab.ref} mode={tab.mode} active={active} />;
     case "sketch":
@@ -50,6 +45,8 @@ const TabContent = ({ tab, active }: TabContentProps) => {
       );
     case "script":
       return <ScriptSurface refId={tab.ref} mode={tab.mode} active={active} />;
+    case "application":
+      return <ApplicationSurface refId={tab.ref} />;
     case "chat":
       return <ChatSurface refId={tab.ref} active={active} />;
     case "page":

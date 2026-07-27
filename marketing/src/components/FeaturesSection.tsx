@@ -59,9 +59,9 @@ export default function FeaturesSection({
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Image, video, audio, and text on a single node-based canvas — with
-            the editing tools you rely on wired in right next to the model
-            calls.
+            Image, video, audio, and text on a single visual canvas, with the
+            editing tools you already rely on sitting right next to the models.
+            You direct the whole piece instead of generating parts of it.
           </motion.p>
         </div>
 
@@ -114,16 +114,16 @@ export default function FeaturesSection({
             {
               title: "Edit where you generate",
               description:
-                "Mask, retouch, extend, relight, upscale, layer, and composite. The editing tools you reach for, wired into the same canvas as the model calls.",
+                "Mask, retouch, extend, relight, upscale, layer, and composite. The editing tools you reach for live on the same canvas as the models.",
               icon: MousePointer2,
               color: "text-blue-400",
               bg: "bg-blue-500/10",
               border: "border-blue-500/20",
             },
             {
-              title: "Watch every node render",
+              title: "Watch every step render",
               description:
-                "Outputs stream in as nodes finish. Inspect any frame, swap a model, re-run from that node down.",
+                "Results appear as each step finishes. Inspect any frame, swap a model, and re-run from that point on.",
               icon: Activity,
               color: "text-purple-400",
               bg: "bg-purple-500/10",
@@ -141,7 +141,7 @@ export default function FeaturesSection({
             {
               title: "Image, video, audio, text",
               description:
-                "Flux, Seedance, Wan, ControlNet, Whisper, ElevenLabs, Suno — all of it on one canvas, under their real names. No renamed mystery models.",
+                "Flux, Seedance, Wan, ControlNet, Whisper, ElevenLabs, and Suno, all on one canvas under their real names. You always know which model you are running.",
               icon: Layers,
               color: "text-orange-400",
               bg: "bg-orange-500/10",

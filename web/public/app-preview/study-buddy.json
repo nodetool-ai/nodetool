@@ -1,0 +1,395 @@
+{
+  "slug": "study-buddy",
+  "name": "Study Buddy",
+  "emoji": "🃏",
+  "description": "Structured data an app renders better than a graph does: the cards land in a table, the explanation beside them.",
+  "tagline": "A deck of flashcards and the concept behind it, side by side.",
+  "note": "🔑 Needs an OpenAI key. Your topic persists between sessions.",
+  "featured": false,
+  "image": "/app-preview/img/study-buddy.jpg",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {
+          "title": "Study Buddy"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "🃏 Study Buddy",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "A deck of flashcards and the concept behind it, side by side."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "🔑 Needs an OpenAI key. Your topic persists between sessions."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-your-deck",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-your-deck",
+                  "title": "Your deck",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-topic",
+                        "binding": "var:topic",
+                        "label": "Study topic",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "NumberInput",
+                      "props": {
+                        "id": "in-cards-num-cards",
+                        "binding": "op:cards/in:num_cards_input",
+                        "label": "How many cards?",
+                        "min": 3,
+                        "max": 30,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "in-explain-audience",
+                        "binding": "op:explain/in:input_audience",
+                        "label": "Explain it to…",
+                        "options": [
+                          {
+                            "value": "a curious 10-year-old"
+                          },
+                          {
+                            "value": "a new teammate"
+                          },
+                          {
+                            "value": "an expert"
+                          },
+                          {
+                            "value": "someone in a hurry"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-cards",
+                        "label": "Make flashcards",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "cards",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-explain",
+                        "label": "Explain the concept",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "explain",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-your-deck-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-cards",
+                        "binding": "op:cards/exec#progress",
+                        "label": "Writing cards…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-cards-flashcards",
+                        "text": "Flashcards",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Table",
+                      "props": {
+                        "id": "out-cards-flashcards",
+                        "binding": "op:cards/out:flashcards_output"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-explain-explanation",
+                        "text": "The concept behind this deck",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-explain-explanation",
+                        "binding": "op:explain/out:explanation_output",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "cards",
+        "name": "Cards",
+        "workflowId": "cards",
+        "inputs": {
+          "topic_input": {
+            "from": "variable",
+            "variableId": "topic"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      },
+      {
+        "id": "explain",
+        "name": "Explain",
+        "workflowId": "explain",
+        "inputs": {
+          "input_topic": {
+            "from": "variable",
+            "variableId": "topic"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "topic",
+        "name": "Topic",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "Python data structures",
+        "scope": "user",
+        "persist": true
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "cards",
+      "name": "Flashcard Generator",
+      "graph": {
+        "nodes": [
+          {
+            "id": "topic_input",
+            "parent_id": null,
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "topic",
+              "value": "Python Programming",
+              "description": "Enter the topic you want to study"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 76,
+                "y": 171
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1️⃣ Topic"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "num_cards_input",
+            "parent_id": null,
+            "type": "nodetool.input.IntegerInput",
+            "data": {
+              "name": "num_cards",
+              "value": 5,
+              "min": 3,
+              "max": 15,
+              "description": "How many flashcards to generate"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 76,
+                "y": 291
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "2️⃣ Card count"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "flashcards_output",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "Flashcards"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1140,
+                "y": 65
+              },
+              "zIndex": 0,
+              "width": 260,
+              "title": "Flashcards",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "explain",
+      "name": "Prompt Template",
+      "graph": {
+        "nodes": [
+          {
+            "id": "input_topic",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "Topic",
+              "description": "The concept to explain (e.g., Photosynthesis, Compound Interest, Black Holes)",
+              "value": "Photosynthesis"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 50,
+                "y": 60
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "1️⃣ Topic",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "input_audience",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "Audience",
+              "description": "Who the explanation is for (e.g., curious 10-year-old, first-year med student, busy executive)",
+              "value": "curious 10-year-old"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 50,
+                "y": 320
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "2️⃣ Audience",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "explanation_output",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "Explanation"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1200,
+                "y": 65
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "Explanation",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    }
+  ],
+  "values": {
+    "op:cards/in:num_cards_input": 5,
+    "op:explain/in:input_audience": "curious 10-year-old",
+    "op:explain/out:explanation_output": "**Photosynthesis, for a curious 10-year-old:** plants are tiny chefs — sunlight, water, and the air you breathe out, cooked into sugar.",
+    "var:topic": "Python data structures"
+  }
+}

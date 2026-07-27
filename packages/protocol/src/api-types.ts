@@ -7,6 +7,7 @@
  */
 
 import type { Edge, InputMode, OutputCorrelation } from "./graph.js";
+import type { NodeEffect } from "./platform.js";
 
 // ---------------------------------------------------------------------------
 // Media Refs
@@ -691,8 +692,8 @@ export interface UiDocumentRef {
   type: UiSurfaceType;
   /**
    * The document's id: `image_documents.id` for sketch, `timeline_sequences.id`
-   * for timeline, `storyboards.id`, `scripts.id`, and the workflow id for both
-   * `workflow` and `app` (the app document lives on `workflows.app_doc`).
+   * for timeline, `storyboards.id`, `scripts.id`, `workflows.id` for
+   * `workflow`, and `applications.id` for `app`.
    */
   id: string;
   title?: string | null;
@@ -803,11 +804,24 @@ export interface NodeMetadata {
   output_correlation?: Record<string, OutputCorrelation>;
   supports_dynamic_outputs: boolean;
   /**
+   * Types a user may pick for a dynamic input slot on this node. Unset means
+   * the full type palette.
+   */
+  allowed_dynamic_slot_types?: PropertyTypeMetadata[];
+  /**
    * Per-type cache lifetime for partial runs (seconds, or the `"forever"`
    * sentinel — never `Infinity`, which JSON-serializes to `null`). Only
    * consulted for Computed nodes; unset / `0` means never reuse.
    */
   cache_ttl?: number | "forever";
+  /**
+   * What running the node does to the world: "pure" (output depends only on
+   * inputs), "read" (reads external state, changes nothing), "write" (mutates
+   * observable state), "external" (leaves the system). Reactive runs — a
+   * mini-app slider drag, a live preview — may traverse "pure" and "read" only;
+   * anything else needs an explicit run. Absent is treated as "external".
+   */
+  effect?: NodeEffect;
   model_packs?: ModelPack[];
   fal_unit_pricing?: FalUnitPricing | null;
   /** When true, the node remains runnable but is hidden from default discovery. */
@@ -835,6 +849,16 @@ export interface IndexResponse {
 // Node (API transport shape)
 // ---------------------------------------------------------------------------
 
+/** API-transport form of a typed dynamic input slot declaration. */
+export interface DynamicSlotMetadata {
+  type: PropertyTypeMetadata;
+  description?: string;
+  default?: unknown;
+  required?: boolean;
+  min?: number;
+  max?: number;
+}
+
 export interface Node {
   id: string;
   parent_id?: string | null;
@@ -842,6 +866,7 @@ export interface Node {
   data?: unknown;
   ui_properties?: unknown;
   dynamic_properties?: Record<string, unknown>;
+  dynamic_inputs?: Record<string, DynamicSlotMetadata>;
   dynamic_outputs?: Record<string, PropertyTypeMetadata>;
   [key: string]: unknown;
 }
@@ -901,6 +926,25 @@ export interface RunJobRequest {
   /** Additive execution relaxations. Omitted values preserve current behavior. */
   execution_options?: RunJobExecutionOptions;
   resource_limits?: ResourceLimits | null;
+  /**
+   * The mini app this run belongs to, when it was started by one. Present only
+   * for app runs; the server checks the app's spend budget before creating the
+   * job and settles the ledger when it finishes.
+   */
+  application_id?: string | null;
+  /** Released version the run executes against; absent for a draft run. */
+  application_version?: number | null;
+  /**
+   * Wake-up payload for a trigger-driven run: the trigger node whose event
+   * started this job, the durable input's id (for idempotent ack), and the
+   * event payload itself. Present only for runs started by the trigger
+   * dispatcher; absent for interactive/live-test runs.
+   */
+  trigger_event?: {
+    node_id: string;
+    payload: unknown;
+    input_id: string;
+  } | null;
 }
 
 export interface RunJobExecutionOptions {

@@ -82,6 +82,17 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       backgroundColor: theme.vars.palette.background.paper
     },
+    ".search-wrap": {
+      width: 200,
+      flexShrink: 0
+    },
+    // On a phone the toolbar's fixed 200px search and the 250px folder tree
+    // left the file list a sliver. The search takes its own line and the tree
+    // steps aside — the breadcrumbs, the up button, and tapping a folder cover
+    // the same navigation.
+    [theme.breakpoints.down("sm")]: {
+      ".search-wrap": { width: "100%" }
+    },
     ".breadcrumbs": {
       flex: 1,
       minWidth: 0
@@ -635,6 +646,7 @@ function FileBrowserDialog({
           sx={{
             px: 2,
             py: 1,
+            flexWrap: "wrap",
             borderBottom: `1px solid ${theme.vars.palette.divider}`,
             backgroundColor: theme.vars.palette.background.default
           }}
@@ -680,7 +692,7 @@ function FileBrowserDialog({
             </FlexRow>
           )}
 
-          <div style={{ width: 200 }}>
+          <div className="search-wrap">
             <SearchInput
               value={searchQuery}
               onChange={handleSearchQueryChange}
@@ -701,7 +713,15 @@ function FileBrowserDialog({
           className="file-browser-content"
           sx={{ flex: 1, minHeight: 0, border: "none", borderRadius: 0 }}
         >
-          <FlexColumn className="left-panel" sx={{ width: 250, minWidth: 200, overflow: "hidden" }}>
+          <FlexColumn
+            className="left-panel"
+            sx={{
+              display: { xs: "none", sm: "flex" },
+              width: 250,
+              minWidth: 200,
+              overflow: "hidden"
+            }}
+          >
             <div className="folder-tree" ref={treeScrollRef}>
               <RichTreeView
                 items={treeItems}

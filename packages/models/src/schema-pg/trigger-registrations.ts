@@ -20,6 +20,12 @@ export const triggerRegistrations = pgTable(
     cursor: text("cursor"),
     last_fired_at: text("last_fired_at"),
     last_error: text("last_error"),
+    // Mirrors schema/trigger-registrations.ts — see the note there.
+    disabled_reason: text("disabled_reason"),
+    consecutive_failures: integer("consecutive_failures").notNull().default(0),
+    run_count: integer("run_count").notNull().default(0),
+    expires_at: text("expires_at"),
+    max_runs: integer("max_runs"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

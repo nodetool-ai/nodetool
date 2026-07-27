@@ -1,4 +1,6 @@
 import type { FastifyPluginAsync } from "fastify";
+import { isGoogleWorkspaceEnabled } from "@nodetool-ai/config";
+import { GOOGLE_WORKSPACE_SCOPES } from "@nodetool-ai/runtime";
 import { getVersion } from "./health.js";
 
 /**
@@ -26,11 +28,17 @@ const configRoute: FastifyPluginAsync = async (app) => {
     const authMode: "supabase" | "local" =
       supabaseUrl && supabaseServiceKey ? "supabase" : "local";
 
+    // When enabled, the web app asks Google for the Workspace scopes at login
+    // and posts the resulting provider token to /api/oauth/google/session.
+    const googleWorkspace = isGoogleWorkspaceEnabled();
+
     return reply.status(200).send({
       authMode,
       supabaseUrl,
       supabaseAnonKey,
       authRedirectUrl,
+      googleWorkspace,
+      googleScopes: googleWorkspace ? GOOGLE_WORKSPACE_SCOPES : [],
       version: getVersion()
     });
   });

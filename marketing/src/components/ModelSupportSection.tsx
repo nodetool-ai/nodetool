@@ -48,11 +48,12 @@ const cloudProviders = [
 // Perishable by design: stale names here directly undercut the
 // "swap models the day they launch" pitch — review on every release cycle.
 const frontierModels = [
-    { name: "Claude Opus 4.8", color: "text-amber-400" },
-    { name: "Claude Sonnet 4.6", color: "text-amber-400" },
-    { name: "Claude Haiku 4.5", color: "text-amber-400" },
-    { name: "Gemini 3 Pro", color: "text-blue-400" },
-    { name: "Gemini 3 Flash", color: "text-blue-400" },
+    { name: "GPT-5.6", color: "text-emerald-400" },
+    { name: "Claude Fable 5", color: "text-amber-400" },
+    { name: "Claude Opus 5", color: "text-amber-400" },
+    { name: "Claude Sonnet 5", color: "text-amber-400" },
+    { name: "Gemini 3.5 Flash", color: "text-blue-400" },
+    { name: "Gemini 3.1 Pro", color: "text-blue-400" },
     { name: "Qwen Image", color: "text-sky-400" },
     { name: "Veo 3.1", color: "text-blue-400" },
     { name: "Kling 3", color: "text-cyan-400" },
@@ -98,7 +99,7 @@ export default function ModelSupportSection({
                     >
                         The newest models,{" "}
                         <span className="text-white">
-                            the day they ship.
+                            the day they arrive.
                         </span>
                     </motion.h2>
 
@@ -109,9 +110,9 @@ export default function ModelSupportSection({
                         transition={{ duration: 0.25, delay: 0.05 }}
                         className="text-lg text-slate-400 leading-relaxed"
                     >
-                        Frontier image, video, audio, and language models from
-                        every major provider — or running on your own machine
-                        when you want them local.
+                        The leading image, video, audio, and language models from
+                        every major provider, or the same kind of models running
+                        on your own computer when you prefer that.
                     </motion.p>
                 </div>
 

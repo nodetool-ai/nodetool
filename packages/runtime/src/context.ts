@@ -1062,6 +1062,17 @@ export class ProcessingContext {
    */
   signal: AbortSignal = new AbortController().signal;
 
+  /**
+   * Wake-up payload for a trigger-driven run. Set by the kernel
+   * (`WorkflowRunner._runImpl`) from `RunJobRequest.trigger_event` at the
+   * start of each run, alongside {@link signal} — so it must be a mutable
+   * property, not a constructor-only value. The trigger node's actor reads
+   * `triggerEvent?.node_id === this.id` to enter its event-emitting entry
+   * point instead of the normal streaming path. `null` for interactive/
+   * live-test runs.
+   */
+  triggerEvent: { node_id: string; payload: unknown; input_id: string } | null;
+
   /** Message queue: all emitted processing messages. */
   private _messages: ProcessingMessage[] = [];
   /** Whether emit() feeds the pull queue (see constructor option). */
@@ -1186,6 +1197,17 @@ export class ProcessingContext {
     tempUrlResolver?: (uri: string) => Promise<string> | string;
     modelInterfaces?: ProcessingContextModelInterfaces;
     /**
+     * Wake-up payload for a trigger-driven run. Usually left unset at
+     * construction and assigned later by the kernel (see {@link triggerEvent});
+     * accepted here too so tests and single-node harnesses can construct a
+     * context with it directly.
+     */
+    triggerEvent?: {
+      node_id: string;
+      payload: unknown;
+      input_id: string;
+    } | null;
+    /**
      * Keep emitted messages in the pull queue (popMessage/waitMessage).
      * Consumers that stream via message listeners instead (the browser/
      * workflow-runner path) should pass false — with nothing draining the
@@ -1221,6 +1243,7 @@ export class ProcessingContext {
     this._tempUrlResolver = opts.tempUrlResolver ?? null;
     this._modelInterfaces = opts.modelInterfaces ?? null;
     this._retainMessageQueue = opts.retainMessageQueue ?? true;
+    this.triggerEvent = opts.triggerEvent ?? null;
   }
 
   copy(): ProcessingContext {
@@ -1241,7 +1264,8 @@ export class ProcessingContext {
       secretResolver: this._secretResolver ?? undefined,
       tempUrlResolver: this._tempUrlResolver ?? undefined,
       modelInterfaces: this._modelInterfaces ?? undefined,
-      retainMessageQueue: this._retainMessageQueue
+      retainMessageQueue: this._retainMessageQueue,
+      triggerEvent: this.triggerEvent
     });
     for (const listener of this._messageListeners) {
       next.addMessageListener(listener);

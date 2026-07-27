@@ -199,6 +199,13 @@ const EditableTitle = memo(function EditableTitle({
 
     "&:hover .remove-title": {
       opacity: 1
+    },
+
+    // Touch devices have no hover; keep the remove button reachable.
+    "@media (pointer: coarse)": {
+      ".remove-title": {
+        opacity: 1
+      }
     }
   }), [theme]);
 

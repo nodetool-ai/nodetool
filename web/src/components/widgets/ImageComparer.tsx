@@ -165,8 +165,10 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
   const [loadedMetadataA, setLoadedMetadataA] = useState<ImageMetadata>({});
   const [loadedMetadataB, setLoadedMetadataB] = useState<ImageMetadata>({});
 
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
+  // Pointer events, not mouse events: on touch the comparer was inert, since
+  // the divider only ever followed a mouse.
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
       if (!containerRef.current) {return;}
 
       const rect = containerRef.current.getBoundingClientRect();
@@ -184,13 +186,18 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     [mode]
   );
 
-  const handleMouseEnter = useCallback(() => {
+  const handlePointerEnter = useCallback(() => {
     setIsHovering(true);
   }, []);
 
-  const handleMouseLeave = useCallback(() => {
+  const handlePointerLeave = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     setIsHovering(false);
-    setPosition(50);
+    // A touch pointer "leaves" the moment the finger lifts. Recentering then
+    // would undo the comparison the user just dragged to, so only a mouse
+    // leaving resets it.
+    if (e.pointerType === "mouse") {
+      setPosition(50);
+    }
   }, []);
 
   const toggleMode = useCallback((e: React.MouseEvent) => {
@@ -241,6 +248,8 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
   }, [mode, position]);
 
   const cursorStyle = mode === "horizontal" ? "ew-resize" : "ns-resize";
+  // Claim the drag axis for the divider; the other axis still scrolls the page.
+  const touchAction = mode === "horizontal" ? "pan-y" : "pan-x";
 
   const dividerStyle = useMemo(() => {
     if (mode === "horizontal") {
@@ -267,10 +276,10 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
       <div
         ref={containerRef}
         className="comparer-container"
-        onMouseMove={handleMouseMove}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        style={{ cursor: cursorStyle }}
+        onPointerMove={handlePointerMove}
+        onPointerEnter={handlePointerEnter}
+        onPointerLeave={handlePointerLeave}
+        style={{ cursor: cursorStyle, touchAction }}
       >
         {/* Image B (background - full image) */}
         <div className="image-layer image-b">

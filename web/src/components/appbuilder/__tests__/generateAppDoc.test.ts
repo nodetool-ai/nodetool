@@ -1,9 +1,7 @@
 import {
   generateAppData,
-  generateAppDoc,
   displayWidgetForOutput
 } from "../generateAppDoc";
-import { APP_DATA_VERSION } from "../appData";
 import type { ComponentNode } from "../puck/puckDataOps";
 import { Workflow } from "../../../stores/ApiTypes";
 
@@ -139,13 +137,5 @@ describe("generateAppData", () => {
     );
     const ids = results.map((n) => n.props.id);
     expect(new Set(ids).size).toBe(ids.length);
-  });
-});
-
-describe("generateAppDoc", () => {
-  it("wraps the data in a versioned AppDocument", () => {
-    const doc = generateAppDoc(makeWorkflow(graph));
-    expect(doc.version).toBe(APP_DATA_VERSION);
-    expect(doc.data.content).toHaveLength(1);
   });
 });

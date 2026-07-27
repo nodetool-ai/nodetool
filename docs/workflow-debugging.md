@@ -116,7 +116,7 @@ Every NodeTool workflow is stored as JSON. Inspecting this JSON can help debug c
       "type": "nodetool.agents.Agent",
       "data": {
         "prompt": "...",
-        "model": { "provider": "openai", "id": "gpt-4" }
+        "model": { "provider": "openai", "id": "gpt-5.6" }
       },
       "position": { "x": 300, "y": 100 }
     }
@@ -186,7 +186,7 @@ Error: Required input 'prompt' is not connected
 → Connect something to the `prompt` input, or set a default value
 
 ```
-Error: Model not found: 'gpt-4'
+Error: Model not found: 'gpt-5.6'
 ```
 → Check API key configuration in Settings → Providers
 

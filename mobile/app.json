@@ -1,12 +1,12 @@
 {
   "expo": {
     "name": "NodeTool",
-    "slug": "nodetool-mobile",
+    "slug": "nodetool",
     "version": "1.0.0",
     "scheme": "nodetool",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -16,13 +16,16 @@
       "supportsTablet": true,
       "bundleIdentifier": "ai.nodetool.mobile",
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [
               "com.googleusercontent.apps.865599262139-dmfkvddphs7h1qu6dvrgj0t9aq656h84"
             ]
           }
-        ]
+        ],
+        "NSSpeechRecognitionUsageDescription": "NodeTool transcribes your speech on-device to fill the chat composer.",
+        "NSMicrophoneUsageDescription": "NodeTool uses the microphone so you can dictate messages to the assistant."
       }
     },
     "android": {
@@ -32,21 +35,63 @@
       },
       "package": "ai.nodetool.mobile",
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/ce40c43d-6adf-4476-98b1-761aa4d29c40"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     },
     "extra": {
       "supabaseUrl": "https://zmytgmyiwfmdajmxjbag.supabase.co",
       "supabaseAnonKey": "sb_publishable_sGCndMc7Ku5J6Bct80D9WQ_Ik96Qu9a",
       "googleWebClientId": "865599262139-mla1l0bqc3ss0frq085mcdpd6cbftvem.apps.googleusercontent.com",
-      "googleIosClientId": "865599262139-dmfkvddphs7h1qu6dvrgj0t9aq656h84.apps.googleusercontent.com"
+      "googleIosClientId": "865599262139-dmfkvddphs7h1qu6dvrgj0t9aq656h84.apps.googleusercontent.com",
+      "eas": {
+        "projectId": "ce40c43d-6adf-4476-98b1-761aa4d29c40"
+      }
     },
     "plugins": [
-      "expo-web-browser",
       "@react-native-google-signin/google-signin",
-      "expo-status-bar"
-    ]
+      "expo-status-bar",
+      "expo-notifications",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "NodeTool uses the microphone so you can dictate messages to the assistant.",
+          "speechRecognitionPermission": "NodeTool transcribes your speech on-device to fill the chat composer."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "savePhotosPermission": "NodeTool saves generated images and video to your photo library.",
+          "photosPermission": "NodeTool reads photos you pick as workflow input.",
+          "isAccessMediaLocationEnabled": false
+        }
+      ],
+      "expo-video",
+      "expo-audio"
+    ],
+    "experiments": {
+      "onDemandFilesystem": false
+    },
+    "owner": "mgeorgi"
   }
 }

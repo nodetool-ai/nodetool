@@ -6,10 +6,15 @@
  * Action callbacks that depend on document are passed in as props; their
  * individual references are stable via `useCallback`.
  */
-import React, { memo, useCallback } from "react";
+import React, { memo, useEffect } from "react";
 import SketchToolTopBar from "../SketchToolTopBar";
-import { useSketchStore, SKETCH_ZOOM_MIN, SKETCH_ZOOM_MAX } from "../state";
-import { useResolvedToolSettings, useToolChromeActions } from "../hooks";
+import { ConnectedEditorActions } from "./ConnectedEditorActions";
+import { useSketchStore } from "../state";
+import {
+  useResolvedToolSettings,
+  useSketchIsMobile,
+  useToolChromeActions
+} from "../hooks";
 import {
   useTransformAdapter,
   type UseTransformAdapterParams
@@ -34,6 +39,10 @@ export interface ConnectedToolTopBarProps {
   onCropCanvasToSelection: () => void;
   onCropCommit: () => void;
   onCropCancelPreview: () => void;
+  /** Compact host actions rendered inline at the trailing edge. */
+  headerActions?: React.ReactNode;
+  /** Host actions appended to the bar's overflow menu. */
+  menuItems?: (close: () => void) => React.ReactNode[];
 }
 
 export const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
@@ -42,9 +51,24 @@ export const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
   const activeTool = useSketchStore((s) => s.activeTool);
   const cropPreviewBounds = useSketchStore((s) => s.cropPreviewBounds);
   const panelsHidden = useSketchStore((s) => s.panelsHidden);
-  const togglePanelsHidden = useSketchStore((s) => s.togglePanelsHidden);
   const hasActiveSelection = useSketchStore((s) => s.hasActiveSelection);
+  const toolSettingsCollapsed = useSketchStore((s) => s.toolSettingsCollapsed);
+  const toggleToolSettingsCollapsed = useSketchStore(
+    (s) => s.toggleToolSettingsCollapsed
+  );
+  const setToolSettingsCollapsed = useSketchStore(
+    (s) => s.setToolSettingsCollapsed
+  );
   const toolSettings = useResolvedToolSettings();
+
+  // The settings rows wrap to two or three lines for most tools, which on a
+  // phone leaves little canvas. Start collapsed on mobile and expanded on
+  // desktop, re-applied on each breakpoint crossing (rotate/resize).
+  const isMobile = useSketchIsMobile();
+  useEffect(() => {
+    setToolSettingsCollapsed(isMobile);
+  }, [isMobile, setToolSettingsCollapsed]);
+
   const transform = useTransformAdapter({
     onTransformCommit: props.onTransformCommit,
     onTransformCancel: props.onTransformCancel,
@@ -69,28 +93,6 @@ export const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
     smoothCurrentSelectionBorders,
     convertSelectionToBorderOutline
   } = useToolChromeActions();
-
-  // Fit-to-viewport: measure the canvas region (one-off, on click — not a hot
-  // path), scale the document to fit with a small margin, and recenter. Reads
-  // doc dims + sets zoom/pan via getState() so the bar gains no subscriptions.
-  const handleFit = useCallback(() => {
-    const root = globalThis.document;
-    const region = root?.querySelector(".sketch-editor__canvas-region");
-    if (!region) {
-      return;
-    }
-    const rect = (region as HTMLElement).getBoundingClientRect();
-    const store = useSketchStore.getState();
-    const { width: docW, height: docH } = store.document.canvas;
-    if (rect.width <= 0 || rect.height <= 0 || docW <= 0 || docH <= 0) {
-      return;
-    }
-    const FIT_MARGIN = 0.9;
-    const raw = Math.min(rect.width / docW, rect.height / docH) * FIT_MARGIN;
-    const scale = Math.max(SKETCH_ZOOM_MIN, Math.min(SKETCH_ZOOM_MAX, raw));
-    store.setZoom(scale);
-    store.setPan({ x: 0, y: 0 });
-  }, []);
 
   if (panelsHidden) {
     return null;
@@ -160,8 +162,14 @@ export const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
       onCancelSegmentation={props.segmentation.cancelSegmentation}
       onClearSegmentPrompts={props.onClearSegmentPrompts}
       onCheckSegmentModel={props.segmentation.checkModel}
-      onTogglePanelsHidden={togglePanelsHidden}
-      onFit={handleFit}
+      trailingActions={
+        <ConnectedEditorActions
+          inlineActions={props.headerActions}
+          menuItems={props.menuItems}
+        />
+      }
+      settingsCollapsed={toolSettingsCollapsed}
+      onToggleSettingsCollapsed={toggleToolSettingsCollapsed}
     />
   );
 });

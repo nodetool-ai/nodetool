@@ -133,8 +133,132 @@ describe("graphMapping helpers", () => {
       );
 
       const target = sanitizedNodes.find((n) => n.id === "b");
-      expect(target?.data.dynamic_properties).toEqual({ new_field: "" });
+      // Seeded from the declared type, not a bare "" — the value doubles as
+      // the runner's fallback when the edge delivers nothing on a run.
+      expect(target?.data.dynamic_properties).toEqual({ new_field: null });
       expect(sanitizedEdges).toHaveLength(1);
+    });
+
+    it("seeds the repaired slot from its declared type", () => {
+      const typedMeta = (type: string): NodeMetadata =>
+        ({
+          ...baseMetadata,
+          node_type: `test.out.${type}`,
+          outputs: [
+            {
+              name: "output",
+              type: {
+                type,
+                optional: false,
+                values: null,
+                type_args: [],
+                type_name: null
+              },
+              stream: false
+            }
+          ]
+        }) as NodeMetadata;
+
+      const seedFor = (type: string): unknown => {
+        const nodes = [
+          makeNode("a", `test.out.${type}`),
+          makeNode("b", "test.dynamic")
+        ];
+        const edges = [makeEdge("e1", "a", "b", "output", "new_field")];
+        const { nodes: sanitized } = sanitizeGraph(nodes, edges, {
+          [`test.out.${type}`]: typedMeta(type),
+          "test.dynamic": dynamicMeta
+        });
+        return sanitized.find((n) => n.id === "b")?.data.dynamic_properties
+          ?.new_field;
+      };
+
+      expect(seedFor("str")).toBe("");
+      expect(seedFor("int")).toBe(0);
+      // An `image` slot seeded with "" would make the run throw on the type
+      // check; null is the empty value every declared type accepts.
+      expect(seedFor("image")).toBeNull();
+    });
+
+    it("declares the repaired slot with the source output's type", () => {
+      const nodes = [makeNode("a", "test"), makeNode("b", "test.dynamic")];
+      const edges = [makeEdge("e1", "a", "b", "output", "new_field")];
+
+      const { nodes: sanitizedNodes } = sanitizeGraph(nodes, edges, {
+        test: baseMetadata,
+        "test.dynamic": dynamicMeta
+      });
+
+      const target = sanitizedNodes.find((n) => n.id === "b");
+      expect(target?.data.dynamic_inputs).toEqual({
+        new_field: {
+          type: {
+            type: "string",
+            optional: false,
+            values: null,
+            type_args: [],
+            type_name: null
+          }
+        }
+      });
+    });
+
+    it("leaves the slot undeclared when the source type is `any`", () => {
+      const anyOutputMeta: NodeMetadata = {
+        ...baseMetadata,
+        node_type: "test.anyOut",
+        outputs: [
+          {
+            name: "output",
+            type: {
+              type: "any",
+              optional: false,
+              values: null,
+              type_args: [],
+              type_name: null
+            },
+            stream: false
+          }
+        ]
+      } as NodeMetadata;
+      const nodes = [makeNode("a", "test.anyOut"), makeNode("b", "test.dynamic")];
+      const edges = [makeEdge("e1", "a", "b", "output", "new_field")];
+
+      const { nodes: sanitizedNodes } = sanitizeGraph(nodes, edges, {
+        "test.anyOut": anyOutputMeta,
+        "test.dynamic": dynamicMeta
+      });
+
+      const target = sanitizedNodes.find((n) => n.id === "b");
+      expect(target?.data.dynamic_properties).toEqual({ new_field: "" });
+      expect(target?.data.dynamic_inputs).toBeUndefined();
+    });
+
+    it("preserves existing dynamic_inputs through sanitation", () => {
+      const target = makeNode("b", "test.dynamic");
+      target.data.dynamic_properties = { existing: "value" };
+      target.data.dynamic_inputs = {
+        existing: {
+          type: {
+            type: "image",
+            optional: false,
+            values: null,
+            type_args: [],
+            type_name: null
+          }
+        }
+      };
+      const nodes = [makeNode("a", "test"), target];
+      const edges = [makeEdge("e1", "a", "b", "output", "existing")];
+
+      const { nodes: sanitizedNodes } = sanitizeGraph(nodes, edges, {
+        test: baseMetadata,
+        "test.dynamic": dynamicMeta
+      });
+
+      expect(
+        sanitizedNodes.find((n) => n.id === "b")?.data.dynamic_inputs
+      ).toEqual(target.data.dynamic_inputs);
     });
 
     it("does not overwrite an existing dynamic_properties entry", () => {

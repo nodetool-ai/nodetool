@@ -142,13 +142,13 @@ model:
 # OpenAI
 model:
   provider: openai
-  id: gpt-4o
-  name: GPT-4o
+  id: gpt-5.6
+  name: GPT-5.6
 
 # Anthropic
 model:
   provider: anthropic
-  id: claude-sonnet-4-6
+  id: claude-sonnet-5
   name: Claude Sonnet
 
 # Gemini (google / googleai are aliases for gemini)
@@ -183,16 +183,16 @@ planning_agent:
 **Best practices:**
 - Use fast, cost-effective models for planning
 - The planning model can differ from the main model
-- Recommended: `gpt-4o-mini`, a small Claude model, or a Gemini Flash model
+- Recommended: `gpt-5-mini`, a small Claude model, or a Gemini Flash model
 
 **Examples:**
 ```yaml
-# Use GPT-4o Mini for cost-effective planning
+# Use GPT-5 Mini for cost-effective planning
 planning_agent:
   enabled: true
   model:
     provider: openai
-    id: gpt-4o-mini
+    id: gpt-5-mini
 
 # Disable the separate planning model; plan with the main model
 planning_agent:
@@ -391,15 +391,15 @@ system_prompt: |
 
 model:
   provider: openai
-  id: gpt-4o
-  name: GPT-4o
+  id: gpt-5.6
+  name: GPT-5.6
 
 planning_agent:
   enabled: true
   model:
     provider: openai
-    id: gpt-4o-mini
-    name: GPT-4o Mini
+    id: gpt-5-mini
+    name: GPT-5 Mini
 
 tools:
   - google_search
@@ -443,7 +443,7 @@ If upgrading from older configuration formats:
 ```yaml
 agent:
   name: my-agent
-  model: gpt-4o
+  model: gpt-5.6
   tools: [search, browser]
 ```
 
@@ -452,12 +452,12 @@ agent:
 name: my-agent
 model:
   provider: openai
-  id: gpt-4o
+  id: gpt-5.6
 planning_agent:
   enabled: true
   model:
     provider: openai
-    id: gpt-4o-mini
+    id: gpt-5-mini
 tools:
   - google_search
   - browser

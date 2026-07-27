@@ -26,6 +26,7 @@ const styles = (theme: Theme) =>
   css({
     padding: theme.spacing(4, 4),
     minWidth: 480,
+    maxWidth: "100%",
     ".aspect-header": {
       color: theme.vars.palette.grey[400],
       textTransform: "uppercase",
@@ -79,6 +80,15 @@ const styles = (theme: Theme) =>
     },
     ".aspect-option.selected .aspect-label": {
       color: theme.vars.palette.primary.light
+    },
+    // Six 70px columns plus padding need ~520px, so on a phone the popover ran
+    // off the screen. Drop to three columns and trim the padding.
+    [theme.breakpoints.down("sm")]: {
+      minWidth: 0,
+      padding: theme.spacing(2, 2),
+      ".aspect-grid": {
+        gridTemplateColumns: "repeat(3, minmax(0, 1fr))"
+      }
     }
   });
 

@@ -115,6 +115,8 @@ export interface S3PresignGetObjectInput extends S3ObjectRef {
   expiresIn: number;
 }
 
+export type S3PresignPutObjectInput = S3PresignGetObjectInput;
+
 /**
  * The object-level surface `S3StorageAdapter` needs. `S3Client` implements
  * it; tests inject fakes.
@@ -125,6 +127,11 @@ export interface S3Api {
   headObject(input: S3ObjectRef): Promise<S3HeadObjectResult>;
   deleteObject(input: S3ObjectRef): Promise<void>;
   listObjectsV2(input: S3ListObjectsV2Input): Promise<S3ListObjectsV2Result>;
+  /**
+   * Optional so test fakes need not implement it. Callers that offer
+   * client-direct uploads must treat its absence as "not supported".
+   */
+  presignPutObject?(input: S3PresignPutObjectInput): Promise<string>;
 }
 
 export interface S3RetryOptions {
@@ -598,6 +605,32 @@ export class S3Client implements S3Api {
     }
     const target = this.target(input.bucket, input.key);
     return presignUrl({
+      protocol: target.protocol,
+      host: target.host,
+      path: target.path,
+      region: this.region,
+      credentials: await this.credentialProvider(),
+      expiresIn: input.expiresIn
+    });
+  }
+
+  /**
+   * Presigned PUT URL, valid for `expiresIn` seconds. Lets a client upload
+   * bytes straight to S3 without them passing through this process. Only
+   * `host` is signed (the presign flow's UNSIGNED-PAYLOAD form), so the URL
+   * authorises a write to exactly this key and nothing else — but it does not
+   * constrain the body or its Content-Type. Callers must therefore verify the
+   * object after upload rather than trusting what the client claimed.
+   */
+  async presignPutObject(input: S3PresignPutObjectInput): Promise<string> {
+    if (hasDotSegments(input.key)) {
+      throw new Error(
+        `Cannot presign S3 key "${input.key}": keys with "." or ".." path segments are normalized away by URL clients, so the signed URL would not address this object.`
+      );
+    }
+    const target = this.target(input.bucket, input.key);
+    return presignUrl({
+      method: "PUT",
       protocol: target.protocol,
       host: target.host,
       path: target.path,

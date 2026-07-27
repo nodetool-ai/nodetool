@@ -260,8 +260,8 @@ function ProviderPage({ entry }: { entry: ProviderEntry }) {
               </div>
             </div>
             <p className="max-w-sm text-sm leading-relaxed text-slate-400">
-              Calls go straight to {entry.name} with your key at their list
-              price — NodeTool never proxies or marks up the request.
+              Requests go straight to {entry.name} with your key at their list
+              price. NodeTool never sits in the middle and never adds a markup.
             </p>
           </div>
         </section>

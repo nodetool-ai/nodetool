@@ -1,96 +1,130 @@
 ---
 layout: page
 title: "Install NodeTool on Windows, macOS, or Linux"
-description: "Download NodeTool for Windows, macOS, or Linux — dmg, exe, or AppImage. No setup wizard: Python, Conda, and AI engines install on demand as you need them."
+description: "Download NodeTool for Windows, macOS, or Linux — dmg, exe, or AppImage. No setup wizard: the extra pieces download only when a workflow needs them."
 ---
 
-NodeTool opens on first launch with no setup wizard. Python, Conda, and inference engines install on demand the first time you need them.
+Download, install, open. There is no setup wizard and nothing to configure
+first. The larger pieces some workflows need, such as AI models, download later
+and only when you actually use them.
 
 ---
 
-## Quick start
+## The short version
 
-1. Download from [nodetool.ai](https://nodetool.ai)
+1. Download NodeTool from [nodetool.ai](https://nodetool.ai)
 2. Run the installer
-3. Launch NodeTool
+3. Open NodeTool
 
-The download is a `.dmg` on macOS, `.exe` on Windows, and an AppImage on Linux — see [macOS](#macos), [Windows](#windows), and [Linux](#linux) below for the exact steps and platform notes.
+The file you get is a `.dmg` on macOS, an `.exe` on Windows, and an AppImage on
+Linux. Exact steps for each are below: [macOS](#macos), [Windows](#windows),
+[Linux](#linux).
 
-No local AI stack? Skip the download entirely: open **Settings → Providers** and add a key from [OpenAI](https://platform.openai.com), [Anthropic](https://www.anthropic.com), or [Google](https://ai.google.dev). See [Providers](providers.md).
+You don't need a fast computer. If you'd rather have an online AI service do the
+heavy work, skip every download on this page: open **Settings → Providers**
+and paste an API key from [OpenAI](https://platform.openai.com),
+[Anthropic](https://www.anthropic.com), or [Google](https://ai.google.dev). An
+**API key** is a password-like string from that company's website that lets
+NodeTool use your account there. See [Providers](providers.md).
 
 ---
 
 ## macOS
 
-1. Download the `.dmg` from [nodetool.ai](https://nodetool.ai). Separate builds ship for Apple Silicon (arm64) and Intel (x64) — pick the one matching your Mac (Apple menu → About This Mac).
-2. Open the DMG and drag Nodetool into Applications.
-3. Launch it from Applications. Release builds are code-signed and notarized, so Gatekeeper shouldn't block the first launch.
-4. Recording audio or video in a workflow prompts for microphone/camera permission the first time — approve it to use those nodes.
+1. Download the `.dmg` from [nodetool.ai](https://nodetool.ai). There are two
+   builds: one for Apple Silicon (arm64) and one for Intel (x64). To see which
+   Mac you have, open the Apple menu → About This Mac.
+2. Open the downloaded file and drag Nodetool into your Applications folder.
+3. Open it from Applications. Released builds are signed and approved by Apple,
+   so macOS should not warn you or block the first launch.
+4. If a workflow records audio or video, macOS asks once for microphone or
+   camera permission. Approve it or those nodes won't work.
 
-Apple Silicon Macs run local models through Apple's [MLX framework](models.md#mlx-framework-apple-silicon) automatically; no extra setup.
+On Apple Silicon Macs, AI models that run on your own machine use Apple's
+[MLX framework](models.md#mlx-framework-apple-silicon) automatically. Nothing to
+set up.
 
 ---
 
 ## Windows
 
-1. Download the installer (`Nodetool-Setup-<version>.exe`) from [nodetool.ai](https://nodetool.ai).
-2. Run it. You choose the install directory; the installer adds a desktop shortcut and launches NodeTool when it finishes.
-3. Approve the firewall prompt — NodeTool runs a local server on port 7777 that the UI connects to.
+1. Download the installer (`Nodetool-Setup-<version>.exe`) from
+   [nodetool.ai](https://nodetool.ai).
+2. Run it. You choose where it installs. It then adds a desktop shortcut and
+   opens NodeTool when it finishes.
+3. Approve the Windows firewall prompt. NodeTool runs a small server on your own
+   machine (on port 7777) that the app window talks to. Nothing is exposed to
+   the internet.
 
-The installer and app executable are code-signed. For local model acceleration, keep your NVIDIA driver current.
+Both the installer and the app are code-signed. If you want AI models to run on
+your own graphics card, keep your NVIDIA driver up to date.
 
 ---
 
 ## Linux
 
-1. Download the AppImage from [nodetool.ai](https://nodetool.ai) — it's the only Linux package NodeTool ships today.
-2. Make it executable and run it:
+1. Download the AppImage from [nodetool.ai](https://nodetool.ai). It is the only
+   Linux package NodeTool ships today.
+2. Mark it executable and run it:
    ```bash
    chmod +x Nodetool-*.AppImage
    ./Nodetool-*.AppImage
    ```
-3. There's no install step. The AppImage runs in place — move the file wherever you want it to live.
+3. There is no install step. An AppImage is a single self-contained file that
+   runs wherever you put it.
 
-Prefer Flatpak? The project publishes unsigned CI builds from every push to `main` — see [Flatpak CI Builds](https://github.com/nodetool-ai/nodetool/actions/workflows/flatpak-ci.yml) (not yet on Flathub).
+Prefer Flatpak? Unsigned builds are produced from every change to the project.
+See [Flatpak CI Builds](https://github.com/nodetool-ai/nodetool/actions/workflows/flatpak-ci.yml).
+They are not on Flathub yet.
 
 ---
 
-## What installs on demand
+## What downloads later
 
-The app itself is small. Everything else downloads the first time a workflow needs it:
+The app itself is small. These pieces arrive the first time a workflow needs
+them:
 
-- **Python and Conda** — installs when you run a workflow that uses a Python node (HuggingFace, MLX, Apple integrations). The backend's `PythonStdioBridge` spawns the Python worker only at that point; a workflow built entirely from TypeScript nodes never triggers it. One-time download, roughly 3-5 GB.
-- **Local inference engines** — Ollama and llama.cpp download when you install or run a model that needs them, from the **Models** panel.
-- **Model weights** — each model you install pulls its own weights, typically 4-20 GB depending on the model.
+- **Python and Conda** (about 3-5 GB, once) — some nodes are written in Python
+  rather than JavaScript, and they need this to run. It downloads the first time
+  you run a workflow containing one, such as a HuggingFace, MLX, or Apple
+  integration node. A workflow with no Python nodes never triggers it.
+- **Model runners** — Ollama and llama.cpp are the programs that run AI models
+  on your own machine. They download when you install or run a model that needs
+  one, from the **Models** panel.
+- **The models themselves** — usually 4-20 GB each, depending on the model.
 
-No GPU, or don't want the download? Use a cloud provider with your own API key instead (**Settings → Providers**). See [Providers](providers.md) and [Models & Providers](models-and-providers.md).
+No graphics card, or no room for the downloads? Use an online AI service with
+your own API key instead (**Settings → Providers**). See
+[Providers](providers.md) and [Models & Providers](models-and-providers.md).
 
-### What Different Tasks Need
+### What different tasks need
 
-Hardware maps to inference engine, not to a specific GPU model:
+What matters is the kind of hardware you have, not the exact model of graphics
+card:
 
-| Hardware | Engine | Good for |
+| Your hardware | What runs the model | Good for |
 |----------|--------|----------|
-| NVIDIA GPU | Nunchaku (4-bit diffusion), llama.cpp/GGUF | Image generation, quantized LLMs |
-| Apple Silicon | MLX | LLMs, vision models, Flux ported to MLX |
-| CPU only | llama.cpp, Transformers | Works, slower |
-| No GPU | Cloud providers (BYOK) | Every modality, no download |
+| NVIDIA graphics card | Nunchaku, llama.cpp/GGUF | Making images, running compressed language models |
+| Apple Silicon Mac | MLX | Language models, image understanding, Flux |
+| No graphics card, CPU only | llama.cpp, Transformers | Works, but slowly |
+| Anything, using an online service | The provider's servers | Every kind of task, nothing to download |
 
-See [Supported Models](models.md) for the full engine comparison.
+[Supported Models](models.md) compares all of them.
 
 ---
 
-## Alternative installs
+## Other ways to install
 
-Don't need the desktop app:
+If you don't want the desktop app:
 
-**CLI only** — install the standalone `nodetool` CLI without Electron:
+**Command line only** — install just the `nodetool` command, without the desktop
+app:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/nodetool-ai/nodetool/main/install.sh | bash
 ```
 
-or through npm:
+or with npm:
 
 ```bash
 npm install -g @nodetool-ai/cli
@@ -99,16 +133,18 @@ nodetool serve
 
 See the [CLI Reference](cli.md).
 
-**Self-hosted server (Docker)** — run the backend on your own machine or a remote host:
+**On your own server (Docker)** — run NodeTool's backend on your machine or a
+remote host:
 
 ```bash
 cp .env.example .env
 docker compose up -d
 ```
 
-See [Self-Hosted Deployment](self-hosted-deployment.md) for auth modes, upgrades, and remote hosts, or the [Deployment Guide](deployment.md) for the full server/worker picture.
+See [Self-Hosted Deployment](self-hosted-deployment.md) for logins, upgrades,
+and remote hosts, or the [Deployment Guide](deployment.md) for the full picture.
 
-**From source** — for contributors:
+**From source code** — for people who want to change NodeTool itself:
 
 ```bash
 nvm use
@@ -117,23 +153,37 @@ npm run build:packages
 npm run dev
 ```
 
-Requires Node.js 22.22.1 (`.nvmrc`) and, for Python nodes, Python 3.11+ with conda. Full setup in the [repo README](https://github.com/nodetool-ai/nodetool#development-setup).
+Needs Node.js 22.22.1 (see `.nvmrc`) and, for Python nodes, Python 3.11+ with
+conda. Full setup in the
+[repo README](https://github.com/nodetool-ai/nodetool#development-setup).
 
 ---
 
-## Troubleshooting Installation
+## If installing goes wrong
 
-Most install problems are one of these. For workflow and runtime issues once NodeTool is running, see the [Troubleshooting Guide](troubleshooting.md).
+Most install problems are one of these four. For problems that show up once
+NodeTool is running, see [Troubleshooting](troubleshooting.md).
 
-**On-demand Python/Conda setup fails** — needs internet access and about 5 GB free disk space. Restart NodeTool; partial downloads resume automatically.
+**The Python download fails** — it needs an internet connection and about 5 GB
+of free disk space. Restart NodeTool; a partial download picks up where it left
+off.
 
-**GPU not detected** — check your driver with `nvidia-smi` in a terminal (the same check NodeTool's own Help → System Information dialog runs). No dedicated GPU? NodeTool falls back to CPU, or use a cloud provider instead.
+**NodeTool doesn't see my graphics card** — open a terminal and run
+`nvidia-smi`. That is the same check NodeTool runs in Help → System Information.
+If you have no dedicated graphics card, NodeTool falls back to the CPU, or you
+can use an online service instead.
 
-**Model download fails or stalls** — usually disk space or network. See [Model Download Troubleshooting](troubleshooting.md#issue-model-download-fails-or-stalls) for the full list: disk space, resuming, and HuggingFace rate limits.
+**A model download stalls or fails** — usually disk space or network.
+[Model Download Troubleshooting](troubleshooting.md#issue-model-download-fails-or-stalls)
+covers disk space, resuming, and HuggingFace download limits.
 
-**Can't connect to the local server** — approve the firewall prompt for NodeTool's local server (port 7777 by default). Running the self-hosted Docker image instead? See [Deployment Troubleshooting](troubleshooting.md#issue-deployment-fails-or-service-wont-start).
+**The app can't reach its own server** — approve the firewall prompt for
+NodeTool's local server on port 7777. Running the Docker version instead? See
+[Deployment Troubleshooting](troubleshooting.md#issue-deployment-fails-or-service-wont-start).
 
-**Still stuck** — ask in [Discord](https://discord.gg/WmQTWZRcYE) or file a [GitHub Issue](https://github.com/nodetool-ai/nodetool/issues). Include your OS and NodeTool version (Help → About).
+**Still stuck** — ask on [Discord](https://discord.gg/WmQTWZRcYE) or open a
+[GitHub Issue](https://github.com/nodetool-ai/nodetool/issues). Include your
+operating system and your NodeTool version (Help → About).
 
 ---
 
@@ -143,10 +193,13 @@ Most install problems are one of these. For workflow and runtime issues once Nod
 - **macOS** — drag Nodetool from Applications to the Trash.
 - **Linux** — delete the AppImage file.
 
-Settings live in `~/.config/nodetool/settings.yaml` (macOS/Linux) or `%APPDATA%\nodetool\settings.yaml` (Windows) — remove that folder too for a clean reset.
+Your settings live in `~/.config/nodetool/settings.yaml` (macOS and Linux) or
+`%APPDATA%\nodetool\settings.yaml` (Windows). Delete that folder too if you want
+to start completely fresh.
 
 ---
 
-## Next Steps
+## Next
 
-Ready to build your first workflow? See the [Getting Started guide](getting-started.md).
+You're installed. [Quick Start](getting-started.md) walks you through running
+your first workflow.

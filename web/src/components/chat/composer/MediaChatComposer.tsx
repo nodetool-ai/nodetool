@@ -85,6 +85,7 @@ import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 import { StopGenerationButton } from "./StopGenerationButton";
 import PermissionSelector from "./PermissionSelector";
 import { useElapsedTime } from "../../../hooks/useElapsedTime";
+import { useAutoFocusEnabled } from "../../../hooks/useAutoFocusEnabled";
 
 function formatElapsed(seconds: number): string {
   if (seconds < 5) return "Starting…";
@@ -167,6 +168,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   const theme = useTheme();
   const styles = useMemo(() => createMediaComposerStyles(theme), [theme]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const autoFocusEnabled = useAutoFocusEnabled();
   const [prompt, setPrompt] = useState("");
 
   // Mode + media params from persistent store
@@ -310,11 +312,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     adjustHeight();
   }, [prompt, adjustHeight]);
 
+  // Skipped on touch, where the virtual keyboard would cover the composer.
   useEffect(() => {
-    if (autoFocus) {
+    if (autoFocus && autoFocusEnabled) {
       textareaRef.current?.focus();
     }
-  }, [autoFocus]);
+  }, [autoFocus, autoFocusEnabled]);
 
   // Close any open model / option dialogs whenever the mode changes. The
   // image- and video-model dialogs are intentionally shared between the

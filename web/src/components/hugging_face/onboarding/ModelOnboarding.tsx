@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useEffect, useMemo, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import RocketLaunchOutlinedIcon from "@mui/icons-material/RocketLaunchOutlined";
 import {
@@ -23,11 +23,15 @@ import { useHardwareProfile } from "./useHardwareProfile";
 import HardwareCard from "./HardwareCard";
 import EngineGuide from "./EngineGuide";
 import OnboardingModelRow from "./OnboardingModelRow";
+import useNodePacksStore from "../../../stores/NodePacksStore";
+import { useNotificationStore } from "../../../stores/NotificationStore";
 import {
   CAPABILITY_LABELS,
+  HUGGINGFACE_PACK_REPO_ID,
   ONBOARDING_MODELS,
   sortModelsByFit,
-  type OnboardingCapability
+  type OnboardingCapability,
+  type OnboardingModel
 } from "./onboardingCatalog";
 
 interface ModelOnboardingProps {
@@ -91,6 +95,52 @@ const ModelOnboarding: React.FC<ModelOnboardingProps> = ({ onDownload }) => {
   const isDownloaded = (model: UnifiedModel): boolean =>
     canCheckHfCache(model) ? !!cacheStatuses[getHfCacheKey(model)] : false;
 
+  // Select primitives only — a derived array in the selector would produce a
+  // new snapshot on every render and loop useSyncExternalStore.
+  const packsAvailable = useNodePacksStore((state) => state.available);
+  const installPack = useNodePacksStore((state) => state.install);
+  const hfPackInstalled = useNodePacksStore((state) =>
+    state.installed.some((p) => p.repo_id === HUGGINGFACE_PACK_REPO_ID)
+  );
+  const hfPackBusy = useNodePacksStore((state) =>
+    state.busyIds.includes(HUGGINGFACE_PACK_REPO_ID)
+  );
+  const addNotification = useNotificationStore((state) => state.addNotification);
+
+  /**
+   * Downloading a Hugging Face model is useless without the nodes that run it,
+   * so pull the Hugging Face pack in alongside the weights the first time one
+   * is picked. Only possible in the desktop app, where the registry IPC exists.
+   */
+  const handleDownload = useCallback(
+    (entry: OnboardingModel) => {
+      const needsHfPack =
+        entry.engine === "huggingface" &&
+        packsAvailable &&
+        !hfPackInstalled &&
+        !hfPackBusy;
+      if (needsHfPack) {
+        addNotification({
+          type: "info",
+          content:
+            "Installing the Hugging Face node pack so this model has nodes to run on.",
+          dedupeKey: "onboarding-hf-pack",
+          replaceExisting: true
+        });
+        void installPack(HUGGINGFACE_PACK_REPO_ID);
+      }
+      onDownload(entry.model);
+    },
+    [
+      addNotification,
+      hfPackBusy,
+      hfPackInstalled,
+      installPack,
+      onDownload,
+      packsAvailable
+    ]
+  );
+
   return (
     <FlexColumn
       gap={3}
@@ -131,8 +181,8 @@ const ModelOnboarding: React.FC<ModelOnboardingProps> = ({ onDownload }) => {
             Recommended models
           </Text>
           <Caption sx={{ opacity: 0.7 }}>
-            Current models in the 2–30 GB range, sorted to show what fits your
-            machine first. Sizes and memory are approximate.
+            Current models sized for a single consumer GPU, sorted to show what
+            fits your machine first. Sizes and memory are approximate.
           </Caption>
         </FlexColumn>
 
@@ -168,7 +218,7 @@ const ModelOnboarding: React.FC<ModelOnboardingProps> = ({ onDownload }) => {
                 entry={entry}
                 fit={profile.classify(entry.minVramGb)}
                 downloaded={isDownloaded(entry.model)}
-                onDownload={onDownload}
+                onDownload={handleDownload}
               />
             ))}
           </FlexColumn>

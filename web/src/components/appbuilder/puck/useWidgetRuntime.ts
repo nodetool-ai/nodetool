@@ -1,19 +1,33 @@
 /**
- * Binds a Puck widget component to the reactive runtime: resolves its bound
- * value, exposes a writer, and turns its events into dispatched actions.
+ * Binds a Puck widget component to the reactive runtime: resolves its binding
+ * to a state slot, exposes a writer, and turns its events into dispatched
+ * actions.
+ *
+ * The widget hands over the binding string exactly as stored; resolution to a
+ * node ID happens here, against the live graph. That is what makes renaming an
+ * Input or Output node in the graph editor harmless.
  */
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import {
+  encodeBinding,
+  eventToAction,
+  isOperationRunning,
+  operationActivity,
+  operationProgress,
+  resolveBinding,
+  type AppEvent,
+  type BindingMode,
+  type EventTrigger
+} from "@nodetool-ai/app-runtime";
 
 import {
   useAppRuntimeContext,
-  useRuntimeValue,
+  useBindingRef,
+  useBindingValue,
   useRuntimeSelector
 } from "../runtime/AppRuntimeContext";
-import { RuntimeRunnerState } from "../runtime/appRuntimeStore";
-import { parseNodePropertyBinding } from "../nodeBinding";
-import { AppEvent, EventTrigger, eventToAction } from "../types";
 
-export type WidgetBindingMode = "none" | "read" | "write";
+export type WidgetBindingMode = BindingMode;
 
 /**
  * When a widget reports an event: "change" is a live adjustment (keystroke,
@@ -25,12 +39,23 @@ export type EmitPhase = "change" | "commit";
 /** Trailing debounce window for `pace: "debounce"` run events. */
 const DEBOUNCE_MS = 500;
 
+/** The app-facing view of the runner state a widget renders against. */
+export type RuntimeRunnerState = "idle" | "running";
+
 export interface WidgetRuntime {
   value: unknown;
   setValue: (value: unknown) => void;
   emit: (trigger: EventTrigger, phase?: EmitPhase) => void;
   designMode: boolean;
   runnerState: RuntimeRunnerState;
+  /** Fractional progress of the app's active run, when it reports any. */
+  progress: number | undefined;
+  /**
+   * What the run this widget watches last reported it was doing — the tool an
+   * agent is calling, the planning phase, the task step. Undefined when the run
+   * reports nothing but a spinner.
+   */
+  activity: string | undefined;
 }
 
 interface UseWidgetRuntimeParams {
@@ -47,35 +72,57 @@ export const useWidgetRuntime = ({
   binding,
   events
 }: UseWidgetRuntimeParams): WidgetRuntime => {
-  const { designMode, dispatch, setValue: setStateValue, getNodeProperty } =
+  const { designMode, dispatch, write, getNodeProperty, operations, scope } =
     useAppRuntimeContext();
 
-  // Write widgets are controlled and need a key. When the user hasn't bound one
-  // to a workflow input, fall back to the component id so it still holds its own
-  // value as local UI state. Read widgets without a binding stay static.
-  const stateKey =
-    binding || (bindingMode === "write" ? id : undefined);
+  const boundRef = useBindingRef(binding, bindingMode);
+  // A write widget the author hasn't bound still needs somewhere to hold its
+  // value: widget-local view state, which cannot collide with a workflow input.
+  const ref = useMemo(
+    () =>
+      boundRef ??
+      (bindingMode === "write"
+        ? ({ kind: "view", componentId: id, prop: "value" } as const)
+        : null),
+    [boundRef, bindingMode, id]
+  );
 
-  const storedValue = useRuntimeValue(stateKey);
+  const storedValue = useBindingValue(ref);
   // A node-property binding the user hasn't touched shows the node's current
   // property value (saved data, else metadata default).
-  const nodeBinding =
-    storedValue === undefined ? parseNodePropertyBinding(binding) : null;
-  const value = nodeBinding
-    ? getNodeProperty(nodeBinding.nodeId, nodeBinding.property)
-    : storedValue;
-  const runnerState = useRuntimeSelector((s) => s.runnerState);
+  const value =
+    storedValue === undefined && boundRef?.kind === "nodeProperty"
+      ? getNodeProperty(boundRef.nodeId, boundRef.property)
+      : storedValue;
+
+  // A widget reports on the operation its own events drive, so a button wired
+  // to the second operation shows that operation's run, not operation 0's.
+  const operationId = useMemo(() => {
+    const named = (events ?? []).find(
+      (event) =>
+        (event.kind === "run" || event.kind === "cancel") &&
+        event.operationId &&
+        operations.some((operation) => operation.id === event.operationId)
+    )?.operationId;
+    return named ?? scope.defaultOperationId;
+  }, [events, operations, scope.defaultOperationId]);
+  const runnerState = useRuntimeSelector((s) =>
+    isOperationRunning(s, operationId) ? "running" : "idle"
+  );
+  const progress = useRuntimeSelector((s) => operationProgress(s, operationId));
+  const activity = useRuntimeSelector((s) => operationActivity(s, operationId));
 
   const setValue = useCallback(
     (next: unknown) => {
-      if (stateKey) setStateValue(stateKey, next);
+      if (ref) write(ref, next);
     },
-    [setStateValue, stateKey]
+    [ref, write]
   );
 
-  // A write widget's binding is the workflow input it drives; pass it as the
-  // trigger origin so a `run` recomputes only that input's downstream subgraph.
-  const triggerInput = bindingMode === "write" ? binding : undefined;
+  // A write widget's binding is the input it drives; pass it as the trigger
+  // origin so a `run` recomputes only that input's downstream subgraph.
+  const from =
+    bindingMode === "write" && boundRef ? encodeBinding(boundRef) : undefined;
 
   // One trailing debounce timer per widget, cleared on unmount so a pending run
   // never fires after the widget is gone.
@@ -92,8 +139,18 @@ export const useWidgetRuntime = ({
       const matching = (events ?? []).filter((e) => e.trigger === trigger);
       if (matching.length === 0) return;
 
-      const fire = (event: AppEvent) =>
-        dispatch(eventToAction(event, triggerInput));
+      const ctx = {
+        defaultOperationId: scope.defaultOperationId,
+        resolveVariableId: (key: string | undefined) => {
+          const variable = resolveBinding(key, scope, "read");
+          return variable?.kind === "variable" ? variable.variableId : null;
+        },
+        from
+      };
+      const fire = (event: AppEvent) => {
+        const action = eventToAction(event, ctx);
+        if (action) dispatch(action);
+      };
 
       const debounced: AppEvent[] = [];
       for (const event of matching) {
@@ -124,8 +181,8 @@ export const useWidgetRuntime = ({
         debounced.forEach(fire);
       }, DEBOUNCE_MS);
     },
-    [dispatch, events, triggerInput]
+    [dispatch, events, from, scope]
   );
 
-  return { value, setValue, emit, designMode, runnerState };
+  return { value, setValue, emit, designMode, runnerState, progress, activity };
 };

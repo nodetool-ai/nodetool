@@ -25,6 +25,10 @@ import StoryboardListPanel, {
   CreateStoryboardButton
 } from "../storyboard/StoryboardListPanel";
 import ScriptListPanel, { CreateScriptButton } from "../script/ScriptListPanel";
+import ApplicationListPanel, {
+  CreateApplicationButton,
+  CreateApplicationFromWorkflowButton
+} from "../applications/ApplicationListPanel";
 import HistoryTilesPanel from "../node_menu/HistoryTilesPanel";
 import FavoritesTiles from "../node_menu/FavoritesTiles";
 import QuickAccessSidebar from "../node_menu/QuickAccessSidebar";
@@ -491,6 +495,29 @@ const PanelContent = memo(function PanelContent({
           <ScriptListPanel />
         </FlexColumn>
       )}
+      {activeView === "apps" && (
+        <FlexColumn
+          className="application-list-container"
+          fullWidth
+          fullHeight
+          sx={{
+            overflow: "hidden"
+          }}
+        >
+          {!isMobile && (
+            <PanelHeadline
+              title="Apps"
+              actions={
+                <>
+                  <CreateApplicationFromWorkflowButton />
+                  <CreateApplicationButton />
+                </>
+              }
+            />
+          )}
+          <ApplicationListPanel />
+        </FlexColumn>
+      )}
       {activeView === "settings" && currentWorkflow && (
         <FlexColumn
           className="workflow-settings-container"
@@ -579,6 +606,7 @@ const MobilePanelLeft: React.FC<{
   onClose: () => void;
   onViewChange: (view: LeftPanelView) => void;
   handlePanelToggle: (view: LeftPanelView) => void;
+  showAppMenu?: boolean;
 }> = ({
   activeView,
   activeNodeCategory,
@@ -588,7 +616,8 @@ const MobilePanelLeft: React.FC<{
   onOpen,
   onClose,
   onViewChange,
-  handlePanelToggle
+  handlePanelToggle,
+  showAppMenu = false
 }) => {
   const theme = useTheme();
 
@@ -621,6 +650,10 @@ const MobilePanelLeft: React.FC<{
         ariaLabel="Workflows, sketches, timelines, and assets panel"
         headerExtras={
           <div css={mobileHeaderExtrasStyles(theme)}>
+            {/* The rail's app menu (Settings, Help, Models, Downloads, …) has
+              no other entry point on mobile — the vertical toolbar that carries
+              it on desktop isn't rendered here. */}
+            {showAppMenu && <RailAppMenu onAction={onClose} />}
             <Tooltip title="Workflows" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
               <ToolbarIconButton
                 className={`tab-button ${activeView === "workflows" ? "active" : ""}`}
@@ -712,9 +745,7 @@ const PanelLeft: React.FC = () => {
     })
   );
 
-  const isStandaloneMode =
-    location.pathname.startsWith("/standalone-chat") ||
-    location.pathname.startsWith("/miniapp");
+  const isStandaloneMode = location.pathname.startsWith("/standalone-chat");
   // The rail owns the app menu (logo) only in the unified workspace shell;
   // legacy routes still carry it in their own header.
   const isWorkspace = location.pathname.startsWith("/workspace");
@@ -728,6 +759,7 @@ const PanelLeft: React.FC = () => {
       activeTabType === "workflow" &&
       activeTabMode === "edit");
   const hasHeader = !isStandaloneMode && !isChatRoute;
+  const panelLeftStyles = useMemo(() => styles(theme, hasHeader, false), [theme, hasHeader]);
 
   const {
     ref: panelRef,
@@ -820,13 +852,14 @@ const PanelLeft: React.FC = () => {
         onClose={handleMobileClose}
         onViewChange={onViewChange}
         handlePanelToggle={handlePanelToggle}
+        showAppMenu={isWorkspace}
       />
     );
   }
 
   return (
     <div
-      css={styles(theme, hasHeader, false)}
+      css={panelLeftStyles}
       className={`panel-left-container ${
         displayActiveView === "nodes" ? "is-nodes" : ""
       }`}

@@ -14,7 +14,7 @@ export default function ComparisonSection({
     <section
       id="differences"
       aria-labelledby="differences-title"
-      className="relative py-24"
+      className="relative py-24 scroll-mt-24"
     >
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
         <header className="scroll-fade mb-14 max-w-3xl">
@@ -47,19 +47,19 @@ export default function ComparisonSection({
         <div className="scroll-fade grid grid-cols-1 md:grid-cols-3 gap-px bg-slate-800/60 border border-slate-800/80 rounded-2xl overflow-hidden">
           <ComparisonCard
             competitor="ComfyUI"
-            sentence="ComfyUI is a node editor for image-generation models. NodeTool is the studio around it: image, video, music, and words on one canvas, every major model a click away."
+            sentence="ComfyUI is an editor for image models. NodeTool is the studio around it: image, video, music, and words on one canvas, with every major model a click away."
             reducedMotion={reducedMotion}
             delay={0}
           />
           <ComparisonCard
             competitor="Figma Weave / closed canvases"
-            sentence="Closed canvases lock you into a credit system and a hand-picked list of models. NodeTool is open source — every provider, your own keys, provider prices."
+            sentence="Closed tools tie you to a credit system and a hand-picked list of models. NodeTool is open source: every provider, your own keys, and the prices those providers publish."
             reducedMotion={reducedMotion}
             delay={0.05}
           />
           <ComparisonCard
             competitor="A dozen browser tabs"
-            sentence="Midjourney, Runway, Photoshop, ElevenLabs, Suno — each in its own tab, none of them talking to each other. NodeTool wires them into one canvas you can run, share, and re-run."
+            sentence="Midjourney, Runway, Photoshop, ElevenLabs, and Suno each sit in their own tab, and none of them talk to each other. NodeTool brings them onto one canvas you can run, share, and run again."
             reducedMotion={reducedMotion}
             delay={0.1}
           />
@@ -103,15 +103,15 @@ export default function ComparisonSection({
                 Every model. Your keys. Your canvas.
               </h3>
               <p className="text-slate-300 leading-relaxed mb-4 text-[1.025rem]">
-                Take Seedance, one of today&apos;s top video models. It&apos;s
-                available on FAL, Replicate, and KIE at different price points.
-                NodeTool lets you pick the cheapest. And when the next Veo or
-                Kling ships, it&apos;s one node swap away.
+                Take Seedance, one of today&apos;s best video models. It is sold
+                by FAL, Replicate, and KIE at different prices, and NodeTool
+                lets you pick the cheapest of the three. When the next Veo or
+                Kling arrives, you switch to it in one click.
               </p>
               <p className="text-slate-400 leading-relaxed text-[1.025rem]">
-                That&apos;s what not being tied to one vendor buys you: the
-                best model at the best price, every week — and nothing to lose
-                if your favorite tool gets acquired.
+                That is what staying independent buys you: the best model at the
+                best price each week, and nothing to lose if your favorite tool
+                is bought by someone else.
               </p>
             </div>
           </div>

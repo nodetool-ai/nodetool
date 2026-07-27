@@ -1,15 +1,20 @@
 // Generates marketing/src/data/miniAppEntries.generated.ts from the shipped
-// example workflows' app-builder documents (workflow.app_doc), for the
-// /apps/* mini-app landing pages.
+// example apps, for the /apps/* mini-app landing pages.
+//
+// The source of truth is the bundle-derived previews in
+// web/public/app-preview/ (written by scripts/build-example-apps.mjs from the
+// ApplicationBundles in packages/base-nodes/nodetool/examples/apps/). One page
+// per shipped app — the curated set, not one page per workflow template.
 //
 // Each entry distills the app the way a visitor experiences it: the emoji
-// heading and tagline straight from the app document, what you put in (write
-// widgets), and what you get out (bound display widgets). A screenshot
-// captured by web/scripts/screenshot-app-previews.mjs is referenced from
-// /apps/<slug>.png when present; entries without one still build, noindexed.
+// heading and tagline from the app document, what you put in (write widgets),
+// what you get out (bound display widgets), and the workflows the app binds,
+// each linking to its /templates page. A screenshot captured by
+// web/scripts/screenshot-app-previews.mjs is referenced from /apps/<slug>.png
+// when present; entries without one still build, noindexed.
 //
-// Regenerate with `npm run gen:apps`; run after `npm run gen:templates` so
-// slugs agree.
+// Regenerate with `npm run gen:apps`; run after `npm run gen:templates` so the
+// linked template routes exist.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -18,15 +23,13 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../..");
 const MARKETING = path.resolve(__dirname, "..");
+const PREVIEWS = path.join(REPO_ROOT, "web/public/app-preview");
 const EXAMPLES_DIR = path.join(
   REPO_ROOT,
   "packages/base-nodes/nodetool/examples/nodetool-base",
 );
 const SCREENSHOTS = path.join(MARKETING, "public/apps");
 const OUT_FILE = path.join(MARKETING, "src/data/miniAppEntries.generated.ts");
-// Hero flag from the app-builder curation table (scripts/generate-template-apps.mjs
-// `featured: true`), written per-template to web/public/app-preview/manifest.json.
-const APP_PREVIEW_MANIFEST = path.join(REPO_ROOT, "web/public/app-preview/manifest.json");
 
 const slugify = (name) =>
   name
@@ -35,9 +38,9 @@ const slugify = (name) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-// WorkflowInput is the unified per-input widget; the older discrete input
-// widgets still appear in hand-built apps. Its kind is resolved from the bound
-// input node's type in the graph (see inputKindFromGraph).
+// WorkflowInput is the unified per-input widget; its kind comes from the bound
+// input node's type in the graph (see inputKind). The rest carry their own
+// control and say what kind they are.
 const WRITE_WIDGETS = new Set([
   "WorkflowInput",
   "TextInput",
@@ -45,8 +48,13 @@ const WRITE_WIDGETS = new Set([
   "Slider",
   "Switch",
   "Select",
+  "ImageInput",
+  "AudioInput",
+  "VideoInput",
+  "ColorInput",
 ]);
-const READ_WIDGETS = new Set(["Heading", "Text", "Markdown", "Image", "Audio", "Video", "Json", "Progress"]);
+// Progress widgets are run feedback, not a result the visitor takes away.
+const READ_WIDGETS = new Set(["Markdown", "Image", "Audio", "Video", "Json", "Table"]);
 
 // nodetool.input.* node type → marketing input kind.
 const INPUT_NODE_KIND = {
@@ -62,17 +70,33 @@ const INPUT_NODE_KIND = {
   StringInput: "text",
 };
 
+/** Widget type → input kind, for widgets that carry their own control. */
+const WIDGET_KIND = {
+  Slider: "number",
+  NumberInput: "number",
+  Switch: "toggle",
+  Select: "choice",
+  ImageInput: "image",
+  AudioInput: "audio",
+  VideoInput: "video",
+  ColorInput: "color",
+};
+
 /** Human label for what a display widget shows. */
 const OUTPUT_KIND = {
   Image: "image",
   Audio: "audio",
   Video: "video",
   Json: "data",
+  Table: "data",
   Markdown: "text",
-  Text: "text",
-  Heading: "text",
-  Progress: "progress",
 };
+
+/** The app's note is Markdown in the app; the landing page renders plain text. */
+const plain = (text) =>
+  String(text)
+    .replace(/[`*]/g, "")
+    .trim();
 
 const humanize = (name) =>
   String(name)
@@ -94,50 +118,82 @@ function flatten(content, out = []) {
   return out;
 }
 
-/** Map a bound input name → kind via the workflow graph's input node type. */
-function inputKindFromGraph(graph, binding) {
-  const node = (graph?.nodes ?? []).find(
-    (n) => (n.type ?? "").startsWith("nodetool.input.") && n.data?.name === binding,
-  );
-  const bare = (node?.type ?? "").replace(/^nodetool\.input\./, "");
-  return INPUT_NODE_KIND[bare] ?? "text";
+/**
+ * The node a widget binding addresses. Bindings name an operation
+ * (`op:<id>/in:<nodeId>`), and each operation binds one of the app's
+ * workflows, so the lookup goes through the operation table to that workflow's
+ * graph. Variable bindings (`var:<id>`) address no node.
+ */
+function nodeForBinding(app, binding) {
+  const match = /^op:([^/]+)\/(?:in|out|prop):(.+)$/.exec(binding ?? "");
+  if (!match) return null;
+  const graph = app.graphs.get(match[1]);
+  const nodeId = match[2].split("#")[0];
+  return graph?.nodes.find((n) => n.id === nodeId) ?? null;
 }
 
-function distillApp(appDoc, name, graph) {
-  const widgets = flatten(appDoc?.data?.content);
-  const headingWidget = widgets.find((w) => w.type === "Heading" && w.props?.level === "1");
-  const taglineWidget = widgets.find((w) => w.type === "Text" && !w.props?.binding);
+/** The label for a bound widget: its own label, else the node or variable name. */
+function bindingLabel(app, binding, label) {
+  if (label) return label;
+  const node = nodeForBinding(app, binding);
+  if (node) return humanize(node.data?.name || node.id);
+  const variableId = /^var:(.+)$/.exec(binding ?? "")?.[1];
+  const variable = app.variables.find((v) => v.id === variableId);
+  return humanize(variable?.name || variableId || binding || "Result");
+}
+
+function inputKind(app, widget) {
+  const own = WIDGET_KIND[widget.type];
+  if (own) return own;
+  const node = nodeForBinding(app, widget.props?.binding);
+  const type = (node?.type ?? "").startsWith("nodetool.input.") ? node.type : "";
+  return INPUT_NODE_KIND[type.replace(/^nodetool\.input\./, "")] ?? "text";
+}
+
+function distill(preview) {
+  const app = {
+    graphs: new Map(
+      preview.app.operations.map((op) => [
+        op.id,
+        preview.workflows.find((w) => w.key === op.workflowId)?.graph ?? { nodes: [] },
+      ]),
+    ),
+    variables: preview.app.variables ?? [],
+  };
+
+  const widgets = flatten(preview.app.ui?.content);
   const button = widgets.find((w) => w.type === "Button");
 
-  const inputs = widgets
-    .filter((w) => WRITE_WIDGETS.has(w.type))
-    .map((w) => ({
-      label: w.props?.label || humanize(w.props?.binding ?? ""),
-      kind:
-        w.type === "WorkflowInput"
-          ? inputKindFromGraph(graph, w.props?.binding)
-          : w.type === "Slider" || w.type === "NumberInput"
-            ? "number"
-            : w.type === "Switch"
-              ? "toggle"
-              : w.type === "Select"
-                ? "choice"
-                : "text",
-    }));
-
+  const inputs = [];
   const outputs = [];
   const seen = new Set();
-  for (const w of widgets) {
-    if (!READ_WIDGETS.has(w.type) || !w.props?.binding) continue;
-    const key = String(w.props.binding);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    outputs.push({ label: humanize(key), kind: OUTPUT_KIND[w.type] ?? "text" });
+  // A display widget carries no label of its own; the app puts one in the
+  // Heading immediately above it, which is the wording a visitor reads.
+  let heading;
+  for (const widget of widgets) {
+    const binding = widget.props?.binding;
+    if (widget.type === "Heading" && widget.props?.level === "3") {
+      heading = widget.props?.text;
+      continue;
+    }
+    if (WRITE_WIDGETS.has(widget.type)) {
+      inputs.push({
+        label: bindingLabel(app, binding, widget.props?.label),
+        kind: inputKind(app, widget),
+      });
+      continue;
+    }
+    if (!READ_WIDGETS.has(widget.type) || !binding) continue;
+    const label = bindingLabel(app, binding, widget.props?.label || heading);
+    heading = undefined;
+    if (seen.has(binding)) continue;
+    seen.add(binding);
+    outputs.push({ label, kind: OUTPUT_KIND[widget.type] ?? "text" });
   }
 
   return {
-    heading: headingWidget?.props?.text || name,
-    tagline: taglineWidget?.props?.text || "",
+    heading: `${preview.emoji} ${preview.name}`.trim(),
+    tagline: preview.tagline ?? "",
     buttonLabel: button?.props?.label || "Run",
     inputs,
     outputs,
@@ -145,47 +201,61 @@ function distillApp(appDoc, name, graph) {
   };
 }
 
-const featuredSlugs = new Set(
-  (fs.existsSync(APP_PREVIEW_MANIFEST)
-    ? JSON.parse(fs.readFileSync(APP_PREVIEW_MANIFEST, "utf8"))
-    : []
-  )
-    .filter((m) => m.featured)
-    .map((m) => m.slug),
-);
+/** Tags of the templates an app binds, deduped — what powers `relatedMiniApps`. */
+function templateInfo(preview) {
+  const workflows = [];
+  const tags = new Set();
+  for (const workflow of preview.workflows) {
+    const file = path.join(EXAMPLES_DIR, `${workflow.name}.json`);
+    if (!fs.existsSync(file)) {
+      throw new Error(
+        `${preview.slug} binds "${workflow.name}", which has no template in ${path.relative(REPO_ROOT, EXAMPLES_DIR)}`,
+      );
+    }
+    const example = JSON.parse(fs.readFileSync(file, "utf8"));
+    for (const tag of example.tags ?? []) tags.add(tag);
+    const slug = slugify(workflow.name);
+    workflows.push({ name: workflow.name, slug, route: `/templates/${slug}` });
+  }
+  return { workflows, tags: [...tags].sort() };
+}
 
-const entries = [];
-for (const file of fs.readdirSync(EXAMPLES_DIR).filter((f) => f.endsWith(".json")).sort()) {
-  const example = JSON.parse(fs.readFileSync(path.join(EXAMPLES_DIR, file), "utf8"));
-  if (!example.app_doc) continue;
-  const slug = slugify(example.name);
-  const app = distillApp(example.app_doc, example.name, example.graph);
-  const screenshot = fs.existsSync(path.join(SCREENSHOTS, `${slug}.png`))
-    ? `/apps/${slug}.png`
+const previews = fs
+  .readdirSync(PREVIEWS)
+  .filter((f) => f.endsWith(".json") && f !== "manifest.json")
+  .sort()
+  .map((f) => JSON.parse(fs.readFileSync(path.join(PREVIEWS, f), "utf8")));
+
+const entries = previews.map((preview) => {
+  const app = distill(preview);
+  const { workflows, tags } = templateInfo(preview);
+  const screenshot = fs.existsSync(path.join(SCREENSHOTS, `${preview.slug}.png`))
+    ? `/apps/${preview.slug}.png`
     : null;
-  const summary = (example.description || "").trim();
-  const indexable = Boolean(screenshot) && (app.tagline.length >= 30 || summary.length >= 80);
+  const summary = (preview.description || "").trim();
 
-  entries.push({
-    route: `/apps/${slug}`,
-    title: `${example.name} — Free AI Mini App | NodeTool`,
+  return {
+    route: `/apps/${preview.slug}`,
+    title: `${preview.name} — Free AI Mini App | NodeTool`,
     description:
       app.tagline ||
       summary.slice(0, 155) ||
-      `${example.name} is a ready-to-use AI mini app built with NodeTool.`,
+      `${preview.name} is a ready-to-use AI mini app built with NodeTool.`,
     priority: 0.4,
     changeFrequency: "monthly",
-    indexable,
-    slug,
-    name: example.name,
+    indexable: Boolean(screenshot) && (app.tagline.length >= 30 || summary.length >= 80),
+    slug: preview.slug,
+    name: preview.name,
     summary,
-    featured: featuredSlugs.has(slug),
-    templateRoute: `/templates/${slug}`,
+    featured: preview.featured === true,
+    note: preview.note ? plain(preview.note) : null,
+    workflows,
+    templateRoute: workflows[0].route,
     screenshot,
-    tags: Array.isArray(example.tags) ? example.tags : [],
+    tags,
     ...app,
-  });
-}
+  };
+});
 
 const banner =
   "// AUTO-GENERATED by marketing/scripts/generate-miniapp-entries.mjs — do not edit by hand.\n" +

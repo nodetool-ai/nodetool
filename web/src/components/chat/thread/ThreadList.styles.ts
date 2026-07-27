@@ -133,5 +133,13 @@ export const createStyles = (theme: Theme) =>
       },
 
       svg: { fontSize: "1.2em" }
+    },
+
+    // Without hover the delete button never appears, yet it still sits on top
+    // of the timestamp and swallows taps near the right edge of a row. Show it
+    // and drop the timestamp, matching what hovering does on a mouse.
+    "@media (hover: none)": {
+      ".delete-button": { opacity: 1 },
+      ".thread-time": { opacity: 0 }
     }
   });

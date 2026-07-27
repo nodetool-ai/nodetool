@@ -110,18 +110,13 @@ Chat with AI models from your mobile device.
 
 ---
 
-## Mini Apps
+## Running workflows
 
-Run your NodeTool workflows with a simplified mobile interface. There is no separate "Mini Apps" screen — the home screen is the **Workflows** list (WorkflowsListScreen), and tapping a workflow opens the graph editor (GraphEditorScreen), which hosts the Mini-App runner for that workflow.
+Mobile runs a workflow through a generated form. The home screen is the **Workflows** list (WorkflowsListScreen); tapping a workflow opens it (GraphEditorScreen) with input fields, a Run button, and results.
 
-### What Are Mini Apps?
+Mini Apps are a separate resource, authored in the desktop **Apps** panel and stored on the server. Mobile support for opening a published app as its own screen is in progress; see [Mini Apps](mini-apps.md).
 
-Mini Apps are workflows converted to simple interfaces. They hide the complexity of the workflow and show only:
-- Input fields
-- Run button
-- Results
-
-### Running a Mini App
+### Running a workflow
 
 1. Open the **Workflows** list (the home screen)
 2. Tap a workflow to open it
@@ -340,6 +335,6 @@ eas build --platform ios --profile production
 
 - [Getting Started](getting-started.md) – Desktop setup and first workflow
 - [User Interface](user-interface.md) – Full UI guide
-- [Mini Apps](user-interface.md#mini-apps) – Creating Mini Apps
+- [Mini Apps](mini-apps.md) – What apps are and how they run
 - [Chat & Agents](global-chat-agents.md) – Chat features in detail
 - [API Reference](api-reference.md) – Server API documentation

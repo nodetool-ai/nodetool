@@ -38,6 +38,7 @@ import {
 } from "../ui_primitives";
 import { ToolbarIconButton } from "../ui_primitives";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
+import GoogleWorkspaceCard from "./GoogleWorkspaceCard";
 
 // Provider icons vendored from @lobehub/icons-static-svg (see src/icons/providers/README.md)
 import openaiIcon from "../../icons/providers/openai.svg";
@@ -273,8 +274,8 @@ const PROVIDER_META: ProviderMeta[] = [
   {
     key: "ATLASCLOUD_API_KEY",
     name: "AtlasCloud",
-    description: "GPT Image 2, Nano Banana, and Seedance 2.0 video generation.",
-    section: "media",
+    description: "Chat, image, and video models behind one key.",
+    section: "gateways",
     docsUrl: "https://www.atlascloud.ai/",
     icon: atlascloudIcon
   },
@@ -1231,6 +1232,10 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
           provider — once anything is configured, the Connected Providers
           section above makes the banner redundant. */}
       {connected.length === 0 && <GetStartedBanner theme={theme} />}
+
+      {/* Google Workspace has no API key — access rides on the Google login.
+          Renders nothing when the backend does not offer the integration. */}
+      <GoogleWorkspaceCard />
 
       {!hasContent && lowerSearch && (
         <EmptyState

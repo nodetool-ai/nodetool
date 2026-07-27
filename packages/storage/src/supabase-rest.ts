@@ -55,6 +55,18 @@ export interface SupabaseBucketApi {
     key: string,
     expiresIn: number
   ): Promise<{ data: { signedUrl: string } | null; error: SupabaseError | null }>;
+  /**
+   * Mint a one-shot upload URL for `key`. The caller (typically a browser)
+   * PUTs the bytes straight to the returned URL, so object bytes never pass
+   * through this process. The token is scoped to this exact key — it cannot
+   * be redirected at another object.
+   */
+  createSignedUploadUrl(
+    key: string
+  ): Promise<{
+    data: { signedUrl: string; token: string } | null;
+    error: SupabaseError | null;
+  }>;
   getPublicUrl(key: string): { data: { publicUrl: string } };
 }
 
@@ -206,6 +218,34 @@ export function createSupabaseStorageClient(
               data: { signedUrl: `${base}/storage/v1${body.signedURL}` },
               error: null
             };
+          },
+
+          async createSignedUploadUrl(key) {
+            const response = await fetch(
+              `${base}/storage/v1/object/upload/sign/${bucket}/${encodeKey(key)}`,
+              { method: "POST", headers: authHeaders }
+            );
+            if (!response.ok) {
+              return { data: null, error: await readError(response) };
+            }
+            const body = (await response.json()) as { url?: string };
+            if (!body.url) {
+              return {
+                data: null,
+                error: { message: "Supabase sign response missing url" }
+              };
+            }
+            // `url` comes back relative (`/object/upload/sign/<bucket>/<key>?token=…`).
+            const signedUrl = `${base}/storage/v1${body.url}`;
+            const token =
+              new URL(signedUrl).searchParams.get("token") ?? "";
+            if (!token) {
+              return {
+                data: null,
+                error: { message: "Supabase sign response missing token" }
+              };
+            }
+            return { data: { signedUrl, token }, error: null };
           },
 
           getPublicUrl(key) {

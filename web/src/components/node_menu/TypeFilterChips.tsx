@@ -203,7 +203,8 @@ const typeFilterChipsStyles = (theme: Theme) =>
       fontWeight: FONT_WEIGHT.semibold
     },
     ".filter-menu-content": {
-      minWidth: "390px",
+      // Clamped to the viewport: a flat 390px overflows a phone screen.
+      minWidth: "min(390px, calc(100vw - 32px))",
       maxWidth: "480px",
       padding: getSpacingPx(SPACING.xl)
     },

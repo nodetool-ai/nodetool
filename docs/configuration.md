@@ -147,6 +147,7 @@ Security notes:
 | `NODETOOL_TRUST_LOCALHOST` | Allow loopback connections to bypass auth as user `1` | no | Defaults **off** when auth is enforced (Supabase), **on** otherwise. Leave off behind a reverse proxy/SSH tunnel where the proxy connects from loopback. |
 | `NODETOOL_TRUST_LOCAL_NETWORKS` | ⚠️ Source CIDRs trusted as user `1` **without a password** (Local mode only) | no | Comma-separated IPs/CIDRs; ignored in Supabase mode. Needed so Docker's NAT'd bridge traffic isn't rejected — scope to the bridge (`172.16.0.0/12`), **never `0.0.0.0/0`** on a public IP. See [Authentication → Local mode in Docker](authentication.md#local-mode-in-docker). |
 | `NODETOOL_TRUSTED_PROXIES` | Reverse proxies whose `X-Forwarded-For` is trusted | no | Comma-separated IPs/CIDRs. When unset, `X-Forwarded-For` is ignored and the socket peer address is used. |
+| `NODETOOL_LOCAL_FILE_ROOTS` | Directories the file browser and local-file previews may read | no | Platform-delimited (`:` on POSIX, `;` on Windows), `~` expands. Defaults to the user's home directory. Both surfaces are disabled entirely when `NODETOOL_ENV=production`. See [Security hardening](security-hardening.md#local-file-access). |
 | `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` | Provider access | yes | Set only the providers you use |
 | `HF_TOKEN` / `FAL_API_KEY` / `REPLICATE_API_TOKEN` | HuggingFace-family providers | yes | Optional per workflow |
 | `OLLAMA_API_URL` | Local Ollama base URL | no | Default `http://127.0.0.1:11434` |
@@ -163,6 +164,7 @@ Security notes:
 | `NODETOOL_WS_RATE_LIMIT_DISABLED` | Disable the per-connection WebSocket inbound message cap | no | Cap is **on** by default |
 | `NODETOOL_WS_RATE_LIMIT_MAX` | Max inbound WS messages per window per connection | no | Default `200`; over-cap clients are closed with code `1008` |
 | `NODETOOL_WS_RATE_LIMIT_WINDOW_MS` | WebSocket rate-limit window length (ms) | no | Default `1000` (1 second) |
+| `NODETOOL_DISABLE_TRIGGERS` | Skip trigger ingestion on this process (no dispatcher, scheduler, file watcher, or webhook route) | no | Ingestion is **on** by default. Set to `1` when a second server shares one database, or for an embedded server that must not start background work |
 | `LOG_LEVEL` / `NODETOOL_LOG_LEVEL` | Logging level | no | Defaults to `info` (`NODETOOL_LOG_LEVEL` takes precedence) |
 | `SECRETS_MASTER_KEY` | Master key for secret encryption | yes | See [Secret Storage and Master Key](#secret-storage-and-master-key) |
 | `RUNPOD_API_KEY` | RunPod deployments | yes | Used by CLI and providers |

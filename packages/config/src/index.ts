@@ -10,6 +10,11 @@ export {
 export { getByteLimitEnv } from "./byte-limits.js";
 
 export {
+  isGoogleWorkspaceEnabled,
+  GOOGLE_WORKSPACE_NAMESPACE
+} from "./google-workspace.js";
+
+export {
   registerSetting,
   getSettings,
   clearSettings,

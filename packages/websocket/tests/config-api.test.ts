@@ -9,7 +9,8 @@ const ENV_KEYS = [
   "SUPABASE_URL",
   "SUPABASE_KEY",
   "SUPABASE_ANON_KEY",
-  "AUTH_REDIRECT_URL"
+  "AUTH_REDIRECT_URL",
+  "NODETOOL_GOOGLE_WORKSPACE"
 ] as const;
 
 describe("/api/config endpoint", () => {
@@ -63,10 +64,31 @@ describe("/api/config endpoint", () => {
     expect(Object.keys(JSON.parse(res.body)).sort()).toEqual([
       "authMode",
       "authRedirectUrl",
+      "googleScopes",
+      "googleWorkspace",
       "supabaseAnonKey",
       "supabaseUrl",
       "version"
     ]);
+  });
+
+  it("advertises the Google Workspace scopes only in Supabase mode", async () => {
+    const local = JSON.parse(
+      (await app.inject({ method: "GET", url: "/api/config" })).body
+    );
+    expect(local.googleWorkspace).toBe(false);
+    expect(local.googleScopes).toEqual([]);
+
+    process.env.SUPABASE_URL = "https://x.supabase.co";
+    process.env.SUPABASE_KEY = "service-role-key";
+
+    const hosted = JSON.parse(
+      (await app.inject({ method: "GET", url: "/api/config" })).body
+    );
+    expect(hosted.googleWorkspace).toBe(true);
+    expect(hosted.googleScopes).toContain(
+      "https://www.googleapis.com/auth/drive"
+    );
   });
 
   it("stays in local mode when only the anon key is set", async () => {

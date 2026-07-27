@@ -21,6 +21,18 @@
     "paths": {
       "@nodetool-ai/websocket/trpc": [
         "../packages/websocket/dist/trpc/router.d.ts"
+      ],
+      "@nodetool-ai/app-runtime": [
+        "../packages/app-runtime/src/index.ts"
+      ],
+      "@nodetool-ai/timeline": [
+        "../packages/timeline/src/index.ts"
+      ],
+      "@nodetool-ai/gpu": [
+        "../packages/gpu/src/index.ts"
+      ],
+      "@nodetool-ai/protocol/triggers": [
+        "../packages/protocol/src/triggers.ts"
       ]
     }
   },

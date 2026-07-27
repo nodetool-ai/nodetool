@@ -43,8 +43,15 @@ describe("registerAppCommands", () => {
     expect(opts.run).toBe(true);
   });
 
-  it("takes a required workflow argument", () => {
+  it("takes a required target argument naming the application form", () => {
     const args = appDebugCommand().registeredArguments.map((a) => a.name());
-    expect(args).toContain("workflow_id_or_file");
+    expect(args).toContain("application_id_or_file");
+  });
+
+  it("documents all three target kinds", () => {
+    const description = appDebugCommand().description();
+    expect(description).toMatch(/application id/i);
+    expect(description).toMatch(/bundle/i);
+    expect(description).toMatch(/app_doc/);
   });
 });

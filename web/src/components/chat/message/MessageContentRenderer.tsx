@@ -54,6 +54,11 @@ const wrapperStyles = css({
   },
   "&:hover .add-to-canvas-button": {
     opacity: 1
+  },
+  // No hover on touch, so the button would stay invisible while still
+  // catching taps over the media.
+  "@media (hover: none)": {
+    ".add-to-canvas-button": { opacity: 1 }
   }
 });
 

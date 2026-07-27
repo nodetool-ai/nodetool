@@ -19,11 +19,21 @@ import {
 } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.assets");
-import { createAssetUrlBuilder } from "@nodetool-ai/storage";
-import { getAssetFileName } from "../../lib/asset-paths.js";
 import {
+  assetObjectKey,
+  createAssetUrlBuilder,
+  getMaxUploadBytes
+} from "@nodetool-ai/storage";
+import {
+  getAssetFileName,
+  getAssetStorageKey
+} from "../../lib/asset-paths.js";
+import { getAssetAdapter } from "../../lib/storage.js";
+import {
+  generateThumbnailForStoredAsset,
   storeAssetWithThumbnail,
-  thumbnailKey
+  thumbnailKey,
+  THUMBNAIL_SOURCE_MAX_BYTES
 } from "../../lib/thumbnail.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
@@ -35,6 +45,10 @@ import {
   getInput,
   assetResponse,
   updateInput,
+  createUploadInput,
+  createUploadOutput,
+  finalizeUploadInput,
+  finalizeUploadOutput,
   deleteInput,
   deleteOutput,
   recursiveInput,
@@ -63,8 +77,13 @@ async function toAssetResponse(asset: AssetModel): Promise<AssetResponse> {
   const fileName = isFolder
     ? null
     : getAssetFileName(asset.id, asset.content_type);
+  // Owner-prefixed keys. Objects written before this layout are flat; the
+  // `/api/storage` route falls back to the legacy path on a miss, and cloud
+  // backends need `nodetool storage migrate-keys` (see docs/configuration.md).
   const getUrl = fileName
-    ? await getUrlBuilder()(fileName).catch(() => null)
+    ? await getUrlBuilder()(assetObjectKey(asset.user_id, fileName)).catch(
+        () => null
+      )
     : null;
 
   const hasThumbnail =
@@ -73,7 +92,9 @@ async function toAssetResponse(asset: AssetModel): Promise<AssetResponse> {
     asset.content_type.startsWith("audio/") ||
     asset.content_type === "application/pdf";
   const thumbUrl = hasThumbnail
-    ? await getUrlBuilder()(thumbnailKey(asset.id)).catch(() => null)
+    ? await getUrlBuilder()(
+        assetObjectKey(asset.user_id, thumbnailKey(asset.id))
+      ).catch(() => null)
     : null;
 
   return {
@@ -201,6 +222,121 @@ export const assetsRouter = router({
       return toAssetResponse(asset);
     }),
 
+  /**
+   * Step 1 of a client-direct upload: create the row, pick the key, and mint
+   * a short-lived target scoped to that key. The client never chooses where
+   * it writes, so a stolen or replayed target can only overwrite the one
+   * pending object it was issued for — inside its own owner's prefix.
+   *
+   * `upload` comes back null on backends with no direct-upload concept (the
+   * local file store); the client then falls back to `POST /api/assets`.
+   */
+  createUpload: protectedProcedure
+    .input(createUploadInput)
+    .output(createUploadOutput)
+    .mutation(async ({ ctx, input }) => {
+      const max = getMaxUploadBytes();
+      if (input.size > max) {
+        throwApiError(
+          ApiErrorCode.INVALID_INPUT,
+          `Upload exceeds maximum size: ${input.size} > ${max} bytes`
+        );
+      }
+
+      const asset = (await Asset.create({
+        user_id: ctx.userId,
+        name: input.name,
+        content_type: input.content_type,
+        parent_id: input.parent_id,
+        workflow_id: input.workflow_id ?? null,
+        node_id: input.node_id ?? null,
+        job_id: input.job_id ?? null,
+        timeline_id: input.timeline_id ?? null,
+        metadata: input.metadata ?? null,
+        // Recorded on finalize from what actually landed, not from the claim.
+        size: null
+      })) as AssetModel;
+
+      const key = getAssetStorageKey(
+        ctx.userId,
+        asset.id,
+        asset.content_type
+      );
+      const adapter = getAssetAdapter();
+      const target = adapter.createUploadUrl
+        ? await adapter.createUploadUrl(key, {
+            contentType: input.content_type
+          })
+        : null;
+
+      return {
+        asset_id: asset.id,
+        key,
+        upload: target
+          ? {
+              url: target.url,
+              method: target.method,
+              headers: target.headers,
+              expires_at: target.expiresAt
+            }
+          : null
+      };
+    }),
+
+  /**
+   * Step 2: confirm what actually landed. The signed target bounds *where* a
+   * client can write but not *what* — so the size is read back off the object
+   * rather than trusted from the client, and an over-cap or absent upload is
+   * rejected and the pending row removed.
+   */
+  finalizeUpload: protectedProcedure
+    .input(finalizeUploadInput)
+    .output(finalizeUploadOutput)
+    .mutation(async ({ ctx, input }) => {
+      const asset = await Asset.find(ctx.userId, input.asset_id);
+      if (!asset) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "Asset not found");
+      }
+
+      const adapter = getAssetAdapter();
+      const key = getAssetStorageKey(
+        asset.user_id,
+        asset.id,
+        asset.content_type
+      );
+      const stat = await adapter.stat(adapter.uriForKey(key));
+      if (!stat || stat.size === 0) {
+        await asset.delete();
+        throwApiError(ApiErrorCode.INVALID_INPUT, "No uploaded object found");
+      }
+
+      const max = getMaxUploadBytes();
+      if (stat.size > max) {
+        await adapter.delete(adapter.uriForKey(key));
+        await asset.delete();
+        throwApiError(
+          ApiErrorCode.INVALID_INPUT,
+          `Upload exceeds maximum size: ${stat.size} > ${max} bytes`
+        );
+      }
+
+      asset.size = stat.size;
+      await asset.save();
+
+      // The bytes are already in the bucket, so a thumbnail costs one download
+      // back into this process. Worth it for ordinary media, not for a
+      // multi-gigabyte video — those simply go without.
+      if (stat.size <= THUMBNAIL_SOURCE_MAX_BYTES) {
+        await generateThumbnailForStoredAsset(
+          asset.user_id,
+          asset.id,
+          asset.content_type
+        );
+      }
+
+      return toAssetResponse(asset);
+    }),
+
   update: protectedProcedure
     .input(updateInput)
     .output(assetResponse)
@@ -252,6 +388,7 @@ export const assetsRouter = router({
           bytes: buf.byteLength
         });
         await storeAssetWithThumbnail(
+          asset.user_id,
           asset.id,
           fileName,
           new Uint8Array(buf),

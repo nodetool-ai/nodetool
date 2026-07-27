@@ -7,6 +7,7 @@
  * runtime store and event dispatch exactly like an input-name binding.
  */
 import { Node as RFNode } from "@xyflow/react";
+import { parseInputStateKey } from "@nodetool-ai/app-runtime";
 
 import { NodeData } from "../../stores/NodeData";
 
@@ -35,20 +36,23 @@ export const parseNodePropertyBinding = (
   return { nodeId: rest.slice(0, sep), property: rest.slice(sep + 1) };
 };
 
-/** Group live node-binding values by node id: nodeId → { property: value }. */
+/**
+ * Group the live values of node-property bindings by node id, from the input
+ * namespace of an app instance: nodeId → { property: value }.
+ */
 export const collectNodePropertyOverlays = (
-  values: Record<string, unknown>
+  inputs: Record<string, { value: unknown }>
 ): Map<string, Record<string, unknown>> => {
   const byNode = new Map<string, Record<string, unknown>>();
-  for (const [key, value] of Object.entries(values)) {
-    if (value === undefined) continue;
-    const parsed = parseNodePropertyBinding(key);
-    if (!parsed) continue;
+  for (const [key, slot] of Object.entries(inputs)) {
+    if (slot.value === undefined) continue;
+    const parsed = parseInputStateKey(key);
+    if (!parsed?.property) continue;
     const existing = byNode.get(parsed.nodeId);
     if (existing) {
-      existing[parsed.property] = value;
+      existing[parsed.property] = slot.value;
     } else {
-      byNode.set(parsed.nodeId, { [parsed.property]: value });
+      byNode.set(parsed.nodeId, { [parsed.property]: slot.value });
     }
   }
   return byNode;

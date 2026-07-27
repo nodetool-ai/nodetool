@@ -26,12 +26,16 @@ import {
  * here (image, audio, text, model3d, page) are omitted from `ui_context`:
  * listing an id the agent has no tool to act on only invites bad calls.
  *
- * The app builder has no tab type of its own — it is a route
- * (`/app-builder/:workflowId`) whose document lives on `workflows.app_doc`,
- * so that surface passes an explicit `focused` override instead.
+ * An app is addressed by its application id, never by the id of a workflow it
+ * binds. The app builder passes an explicit `focused` override carrying that
+ * id, since the surface knows it and the tab list does not.
  */
 const TAB_TYPE_TO_SURFACE: Partial<Record<WorkspaceTabType, UiSurfaceType>> = {
   workflow: "workflow",
+  // An `application` tab's `ref` is the application id the `ui_app_*` tools
+  // take. A tab not showing the builder has no handler registered, so those
+  // tools answer with the "no app builder is open" error rather than guessing.
+  application: "app",
   sketch: "sketch",
   timeline: "timeline",
   storyboard: "storyboard",

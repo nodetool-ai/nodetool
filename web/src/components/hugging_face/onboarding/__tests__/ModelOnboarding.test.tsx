@@ -27,6 +27,8 @@ jest.mock("../../../../stores/HfCacheStatusStore", () => ({
 import ModelOnboarding from "../ModelOnboarding";
 import { useSystemStatsStore } from "../../../../stores/systemStatsHandler";
 import { useModelManagerStore } from "../../../../stores/ModelManagerStore";
+import useNodePacksStore from "../../../../stores/NodePacksStore";
+import { HUGGINGFACE_PACK_REPO_ID } from "../onboardingCatalog";
 import type { SystemStats } from "../../../../stores/ApiTypes";
 
 const renderOnboarding = (onDownload = jest.fn()) => {
@@ -46,6 +48,11 @@ beforeEach(() => {
     memory_total_gb: 32
   } as SystemStats);
   useModelManagerStore.getState().setVramOverrideGb(null);
+  useNodePacksStore.setState({
+    available: false,
+    installed: [],
+    busyIds: []
+  });
 });
 
 describe("ModelOnboarding", () => {
@@ -65,15 +72,15 @@ describe("ModelOnboarding", () => {
       screen.getByRole("button", { name: /all capabilities/i })
     ).toBeInTheDocument();
     // A well-known catalog model is shown.
-    expect(screen.getByText("Qwen2.5 7B")).toBeInTheDocument();
+    expect(screen.getByText("Qwen3.5 9B")).toBeInTheDocument();
   });
 
   it("filters models when a capability is selected", async () => {
     const user = userEvent.setup();
     renderOnboarding();
     await user.click(screen.getByRole("button", { name: /Image Generation/i }));
-    expect(screen.getByText("SDXL Turbo")).toBeInTheDocument();
-    expect(screen.queryByText("Qwen2.5 7B")).not.toBeInTheDocument();
+    expect(screen.getByText("Stable Diffusion XL")).toBeInTheDocument();
+    expect(screen.queryByText("Qwen3.5 9B")).not.toBeInTheDocument();
   });
 
   it("starts a download when a model's Download button is clicked", async () => {
@@ -83,6 +90,33 @@ describe("ModelOnboarding", () => {
     await user.click(buttons[0]);
     expect(onDownload).toHaveBeenCalledTimes(1);
     expect(onDownload.mock.calls[0][0]).toHaveProperty("type");
+  });
+
+  it("installs the Hugging Face pack when a Hugging Face model is picked", async () => {
+    const user = userEvent.setup();
+    const install = jest.fn().mockResolvedValue(true);
+    useNodePacksStore.setState({ available: true, install });
+    const onDownload = renderOnboarding();
+
+    await user.click(screen.getByRole("button", { name: /Image Generation/i }));
+    await user.click(screen.getAllByRole("button", { name: /^Download$/i })[0]);
+
+    expect(install).toHaveBeenCalledWith(HUGGINGFACE_PACK_REPO_ID);
+    expect(onDownload).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not install the Hugging Face pack for an Ollama model", async () => {
+    const user = userEvent.setup();
+    const install = jest.fn().mockResolvedValue(true);
+    useNodePacksStore.setState({ available: true, install });
+    renderOnboarding();
+
+    await user.click(
+      screen.getByRole("button", { name: /Chat & Reasoning/i })
+    );
+    await user.click(screen.getAllByRole("button", { name: /^Download$/i })[0]);
+
+    expect(install).not.toHaveBeenCalled();
   });
 
   it("marks models over budget as needing more memory", () => {

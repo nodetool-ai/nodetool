@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "Models & Providers"
-description: "Every AI model NodeTool runs — GPT-5, Claude, Gemini, Grok, DeepSeek, Llama; FLUX, Nano Banana, Seedream, Ideogram; Sora 2, Veo 3.1, Kling, Wan, Seedance; ElevenLabs, Suno, Whisper — across 30+ providers, local or cloud, bring-your-own-key."
+description: "Every AI model NodeTool runs — GPT-5.6, Claude Opus 5, Gemini, Grok, DeepSeek, Llama; FLUX, Nano Banana, Seedream, Ideogram; Sora 2, Veo 3.1, Kling, Wan, Seedance; ElevenLabs, Suno, Whisper — across 30+ providers, local or cloud, bring-your-own-key."
 ---
 
 > **Overview / start here.** For the full catalog of model families see [Supported Models](models.md); for connecting and configuring each provider see [Providers](providers.md); for the desktop download panel see [Models Manager](models-manager.md).
@@ -42,12 +42,12 @@ Chat models are fetched live from each provider's API, so a provider's list alwa
 
 ### Text & chat models (LLMs)
 
-The generic `nodetool.agents.Agent` and chat nodes route to whichever provider owns the model you pick. Swap `claude-opus` for `gpt-5` or `gemini-3.1-pro-preview` without changing the rest of the graph.
+The generic `nodetool.agents.Agent` and chat nodes route to whichever provider owns the model you pick. Swap `claude-opus-5` for `gpt-5.6` or `gemini-3.1-pro-preview` without changing the rest of the graph.
 
 | Provider | Model families |
 |---|---|
-| <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> OpenAI | GPT-5, GPT-5 mini, GPT-5 nano, GPT-4.1, GPT-4o, o-series reasoning models |
-| <img src="assets/icons/anthropic.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Anthropic | Claude Opus 4.x, Claude Sonnet 4.x, Claude Haiku 4.x, Claude 3.5/3.7 Sonnet |
+| <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> OpenAI | GPT-5.6 (plus the Sol, Terra, and Luna variants), GPT-5.5, GPT-5.5 Pro, GPT-5.4 with its Pro/mini/nano tiers, GPT-5, GPT-5 mini, GPT-5 nano |
+| <img src="assets/icons/anthropic.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Anthropic | Claude Fable 5, Claude Opus 5, Claude Sonnet 5, Claude Opus 4.8/4.7/4.6, Claude Sonnet 4.6, Claude Haiku 4.5 |
 | <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google Gemini | Gemini 3.5 Flash, Gemini 3.1 Pro, Gemini 3.1 Flash-Lite, Gemini 2.5 Pro |
 | <img src="assets/icons/xai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> xAI | Grok 4, Grok 3, Grok Code |
 | DeepSeek | DeepSeek-V3, DeepSeek-R1 (reasoning) |
@@ -60,7 +60,7 @@ The generic `nodetool.agents.Agent` and chat nodes route to whichever provider o
 | OpenRouter | 300+ models proxied through one key (Claude, GPT, Gemini, Llama, Qwen, DeepSeek, …) |
 | Together AI | Llama, Qwen, DeepSeek, Mixtral, GLM, Kimi, and more open models |
 | Evolink | GPT, Claude, Gemini, DeepSeek through one gateway key |
-| kie.ai | GPT-5.5, Claude Opus/Sonnet/Haiku 4.x, Gemini 3.1 Pro (chat gateway) |
+| kie.ai | GPT-5.5, Claude Opus 4.6, Claude Sonnet 4.6, Claude Haiku 4.5, Gemini 3.1 Pro, Gemini 3 Flash (chat gateway) |
 | Codex (OpenAI OAuth) | GPT chat models via your ChatGPT/Codex login |
 | Claude Agent SDK | Claude via your local `claude` CLI subscription |
 | Ollama · vLLM · LM Studio · llama.cpp | Any local open-weight model — Llama, Qwen, Gemma, DeepSeek, Mistral, Phi, GPT-OSS |

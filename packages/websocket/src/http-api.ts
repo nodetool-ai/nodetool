@@ -24,6 +24,8 @@ import {
 import {
   createLogger,
   loadAssetStorageConfig,
+  isGoogleWorkspaceEnabled,
+  GOOGLE_WORKSPACE_NAMESPACE,
   type StorageConfig
 } from "@nodetool-ai/config";
 import { createAssetUrlBuilder } from "@nodetool-ai/storage";
@@ -101,7 +103,12 @@ const log = createLogger("nodetool.websocket.http");
 // Asset filename + storage-path helpers live in `./lib/asset-paths.ts` so the
 // tRPC router can import them without dragging in the full http-api module
 // graph. Re-exported here for any remaining REST callers.
-import { getAssetFileName, getAssetStoragePath } from "./lib/asset-paths.js";
+import {
+  getAssetFileName,
+  getAssetStoragePath,
+  retrieveAssetBytes
+} from "./lib/asset-paths.js";
+import { assetObjectKey } from "@nodetool-ai/storage";
 export { getAssetFileName, getAssetStoragePath };
 
 type JsonObject = Record<string, unknown>;
@@ -137,6 +144,13 @@ export interface HttpApiOptions {
    */
   examplesDir?: string;
   examplesAssetsFallbackDir?: string;
+  /**
+   * Path to the directory of shipped example app bundles (e.g.
+   * `packages/base-nodes/nodetool/examples/apps`). Defaults to the `apps`
+   * sibling of {@link examplesDir}, which is where both the monorepo and the
+   * packaged backend put them.
+   */
+  exampleAppsDir?: string;
   /**
    * Root directories that hold per-package constant assets, laid out as
    * `<root>/<package-name>/<file>`. Served (read-only, public) at
@@ -532,6 +546,15 @@ export async function handleNodeMetadata(
     nodes = [...loaded.nodesByType.values()];
   }
   nodes.sort((a, b) => a.node_type.localeCompare(b.node_type));
+
+  // Google Workspace nodes authenticate with the token from the user's Google
+  // sign-in. A server with no login can never produce one, so they stay out of
+  // the palette there rather than failing at run time.
+  if (!isGoogleWorkspaceEnabled()) {
+    nodes = nodes.filter(
+      (n) => !n.node_type.startsWith(`${GOOGLE_WORKSPACE_NAMESPACE}.`)
+    );
+  }
 
   // Exact node_type lookup returns the full metadata for that one node.
   if (nodeType) {
@@ -1319,14 +1342,20 @@ async function resolveAssetBytesForExport(
   try {
     if (ref.startsWith("asset://")) {
       const rest = ref.slice("asset://".length).split("?")[0].split("#")[0];
-      let key = rest;
+      const adapter = getAssetAdapter();
       if (!nodePath.extname(rest)) {
         const asset = (await Asset.get(rest)) as Asset | null;
         if (!asset) return null;
-        key = getAssetFileName(asset.id, asset.content_type);
+        return await retrieveAssetBytes(
+          adapter,
+          asset.user_id,
+          asset.id,
+          asset.content_type
+        );
       }
-      const adapter = getAssetAdapter();
-      return await adapter.retrieve(adapter.uriForKey(key));
+      // Already a key — owner-prefixed for anything written since the
+      // per-owner layout, flat for older `asset://` refs stored in graphs.
+      return await adapter.retrieve(adapter.uriForKey(rest));
     }
     if (ref.includes("/api/storage/")) {
       const key = decodeURIComponent(
@@ -1489,6 +1518,7 @@ export async function handleWorkflowImportBundle(
         })) as Asset;
         const storedName = getAssetFileName(asset.id, asset.content_type);
         await storeAssetWithThumbnail(
+          asset.user_id,
           asset.id,
           storedName,
           bytes,
@@ -2048,7 +2078,9 @@ export async function toAssetResponse(asset: Asset): Promise<JsonObject> {
     ? null
     : getAssetFileName(asset.id, asset.content_type);
   const getUrl = fileName
-    ? await getHttpUrlBuilder()(fileName).catch(() => null)
+    ? await getHttpUrlBuilder()(
+        assetObjectKey(asset.user_id, fileName)
+      ).catch(() => null)
     : null;
 
   const hasThumbnail =
@@ -2057,7 +2089,9 @@ export async function toAssetResponse(asset: Asset): Promise<JsonObject> {
     asset.content_type.startsWith("audio/") ||
     asset.content_type === "application/pdf";
   const thumbUrl = hasThumbnail
-    ? await getHttpUrlBuilder()(thumbnailKey(asset.id)).catch(() => null)
+    ? await getHttpUrlBuilder()(
+        assetObjectKey(asset.user_id, thumbnailKey(asset.id))
+      ).catch(() => null)
     : null;
 
   return {
@@ -2166,6 +2200,7 @@ export async function handleAssetsRoot(
         bytes: fileBuffer.byteLength
       });
       await storeAssetWithThumbnail(
+        asset.user_id,
         asset.id,
         fileName,
         new Uint8Array(fileBuffer),
@@ -2206,9 +2241,12 @@ export async function handleExtractAudio(
     return errorResponse(400, "Asset is not a video");
   }
 
-  const adapter = getAssetAdapter();
-  const sourceKey = getAssetFileName(source.id, source.content_type);
-  const videoBytes = await adapter.retrieve(adapter.uriForKey(sourceKey));
+  const videoBytes = await retrieveAssetBytes(
+    getAssetAdapter(),
+    source.user_id,
+    source.id,
+    source.content_type
+  );
   if (!videoBytes) {
     return errorResponse(404, "Asset bytes not found");
   }
@@ -2254,6 +2292,7 @@ export async function handleExtractAudio(
 
   const audioKey = getAssetFileName(audioAsset.id, audioAsset.content_type);
   await storeAssetWithThumbnail(
+    audioAsset.user_id,
     audioAsset.id,
     audioKey,
     wavBytes,

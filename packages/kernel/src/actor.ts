@@ -32,6 +32,7 @@ import { NodeInbox, type MessageEnvelope } from "./inbox.js";
 import { NodeInputs, NodeOutputs } from "./io.js";
 import { WorkflowSuspendedError } from "./suspendable.js";
 import type { NodeAnalysis } from "./correlation-analysis.js";
+import { applyDynamicSlotTypes } from "./dynamic-slots.js";
 import {
   iterationRootId,
   projectLineageKey,
@@ -304,8 +305,34 @@ export class NodeActor {
         await this._executor.preProcess();
       }
 
-      // Determine execution mode
-      if (this.node.is_streaming_input) {
+      // Determine execution mode.
+      //
+      // Trigger entry point comes first: when this run was started by a
+      // delivered trigger event targeting this node, the node does not
+      // listen — it emits the event payload on its declared outputs via
+      // emitTriggerEvent() and completes. Runs without a trigger event
+      // (user pressed Run in the editor) fall through to the normal modes
+      // below, preserving the in-editor live-test experience.
+      const triggerEvent = this._executionContext?.triggerEvent;
+      if (
+        this.node.is_trigger &&
+        triggerEvent?.node_id === this.node.id &&
+        this._executor.emitTriggerEvent
+      ) {
+        const nodeOutputs = new NodeOutputs({
+          sendFn: async (slot: string, value: unknown) => {
+            await this._sendOutputs(this.node.id, { [slot]: value });
+          },
+          eosCallback: (slot: string) => {
+            this._signalSlotEos?.(this.node.id, slot || "output");
+          }
+        });
+        await this._executor.emitTriggerEvent(triggerEvent, nodeOutputs);
+        this._latestResult = nodeOutputs.collected();
+        // One committed result per trigger event (RFC §5 site parity with
+        // the streaming-input run() path).
+        this._emitGenerationComplete(this._latestResult);
+      } else if (this.node.is_streaming_input) {
         if (this._executor.run) {
           // Streaming input mode with run(): node drains inbox via
           // NodeInputs and pushes outputs via NodeOutputs. Passing
@@ -404,10 +431,10 @@ export class NodeActor {
             this._emitNodeStatus("warning", undefined, warning);
           }
           const outputs = await this._executor.process(
-            {
+            this._applyDynamicSlots({
               ...(this.node.properties ?? {}),
               ...(this.node.dynamic_properties ?? {})
-            },
+            }),
             this._executionContext
           );
           this._latestResult = outputs;
@@ -633,14 +660,10 @@ export class NodeActor {
         if (cls === "max") {
           const bucket = maxBuckets.get(h)!.get(key);
           if (!bucket || bucket.length === 0) {
-            // No driver value: not ready unless a non-driver max handle has
-            // sticky from a side-input semantic — which only applies when a
-            // repeating driver exists.
-            if (driverHandle && h !== driverHandle) {
-              // Side input must have produced for this exact key. v1: still
-              // wait for it to arrive.
-              return false;
-            }
+            // Not ready. v1 has no side-input sticky at max scope: a
+            // non-driver max handle must still have produced for this exact
+            // key, so the answer is `false` with or without a repeating
+            // driver.
             return false;
           }
           // Multi-edge list inputs aggregate every envelope: wait for the
@@ -666,7 +689,8 @@ export class NodeActor {
             if (this.inbox.isOpen(h)) return false;
           } else if (!emptySticky.has(h)) {
             // Allow node properties / dynamic_properties to supply defaults:
-            // _executeWithInputs already merges them. So an empty-scope
+            // _executeWithInputs already merges them (and type-checks the
+            // ones with a declared slot in dynamic_inputs). So an empty-scope
             // handle without an envelope is treated as "use the node's
             // declared default" if the handle has no open upstream.
             if (this.inbox.isOpen(h)) return false;
@@ -836,9 +860,13 @@ export class NodeActor {
             // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
             log.warn(
               `Node "${this.node.id}" handle "${handle}" received multiple ` +
+                // Stryker disable next-line StringLiteral: diagnostic log args only
                 `values at empty scope; only the last is kept. Declare ` +
+                // Stryker disable next-line StringLiteral: diagnostic log args only
                 `output_correlation (chunk/iteration) on the upstream output ` +
+                // Stryker disable next-line StringLiteral: diagnostic log args only
                 `to preserve the stream.`,
+              // Stryker disable next-line ObjectLiteral: diagnostic log args only
               { nodeId: this.node.id, handle }
             );
           }
@@ -921,17 +949,24 @@ export class NodeActor {
           // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
           log.warn(
             `Node "${this.node.id}" dropped ${bucket.length} envelope(s) on ` +
+              // Stryker disable next-line StringLiteral: diagnostic log args only
               `handle "${handle}" for key "${key}" already fired without a ` +
+              // Stryker disable next-line StringLiteral: diagnostic log args only
               `repeating driver; declare output_correlation to fan out per ` +
+              // Stryker disable next-line StringLiteral: diagnostic log args only
               `item.`,
+            // Stryker disable next-line ObjectLiteral: diagnostic log args only
             { nodeId: this.node.id, handle, key, count: bucket.length }
           );
         } else {
           // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
           log.warn(
             `Node "${this.node.id}" left ${bucket.length} envelope(s) on ` +
+              // Stryker disable next-line StringLiteral: diagnostic log args only
               `handle "${handle}" for key "${key}" unfired at close; its ` +
+              // Stryker disable next-line StringLiteral: diagnostic log args only
               `inputs never completed for this key.`,
+            // Stryker disable next-line ObjectLiteral: diagnostic log args only
             { nodeId: this.node.id, handle, key, count: bucket.length }
           );
         }
@@ -1020,6 +1055,18 @@ export class NodeActor {
   }
 
   /**
+   * Coerce and check every input that has a declared dynamic slot on this
+   * node (`dynamic_inputs`). Slots without a declaration are untyped and
+   * pass through untouched. Throws on a value that cannot fit its declared
+   * type; the caller's catch turns that into a node error.
+   */
+  private _applyDynamicSlots(
+    inputs: Record<string, unknown>
+  ): Record<string, unknown> {
+    return applyDynamicSlotTypes(this.node, inputs);
+  }
+
+  /**
    * Execute process or genProcess with the given inputs.
    */
   private async _executeWithInputs(
@@ -1036,6 +1083,7 @@ export class NodeActor {
         ...inputs
       };
     }
+    inputs = this._applyDynamicSlots(inputs);
 
     // Inject _control_context for controller nodes (Python parity:
     // process_streaming_node_with_inputs / _is_controller / _build_control_context)
@@ -1366,12 +1414,12 @@ export class NodeActor {
         // Merge node properties as defaults (matching _executeWithInputs behavior)
         const baseProps = this.node.properties ?? {};
         const dynProps = this.node.dynamic_properties ?? {};
-        const merged = {
+        const merged = this._applyDynamicSlots({
           ...baseProps,
           ...dynProps,
           ...inputs,
           ...this._currentControlProperties
-        };
+        });
         const outputs = await this._executor.process(
           merged,
           this._executionContext

@@ -36,7 +36,13 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [Debugging]({{ site.url }}/workflow-debugging): Inspect runs, errors, logs.
 - [Sketch Editor]({{ site.url }}/sketch-editor): Mask, paint, layer, and generate images inline.
 - [Templates Gallery]({{ site.url }}/templates-gallery): Browse and open starter workflows.
-- [App Builder]({{ site.url }}/app-builder): Design Mini App interfaces for workflows.
+- [App Builder]({{ site.url }}/app-builder): Design a Mini App's interface and bind it to workflows.
+
+## Mini Apps
+
+- [Mini Apps]({{ site.url }}/mini-apps): What Mini Apps solve, where they live, and how the document, bindings, and runtime work.
+- [Building Mini Apps]({{ site.url }}/mini-apps-guide): Recipes for generators, streaming apps, galleries, live tuning, and review flows.
+- [Mini App Reference]({{ site.url }}/mini-apps-reference): Widgets, binding grammar, actions, conditions, and the document schema.
 
 ## Chat & Agents
 

@@ -3,13 +3,15 @@ import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 import { getSecret } from "@nodetool-ai/models";
 import { getSetting } from "./settings-registry.js";
+import { ApiErrorCode } from "./error-codes.js";
 import { JobConcurrencyQueue } from "./job-queue.js";
 import { packWebSocketMessage, unpackWebSocketMessage } from "./messagepack.js";
 import {
   createLogger,
   getDefaultAssetsPath,
   buildAssetUrl,
-  getByteLimitEnv
+  getByteLimitEnv,
+  isGoogleWorkspaceEnabled
 } from "@nodetool-ai/config";
 import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
@@ -32,9 +34,13 @@ import {
   type NodeValidator
 } from "@nodetool-ai/kernel";
 import {
+  Application,
   Asset,
   ImageDocument,
   Job,
+  releasedApplicationVersion,
+  reserveInvocation,
+  settleInvocation,
   Message,
   ModelChangeEvent,
   ModelObserver,
@@ -47,6 +53,8 @@ import {
   type DBModel,
   type ThreadMemoryResource
 } from "@nodetool-ai/models";
+import { estimateWorkflowCost } from "@nodetool-ai/node-sdk/cost-estimate";
+import { getModelUnitPrice } from "@nodetool-ai/model-pricing";
 import type {
   ProviderTool,
   Message as ProviderMessage,
@@ -108,6 +116,8 @@ import {
   getBuiltinTools,
   getAllMcpTools,
   registerBuiltinTools,
+  getGoogleWorkspaceTools,
+  registerGoogleWorkspaceTools,
   ListCollectionsTool,
   QueryCollectionTool,
   gateTools,
@@ -132,7 +142,7 @@ import type { PythonBridge } from "@nodetool-ai/runtime";
 import { appRouter } from "./trpc/router.js";
 import { createCallerFactory } from "./trpc/index.js";
 import type { HttpApiOptions } from "./http-api.js";
-import { getAssetFileName } from "./lib/asset-paths.js";
+import { getAssetFileName, retrieveAssetBytes } from "./lib/asset-paths.js";
 import { handleSdkV1LifecycleRpc } from "./sdk/sdk-lifecycle-rpc-handler.js";
 
 const log = createLogger("nodetool.websocket.runner");
@@ -725,7 +735,13 @@ async function autoSaveAssets(
 
     const fileName = getAssetFileName(asset.id, contentType);
     try {
-      await storeAssetWithThumbnail(asset.id, fileName, bytes, contentType);
+      await storeAssetWithThumbnail(
+        asset.user_id,
+        asset.id,
+        fileName,
+        bytes,
+        contentType
+      );
       asset.size = bytes.length;
       await asset.save();
 
@@ -776,7 +792,13 @@ async function autoSaveAssets(
           : { text: previewText };
       const fileName = `${asset.id}.txt`;
       try {
-        await storeAssetWithThumbnail(asset.id, fileName, bytes, "text/plain");
+        await storeAssetWithThumbnail(
+          asset.user_id,
+          asset.id,
+          fileName,
+          bytes,
+          "text/plain"
+        );
         asset.size = bytes.length;
         await asset.save();
       } catch (err) {
@@ -832,6 +854,7 @@ async function autoSaveAssets(
         const fileName = `${asset.id}.json`;
         try {
           await storeAssetWithThumbnail(
+            asset.user_id,
             asset.id,
             fileName,
             bytes,
@@ -940,6 +963,7 @@ function createRuntimeContext(opts: {
         const ext = MIME_TO_EXT[args.contentType] ?? "bin";
         const key = `${asset.id}.${ext}`;
         await storeAssetWithThumbnail(
+          asset.user_id,
           asset.id,
           key,
           args.content,
@@ -1293,7 +1317,7 @@ const UI_SURFACE_LABELS: Record<UiSurfaceType, string> = {
   timeline: "timeline sequence",
   storyboard: "storyboard",
   script: "script",
-  app: "app builder (workflow)",
+  app: "app",
   chat: "chat"
 };
 
@@ -1389,6 +1413,14 @@ export interface RunJobRequest {
   /** Internal monotonic timestamp captured when runJob accepts the request. */
   _accepted_at_ms?: number;
   settings?: Record<string, unknown>;
+  /**
+   * The mini app this run belongs to, when one started it. Present only for
+   * app runs: the server checks the app's spend budget before creating the job
+   * and settles the ledger row when the run finishes.
+   */
+  application_id?: string | null;
+  /** Released version the run executes against; absent for a draft run. */
+  application_version?: number | null;
 }
 
 export interface RunJobExecutionOptions {
@@ -1452,6 +1484,8 @@ interface ActiveJob {
   streamTask?: Promise<void>;
   /** Running sum of node-level provider charges (e.g. kie credits) for this run. */
   providerCostTotal?: number;
+  /** Mini app this run belongs to, when one started it. Drives budget settlement. */
+  applicationId?: string | null;
 }
 
 class ToolBridge {
@@ -2290,8 +2324,164 @@ export class UnifiedWebSocketRunner {
    * client is under its concurrency cap, otherwise queues it (FIFO) and emits a
    * `queued` job update. Queued runs start automatically as active jobs finish.
    */
+  /**
+   * Best-effort pre-run cost estimate for a graph, in USD. Nodes the estimator
+   * cannot price contribute nothing, so the figure is a floor — good enough to
+   * stop a run that would obviously blow the budget, and never a reason to
+   * refuse one it cannot price.
+   */
+  private estimateRunCost(req: RunJobRequest): number {
+    const nodes = req.graph?.nodes;
+    if (!nodes || !this.getNodeMetadata) return 0;
+    try {
+      const estimate = estimateWorkflowCost({
+        nodes: nodes.map((node) => ({
+          id: String(node.id),
+          type: String(node.type),
+          data: (node.data ?? {}) as Record<string, unknown>
+        })),
+        getMetadata: (nodeType: string) => this.getNodeMetadata?.(nodeType),
+        // Prices the model picked on a generic node (e.g. a FAL or kie model on
+        // nodetool.image.TextToImage), which node-type metadata alone cannot.
+        // Same lookup the editor's cost preview uses.
+        getModelPrice: getModelUnitPrice
+      });
+      return Number.isFinite(estimate.total) ? estimate.total : 0;
+    } catch (err) {
+      this.logError("run cost estimate failed", err);
+      return 0;
+    }
+  }
+
+  /** Tell the client a run was refused, in the shape a failed job takes. */
+  private refuseRun(
+    req: RunJobRequest,
+    jobId: string,
+    code: ApiErrorCode,
+    error: string
+  ): false {
+    this.sendDetached({
+      type: "job_update",
+      status: "failed",
+      job_id: jobId,
+      workflow_id: req.workflow_id ?? null,
+      error,
+      error_code: code
+    });
+    return false;
+  }
+
+  /**
+   * Gate an app's run on its spend budget. Runs of a published app execute with
+   * the creator's secrets, so this refuses before the job exists rather than
+   * reporting an overspend afterwards. Returns false when the run was refused
+   * (the client has already been told why).
+   *
+   * `application_id` arrives on the wire, so before any of that the app has to
+   * be one this connection's user owns. Honouring the id as sent let a client
+   * name a stranger's app and spend their budget — and pollute their release
+   * telemetry, which is the same ledger.
+   */
+  private async admitApplicationRun(req: RunJobRequest): Promise<boolean> {
+    const applicationId = req.application_id;
+    if (!applicationId) return true;
+    const jobId = req.job_id ?? randomUUID();
+    req.job_id = jobId;
+    // The connection's authenticated user, not `req.user_id`: the request body
+    // is the thing being authorized, so it cannot supply the identity that
+    // authorizes it.
+    const userId = this.userId ?? "1";
+    // Authorization sits outside the try below, which swallows a ledger outage
+    // on purpose. Metering fails open; ownership fails closed — a lookup this
+    // never completed is not permission to bill the app it names.
+    let owned = false;
+    try {
+      const application = await Application.findById(applicationId);
+      owned = application?.user_id === userId;
+    } catch (err) {
+      this.logError("application ownership check failed", err);
+    }
+    if (!owned) {
+      log.warn("Run refused: application not owned by this user", {
+        applicationId,
+        jobId,
+        userId
+      });
+      // Applications are owned by one user and there is no path today that
+      // serves someone else's app to run — `releasedApplicationDocument`
+      // itself requires ownership — so refusing cannot break a legitimate
+      // run, and it is the only answer that keeps the budget a hard stop.
+      return this.refuseRun(
+        req,
+        jobId,
+        ApiErrorCode.NOT_FOUND,
+        "Application not found"
+      );
+    }
+
+    try {
+      const estimatedUsd = this.estimateRunCost(req);
+      // The client says whether this is a release run or a draft run; the
+      // server says which release. Taking the number from the client would let
+      // a run bill itself to a version it never executed, and the ledger is
+      // also the release telemetry.
+      const released =
+        req.application_version == null
+          ? null
+          : await releasedApplicationVersion(applicationId);
+      if (req.application_version != null && !released) {
+        // A release run of an app that has released nothing. The claim is
+        // unsupportable rather than merely stale, and letting it through would
+        // file the run in the telemetry ledger as a release that never shipped.
+        return this.refuseRun(
+          req,
+          jobId,
+          ApiErrorCode.INVALID_INPUT,
+          "This app has no released version to run"
+        );
+      }
+      if (released && released.version !== req.application_version) {
+        log.warn("Run claimed a version other than the released one", {
+          applicationId,
+          jobId,
+          claimed: req.application_version,
+          released: released.version
+        });
+      }
+      // Reserving claims the run against the budget in the same transaction
+      // that checks it, so concurrent runs of one app cannot each read a total
+      // that excludes the others and all be admitted.
+      const decision = await reserveInvocation({
+        applicationId,
+        version: released?.version ?? null,
+        invocationId: jobId,
+        estimatedUsd
+      });
+      if (!decision.allowed) {
+        log.warn("Run refused by application budget", {
+          applicationId,
+          jobId,
+          reason: decision.reason
+        });
+        return this.refuseRun(
+          req,
+          jobId,
+          ApiErrorCode.BUDGET_EXCEEDED,
+          decision.reason
+        );
+      }
+    } catch (err) {
+      // A ledger that is unavailable must not take runs down with it; the
+      // refusals above are the only paths that block, and they return rather
+      // than throw so an outage can never swallow one.
+      this.logError("application budget check failed", err);
+    }
+    return true;
+  }
+
   async runJob(req: RunJobRequest): Promise<void> {
     req._accepted_at_ms ??= performance.now();
+    if (!(await this.admitApplicationRun(req))) return;
     const max = await this.getMaxConcurrentJobs();
     const perWorkflowMax = await this.perWorkflowLimitFor(req);
     // Queue the run when over the global cap, or when this workflow already has
@@ -2564,7 +2754,8 @@ export class UnifiedWebSocketRunner {
         preRunMs,
         persistenceMs: 0,
         kernelStartedAt: 0
-      }
+      },
+      applicationId: req.application_id ?? null
     };
     this.activeJobs.set(jobId, active);
     // Slot ownership transfers from startingJobs to activeJobs now that the
@@ -2695,6 +2886,7 @@ export class UnifiedWebSocketRunner {
     // first generation_complete, then reused for every later variant — so an
     // N-variant run does one query per node, not one per variant (RFC D8).
     const persistedIndexByNode = new Map<string, Set<number>>();
+
     await this.sendMessage({
       type: "job_update",
       status: "running",
@@ -2717,6 +2909,20 @@ export class UnifiedWebSocketRunner {
       .finally(() => {
         active.finished = true;
       });
+
+    const graphNodes =
+      (
+        active.graph as {
+          nodes?: Array<{ id?: unknown; type?: unknown }>;
+        }
+      ).nodes ?? [];
+    const graphNodeMap = new Map<string, { id?: unknown; type?: unknown }>();
+    for (const n of graphNodes) {
+      if (typeof n.id === "string") {
+        graphNodeMap.set(n.id, n);
+      }
+    }
+
 
     while (!active.finished || active.context.hasMessages()) {
       while (active.context.hasMessages()) {
@@ -2766,13 +2972,7 @@ export class UnifiedWebSocketRunner {
           outbound.type === "generation_complete"
         ) {
           const nodeId = String(outbound.node_id ?? "");
-          const graphNodes =
-            (
-              active.graph as {
-                nodes?: Array<{ id?: unknown; type?: unknown }>;
-              }
-            ).nodes ?? [];
-          const node = graphNodes.find((n) => n.id === nodeId);
+          const node = graphNodeMap.get(nodeId);
           const nodeType = typeof node?.type === "string" ? node.type : "";
 
           // Skip constant and input nodes entirely
@@ -3039,6 +3239,29 @@ export class UnifiedWebSocketRunner {
         }
       } catch (error) {
         this.logError("job persistence (final status) failed", error);
+      }
+    }
+
+    // Close the app's ledger row at what the run actually cost. Until this
+    // lands the run keeps counting against the budget at its estimate, which is
+    // the conservative direction: a crash cannot free spend it may have incurred.
+    // Only two node families report provider cost, so an absent total means
+    // "nothing measured this run", not "this run was free" — passing null keeps
+    // the estimate standing rather than handing the spend back.
+    if (active.applicationId) {
+      try {
+        await settleInvocation(
+          active.applicationId,
+          active.jobId,
+          active.providerCostTotal ?? null,
+          active.status === "failed"
+            ? "failed"
+            : active.status === "cancelled"
+              ? "cancelled"
+              : "completed"
+        );
+      } catch (error) {
+        this.logError("application invocation settlement failed", error);
       }
     }
     // Slot release + queue drain happen in the streamJobMessages wrapper's
@@ -3349,7 +3572,13 @@ export class UnifiedWebSocketRunner {
           parent_id: null
         });
         const fileName = `${asset.id}.${ext}`;
-        await storeAssetWithThumbnail(asset.id, fileName, bytes, mimeType);
+        await storeAssetWithThumbnail(
+          asset.user_id,
+          asset.id,
+          fileName,
+          bytes,
+          mimeType
+        );
         asset.size = bytes.length;
         await asset.save();
         // The DB / wire shape mirrors handleMediaGenerationMessage: an asset_id
@@ -4054,9 +4283,14 @@ export class UnifiedWebSocketRunner {
     // selection anymore — the agent reasons over the full toolbelt and the
     // permission gate (below) governs execution.
     registerBuiltinTools();
+    // Google Workspace runs on the token from the user's Google sign-in, so it
+    // only exists on deployments that have a login. Local mode never sees it.
+    const googleWorkspace = isGoogleWorkspaceEnabled();
+    if (googleWorkspace) registerGoogleWorkspaceTools();
     const chatProviders = await this.getConfiguredProviders(userId);
     const rawToolbelt: Tool[] = [
       ...getBuiltinTools(),
+      ...(googleWorkspace ? getGoogleWorkspaceTools() : []),
       ...getAllMcpTools({
         registry: this.nodeRegistry,
         providers: chatProviders
@@ -5081,7 +5315,13 @@ export class UnifiedWebSocketRunner {
         parent_id: null
       });
       const fileName = `${asset.id}.${ext}`;
-      await storeAssetWithThumbnail(asset.id, fileName, bytes, contentType);
+      await storeAssetWithThumbnail(
+        asset.user_id,
+        asset.id,
+        fileName,
+        bytes,
+        contentType
+      );
       asset.size = bytes.length;
       await asset.save();
       return asset.id;
@@ -5670,9 +5910,11 @@ export class UnifiedWebSocketRunner {
       try {
         const asset = await Asset.find(userId, assetId);
         if (!asset) return null;
-        const adapter = getAssetAdapter();
-        return await adapter.retrieve(
-          adapter.uriForKey(getAssetFileName(assetId, asset.content_type))
+        return await retrieveAssetBytes(
+          getAssetAdapter(),
+          userId,
+          assetId,
+          asset.content_type
         );
       } catch (err) {
         log.warn("resolveSourceImageBytes: asset load failed", {
@@ -6368,7 +6610,13 @@ export class UnifiedWebSocketRunner {
         parent_id: null
       });
       const fileName = `${asset.id}.${ext}`;
-      await storeAssetWithThumbnail(asset.id, fileName, bytes, contentType);
+      await storeAssetWithThumbnail(
+        asset.user_id,
+        asset.id,
+        fileName,
+        bytes,
+        contentType
+      );
       asset.size = bytes.length;
       await asset.save();
       return asset.id;
@@ -6529,15 +6777,17 @@ export class UnifiedWebSocketRunner {
       if (!maskAsset)
         throw new Error(`Mask asset not found: ${req.maskAssetId}`);
       const [sourceBytes, maskBytes] = await Promise.all([
-        adapter.retrieve(
-          adapter.uriForKey(
-            getAssetFileName(req.sourceAssetId, sourceAsset.content_type)
-          )
+        retrieveAssetBytes(
+          adapter,
+          userId,
+          req.sourceAssetId,
+          sourceAsset.content_type
         ),
-        adapter.retrieve(
-          adapter.uriForKey(
-            getAssetFileName(req.maskAssetId, maskAsset.content_type)
-          )
+        retrieveAssetBytes(
+          adapter,
+          userId,
+          req.maskAssetId,
+          maskAsset.content_type
         )
       ]);
       if (!sourceBytes)
@@ -6564,11 +6814,11 @@ export class UnifiedWebSocketRunner {
       if (!sourceAsset) {
         throw new Error(`Source asset not found: ${req.sourceAssetId}`);
       }
-      const adapter = getAssetAdapter();
-      const sourceBytes = await adapter.retrieve(
-        adapter.uriForKey(
-          getAssetFileName(req.sourceAssetId, sourceAsset.content_type)
-        )
+      const sourceBytes = await retrieveAssetBytes(
+        getAssetAdapter(),
+        userId,
+        req.sourceAssetId,
+        sourceAsset.content_type
       );
       if (!sourceBytes) {
         throw new Error(`Source asset bytes not found: ${req.sourceAssetId}`);
@@ -6624,9 +6874,11 @@ export class UnifiedWebSocketRunner {
     if (!asset) {
       throw new Error(`Audio asset not found: ${req.assetId}`);
     }
-    const adapter = getAssetAdapter();
-    const bytes = await adapter.retrieve(
-      adapter.uriForKey(getAssetFileName(req.assetId, asset.content_type))
+    const bytes = await retrieveAssetBytes(
+      getAssetAdapter(),
+      userId,
+      req.assetId,
+      asset.content_type
     );
     if (!bytes) {
       throw new Error(`Audio asset bytes not found: ${req.assetId}`);

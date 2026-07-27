@@ -114,7 +114,7 @@ Primitive globals pass by value (no sync).
 nodetool-chat --agent
 
 # With specific provider and model
-nodetool-chat --agent --provider anthropic --model claude-sonnet-4-6
+nodetool-chat --agent --provider anthropic --model claude-sonnet-5
 
 # With workspace directory
 nodetool-chat --agent --workspace /path/to/project
@@ -150,7 +150,7 @@ const agent = new Agent({
   name: "my-agent",
   objective: "Research and summarize AI trends",
   provider,          // BaseProvider instance
-  model: "claude-sonnet-4-6",
+  model: "claude-sonnet-5",
   tools: [readFileTool, writeFileTool, searchTool],
   outputSchema: {    // Optional: structured output
     type: "object",
@@ -165,6 +165,39 @@ for await (const msg of agent.execute(ctx)) {
 
 const result = agent.getResults();
 ```
+
+## Google Workspace Tools (`src/tools/google-workspace-tools.ts`)
+
+Drive, Gmail, Docs, Sheets and Calendar tools that authenticate with the access
+token from the user's Google sign-in — there is no API key. The Supabase Google
+login hands the browser a `provider_token`, the web app posts it to
+`POST /api/oauth/google/session`, and the server stores it as an
+`OAuthCredential` under provider `google`. Tools read it back through the
+virtual secret key `GOOGLE_ACCESS_TOKEN`, which `getSecret` routes to
+`resolveGoogleAccessToken` (refreshing a stale token when `GOOGLE_CLIENT_ID` and
+`GOOGLE_CLIENT_SECRET` are set).
+
+They are not in `BUILTIN_TOOL_CLASSES`. A server without a login can never
+produce a token, so the chat toolbelt adds them only when
+`isGoogleWorkspaceEnabled()` (`@nodetool-ai/config`) is true — Supabase auth
+mode, or `NODETOOL_GOOGLE_WORKSPACE=1`. The matching `lib.google.*` nodes are
+filtered out of `/api/nodes/metadata` under the same condition.
+
+```ts
+import {
+  getGoogleWorkspaceTools,
+  registerGoogleWorkspaceTools
+} from "@nodetool-ai/agents";
+
+if (isGoogleWorkspaceEnabled()) {
+  registerGoogleWorkspaceTools();   // makes resolveTool(name) work
+  toolbelt.push(...getGoogleWorkspaceTools());
+}
+```
+
+A missing or revoked credential surfaces as `{ error }` telling the user to sign
+in with Google again, rather than throwing — the agent can then pick another
+route instead of failing the whole step.
 
 ## Plan Approval Gate
 
@@ -348,7 +381,7 @@ averages). Run it against any registered provider:
 
 ```bash
 npm run dev:nodetool -- eval graph-planner --list
-npm run dev:nodetool -- eval graph-planner -p anthropic -m claude-sonnet-4-6
+npm run dev:nodetool -- eval graph-planner -p anthropic -m claude-sonnet-5
 npm run dev:nodetool -- eval graph-planner -p ollama -m qwen-3.5:4b --cases summarize
 npm run dev:nodetool -- eval graph-planner -p openai -m gpt-5.4-mini --json --out report.json
 npm run dev:nodetool -- eval graph-planner -p anthropic -m ... --min-success 0.8  # CI gate
@@ -403,13 +436,19 @@ Browser-only tools (image/asset capture, WebGL viewport render) are scoped out:
 `ui_timeline_get_clip_frames`, `ui_3d_capture_view`. Storyboard cannot import
 `@nodetool-ai/llm-nodes` (it depends on `@nodetool-ai/agents`), so its
 generate/render jobs are faked by flipping shot status. The app-builder surface
-reimplements the Puck document ops (nested slot tree: top-level content plus
-slot-valued props on Panel/Columns) headlessly — the real ops live in
-`web/` (`puckDataOps.ts`), which a backend package can't import.
+reimplements only the Puck *layout* ops (nested slot tree: top-level content plus
+slot-valued props on Panel/Columns) headlessly — those live in `web/`
+(`puckDataOps.ts`), which a backend package can't import. Its operation,
+variable, resource, and binding-target tools call the shared doc-ops in
+`@nodetool-ai/app-runtime` (`src/doc-ops.ts`), the same module the browser
+handler calls, so that half of the contract cannot drift. The widget types it
+offers come from `WIDGET_CATALOG` in the same package — every widget the editor
+ships, with the fields each accepts — so `ui_app_list_component_types` reports
+the same catalog headlessly that the browser reads off the live Puck config.
 
 ```bash
 npm run dev:nodetool -- eval timeline-tools --list
-npm run dev:nodetool -- eval script-tools -p anthropic -m claude-sonnet-4-6
+npm run dev:nodetool -- eval script-tools -p anthropic -m claude-sonnet-5
 npm run dev:nodetool -- eval sketch-tools -p ollama -m qwen-3.5:4b --cases compose-layers
 npm run dev:nodetool -- eval model3d-tools -p openai -m gpt-5.4-mini --min-success 0.8  # CI gate
 ```
@@ -441,6 +480,37 @@ SDK's own agent loop (not the harness):
 IS_SANDBOX=1 npm run dev:nodetool -- eval timeline-tools \
   -p claude_agent_sdk -m sonnet --max-iterations 40 --no-find-model
 ```
+
+### Sub-agent execution eval (`subtask`)
+
+Where the tool-loop suites score a model on one flat tool surface, the
+`subtask` suite scores `RunSubtaskTool` — the primitive that lets an agent
+decompose work by spawning a fresh child agent that inherits the parent's
+toolset. It runs a real `StepExecutor` parent equipped with `run_subtask` plus
+six instrumented worker tools (`calculate`, `kv_write`, `kv_read`,
+`lookup_fact`, `slugify`, `flaky_fail`), each objective written to force
+delegation. The tools are shared instances at both levels; each records the
+`SUBTASK_DEPTH_KEY` it ran at, so the scorer distinguishes "the parent did it
+itself" (depth 0) from "the parent delegated and the child did it" (depth >=
+1). Scoring is structural (`checkSubtaskExpectations`): required parent tools,
+required *child* tools, forbidden tools, subtask-count and depth bounds, no
+failed subtasks, required store keys, and answer/subtask-result substrings.
+Cases + tools live in `src/evals/subtask-cases.ts`, the runner in
+`src/evals/subtask-eval.ts`.
+
+```bash
+npm run dev:nodetool -- eval subtask --list
+npm run dev:nodetool -- eval subtask -p anthropic -m claude-sonnet-5
+npm run dev:nodetool -- eval subtask -p openai -m gpt-5.4-mini --cases all-tools
+IS_SANDBOX=1 npm run dev:nodetool -- eval subtask \
+  -p claude_agent_sdk -m sonnet --max-iterations 40 --no-find-model
+```
+
+Its cases do not use `find_model`, so `--no-find-model` does not skip them —
+the primary `-p` provider runs both the parent and every subtask. A low score
+with `subtasks=0` is a real finding, not a harness bug: a capable model often
+does trivial single-step work inline instead of delegating. Harness tests
+(scripted provider, no network): `tests/subtask-eval.test.ts`.
 
 ## Observing LLM Steps and Planning
 
@@ -574,7 +644,7 @@ Use separate models for planning vs execution to optimize cost/quality:
 ```typescript
 const agent = new Agent({
   model: "claude-haiku-4-5",           // Fast/cheap for step execution
-  planningModel: "claude-sonnet-4-6",  // Better for plan decomposition
+  planningModel: "claude-sonnet-5",  // Better for plan decomposition
   reasoningModel: "claude-opus-4-6",   // Best for complex reasoning
   ...
 });

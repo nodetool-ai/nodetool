@@ -22,7 +22,7 @@
  * ```
  */
 
-import { memo, useCallback, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { Command, CommandInput } from "cmdk";
 import { Dialog, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { Caption, Text, Chip } from "../ui_primitives";
@@ -145,6 +145,7 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
   reactFlowWrapper
 }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const inputRef = useRef<HTMLInputElement>(null);
   const { getViewport } = useReactFlow();
   const addNode = useNodes((state) => state.addNode);
@@ -273,7 +274,7 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
 
   return (
     <Dialog open={open} onClose={handleClose} className="quick-add-node-dialog">
-      <div css={styles(theme)}>
+      <div css={cssStyles}>
         <Command label="Quick Add Node" className="command-menu" shouldFilter={false}>
           <div className="command-input">
             <CommandInput

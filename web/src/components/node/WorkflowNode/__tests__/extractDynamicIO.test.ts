@@ -91,9 +91,13 @@ describe("extractDynamicIO", () => {
 
     expect(result.dynamic_inputs).toEqual({
       prompt: {
-        type: "str",
-        optional: true,
-        type_args: [],
+        type: {
+          type: "str",
+          optional: true,
+          values: null,
+          type_args: [],
+          type_name: null
+        },
         description: "A prompt"
       }
     });
@@ -151,8 +155,8 @@ describe("extractDynamicIO", () => {
     const result = extractDynamicIO(workflow);
 
     expect(Object.keys(result.dynamic_inputs)).toEqual(["count", "scale"]);
-    expect(result.dynamic_inputs.count.type).toBe("int");
-    expect(result.dynamic_inputs.scale.type).toBe("float");
+    expect(result.dynamic_inputs.count.type.type).toBe("int");
+    expect(result.dynamic_inputs.scale.type.type).toBe("float");
     expect(Object.keys(result.dynamic_outputs)).toEqual(["result"]);
     expect(result.dynamic_outputs.result.type).toBe("str");
     expect(result.dynamic_properties).toEqual({ count: 5, scale: 1.5 });
@@ -171,9 +175,13 @@ describe("extractDynamicIO", () => {
 
     expect(result.dynamic_inputs).toEqual({
       prompt: {
-        type: "str",
-        optional: true,
-        type_args: [],
+        type: {
+          type: "str",
+          optional: true,
+          values: null,
+          type_args: [],
+          type_name: null
+        },
         description: "A prompt"
       }
     });
@@ -194,7 +202,7 @@ describe("extractDynamicIO", () => {
     const result = extractDynamicIO(workflow);
 
     expect(Object.keys(result.dynamic_inputs)).toEqual(["BooleanInput"]);
-    expect(result.dynamic_inputs.BooleanInput.type).toBe("bool");
+    expect(result.dynamic_inputs.BooleanInput.type.type).toBe("bool");
   });
 
   it("falls back to title when name is missing", () => {
@@ -278,6 +286,6 @@ describe("extractDynamicIO", () => {
     const result = extractDynamicIO(workflow);
 
     expect(Object.keys(result.dynamic_inputs)).toEqual(["audio_in"]);
-    expect(result.dynamic_inputs.audio_in.type).toBe("audio");
+    expect(result.dynamic_inputs.audio_in.type.type).toBe("audio");
   });
 });

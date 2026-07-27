@@ -30,6 +30,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 
 const NODE_ROW_HEIGHT = 34;
 
@@ -159,6 +160,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
   const [searchTerm, setSearchTerm] = useState("");
   const reactFlowInstance = useReactFlow();
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const autoFocusEnabled = useAutoFocusEnabled();
   const recentNodes = useRecentNodesStore((state) => state.recentNodes);
   const recentNodeTypes = useMemo(
     () => recentNodes.map((node) => node.nodeType),
@@ -318,18 +320,17 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     []
   );
 
+  // Skipped on touch, where the virtual keyboard would cover the menu.
   useEffect(() => {
-    if (!isVisible) {
+    if (!isVisible || !autoFocusEnabled) {
       return;
     }
-
     const timeout = window.setTimeout(() => {
       searchInputRef.current?.focus();
       searchInputRef.current?.select();
     }, 0);
-
     return () => window.clearTimeout(timeout);
-  }, [isVisible]);
+  }, [isVisible, autoFocusEnabled]);
 
   if (!menuPosition || !isVisible) {return null;}
 
@@ -358,7 +359,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
             onChange={handleSearchChange}
             onClick={(e) => e.stopPropagation()}
             onKeyDown={handleSearchKeyDown}
-            autoFocus={isVisible}
+            autoFocus={isVisible && autoFocusEnabled}
             inputRef={searchInputRef}
             aria-label="Search nodes"
             sx={{

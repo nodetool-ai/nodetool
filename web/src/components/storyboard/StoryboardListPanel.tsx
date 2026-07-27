@@ -31,6 +31,7 @@ import { trpc } from "../../trpc/client";
 import { groupByDate } from "../../utils/groupByDate";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import CategorySearchBar from "../node_menu/CategorySearchBar";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import {
   EmptyState,
   FlexColumn,
@@ -262,12 +263,15 @@ const StoryboardListPanel = () => {
   const theme = useTheme();
   const [filterValue, setFilterValue] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+  const autoFocusEnabled = useAutoFocusEnabled();
 
-  // Focus the filter on open so users can immediately type to search,
-  // matching the workflows list panel.
+  // Focus the filter on open so users can immediately type to search — except
+  // on touch, where the virtual keyboard would cover the list.
   useEffect(() => {
-    searchRef.current?.focus();
-  }, []);
+    if (autoFocusEnabled) {
+      searchRef.current?.focus();
+    }
+  }, [autoFocusEnabled]);
   const { data, isLoading, isError, error } = useStoryboards();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);

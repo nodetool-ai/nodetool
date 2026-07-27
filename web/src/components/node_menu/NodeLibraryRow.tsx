@@ -54,6 +54,10 @@ const rowStyles = (theme: Theme) =>
     },
     "&:hover .nl-fav, &:focus-within .nl-fav, &.is-favorite .nl-fav": {
       opacity: 1
+    },
+    // Touch devices have no hover; keep the favorite toggle reachable.
+    "@media (pointer: coarse)": {
+      ".nl-fav": { opacity: 1 }
     }
   });
 

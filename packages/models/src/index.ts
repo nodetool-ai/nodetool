@@ -54,6 +54,7 @@ export {
   DBModel,
   ModelObserver,
   ModelChangeEvent,
+  createStableUuid,
   createTimeOrderedUuid,
   computeEtag
 } from "./base-model.js";
@@ -150,6 +151,43 @@ export {
 } from "./storyboard.js";
 export type { StoryboardDocument, StoryboardResponse } from "./storyboard.js";
 export {
+  Application,
+  ApplicationConflictError,
+  deriveCapabilities,
+  publishApplication,
+  listApplicationVersions,
+  releasedApplicationVersion,
+  releasedApplicationRelease,
+  releaseApplicationVersion
+} from "./application.js";
+export type {
+  ApplicationCapabilities,
+  ApplicationReleaseResponse,
+  ApplicationResponse,
+  ApplicationVersionResponse,
+  PinnedWorkflow
+} from "./application.js";
+export {
+  applicationUsage,
+  checkApplicationBudget,
+  getApplicationBudget,
+  listInvocations,
+  periodStart,
+  recordInvocation,
+  reserveInvocation,
+  setApplicationBudget,
+  settleInvocation
+} from "./application-budget.js";
+export type {
+  ApplicationBudget,
+  ApplicationUsage,
+  BudgetDecision,
+  BudgetPeriod,
+  InvocationRecord,
+  Reservation,
+  ReserveInput
+} from "./application-budget.js";
+export {
   Script,
   ScriptConflictError,
   emptyScriptDocument,
@@ -173,6 +211,14 @@ export type {
 
 export { OAuthCredential } from "./oauth-credential.js";
 export { resolveCodexAccessToken } from "./codex-token.js";
+export {
+  GOOGLE_ACCESS_TOKEN_KEY,
+  GOOGLE_CREDENTIAL_PROVIDER,
+  resolveGoogleAccessToken,
+  getGoogleGrantedScopes,
+  storeGoogleCredential,
+  deleteGoogleCredentials
+} from "./google-token.js";
 
 export { Prediction } from "./prediction.js";
 export type {

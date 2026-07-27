@@ -46,7 +46,15 @@ export const useEmbeddingModelsByProvider = (options?: {
   const isFetching = queries.some((q) => q.isFetching);
   const error = queries.find((q) => q.error)?.error;
 
-  const allModels = queries.flatMap((q) => q.data?.models ?? []);
+  const allModels = useMemo(
+    () => queries.flatMap((q) => q.data?.models ?? []),
+    [queries]
+  );
+
+  const providerIds = useMemo(
+    () => providers.map((p) => p.provider),
+    [providers]
+  );
 
   const refetch = useMemo(
     () => async () => {
@@ -55,12 +63,12 @@ export const useEmbeddingModelsByProvider = (options?: {
     [queries]
   );
 
-  return {
-    models: allModels || [],
-    providers: providers.map((p) => p.provider),
+  return useMemo(() => ({
+    models: allModels,
+    providers: providerIds,
     isLoading,
     isFetching,
     error,
     refetch
-  };
+  }), [allModels, providerIds, isLoading, isFetching, error, refetch]);
 };

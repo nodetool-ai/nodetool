@@ -20,7 +20,7 @@ Run `nodetool chat` from your shell. The current provider and model are shown in
 nodetool chat
 
 # Override provider and model
-nodetool chat --provider anthropic --model claude-sonnet-4-6
+nodetool chat --provider anthropic --model claude-sonnet-5
 
 # Set the workspace directory (defaults to the current directory)
 nodetool chat --workspace /path/to/project

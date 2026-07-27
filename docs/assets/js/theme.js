@@ -605,6 +605,56 @@
     });
   }
 
+  // --- Scrollable tables ------------------------------------------------------
+  // Reference tables are often wider than the content column. Give each one its
+  // own horizontal scroller so it scrolls instead of widening the page. The
+  // wrapper is focusable and labelled so keyboard and screen-reader users can
+  // reach the scrolled-off columns.
+  function initTableScroll() {
+    const wrappers = [];
+
+    document.querySelectorAll('.page-content table').forEach((table) => {
+      if (table.parentElement && table.parentElement.classList.contains('table-scroll')) return;
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'table-scroll';
+
+      const caption = table.querySelector('caption');
+      const firstHeader = table.querySelector('th');
+      const label = (caption && caption.textContent.trim()) || (firstHeader && firstHeader.textContent.trim());
+      wrapper.setAttribute('aria-label', label ? label + ' table' : 'Table');
+
+      table.parentNode.insertBefore(wrapper, table);
+      wrapper.appendChild(table);
+      wrappers.push(wrapper);
+    });
+
+    if (!wrappers.length) return;
+
+    // Only a wrapper that actually scrolls becomes a tab stop — otherwise every
+    // table that fits would add a stop that goes nowhere. Which tables overflow
+    // depends on the viewport, so re-check on resize.
+    const syncFocusability = () => {
+      wrappers.forEach((wrapper) => {
+        if (wrapper.scrollWidth > wrapper.clientWidth) {
+          wrapper.setAttribute('tabindex', '0');
+          wrapper.setAttribute('role', 'region');
+        } else {
+          wrapper.removeAttribute('tabindex');
+          wrapper.removeAttribute('role');
+        }
+      });
+    };
+
+    syncFocusability();
+
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(syncFocusability, 150);
+    });
+  }
+
   // --- Init ------------------------------------------------------------------
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
@@ -616,6 +666,7 @@
     initCollapsibleSections();
     setActiveLink();
     addCopyButtons();
+    initTableScroll();
     initCopyPageButton();
     initSmoothScroll();
     initReadingProgress();

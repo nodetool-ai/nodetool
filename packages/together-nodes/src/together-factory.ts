@@ -10,6 +10,7 @@
  */
 
 import {
+  applyContentCardBody,
   BaseNode,
   classifyFields,
   classNameToTitle,
@@ -347,6 +348,9 @@ export function createTogetherNodeClass(spec: TogetherManifestEntry): NodeClass 
     "metadataOutputTypes",
     isMedia ? { output: spec.outputType } : { text: "str" }
   );
+  // Preview-forward body for anything the editor can display — the image,
+  // video and audio generators plus the text-output transcribers.
+  applyContentCardBody(TogetherNodeClass);
 
   const { inlineFields, inputFields } = classifyFields(
     spec.fields.map((f) => ({ name: f.name, propType: f.type }))

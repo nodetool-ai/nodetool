@@ -1,5 +1,6 @@
 import type {
   InputMode,
+  NodeEffect,
   OutputCorrelation,
   Platform
 } from "@nodetool-ai/protocol";
@@ -91,6 +92,11 @@ export interface NodeMetadata {
    */
   required_runtimes?: string[];
   supports_dynamic_inputs?: boolean;
+  /**
+   * Types a user may pick for a dynamic input slot on this node. Unset means
+   * the full type palette. See `BaseNode.allowedDynamicSlotTypes`.
+   */
+  allowed_dynamic_slot_types?: TypeMetadata[];
   is_streaming_input?: boolean;
   is_streaming_output?: boolean;
   input_mode?: InputMode;
@@ -98,6 +104,11 @@ export interface NodeMetadata {
   is_controlled?: boolean;
   /** §7 — Zip/Cross nodes opt out of the incomparable-scope check. */
   is_join_node?: boolean;
+  /**
+   * Trigger node: compiles to a `trigger_registrations` row on activation
+   * and enters via `emitTriggerEvent` when a run carries a trigger event.
+   */
+  is_trigger?: boolean;
   /** Emit output_update even for connected handles (UI-monitor nodes). */
   always_emit_output_updates?: boolean;
   supports_dynamic_outputs?: boolean;
@@ -109,6 +120,12 @@ export interface NodeMetadata {
    * docs/superpowers/specs/2026-06-27-run-subgraph-caching.md §4.
    */
   cache_ttl?: number | "forever";
+  /**
+   * What running the node does to the world. Reactive runs (mini-app sliders,
+   * live previews) traverse "pure" and "read" only. Absent is treated as
+   * "external". See `BaseNode.effect`.
+   */
+  effect?: NodeEffect;
   /**
    * Names the output slot carrying the node's primary generation (persisted
    * value + content-card preview). Absent falls back to the first output.

@@ -1,4 +1,4 @@
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import type { Screenplay, Shot } from "@nodetool-ai/protocol";
 import {
   DBModel,
@@ -81,6 +81,7 @@ export class Storyboard extends DBModel {
   declare document: string;
   declare timeline_id: string | null;
   declare created_at: string;
+  declare revision: number;
   declare updated_at: string;
 
   constructor(data: Record<string, unknown>) {
@@ -92,11 +93,14 @@ export class Storyboard extends DBModel {
     this.document ??= JSON.stringify(emptyStoryboardDocument());
     this.timeline_id ??= null;
     this.created_at ??= now;
+    this.revision ??= 0;
     this.updated_at ??= now;
   }
 
   override beforeSave(): void {
     this.updated_at = nextUpdatedAtAfter(this.updated_at);
+    // Resource refs carry this; every write must move it forward.
+    this.revision = (this.revision ?? 0) + 1;
     assertValidDocument(JSON.parse(this.document) as StoryboardDocument);
   }
 
@@ -175,7 +179,7 @@ export class Storyboard extends DBModel {
     const now = nextUpdatedAtAfter(expectedUpdatedAt);
     const rows = await db
       .update(storyboards)
-      .set({ ...fields, updated_at: now })
+      .set({ ...fields, revision: sql`${storyboards.revision} + 1`, updated_at: now })
       .where(
         and(
           eq(storyboards.id, id),

@@ -40,10 +40,10 @@ jobs:
       fail-fast: ${{ inputs.fail-fast }}
       matrix:
         include:
-          # Workspace, circular-dependency, key-boundary, and coupled-dependency
-          # guards (run on source, no build).
+          # Workspace, circular-dependency, key-boundary, coupled-dependency,
+          # and lockfile-sync guards (run on source, no build).
           - check: deps
-            command: node scripts/check-workspace-deps.mjs && node scripts/check-circular-deps.mjs && node scripts/check-key-boundaries.mjs && node scripts/check-coupled-deps.mjs
+            command: node scripts/check-workspace-deps.mjs && node scripts/check-circular-deps.mjs && node scripts/check-key-boundaries.mjs && node scripts/check-coupled-deps.mjs && node scripts/check-lockfile-sync.mjs
           # oxlint + web design-token lint. Neither needs package dist.
           - check: lint
             command: npm run lint

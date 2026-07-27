@@ -20,6 +20,11 @@ export class TriggerRegistration extends DBModel {
   declare cursor: string | null;
   declare last_fired_at: string | null;
   declare last_error: string | null;
+  declare disabled_reason: string | null;
+  declare consecutive_failures: number;
+  declare run_count: number;
+  declare expires_at: string | null;
+  declare max_runs: number | null;
   declare created_at: string;
   declare updated_at: string;
 
@@ -32,6 +37,11 @@ export class TriggerRegistration extends DBModel {
     this.cursor ??= null;
     this.last_fired_at ??= null;
     this.last_error ??= null;
+    this.disabled_reason ??= null;
+    this.consecutive_failures ??= 0;
+    this.run_count ??= 0;
+    this.expires_at ??= null;
+    this.max_runs ??= null;
     this.created_at ??= now;
     this.updated_at ??= now;
   }

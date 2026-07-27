@@ -15,6 +15,13 @@ __pycache__
 *.safetensors
 .claude/*
 !.claude/skills/
+# Shared Claude starter kit — checked in so every session gets the same setup.
+!.claude/README.md
+!.claude/settings.json
+!.claude/hooks/
+!.claude/commands/
+# Personal overrides stay local.
+.claude/settings.local.json
 .pi/*
 build/
 coverage/
@@ -78,6 +85,11 @@ web/public/e2e-suite/
 cert.pem
 key.pem
 .aider*
+
+# Local dev database created by running the server
+nodetool.db
+nodetool.db-shm
+nodetool.db-wal
 
 # Dev
 .codegen-cache/

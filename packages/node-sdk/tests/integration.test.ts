@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
 import type { NodeDescriptor, Edge } from "@nodetool-ai/protocol";
-import { NodeRegistry } from "../src/registry.js";
+import { NodeRegistry, hydrateGraphNodeFlags } from "../src/registry.js";
+import { BaseNode, type NodeClass } from "../src/base-node.js";
+import { getNodeMetadata } from "../src/node-metadata.js";
 import {
   Add,
   ErrorNode,
@@ -194,5 +196,61 @@ describe("Integration: streaming output", () => {
     expect(result.status).toBe("completed");
     // At least one value should have been captured at the sink
     expect(result.outputs["values"]?.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("Integration: is_trigger metadata propagation", () => {
+  class TriggerMetaNode extends BaseNode {
+    static readonly nodeType = "test.TriggerMeta";
+    static readonly title = "Trigger Meta";
+    static readonly description = "Trigger flag propagation fixture";
+    static readonly isTrigger = true;
+    static readonly outputTypes = { data: "any" };
+
+    async process(): Promise<Record<string, unknown>> {
+      return {};
+    }
+  }
+
+  class PlainMetaNode extends BaseNode {
+    static readonly nodeType = "test.PlainMeta";
+    static readonly title = "Plain Meta";
+    static readonly description = "Non-trigger fixture";
+    static readonly outputTypes = { data: "any" };
+
+    async process(): Promise<Record<string, unknown>> {
+      return {};
+    }
+  }
+
+  it("static isTrigger = true surfaces is_trigger: true in metadata()", () => {
+    const meta = getNodeMetadata(TriggerMetaNode as unknown as NodeClass);
+    expect(meta.is_trigger).toBe(true);
+
+    const plain = getNodeMetadata(PlainMetaNode as unknown as NodeClass);
+    expect(plain.is_trigger).toBeUndefined();
+  });
+
+  it("static isTrigger = true surfaces is_trigger: true in toDescriptor()", () => {
+    expect(TriggerMetaNode.toDescriptor().is_trigger).toBe(true);
+    expect(PlainMetaNode.toDescriptor().is_trigger).toBeUndefined();
+  });
+
+  it("hydrateGraphNodeFlags stamps is_trigger from the registered class", () => {
+    const registry = new NodeRegistry();
+    registry.register(TriggerMetaNode);
+    registry.register(PlainMetaNode);
+    const hydrated = hydrateGraphNodeFlags(
+      {
+        nodes: [
+          { id: "t", type: TriggerMetaNode.nodeType },
+          { id: "p", type: PlainMetaNode.nodeType }
+        ],
+        edges: []
+      },
+      registry
+    );
+    expect(hydrated.nodes.find((n) => n.id === "t")?.is_trigger).toBe(true);
+    expect(hydrated.nodes.find((n) => n.id === "p")?.is_trigger).toBe(false);
   });
 });

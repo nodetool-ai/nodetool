@@ -33,8 +33,7 @@ import type { Node as WorkflowGraphNode } from "../../stores/ApiTypes";
 import useStatusStore from "../../stores/StatusStore";
 import useResultsStore from "../../stores/ResultsStore";
 import useErrorStore from "../../stores/ErrorStore";
-import { normalizeOutputUpdateValue } from "../../stores/outputUpdateValue";
-import type { OutputUpdate } from "../../stores/ApiTypes";
+import { normalizeOutputUpdateValue, isOutputUpdate } from "../../stores/outputUpdateValue";
 import {
   globalWebSocketManager,
   WebSocketMessage
@@ -221,18 +220,14 @@ const forwardWorkflowMessage = (
     return;
   }
 
-  if (
-    message.type === "output_update" &&
-    typeof message.node_id === "string" &&
-    jobId
-  ) {
+  if (isOutputUpdate(message) && typeof message.node_id === "string" && jobId) {
     useResultsStore
       .getState()
       .setOutputResult(
         workflowId,
         jobId,
         message.node_id,
-        normalizeOutputUpdateValue(message as unknown as OutputUpdate),
+        normalizeOutputUpdateValue(message),
         true
       );
   }
@@ -249,11 +244,8 @@ export const handleJobMessage = async (
 
   forwardWorkflowMessage(context.workflowId, message);
 
-  if (
-    message.type === "output_update" &&
-    message.node_id === context.selectedOutputNodeId
-  ) {
-    jobOutputs.set(jobId, normalizeOutputUpdateValue(message as unknown as OutputUpdate));
+  if (isOutputUpdate(message) && message.node_id === context.selectedOutputNodeId) {
+    jobOutputs.set(jobId, normalizeOutputUpdateValue(message));
   }
   if (
     message.type === "node_update" &&

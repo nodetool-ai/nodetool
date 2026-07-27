@@ -28,6 +28,10 @@ import {
 import { corsOriginDelegate } from "./cors.js";
 import { zipExtensionDist } from "./lib/extension-dist.js";
 import {
+  isPublicOAuthRequest,
+  isPublicWorkflowMetadataRequest
+} from "./lib/public-routes.js";
+import {
   resolveTrustLocalhost,
   isLoopbackAddress,
   parseTrustedProxies,
@@ -80,6 +84,12 @@ import {
   isRateLimitExempt
 } from "./lib/http-rate-limit.js";
 
+import {
+  createTriggerWebhookRoute,
+  startTriggerServices,
+  triggersEnabled
+} from "./triggers/boot.js";
+
 import websocketPlugin from "./plugins/websocket.js";
 import healthRoute, { getVersion } from "./routes/health.js";
 import configRoute from "./routes/config.js";
@@ -100,6 +110,7 @@ import { SdkLiveRunnerRegistry } from "./sdk/sdk-live-runner-registry.js";
 import workspaceRoutes from "./routes/workspace.js";
 import filesRoutes from "./routes/files.js";
 import collectionsRoutes from "./routes/collections.js";
+import applicationsRoutes from "./routes/applications.js";
 import falCreditsRoute from "./routes/fal-credits.js";
 import falPricingRoute from "./routes/fal-pricing.js";
 import falPricingEstimateRoute from "./routes/fal-pricing-estimate.js";
@@ -141,33 +152,6 @@ const log = createLogger("nodetool.websocket.server");
 // initialises eagerly, but an explicit call here picks up any env mutations
 // made by the process launcher before this point).
 configureLogging();
-
-/**
- * Read-only workflow metadata GETs for SDK/editor boot (same role as
- * `/api/nodes/metadata`). Mutations still require auth below.
- */
-function isPublicWorkflowMetadataRequest(
-  pathname: string,
-  method: string
-): boolean {
-  if (method !== "GET") return false;
-  if (pathname === "/api/workflows" || pathname === "/api/workflows/") {
-    return true;
-  }
-  if (
-    pathname.startsWith("/api/workflows/public") ||
-    pathname.startsWith("/api/workflows/examples")
-  ) {
-    return true;
-  }
-  if (pathname === "/api/workflows/names" || pathname === "/api/workflows/tools") {
-    return true;
-  }
-  if (/^\/api\/workflows\/[^/]+\/dsl-export$/.test(pathname)) {
-    return true;
-  }
-  return /^\/api\/workflows\/[^/]+$/.test(pathname);
-}
 
 await initTelemetry();
 const startupT0 = performance.now();
@@ -691,6 +675,23 @@ app.addHook("onRequest", async (request) => {
 
 app.addHook("onSend", async (request, reply) => {
   reply.header("X-Request-Id", request.id);
+
+  // Baseline security response headers. The web app's CSP lives in a `<meta>`
+  // tag, which browsers ignore for `frame-ancestors` — that directive is only
+  // honoured in a header, so clickjacking protection has to be set here.
+  //
+  // `/api/storage/*` is exempt: those bytes are designed to be embedded from
+  // other origins (MCP App iframes, the Electron renderer, external preview
+  // clients — see storage-api.ts), and the endpoint deliberately serves
+  // unknown extensions as `application/octet-stream` for `<img>`/`<video>` to
+  // sniff. Both `nosniff` and the frame headers would break that contract.
+  const path = request.url.split("?")[0] ?? "/";
+  if (!path.startsWith("/api/storage/")) {
+    reply.header("X-Content-Type-Options", "nosniff");
+    reply.header("X-Frame-Options", "SAMEORIGIN");
+    reply.header("Content-Security-Policy", "frame-ancestors 'self'");
+  }
+  reply.header("Referrer-Policy", "strict-origin-when-cross-origin");
 });
 
 // CORS must be registered before hooks that can short-circuit. Auth failures
@@ -793,13 +794,16 @@ app.addHook("onRequest", async (req, reply) => {
     pathname === "/ready" ||
     pathname === "/api/health" ||
     pathname === "/api/config" ||
-    pathname.startsWith("/api/oauth/") ||
+    isPublicOAuthRequest(pathname) ||
     pathname === "/api/assets/packages" ||
     pathname.startsWith("/api/assets/packages/") ||
     pathname === "/api/nodes/metadata" ||
     pathname.startsWith("/api/kie/webhook") ||
     (sdkDiscoveryRequest &&
       !isSdkV1AuthenticationRequired(process.env, enforceAuth)) ||
+    // Trigger webhooks authenticate on their own, per registration secret
+    // (packages/websocket/src/triggers/webhook-route.ts) — no session exists.
+    pathname.startsWith("/api/webhooks/") ||
     isPublicWorkflowMetadataRequest(pathname, req.method)
   ) {
     return;
@@ -1157,12 +1161,19 @@ await app.register(oauthRoutes, routeOpts);
 await app.register(workspaceRoutes, routeOpts);
 await app.register(filesRoutes, routeOpts);
 await app.register(collectionsRoutes, routeOpts);
+await app.register(applicationsRoutes, routeOpts);
 await app.register(falCreditsRoute);
 await app.register(falPricingRoute);
 await app.register(falPricingEstimateRoute);
 await app.register(kieCreditsRoute);
 await app.register(kiePricingRoute);
 await app.register(kieWebhookRoute);
+// Trigger webhook ingestion (`POST /api/webhooks/:token`). Registered here
+// because Fastify routes must exist before `app.listen`; the plugin reaches the
+// wakeup service and dispatcher started below through module accessors.
+if (triggersEnabled()) {
+  await app.register(createTriggerWebhookRoute());
+}
 // MCP endpoints are only available in local/dev mode — not in production.
 // The configuration endpoints moved to the tRPC `mcpConfig` router; the
 // `/mcp` proxy below is a bare MCP over-HTTP transport and stays on REST.
@@ -1330,6 +1341,16 @@ app.listen({ port, host }, (err) => {
 });
 
 // ---------------------------------------------------------------------------
+// Triggers — durable wakeup service, dispatcher, and ingestion adapters
+// ---------------------------------------------------------------------------
+//
+// Starting the dispatcher also drains the boot backlog: every unprocessed
+// `trigger_inputs` row a previous process life stored is dispatched now. Set
+// NODETOOL_DISABLE_TRIGGERS=1 to opt this process out.
+
+const triggerServices = startTriggerServices({ registry });
+
+// ---------------------------------------------------------------------------
 // Worker cost guard — reconcile orphaned GPU pods on boot, then reap on a loop
 // ---------------------------------------------------------------------------
 
@@ -1376,6 +1397,14 @@ async function shutdown(signal: string): Promise<void> {
     // best-effort cleanup
   }
   stopReaper();
+  try {
+    await triggerServices.stop();
+  } catch (err) {
+    log.warn(
+      "Trigger services failed to stop cleanly",
+      err instanceof Error ? err : new Error(String(err))
+    );
+  }
   localBridge.close();
   workerBridge?.close();
   try {

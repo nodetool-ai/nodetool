@@ -80,7 +80,7 @@ export default function AssetManagerSection() {
               {
                 icon: PhotoIcon,
                 title: "Import & organize",
-                body: "Drag and drop. Files auto-organize by type, project, or tags.",
+                body: "Drag and drop. Files sort themselves by type, project, or tag.",
               },
               {
                 icon: CubeTransparentIcon,
@@ -90,7 +90,7 @@ export default function AssetManagerSection() {
               {
                 icon: PuzzlePieceIcon,
                 title: "Use in workflows",
-                body: "Reference assets in your workflows—folders or single files.",
+                body: "Point any workflow at a single file or a whole folder.",
               },
             ].map(({ icon: Icon, title, body }) => (
               <div key={title} className="group">

@@ -3,7 +3,15 @@ import React from "react";
 import type { Config, ArrayField } from "@puckeditor/core";
 
 import { Box, Text, FlexColumn, SPACING, SPACING_PX } from "../../ui_primitives";
-import { bindingField, variableField } from "./fields";
+import { APP_THEMES, appThemeFrame, resolveAppTheme } from "../appThemes";
+import { useAppRuntimeContext } from "../runtime/AppRuntimeContext";
+import {
+  bindingField,
+  conditionField,
+  resourceBindingField,
+  variableField
+} from "./fields";
+import { withConditions } from "./conditionalWidget";
 import {
   HeadingWidget,
   TextWidget,
@@ -12,6 +20,7 @@ import {
   AudioWidget,
   VideoWidget,
   JsonWidget,
+  TableWidget,
   OutputWidget,
   ProgressWidget,
   TextInputWidget,
@@ -22,8 +31,23 @@ import {
   ButtonWidget,
   ContainerWidget,
   ColumnsWidget,
-  DividerWidget
+  DividerWidget,
+  AlertWidget,
+  CodeBlockWidget,
+  ListWidget,
+  KeyValueWidget,
+  StatWidget,
+  DownloadWidget,
+  RadioGroupWidget,
+  CheckboxGroupWidget,
+  DateInputWidget,
+  TabsWidget,
+  AccordionWidget,
+  SpacerWidget
 } from "./widgets";
+import { ResourcePickerWidget } from "./ResourcePickerWidget";
+import { ResourceGalleryWidget } from "./ResourceGalleryWidget";
+import { StoryboardSceneListWidget } from "./StoryboardSceneListWidget";
 import {
   WorkflowInputWidget,
   FixedKindInputWidget,
@@ -34,9 +58,28 @@ import {
 const ACTION_OPTIONS = [
   { label: "Run workflow", value: "run" },
   { label: "Cancel run", value: "cancel" },
-  { label: "Set variable", value: "setState" },
-  { label: "Toggle variable", value: "toggleState" }
+  { label: "Set variable", value: "setVariable" },
+  { label: "Toggle variable", value: "toggleVariable" }
 ];
+
+/**
+ * The three declarative logic props every widget accepts. Conditions and the
+ * format template are the whole logic surface of the app layer — everything
+ * else is a node in the graph.
+ */
+const conditionalFields = ({ format = true }: { format?: boolean } = {}) => ({
+  visibleWhen: conditionField("Visible when"),
+  disabledWhen: conditionField("Disabled when"),
+  ...(format
+    ? {
+        format: {
+          type: "text" as const,
+          label:
+            "Format ({binding} · number:2 · date:short · upper · lower · join:, · truncate:80)"
+        }
+      }
+    : {})
+});
 
 const PACE_OPTIONS = [
   { label: "Live", value: "live" },
@@ -97,62 +140,99 @@ const fixedInputEntry = (label: string, kind: FixedInputKind) => ({
   fields: {
     binding: bindingField("write", "Workflow input"),
     label: { type: "text" as const, label: "Label" },
-    events: eventsField("change", { commits: false })
+    events: eventsField("change", { commits: false }),
+    ...conditionalFields({ format: false })
   },
   defaultProps: { binding: "", label: "" },
-  render: (props: FixedInputWidgetProps) => (
+  render: withConditions((props: FixedInputWidgetProps) => (
     <FixedKindInputWidget {...props} kind={kind} />
-  )
+  ))
 });
+
+/**
+ * The app page. Its theme comes from the root prop the author picked, falling
+ * back to what the document declares (`ApplicationDocument.theme`) — the shell
+ * keeps the two in step, and the fallback is what makes a document authored
+ * through the API render with its theme.
+ */
+const AppRoot: React.FC<{
+  title?: string;
+  theme?: string;
+  children?: React.ReactNode;
+}> = ({ title, theme, children }) => {
+  const { theme: documentTheme } = useAppRuntimeContext();
+  const appTheme = resolveAppTheme(theme ?? documentTheme);
+  return (
+    <Box
+      sx={{
+        p: appTheme.padding,
+        minHeight: "100%",
+        backgroundColor: appTheme.surface,
+        color: "text.primary",
+        // Width-responsive widgets (Columns) query this container, so the
+        // editor canvas and the published app share one layout per width.
+        containerType: "inline-size"
+      }}
+    >
+      <FlexColumn
+        gap={SPACING.xxl}
+        sx={{
+          width: "100%",
+          ...(appTheme.maxWidth
+            ? { maxWidth: appTheme.maxWidth, mx: "auto" }
+            : {}),
+          ...appThemeFrame(appTheme),
+          // The root zone renders as a single direct div in both the editor
+          // (Puck's DropZone) and the runtime (a plain wrapper div); style
+          // its children as a gapped flex column so top-level widgets get
+          // the same vertical rhythm as slot contents (see slotStack in
+          // widgets.tsx) in both surfaces.
+          "& > div": {
+            display: "flex",
+            flexDirection: "column",
+            gap: `${SPACING_PX.xxl}px`,
+            width: "100%"
+          }
+        }}
+      >
+        {title ? (
+          <Text size="big" weight={600}>
+            {title}
+          </Text>
+        ) : null}
+        {children}
+      </FlexColumn>
+    </Box>
+  );
+};
 
 // `Config` is intentionally loosely typed (DefaultComponents): Puck injects
 // `id`/`puck` into render props, and our widget components take optional props.
 export const appConfig: Config = {
   root: {
     fields: {
-      title: { type: "text", label: "App title" }
+      title: { type: "text", label: "App title" },
+      theme: {
+        type: "select",
+        label: "Theme",
+        options: APP_THEMES.map((theme) => ({
+          label: theme.label,
+          value: theme.id
+        }))
+      }
     },
     render: ({
       children,
-      title
+      title,
+      theme
     }: {
       children?: React.ReactNode;
       title?: string;
+      theme?: string;
     }) => (
-      <Box
-        sx={{
-          p: SPACING.xl,
-          minHeight: "100%",
-          backgroundColor: "background.default",
-          color: "text.primary",
-          // Width-responsive widgets (Columns) query this container, so the
-          // editor canvas and the published app share one layout per width.
-          containerType: "inline-size"
-        }}
-      >
-        <FlexColumn
-          gap={SPACING.xxl}
-          sx={{
-            width: "100%",
-            // The root zone renders as a single direct div in both the editor
-            // (Puck's DropZone) and the runtime (a plain wrapper div); style
-            // its children as a gapped flex column so top-level widgets get
-            // the same vertical rhythm as slot contents (see slotStack in
-            // widgets.tsx) in both surfaces.
-            "& > div": {
-              display: "flex",
-              flexDirection: "column",
-              gap: `${SPACING_PX.xxl}px`,
-              width: "100%"
-            }
-          }}
-        >
-          {title ? (
-            <Text size="big" weight={600}>{title}</Text>
-          ) : null}
-          {children}
-        </FlexColumn>
-      </Box>
+      <AppRoot title={title} theme={theme}>
+        {children}
+      </AppRoot>
     )
   },
   categories: {
@@ -165,6 +245,12 @@ export const appConfig: Config = {
         "Slider",
         "Switch",
         "Select",
+        "RadioGroup",
+        "CheckboxGroup",
+        "DateInput",
+        "ResourcePicker",
+        "ResourceGallery",
+        "StoryboardSceneList",
         "ImageInput",
         "AudioInput",
         "VideoInput",
@@ -183,11 +269,28 @@ export const appConfig: Config = {
         "Audio",
         "Video",
         "Json",
+        "Table",
+        "List",
+        "KeyValue",
         "Output",
-        "Progress"
+        "Progress",
+        "Stat",
+        "Alert",
+        "CodeBlock",
+        "Download"
       ]
     },
-    layout: { title: "Layout", components: ["Container", "Columns", "Divider"] }
+    layout: {
+      title: "Layout",
+      components: [
+        "Container",
+        "Columns",
+        "Tabs",
+        "Accordion",
+        "Divider",
+        "Spacer"
+      ]
+    }
   },
   components: {
     // ── Display ──
@@ -204,28 +307,31 @@ export const appConfig: Config = {
             { label: "H3", value: "3" }
           ]
         },
-        binding: bindingField("read")
+        binding: bindingField("read"),
+        ...conditionalFields()
       },
       defaultProps: { text: "Heading", level: "1" },
-      render: (props) => <HeadingWidget {...props} />
+      render: withConditions((props) => <HeadingWidget {...props} />)
     },
     Text: {
       label: "Text",
       fields: {
         text: { type: "textarea", label: "Text" },
-        binding: bindingField("read")
+        binding: bindingField("read"),
+        ...conditionalFields()
       },
       defaultProps: { text: "Text block" },
-      render: (props) => <TextWidget {...props} />
+      render: withConditions((props) => <TextWidget {...props} />)
     },
     Markdown: {
       label: "Markdown",
       fields: {
         text: { type: "textarea", label: "Markdown" },
-        binding: bindingField("read")
+        binding: bindingField("read"),
+        ...conditionalFields()
       },
       defaultProps: { text: "**Markdown** content" },
-      render: (props) => <MarkdownWidget {...props} />
+      render: withConditions((props) => <MarkdownWidget {...props} />)
     },
     Image: {
       label: "Image",
@@ -240,63 +346,173 @@ export const appConfig: Config = {
           ]
         },
         height: { type: "number", label: "Height (px)" },
-        placeholder: { type: "text", label: "Placeholder" }
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields({ format: false })
       },
       defaultProps: { fit: "contain", height: 240, placeholder: "No image" },
-      render: (props) => <ImageWidget {...props} />
+      render: withConditions((props) => <ImageWidget {...props} />)
     },
     Audio: {
       label: "Audio",
       fields: {
         binding: bindingField("read"),
-        placeholder: { type: "text", label: "Placeholder" }
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields({ format: false })
       },
       defaultProps: { placeholder: "No audio yet" },
-      render: (props) => <AudioWidget {...props} />
+      render: withConditions((props) => <AudioWidget {...props} />)
     },
     Video: {
       label: "Video",
       fields: {
         binding: bindingField("read"),
         height: { type: "number", label: "Max height (px)" },
-        placeholder: { type: "text", label: "Placeholder" }
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields({ format: false })
       },
       defaultProps: { height: 320, placeholder: "No video yet" },
-      render: (props) => <VideoWidget {...props} />
+      render: withConditions((props) => <VideoWidget {...props} />)
     },
     Json: {
       label: "JSON",
-      fields: { binding: bindingField("read") },
+      fields: { binding: bindingField("read"), ...conditionalFields() },
       defaultProps: {},
-      render: (props) => <JsonWidget {...props} />
+      render: withConditions((props) => <JsonWidget {...props} />)
+    },
+    Table: {
+      label: "Table",
+      fields: {
+        binding: bindingField("read"),
+        label: { type: "text", label: "Label" },
+        maxHeight: { type: "number", label: "Max height (px)" },
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: { label: "", placeholder: "No rows yet" },
+      render: withConditions((props) => <TableWidget {...props} />)
     },
     Output: {
       label: "Output",
       fields: {
         binding: bindingField("read"),
-        placeholder: { type: "text", label: "Placeholder" }
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields()
       },
       defaultProps: { placeholder: "Your result appears here" },
-      render: (props) => <OutputWidget {...props} />
+      render: withConditions((props) => <OutputWidget {...props} />)
     },
     Progress: {
       label: "Progress",
       fields: {
         label: { type: "text", label: "Label" },
-        binding: bindingField("read")
+        binding: bindingField("read"),
+        ...conditionalFields({ format: false })
       },
       defaultProps: { label: "" },
-      render: (props) => <ProgressWidget {...props} />
+      render: withConditions((props) => <ProgressWidget {...props} />)
+    },
+    List: {
+      label: "List",
+      fields: {
+        binding: bindingField("read"),
+        label: { type: "text", label: "Label" },
+        ordered: {
+          type: "radio",
+          label: "Numbered",
+          options: [
+            { label: "No", value: false },
+            { label: "Yes", value: true }
+          ]
+        },
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields()
+      },
+      defaultProps: { label: "", ordered: false, placeholder: "No items yet" },
+      render: withConditions((props) => <ListWidget {...props} />)
+    },
+    KeyValue: {
+      label: "Key/Value",
+      fields: {
+        binding: bindingField("read"),
+        label: { type: "text", label: "Label" },
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: { label: "", placeholder: "No values yet" },
+      render: withConditions((props) => <KeyValueWidget {...props} />)
+    },
+    Stat: {
+      label: "Stat",
+      fields: {
+        binding: bindingField("read"),
+        label: { type: "text", label: "Label" },
+        caption: { type: "text", label: "Caption" },
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields()
+      },
+      defaultProps: { label: "Total", caption: "", placeholder: "—" },
+      render: withConditions((props) => <StatWidget {...props} />)
+    },
+    Alert: {
+      label: "Alert",
+      fields: {
+        binding: bindingField("read"),
+        text: { type: "textarea", label: "Text" },
+        title: { type: "text", label: "Title" },
+        severity: {
+          type: "select",
+          label: "Severity",
+          options: [
+            { label: "Info", value: "info" },
+            { label: "Success", value: "success" },
+            { label: "Warning", value: "warning" },
+            { label: "Error", value: "error" }
+          ]
+        },
+        ...conditionalFields()
+      },
+      defaultProps: { text: "", title: "", severity: "info" },
+      render: withConditions((props) => <AlertWidget {...props} />)
+    },
+    CodeBlock: {
+      label: "Code",
+      fields: {
+        binding: bindingField("read"),
+        text: { type: "textarea", label: "Code" },
+        language: { type: "text", label: "Language label" },
+        maxHeight: { type: "number", label: "Max height (px)" },
+        ...conditionalFields()
+      },
+      defaultProps: { text: "", language: "" },
+      render: withConditions((props) => <CodeBlockWidget {...props} />)
+    },
+    Download: {
+      label: "Download",
+      fields: {
+        binding: bindingField("read"),
+        label: { type: "text", label: "Label" },
+        filename: { type: "text", label: "File name" },
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: {
+        label: "Download",
+        filename: "",
+        placeholder: "Nothing to download yet"
+      },
+      render: withConditions((props) => <DownloadWidget {...props} />)
     },
     // ── Inputs ──
     WorkflowInput: {
       label: "Workflow Input",
       fields: {
         binding: bindingField("write", "Workflow input"),
-        events: eventsField("change", { commits: false })
+        label: { type: "text", label: "Label" },
+        events: eventsField("change", { commits: false }),
+        ...conditionalFields({ format: false })
       },
-      defaultProps: { binding: "" },
-      render: (props) => <WorkflowInputWidget {...props} />
+      defaultProps: { binding: "", label: "" },
+      render: withConditions((props) => <WorkflowInputWidget {...props} />)
     },
     TextInput: {
       label: "Text Input",
@@ -312,10 +528,11 @@ export const appConfig: Config = {
             { label: "Yes", value: true }
           ]
         },
-        events: eventsField("change")
+        events: eventsField("change"),
+        ...conditionalFields({ format: false })
       },
       defaultProps: { label: "Text", placeholder: "", multiline: false },
-      render: (props) => <TextInputWidget {...props} />
+      render: withConditions((props) => <TextInputWidget {...props} />)
     },
     NumberInput: {
       label: "Number Input",
@@ -325,10 +542,11 @@ export const appConfig: Config = {
         min: { type: "number", label: "Min" },
         max: { type: "number", label: "Max" },
         step: { type: "number", label: "Step" },
-        events: eventsField("change")
+        events: eventsField("change"),
+        ...conditionalFields({ format: false })
       },
       defaultProps: { label: "Number", min: 0, max: 100, step: 1 },
-      render: (props) => <NumberInputWidget {...props} />
+      render: withConditions((props) => <NumberInputWidget {...props} />)
     },
     Slider: {
       label: "Slider",
@@ -338,20 +556,22 @@ export const appConfig: Config = {
         min: { type: "number", label: "Min" },
         max: { type: "number", label: "Max" },
         step: { type: "number", label: "Step" },
-        events: eventsField("change")
+        events: eventsField("change"),
+        ...conditionalFields({ format: false })
       },
       defaultProps: { label: "Slider", min: 0, max: 100, step: 1 },
-      render: (props) => <SliderWidget {...props} />
+      render: withConditions((props) => <SliderWidget {...props} />)
     },
     Switch: {
       label: "Switch",
       fields: {
         binding: bindingField("write"),
         label: { type: "text", label: "Label" },
-        events: eventsField("change", { commits: false })
+        events: eventsField("change", { commits: false }),
+        ...conditionalFields({ format: false })
       },
       defaultProps: { label: "Toggle" },
-      render: (props) => <SwitchWidget {...props} />
+      render: withConditions((props) => <SwitchWidget {...props} />)
     },
     Select: {
       label: "Select",
@@ -359,13 +579,124 @@ export const appConfig: Config = {
         binding: bindingField("write"),
         label: { type: "text", label: "Label" },
         options: optionsField,
-        events: eventsField("change", { commits: false })
+        events: eventsField("change", { commits: false }),
+        ...conditionalFields({ format: false })
       },
       defaultProps: {
         label: "Select",
         options: [{ value: "Option A" }, { value: "Option B" }]
       },
-      render: (props) => <SelectWidget {...props} />
+      render: withConditions((props) => <SelectWidget {...props} />)
+    },
+    RadioGroup: {
+      label: "Radio Group",
+      fields: {
+        binding: bindingField("write"),
+        label: { type: "text", label: "Label" },
+        options: optionsField,
+        row: {
+          type: "radio",
+          label: "Layout",
+          options: [
+            { label: "Stacked", value: false },
+            { label: "Inline", value: true }
+          ]
+        },
+        events: eventsField("change", { commits: false }),
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: {
+        label: "Choose",
+        row: false,
+        options: [{ value: "Option A" }, { value: "Option B" }]
+      },
+      render: withConditions((props) => <RadioGroupWidget {...props} />)
+    },
+    CheckboxGroup: {
+      label: "Checkbox Group",
+      fields: {
+        binding: bindingField("write"),
+        label: { type: "text", label: "Label" },
+        options: optionsField,
+        row: {
+          type: "radio",
+          label: "Layout",
+          options: [
+            { label: "Stacked", value: false },
+            { label: "Inline", value: true }
+          ]
+        },
+        events: eventsField("change", { commits: false }),
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: {
+        label: "Select any",
+        row: false,
+        options: [{ value: "Option A" }, { value: "Option B" }]
+      },
+      render: withConditions((props) => <CheckboxGroupWidget {...props} />)
+    },
+    DateInput: {
+      label: "Date Input",
+      fields: {
+        binding: bindingField("write"),
+        label: { type: "text", label: "Label" },
+        withTime: {
+          type: "radio",
+          label: "Include time",
+          options: [
+            { label: "No", value: false },
+            { label: "Yes", value: true }
+          ]
+        },
+        events: eventsField("change"),
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: { label: "Date", withTime: false },
+      render: withConditions((props) => <DateInputWidget {...props} />)
+    },
+    ResourcePicker: {
+      label: "Resource Picker",
+      fields: {
+        resourceBindingId: resourceBindingField(),
+        label: { type: "text", label: "Label" },
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: { resourceBindingId: "", label: "" },
+      render: withConditions((props) => <ResourcePickerWidget {...props} />)
+    },
+    ResourceGallery: {
+      label: "Resource Gallery",
+      fields: {
+        resourceBindingId: resourceBindingField(),
+        label: { type: "text", label: "Label" },
+        tileSize: { type: "number", label: "Tile size (px)" },
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: { resourceBindingId: "", label: "", tileSize: 140 },
+      render: withConditions((props) => <ResourceGalleryWidget {...props} />)
+    },
+    StoryboardSceneList: {
+      label: "Storyboard Scenes",
+      fields: {
+        resourceBindingId: resourceBindingField(),
+        label: { type: "text", label: "Label" },
+        allowRemove: {
+          type: "radio",
+          label: "Allow remove",
+          options: [
+            { label: "No", value: false },
+            { label: "Yes", value: true }
+          ]
+        },
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: {
+        resourceBindingId: "",
+        label: "",
+        allowRemove: true
+      },
+      render: withConditions((props) => <StoryboardSceneListWidget {...props} />)
     },
     ImageInput: fixedInputEntry("Image Input", "image"),
     AudioInput: fixedInputEntry("Audio Input", "audio"),
@@ -395,7 +726,8 @@ export const appConfig: Config = {
             { label: "Warning", value: "warning" }
           ]
         },
-        events: eventsField("click")
+        events: eventsField("click"),
+        ...conditionalFields({ format: false })
       },
       defaultProps: {
         label: "Run",
@@ -403,7 +735,7 @@ export const appConfig: Config = {
         color: "primary",
         events: [{ trigger: "click", kind: "run", key: "", value: "" }]
       },
-      render: (props) => <ButtonWidget {...props} />
+      render: withConditions((props) => <ButtonWidget {...props} />)
     },
     // ── Layout ──
     Container: {
@@ -429,11 +761,69 @@ export const appConfig: Config = {
         <ColumnsWidget gap={gap} left={left} right={right} />
       )
     },
+    Tabs: {
+      label: "Tabs",
+      fields: {
+        tab1Label: { type: "text", label: "Tab 1" },
+        tab1: { type: "slot" },
+        tab2Label: { type: "text", label: "Tab 2" },
+        tab2: { type: "slot" },
+        tab3Label: { type: "text", label: "Tab 3 (optional)" },
+        tab3: { type: "slot" }
+      },
+      defaultProps: {
+        tab1Label: "First",
+        tab2Label: "Second",
+        tab3Label: "",
+        tab1: [],
+        tab2: [],
+        tab3: []
+      },
+      render: ({ tab1Label, tab2Label, tab3Label, tab1, tab2, tab3 }) => (
+        <TabsWidget
+          tab1Label={tab1Label}
+          tab2Label={tab2Label}
+          tab3Label={tab3Label}
+          tab1={tab1}
+          tab2={tab2}
+          tab3={tab3}
+        />
+      )
+    },
+    Accordion: {
+      label: "Accordion",
+      fields: {
+        title: { type: "text", label: "Title" },
+        defaultOpen: {
+          type: "radio",
+          label: "Open by default",
+          options: [
+            { label: "Yes", value: true },
+            { label: "No", value: false }
+          ]
+        },
+        content: { type: "slot" }
+      },
+      defaultProps: { title: "Section", defaultOpen: true, content: [] },
+      render: ({ title, defaultOpen, content }) => (
+        <AccordionWidget
+          title={title}
+          defaultOpen={defaultOpen}
+          content={content}
+        />
+      )
+    },
     Divider: {
       label: "Divider",
       fields: {},
       defaultProps: {},
       render: () => <DividerWidget />
+    },
+    Spacer: {
+      label: "Spacer",
+      fields: { height: { type: "number", label: "Height (px)" } },
+      defaultProps: { height: 24 },
+      render: ({ height }) => <SpacerWidget height={height} />
     }
   }
 };

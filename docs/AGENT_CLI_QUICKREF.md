@@ -72,7 +72,7 @@ system_prompt: |
   Answer questions clearly and concisely.
 model:
   provider: openai
-  id: gpt-4o-mini
+  id: gpt-5-mini
 tools:
   - read_file
   - write_file
@@ -100,10 +100,10 @@ max_steps: 10
 
 | Task Type | Planning Model | Main Model |
 |-----------|----------------|------------|
-| Analytical | gpt-4o-mini | gpt-4o |
-| General | gpt-4o-mini | gpt-4o |
-| Creative | gpt-4o-mini | gemini-3.5-flash |
-| Code | gpt-4o-mini | claude-sonnet-4-6 |
+| Analytical | gpt-5-mini | claude-opus-5 |
+| General | gpt-5-mini | gpt-5.6 |
+| Creative | gpt-5-mini | gemini-3.5-flash |
+| Code | gpt-5-mini | claude-sonnet-5 |
 
 ## Environment Variables
 
@@ -147,7 +147,7 @@ done
 | Config errors | Run `nodetool agent test agent.yaml` to validate provider, model, and tools |
 | Tool not found | Check the tool name against the available tools list (unknown names are ignored with a warning) |
 | Rate limiting | Use a local model (`ollama`) |
-| Slow planning | Use a faster planning model (`gpt-4o-mini`) |
+| Slow planning | Use a faster planning model (`gpt-5-mini`) |
 
 ## Links
 

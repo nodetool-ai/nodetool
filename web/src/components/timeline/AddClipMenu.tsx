@@ -39,6 +39,7 @@ import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 import { useTimelineDirectGenJob } from "../../hooks/timeline/useTimelineDirectGenJob";
 import { useLastDirectGenModel } from "../../hooks/timeline/useLastDirectGenModel";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import ImageModelSelect from "../properties/ImageModelSelect";
 import VideoModelSelect from "../properties/VideoModelSelect";
 import TTSModelSelect from "../properties/TTSModelSelect";
@@ -93,7 +94,8 @@ const trackMediaType = (
 
 const menuStyles = (theme: Theme) =>
   css({
-    width: 360,
+    // A hard 360px overflows the narrowest phones once the padding is added.
+    width: "min(360px, calc(100vw - 32px))",
     padding: theme.spacing(1)
   });
 
@@ -309,6 +311,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
     // ── Direct-gen prompt state ────────────────────────────────────────────
     const lastModel = useLastDirectGenModel(directGenKind ?? "image");
     const [prompt, setPrompt] = useState("");
+    const autoFocusEnabled = useAutoFocusEnabled();
     const [directProvider, setDirectProvider] = useState<string | undefined>(
       undefined
     );
@@ -564,6 +567,8 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
               {directGenKind !== null && (
                 <>
                   <FlexColumn gap={0.5} data-testid="add-clip-prompt-section">
+                    {/* autoFocus is skipped on touch, where the virtual
+                        keyboard would cover the rest of the menu. */}
                     <TextInput
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
@@ -579,7 +584,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                       minRows={2}
                       maxRows={5}
                       compact
-                      autoFocus
+                      autoFocus={autoFocusEnabled}
                       fullWidth
                       inputProps={{
                         "aria-label": "Prompt",

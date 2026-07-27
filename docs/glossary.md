@@ -106,12 +106,12 @@ How NodeTool runs your workflow – either in the same process, a separate subpr
 ## Infrastructure
 
 ### Server
-The background process that actually runs your workflows. Servers connect to the server and execute jobs.
+The background program that actually runs your workflows. The desktop app starts one on your own machine and talks to it; you never have to think about it unless you're hosting NodeTool for other people.
 
 *Technical: Process that runs workflows and exposes HTTP/WebSocket endpoints (via `nodetool serve`, optionally with `--host`/`--port`).*
 
 ### API Server
-The backend service that handles requests, manages workflows, and coordinates servers.
+The part of the server that answers requests from the app: saving and loading workflows, starting runs, returning results.
 
 *Technical: Node.js HTTP server (via `@nodetool-ai/websocket`) handling REST endpoints such as `/v1/chat/completions` and `/api/workflows`.*
 
