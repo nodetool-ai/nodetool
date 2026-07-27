@@ -123,6 +123,23 @@ Determinism is enforced in `visualHelpers.ts`:
 If a test is genuinely flaky, prefer masking the volatile region
 (`toHaveScreenshot(name, { mask: [locator] })`) over raising the tolerance.
 
+### When every spec fails at once
+
+A backend that never came up looks like a pile of small pixel diffs, not a
+crash: the app renders its "Error loading application metadata" fallback,
+which is mostly empty dark background, so only text pixels differ. Two guards
+turn that into a real error instead:
+
+- `globalSetup` refuses to start when something already holds port 7777. It
+  used to adopt whatever was listening — a leftover `screenshot-server` or an
+  `npm run dev` — while its own seeded server died with `EADDRINUSE`, so the
+  suite silently compared against the wrong backend's data.
+- `waitForAppReady` fails on the metadata fallback rather than screenshotting
+  it.
+
+If you hit the port error, stop the process holding 7777 or point the suite
+elsewhere with `SCREENSHOT_BACKEND_PORT`.
+
 ## CI
 
 - Triggers on PRs touching `web/tests/visual/**`, `web/src/**`, `web/package.json`,
@@ -135,9 +152,15 @@ If a test is genuinely flaky, prefer masking the volatile region
 
 The job runs on every PR but is **non-blocking for now** (`continue-on-error`
 on the run step), matching the parent plan: report diffs first, enforce once
-baselines are stable in CI. The committed baselines were captured outside CI,
-so a Linux CI renderer produces font anti-aliasing diffs against them — those
-would red every PR if the job were blocking.
+baselines are stable in CI.
+
+Being non-blocking has a cost that has already landed: because nothing fails,
+nobody regenerates. The committed baselines have drifted behind `web/src` —
+whole pages are offset by a line-height and labels have been recased since
+capture, so most specs fail against them both in CI and in a clean local run.
+The small diff ratios (2–4%) read like anti-aliasing noise but aren't: these
+pages are mostly dark background, so a real layout shift only lights up the
+text pixels. Regenerate before reading any diff as a regression.
 
 To move to enforcement:
 

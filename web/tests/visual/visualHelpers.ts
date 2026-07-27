@@ -214,6 +214,25 @@ export async function assertNoErrorBoundary(page: Page): Promise<void> {
 }
 
 /**
+ * Fail fast when the app rendered its metadata-load fallback instead of the
+ * real UI. That page is mostly empty dark background, so comparing it against
+ * a real baseline yields a small pixel ratio that reads like anti-aliasing
+ * noise — the backend being unreachable must not masquerade as a visual diff.
+ */
+export async function assertMetadataLoaded(page: Page): Promise<void> {
+  const fallback = page.getByText("Error loading application metadata", {
+    exact: false
+  });
+  if ((await fallback.count()) > 0) {
+    throw new Error(
+      `App failed to load node metadata — the seeded backend is unreachable or ` +
+        `returned an error, so the page is the metadata fallback, not the UI ` +
+        `under test.\nURL: ${page.url()}`
+    );
+  }
+}
+
+/**
  * Wait for the "Loading NodeTool…" overlay (shown until /api/nodes/metadata
  * resolves) to disappear, then a short network-idle + animation settle.
  */
@@ -230,6 +249,7 @@ export async function waitForAppReady(page: Page): Promise<void> {
   await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => {});
   await waitForAnimation(page, 600);
   await assertNoErrorBoundary(page);
+  await assertMetadataLoaded(page);
 }
 
 /**
