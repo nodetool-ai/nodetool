@@ -39,6 +39,23 @@ These apply to **every** deployment, regardless of environment:
 - **Never commit `.env` files** with secrets. Add `.env` to `.gitignore`.
 - Provide the encryption master key (`SECRETS_MASTER_KEY`) on every server so they share one key, and store all other deployment secrets in your platform's secrets manager.
 
+### Local File Access
+
+The file browser (tRPC `files.list`) and the preview stream
+(`GET /api/files/local`) read the server's own filesystem. Both are off when
+`NODETOOL_ENV=production`, and outside production both resolve paths against an
+allowlist of roots — the user's home directory unless
+`NODETOOL_LOCAL_FILE_ROOTS` overrides it (platform-delimited, like `PATH`).
+Sensitive entries under home (`.ssh`, `.aws`, `.gnupg`, `.kube`, `.docker`,
+`.config/gcloud`, `.netrc`, `.pgpass`, `.npmrc`) are refused inside a root, and
+symlinks that leave the roots are refused too.
+
+- **Keep the roots narrow.** Widen `NODETOOL_LOCAL_FILE_ROOTS` only to the
+  directories that actually hold media you preview — an external volume, a
+  scratch dir — never to `/`.
+- **Set `NODETOOL_ENV=production`** on any deployment more than one person can
+  reach, which disables both surfaces outright.
+
 ### Resource Limits
 
 - **Set container resource limits**: Use `mem_limit` and `cpus` to prevent runaway workloads.

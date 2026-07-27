@@ -11,12 +11,15 @@
  */
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import * as os from "node:os";
 import {
   corsHeaders,
   nodeStreamToWebStream,
   parseRangeHeader
 } from "./storage-api.js";
+import {
+  localPathDenialMessage,
+  resolveLocalPath
+} from "./lib/local-file-access.js";
 
 function errorResponse(status: number, detail: string): Response {
   return new Response(JSON.stringify({ detail }), {
@@ -51,32 +54,6 @@ const LOCAL_MIME_TYPES: Record<string, string> = {
   ".json": "application/json"
 };
 
-// Files that are never a legitimate part of a preview flow — refuse them even
-// though this endpoint is dev/desktop-only. Mirrors the Electron main-process
-// denylist so the two file-read surfaces stay consistent.
-const SENSITIVE_HOME_ENTRIES = [
-  ".ssh",
-  ".aws",
-  ".gnupg",
-  ".kube",
-  ".docker",
-  ".config/gcloud",
-  ".netrc",
-  ".pgpass",
-  ".npmrc"
-];
-
-function isDeniedPath(resolved: string): boolean {
-  const home = os.homedir();
-  for (const entry of SENSITIVE_HOME_ENTRIES) {
-    const forbidden = path.resolve(home, entry);
-    if (resolved === forbidden || resolved.startsWith(forbidden + path.sep)) {
-      return true;
-    }
-  }
-  return false;
-}
-
 function localMimeType(filePath: string): string {
   return (
     LOCAL_MIME_TYPES[path.extname(filePath).toLowerCase()] ??
@@ -90,28 +67,16 @@ async function handleLocalFileStream(
 ): Promise<Response> {
   const userPath = url.searchParams.get("path");
   if (!userPath) return errorResponse(400, "path parameter is required");
-  if (userPath.includes("\0")) return errorResponse(400, "Invalid path");
 
-  const resolved = path.resolve(userPath);
-  if (!path.isAbsolute(resolved)) {
-    return errorResponse(400, "Path must be absolute");
+  // Allowlist, not denylist: the path must resolve inside a configured root
+  // (home by default), both lexically and after symlinks. Same policy the
+  // tRPC file browser applies — see lib/local-file-access.ts.
+  const allowed = await resolveLocalPath(userPath);
+  if (!allowed.ok) {
+    const status = allowed.reason === "invalid" ? 400 : 403;
+    return errorResponse(status, localPathDenialMessage(allowed.reason));
   }
-  if (isDeniedPath(resolved)) {
-    return errorResponse(403, "Access to this path is not permitted");
-  }
-
-  // Re-run the denylist against the symlink-resolved path: a symlink at a
-  // non-denied location (e.g. /tmp/x -> ~/.ssh/id_rsa) passes the lexical check
-  // above but the stat/stream below follow it. A missing file still 404s.
-  let realResolved: string;
-  try {
-    realResolved = await fs.realpath(resolved);
-  } catch {
-    return errorResponse(404, "File not found");
-  }
-  if (isDeniedPath(realResolved)) {
-    return errorResponse(403, "Access to this path is not permitted");
-  }
+  const resolved = allowed.path;
 
   let stat: Awaited<ReturnType<typeof fs.stat>>;
   try {

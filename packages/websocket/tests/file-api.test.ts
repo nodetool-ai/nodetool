@@ -17,10 +17,14 @@ beforeEach(async () => {
   tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "file-api-test-"));
   // Remove production flag
   delete process.env["NODETOOL_ENV"];
+  // The endpoint only serves paths inside the configured roots (home by
+  // default); point them at the fixture dir for these tests.
+  process.env["NODETOOL_LOCAL_FILE_ROOTS"] = tmpDir;
 });
 
 afterEach(async () => {
   await fs.rm(tmpDir, { recursive: true, force: true });
+  delete process.env["NODETOOL_LOCAL_FILE_ROOTS"];
   vi.restoreAllMocks();
 });
 
@@ -108,9 +112,57 @@ describe("/api/files/local", () => {
   });
 
   it("denies sensitive home paths (e.g. ~/.ssh)", async () => {
+    // Sensitive entries are refused even when home is an allowed root.
+    process.env["NODETOOL_LOCAL_FILE_ROOTS"] = os.homedir();
     const sshKey = path.join(os.homedir(), ".ssh", "id_rsa");
     const res = await handleFileRequest(localRequest(sshKey));
     expect(res.status).toBe(403);
+  });
+
+  it("denies a path outside the allowed roots", async () => {
+    const res = await handleFileRequest(localRequest("/etc/passwd"));
+    expect(res.status).toBe(403);
+    expect((await res.json()).detail).toContain("outside the allowed roots");
+  });
+
+  it("defaults the root to the home directory", async () => {
+    delete process.env["NODETOOL_LOCAL_FILE_ROOTS"];
+    const file = path.join(tmpDir, "clip.mp4");
+    await fs.writeFile(file, "video-bytes");
+    // tmpDir is outside home, so the default policy refuses it.
+    const res = await handleFileRequest(localRequest(file));
+    expect(res.status).toBe(403);
+  });
+
+  it("denies a symlink that escapes the roots", async () => {
+    const link = path.join(tmpDir, "escape.txt");
+    await fs.symlink("/etc/passwd", link);
+    const res = await handleFileRequest(localRequest(link));
+    expect(res.status).toBe(403);
+  });
+
+  it("denies a path that escapes through a symlinked parent", async () => {
+    const linkDir = path.join(tmpDir, "outside");
+    await fs.symlink("/etc", linkDir);
+    const res = await handleFileRequest(
+      localRequest(path.join(linkDir, "passwd"))
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it("allows multiple configured roots", async () => {
+    const otherDir = await fs.mkdtemp(path.join(os.tmpdir(), "file-api-alt-"));
+    try {
+      process.env["NODETOOL_LOCAL_FILE_ROOTS"] = [tmpDir, otherDir].join(
+        path.delimiter
+      );
+      const file = path.join(otherDir, "clip.mp4");
+      await fs.writeFile(file, "video-bytes");
+      const res = await handleFileRequest(localRequest(file));
+      expect(res.status).toBe(200);
+    } finally {
+      await fs.rm(otherDir, { recursive: true, force: true });
+    }
   });
 
   it("rejects non-GET/HEAD methods", async () => {

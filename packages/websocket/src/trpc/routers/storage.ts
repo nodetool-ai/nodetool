@@ -2,14 +2,13 @@
  * tRPC router for the storage domain — JSON ops only.
  * Binary PUT/GET stay as REST (/api/storage/*).
  */
-import path from "node:path";
 import { loadAssetStorageConfig } from "@nodetool-ai/config";
 import { createAssetUrlBuilder } from "@nodetool-ai/storage";
-import { Asset } from "@nodetool-ai/models";
 
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
+import { callerOwnsStorageKey } from "../../lib/storage-access.js";
 import {
   signUrlInput,
   signUrlOutput
@@ -28,32 +27,6 @@ function validateStorageKey(key: string): string | null {
   if (parts.some((p) => p === ".."))
     return "Key must not contain path traversal";
   return null; // valid
-}
-
-// Asset files are stored flat as `{assetId}.{ext}` and `{assetId}_thumb.jpg`.
-// Derive the owning asset id from a storage key so operations can be scoped to
-// the caller — the storage dir is a single shared bucket with no per-user
-// prefix, so without this any authenticated user could enumerate/read/delete
-// every other user's asset files (IDOR).
-function assetIdFromKey(key: string): string | null {
-  const base = path.basename(key.replace(/\\/g, "/"));
-  const withoutExt = base.replace(/\.[^.]+$/, "");
-  const id = withoutExt.replace(/_thumb$/, "");
-  return id || null;
-}
-
-// Verifies the key references an asset owned by `userId`. Returns false (fail
-// closed) for keys that don't map to an owned asset, so a traversal-clean but
-// foreign key can't be read or deleted.
-async function callerOwnsKey(userId: string, key: string): Promise<boolean> {
-  const assetId = assetIdFromKey(key);
-  if (!assetId) return false;
-  try {
-    return (await Asset.find(userId, assetId)) !== null;
-  } catch {
-    // Fail closed: deny when ownership can't be verified.
-    return false;
-  }
 }
 
 // ── URL builder (lazy, cached per backend kind) ───────────────────────────────
@@ -81,7 +54,7 @@ export const storageRouter = router({
       if (validationError) {
         throwApiError(ApiErrorCode.INVALID_INPUT, validationError);
       }
-      if (!(await callerOwnsKey(ctx.userId, input.key))) {
+      if (!(await callerOwnsStorageKey(ctx.userId, input.key))) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Object not found");
       }
       const url = await getUrlBuilder()(input.key);

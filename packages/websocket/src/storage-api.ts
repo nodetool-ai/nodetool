@@ -1,13 +1,13 @@
 /**
- * Storage REST API — binary PUT/GET/HEAD only.
+ * Storage REST API — binary GET/HEAD only.
  * JSON ops (list, metadata, delete) have moved to the tRPC `storage` router.
  */
 import { createReadStream } from "node:fs";
-import { mkdir, stat, writeFile } from "node:fs/promises";
+import { stat } from "node:fs/promises";
 import path, { extname } from "node:path";
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
-import { getMaxUploadBytes } from "@nodetool-ai/storage";
 import { resolveAllowedOrigin } from "./cors.js";
+import { canReadStorageKey } from "./lib/storage-access.js";
 
 // ── MIME types ────────────────────────────────────────────────────
 
@@ -190,6 +190,29 @@ async function handleStorageRequest(
     });
   }
 
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    // Read-only surface. PUT used to write any key, which — with a shared
+    // storage directory keyed only by asset id — let one tenant overwrite
+    // another's asset bytes. Nothing ever called it: bytes are written
+    // in-process through the storage adapter (asset upload, workflow
+    // outputs), never over HTTP. DELETE moved to tRPC `storage.delete`.
+    return new Response(JSON.stringify({ detail: "Method not allowed" }), {
+      status: 405,
+      headers: { ...cors, "content-type": "application/json" }
+    });
+  }
+
+  // The storage directory is one flat bucket, so the key alone says nothing
+  // about who owns the bytes. 404 rather than 403 on a foreign key: the
+  // caller shouldn't learn which asset ids exist.
+  const userId = request.headers.get("x-user-id") ?? "1";
+  if (!(await canReadStorageKey(userId, key))) {
+    return new Response(JSON.stringify({ detail: "Not found" }), {
+      status: 404,
+      headers: { ...cors, "content-type": "application/json" }
+    });
+  }
+
   const filePath = resolveStoragePath(rootDir, key);
 
   // HEAD
@@ -213,119 +236,77 @@ async function handleStorageRequest(
   }
 
   // GET
-  if (request.method === "GET") {
-    let fileStat: Awaited<ReturnType<typeof stat>>;
-    try {
-      fileStat = await stat(filePath);
-    } catch {
-      return new Response(JSON.stringify({ detail: "Not found" }), {
-        status: 404,
-        headers: { ...cors, "content-type": "application/json" }
-      });
+  let fileStat: Awaited<ReturnType<typeof stat>>;
+  try {
+    fileStat = await stat(filePath);
+  } catch {
+    return new Response(JSON.stringify({ detail: "Not found" }), {
+      status: 404,
+      headers: { ...cors, "content-type": "application/json" }
+    });
+  }
+
+  const mtime = fileStat.mtime;
+  const lastModified = mtime.toUTCString();
+  const fileSize = fileStat.size;
+  const contentType = getMimeType(filePath);
+
+  // If-Modified-Since check
+  const ifModifiedSince = request.headers.get("If-Modified-Since");
+  if (ifModifiedSince) {
+    const ifModifiedSinceDate = new Date(ifModifiedSince);
+    if (
+      !Number.isNaN(ifModifiedSinceDate.getTime()) &&
+      mtime <= ifModifiedSinceDate
+    ) {
+      return new Response(null, { status: 304, headers: cors });
     }
+  }
 
-    const mtime = fileStat.mtime;
-    const lastModified = mtime.toUTCString();
-    const fileSize = fileStat.size;
-    const contentType = getMimeType(filePath);
-
-    // If-Modified-Since check
-    const ifModifiedSince = request.headers.get("If-Modified-Since");
-    if (ifModifiedSince) {
-      const ifModifiedSinceDate = new Date(ifModifiedSince);
-      if (
-        !Number.isNaN(ifModifiedSinceDate.getTime()) &&
-        mtime <= ifModifiedSinceDate
-      ) {
-        return new Response(null, { status: 304, headers: cors });
+  // Range request
+  const rangeHeader = request.headers.get("Range");
+  const range = rangeHeader ? parseRangeHeader(rangeHeader, fileSize) : null;
+  // A parsed-but-unsatisfiable range → 416. An unparseable/unsupported header
+  // (range === null while a header was present) is ignored and the full file
+  // is served with 200, per RFC 7233.
+  if (range === "unsatisfiable") {
+    return new Response(JSON.stringify({ detail: "Range Not Satisfiable" }), {
+      status: 416,
+      headers: {
+        ...cors,
+        "content-type": "application/json",
+        "Content-Range": `bytes */${fileSize}`
       }
-    }
-
-    // Range request
-    const rangeHeader = request.headers.get("Range");
-    const range = rangeHeader
-      ? parseRangeHeader(rangeHeader, fileSize)
-      : null;
-    // A parsed-but-unsatisfiable range → 416. An unparseable/unsupported header
-    // (range === null while a header was present) is ignored and the full file
-    // is served with 200, per RFC 7233.
-    if (range === "unsatisfiable") {
-      return new Response(JSON.stringify({ detail: "Range Not Satisfiable" }), {
-        status: 416,
-        headers: {
-          ...cors,
-          "content-type": "application/json",
-          "Content-Range": `bytes */${fileSize}`
-        }
-      });
-    }
-    if (range) {
-      const { start, end } = range;
-      const chunkSize = end - start + 1;
-      const body = nodeStreamToWebStream(filePath, { start, end });
-      return new Response(body, {
-        status: 206,
-        headers: {
-          ...cors,
-          "Content-Type": contentType,
-          "Content-Length": String(chunkSize),
-          "Content-Range": `bytes ${start}-${end}/${fileSize}`,
-          "Last-Modified": lastModified,
-          "Accept-Ranges": "bytes"
-        }
-      });
-    }
-
-    // Full file
-    const body = nodeStreamToWebStream(filePath);
+    });
+  }
+  if (range) {
+    const { start, end } = range;
+    const chunkSize = end - start + 1;
+    const body = nodeStreamToWebStream(filePath, { start, end });
     return new Response(body, {
-      status: 200,
+      status: 206,
       headers: {
         ...cors,
         "Content-Type": contentType,
-        "Content-Length": String(fileSize),
+        "Content-Length": String(chunkSize),
+        "Content-Range": `bytes ${start}-${end}/${fileSize}`,
         "Last-Modified": lastModified,
         "Accept-Ranges": "bytes"
       }
     });
   }
 
-  // PUT
-  if (request.method === "PUT") {
-    const max = getMaxUploadBytes();
-    const tooLarge = (size: number): Response =>
-      new Response(
-        JSON.stringify({
-          detail:
-            `Upload exceeds maximum size: ${size} > ${max} bytes ` +
-            `(set NODETOOL_MAX_UPLOAD_BYTES to raise the limit)`
-        }),
-        {
-          status: 413,
-          headers: { ...cors, "content-type": "application/json" }
-        }
-      );
-
-    // Reject before buffering when the client declares an over-limit size, so a
-    // huge PUT can't force the server to allocate the whole body first.
-    const declaredLength = Number(request.headers.get("content-length"));
-    if (Number.isFinite(declaredLength) && declaredLength > max) {
-      return tooLarge(declaredLength);
+  // Full file
+  const body = nodeStreamToWebStream(filePath);
+  return new Response(body, {
+    status: 200,
+    headers: {
+      ...cors,
+      "Content-Type": contentType,
+      "Content-Length": String(fileSize),
+      "Last-Modified": lastModified,
+      "Accept-Ranges": "bytes"
     }
-
-    // Fall back to a post-read check for chunked bodies with no Content-Length.
-    const bodyBuffer = await request.arrayBuffer();
-    if (bodyBuffer.byteLength > max) {
-      return tooLarge(bodyBuffer.byteLength);
-    }
-    await mkdir(path.dirname(filePath), { recursive: true });
-    await writeFile(filePath, Buffer.from(bodyBuffer));
-    return new Response(null, { status: 200, headers: cors });
-  }
-
-  return new Response(JSON.stringify({ detail: "Method not allowed" }), {
-    status: 405,
-    headers: { ...cors, "content-type": "application/json" }
   });
 }
 
