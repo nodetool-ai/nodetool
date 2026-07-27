@@ -43,8 +43,10 @@ export async function readFileTarget(
 ): Promise<{ raw: unknown; source: "json" | "dsl" }> {
   if (looksLikeDsl(ref)) {
     // DSL file: execute via tsx and capture the emitted JSON workflow.
-    const { execSync } = await import("node:child_process");
-    const output = execSync(`npx tsx "${resolve(ref)}"`, {
+    // execFileSync, not execSync: the path goes through argv, so quotes or
+    // `$(...)` in a file name stay a file name instead of becoming shell.
+    const { execFileSync } = await import("node:child_process");
+    const output = execFileSync("npx", ["tsx", resolve(ref)], {
       encoding: "utf8",
       cwd: dirname(resolve(ref)),
       timeout: 30000
