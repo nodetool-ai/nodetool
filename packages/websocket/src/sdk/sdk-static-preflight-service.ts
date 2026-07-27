@@ -473,15 +473,16 @@ export function buildSdkV1StaticPreflight(
   );
 
   const graphReport = validateGraph(options.graph, options.registry);
-  issues.push(
-    ...graphReport.issues.map((issue) => ({
+  for (const issue of graphReport.issues) {
+    if (issue.severity === "info") continue;
+    issues.push({
       severity: issue.severity,
       code: `graph_${issue.code}`,
       message: issue.message,
       node_id: issue.nodeId ?? null,
       pin_name: null
-    }))
-  );
+    });
+  }
 
   return sdkV1PreflightSummary.parse({
     version: 1,
