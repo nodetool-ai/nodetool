@@ -14,7 +14,7 @@
  * a discoverable registration id and the toggle can arm a trigger that has
  * never been enabled before.
  */
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Popover,
   ToolbarIconButton,
@@ -37,6 +37,7 @@ import BoltIcon from "@mui/icons-material/Bolt";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { useNodes } from "../../contexts/NodeContext";
+import isEqual from "../../utils/isEqual";
 import {
   useWorkflowTriggers,
   useSetTriggerEnabled,
@@ -181,7 +182,8 @@ const TriggerActivationButton: React.FC = () => {
         .map((n) => ({
           nodeId: n.id,
           kind: TRIGGER_KIND_BY_NODE_TYPE[n.type as string] ?? "manual"
-        }))
+        })),
+    isEqual
   );
   const hasTriggerNodes = triggerNodes.length > 0;
 
@@ -201,7 +203,7 @@ const TriggerActivationButton: React.FC = () => {
   );
   const handleClose = useCallback(() => setAnchorEl(null), []);
 
-  const enabledCount = rows.filter((r) => r.enabled).length;
+  const enabledCount = useMemo(() => rows.filter((r) => r.enabled).length, [rows]);
   const state: ActivationState = isLoading
     ? "loading"
     : isError

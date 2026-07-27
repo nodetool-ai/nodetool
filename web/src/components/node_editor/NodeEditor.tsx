@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useState, useRef, useEffect } from "react";
+import { memo, useMemo, useState, useRef, useEffect } from "react";
 
 import {
   LoadingSpinner,
@@ -63,6 +63,28 @@ interface NodeEditorProps {
 
 const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const theme = useTheme();
+  const editorBgStyle = useMemo<React.CSSProperties>(
+    () => ({ backgroundColor: theme.vars.palette.c_editor_bg_color }),
+    [theme.vars.palette.c_editor_bg_color]
+  );
+  const shortcutsModalSx = useMemo(
+    () => ({
+      position: "absolute" as const,
+      top: "250px",
+      left: "50%",
+      transform: "translateX(-50%)",
+      width: "80vw",
+      maxWidth: "1400px",
+      padding: 4,
+      backgroundColor: theme.vars.palette.grey[800],
+      boxShadow: 24,
+      borderRadius: BORDER_RADIUS.lg,
+      border: 0,
+      outline: 0,
+      overflow: "hidden"
+    }),
+    [theme.vars.palette.grey]
+  );
   /* USE STORE */
   const { isUploading } = useAssetUpload();
   // Use getSelectedNodeCount to avoid re-renders when nodes are moved (getSelectedNodes returns new array reference on move)
@@ -182,9 +204,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           ref={reactFlowWrapperRef}
           className="node-editor"
           css={generateCSS}
-          style={{
-            backgroundColor: theme.vars.palette.c_editor_bg_color
-          }}
+          style={editorBgStyle}
         >
           {isUploading && (
             <div className="loading-overlay">
@@ -223,21 +243,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 closeAfterTransition
               >
                 <Box
-                  sx={{
-                    position: "absolute",
-                    top: "250px",
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    width: "80vw",
-                    maxWidth: "1400px",
-                    padding: 4,
-                    backgroundColor: theme.vars.palette.grey[800],
-                    boxShadow: 24,
-                    borderRadius: BORDER_RADIUS.lg,
-                    border: 0,
-                    outline: 0,
-                    overflow: "hidden"
-                  }}
+                  sx={shortcutsModalSx}
                 >
                   <KeyboardShortcutsView shortcuts={NODE_EDITOR_SHORTCUTS} />
                 </Box>
