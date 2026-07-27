@@ -7,6 +7,7 @@ import React, {
   useState,
   type DragEvent
 } from "react";
+import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -25,6 +26,7 @@ import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import NotificationButton from "../panels/NotificationButton";
 import OpenMenu from "./OpenMenu";
 import WorkspaceTabItem from "./WorkspaceTabItem";
+import MobileDocumentSelector from "./MobileDocumentSelector";
 
 /** Whether a document type supports both View and Edit (vs view-only). */
 const SUPPORTS_BOTH_MODES: Record<WorkspaceTabType, boolean> = {
@@ -266,15 +268,12 @@ const styles = (theme: Theme) =>
     },
 
     // Mobile: no left rail to clear, and the bar grows to 48px so the global
-    // 44px touch-target minimum fits inside it. Text labels drop to icons.
+    // 44px touch-target minimum fits inside it. The tab strip is replaced by a
+    // single document selector (see MobileDocumentSelector); text labels drop
+    // to icons.
     [theme.breakpoints.down("sm")]: {
       height: "48px",
       paddingLeft: 0,
-      "& .tab": {
-        minWidth: "96px",
-        maxWidth: "160px",
-        padding: `0 ${getSpacingPx(SPACING.sm)} 0 ${getSpacingPx(SPACING.md)}`
-      },
       "& .new-tab": {
         padding: `0 ${getSpacingPx(SPACING.md)}`
       },
@@ -288,6 +287,7 @@ const styles = (theme: Theme) =>
 const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   const theme = useTheme();
   const tabBarStyles = useMemo(() => styles(theme), [theme]);
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const tabs = useWorkspaceTabsStore((state) => state.tabs);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
   const setActiveTab = useWorkspaceTabsStore((state) => state.setActiveTab);
@@ -524,31 +524,45 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
           ▾
         </span>
       </button>
-      <div className="tabs">
-        {tabs.map((tab) => (
-          <WorkspaceTabItem
-            key={tab.id}
-            tab={tab}
-            isActive={tab.id === activeTabId}
-            isEditing={editingTabId === tab.id}
-            canRename={RENAMEABLE_TYPES.has(tab.type)}
-            dropPosition={dropTarget?.id === tab.id ? dropTarget.position : null}
-            typeColor={TYPE_COLOR[tab.type]}
-            typeGlyph={TYPE_GLYPH[tab.type]}
-            onActivate={setActiveTab}
-            onBeginRename={handleBeginRename}
-            onClose={handleClose}
-            onCloseOthers={handleCloseOthers}
-            onCloseAll={handleCloseAll}
-            onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onCommitRename={commitRename}
-            onCancelRename={handleCancelRename}
-          />
-        ))}
-      </div>
+      {isMobile ? (
+        <MobileDocumentSelector
+          tabs={tabs}
+          activeTabId={activeTabId}
+          typeColor={TYPE_COLOR}
+          typeGlyph={TYPE_GLYPH}
+          onActivate={setActiveTab}
+          onClose={handleClose}
+          onCloseAll={handleCloseAll}
+        />
+      ) : (
+        <div className="tabs">
+          {tabs.map((tab) => (
+            <WorkspaceTabItem
+              key={tab.id}
+              tab={tab}
+              isActive={tab.id === activeTabId}
+              isEditing={editingTabId === tab.id}
+              canRename={RENAMEABLE_TYPES.has(tab.type)}
+              dropPosition={
+                dropTarget?.id === tab.id ? dropTarget.position : null
+              }
+              typeColor={TYPE_COLOR[tab.type]}
+              typeGlyph={TYPE_GLYPH[tab.type]}
+              onActivate={setActiveTab}
+              onBeginRename={handleBeginRename}
+              onClose={handleClose}
+              onCloseOthers={handleCloseOthers}
+              onCloseAll={handleCloseAll}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onCommitRename={commitRename}
+              onCancelRename={handleCancelRename}
+            />
+          ))}
+        </div>
+      )}
 
       <OpenMenu
         anchorEl={newTabButtonRef.current}
