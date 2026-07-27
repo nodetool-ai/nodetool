@@ -57,11 +57,10 @@ export default function OwnershipSection({
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Every closed AI tool ends the same way: a price hike, fewer
-            models, or an acquisition that quietly rewrites the roadmap.
-            NodeTool calls whatever models you choose, charges you what the
-            providers charge, and ships under a license that outlives whoever
-            built it.
+            Every closed AI tool ends the same way: a price rise, fewer models,
+            or an acquisition that quietly rewrites the roadmap. NodeTool runs
+            whichever models you choose, charges you what the providers charge,
+            and is released under a license that outlives whoever built it.
           </motion.p>
         </div>
 

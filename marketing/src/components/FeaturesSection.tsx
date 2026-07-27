@@ -61,6 +61,7 @@ export default function FeaturesSection({
           >
             Image, video, audio, and text on a single visual canvas, with the
             editing tools you already rely on sitting right next to the models.
+            You direct the whole piece instead of generating parts of it.
           </motion.p>
         </div>
 

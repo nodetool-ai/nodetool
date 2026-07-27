@@ -14,7 +14,7 @@ export default function ComparisonSection({
     <section
       id="differences"
       aria-labelledby="differences-title"
-      className="relative py-24"
+      className="relative py-24 scroll-mt-24"
     >
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
         <header className="scroll-fade mb-14 max-w-3xl">

@@ -68,7 +68,7 @@ export default function BuildRunDeploy() {
           title="Edit and finish"
           icon={<Wand2 className="h-6 w-6" />}
           accent="amber"
-          description="Drop the generated image or clip into the built-in editors. Crop, mask, cut, and arrange on the timeline — no export, no second app."
+          description="Send the image or clip straight into the built-in editors. Crop, mask, cut, and arrange on the timeline. Nothing to export, no second app to open."
         >
           <EditVisual />
         </Card>

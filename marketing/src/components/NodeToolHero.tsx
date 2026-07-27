@@ -19,25 +19,26 @@ export default function NodeToolHero() {
         <div className="hero-rise lg:col-span-5">
           <span className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-300">
             <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
-            Free &amp; Open Source
+            The open creative AI workspace &middot; Free &amp; open source
           </span>
 
           <h1
             id="hero-title"
             className="mt-6 text-5xl font-bold leading-[1.05] tracking-tight text-white md:text-6xl"
           >
-            The open creative
+            One canvas.
+            <br />
+            Every model.
             <br />
             <span className="bg-gradient-to-r from-rose-400 via-fuchsia-400 to-amber-300 bg-clip-text text-transparent">
-              AI workspace.
+              Your keys.
             </span>
           </h1>
 
           <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-300 md:text-lg">
-            Make films, posters, product videos, and music on a single visual
-            canvas, using every major model from every major provider. You bring
-            your own keys and pay provider prices. When a new model arrives, you
-            switch to it in one click.
+            Make films, posters, product videos, and music without credit
+            systems, markups, or lock-in. Stay in one place from the first idea
+            to the final cut.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
