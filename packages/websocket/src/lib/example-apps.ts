@@ -60,10 +60,14 @@ export function resolveExampleAppsDir(
 }
 
 function readBundle(dir: string, file: string): ApplicationBundle | null {
+  // Callers only pass names that came out of readdirSync, but resolve and
+  // check containment anyway so no future caller can read outside the
+  // examples directory by passing a path-shaped name.
+  const root = nodePath.resolve(dir);
+  const target = nodePath.resolve(root, file);
+  if (target !== root && !target.startsWith(root + nodePath.sep)) return null;
   try {
-    return parseApplicationBundle(
-      JSON.parse(readFileSync(nodePath.join(dir, file), "utf8"))
-    );
+    return parseApplicationBundle(JSON.parse(readFileSync(target, "utf8")));
   } catch {
     return null;
   }
