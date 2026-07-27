@@ -29,7 +29,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { describeTriggerDisabledReason } from '@nodetool-ai/protocol';
+import { describeTriggerDisabledReason } from '@nodetool-ai/protocol/triggers';
 
 import { RootStackParamList } from '../navigation/types';
 import { trpc } from '../trpc/client';

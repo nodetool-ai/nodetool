@@ -30,6 +30,9 @@
       ],
       "@nodetool-ai/gpu": [
         "../packages/gpu/src/index.ts"
+      ],
+      "@nodetool-ai/protocol/triggers": [
+        "../packages/protocol/src/triggers.ts"
       ]
     }
   },

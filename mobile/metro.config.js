@@ -36,6 +36,8 @@ const timelineRoot = path.resolve(repoRoot, "packages/timeline");
 const timelineSrc = path.join(timelineRoot, "src");
 const gpuRoot = path.resolve(repoRoot, "packages/gpu");
 const gpuSrc = path.join(gpuRoot, "src");
+const protocolRoot = path.resolve(repoRoot, "packages/protocol");
+const protocolSrc = path.join(protocolRoot, "src");
 
 /** Package entry points compiled from source, and the src roots they live in. */
 const SOURCE_PACKAGES = [
@@ -44,12 +46,35 @@ const SOURCE_PACKAGES = [
   { name: "@nodetool-ai/gpu", src: gpuSrc },
 ];
 
+/**
+ * Single modules compiled from source, mapped straight to their file.
+ *
+ * `protocol`'s entry point re-exports `toolSchemas`, which pulls in `zod` — a
+ * dependency mobile does not have and does not want in the bundle for one
+ * string helper. The modules named here are dependency-free, so they are wired
+ * individually rather than through the package root. Import them in `mobile/`
+ * by the same deep specifier.
+ */
+const SOURCE_MODULES = {
+  "@nodetool-ai/protocol/triggers": path.join(protocolSrc, "triggers.ts"),
+};
+
 const config = getDefaultConfig(projectRoot);
 
 config.projectRoot = projectRoot;
-config.watchFolders = [projectRoot, appRuntimeRoot, timelineRoot, gpuRoot];
+config.watchFolders = [
+  projectRoot,
+  appRuntimeRoot,
+  timelineRoot,
+  gpuRoot,
+  protocolRoot,
+];
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
+  const modulePath = SOURCE_MODULES[moduleName];
+  if (modulePath) {
+    return { type: "sourceFile", filePath: modulePath };
+  }
   const entry = SOURCE_PACKAGES.find((pkg) => pkg.name === moduleName);
   if (entry) {
     return { type: "sourceFile", filePath: path.join(entry.src, "index.ts") };
