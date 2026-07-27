@@ -4,7 +4,8 @@ import type { TypeMetadata } from "../../stores/ApiTypes";
 import type { DynamicSlotDeclaration } from "../../stores/NodeData";
 import {
   defaultValueForType,
-  normalizeDynamicSlots
+  normalizeDynamicSlots,
+  valueFitsType
 } from "../../utils/dynamicSlots";
 
 export interface UseDynamicPropertyResult {
@@ -109,15 +110,16 @@ export const useDynamicProperty = (
       };
 
       // Reseed the inline value when the old one can't be a value of the new
-      // type (a `str` left in an `image` slot renders as a broken editor).
+      // type (a `str` left in an `image` slot renders as a broken editor, an
+      // image ref left in an `audio` slot makes the runner throw). The check
+      // is the runner's own, so what the editor keeps is what the run accepts.
       const previous = dynamicProperties[propertyName];
-      const seeded = defaultValueForType(type);
-      const keepValue = typeof previous === typeof seeded && previous !== null;
+      const keepValue = previous !== undefined && valueFitsType(previous, type);
 
       updateNodeData(nodeId, {
         dynamic_properties: {
           ...dynamicProperties,
-          [propertyName]: keepValue ? previous : seeded
+          [propertyName]: keepValue ? previous : defaultValueForType(type)
         },
         dynamic_inputs: updatedSlots
       });

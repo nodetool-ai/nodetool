@@ -22,7 +22,8 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { Property, TypeMetadata } from "../../stores/ApiTypes";
 import {
   defaultValueForType,
-  normalizeDynamicSlots
+  normalizeDynamicSlots,
+  valueFitsType
 } from "../../utils/dynamicSlots";
 import {
   allowedSlotTypes,
@@ -159,10 +160,14 @@ const PropertyContextMenuComponent: React.FC = () => {
       if (!node) {
         continue;
       }
+      // Keep a value the new type can still hold — same rule the slot-type
+      // chip applies, so the two entry points agree on one retype.
+      const previous = node.data.dynamic_properties?.[handleId];
+      const keepValue = previous !== undefined && valueFitsType(previous, type);
       updateNodeData(nid, {
         dynamic_properties: {
           ...node.data.dynamic_properties,
-          [handleId]: defaultValueForType(type)
+          [handleId]: keepValue ? previous : defaultValueForType(type)
         },
         dynamic_inputs: {
           ...normalizeDynamicSlots(node.data.dynamic_inputs),

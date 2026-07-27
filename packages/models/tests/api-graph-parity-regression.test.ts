@@ -28,6 +28,7 @@ describe("Python parity — API graph node serialization", () => {
       data: { prompt: "hello" },
       ui_properties: { x: 10, y: 20 },
       dynamic_properties: { model: "gpt" },
+      dynamic_inputs: {},
       dynamic_outputs: { branch_a: { type: "string" } }
     });
   });
@@ -45,6 +46,7 @@ describe("Python parity — API graph node serialization", () => {
       data: {},
       ui_properties: {},
       dynamic_properties: {},
+      dynamic_inputs: {},
       dynamic_outputs: {}
     });
   });
