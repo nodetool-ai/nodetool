@@ -14,7 +14,12 @@
     "lint:eslint:fix": "eslint src --ext .tsx,.ts,.js,.jsx --fix",
     "test": "jest",
     "test:coverage": "jest --coverage",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "eas": "npx --yes --package eas-cli -- eas",
+    "build:dev": "npm run eas -- build --profile development --platform all",
+    "build:preview": "npm run eas -- build --profile preview --platform all",
+    "build:production": "npm run eas -- build --profile production --platform all",
+    "submit:production": "npm run eas -- submit --profile production --platform all --latest"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",

@@ -20,7 +20,12 @@ npm run lint             # oxlint src
 npm run lint:fix         # oxlint --fix
 npm start                # Expo dev server
 npm run ios | android | web
+npm run build:preview    # EAS cloud build (also: build:dev, build:production)
 ```
+
+Cloud builds go through EAS (`eas.json`), by hand with the scripts above or from
+the `EAS Build (mobile)` GitHub workflow, which authenticates with the
+`EAS_TOKEN` secret. See [README.md § Building for Production](README.md#building-for-production).
 
 ## Important: not in the npm workspaces
 

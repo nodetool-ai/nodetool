@@ -26,6 +26,7 @@
 | **chromatic.yml** | PR + push to main (web/Storybook paths) | Component visual regression — builds Storybook, publishes to Chromatic with TurboSnap (`onlyChanged`), surfaces per-story diffs on the PR. Non-blocking (`exitZeroOnChanges`). Needs `CHROMATIC_PROJECT_TOKEN`. |
 | **visual-regression.yml** | PR + push to main (visual suite/web paths) | E2E/page visual regression — Playwright screenshot assertions; uploads HTML report + diffs. Non-blocking while baselines mature. |
 | **release.yaml** | Git tags `v*` + manual | Build and sign cross-platform release artifacts |
+| **eas-build.yml** | Manual + git tags `mobile-v*` (+ config check on mobile config PRs) | Cloud-build the Expo app in `mobile/` on EAS (profile/platform selectable; tags build and submit `production`). Needs `EAS_TOKEN`. |
 | **flatpak-ci.yml** | Push to main + manual | Build Flatpak desktop package |
 | **jekyll.yml** | Push to main + manual | Build and deploy docs site to GitHub Pages |
 | **marketing-ci.yml** | Push/PR touching `marketing/**` | Typecheck, lint, build & Playwright smoke tests for the marketing site; on push to main, deploys it to Cloudflare Workers (OpenNext) after the gates pass |
