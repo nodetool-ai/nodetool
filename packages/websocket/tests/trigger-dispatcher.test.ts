@@ -315,6 +315,108 @@ describe("trigger dispatcher", () => {
     expect(await isProcessed("in-1")).toBe(true);
   });
 
+  describe("acceptance vs. completion", () => {
+    /** A job starter whose runs hang until released, reporting acceptance the
+     * way `startHeadlessJob` does — as soon as the Job row exists. */
+    function hangingJobStarter() {
+      const started: string[] = [];
+      const gates = new Map<string, () => void>();
+      const startJob = vi.fn(
+        async (opts: {
+          workflowId: string;
+          onAccepted?: (jobId: string) => void;
+        }) => {
+          started.push(opts.workflowId);
+          opts.onAccepted?.(`job-${opts.workflowId}`);
+          await new Promise<void>((resolve) =>
+            gates.set(opts.workflowId, resolve)
+          );
+          return okJob(`job-${opts.workflowId}`);
+        }
+      );
+      return {
+        started,
+        startJob,
+        release: (workflowId: string) => gates.get(workflowId)?.()
+      };
+    }
+
+    it("does not hold one registration's dispatch behind another's in-flight run", async () => {
+      await makeRegistration({ workflowId: "wf-A" });
+      await makeRegistration({ workflowId: "wf-B" });
+      const { started, startJob, release } = hangingJobStarter();
+      const handle = startDispatcher({
+        store,
+        startJob,
+        intervalMs: 1_000_000
+      });
+
+      // A's event arrives first and its run hangs.
+      await storeInput(store, "a-1", { runId: "wf-A" });
+      handle.notify();
+      await vi.waitFor(() => expect(started).toEqual(["wf-A"]));
+
+      // B's event arrives while A is still running — it must not wait for A.
+      await storeInput(store, "b-1", { runId: "wf-B" });
+      handle.notify();
+      await vi.waitFor(() => expect(started).toEqual(["wf-A", "wf-B"]));
+
+      release("wf-A");
+      release("wf-B");
+      await handle.drain();
+      handle();
+    });
+
+    it("marks an input processed at acceptance, not at run completion", async () => {
+      await makeRegistration();
+      const { startJob, release } = hangingJobStarter();
+      const handle = startDispatcher({
+        store,
+        startJob,
+        intervalMs: 1_000_000
+      });
+
+      await storeInput(store, "in-1");
+      handle.notify();
+      await vi.waitFor(async () =>
+        expect(await isProcessed("in-1")).toBe(true)
+      );
+
+      release("wf-1");
+      await handle.drain();
+      handle();
+    });
+
+    it("drain() still waits for the runs a pass handed off", async () => {
+      const registration = await makeRegistration();
+      const { startJob, release } = hangingJobStarter();
+      const handle = startDispatcher({
+        store,
+        startJob,
+        intervalMs: 1_000_000
+      });
+
+      await storeInput(store, "in-1");
+      handle.notify();
+      await vi.waitFor(() => expect(startJob).toHaveBeenCalledTimes(1));
+
+      // The run has not settled, so the outcome is not recorded yet.
+      let updated = (await TriggerRegistration.get(
+        registration.id
+      )) as TriggerRegistration;
+      expect(updated.run_count).toBe(0);
+
+      release("wf-1");
+      await handle.drain();
+
+      updated = (await TriggerRegistration.get(
+        registration.id
+      )) as TriggerRegistration;
+      expect(updated.run_count).toBe(1);
+      handle();
+    });
+  });
+
   describe("dispatchInput", () => {
     it("dispatches one stored input immediately and resolves with the job id", async () => {
       await makeRegistration();
@@ -500,6 +602,33 @@ describe("trigger dispatcher", () => {
       expect(updated.last_error).toBe("run failed: boom");
     });
 
+    it("leaves the fire time alone when the run was never accepted", async () => {
+      // `startJob` rejecting means no run happened at all — a missing workflow,
+      // a DB hiccup. Stamping made the editor report "Last fired: just now" for
+      // a webhook that has never once delivered.
+      const registration = await makeRegistration({ kind: "webhook" });
+      await storeInput(store, "in-1");
+
+      const dispatcher = createTriggerDispatcher({
+        store,
+        startJob: async () => {
+          throw new Error("Workflow not found: wf-1");
+        }
+      });
+      await dispatcher.runOnce();
+
+      const updated = (await TriggerRegistration.get(
+        registration.id
+      )) as TriggerRegistration;
+      expect(updated.last_fired_at).toBeNull();
+      expect(updated.last_error).toBe(
+        "dispatch failed: Workflow not found: wf-1"
+      );
+      expect(updated.consecutive_failures).toBe(1);
+      // Still unprocessed, so the next tick redelivers it.
+      expect(await isProcessed("in-1")).toBe(false);
+    });
+
     it.each(["schedule", "file_watch"])(
       "leaves a %s registration's fire time alone — its adapter stamped it",
       async (kind) => {
@@ -538,7 +667,9 @@ describe("trigger dispatcher", () => {
         }
       });
       const pass = dispatcher.runOnce();
-      await vi.waitFor(async () => expect(await isProcessed("in-2")).toBe(true));
+      await vi.waitFor(async () =>
+        expect(await isProcessed("in-2")).toBe(true)
+      );
 
       // in-2 has been dropped while in-1's run is still in flight: a dropped
       // event is not a fire, so nothing has been stamped yet.

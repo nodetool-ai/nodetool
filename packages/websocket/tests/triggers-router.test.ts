@@ -111,9 +111,7 @@ describe("triggers router", () => {
         inputId: expect.any(String),
         payload: { test: "data" }
       });
-      expect(dispatchInput).toHaveBeenCalledWith(
-        expect.any(String)
-      );
+      expect(dispatchInput).toHaveBeenCalledWith(expect.any(String));
     });
 
     it("throws NOT_FOUND when registration is owned by another user", async () => {
@@ -152,6 +150,31 @@ describe("triggers router", () => {
       });
     });
 
+    it("refuses a disabled registration without storing an input", async () => {
+      // Delivering first and rejecting afterwards left the input durably
+      // stored but unprocessed — a pass only scans enabled registrations — so
+      // it fired as a surprise the moment someone re-armed the trigger.
+      const reg = makeTriggerRegistration({ id: "reg-1", enabled: 0 });
+      (TriggerRegistration.get as ReturnType<typeof vi.fn>).mockResolvedValue(
+        reg
+      );
+      const mockWakeupService = {
+        deliverTriggerInput: vi.fn().mockResolvedValue(true)
+      };
+      (getTriggerWakeupService as ReturnType<typeof vi.fn>).mockReturnValue(
+        mockWakeupService
+      );
+
+      const caller = createCaller(makeCtx());
+
+      await expect(
+        caller.triggers.fire({ registrationId: "reg-1", payload: {} })
+      ).rejects.toThrow(/not active/);
+
+      expect(mockWakeupService.deliverTriggerInput).not.toHaveBeenCalled();
+      expect(dispatchInput).not.toHaveBeenCalled();
+    });
+
     it("uses idempotencyKey when provided to avoid duplicate runs", async () => {
       const reg = makeTriggerRegistration({
         id: "reg-1",
@@ -183,9 +206,9 @@ describe("triggers router", () => {
       expect(result1.job_id).toBe("job-123");
 
       // Get the inputId from the first call
-      const firstCall =
-        (mockWakeupService.deliverTriggerInput as ReturnType<typeof vi.fn>)
-          .mock.calls[0];
+      const firstCall = (
+        mockWakeupService.deliverTriggerInput as ReturnType<typeof vi.fn>
+      ).mock.calls[0];
       const firstInputId = firstCall[0].inputId;
 
       // Second call with same idempotency key should reuse the same inputId
@@ -193,7 +216,9 @@ describe("triggers router", () => {
       (getTriggerWakeupService as ReturnType<typeof vi.fn>).mockReturnValue(
         mockWakeupService
       );
-      (mockWakeupService.deliverTriggerInput as ReturnType<typeof vi.fn>).mockClear();
+      (
+        mockWakeupService.deliverTriggerInput as ReturnType<typeof vi.fn>
+      ).mockClear();
 
       await caller.triggers.fire({
         registrationId: "reg-1",
@@ -202,9 +227,9 @@ describe("triggers router", () => {
       });
 
       // Should use the same inputId due to idempotency key
-      const secondCall =
-        (mockWakeupService.deliverTriggerInput as ReturnType<typeof vi.fn>)
-          .mock.calls[0];
+      const secondCall = (
+        mockWakeupService.deliverTriggerInput as ReturnType<typeof vi.fn>
+      ).mock.calls[0];
       const secondInputId = secondCall[0].inputId;
 
       expect(firstInputId).toBe(secondInputId);

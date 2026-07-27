@@ -51,6 +51,14 @@ export interface StartHeadlessJobOptions {
   jobName?: string;
   /** Node registry to resolve executors from. Defaults to the bootstrapped server registry. */
   registry?: NodeRegistry;
+  /**
+   * Called once the run is *accepted* — the workflow resolved and the `Job` row
+   * exists — which is long before this function's promise settles on terminal
+   * status. Callers that must not block for the run's whole duration (the
+   * trigger dispatcher) use it as their handoff point. A throwing callback is
+   * swallowed: acceptance reporting must never fail the run.
+   */
+  onAccepted?: (jobId: string) => void;
 }
 
 export type HeadlessJobStatus =
@@ -108,7 +116,8 @@ function normalizeRunnableGraph(graph: {
   });
   const edges = (graph.edges as Array<Record<string, unknown>>)
     .filter(
-      (e) => keep.has(String(e.source ?? "")) && keep.has(String(e.target ?? ""))
+      (e) =>
+        keep.has(String(e.source ?? "")) && keep.has(String(e.target ?? ""))
     )
     .map((edge) => {
       const rawEdgeType = edge.edge_type ?? edge.type;
@@ -185,6 +194,17 @@ export async function startHeadlessJob(
     graph
   })) as Job;
 
+  // The run is accepted from here on: everything above could still reject and
+  // leave the caller free to redeliver, everything below is an executing run.
+  try {
+    options.onAccepted?.(job.id);
+  } catch (err) {
+    log.warn("headless job onAccepted callback threw", {
+      jobId: job.id,
+      error: err instanceof Error ? err.message : String(err)
+    });
+  }
+
   const workspaceDir = await resolveWorkflowWorkspace(workflowId, userId);
   const context = new ProcessingContext({
     jobId: job.id,
@@ -193,9 +213,7 @@ export async function startHeadlessJob(
     secretResolver: getSecret,
     storage: new FileStorageAdapter(getDefaultAssetsPath()),
     workspaceDir,
-    workspaceStorage: workspaceDir
-      ? new FileStorageAdapter(workspaceDir)
-      : null
+    workspaceStorage: workspaceDir ? new FileStorageAdapter(workspaceDir) : null
   });
 
   // Python nodes go through a lazily-connected worker bridge, exactly like the
@@ -231,9 +249,7 @@ export async function startHeadlessJob(
         job_id: job.id,
         workflow_id: workflowId,
         params,
-        ...(options.triggerEvent
-          ? { trigger_event: options.triggerEvent }
-          : {})
+        ...(options.triggerEvent ? { trigger_event: options.triggerEvent } : {})
       },
       hydrateGraphNodeFlags(graph as unknown as GraphData, registry)
     );
