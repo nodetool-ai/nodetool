@@ -16,6 +16,8 @@ import FloatingToolBar from "../panels/FloatingToolBar";
 import QueueOverlay from "../panels/QueueOverlay";
 import StatusMessage from "../panels/StatusMessage";
 import NodeCreateBridge from "../editor/NodeCreateBridge";
+import WorkflowChainSurface from "./WorkflowChainSurface";
+import { useSettingsStore } from "../../stores/SettingsStore";
 import { FlexColumn, LoadingSpinner } from "../ui_primitives";
 
 // Floating editor status message: sits above the canvas and node overlays but
@@ -42,6 +44,9 @@ const WorkflowEditorSurface = ({
   const nodeStore = useWorkflowManager((state) => state.getNodeStore(workflowId));
   const fetchWorkflow = useWorkflowManager((state) => state.fetchWorkflow);
   const closeTab = useWorkspaceTabsStore((state) => state.closeTab);
+  const editorViewMode = useSettingsStore(
+    (state) => state.settings.editorViewMode
+  );
   const [missing, setMissing] = useState(false);
 
   useEffect(() => {
@@ -79,6 +84,8 @@ const WorkflowEditorSurface = ({
     );
   }
 
+  const showChain = active && editorViewMode === "chain";
+
   return (
     <NodeContext.Provider value={nodeStore}>
       <ReactFlowProvider>
@@ -106,7 +113,33 @@ const WorkflowEditorSurface = ({
                   height: "100%"
                 }}
               >
-                <NodeEditor workflowId={workflowId} active={active} />
+                {/* The chain view replaces the canvas for the active tab. The
+                    node editor stays mounted underneath so toggling back keeps
+                    its viewport and transient editor state. */}
+                <div
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    display: showChain ? "none" : undefined
+                  }}
+                >
+                  <NodeEditor workflowId={workflowId} active={active} />
+                </div>
+                {showChain && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      display: "flex",
+                      flexDirection: "column"
+                    }}
+                  >
+                    <WorkflowChainSurface
+                      workflowId={workflowId}
+                      nodeStore={nodeStore}
+                    />
+                  </div>
+                )}
               </div>
               {active && <FloatingToolBar />}
               {active && <QueueOverlay />}
