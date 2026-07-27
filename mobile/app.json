@@ -16,6 +16,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "ai.nodetool.mobile",
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [
