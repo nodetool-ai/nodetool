@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 import { getSecret } from "@nodetool-ai/models";
 import { getSetting } from "./settings-registry.js";
+import { ApiErrorCode } from "./error-codes.js";
 import { JobConcurrencyQueue } from "./job-queue.js";
 import { pack, unpack } from "msgpackr";
 import {
@@ -32,6 +33,7 @@ import {
   type NodeValidator
 } from "@nodetool-ai/kernel";
 import {
+  Application,
   Asset,
   ImageDocument,
   Job,
@@ -2217,33 +2219,107 @@ export class UnifiedWebSocketRunner {
     }
   }
 
+  /** Tell the client a run was refused, in the shape a failed job takes. */
+  private refuseRun(
+    req: RunJobRequest,
+    jobId: string,
+    code: ApiErrorCode,
+    error: string
+  ): false {
+    this.sendDetached({
+      type: "job_update",
+      status: "failed",
+      job_id: jobId,
+      workflow_id: req.workflow_id ?? null,
+      error,
+      error_code: code
+    });
+    return false;
+  }
+
   /**
    * Gate an app's run on its spend budget. Runs of a published app execute with
    * the creator's secrets, so this refuses before the job exists rather than
    * reporting an overspend afterwards. Returns false when the run was refused
    * (the client has already been told why).
+   *
+   * `application_id` arrives on the wire, so before any of that the app has to
+   * be one this connection's user owns. Honouring the id as sent let a client
+   * name a stranger's app and spend their budget — and pollute their release
+   * telemetry, which is the same ledger.
    */
   private async admitApplicationRun(req: RunJobRequest): Promise<boolean> {
     const applicationId = req.application_id;
     if (!applicationId) return true;
     const jobId = req.job_id ?? randomUUID();
     req.job_id = jobId;
+    // The connection's authenticated user, not `req.user_id`: the request body
+    // is the thing being authorized, so it cannot supply the identity that
+    // authorizes it.
+    const userId = this.userId ?? "1";
+    // Authorization sits outside the try below, which swallows a ledger outage
+    // on purpose. Metering fails open; ownership fails closed — a lookup this
+    // never completed is not permission to bill the app it names.
+    let owned = false;
+    try {
+      const application = await Application.findById(applicationId);
+      owned = application?.user_id === userId;
+    } catch (err) {
+      this.logError("application ownership check failed", err);
+    }
+    if (!owned) {
+      log.warn("Run refused: application not owned by this user", {
+        applicationId,
+        jobId,
+        userId
+      });
+      // Applications are owned by one user and there is no path today that
+      // serves someone else's app to run — `releasedApplicationDocument`
+      // itself requires ownership — so refusing cannot break a legitimate
+      // run, and it is the only answer that keeps the budget a hard stop.
+      return this.refuseRun(
+        req,
+        jobId,
+        ApiErrorCode.NOT_FOUND,
+        "Application not found"
+      );
+    }
+
     try {
       const estimatedUsd = this.estimateRunCost(req);
       // The client says whether this is a release run or a draft run; the
       // server says which release. Taking the number from the client would let
       // a run bill itself to a version it never executed, and the ledger is
       // also the release telemetry.
-      const version =
+      const released =
         req.application_version == null
           ? null
-          : ((await releasedApplicationVersion(applicationId))?.version ?? null);
+          : await releasedApplicationVersion(applicationId);
+      if (req.application_version != null && !released) {
+        // A release run of an app that has released nothing. The claim is
+        // unsupportable rather than merely stale, and letting it through would
+        // file the run in the telemetry ledger as a release that never shipped.
+        return this.refuseRun(
+          req,
+          jobId,
+          ApiErrorCode.INVALID_INPUT,
+          "This app has no released version to run"
+        );
+      }
+      if (released && released.version !== req.application_version) {
+        log.warn("Run claimed a version other than the released one", {
+          applicationId,
+          jobId,
+          claimed: req.application_version,
+          released: released.version
+        });
+      }
       // Reserving claims the run against the budget in the same transaction
       // that checks it, so concurrent runs of one app cannot each read a total
       // that excludes the others and all be admitted.
       const decision = await reserveInvocation({
         applicationId,
-        version,
+        version: released?.version ?? null,
         invocationId: jobId,
         estimatedUsd
       });
@@ -2253,19 +2329,17 @@ export class UnifiedWebSocketRunner {
           jobId,
           reason: decision.reason
         });
-        this.sendDetached({
-          type: "job_update",
-          status: "failed",
-          job_id: jobId,
-          workflow_id: req.workflow_id ?? null,
-          error: decision.reason,
-          error_code: "BUDGET_EXCEEDED"
-        });
-        return false;
+        return this.refuseRun(
+          req,
+          jobId,
+          ApiErrorCode.BUDGET_EXCEEDED,
+          decision.reason
+        );
       }
     } catch (err) {
       // A ledger that is unavailable must not take runs down with it; the
-      // refusal path above is the only one that blocks.
+      // refusals above are the only paths that block, and they return rather
+      // than throw so an outage can never swallow one.
       this.logError("application budget check failed", err);
     }
     return true;
@@ -2926,6 +3000,7 @@ export class UnifiedWebSocketRunner {
     if (active.applicationId) {
       try {
         await settleInvocation(
+          active.applicationId,
           active.jobId,
           active.providerCostTotal ?? null,
           active.status === "failed"

@@ -199,6 +199,117 @@ describe("appended variables", () => {
   });
 });
 
+describe("superseded runs", () => {
+  /** Run `j1` replaced by the newer `j2`, both on the same operation. */
+  const replaced = applyEvents(createInstanceState(), [
+    {
+      type: "runStarted",
+      invocation: { id: "j1", operationId: "main", status: "running", startedAt: 1 },
+      outputKeys: []
+    },
+    {
+      type: "runStarted",
+      invocation: { id: "j2", operationId: "main", status: "running", startedAt: 2 },
+      outputKeys: []
+    },
+    { type: "invocationStatus", invocationId: "j1", status: "cancelled" }
+  ]);
+
+  it("drops a late chunk from a run the newer writer took over", () => {
+    const state = applyEvents(replaced, [
+      { type: "setVariable", variableId: "draft", value: "new ", disposition: "append", invocationId: "j2" },
+      { type: "setVariable", variableId: "draft", value: "run", disposition: "append", invocationId: "j2" },
+      { type: "setVariable", variableId: "draft", value: "stale", disposition: "append", invocationId: "j1" }
+    ]);
+    expect(state.variables.draft).toBe("new run");
+    expect(state.variableWriters.draft).toBe("j2");
+  });
+
+  it("drops a late chunk before the newer run has written the variable", () => {
+    const withStale = applyEvent(replaced, {
+      type: "setVariable",
+      variableId: "draft",
+      value: "stale",
+      disposition: "append",
+      invocationId: "j1"
+    });
+    expect(withStale).toBe(replaced);
+    expect(withStale.variables.draft).toBeUndefined();
+  });
+
+  it("lets a genuinely newer run restart the accumulation", () => {
+    let state = applyEvents(createInstanceState(), [
+      {
+        type: "runStarted",
+        invocation: { id: "j1", operationId: "main", status: "running", startedAt: 1 },
+        outputKeys: []
+      },
+      { type: "setVariable", variableId: "draft", value: "He", disposition: "append", invocationId: "j1" },
+      { type: "setVariable", variableId: "draft", value: "llo", disposition: "append", invocationId: "j1" }
+    ]);
+    expect(state.variables.draft).toBe("Hello");
+
+    state = applyEvents(state, [
+      {
+        type: "runStarted",
+        invocation: { id: "j2", operationId: "main", status: "running", startedAt: 2 },
+        outputKeys: []
+      },
+      { type: "setVariable", variableId: "draft", value: "By", disposition: "append", invocationId: "j2" },
+      { type: "setVariable", variableId: "draft", value: "e", disposition: "append", invocationId: "j2" }
+    ]);
+    expect(state.variables.draft).toBe("Bye");
+    expect(state.variableWriters.draft).toBe("j2");
+  });
+
+  it("lets a widget write overwrite whatever a run left, superseded or not", () => {
+    let state = applyEvent(replaced, {
+      type: "setVariable",
+      variableId: "draft",
+      value: "streamed",
+      disposition: "append",
+      invocationId: "j2"
+    });
+    state = applyEvent(state, {
+      type: "setVariable",
+      variableId: "draft",
+      value: "typed"
+    });
+    expect(state.variables.draft).toBe("typed");
+    expect(state.variableWriters.draft).toBeUndefined();
+
+    // A widget write from an older run's operation is still a widget write.
+    state = applyEvent(state, {
+      type: "setVariable",
+      variableId: "draft",
+      value: "typed again",
+      disposition: "replace"
+    });
+    expect(state.variables.draft).toBe("typed again");
+  });
+
+  it("keeps runs of different operations from superseding each other", () => {
+    const twoOps = applyEvents(createInstanceState(), [
+      {
+        type: "runStarted",
+        invocation: { id: "a", operationId: "draft", status: "running", startedAt: 1 },
+        outputKeys: []
+      },
+      {
+        type: "runStarted",
+        invocation: { id: "b", operationId: "review", status: "running", startedAt: 2 },
+        outputKeys: []
+      }
+    ]);
+    const state = applyEvents(twoOps, [
+      { type: "setVariable", variableId: "notes", value: "from a", disposition: "append", invocationId: "a" },
+      { type: "setVariable", variableId: "other", value: "from b", disposition: "append", invocationId: "b" }
+    ]);
+    expect(state.variables.notes).toBe("from a");
+    expect(state.variables.other).toBe("from b");
+  });
+});
+
 describe("activity", () => {
   const running = applyEvent(createInstanceState(), {
     type: "runStarted",

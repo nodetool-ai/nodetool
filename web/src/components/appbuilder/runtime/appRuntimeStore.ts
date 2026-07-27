@@ -34,12 +34,24 @@ export const createAppRuntimeStore = (initial?: Partial<AppInstanceState>) =>
  * Live app stores keyed by app-instance id. Two apps built on the same workflow
  * get two stores; a design canvas gets an unregistered ephemeral one, so widget
  * writes there never leak into the published app's state.
+ *
+ * A workflow-hosted instance is disposed when its workflow closes
+ * (`WorkflowManagerStore.removeWorkflow`). An application-keyed instance has no
+ * such close event — it lives for the session so its values survive View↔Edit
+ * switches and refetches.
  */
 const appRuntimeStores = new Map<string, AppRuntimeStore>();
 
-/** The instance id an app opened over a workflow uses by default. */
+/**
+ * The instance id one open app uses. The key is the app's identity — the
+ * application record when it has one, otherwise the host workflow — so two
+ * applications over the same workflow keep separate state.
+ */
+export const appInstanceId = (identity: string): string => `app:${identity}`;
+
+/** The instance id of an app hosted straight by a workflow, with no record. */
 export const workflowInstanceId = (workflowId: string): string =>
-  `app:${workflowId}`;
+  appInstanceId(`workflow:${workflowId}`);
 
 export const getAppRuntimeStore = (instanceId: string): AppRuntimeStore => {
   let store = appRuntimeStores.get(instanceId);

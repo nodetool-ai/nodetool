@@ -10,13 +10,7 @@ import type { ResourceOperation, ResourceRef } from "./document.js";
 export type AppAction =
   | { kind: "run"; operationId: string; from?: string }
   | { kind: "cancel"; operationId?: string; invocationId?: string }
-  | {
-      kind: "setVariable";
-      variableId: string;
-      value?: unknown;
-      /** Take the value from the widget that fired the event. */
-      fromWidget?: boolean;
-    }
+  | { kind: "setVariable"; variableId: string; value?: unknown }
   | { kind: "toggleVariable"; variableId: string }
   | {
       kind: "resourceCommand";
@@ -81,13 +75,19 @@ export interface EventContext {
 
 /**
  * Convert a stored widget event into an action, or null when the event is
- * incomplete (an unresolvable variable, a resource command with no binding).
+ * incomplete (an unresolvable variable, a resource command with no binding) or
+ * names a kind this runtime does not know. An unknown kind must not fall
+ * through to `run`: executing a workflow is the costly answer to give a typo.
+ *
+ * An absent or empty `kind` is the one exception — that is how a document
+ * written before the field existed spells "run", and how the app-debug parser
+ * has always read it.
  */
 export const eventToAction = (
   event: AppEvent,
   ctx: EventContext
 ): AppAction | null => {
-  switch (event.kind) {
+  switch (event.kind || "run") {
     case "setVariable":
     case "setState": {
       const variableId = ctx.resolveVariableId(event.key);
@@ -120,11 +120,12 @@ export const eventToAction = (
         ? { kind: "openResource", resourceBindingId: event.resourceBindingId }
         : null;
     case "run":
-    default:
       return {
         kind: "run",
         operationId: event.operationId ?? ctx.defaultOperationId,
         from: ctx.from
       };
+    default:
+      return null;
   }
 };

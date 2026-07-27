@@ -7,7 +7,9 @@
  * collide with the same node in another. Invocations are tracked separately
  * and every streamed value carries the invocation that produced it — that is
  * what keeps a second tab, an overlapping run, or a graph-editor run from
- * contaminating what the app shows.
+ * contaminating what the app shows. Outputs and variables follow the same
+ * ownership rule: the newest run that writes a slot owns it, and a chunk from
+ * a run that a newer one superseded is dropped instead of folded in.
  *
  * Every function here is pure. The React store, the CLI harness, and the eval
  * suites all drive the same reducer.
@@ -68,9 +70,9 @@ export interface AppInstanceState {
   /** Keyed by invocation id: the latest activity label the run reported. */
   activity: Record<string, string>;
   /**
-   * Keyed by variable id: the invocation whose stream last appended to it.
-   * Bookkeeping for streamed output→variable writes, so a second run starts a
-   * fresh value instead of appending to the previous run's.
+   * Keyed by variable id: the invocation whose stream last appended to it —
+   * the variable's current owner. A later run starts a fresh value instead of
+   * appending to the previous run's; an earlier one is superseded and dropped.
    */
   variableWriters: Record<string, string>;
 }
@@ -108,7 +110,10 @@ export type AppStateEvent =
        * time. Defaults to "replace" — a widget writing a variable overwrites.
        */
       disposition?: Disposition;
-      /** The run doing the appending; a new run restarts the accumulation. */
+      /**
+       * The run doing the appending: a newer run restarts the accumulation, a
+       * superseded one is dropped. Absent for widget writes.
+       */
       invocationId?: string;
     }
   | { type: "toggleVariable"; variableId: string }
@@ -153,6 +158,23 @@ export const appendValue = (previous: unknown, next: unknown): unknown => {
   if (previous === undefined) return next;
   if (Array.isArray(previous)) return [...previous, next];
   return [previous, next];
+};
+
+/**
+ * Whether `candidate` has been superseded by `incumbent`, the run that
+ * currently owns a slot. Decidable only when this instance knows both runs;
+ * an unknown run has no start time to order by and is not treated as stale.
+ */
+const isSupersededBy = (
+  state: AppInstanceState,
+  candidateId: string,
+  incumbentId: string | undefined
+): boolean => {
+  if (incumbentId === undefined || incumbentId === candidateId) return false;
+  const candidate = state.invocations[candidateId];
+  const incumbent = state.invocations[incumbentId];
+  if (!candidate || !incumbent) return false;
+  return candidate.startedAt < incumbent.startedAt;
 };
 
 export const applyEvent = (
@@ -208,6 +230,28 @@ export const applyEvent = (
         };
       }
       const writer = state.variableWriters[event.variableId];
+      // Run identity, the rule the `outputValue` case applies to output slots:
+      // the newest run that writes a variable owns it. A chunk from a run that
+      // a newer one superseded — either the writer that took the variable over
+      // or a newer invocation of the chunk's own operation, which is what a
+      // "replace" policy produces — is dropped, so a cancelled run's tail
+      // cannot overwrite the live run's value. Ordering is by `startedAt`, the
+      // only ordering the reducer has; when either run is unknown to this
+      // instance there is nothing to compare and the write counts as a new run
+      // starting a fresh value.
+      if (event.invocationId !== undefined) {
+        const operationId = state.invocations[event.invocationId]?.operationId;
+        const active =
+          operationId === undefined
+            ? undefined
+            : state.activeInvocation[operationId];
+        if (
+          isSupersededBy(state, event.invocationId, writer) ||
+          isSupersededBy(state, event.invocationId, active)
+        ) {
+          return state;
+        }
+      }
       const sameRun = event.invocationId !== undefined && writer === event.invocationId;
       const previous = sameRun ? state.variables[event.variableId] : undefined;
       return {

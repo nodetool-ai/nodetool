@@ -6,6 +6,10 @@
  * already been paid. These tests drive `runJob` with an `application_id` and
  * assert on both directions: refused runs never start, admitted runs land in
  * the ledger, and a settled run reports what it actually cost.
+ *
+ * `application_id` comes off the wire, so the gate also has to check that the
+ * connection's user owns the app it names — otherwise a client spends a
+ * stranger's budget by typing their id.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { unpack } from "msgpackr";
@@ -60,6 +64,41 @@ const messages = (ws: MockWebSocket): Array<Record<string, unknown>> =>
   ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
 
 const APP = "app-budget-gate";
+const OWNER = "u1";
+
+const appDocument = (workflowId = "wf1") => {
+  const document = createEmptyDocument("Demo");
+  document.operations = [
+    {
+      id: "main",
+      name: "Run",
+      workflowId,
+      inputs: {},
+      outputs: {},
+      policy: "replace"
+    }
+  ];
+  return document;
+};
+
+/** The app row the gate authorizes against, plus the workflow it binds. */
+const seedApp = async (
+  options: { id?: string; userId?: string } = {}
+): Promise<Application> => {
+  const workflowId = `wf-${options.id ?? APP}`;
+  await Workflow.create<Workflow>({
+    id: workflowId,
+    user_id: options.userId ?? OWNER,
+    name: "Demo workflow",
+    graph: { nodes: [], edges: [] }
+  });
+  return Application.create<Application>({
+    id: options.id ?? APP,
+    user_id: options.userId ?? OWNER,
+    name: "Demo app",
+    document: JSON.stringify(appDocument(workflowId))
+  });
+};
 
 describe("application budget gate", () => {
   let ws: MockWebSocket;
@@ -73,7 +112,7 @@ describe("application budget gate", () => {
     runner = new UnifiedWebSocketRunner({
       resolveExecutor: () => undefined as never
     });
-    await runner.connect(ws);
+    await runner.connect(ws, OWNER);
     // The gate's job is to decide whether a run starts; the run itself is
     // covered elsewhere, so stub it and assert on whether it was reached.
     startJob = vi.fn(async () => undefined);
@@ -103,46 +142,55 @@ describe("application budget gate", () => {
   });
 
   it("starts an app run and records it in the ledger", async () => {
+    await seedApp();
     await setApplicationBudget(APP, { period: "total", maxUsd: 10 });
-    await run({ application_id: APP, application_version: 2 });
+    await run({ application_id: APP });
 
     expect(startJob).toHaveBeenCalledOnce();
     const ledger = await listInvocations(APP);
     expect(ledger).toHaveLength(1);
     expect(ledger[0]).toMatchObject({
       invocationId: "job-1",
-      // The app has no release, so there is no version to bill the run to —
-      // the client's claim of one does not create it.
       version: null,
       status: "running"
     });
   });
 
+  it("starts an app run with no budget row, unmetered but still ledgered", async () => {
+    await seedApp();
+    await run({ application_id: APP });
+
+    expect(startJob).toHaveBeenCalledOnce();
+    expect((await listInvocations(APP)).map((r) => r.invocationId)).toEqual([
+      "job-1"
+    ]);
+  });
+
+  it("refuses a run naming an application this user does not own", async () => {
+    await seedApp({ userId: "someone-else" });
+    await setApplicationBudget(APP, { period: "total", maxUsd: 10 });
+
+    await run({ application_id: APP });
+
+    expect(startJob).not.toHaveBeenCalled();
+    const failure = messages(ws).find(
+      (m) => m.type === "job_update" && m.status === "failed"
+    );
+    expect(failure).toMatchObject({ error_code: "NOT_FOUND" });
+    // Nothing was billed to the victim, and their telemetry stayed clean.
+    expect(await listInvocations(APP)).toEqual([]);
+    expect((await applicationUsage(APP, "total")).invocations).toBe(0);
+  });
+
+  it("refuses a run naming an application that does not exist", async () => {
+    await run({ application_id: "no-such-app" });
+
+    expect(startJob).not.toHaveBeenCalled();
+    expect(await listInvocations("no-such-app")).toEqual([]);
+  });
+
   it("bills a release run to the released version, not the claimed one", async () => {
-    await Workflow.create<Workflow>({
-      id: "wf1",
-      user_id: "u1",
-      name: "Demo workflow",
-      graph: { nodes: [], edges: [] }
-    });
-    const document = createEmptyDocument("Demo");
-    document.operations = [
-      {
-        id: "main",
-        name: "Run",
-        workflowId: "wf1",
-        inputs: {},
-        outputs: {},
-        policy: "replace"
-      }
-    ];
-    const app = await Application.create<Application>({
-      id: APP,
-      user_id: "u1",
-      name: "Demo app",
-      document: JSON.stringify(document)
-    });
-    await publishApplication(app);
+    await publishApplication(await seedApp());
 
     await run({ application_id: APP, application_version: 99 });
 
@@ -150,31 +198,21 @@ describe("application budget gate", () => {
     expect(record).toMatchObject({ invocationId: "job-1", version: 1 });
   });
 
+  it("refuses a release run of an app that has released nothing", async () => {
+    await seedApp();
+
+    await run({ application_id: APP, application_version: 2 });
+
+    expect(startJob).not.toHaveBeenCalled();
+    const failure = messages(ws).find(
+      (m) => m.type === "job_update" && m.status === "failed"
+    );
+    expect(failure).toMatchObject({ error_code: "INVALID_INPUT" });
+    expect(await listInvocations(APP)).toEqual([]);
+  });
+
   it("records a draft run against no version even when a release exists", async () => {
-    await Workflow.create<Workflow>({
-      id: "wf1",
-      user_id: "u1",
-      name: "Demo workflow",
-      graph: { nodes: [], edges: [] }
-    });
-    const document = createEmptyDocument("Demo");
-    document.operations = [
-      {
-        id: "main",
-        name: "Run",
-        workflowId: "wf1",
-        inputs: {},
-        outputs: {},
-        policy: "replace"
-      }
-    ];
-    const app = await Application.create<Application>({
-      id: APP,
-      user_id: "u1",
-      name: "Demo app",
-      document: JSON.stringify(document)
-    });
-    await publishApplication(app);
+    await publishApplication(await seedApp());
 
     await run({ application_id: APP });
 
@@ -183,6 +221,7 @@ describe("application budget gate", () => {
   });
 
   it("refuses a run that would cross the budget, before the job exists", async () => {
+    await seedApp();
     await setApplicationBudget(APP, { period: "total", maxUsd: 1 });
     // Spend the budget with an earlier run.
     await run({ application_id: APP, job_id: "job-early" });
@@ -208,6 +247,7 @@ describe("application budget gate", () => {
   it("keeps runs flowing when the ledger itself errors", async () => {
     // A budget backend that is down must not take runs down with it; only an
     // explicit refusal blocks.
+    await seedApp();
     await setApplicationBudget(APP, { period: "total", maxUsd: 10 });
     const broken = vi
       .spyOn(runner as unknown as { estimateRunCost: () => number }, "estimateRunCost")
@@ -220,6 +260,7 @@ describe("application budget gate", () => {
   });
 
   it("counts an unsettled run at its estimate", async () => {
+    await seedApp();
     await run({ application_id: APP });
     const usage = await applicationUsage(APP, "total");
     expect(usage.invocations).toBe(1);
@@ -288,6 +329,20 @@ describe("application invocation settlement", () => {
     expect(record).toMatchObject({ status: "completed", actualUsd: 0.42 });
     // The estimate no longer counts once the real figure lands.
     expect((await applicationUsage(APP, "total")).spentUsd).toBeCloseTo(0.42);
+  });
+
+  it("leaves another application's reservation alone", async () => {
+    await recordInvocation({
+      applicationId: "other-app",
+      invocationId: "job-settle",
+      estimatedUsd: 5
+    });
+
+    await stream(activeJob("completed", 0), { status: "completed" });
+
+    const [record] = await listInvocations("other-app");
+    expect(record).toMatchObject({ status: "running", actualUsd: null });
+    expect((await applicationUsage("other-app", "total")).spentUsd).toBe(5);
   });
 
   it("settles a failed run too, so its spend is not stranded at the estimate", async () => {

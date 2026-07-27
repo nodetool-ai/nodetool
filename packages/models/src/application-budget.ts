@@ -254,8 +254,15 @@ export async function recordInvocation(input: {
  * and hand the spend back — a completed run would free budget it may well have
  * used. A null leaves `actual_usd` unset, and `applicationUsage` keeps counting
  * the estimate.
+ *
+ * The update is scoped to `applicationId` as well as the invocation. An
+ * invocation id is a job id a caller can name freely, so an unscoped update let
+ * anyone settle a stranger's in-flight reservation at zero and hand its budget
+ * back. Settling a row that belongs to another app matches nothing and returns
+ * null, the same as settling an invocation that does not exist.
  */
 export async function settleInvocation(
+  applicationId: string,
   invocationId: string,
   actualUsd: number | null,
   status: "completed" | "failed" | "cancelled" = "completed"
@@ -268,7 +275,12 @@ export async function settleInvocation(
       status,
       settled_at: new Date().toISOString()
     })
-    .where(eq(applicationInvocations.invocation_id, invocationId))
+    .where(
+      and(
+        eq(applicationInvocations.application_id, applicationId),
+        eq(applicationInvocations.invocation_id, invocationId)
+      )
+    )
     .returning();
   const row = rows[0] as Record<string, unknown> | undefined;
   return row ? toRecord(row) : null;

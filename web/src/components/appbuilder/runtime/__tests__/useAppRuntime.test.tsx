@@ -45,7 +45,11 @@ jest.mock("../../../../trpc/client", () => ({
 
 import { getWorkflowRunnerStore } from "../../../../stores/WorkflowRunner";
 import { useAppRuntime } from "../useAppRuntime";
-import { disposeAppRuntimeStore, workflowInstanceId } from "../appRuntimeStore";
+import {
+  appInstanceId,
+  disposeAppRuntimeStore,
+  workflowInstanceId
+} from "../appRuntimeStore";
 import { variableStorageKey } from "../variablePersistence";
 
 interface FakeRunnerState {
@@ -128,9 +132,12 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 
 const renderRuntime = (
   workflow: Workflow | undefined,
-  document?: ApplicationDocument
+  document?: ApplicationDocument,
+  application?: { id: string }
 ) =>
-  renderHook(() => useAppRuntime(workflow, false, { document }), { wrapper });
+  renderHook(() => useAppRuntime(workflow, false, { document, application }), {
+    wrapper
+  });
 
 /** Deliver a streaming message the way the websocket manager would. */
 const deliver = (message: Record<string, unknown>) =>
@@ -145,6 +152,8 @@ beforeEach(() => {
   cancelJob.mockClear();
   window.localStorage.clear();
   disposeAppRuntimeStore(workflowInstanceId("wf-a"));
+  disposeAppRuntimeStore(appInstanceId("application:app-1"));
+  disposeAppRuntimeStore(appInstanceId("application:app-2"));
   (getWorkflowRunnerStore as jest.Mock).mockImplementation(
     (id: string) => runners.get(id) ?? makeRunner(id)
   );
@@ -451,6 +460,205 @@ describe("useAppRuntime — multiple operations", () => {
     expect(failed).toHaveLength(1);
     expect(failed[0].status).toBe("failed");
     expect(failed[0].error).toMatch(/no operation "ghost"/);
+  });
+});
+
+describe("useAppRuntime — instance identity", () => {
+  const document = doc({
+    variables: [{ id: "tone", name: "Tone", scope: "instance", persist: false }]
+  });
+
+  it("gives two applications over the same workflow their own state", () => {
+    const one = renderRuntime(workflowA, document, { id: "app-1" });
+    const two = renderRuntime(workflowA, document, { id: "app-2" });
+
+    act(() => {
+      one.result.current.dispatch({
+        kind: "setVariable",
+        variableId: "tone",
+        value: "warm"
+      });
+    });
+
+    expect(one.result.current.store).not.toBe(two.result.current.store);
+    expect(two.result.current.store.getState().variables.tone).toBeUndefined();
+  });
+
+  it("keeps one application's state across a remount", () => {
+    const first = renderRuntime(workflowA, document, { id: "app-1" });
+    act(() => {
+      first.result.current.dispatch({
+        kind: "setVariable",
+        variableId: "tone",
+        value: "warm"
+      });
+    });
+    first.unmount();
+
+    const again = renderRuntime(workflowA, document, { id: "app-1" });
+    expect(again.result.current.store.getState().variables.tone).toBe("warm");
+  });
+});
+
+describe("useAppRuntime — messages that arrive before a job id", () => {
+  const parallelPair = doc({
+    operations: [
+      {
+        id: "main",
+        name: "Draft",
+        workflowId: "wf-a",
+        inputs: {},
+        outputs: {},
+        policy: "parallel"
+      },
+      {
+        id: "second",
+        name: "Draft again",
+        workflowId: "wf-a",
+        inputs: {},
+        outputs: {},
+        policy: "parallel"
+      }
+    ]
+  });
+
+  it("replays each pending start only its own buffered messages", async () => {
+    const { result } = renderRuntime(workflowA, parallelPair);
+    const resolvers: Array<(jobId: string) => void> = [];
+    runnerState("wf-a").run.mockImplementation(
+      () => new Promise<string>((resolve) => resolvers.push(resolve))
+    );
+
+    act(() => {
+      result.current.dispatch({ kind: "run", operationId: "main" });
+      result.current.dispatch({ kind: "run", operationId: "second" });
+    });
+    await waitFor(() => expect(resolvers).toHaveLength(2));
+
+    // Both runs stream before either has reported its job id.
+    deliver({
+      type: "output_update",
+      job_id: "job-main",
+      node_id: "out1",
+      value: "first",
+      disposition: "replace"
+    });
+    deliver({
+      type: "output_update",
+      job_id: "job-second",
+      node_id: "out1",
+      value: "second",
+      disposition: "replace"
+    });
+
+    await act(async () => {
+      resolvers[0]("job-main");
+      resolvers[1]("job-second");
+    });
+
+    const outputs = result.current.store.getState().outputs;
+    expect(outputs["main:out1"]?.value).toBe("first");
+    expect(outputs["second:out1"]?.value).toBe("second");
+  });
+
+  it("keeps a sibling's buffer when one start fails", async () => {
+    const { result } = renderRuntime(workflowA, parallelPair);
+    const resolvers: Array<{
+      resolve: (jobId: string) => void;
+      reject: (error: Error) => void;
+    }> = [];
+    runnerState("wf-a").run.mockImplementation(
+      () =>
+        new Promise<string>((resolve, reject) => {
+          resolvers.push({ resolve, reject });
+        })
+    );
+
+    act(() => {
+      result.current.dispatch({ kind: "run", operationId: "main" });
+      result.current.dispatch({ kind: "run", operationId: "second" });
+    });
+    await waitFor(() => expect(resolvers).toHaveLength(2));
+
+    deliver({
+      type: "output_update",
+      job_id: "job-second",
+      node_id: "out1",
+      value: "second",
+      disposition: "replace"
+    });
+
+    await act(async () => {
+      resolvers[0].reject(new Error("no capacity"));
+    });
+    await act(async () => {
+      resolvers[1].resolve("job-second");
+    });
+
+    expect(result.current.store.getState().outputs["second:out1"]?.value).toBe(
+      "second"
+    );
+  });
+});
+
+describe("useAppRuntime — design canvas", () => {
+  it("keeps its store when the document identity changes", () => {
+    const { result, rerender } = renderHook(
+      ({ document }: { document: ApplicationDocument }) =>
+        useAppRuntime(workflowA, true, { document }),
+      { wrapper, initialProps: { document: doc() } }
+    );
+    const store = result.current.store;
+    act(() => {
+      store
+        .getState()
+        .dispatchEvent({ type: "setView", key: "Slider-1:value", value: 7 });
+    });
+
+    rerender({ document: doc() });
+
+    expect(result.current.store).toBe(store);
+    expect(result.current.store.getState().view["Slider-1:value"]).toBe(7);
+  });
+});
+
+describe("useAppRuntime — queued runs", () => {
+  const queued = doc({
+    operations: [
+      {
+        id: "main",
+        name: "Run",
+        workflowId: "wf-a",
+        inputs: {},
+        outputs: {},
+        policy: "queue"
+      }
+    ]
+  });
+
+  it("drops the wait when the app unmounts before the predecessor settles", async () => {
+    const { result, unmount } = renderRuntime(workflowA, queued);
+    await act(async () => {
+      result.current.dispatch({ kind: "run", operationId: "main" });
+    });
+    const first = await runnerState("wf-a").run.mock.results[0].value;
+
+    act(() => {
+      result.current.dispatch({ kind: "run", operationId: "main" });
+    });
+    expect(runnerState("wf-a").run).toHaveBeenCalledTimes(1);
+
+    const store = result.current.store;
+    unmount();
+    await act(async () => {
+      store.getState().dispatchEvent({
+        type: "invocationStatus",
+        invocationId: first,
+        status: "completed"
+      });
+    });
+
+    expect(runnerState("wf-a").run).toHaveBeenCalledTimes(1);
   });
 });
 
