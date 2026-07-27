@@ -20,7 +20,7 @@ interface ImageSketchEditorProps {
  * Edit-mode body for the workspace image tab: the sketch editor embedded inline
  * on the asset's backing sketch document (created and linked on first edit).
  * "Save to image" renders the composite back into the asset; "Done" returns the
- * tab to view mode. Both live in the editor's top mode bar. The sketch document
+ * tab to view mode. Both live in the editor's tool bar. The sketch document
  * autosaves independently.
  */
 const ImageSketchEditor = ({ asset, onClose }: ImageSketchEditorProps) => {

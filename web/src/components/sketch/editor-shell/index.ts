@@ -7,7 +7,8 @@
  * subscriber wiring.
  *
  * ## Re-exported components
- * - ConnectedModePromptBar
+ * - ConnectedEditorActions
+ * - ConnectedGeneratePopover
  * - ConnectedStatusBar
  * - ConnectedToolbar
  * - ConnectedToolTopBar
@@ -17,7 +18,9 @@
  * - SketchCanvasPane
  */
 
-export { ConnectedModePromptBar } from "./ConnectedModePromptBar";
+export { ConnectedEditorActions } from "./ConnectedEditorActions";
+export type { ConnectedEditorActionsProps } from "./ConnectedEditorActions";
+export { ConnectedGeneratePopover } from "./ConnectedGeneratePopover";
 export { ConnectedStatusBar } from "./ConnectedStatusBar";
 export { ConnectedToolbar } from "./ConnectedToolbar";
 export { ConnectedToolTopBar } from "./ConnectedToolTopBar";

@@ -11,17 +11,9 @@ import { css } from "@emotion/react";
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import ViewSidebarOutlinedIcon from "@mui/icons-material/ViewSidebarOutlined";
-import FitScreenIcon from "@mui/icons-material/FitScreen";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import {
-  EditorButton,
-  FlexRow,
-  IconButton,
-  Text,
-  Tooltip
-} from "../ui_primitives";
+import { FlexRow, IconButton, Text, Tooltip } from "../ui_primitives";
 import { getToolSettingsLabel } from "./tool-settings-panels/getToolSettingsLabel";
 import {
   SketchTool,
@@ -134,14 +126,12 @@ export interface SketchToolTopBarProps {
   onCancelSegmentation?: () => void;
   onClearSegmentPrompts?: () => void;
   onCheckSegmentModel?: () => void;
-  /** Collapse the left tool rail + right panels for a chrome-less canvas. */
-  onTogglePanelsHidden?: () => void;
   /** When true, only the tool header and global actions render. */
   settingsCollapsed?: boolean;
   /** Toggles `settingsCollapsed`; the caret is omitted when not supplied. */
   onToggleSettingsCollapsed?: () => void;
-  /** Fit the document to the canvas viewport (zoom-to-fit, centered). */
-  onFit?: () => void;
+  /** Editor-wide actions pinned to the trailing edge of the bar. */
+  trailingActions?: React.ReactNode;
 }
 
 const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
@@ -203,8 +193,7 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
   onCancelSegmentation,
   onClearSegmentPrompts,
   onCheckSegmentModel,
-  onTogglePanelsHidden,
-  onFit,
+  trailingActions,
   settingsCollapsed = false,
   onToggleSettingsCollapsed
 }) => {
@@ -319,45 +308,7 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
         />
       )}
 
-      {(onFit || onTogglePanelsHidden) && (
-        <FlexRow
-          align="center"
-          gap={0.5}
-          className="tool-top-bar__global-actions"
-          sx={{ ml: "auto", flexShrink: 0 }}
-        >
-          {onFit && (
-            <Tooltip title="Fit canvas to the viewport">
-              <span>
-                <EditorButton
-                  variant="text"
-                  size="small"
-                  onClick={onFit}
-                  startIcon={<FitScreenIcon fontSize="small" />}
-                  data-testid="sketch-fit-view"
-                >
-                  Fit
-                </EditorButton>
-              </span>
-            </Tooltip>
-          )}
-          {onTogglePanelsHidden && (
-            <Tooltip title="Hide panels — press Tab, or tap the corner button, to restore">
-              <span>
-                <EditorButton
-                  variant="text"
-                  size="small"
-                  onClick={onTogglePanelsHidden}
-                  startIcon={<ViewSidebarOutlinedIcon fontSize="small" />}
-                  data-testid="sketch-hide-panels"
-                >
-                  Hide panels
-                </EditorButton>
-              </span>
-            </Tooltip>
-          )}
-        </FlexRow>
-      )}
+      {trailingActions}
     </FlexRow>
   );
 };
