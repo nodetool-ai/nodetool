@@ -1,13 +1,16 @@
 /**
- * ConnectedModePromptBar — the top prompt bar of the image editor.
+ * ConnectedGeneratePopover — the image editor's text-to-image form.
  *
- * Drives full-frame text-to-image generation: document name + dimensions, a
- * prompt input, a model selector, and a Generate action that creates a new
- * text-to-image layer and runs it via useDirectGenJob. Selection-driven
- * inpainting lives in the floating SelectionActionBar instead.
+ * Drives full-frame text-to-image generation: a prompt input, model selector,
+ * size chips, and a Generate action that creates a new text-to-image layer and
+ * runs it via useDirectGenJob. Selection-driven inpainting lives in the
+ * floating SelectionActionBar instead.
+ *
+ * The form lives in a popover opened from the tool bar's Generate button, so
+ * the editor's chrome stays a single slim row.
  *
  * Follows the editor-shell convention: narrow store selectors only, actions
- * pulled via getState() inside handlers so the bar never re-renders on
+ * pulled via getState() inside handlers so the form never re-renders on
  * unrelated store churn. Renders nothing without a bound document (the in-node
  * sketch modal has no session, same gate as SelectionActionBar).
  */
@@ -28,10 +31,13 @@ import ImageIcon from "@mui/icons-material/Image";
 
 import {
   EditorButton,
+  FlexColumn,
   FlexRow,
   LoadingSpinner,
+  Popover,
   TextInput,
-  Toast
+  Toast,
+  BORDER_RADIUS
 } from "../../ui_primitives";
 import MediaControlChip from "../../chat/composer/MediaControlChip";
 import MediaAspectRatioMenu from "../../chat/composer/MediaAspectRatioMenu";
@@ -51,7 +57,7 @@ import { useDirectGenJob } from "../../../hooks/sketch/useDirectGenJob";
 import { useMediaOptions } from "../../../hooks/useModelsByProvider";
 import { SKETCH_SPACING } from "../sketchStyles";
 
-/** Most recent direct-gen binding's model, to seed the bar's picker. */
+/** Most recent direct-gen binding's model, to seed the form's picker. */
 function seedModelFromBindings(): { model: string; provider: string } {
   const bindings = Object.values(useSketchSessionStore.getState().bindings);
   const last = bindings
@@ -71,20 +77,19 @@ function uniqueLayerName(base: string): string {
   return `${base} ${n}`;
 }
 
-interface ConnectedModePromptBarProps {
-  /** Document-level actions rendered at the trailing edge of the bar (e.g.
-   * Save/Done when the editor is embedded in an asset tab). */
-  trailingActions?: React.ReactNode;
+interface ConnectedGeneratePopoverProps {
+  open: boolean;
+  anchorEl: HTMLElement | null;
+  onClose: () => void;
 }
 
-const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
-  trailingActions
+const ConnectedGeneratePopoverInner: React.FC<ConnectedGeneratePopoverProps> = ({
+  open,
+  anchorEl,
+  onClose
 }) => {
   const theme = useTheme();
 
-  const panelsHidden = useSketchStore((s) => s.panelsHidden);
-  const assistantPanelOpen = useSketchStore((s) => s.assistantPanelOpen);
-  const toggleAssistantPanel = useSketchStore((s) => s.toggleAssistantPanel);
   const docW = useSketchStore((s) => s.document.canvas.width);
   const docH = useSketchStore((s) => s.document.canvas.height);
 
@@ -219,167 +224,135 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
 
   const actionDisabled = generating || !prompt.trim() || !model;
 
-  // Hide with the rest of the chrome on Tab (panelsHidden = chrome-less canvas),
-  // matching ConnectedToolTopBar. No bound document → no session to act on.
-  if (!documentId || panelsHidden) {
+  // No bound document → no session to act on (the in-node sketch modal).
+  if (!documentId) {
     return null;
   }
 
   return (
     <>
-      <FlexRow
-        className="sketch-mode-prompt-bar"
-        data-testid="sketch-mode-prompt-bar"
-        align="center"
-        gap={1}
-        sx={{
-          flexShrink: 0,
-          width: "100%",
-          // The prompt bar is the editor's hero input, so it carries more
-          // height than the utility tool-options bar below it. Generous
-          // vertical room keeps the controls from feeling crammed.
-          minHeight: 56,
-          // On narrow screens the prompt + model/size chips + actions can't fit
-          // on one line, so wrap them (prompt takes the first row via flex:1,
-          // controls flow onto the next) instead of overflowing off-screen.
-          flexWrap: "wrap",
-          rowGap: SKETCH_SPACING.md,
-          padding: `${SKETCH_SPACING.lg} ${SKETCH_SPACING.xl}`,
+      <Popover
+        open={open}
+        anchorEl={anchorEl}
+        onClose={onClose}
+        placement="bottom-right"
+        paperSx={{
+          width: 340,
           backgroundColor: theme.vars.palette.grey[900],
-          borderBottom: `1px solid ${theme.vars.palette.grey[800]}`
+          border: `1px solid ${theme.vars.palette.grey[800]}`,
+          borderRadius: BORDER_RADIUS.sm
         }}
       >
-        {/* Prompt — grows to fill */}
-        <TextInput
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Describe the image…"
-          compact
-          fullWidth
-          inputProps={{
-            "aria-label": "Generation prompt",
-            "data-testid": "sketch-gen-prompt"
-          }}
-          onKeyDown={(e) => {
-            if (
-              e.key === "Enter" &&
-              !e.shiftKey &&
-              !actionDisabled &&
-              !e.nativeEvent.isComposing &&
-              e.nativeEvent.keyCode !== 229
-            ) {
-              e.preventDefault();
-              void handleGenerate();
-            }
-          }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <AutoAwesomeIcon
-                  fontSize="small"
-                  sx={{ mr: 0.5, color: theme.vars.palette.primary.main }}
-                />
+        <FlexColumn
+          className="sketch-generate-form"
+          data-testid="sketch-generate-form"
+          gap={1}
+          sx={{ padding: SKETCH_SPACING.lg }}
+        >
+          <TextInput
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Describe the image…"
+            autoFocus
+            multiline
+            minRows={2}
+            maxRows={6}
+            fullWidth
+            inputProps={{
+              "aria-label": "Generation prompt",
+              "data-testid": "sketch-gen-prompt"
+            }}
+            onKeyDown={(e) => {
+              if (
+                e.key === "Enter" &&
+                !e.shiftKey &&
+                !actionDisabled &&
+                !e.nativeEvent.isComposing &&
+                e.nativeEvent.keyCode !== 229
+              ) {
+                e.preventDefault();
+                void handleGenerate();
+              }
+            }}
+          />
+
+          <FlexRow align="center" gap={1} sx={{ flexWrap: "wrap" }}>
+            {/* Model selector — same chip + dialog as the media composer */}
+            <MediaControlChip
+              ref={imageModelAnchorRef}
+              icon={<ImageIcon fontSize="small" />}
+              label={modelName || "Select Model"}
+              active={imageModelOpen}
+              onClick={() => setImageModelOpen(true)}
+              truncate
+              showChevron={false}
+            />
+            {imageModelOpen && (
+              <ImageModelMenuDialog
+                open
+                anchorEl={imageModelAnchorRef.current}
+                onClose={() => setImageModelOpen(false)}
+                onModelChange={handlePickImageModel}
+                task="text_to_image"
+              />
+            )}
+
+            {/* Resolution */}
+            <MediaControlChip
+              icon={<ResolutionIcon fontSize="small" />}
+              label={resolution}
+              active={!!resolutionAnchor}
+              onClick={(e) => setResolutionAnchor(e.currentTarget)}
+              showChevron={false}
+            />
+            <MediaOptionMenu
+              anchorEl={resolutionAnchor}
+              open={!!resolutionAnchor}
+              onClose={() => setResolutionAnchor(null)}
+              header="Resolution"
+              value={resolution}
+              options={resolutionOptions}
+              onChange={handleResolutionChange}
+            />
+
+            {/* Aspect ratio */}
+            <MediaControlChip
+              icon={<AspectRatioIcon fontSize="small" />}
+              label={aspectRatio}
+              active={!!aspectAnchor}
+              onClick={(e) => setAspectAnchor(e.currentTarget)}
+              showChevron={false}
+            />
+            <MediaAspectRatioMenu
+              anchorEl={aspectAnchor}
+              open={!!aspectAnchor}
+              onClose={() => setAspectAnchor(null)}
+              value={aspectRatio}
+              options={aspectOptions}
+              onChange={handleAspectChange}
+            />
+          </FlexRow>
+
+          {/* Primary action — full-frame text-to-image */}
+          <EditorButton
+            variant="contained"
+            size="small"
+            disabled={actionDisabled}
+            onClick={() => void handleGenerate()}
+            startIcon={
+              generating ? (
+                <LoadingSpinner inline size={14} color="inherit" />
+              ) : (
+                <AutoAwesomeIcon fontSize="small" />
               )
             }
-          }}
-          sx={{
-            flex: 1,
-            minWidth: 160,
-            // Match the control/button height so the row aligns.
-            "& .MuiOutlinedInput-root": { height: 34 }
-          }}
-        />
-
-        {/* Model selector — same chip + dialog as the media composer */}
-        <MediaControlChip
-          ref={imageModelAnchorRef}
-          icon={<ImageIcon fontSize="small" />}
-          label={modelName || "Select Model"}
-          active={imageModelOpen}
-          onClick={() => setImageModelOpen(true)}
-          truncate
-          showChevron={false}
-        />
-        {imageModelOpen && (
-          <ImageModelMenuDialog
-            open
-            anchorEl={imageModelAnchorRef.current}
-            onClose={() => setImageModelOpen(false)}
-            onModelChange={handlePickImageModel}
-            task="text_to_image"
-          />
-        )}
-
-        {/* Resolution */}
-        <MediaControlChip
-          icon={<ResolutionIcon fontSize="small" />}
-          label={resolution}
-          active={!!resolutionAnchor}
-          onClick={(e) => setResolutionAnchor(e.currentTarget)}
-          showChevron={false}
-        />
-        <MediaOptionMenu
-          anchorEl={resolutionAnchor}
-          open={!!resolutionAnchor}
-          onClose={() => setResolutionAnchor(null)}
-          header="Resolution"
-          value={resolution}
-          options={resolutionOptions}
-          onChange={handleResolutionChange}
-        />
-
-        {/* Aspect ratio */}
-        <MediaControlChip
-          icon={<AspectRatioIcon fontSize="small" />}
-          label={aspectRatio}
-          active={!!aspectAnchor}
-          onClick={(e) => setAspectAnchor(e.currentTarget)}
-          showChevron={false}
-        />
-        <MediaAspectRatioMenu
-          anchorEl={aspectAnchor}
-          open={!!aspectAnchor}
-          onClose={() => setAspectAnchor(null)}
-          value={aspectRatio}
-          options={aspectOptions}
-          onChange={handleAspectChange}
-        />
-
-        {/* Primary action — full-frame text-to-image */}
-        <EditorButton
-          variant="contained"
-          size="small"
-          disabled={actionDisabled}
-          onClick={() => void handleGenerate()}
-          startIcon={
-            generating ? (
-              <LoadingSpinner inline size={14} color="inherit" />
-            ) : (
-              <AutoAwesomeIcon fontSize="small" />
-            )
-          }
-          data-testid="sketch-gen-submit"
-          sx={{ flexShrink: 0, height: 34 }}
-        >
-          Generate
-        </EditorButton>
-
-        {/* Assistant toggle — opens the right-side AI chat panel that drives
-            the editor through the ui_sketch_* agent tools. */}
-        <EditorButton
-          variant={assistantPanelOpen ? "contained" : "outlined"}
-          size="small"
-          onClick={toggleAssistantPanel}
-          startIcon={<AutoAwesomeIcon fontSize="small" />}
-          aria-pressed={assistantPanelOpen}
-          data-testid="sketch-assistant-toggle"
-          sx={{ flexShrink: 0, height: 34 }}
-        >
-          Assistant
-        </EditorButton>
-
-        {trailingActions}
-      </FlexRow>
+            data-testid="sketch-gen-submit"
+            sx={{ alignSelf: "flex-end", height: 34 }}
+          >
+            Generate
+          </EditorButton>
+        </FlexColumn>
+      </Popover>
 
       <Toast
         open={error !== null}
@@ -393,7 +366,7 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
   );
 };
 
-export const ConnectedModePromptBar = memo(ConnectedModePromptBarInner);
-ConnectedModePromptBar.displayName = "ConnectedModePromptBar";
+export const ConnectedGeneratePopover = memo(ConnectedGeneratePopoverInner);
+ConnectedGeneratePopover.displayName = "ConnectedGeneratePopover";
 
-export default ConnectedModePromptBar;
+export default ConnectedGeneratePopover;

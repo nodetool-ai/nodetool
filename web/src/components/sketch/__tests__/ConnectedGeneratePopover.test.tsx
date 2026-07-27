@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 /**
- * Tests for the top prompt bar: the visibility gate (bound document) and that
+ * Tests for the generate popover: the visibility gate (bound document) and that
  * submitting creates a text-to-image layer and runs the direct-gen job for
  * full-frame generation.
  */
@@ -12,8 +12,7 @@ import { render, fireEvent, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 
-import { ConnectedModePromptBar } from "../editor-shell/ConnectedModePromptBar";
-import { useSketchStore } from "../state";
+import { ConnectedGeneratePopover } from "../editor-shell/ConnectedGeneratePopover";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 
 // Heavy model picker — stub to keep model-fetching deps out of jsdom.
@@ -28,25 +27,29 @@ jest.mock("../../../hooks/sketch/useDirectGenJob", () => ({
 }));
 
 // useMediaOptions fetches per-model constraints via TanStack Query; these tests
-// don't render a QueryClientProvider, so stub it (the bar falls back to the full
-// static option lists, which is what these assertions expect).
+// don't render a QueryClientProvider, so stub it (the form falls back to the
+// full static option lists, which is what these assertions expect).
 jest.mock("../../../hooks/useModelsByProvider", () => ({
   __esModule: true,
   useMediaOptions: () => ({ data: undefined })
 }));
 
-function renderBar() {
+function renderForm(open = true) {
   // The app theme mock carries the custom palette (Paper.overlay etc.)
   // the primitives style against; a bare createTheme lacks it.
   const theme = mockTheme;
   return render(
     <ThemeProvider theme={theme}>
-      <ConnectedModePromptBar />
+      <ConnectedGeneratePopover
+        open={open}
+        anchorEl={null}
+        onClose={jest.fn()}
+      />
     </ThemeProvider>
   );
 }
 
-/** Seed a direct-gen binding so the bar's model picker starts populated. */
+/** Seed a direct-gen binding so the form's model picker starts populated. */
 function seedModel(): void {
   useSketchSessionStore.getState().upsertBinding({
     layerId: "seed-binding",
@@ -62,37 +65,32 @@ function seedModel(): void {
 
 beforeEach(() => {
   mockStart.mockReset();
-  useSketchStore.setState((s) => ({
-    ...s,
-    panelsHidden: false
-  }));
   useSketchSessionStore.setState({ documentId: null, name: "", bindings: {} });
 });
 
-describe("<ConnectedModePromptBar />", () => {
+describe("<ConnectedGeneratePopover />", () => {
   it("renders nothing without a bound document", () => {
-    const { queryByTestId } = renderBar();
-    expect(queryByTestId("sketch-mode-prompt-bar")).toBeNull();
+    const { queryByTestId } = renderForm();
+    expect(queryByTestId("sketch-generate-form")).toBeNull();
   });
 
-  it("renders nothing when panels are hidden (chrome-less canvas)", () => {
+  it("renders nothing while closed", () => {
     useSketchSessionStore.setState({ documentId: "doc-1" });
-    useSketchStore.setState((s) => ({ ...s, panelsHidden: true }));
-    const { queryByTestId } = renderBar();
-    expect(queryByTestId("sketch-mode-prompt-bar")).toBeNull();
+    const { queryByTestId } = renderForm(false);
+    expect(queryByTestId("sketch-generate-form")).toBeNull();
   });
 
-  it("renders the bar and submit with a bound document", () => {
+  it("renders the form and submit with a bound document", () => {
     useSketchSessionStore.setState({ documentId: "doc-1", name: "portrait" });
-    const { getByTestId } = renderBar();
-    expect(getByTestId("sketch-mode-prompt-bar")).toBeTruthy();
+    const { getByTestId } = renderForm();
+    expect(getByTestId("sketch-generate-form")).toBeTruthy();
     expect(getByTestId("sketch-gen-submit")).toBeTruthy();
   });
 
   it("keeps submit disabled until a prompt is typed", () => {
     useSketchSessionStore.setState({ documentId: "doc-1" });
     seedModel();
-    const { getByTestId, getByPlaceholderText } = renderBar();
+    const { getByTestId, getByPlaceholderText } = renderForm();
     expect(getByTestId("sketch-gen-submit")).toBeDisabled();
     fireEvent.change(getByPlaceholderText("Describe the image…"), {
       target: { value: "a red fox" }
@@ -103,7 +101,7 @@ describe("<ConnectedModePromptBar />", () => {
   it("runs the direct-gen job on Generate submit", async () => {
     useSketchSessionStore.setState({ documentId: "doc-1" });
     seedModel();
-    const { getByTestId, getByPlaceholderText } = renderBar();
+    const { getByTestId, getByPlaceholderText } = renderForm();
     fireEvent.change(getByPlaceholderText("Describe the image…"), {
       target: { value: "a red fox" }
     });

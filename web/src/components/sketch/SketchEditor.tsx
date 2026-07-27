@@ -65,7 +65,6 @@ import {
   useSketchIsMobile
 } from "./hooks";
 import {
-  ConnectedModePromptBar,
   ConnectedStatusBar,
   ConnectedToolbar,
   ConnectedToolTopBar,
@@ -190,9 +189,13 @@ export interface SketchEditorProps {
   onExportMask?: (dataUrl: string | null) => void;
   /** When true, window keyboard shortcuts for the editor are disabled (e.g. shortcuts help open). */
   suspendKeyboardShortcuts?: boolean;
-  /** Document-level actions rendered at the trailing edge of the top mode bar
-   * (e.g. Save/Done when embedded in an asset tab). */
+  /** Compact document actions rendered inline at the trailing edge of the tool
+   * bar (e.g. Save/Done when embedded in an asset tab). Keep to one or two
+   * buttons — the bar shares its row with the tool settings. */
   headerActions?: React.ReactNode;
+  /** Document actions appended to the tool bar's overflow menu. Receives the
+   * menu's close callback. */
+  menuItems?: (close: () => void) => React.ReactNode;
 }
 
 const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
@@ -205,7 +208,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
       onExportImage,
       onExportMask,
       suspendKeyboardShortcuts,
-      headerActions
+      headerActions,
+      menuItems
     },
     ref
   ) {
@@ -233,7 +237,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
     // viewport grows to desktop (rotate/resize) so it doesn't silently reopen
     // the next time the viewport shrinks back to mobile. Also keep the two
     // mobile bottom sheets mutually exclusive: when the Assistant opens (its
-    // toggle lives in the prompt bar), close the panels sheet so two stacked
+    // toggle lives in the tool bar menu), close the panels sheet so two stacked
     // SwipeableDrawer modals never fight over focus/scroll.
     useEffect(() => {
       if (!mobilePanelsOpen) {
@@ -433,10 +437,6 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
 
     return (
       <FlexColumn className="sketch-editor" css={styles(theme)} gap={0}>
-        {/* Top mode / prompt bar — full editor width above the 3-column body.
-          Renders nothing without a bound document (in-node modal). */}
-        <ConnectedModePromptBar trailingActions={headerActions} />
-
         <FlexRow
           className="sketch-editor__body"
           sx={{ flex: 1, minHeight: 0, width: "100%", overflow: "hidden" }}
@@ -549,6 +549,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
                 onCropCancelPreview={
                   session.canvasActions.handleCropCancelPreview
                 }
+                headerActions={headerActions}
+                menuItems={menuItems}
               />
             </Container>
 

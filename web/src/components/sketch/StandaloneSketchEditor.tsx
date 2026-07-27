@@ -29,7 +29,14 @@ import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternate
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { EmptyState, EditorButton, FlexColumn, FlexRow, LoadingSpinner } from "../ui_primitives";
+import {
+  EditorMenuItem,
+  EmptyState,
+  FlexColumn,
+  ListItemIcon,
+  ListItemText,
+  LoadingSpinner
+} from "../ui_primitives";
 import SketchEditor, { type SketchEditorHandle } from "./SketchEditor";
 import SaveToFolderMenu from "../assets/SaveToFolderMenu";
 import { trpc } from "../../trpc/client";
@@ -58,7 +65,7 @@ const centered = { flex: 1, width: "100%", height: "100%" } as const;
 
 interface StandaloneSketchEditorProps {
   documentId: string;
-  /** Actions rendered at the trailing edge of the editor's top mode bar. */
+  /** Compact actions rendered inline at the trailing edge of the tool bar. */
   headerActions?: React.ReactNode;
   /**
    * Whether this editor is the focused/visible surface. Drives which instance
@@ -77,6 +84,15 @@ const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
     const { saveAsAsset, saving: savingAsAsset } = useSaveSketchAsAsset();
     const [saveAsAssetAnchor, setSaveAsAssetAnchor] =
       useState<HTMLElement | null>(null);
+    // Closes the tool bar's overflow menu once the folder popover is done —
+    // the popover is anchored to a menu item, so the menu has to outlive it.
+    const closeMenuRef = useRef<(() => void) | null>(null);
+
+    const closeSaveAsAsset = useCallback(() => {
+      setSaveAsAssetAnchor(null);
+      closeMenuRef.current?.();
+      closeMenuRef.current = null;
+    }, []);
 
     const documentQuery = trpc.sketch.get.useQuery(
       { id: documentId },
@@ -147,41 +163,53 @@ const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
       editorRef.current?.exportPng();
     };
 
-    const documentActions = (
-      <FlexRow gap={2} align="center" sx={{ flexShrink: 0 }}>
-        <EditorButton
-          size="small"
-          variant="outlined"
-          onClick={handleSave}
+    // Document actions live in the tool bar's overflow menu so the editor
+    // chrome stays one slim row. "Save as Asset" opens a folder popover
+    // anchored to its own menu item, so it leaves the menu open and closes
+    // both once a folder is chosen.
+    const documentMenuItems = (close: () => void) => (
+      <>
+        <EditorMenuItem
+          onClick={() => {
+            close();
+            handleSave();
+          }}
           disabled={saving}
-          startIcon={<SaveOutlinedIcon fontSize="small" />}
           data-testid="sketch-save-document"
-          sx={{ height: 34 }}
         >
-          {saving ? "Saving…" : "Save"}
-        </EditorButton>
-        <EditorButton
-          size="small"
-          variant="outlined"
-          onClick={(e) => setSaveAsAssetAnchor(e.currentTarget)}
+          <ListItemIcon>
+            <SaveOutlinedIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>{saving ? "Saving…" : "Save"}</ListItemText>
+        </EditorMenuItem>
+        <EditorMenuItem
+          onClick={(e) => {
+            closeMenuRef.current = close;
+            setSaveAsAssetAnchor(e.currentTarget);
+          }}
           disabled={savingAsAsset}
-          startIcon={<AddPhotoAlternateOutlinedIcon fontSize="small" />}
           data-testid="sketch-save-as-asset"
-          sx={{ height: 34 }}
         >
-          {savingAsAsset ? "Saving…" : "Save as Asset"}
-        </EditorButton>
-        <EditorButton
-          size="small"
-          variant="outlined"
-          onClick={handleExportPng}
-          startIcon={<FileDownloadOutlinedIcon fontSize="small" />}
+          <ListItemIcon>
+            <AddPhotoAlternateOutlinedIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>
+            {savingAsAsset ? "Saving…" : "Save as Asset"}
+          </ListItemText>
+        </EditorMenuItem>
+        <EditorMenuItem
+          onClick={() => {
+            close();
+            handleExportPng();
+          }}
           data-testid="sketch-export-png"
-          sx={{ height: 34 }}
         >
-          Export PNG
-        </EditorButton>
-      </FlexRow>
+          <ListItemIcon>
+            <FileDownloadOutlinedIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Export PNG</ListItemText>
+        </EditorMenuItem>
+      </>
     );
 
     // Show the spinner until we've captured a seed for this documentId.
@@ -213,21 +241,13 @@ const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
           documentId={documentId}
           initialDocument={seed.document}
           initialEditorState={initialEditorState ?? undefined}
-          headerActions={
-            headerActions ? (
-              <>
-                {documentActions}
-                {headerActions}
-              </>
-            ) : (
-              documentActions
-            )
-          }
+          headerActions={headerActions}
+          menuItems={documentMenuItems}
         />
         <SaveToFolderMenu
           anchorEl={saveAsAssetAnchor}
           open={!!saveAsAssetAnchor}
-          onClose={() => setSaveAsAssetAnchor(null)}
+          onClose={closeSaveAsAsset}
           onSelectFolder={(folderId) => void saveAsAsset(folderId)}
         />
       </div>
