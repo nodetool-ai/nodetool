@@ -90,7 +90,7 @@ jobs:
           additional_permissions: |
             actions: read
           claude_args: |
-            --model claude-opus-4-6
+            --model claude-opus-5
             --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
             --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, useEffect+fetch instead of useQuery, and prose throat-clearing."
           prompt: |
