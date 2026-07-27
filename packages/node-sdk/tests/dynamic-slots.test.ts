@@ -335,12 +335,16 @@ describe("validateGraph — dynamic slots", () => {
     expect(issue?.message).toContain("declared as image");
   });
 
-  it("warns (never errors) when the slot is undeclared", () => {
+  it("reports an undeclared slot as info, below the warnings-as-errors ratchet", () => {
     const report = validateGraph(graphWith({}), registry);
     expect(report.ok).toBe(true);
     expect(report.counts.errors).toBe(0);
     expect(report.issues.map((i) => i.code)).toEqual(["untyped_dynamic_slot"]);
-    expect(report.issues[0].severity).toBe("warning");
+    expect(report.issues[0].severity).toBe("info");
+    // Shipped examples are validated with --warnings-as-errors; an untyped
+    // legacy slot must not trip it.
+    expect(report.counts.warnings).toBe(0);
+    expect(report.counts.info).toBe(1);
   });
 
   it("treats a legacy node with dynamic_properties and no dynamic_inputs as valid", () => {

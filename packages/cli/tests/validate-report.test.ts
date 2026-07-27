@@ -14,11 +14,13 @@ function report(
   issues: GraphValidationReport["issues"]
 ): GraphValidationReport {
   const errors = issues.filter((i) => i.severity === "error").length;
+  const warnings = issues.filter((i) => i.severity === "warning").length;
+  const info = issues.filter((i) => i.severity === "info").length;
   return {
     ok: errors === 0,
     nodeCount: 2,
     edgeCount: 1,
-    counts: { errors, warnings: issues.length - errors },
+    counts: { errors, warnings, info },
     issues
   };
 }
@@ -28,7 +30,7 @@ describe("renderValidation", () => {
     const out = renderValidation(
       report([
         {
-          severity: "warning",
+          severity: "info",
           code: "untyped_dynamic_slot",
           edgeId: "e1",
           nodeId: "tpl",
@@ -50,42 +52,23 @@ describe("renderValidation", () => {
     expect(out).toMatch(/dynamic_type_mismatch — .*declares/);
   });
 
-  it("names untyped slots as the sole reason --warnings-as-errors fails", () => {
+  it("tags an untyped slot as info, not a warning", () => {
     const legacy = report(
       ["e1", "e2", "e3"].map((edgeId) => ({
-        severity: "warning" as const,
+        severity: "info" as const,
         code: "untyped_dynamic_slot",
         edgeId,
         message: `Edge "${edgeId}" targets an untyped dynamic input`
       }))
     );
 
-    expect(renderValidation(legacy, { warningsAsErrors: true }).join("\n"))
-      .toContain("Every warning is untyped_dynamic_slot");
-    // Without the flag the report stays plain — nothing failed.
-    expect(renderValidation(legacy).join("\n")).not.toContain(
-      "Every warning is untyped_dynamic_slot"
-    );
-  });
-
-  it("omits the note when other warnings are present", () => {
-    const mixed = report([
-      {
-        severity: "warning",
-        code: "untyped_dynamic_slot",
-        edgeId: "e1",
-        message: "untyped"
-      },
-      {
-        severity: "warning",
-        code: "type_mismatch",
-        edgeId: "e2",
-        message: "types may be incompatible"
-      }
-    ]);
-    expect(
-      renderValidation(mixed, { warningsAsErrors: true }).join("\n")
-    ).not.toContain("Every warning is untyped_dynamic_slot");
+    const out = renderValidation(legacy).join("\n");
+    expect(out).toContain("info  Edge");
+    expect(out).not.toContain("warn ");
+    // Info sits below the --warnings-as-errors ratchet, so a legacy workflow
+    // full of untyped slots still passes it.
+    expect(legacy.counts.warnings).toBe(0);
+    expect(legacy.counts.info).toBe(3);
   });
 
   it("prints only the headline for a clean graph", () => {

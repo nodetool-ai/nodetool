@@ -55,11 +55,7 @@ export function registerValidateCommand(program: Command): void {
         if (opts.json) {
           console.log(JSON.stringify({ target, report }, null, 2));
         } else {
-          console.log(
-            renderValidation(report, {
-              warningsAsErrors: opts.warningsAsErrors === true
-            }).join("\n")
-          );
+          console.log(renderValidation(report).join("\n"));
         }
 
         const failed =
@@ -86,7 +82,7 @@ const CODE_LEGEND: Readonly<Record<string, string>> = {
   type_mismatch: "the two ends of an edge carry different types",
   fan_in: "several edges target one input that takes a single value",
   untyped_dynamic_slot:
-    "edge targets a dynamic input with no declared type, so the connection is not type-checked — expected on workflows saved before typed slots, one per dynamic edge",
+    "edge targets a dynamic input with no declared type, so the connection is not type-checked — expected on workflows saved before typed slots, one per dynamic edge; informational, never a failure",
   dynamic_type_mismatch:
     "inline value of a dynamic input does not match the type the slot declares"
 };
@@ -95,10 +91,7 @@ const CODE_LEGEND: Readonly<Record<string, string>> = {
  * Human-readable report: headline, one line per issue, then a legend for the
  * codes that occurred. Pure so it can be asserted on directly.
  */
-export function renderValidation(
-  report: GraphValidationReport,
-  opts: { warningsAsErrors?: boolean } = {}
-): string[] {
+export function renderValidation(report: GraphValidationReport): string[] {
   const mark = report.ok ? (report.counts.warnings ? "⚠️" : "✅") : "❌";
   const lines = ["", `${mark} ${validationHeadline(report)}`];
   if (report.issues.length === 0) return lines;
@@ -118,25 +111,16 @@ export function renderValidation(
     }
   }
 
-  // A workflow saved before typed dynamic slots warns once per dynamic edge.
-  // Under --warnings-as-errors that exits non-zero, which reads as breakage
-  // unless we say what it is.
-  const warnings = report.issues.filter((i) => i.severity === "warning");
-  if (
-    opts.warningsAsErrors === true &&
-    warnings.length > 0 &&
-    warnings.every((i) => i.code === "untyped_dynamic_slot")
-  ) {
-    lines.push(
-      "",
-      "  Every warning is untyped_dynamic_slot — the graph is valid, its dynamic inputs just carry no declared type. Give them types in the editor, or drop --warnings-as-errors."
-    );
-  }
   return lines;
 }
 
 function formatIssue(issue: GraphValidationIssue): string {
-  const tag = issue.severity === "error" ? "error" : "warn ";
+  const tag =
+    issue.severity === "error"
+      ? "error"
+      : issue.severity === "info"
+        ? "info "
+        : "warn ";
   const where =
     issue.nodeId != null
       ? ` [${issue.nodeType ?? "node"} ${issue.nodeId}]`

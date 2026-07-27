@@ -47,7 +47,13 @@ export interface GraphValidationInput {
   edges?: GraphValidationEdge[];
 }
 
-export type GraphValidationSeverity = "error" | "warning";
+/**
+ * `info` is below the `--warnings-as-errors` ratchet: it reports something
+ * worth knowing about a graph that is not a defect. An untyped dynamic slot
+ * is the motivating case — every workflow saved before typed slots has one
+ * per dynamic edge, and none of them are broken.
+ */
+export type GraphValidationSeverity = "error" | "warning" | "info";
 
 export interface GraphValidationIssue {
   severity: GraphValidationSeverity;
@@ -56,9 +62,10 @@ export interface GraphValidationIssue {
    * "dangling_edge" | "unknown_handle" | "type_mismatch" | "fan_in" |
    * "untyped_dynamic_slot" | "dynamic_type_mismatch".
    *
-   * - "untyped_dynamic_slot" (warning): an edge targets a dynamic input that
+   * - "untyped_dynamic_slot" (info): an edge targets a dynamic input that
    *   carries no `dynamic_inputs` declaration, so its type cannot be checked.
-   *   Legacy graphs produce one per dynamic edge; never an error.
+   *   Legacy graphs produce one per dynamic edge; never an error, and below
+   *   the warnings-as-errors ratchet.
    * - "dynamic_type_mismatch" (warning): an inline `dynamic_properties` value
    *   does not match its slot's declared type.
    * - "type_mismatch": a warning for declared properties (best-effort), an
@@ -76,7 +83,7 @@ export interface GraphValidationReport {
   ok: boolean;
   nodeCount: number;
   edgeCount: number;
-  counts: { errors: number; warnings: number };
+  counts: { errors: number; warnings: number; info: number };
   issues: GraphValidationIssue[];
 }
 
@@ -352,7 +359,7 @@ export function validateGraph(
           typedDynamicSlot = true;
         } else {
           issues.push({
-            severity: "warning",
+            severity: "info",
             code: "untyped_dynamic_slot",
             edgeId: e.id,
             nodeId: e.target,
@@ -401,12 +408,13 @@ export function validateGraph(
   }
 
   const errors = issues.filter((i) => i.severity === "error").length;
-  const warnings = issues.length - errors;
+  const warnings = issues.filter((i) => i.severity === "warning").length;
+  const info = issues.filter((i) => i.severity === "info").length;
   return {
     ok: errors === 0,
     nodeCount: nodes.length,
     edgeCount: edges.length,
-    counts: { errors, warnings },
+    counts: { errors, warnings, info },
     issues
   };
 }
