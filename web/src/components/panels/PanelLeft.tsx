@@ -753,6 +753,7 @@ const PanelLeft: React.FC = () => {
       activeTabType === "workflow" &&
       activeTabMode === "edit");
   const hasHeader = !isStandaloneMode && !isChatRoute;
+  const panelLeftStyles = useMemo(() => styles(theme, hasHeader, false), [theme, hasHeader]);
 
   const {
     ref: panelRef,
@@ -851,7 +852,7 @@ const PanelLeft: React.FC = () => {
 
   return (
     <div
-      css={styles(theme, hasHeader, false)}
+      css={panelLeftStyles}
       className={`panel-left-container ${
         displayActiveView === "nodes" ? "is-nodes" : ""
       }`}

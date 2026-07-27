@@ -304,6 +304,7 @@ interface NodeLibraryProps {
 const NodeLibrary = memo<NodeLibraryProps>(
   ({ activeSubcategory, onSubcategoryChange, isMobile = false }) => {
     const theme = useTheme();
+    const cssStyles = useMemo(() => styles(theme, isMobile), [theme, isMobile]);
     const [query, setQuery] = useState("");
     const [hoveredType, setHoveredType] = useState<string | null>(null);
     const searchRef = useRef<HTMLInputElement>(null);
@@ -408,7 +409,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
     const handleListLeave = useCallback(() => setHoveredType(null), []);
 
     return (
-      <div css={styles(theme, isMobile)} className="nl-root">
+      <div css={cssStyles} className="nl-root">
         <div className="nl-header">
           <Text className="nl-title" component="h2">
             Node library
