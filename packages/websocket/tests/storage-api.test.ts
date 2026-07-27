@@ -258,12 +258,11 @@ describe("read-only surface", () => {
   it("retrieves a stored file", async () => {
     const handler = makeHandler();
     const data = "test file content";
-    await fs.mkdir(path.join(tmpDir, "lifecycle"), { recursive: true });
-    await fs.writeFile(path.join(tmpDir, "lifecycle", "test.txt"), data);
+    // Keys are owner-prefixed: `<userId>/<assetId>.<ext>`.
+    await fs.mkdir(path.join(tmpDir, "1"), { recursive: true });
+    await fs.writeFile(path.join(tmpDir, "1", "test.txt"), data);
 
-    const getRes = await handler(
-      makeRequest("/api/storage/lifecycle/test.txt")
-    );
+    const getRes = await handler(makeRequest("/api/storage/1/test.txt"));
     expect(getRes.status).toBe(200);
     expect(getRes.headers.get("Content-Type")).toBe("text/plain");
     expect(await getRes.text()).toBe(data);
@@ -362,6 +361,57 @@ describe("ownership scoping", () => {
     );
     expect(res.status).toBe(200);
     expect(await res.text()).toBe("t-bytes");
+  });
+
+  it("serves an owner-prefixed key without consulting the asset row", async () => {
+    const handler = makeHandler();
+    await fs.mkdir(path.join(tmpDir, "user-a"), { recursive: true });
+    await fs.writeFile(path.join(tmpDir, "user-a", "new.png"), "new-bytes");
+    ownsAsset = () => false; // prefix alone must be enough
+
+    const res = await handler(
+      makeRequest("/api/storage/user-a/new.png", "GET", {
+        "x-user-id": "user-a"
+      })
+    );
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("new-bytes");
+  });
+
+  it("denies a key under another owner's prefix", async () => {
+    const handler = makeHandler();
+    await fs.mkdir(path.join(tmpDir, "user-a"), { recursive: true });
+    await fs.writeFile(path.join(tmpDir, "user-a", "new.png"), "new-bytes");
+
+    const res = await handler(
+      makeRequest("/api/storage/user-a/new.png", "GET", {
+        "x-user-id": "user-b"
+      })
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("falls back to the legacy flat object when the prefixed one is missing", async () => {
+    // Pre-migration deployments still have flat objects on disk; the owner is
+    // re-established from the asset row before serving one.
+    const handler = makeHandler();
+    const res = await handler(
+      makeRequest("/api/storage/user-a/asset-a.png", "GET", {
+        "x-user-id": "user-a"
+      })
+    );
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("a-bytes");
+  });
+
+  it("does not serve a legacy object the caller does not own", async () => {
+    const handler = makeHandler();
+    const res = await handler(
+      makeRequest("/api/storage/user-b/asset-a.png", "GET", {
+        "x-user-id": "user-b"
+      })
+    );
+    expect(res.status).toBe(404);
   });
 
   it("does not treat a missing x-user-id as a bypass", async () => {

@@ -19,7 +19,7 @@ import {
 } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.assets");
-import { createAssetUrlBuilder } from "@nodetool-ai/storage";
+import { assetObjectKey, createAssetUrlBuilder } from "@nodetool-ai/storage";
 import { getAssetFileName } from "../../lib/asset-paths.js";
 import {
   storeAssetWithThumbnail,
@@ -63,8 +63,13 @@ async function toAssetResponse(asset: AssetModel): Promise<AssetResponse> {
   const fileName = isFolder
     ? null
     : getAssetFileName(asset.id, asset.content_type);
+  // Owner-prefixed keys. Objects written before this layout are flat; the
+  // `/api/storage` route falls back to the legacy path on a miss, and cloud
+  // backends need `nodetool storage migrate-keys` (see docs/configuration.md).
   const getUrl = fileName
-    ? await getUrlBuilder()(fileName).catch(() => null)
+    ? await getUrlBuilder()(assetObjectKey(asset.user_id, fileName)).catch(
+        () => null
+      )
     : null;
 
   const hasThumbnail =
@@ -73,7 +78,9 @@ async function toAssetResponse(asset: AssetModel): Promise<AssetResponse> {
     asset.content_type.startsWith("audio/") ||
     asset.content_type === "application/pdf";
   const thumbUrl = hasThumbnail
-    ? await getUrlBuilder()(thumbnailKey(asset.id)).catch(() => null)
+    ? await getUrlBuilder()(
+        assetObjectKey(asset.user_id, thumbnailKey(asset.id))
+      ).catch(() => null)
     : null;
 
   return {
@@ -252,6 +259,7 @@ export const assetsRouter = router({
           bytes: buf.byteLength
         });
         await storeAssetWithThumbnail(
+          asset.user_id,
           asset.id,
           fileName,
           new Uint8Array(buf),

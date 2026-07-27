@@ -94,7 +94,35 @@ describe("canReadStorageKey", () => {
     expect(findAsset).not.toHaveBeenCalled();
   });
 
-  it("requires ownership for asset keys", async () => {
+  it("settles an owner-prefixed key from the prefix alone", async () => {
+    await expect(
+      canReadStorageKey("user-a", "user-a/abc.png")
+    ).resolves.toBe(true);
+    expect(findAsset).not.toHaveBeenCalled();
+  });
+
+  it("denies another owner's prefix even when the asset row would match", async () => {
+    // A stale/permissive row must not override the prefix — the prefix is the
+    // same boundary the bucket policy enforces on the object itself.
+    findAsset.mockResolvedValue({ id: "abc", user_id: "user-b" });
+    await expect(
+      canReadStorageKey("user-b", "user-a/abc.png")
+    ).resolves.toBe(false);
+  });
+
+  it("does not treat a prefix match as a substring match", async () => {
+    await expect(
+      canReadStorageKey("user-a", "user-abc/abc.png")
+    ).resolves.toBe(false);
+  });
+
+  it("falls back to the asset row for legacy flat keys", async () => {
+    findAsset.mockResolvedValue({ id: "abc", user_id: "user-a" });
+    await expect(canReadStorageKey("user-a", "abc.png")).resolves.toBe(true);
+    expect(findAsset).toHaveBeenCalledWith("user-a", "abc");
+  });
+
+  it("requires ownership for legacy flat keys", async () => {
     findAsset.mockResolvedValue(null);
     await expect(canReadStorageKey("user-b", "abc.png")).resolves.toBe(false);
   });

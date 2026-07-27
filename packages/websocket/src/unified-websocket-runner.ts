@@ -132,7 +132,7 @@ import type { PythonBridge } from "@nodetool-ai/runtime";
 import { appRouter } from "./trpc/router.js";
 import { createCallerFactory } from "./trpc/index.js";
 import type { HttpApiOptions } from "./http-api.js";
-import { getAssetFileName } from "./lib/asset-paths.js";
+import { getAssetFileName, retrieveAssetBytes } from "./lib/asset-paths.js";
 
 const log = createLogger("nodetool.websocket.runner");
 const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
@@ -724,7 +724,13 @@ async function autoSaveAssets(
 
     const fileName = getAssetFileName(asset.id, contentType);
     try {
-      await storeAssetWithThumbnail(asset.id, fileName, bytes, contentType);
+      await storeAssetWithThumbnail(
+        asset.user_id,
+        asset.id,
+        fileName,
+        bytes,
+        contentType
+      );
       asset.size = bytes.length;
       await asset.save();
 
@@ -775,7 +781,13 @@ async function autoSaveAssets(
           : { text: previewText };
       const fileName = `${asset.id}.txt`;
       try {
-        await storeAssetWithThumbnail(asset.id, fileName, bytes, "text/plain");
+        await storeAssetWithThumbnail(
+          asset.user_id,
+          asset.id,
+          fileName,
+          bytes,
+          "text/plain"
+        );
         asset.size = bytes.length;
         await asset.save();
       } catch (err) {
@@ -831,6 +843,7 @@ async function autoSaveAssets(
         const fileName = `${asset.id}.json`;
         try {
           await storeAssetWithThumbnail(
+            asset.user_id,
             asset.id,
             fileName,
             bytes,
@@ -939,6 +952,7 @@ function createRuntimeContext(opts: {
         const ext = MIME_TO_EXT[args.contentType] ?? "bin";
         const key = `${asset.id}.${ext}`;
         await storeAssetWithThumbnail(
+          asset.user_id,
           asset.id,
           key,
           args.content,
@@ -3221,7 +3235,13 @@ export class UnifiedWebSocketRunner {
           parent_id: null
         });
         const fileName = `${asset.id}.${ext}`;
-        await storeAssetWithThumbnail(asset.id, fileName, bytes, mimeType);
+        await storeAssetWithThumbnail(
+          asset.user_id,
+          asset.id,
+          fileName,
+          bytes,
+          mimeType
+        );
         asset.size = bytes.length;
         await asset.save();
         // The DB / wire shape mirrors handleMediaGenerationMessage: an asset_id
@@ -4953,7 +4973,13 @@ export class UnifiedWebSocketRunner {
         parent_id: null
       });
       const fileName = `${asset.id}.${ext}`;
-      await storeAssetWithThumbnail(asset.id, fileName, bytes, contentType);
+      await storeAssetWithThumbnail(
+        asset.user_id,
+        asset.id,
+        fileName,
+        bytes,
+        contentType
+      );
       asset.size = bytes.length;
       await asset.save();
       return asset.id;
@@ -5542,9 +5568,11 @@ export class UnifiedWebSocketRunner {
       try {
         const asset = await Asset.find(userId, assetId);
         if (!asset) return null;
-        const adapter = getAssetAdapter();
-        return await adapter.retrieve(
-          adapter.uriForKey(getAssetFileName(assetId, asset.content_type))
+        return await retrieveAssetBytes(
+          getAssetAdapter(),
+          userId,
+          assetId,
+          asset.content_type
         );
       } catch (err) {
         log.warn("resolveSourceImageBytes: asset load failed", {
@@ -6229,7 +6257,13 @@ export class UnifiedWebSocketRunner {
         parent_id: null
       });
       const fileName = `${asset.id}.${ext}`;
-      await storeAssetWithThumbnail(asset.id, fileName, bytes, contentType);
+      await storeAssetWithThumbnail(
+        asset.user_id,
+        asset.id,
+        fileName,
+        bytes,
+        contentType
+      );
       asset.size = bytes.length;
       await asset.save();
       return asset.id;
@@ -6390,15 +6424,17 @@ export class UnifiedWebSocketRunner {
       if (!maskAsset)
         throw new Error(`Mask asset not found: ${req.maskAssetId}`);
       const [sourceBytes, maskBytes] = await Promise.all([
-        adapter.retrieve(
-          adapter.uriForKey(
-            getAssetFileName(req.sourceAssetId, sourceAsset.content_type)
-          )
+        retrieveAssetBytes(
+          adapter,
+          userId,
+          req.sourceAssetId,
+          sourceAsset.content_type
         ),
-        adapter.retrieve(
-          adapter.uriForKey(
-            getAssetFileName(req.maskAssetId, maskAsset.content_type)
-          )
+        retrieveAssetBytes(
+          adapter,
+          userId,
+          req.maskAssetId,
+          maskAsset.content_type
         )
       ]);
       if (!sourceBytes)
@@ -6425,11 +6461,11 @@ export class UnifiedWebSocketRunner {
       if (!sourceAsset) {
         throw new Error(`Source asset not found: ${req.sourceAssetId}`);
       }
-      const adapter = getAssetAdapter();
-      const sourceBytes = await adapter.retrieve(
-        adapter.uriForKey(
-          getAssetFileName(req.sourceAssetId, sourceAsset.content_type)
-        )
+      const sourceBytes = await retrieveAssetBytes(
+        getAssetAdapter(),
+        userId,
+        req.sourceAssetId,
+        sourceAsset.content_type
       );
       if (!sourceBytes) {
         throw new Error(`Source asset bytes not found: ${req.sourceAssetId}`);
@@ -6485,9 +6521,11 @@ export class UnifiedWebSocketRunner {
     if (!asset) {
       throw new Error(`Audio asset not found: ${req.assetId}`);
     }
-    const adapter = getAssetAdapter();
-    const bytes = await adapter.retrieve(
-      adapter.uriForKey(getAssetFileName(req.assetId, asset.content_type))
+    const bytes = await retrieveAssetBytes(
+      getAssetAdapter(),
+      userId,
+      req.assetId,
+      asset.content_type
     );
     if (!bytes) {
       throw new Error(`Audio asset bytes not found: ${req.assetId}`);

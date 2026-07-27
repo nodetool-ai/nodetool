@@ -14,6 +14,7 @@ export {
   type S3ObjectSummary,
   type S3BucketSummary,
   type S3PresignGetObjectInput,
+  type S3PresignPutObjectInput,
   type S3RetryOptions
 } from "./client.js";
 export {

@@ -46,6 +46,7 @@ describe("storeAssetWithThumbnail", () => {
 
   it("stores only the original for a non-media content type", async () => {
     await storeAssetWithThumbnail(
+      "u1",
       "a1",
       "notes.txt",
       new Uint8Array([1, 2, 3]),
@@ -54,7 +55,7 @@ describe("storeAssetWithThumbnail", () => {
     // No generator -> exactly one store (the original), no thumbnail store.
     expect(store).toHaveBeenCalledTimes(1);
     expect(store).toHaveBeenCalledWith(
-      "notes.txt",
+      "u1/notes.txt",
       expect.any(Uint8Array),
       "text/plain"
     );
@@ -62,12 +63,12 @@ describe("storeAssetWithThumbnail", () => {
 
   it("stores original and a JPEG thumbnail for an image", async () => {
     const bytes = await tinyPng();
-    await storeAssetWithThumbnail("img1", "pic.png", bytes, "image/png");
+    await storeAssetWithThumbnail("u1", "img1", "pic.png", bytes, "image/png");
     expect(store).toHaveBeenCalledTimes(2);
-    expect(store).toHaveBeenNthCalledWith(1, "pic.png", bytes, "image/png");
+    expect(store).toHaveBeenNthCalledWith(1, "u1/pic.png", bytes, "image/png");
     expect(store).toHaveBeenNthCalledWith(
       2,
-      "img1_thumb.jpg",
+      "u1/img1_thumb.jpg",
       expect.any(Uint8Array),
       "image/jpeg"
     );
@@ -77,6 +78,7 @@ describe("storeAssetWithThumbnail", () => {
     // Invalid image bytes: both the trim pass and the untrimmed fallback in
     // generateImageThumb throw, and storeAssetWithThumbnail swallows it.
     await storeAssetWithThumbnail(
+      "u1",
       "bad",
       "broken.png",
       new Uint8Array([0, 1, 2, 3, 4]),
@@ -85,7 +87,7 @@ describe("storeAssetWithThumbnail", () => {
     // Original stored; thumbnail store never reached.
     expect(store).toHaveBeenCalledTimes(1);
     expect(store).toHaveBeenCalledWith(
-      "broken.png",
+      "u1/broken.png",
       expect.any(Uint8Array),
       "image/png"
     );
@@ -93,6 +95,7 @@ describe("storeAssetWithThumbnail", () => {
 
   it("selects the video generator and swallows ffmpeg failures", async () => {
     await storeAssetWithThumbnail(
+      "u1",
       "vid",
       "clip.mp4",
       new Uint8Array([0, 1, 2, 3]),
@@ -100,7 +103,7 @@ describe("storeAssetWithThumbnail", () => {
     );
     expect(store).toHaveBeenCalledTimes(1);
     expect(store).toHaveBeenCalledWith(
-      "clip.mp4",
+      "u1/clip.mp4",
       expect.any(Uint8Array),
       "video/mp4"
     );
@@ -108,6 +111,7 @@ describe("storeAssetWithThumbnail", () => {
 
   it("selects the audio generator and swallows ffmpeg failures", async () => {
     await storeAssetWithThumbnail(
+      "u1",
       "aud",
       "sound.mp3",
       new Uint8Array([0, 1, 2, 3]),
@@ -115,7 +119,7 @@ describe("storeAssetWithThumbnail", () => {
     );
     expect(store).toHaveBeenCalledTimes(1);
     expect(store).toHaveBeenCalledWith(
-      "sound.mp3",
+      "u1/sound.mp3",
       expect.any(Uint8Array),
       "audio/mpeg"
     );
@@ -123,6 +127,7 @@ describe("storeAssetWithThumbnail", () => {
 
   it("selects the pdf generator and swallows parse failures", async () => {
     await storeAssetWithThumbnail(
+      "u1",
       "doc",
       "file.pdf",
       new Uint8Array([0, 1, 2, 3]),
@@ -130,7 +135,7 @@ describe("storeAssetWithThumbnail", () => {
     );
     expect(store).toHaveBeenCalledTimes(1);
     expect(store).toHaveBeenCalledWith(
-      "file.pdf",
+      "u1/file.pdf",
       expect.any(Uint8Array),
       "application/pdf"
     );

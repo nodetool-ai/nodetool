@@ -8,7 +8,10 @@ import { createAssetUrlBuilder } from "@nodetool-ai/storage";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
-import { callerOwnsStorageKey } from "../../lib/storage-access.js";
+import { assetKeyOwner } from "@nodetool-ai/storage";
+import { canReadStorageKey } from "../../lib/storage-access.js";
+import { resolveExistingAssetKey } from "../../lib/asset-paths.js";
+import { getAssetAdapter } from "../../lib/storage.js";
 import {
   signUrlInput,
   signUrlOutput
@@ -54,10 +57,23 @@ export const storageRouter = router({
       if (validationError) {
         throwApiError(ApiErrorCode.INVALID_INPUT, validationError);
       }
-      if (!(await callerOwnsStorageKey(ctx.userId, input.key))) {
+      if (!(await canReadStorageKey(ctx.userId, input.key))) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Object not found");
       }
-      const url = await getUrlBuilder()(input.key);
+      // Prefer the owner-prefixed object; fall back to the flat legacy key
+      // when a deployment hasn't run `nodetool storage migrate-keys` yet.
+      const adapter = getAssetAdapter();
+      const owner = assetKeyOwner(input.key);
+      let key = input.key;
+      if (owner === ctx.userId) {
+        const resolved = await resolveExistingAssetKey(
+          adapter,
+          ctx.userId,
+          input.key.slice(owner.length + 1)
+        );
+        if (resolved) key = resolved;
+      }
+      const url = await getUrlBuilder()(key);
       return { url };
     })
 });

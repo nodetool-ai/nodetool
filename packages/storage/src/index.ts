@@ -16,8 +16,19 @@ export type {
   StorageAdapter,
   StorageEntry,
   StorageListResult,
-  StorageStat
+  StorageStat,
+  UploadTarget,
+  UploadUrlOptions
 } from "./storage-adapter.js";
+
+// Storage key helpers (owner-prefixed asset layout + legacy fallback)
+export {
+  normalizeStorageKey,
+  joinStorageKey,
+  assetObjectKey,
+  assetKeyCandidates,
+  assetKeyOwner
+} from "./storage-keys.js";
 export { InMemoryStorageAdapter } from "./memory-storage-adapter.js";
 export { FileStorageAdapter } from "./file-storage-adapter.js";
 export {
@@ -53,6 +64,7 @@ export {
   type S3ObjectSummary,
   type S3BucketSummary,
   type S3PresignGetObjectInput,
+  type S3PresignPutObjectInput,
   type S3RetryOptions,
   type SigV4Credentials,
   createDefaultCredentialProvider,

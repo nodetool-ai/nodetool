@@ -186,3 +186,67 @@ describe("createAssetUrlBuilder (supabase)", () => {
     );
   });
 });
+
+describe("createSignedUploadUrl", () => {
+  it("POSTs to the upload-sign endpoint and returns an absolute URL + token", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({
+        url: "/object/upload/sign/assets/user-1/abc.png?token=tok-123"
+      })
+    );
+    const { data, error } = await client()
+      .storage.from("assets")
+      .createSignedUploadUrl("user-1/abc.png");
+
+    expect(error).toBeNull();
+    expect(data).toEqual({
+      signedUrl:
+        "https://xyz.supabase.co/storage/v1/object/upload/sign/assets/user-1/abc.png?token=tok-123",
+      token: "tok-123"
+    });
+    const { url, init } = lastRequest();
+    expect(url).toBe(
+      "https://xyz.supabase.co/storage/v1/object/upload/sign/assets/user-1/abc.png"
+    );
+    expect(init.method).toBe("POST");
+  });
+
+  it("percent-encodes each key segment but keeps slashes", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ url: "/object/upload/sign/assets/u/a%20b.png?token=t" })
+    );
+    await client().storage.from("assets").createSignedUploadUrl("u/a b.png");
+    expect(lastRequest().url).toBe(
+      "https://xyz.supabase.co/storage/v1/object/upload/sign/assets/u/a%20b.png"
+    );
+  });
+
+  it("surfaces an API error instead of a URL", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ message: "denied" }, 403));
+    const { data, error } = await client()
+      .storage.from("assets")
+      .createSignedUploadUrl("user-1/abc.png");
+    expect(data).toBeNull();
+    expect(error?.message).toBe("denied");
+  });
+
+  it("errors when the response carries no url", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({}));
+    const { data, error } = await client()
+      .storage.from("assets")
+      .createSignedUploadUrl("user-1/abc.png");
+    expect(data).toBeNull();
+    expect(error?.message).toMatch(/missing url/);
+  });
+
+  it("errors when the signed url carries no token", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ url: "/object/upload/sign/assets/user-1/abc.png" })
+    );
+    const { data, error } = await client()
+      .storage.from("assets")
+      .createSignedUploadUrl("user-1/abc.png");
+    expect(data).toBeNull();
+    expect(error?.message).toMatch(/missing token/);
+  });
+});

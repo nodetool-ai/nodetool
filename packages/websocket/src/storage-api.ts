@@ -6,8 +6,12 @@ import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import path, { extname } from "node:path";
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
+import { assetKeyOwner } from "@nodetool-ai/storage";
 import { resolveAllowedOrigin } from "./cors.js";
-import { canReadStorageKey } from "./lib/storage-access.js";
+import {
+  callerOwnsStorageKey,
+  canReadStorageKey
+} from "./lib/storage-access.js";
 
 // ── MIME types ────────────────────────────────────────────────────
 
@@ -86,6 +90,27 @@ function validateStorageKey(key: string): string | null {
   if (parts.some((p) => p === ".."))
     return "Key must not contain path traversal";
   return null; // valid
+}
+
+/**
+ * The pre-prefix key an owner-prefixed asset key used to live at, or null for
+ * a key that already has no prefix.
+ */
+function legacyKeyFor(key: string): string | null {
+  const normalized = key.replace(/\\/g, "/");
+  const slash = normalized.lastIndexOf("/");
+  if (slash <= 0) return null;
+  const base = normalized.slice(slash + 1);
+  return base && base !== normalized ? base : null;
+}
+
+async function pathExists(filePath: string): Promise<boolean> {
+  try {
+    await stat(filePath);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function resolveStoragePath(rootDir: string, key: string): string {
@@ -213,7 +238,19 @@ async function handleStorageRequest(
     });
   }
 
-  const filePath = resolveStoragePath(rootDir, key);
+  let filePath = resolveStoragePath(rootDir, key);
+
+  // Objects written before the owner-prefixed layout are flat. Fall back to
+  // the legacy path when the prefixed one is missing, re-checking ownership
+  // against the `assets` row since the prefix no longer vouches for it. Only
+  // the local backend needs this — cloud backends resolve through the URL
+  // builder, so they require `nodetool storage migrate-keys`.
+  const legacy = assetKeyOwner(key) === userId ? legacyKeyFor(key) : null;
+  if (legacy && !(await pathExists(filePath))) {
+    if (await callerOwnsStorageKey(userId, legacy)) {
+      filePath = resolveStoragePath(rootDir, legacy);
+    }
+  }
 
   // HEAD
   if (request.method === "HEAD") {

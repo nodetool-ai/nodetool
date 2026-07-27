@@ -23,6 +23,7 @@ import { promisify } from "node:util";
 
 import sharp from "sharp";
 import { createLogger } from "@nodetool-ai/config";
+import { assetObjectKey } from "@nodetool-ai/storage";
 import { getAssetAdapter } from "./storage.js";
 
 const log = createLogger("nodetool.thumbnail");
@@ -165,13 +166,14 @@ async function generateAudioThumb(bytes: Uint8Array): Promise<Buffer> {
  * upload still succeeds.
  */
 export async function storeAssetWithThumbnail(
+  userId: string,
   assetId: string,
   fileName: string,
   bytes: Uint8Array,
   contentType: string
 ): Promise<void> {
   const adapter = getAssetAdapter();
-  await adapter.store(fileName, bytes, contentType);
+  await adapter.store(assetObjectKey(userId, fileName), bytes, contentType);
 
   const generator = contentType.startsWith("image/")
     ? generateImageThumb
@@ -187,7 +189,7 @@ export async function storeAssetWithThumbnail(
   try {
     const thumb = await generator(bytes);
     await adapter.store(
-      thumbnailKey(assetId),
+      assetObjectKey(userId, thumbnailKey(assetId)),
       new Uint8Array(thumb),
       THUMB_CONTENT_TYPE
     );

@@ -13,6 +13,7 @@
  */
 import path from "node:path";
 import { Asset } from "@nodetool-ai/models";
+import { assetKeyOwner } from "@nodetool-ai/storage";
 
 /**
  * Key prefixes the runtime writes to directly, with no `assets` row behind
@@ -63,11 +64,20 @@ export async function callerOwnsStorageKey(
   }
 }
 
-/** Whether `userId` may read the bytes at `key`. */
+/**
+ * Whether `userId` may read the bytes at `key`.
+ *
+ * Owner-prefixed keys (`<userId>/<assetId>.<ext>`) are settled by the prefix
+ * alone — no database round trip, and the same rule a Supabase RLS policy or
+ * bucket policy applies to the object itself. Legacy flat keys, written
+ * before that layout, still need the `assets` lookup.
+ */
 export async function canReadStorageKey(
   userId: string,
   key: string
 ): Promise<boolean> {
   if (isRuntimeScratchKey(key)) return true;
+  const owner = assetKeyOwner(key);
+  if (owner !== null) return owner === userId;
   return callerOwnsStorageKey(userId, key);
 }

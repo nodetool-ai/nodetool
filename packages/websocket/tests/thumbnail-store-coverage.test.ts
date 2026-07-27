@@ -39,6 +39,7 @@ describe("storeAssetWithThumbnail", () => {
 
   it("stores the original but no thumbnail for an unsupported content type", async () => {
     await storeAssetWithThumbnail(
+      "u1",
       "id1",
       "file.txt",
       new Uint8Array([1, 2, 3]),
@@ -46,7 +47,7 @@ describe("storeAssetWithThumbnail", () => {
     );
     expect(storeMock).toHaveBeenCalledTimes(1);
     expect(storeMock).toHaveBeenCalledWith(
-      "file.txt",
+      "u1/file.txt",
       expect.any(Uint8Array),
       "text/plain"
     );
@@ -54,32 +55,33 @@ describe("storeAssetWithThumbnail", () => {
 
   it("stores original and a jpeg thumbnail for an image", async () => {
     const png = await tinyPng();
-    await storeAssetWithThumbnail("id2", "pic.png", new Uint8Array(png), "image/png");
+    await storeAssetWithThumbnail("u1", "id2", "pic.png", new Uint8Array(png), "image/png");
     expect(storeMock).toHaveBeenCalledTimes(2);
     // second call stores the thumbnail
     const thumbCall = storeMock.mock.calls[1];
-    expect(thumbCall[0]).toBe("id2_thumb.jpg");
+    expect(thumbCall[0]).toBe("u1/id2_thumb.jpg");
     expect(thumbCall[2]).toBe("image/jpeg");
   });
 
   it("swallows thumbnail generation failure but still stores the original", async () => {
     const notAnImage = new Uint8Array([0, 1, 2, 3, 4]);
-    await storeAssetWithThumbnail("id3", "broken.png", notAnImage, "image/png");
+    await storeAssetWithThumbnail("u1", "id3", "broken.png", notAnImage, "image/png");
     // original stored; thumbnail generation failed and was swallowed
     expect(storeMock).toHaveBeenCalledTimes(1);
-    expect(storeMock.mock.calls[0][0]).toBe("broken.png");
+    expect(storeMock.mock.calls[0][0]).toBe("u1/broken.png");
   });
 
   it("selects the generator by content-type prefix (audio path attempts thumb)", async () => {
     // audio uses ffmpeg which will fail on these bytes; failure is swallowed,
     // so only the original store call remains.
     await storeAssetWithThumbnail(
+      "u1",
       "id4",
       "clip.wav",
       new Uint8Array([1, 2, 3]),
       "audio/wav"
     );
-    expect(storeMock.mock.calls[0][0]).toBe("clip.wav");
+    expect(storeMock.mock.calls[0][0]).toBe("u1/clip.wav");
   });
 });
 
