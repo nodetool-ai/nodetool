@@ -5,6 +5,7 @@ import { useNodes } from "../../../contexts/NodeContext";
 import { BASE_URL } from "../../../stores/BASE_URL";
 import { TypeMetadata } from "../../../stores/ApiTypes";
 import { resolveReplicateSchemaClient } from "../../../utils/replicateDynamicSchema";
+import { normalizeDynamicSlots } from "../../../utils/dynamicSlots";
 import { NodeData } from "../../../stores/NodeData";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
@@ -68,10 +69,8 @@ export const ReplicateSchemaLoader: React.FC<ReplicateSchemaLoaderProps> = memo(
             ...(meta.type_name != null && { type_name: meta.type_name })
           } as TypeMetadata;
         }
-        const dynamic_inputs: Record<
-          string,
-          TypeMetadata & { description?: string }
-        > = {};
+        // Resolver-flat shape; normalized before it lands in the store.
+        const dynamic_inputs: Record<string, Record<string, unknown>> = {};
         for (const [k, v] of Object.entries(resolved.dynamic_inputs ?? {})) {
           const meta = v as {
             type: string;
@@ -103,7 +102,7 @@ export const ReplicateSchemaLoader: React.FC<ReplicateSchemaLoaderProps> = memo(
           dynamic_properties,
           dynamic_inputs:
             Object.keys(dynamic_inputs).length > 0
-              ? dynamic_inputs
+              ? normalizeDynamicSlots(dynamic_inputs)
               : undefined,
           dynamic_outputs,
           ...(resolved.model_id != null && {

@@ -1,8 +1,13 @@
 import { Edge, Node } from "@xyflow/react";
 
 import { NodeMetadata, TypeMetadata } from "../../stores/ApiTypes";
-import { NodeData } from "../../stores/NodeData";
-import { hasInputHandle, hasOutputHandle } from "../../utils/handleUtils";
+import { DynamicSlotDeclaration, NodeData } from "../../stores/NodeData";
+import {
+  findOutputHandle,
+  hasInputHandle,
+  hasOutputHandle
+} from "../../utils/handleUtils";
+import { normalizeDynamicSlots } from "../../utils/dynamicSlots";
 import { CONTROL_HANDLE_ID } from "../../stores/graphEdgeToReactFlowEdge";
 import { addExposedInput } from "../../utils/exposedInputs";
 
@@ -15,14 +20,29 @@ const ANY_TYPE: TypeMetadata = {
 
 interface NodePatch {
   dynamic_properties?: Record<string, unknown>;
+  dynamic_inputs?: Record<string, DynamicSlotDeclaration>;
   dynamic_outputs?: Record<string, TypeMetadata>;
   exposedInputs?: string[];
 }
+
+/** Type of the edge's source output handle, when it can be resolved. */
+const inferSourceOutputType = (
+  sourceNode: Node<NodeData> | undefined,
+  sourceHandle: string,
+  metadata: Record<string, NodeMetadata>
+): TypeMetadata | undefined => {
+  const sourceMeta = sourceNode?.type ? metadata[sourceNode.type] : undefined;
+  if (!sourceNode || !sourceMeta) {
+    return undefined;
+  }
+  return findOutputHandle(sourceNode, sourceHandle, sourceMeta)?.type;
+};
 
 /**
  * Walk edges and ensure that every handle referenced by an edge actually
  * renders on the node body:
  *   - `supports_dynamic_inputs` target with unknown handle → add to `dynamic_properties`
+ *     (declared in `dynamic_inputs` with the source output's type)
  *   - `supports_dynamic_outputs` source with unknown handle → add to
  *     `dynamic_outputs` (type `any`)
  *   - static target property that's neither inline nor input-field → promote
@@ -67,17 +87,34 @@ const ensureHandlesForEdges = (
           patch.dynamic_properties ??
           targetNode.data.dynamic_properties ??
           {};
-        const dynInputs = targetNode.data.dynamic_inputs ?? {};
+        const currentDynInputs =
+          patch.dynamic_inputs ??
+          normalizeDynamicSlots(targetNode.data.dynamic_inputs);
         const known = new Set([
           ...targetMeta.properties.map((p) => p.name),
           ...Object.keys(currentDynProps),
-          ...Object.keys(dynInputs)
+          ...Object.keys(currentDynInputs)
         ]);
         if (!known.has(edge.targetHandle)) {
+          // Declare the repaired slot with the source output's type so the
+          // handle keeps the color, editor, and gating of a typed slot.
+          const inferred = inferSourceOutputType(
+            nodeById.get(edge.source),
+            edge.sourceHandle,
+            metadata
+          );
+          // The value is driven by the edge, so it stays `""` as before —
+          // only the declaration is new.
           patch.dynamic_properties = {
             ...currentDynProps,
             [edge.targetHandle]: ""
           };
+          if (inferred && inferred.type !== "any") {
+            patch.dynamic_inputs = {
+              ...currentDynInputs,
+              [edge.targetHandle]: { type: inferred }
+            };
+          }
         }
       } else {
         // Static property promotion: if the edge targets a real metadata
@@ -135,6 +172,9 @@ const ensureHandlesForEdges = (
         ...node.data,
         ...(patch.dynamic_properties !== undefined && {
           dynamic_properties: patch.dynamic_properties
+        }),
+        ...(patch.dynamic_inputs !== undefined && {
+          dynamic_inputs: patch.dynamic_inputs
         }),
         ...(patch.dynamic_outputs !== undefined && {
           dynamic_outputs: patch.dynamic_outputs

@@ -27,6 +27,7 @@ import {
   type ComfyResolvedSchema,
   type ComfyDynInput
 } from "../../../utils/comfyDynamicSchema";
+import { normalizeDynamicSlots } from "../../../utils/dynamicSlots";
 
 interface ComfyWorkflowLoaderProps {
   nodeId: string;
@@ -134,7 +135,7 @@ export const ComfyWorkflowLoader: React.FC<ComfyWorkflowLoaderProps> = memo(
           ...data.properties,
           workflow: JSON.stringify(schema.prompt)
         },
-        dynamic_inputs,
+        dynamic_inputs: normalizeDynamicSlots(dynamic_inputs),
         dynamic_outputs: schema.dynamic_outputs,
         dynamic_properties
       });

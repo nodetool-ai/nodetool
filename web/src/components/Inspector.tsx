@@ -9,6 +9,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { NodeMetadata, TypeMetadata, Property, PropertyTypeMetadata } from "../stores/ApiTypes";
 import { findOutputHandle } from "../utils/handleUtils";
+import { normalizeDynamicSlot, slotType } from "../utils/dynamicSlots";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import isEqual from "../utils/isEqual";
 import { areNodesEqualIgnoringPosition } from "../utils/nodeEquality";
@@ -991,8 +992,9 @@ const Inspector: React.FC = () => {
                     const dynamicInputMeta =
                       selectedNode.data.dynamic_inputs?.[name];
 
-                    let resolvedType: TypeMetadata =
-                      (dynamicInputMeta as TypeMetadata) || DEFAULT_TYPE_METADATA;
+                    let resolvedType: TypeMetadata = dynamicInputMeta
+                      ? slotType(normalizeDynamicSlot(dynamicInputMeta))
+                      : DEFAULT_TYPE_METADATA;
 
                     if (incoming && !dynamicInputMeta) {
                       const sourceNode = findNode(incoming.source);

@@ -79,7 +79,7 @@ describe("useVariablePassthroughOutputs", () => {
     );
 
     expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", {
-      dynamic_inputs: { var_1: ANY_TYPE, var_2: ANY_TYPE },
+      dynamic_inputs: { var_1: { type: ANY_TYPE }, var_2: { type: ANY_TYPE } },
       dynamic_outputs: { var_1: ANY_TYPE, var_2: ANY_TYPE }
     });
   });
@@ -98,7 +98,7 @@ describe("useVariablePassthroughOutputs", () => {
     renderHook(() => useVariablePassthroughOutputs("node-1", ["var_1"], {}, {}));
 
     expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", {
-      dynamic_inputs: { var_1: IMAGE_TYPE },
+      dynamic_inputs: { var_1: { type: IMAGE_TYPE } },
       dynamic_outputs: { var_1: IMAGE_TYPE }
     });
   });
@@ -110,7 +110,7 @@ describe("useVariablePassthroughOutputs", () => {
       useVariablePassthroughOutputs(
         "node-1",
         ["var_1"],
-        { var_1: ANY_TYPE },
+        { var_1: { type: ANY_TYPE } },
         { var_1: ANY_TYPE }
       )
     );
@@ -125,13 +125,13 @@ describe("useVariablePassthroughOutputs", () => {
       useVariablePassthroughOutputs(
         "node-1",
         ["var_1"],
-        { var_1: ANY_TYPE, var_2: ANY_TYPE },
+        { var_1: { type: ANY_TYPE }, var_2: { type: ANY_TYPE } },
         { var_1: ANY_TYPE, var_2: ANY_TYPE }
       )
     );
 
     expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", {
-      dynamic_inputs: { var_1: ANY_TYPE },
+      dynamic_inputs: { var_1: { type: ANY_TYPE } },
       dynamic_outputs: { var_1: ANY_TYPE }
     });
   });
@@ -144,7 +144,7 @@ describe("useVariablePassthroughOutputs", () => {
     );
 
     expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", {
-      dynamic_inputs: { var_1: ANY_TYPE },
+      dynamic_inputs: { var_1: { type: ANY_TYPE } },
       dynamic_outputs: { var_1: ANY_TYPE }
     });
   });

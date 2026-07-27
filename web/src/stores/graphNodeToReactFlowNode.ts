@@ -4,6 +4,7 @@ import { NodeData } from "./NodeData";
 import { parseNodeUIProperties, DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import useMetadataStore from "./MetadataStore";
 import { applyDefaultModels } from "../utils/applyDefaultModels";
+import { normalizeDynamicSlots } from "../utils/dynamicSlots";
 import { reactFlowNodeChromeClassName } from "../utils/reactFlowNodeChromeClassName";
 import { NODE_COLLAPSED_STRIP_HEIGHT_PX } from "./collapseNodeLayout";
 import {
@@ -113,6 +114,11 @@ export function graphNodeToReactFlowNode(
         return props;
       })(),
       dynamic_properties: node.dynamic_properties ?? {},
+      // Kept `undefined` when empty so the schema-loader / sync effects that
+      // compare against `data.dynamic_inputs` don't see a spurious change.
+      ...(node.dynamic_inputs && Object.keys(node.dynamic_inputs).length > 0
+        ? { dynamic_inputs: normalizeDynamicSlots(node.dynamic_inputs) }
+        : {}),
       dynamic_outputs: node.dynamic_outputs || {},
       selectable,
       collapsed: isCollapsed,
