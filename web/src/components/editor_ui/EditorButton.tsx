@@ -31,6 +31,8 @@ export interface EditorButtonProps extends Omit<ButtonProps, "size"> {
   href?: string;
   target?: string;
   rel?: string;
+  /** Saves the href instead of navigating to it; "" keeps the server's name. */
+  download?: string;
 }
 
 /**

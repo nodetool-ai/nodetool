@@ -9,6 +9,7 @@ import FrontendToolRuntimeSync from "../panels/FrontendToolRuntimeSync";
 import { createEmptyData, type AppDocument } from "./appData";
 import PuckAppEditor from "./puck/PuckAppEditor";
 import AppBuilderAgentPanel from "./AppBuilderAgentPanel";
+import AppDataPanel from "./AppDataPanel";
 
 export interface AppBuilderShellProps {
   /**
@@ -32,6 +33,17 @@ export interface AppBuilderShellProps {
   onSave: (document: AppDocument) => void;
   onClose?: () => void;
 }
+
+/** Shared framing for the panels that dock beside the canvas. */
+const sidePanelSx = {
+  width: { xs: "min(100vw, 360px)", lg: 420 },
+  flexShrink: 0,
+  height: "100%",
+  borderLeft: "1px solid",
+  borderColor: "divider",
+  overflow: "hidden",
+  borderTopLeftRadius: BORDER_RADIUS.lg
+} as const;
 
 /**
  * The builder's editing surface, independent of where the document is stored.
@@ -74,6 +86,8 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
   }));
   const [agentOpen, setAgentOpen] = useState(false);
   const toggleAgent = useCallback(() => setAgentOpen((open) => !open), []);
+  const [dataOpen, setDataOpen] = useState(false);
+  const toggleData = useCallback(() => setDataOpen((open) => !open), []);
 
   // Point the agent's workflow tools at the graph this app runs.
   useEffect(() => {
@@ -123,21 +137,23 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
             onToggleAgent={agentWorkflowId ? toggleAgent : undefined}
             meta={meta}
             onMetaChange={setMeta}
+            dataOpen={dataOpen}
+            onToggleData={toggleData}
           />
         </Box>
       </FlexColumn>
+      {dataOpen && (
+        <Box sx={sidePanelSx}>
+          <AppDataPanel
+            meta={meta}
+            onChange={setMeta}
+            workflowId={workflow.id}
+            workflowName={workflow.name}
+          />
+        </Box>
+      )}
       {agentOpen && agentWorkflowId && (
-        <Box
-          sx={{
-            width: { xs: "min(100vw, 360px)", lg: 420 },
-            flexShrink: 0,
-            height: "100%",
-            borderLeft: "1px solid",
-            borderColor: "divider",
-            overflow: "hidden",
-            borderTopLeftRadius: BORDER_RADIUS.lg
-          }}
-        >
+        <Box sx={sidePanelSx}>
           <AppBuilderAgentPanel
             applicationId={applicationId}
             workflowId={agentWorkflowId}

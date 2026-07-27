@@ -334,6 +334,8 @@ export type { MobileBottomSheetProps } from "./MobileBottomSheet";
 
 export { Checkbox } from "./Checkbox";
 export type { CheckboxProps } from "./Checkbox";
+export { Radio, RadioSet } from "./Radio";
+export type { RadioProps, RadioSetProps } from "./Radio";
 
 export { ContextMenu } from "./ContextMenu";
 export type { ContextMenuProps } from "./ContextMenu";

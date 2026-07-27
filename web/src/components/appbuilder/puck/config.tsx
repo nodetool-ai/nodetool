@@ -31,7 +31,19 @@ import {
   ButtonWidget,
   ContainerWidget,
   ColumnsWidget,
-  DividerWidget
+  DividerWidget,
+  AlertWidget,
+  CodeBlockWidget,
+  ListWidget,
+  KeyValueWidget,
+  StatWidget,
+  DownloadWidget,
+  RadioGroupWidget,
+  CheckboxGroupWidget,
+  DateInputWidget,
+  TabsWidget,
+  AccordionWidget,
+  SpacerWidget
 } from "./widgets";
 import { ResourcePickerWidget } from "./ResourcePickerWidget";
 import { ResourceGalleryWidget } from "./ResourceGalleryWidget";
@@ -233,6 +245,9 @@ export const appConfig: Config = {
         "Slider",
         "Switch",
         "Select",
+        "RadioGroup",
+        "CheckboxGroup",
+        "DateInput",
         "ResourcePicker",
         "ResourceGallery",
         "StoryboardSceneList",
@@ -255,11 +270,27 @@ export const appConfig: Config = {
         "Video",
         "Json",
         "Table",
+        "List",
+        "KeyValue",
         "Output",
-        "Progress"
+        "Progress",
+        "Stat",
+        "Alert",
+        "CodeBlock",
+        "Download"
       ]
     },
-    layout: { title: "Layout", components: ["Container", "Columns", "Divider"] }
+    layout: {
+      title: "Layout",
+      components: [
+        "Container",
+        "Columns",
+        "Tabs",
+        "Accordion",
+        "Divider",
+        "Spacer"
+      ]
+    }
   },
   components: {
     // ── Display ──
@@ -380,6 +411,97 @@ export const appConfig: Config = {
       defaultProps: { label: "" },
       render: withConditions((props) => <ProgressWidget {...props} />)
     },
+    List: {
+      label: "List",
+      fields: {
+        binding: bindingField("read"),
+        label: { type: "text", label: "Label" },
+        ordered: {
+          type: "radio",
+          label: "Numbered",
+          options: [
+            { label: "No", value: false },
+            { label: "Yes", value: true }
+          ]
+        },
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields()
+      },
+      defaultProps: { label: "", ordered: false, placeholder: "No items yet" },
+      render: withConditions((props) => <ListWidget {...props} />)
+    },
+    KeyValue: {
+      label: "Key/Value",
+      fields: {
+        binding: bindingField("read"),
+        label: { type: "text", label: "Label" },
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: { label: "", placeholder: "No values yet" },
+      render: withConditions((props) => <KeyValueWidget {...props} />)
+    },
+    Stat: {
+      label: "Stat",
+      fields: {
+        binding: bindingField("read"),
+        label: { type: "text", label: "Label" },
+        caption: { type: "text", label: "Caption" },
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields()
+      },
+      defaultProps: { label: "Total", caption: "", placeholder: "—" },
+      render: withConditions((props) => <StatWidget {...props} />)
+    },
+    Alert: {
+      label: "Alert",
+      fields: {
+        binding: bindingField("read"),
+        text: { type: "textarea", label: "Text" },
+        title: { type: "text", label: "Title" },
+        severity: {
+          type: "select",
+          label: "Severity",
+          options: [
+            { label: "Info", value: "info" },
+            { label: "Success", value: "success" },
+            { label: "Warning", value: "warning" },
+            { label: "Error", value: "error" }
+          ]
+        },
+        ...conditionalFields()
+      },
+      defaultProps: { text: "", title: "", severity: "info" },
+      render: withConditions((props) => <AlertWidget {...props} />)
+    },
+    CodeBlock: {
+      label: "Code",
+      fields: {
+        binding: bindingField("read"),
+        text: { type: "textarea", label: "Code" },
+        language: { type: "text", label: "Language label" },
+        maxHeight: { type: "number", label: "Max height (px)" },
+        ...conditionalFields()
+      },
+      defaultProps: { text: "", language: "" },
+      render: withConditions((props) => <CodeBlockWidget {...props} />)
+    },
+    Download: {
+      label: "Download",
+      fields: {
+        binding: bindingField("read"),
+        label: { type: "text", label: "Label" },
+        filename: { type: "text", label: "File name" },
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: {
+        label: "Download",
+        filename: "",
+        placeholder: "Nothing to download yet"
+      },
+      render: withConditions((props) => <DownloadWidget {...props} />)
+    },
     // ── Inputs ──
     WorkflowInput: {
       label: "Workflow Input",
@@ -465,6 +587,73 @@ export const appConfig: Config = {
         options: [{ value: "Option A" }, { value: "Option B" }]
       },
       render: withConditions((props) => <SelectWidget {...props} />)
+    },
+    RadioGroup: {
+      label: "Radio Group",
+      fields: {
+        binding: bindingField("write"),
+        label: { type: "text", label: "Label" },
+        options: optionsField,
+        row: {
+          type: "radio",
+          label: "Layout",
+          options: [
+            { label: "Stacked", value: false },
+            { label: "Inline", value: true }
+          ]
+        },
+        events: eventsField("change", { commits: false }),
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: {
+        label: "Choose",
+        row: false,
+        options: [{ value: "Option A" }, { value: "Option B" }]
+      },
+      render: withConditions((props) => <RadioGroupWidget {...props} />)
+    },
+    CheckboxGroup: {
+      label: "Checkbox Group",
+      fields: {
+        binding: bindingField("write"),
+        label: { type: "text", label: "Label" },
+        options: optionsField,
+        row: {
+          type: "radio",
+          label: "Layout",
+          options: [
+            { label: "Stacked", value: false },
+            { label: "Inline", value: true }
+          ]
+        },
+        events: eventsField("change", { commits: false }),
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: {
+        label: "Select any",
+        row: false,
+        options: [{ value: "Option A" }, { value: "Option B" }]
+      },
+      render: withConditions((props) => <CheckboxGroupWidget {...props} />)
+    },
+    DateInput: {
+      label: "Date Input",
+      fields: {
+        binding: bindingField("write"),
+        label: { type: "text", label: "Label" },
+        withTime: {
+          type: "radio",
+          label: "Include time",
+          options: [
+            { label: "No", value: false },
+            { label: "Yes", value: true }
+          ]
+        },
+        events: eventsField("change"),
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: { label: "Date", withTime: false },
+      render: withConditions((props) => <DateInputWidget {...props} />)
     },
     ResourcePicker: {
       label: "Resource Picker",
@@ -572,11 +761,69 @@ export const appConfig: Config = {
         <ColumnsWidget gap={gap} left={left} right={right} />
       )
     },
+    Tabs: {
+      label: "Tabs",
+      fields: {
+        tab1Label: { type: "text", label: "Tab 1" },
+        tab1: { type: "slot" },
+        tab2Label: { type: "text", label: "Tab 2" },
+        tab2: { type: "slot" },
+        tab3Label: { type: "text", label: "Tab 3 (optional)" },
+        tab3: { type: "slot" }
+      },
+      defaultProps: {
+        tab1Label: "First",
+        tab2Label: "Second",
+        tab3Label: "",
+        tab1: [],
+        tab2: [],
+        tab3: []
+      },
+      render: ({ tab1Label, tab2Label, tab3Label, tab1, tab2, tab3 }) => (
+        <TabsWidget
+          tab1Label={tab1Label}
+          tab2Label={tab2Label}
+          tab3Label={tab3Label}
+          tab1={tab1}
+          tab2={tab2}
+          tab3={tab3}
+        />
+      )
+    },
+    Accordion: {
+      label: "Accordion",
+      fields: {
+        title: { type: "text", label: "Title" },
+        defaultOpen: {
+          type: "radio",
+          label: "Open by default",
+          options: [
+            { label: "Yes", value: true },
+            { label: "No", value: false }
+          ]
+        },
+        content: { type: "slot" }
+      },
+      defaultProps: { title: "Section", defaultOpen: true, content: [] },
+      render: ({ title, defaultOpen, content }) => (
+        <AccordionWidget
+          title={title}
+          defaultOpen={defaultOpen}
+          content={content}
+        />
+      )
+    },
     Divider: {
       label: "Divider",
       fields: {},
       defaultProps: {},
       render: () => <DividerWidget />
+    },
+    Spacer: {
+      label: "Spacer",
+      fields: { height: { type: "number", label: "Height (px)" } },
+      defaultProps: { height: 24 },
+      render: ({ height }) => <SpacerWidget height={height} />
     }
   }
 };

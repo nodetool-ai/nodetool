@@ -24,6 +24,12 @@ framework-independent core the web runtime, the CLI `app debug` harness, and the
   `op:main/out:<nodeId>`, `var:<id>`, `view:<componentId>#<prop>`). Renaming a
   node in the graph editor does not break an app. Bare names still resolve —
   that is the legacy `workflow.app_doc` form, read on import only.
+- The **widget catalog** lives in `@nodetool-ai/app-runtime` (`src/widgets.ts`)
+  — one table the Puck config, the CLI `app debug` harness, the `app-tools`
+  evals, and the mobile renderer all read. A new widget is added there first,
+  then implemented in `puck/widgets.tsx` and in
+  `mobile/src/components/app_runtime/widgets.tsx`; a type missing from either
+  renderer shows as an unknown widget on that surface.
 - **Widgets** bind one slot (read for displays, two-way for inputs) and emit
   **events** (`click` / `change`) that dispatch **actions** (`run`, `cancel`,
   `setVariable`, `toggleVariable`, `resourceCommand`, `openResource`). A `run`
@@ -93,6 +99,11 @@ the existing worker path.
   - `BuilderWorkflowContext.tsx` — supplies the bindable surface to fields.
   - `PuckAppEditor.tsx` — the `<Puck>` editor wrapper.
 - `AppRuntimeView.tsx` — the live `<Render>` wrapper (used by app mode).
+- `AppDataPanel.tsx` — the operations/variables/resources editor that docks
+  beside the canvas (the **App Data** toggle in the editor header). Every edit
+  goes through app-runtime's `doc-ops`, the same pure functions the agent's
+  `ui_app_*` tools call, so hand edits and agent edits produce identical
+  documents.
 - `AppBuilderShell.tsx` — the editing surface, independent of storage: it seeds
   Puck from a document, holds the operations/resources/variables beside it, and
   emits the **whole** document on save.
