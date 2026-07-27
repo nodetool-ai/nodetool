@@ -1,5 +1,14 @@
 version: 2
 
+# One npm entry per lockfile, not per package.json. `web/`, `electron/`, and
+# `packages/*` are root npm workspaces: their dependencies resolve through the
+# root `package-lock.json`, so the `/` entry below already covers them via
+# `directories`. A separate entry per workspace directory made Dependabot treat
+# it as a standalone project — it bumped the workspace's package.json and wrote
+# a nested lockfile that npm never reads, leaving the root lock stale. Release
+# builds run `npm ci` at the root and died on the desync (run 30198644988).
+# `mobile/` keeps its own entry: it is deliberately not a workspace and has a
+# real lockfile of its own.
 updates:
   - package-ecosystem: "npm"
     directory: "/"
@@ -16,30 +25,6 @@ updates:
           - "minor"
           - "patch"
     open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "automated"
-
-  - package-ecosystem: "npm"
-    directory: "/web"
-    schedule:
-      interval: "weekly"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
-    open-pull-requests-limit: 3
-    labels:
-      - "dependencies"
-      - "automated"
-
-  - package-ecosystem: "npm"
-    directory: "/electron"
-    schedule:
-      interval: "weekly"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
-    open-pull-requests-limit: 3
     labels:
       - "dependencies"
       - "automated"
