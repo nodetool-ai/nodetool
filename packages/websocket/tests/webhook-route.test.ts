@@ -1,9 +1,7 @@
-import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import Fastify, { type FastifyInstance } from "fastify";
+import { isPublicAuthExemptRoute } from "../src/lib/public-routes.js";
 import {
   initTestDb,
   ModelObserver,
@@ -279,19 +277,6 @@ describe("POST /api/webhooks/:token", () => {
 
 describe("server public-route allowlist", () => {
   it("lets /api/webhooks/* through without a session", () => {
-    const serverSrc = readFileSync(
-      path.join(
-        path.dirname(fileURLToPath(import.meta.url)),
-        "../src/server.ts"
-      ),
-      "utf8"
-    );
-    const publicBlock = serverSrc.slice(
-      serverSrc.indexOf("// Public routes — no auth required")
-    );
-    const blockEnd = publicBlock.indexOf("  ) {");
-    expect(publicBlock.slice(0, blockEnd)).toContain(
-      'pathname.startsWith("/api/webhooks/")'
-    );
+    expect(isPublicAuthExemptRoute("/api/webhooks/tok-1", "POST")).toBe(true);
   });
 });

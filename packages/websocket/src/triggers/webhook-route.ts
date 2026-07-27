@@ -150,7 +150,15 @@ export function createWebhookRoute(
 
     app.post<{ Params: { token: string }; Body: WebhookBody }>(
       "/api/webhooks/:token",
-      { bodyLimit: maxBodyBytes },
+      {
+        bodyLimit: maxBodyBytes,
+        config: {
+          rateLimit: {
+            max: 120,
+            timeWindow: 60_000
+          }
+        }
+      },
       async (req, reply) => {
         const token = req.params.token;
         const registration = await findByToken(token);

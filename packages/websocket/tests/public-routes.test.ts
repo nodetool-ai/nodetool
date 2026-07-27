@@ -6,7 +6,8 @@
 import { describe, it, expect } from "vitest";
 import {
   isPublicOAuthRequest,
-  isPublicWorkflowMetadataRequest
+  isPublicWorkflowMetadataRequest,
+  isPublicAuthExemptRoute
 } from "../src/lib/public-routes.js";
 
 describe("isPublicWorkflowMetadataRequest", () => {
@@ -56,6 +57,30 @@ describe("isPublicWorkflowMetadataRequest", () => {
         isPublicWorkflowMetadataRequest("/api/workflows/public", method)
       ).toBe(false);
     }
+  });
+});
+
+describe("isPublicAuthExemptRoute", () => {
+  it("exempts health, config, metadata, webhooks, and public workflow reads", () => {
+    for (const path of [
+      "/health",
+      "/ready",
+      "/api/health",
+      "/api/config",
+      "/api/assets/packages",
+      "/api/assets/packages/nodetool-base/foo.png",
+      "/api/nodes/metadata",
+      "/api/kie/webhook/callback",
+      "/api/webhooks/tok-abc",
+      "/api/workflows/public/wf-1"
+    ]) {
+      expect(isPublicAuthExemptRoute(path, "GET")).toBe(true);
+    }
+    expect(isPublicAuthExemptRoute("/api/webhooks/tok-abc", "POST")).toBe(true);
+  });
+
+  it("keeps private workflow library paths behind auth", () => {
+    expect(isPublicAuthExemptRoute("/api/workflows/wf-123", "GET")).toBe(false);
   });
 });
 

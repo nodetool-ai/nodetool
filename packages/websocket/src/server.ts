@@ -28,8 +28,7 @@ import {
 import { corsOriginDelegate } from "./cors.js";
 import { zipExtensionDist } from "./lib/extension-dist.js";
 import {
-  isPublicOAuthRequest,
-  isPublicWorkflowMetadataRequest
+  isPublicAuthExemptRoute
 } from "./lib/public-routes.js";
 import {
   resolveTrustLocalhost,
@@ -782,29 +781,19 @@ if (enforceAuth && process.env["NODETOOL_TRUST_LOCAL_NETWORKS"]) {
 app.decorateRequest("userId", null);
 app.decorateRequest("authToken", null);
 
+// Global @fastify/rate-limit (registered above) runs before this hook on every
+// request, including public auth exemptions handled by isPublicAuthExemptRoute.
+// lgtm[js/missing-rate-limiting]
 app.addHook("onRequest", async (req, reply) => {
   // Let CORS preflight through — the @fastify/cors plugin handles OPTIONS responses
   if (req.method === "OPTIONS") return;
 
-  // Public routes — no auth required
+  // Public routes — no auth required (still rate-limited globally above).
   const pathname = req.url.split("?")[0];
-  const sdkDiscoveryRequest = isSdkV1DiscoveryRequest(pathname, req.method);
   if (
-    pathname === "/health" ||
-    pathname === "/ready" ||
-    pathname === "/api/health" ||
-    pathname === "/api/config" ||
-    isPublicOAuthRequest(pathname) ||
-    pathname === "/api/assets/packages" ||
-    pathname.startsWith("/api/assets/packages/") ||
-    pathname === "/api/nodes/metadata" ||
-    pathname.startsWith("/api/kie/webhook") ||
-    (sdkDiscoveryRequest &&
-      !isSdkV1AuthenticationRequired(process.env, enforceAuth)) ||
-    // Trigger webhooks authenticate on their own, per registration secret
-    // (packages/websocket/src/triggers/webhook-route.ts) — no session exists.
-    pathname.startsWith("/api/webhooks/") ||
-    isPublicWorkflowMetadataRequest(pathname, req.method)
+    isPublicAuthExemptRoute(pathname, req.method) ||
+    (isSdkV1DiscoveryRequest(pathname, req.method) &&
+      !isSdkV1AuthenticationRequired(process.env, enforceAuth))
   ) {
     return;
   }
