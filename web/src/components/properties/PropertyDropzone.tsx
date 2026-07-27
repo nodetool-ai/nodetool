@@ -148,6 +148,10 @@ const PropertyDropzone = ({
       ".dropzone:hover .asset-actions": {
         opacity: 1
       },
+      // Touch devices have no hover; keep the asset actions reachable.
+      "@media (pointer: coarse)": {
+        ".asset-actions": { opacity: 1 }
+      },
       ".asset-action-button": {
         backgroundColor: theme.vars.palette.c_scrim,
         color: theme.vars.palette.grey[100],

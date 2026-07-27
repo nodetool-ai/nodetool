@@ -125,6 +125,17 @@ const styles = (theme: Theme) =>
         opacity: 1
       }
     },
+    // Touch devices have no hover: the color picker would never appear, and
+    // the format toolbar only while the comment is being edited.
+    "@media (pointer: coarse)": {
+      ".color-picker-container": {
+        opacity: 1
+      },
+      "&.focused .format-toolbar-container": {
+        opacity: 1,
+        display: "flex"
+      }
+    },
     ".node-resize-handle": {
       opacity: 0.6,
       transition: `opacity ${MOTION.normal}`,

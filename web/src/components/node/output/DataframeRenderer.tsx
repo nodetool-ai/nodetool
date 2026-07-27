@@ -73,6 +73,10 @@ const styles = (theme: Theme) =>
     "&:hover .dataframe-action-buttons": {
       opacity: 1
     },
+    // Touch devices have no hover; keep the dataframe actions reachable.
+    "@media (pointer: coarse)": {
+      ".dataframe-action-buttons": { opacity: 1 }
+    },
     ".dataframe-action-buttons .MuiIconButton-root": {
       padding: "0.25em",
       color: theme.vars.palette.primary.main,

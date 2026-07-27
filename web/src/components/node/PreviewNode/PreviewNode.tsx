@@ -212,6 +212,10 @@ const styles = (theme: Theme) =>
         maxHeight: "500px",
         overflowY: "auto",
         padding: "1em"
+      },
+      // Touch devices have no hover; keep the preview action buttons reachable.
+      "@media (pointer: coarse)": {
+        ".actions": { opacity: 1 }
       }
     },
     tableStyles(theme)

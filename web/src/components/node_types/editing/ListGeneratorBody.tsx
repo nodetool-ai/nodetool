@@ -172,6 +172,10 @@ const styles = (theme: Theme) =>
     ".list-head:hover .list-actions, .list-head:focus-within .list-actions": {
       opacity: 1
     },
+    // Touch devices have no hover; keep the list actions reachable.
+    "@media (pointer: coarse)": {
+      ".list-actions": { opacity: 1 }
+    },
     ".list-chevron": {
       flexShrink: 0,
       fontSize: theme.fontSizeNormal,

@@ -19,6 +19,10 @@ export const outputStyles = (theme: Theme, hasActions = true) =>
     "&:hover .actions": {
       opacity: 1
     },
+    // Touch devices have no hover; keep the output action buttons reachable.
+    "@media (pointer: coarse)": {
+      ".actions": { opacity: 1 }
+    },
     ".content": {
       flex: 1,
       overflowY: "auto",
