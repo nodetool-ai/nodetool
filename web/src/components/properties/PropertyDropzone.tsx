@@ -432,6 +432,12 @@ const PropertyDropzone = ({
           return (
             <iframe
               src={uri}
+              // Asset bytes are user content served from the app's own origin.
+              // An empty sandbox drops it into an opaque origin so a stored
+              // .html document can't run script against the session, matching
+              // every other HTML iframe in the app. The storage endpoint also
+              // serves .html as text/plain; this is the second lock.
+              sandbox=""
               style={{ width: "100%", height: "400px", border: "none" }}
               allow="fullscreen"
               title="Text viewer"
