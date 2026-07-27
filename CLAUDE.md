@@ -558,6 +558,20 @@ npm run dev:nodetool -- costs by-provider                       # Grouped by pro
 npm run dev:nodetool -- costs by-model --provider openai        # Grouped by model
 ```
 
+### nodetool storage
+
+Asset objects live at `<userId>/<assetId>.<ext>` so the owner is the leading
+path segment — the boundary a Supabase RLS policy or S3 bucket policy can
+enforce on the object itself. `migrate-keys` moves objects written under the
+older flat layout. Required on Supabase/S3 when upgrading; the local file
+backend falls back to the flat key on a miss.
+
+```bash
+npm run dev:nodetool -- storage migrate-keys --dry-run     # Report, write nothing
+npm run dev:nodetool -- storage migrate-keys               # Move them
+npm run dev:nodetool -- storage migrate-keys --user-id <id> --json
+```
+
 ### nodetool secrets
 
 ```bash

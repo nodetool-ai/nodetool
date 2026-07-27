@@ -80,8 +80,10 @@ const log = createLogger("nodetool.websocket.http");
 // graph. Re-exported here for any remaining REST callers.
 import {
   getAssetFileName,
-  getAssetStoragePath
+  getAssetStoragePath,
+  retrieveAssetBytes
 } from "./lib/asset-paths.js";
+import { assetObjectKey } from "@nodetool-ai/storage";
 export { getAssetFileName, getAssetStoragePath };
 
 type JsonObject = Record<string, unknown>;
@@ -1232,14 +1234,20 @@ async function resolveAssetBytesForExport(
   try {
     if (ref.startsWith("asset://")) {
       const rest = ref.slice("asset://".length).split("?")[0].split("#")[0];
-      let key = rest;
+      const adapter = getAssetAdapter();
       if (!nodePath.extname(rest)) {
         const asset = (await Asset.get(rest)) as Asset | null;
         if (!asset) return null;
-        key = getAssetFileName(asset.id, asset.content_type);
+        return await retrieveAssetBytes(
+          adapter,
+          asset.user_id,
+          asset.id,
+          asset.content_type
+        );
       }
-      const adapter = getAssetAdapter();
-      return await adapter.retrieve(adapter.uriForKey(key));
+      // Already a key — owner-prefixed for anything written since the
+      // per-owner layout, flat for older `asset://` refs stored in graphs.
+      return await adapter.retrieve(adapter.uriForKey(rest));
     }
     if (ref.includes("/api/storage/")) {
       const key = decodeURIComponent(
@@ -1397,7 +1405,13 @@ export async function handleWorkflowImportBundle(
           size: bytes.byteLength
         })) as Asset;
         const storedName = getAssetFileName(asset.id, asset.content_type);
-        await storeAssetWithThumbnail(asset.id, storedName, bytes, asset.content_type);
+        await storeAssetWithThumbnail(
+          asset.user_id,
+          asset.id,
+          storedName,
+          bytes,
+          asset.content_type
+        );
         return { uri: `asset://${storedName}`, assetId: asset.id };
       }
     });
@@ -1762,7 +1776,9 @@ export async function toAssetResponse(asset: Asset): Promise<JsonObject> {
     ? null
     : getAssetFileName(asset.id, asset.content_type);
   const getUrl = fileName
-    ? await getHttpUrlBuilder()(fileName).catch(() => null)
+    ? await getHttpUrlBuilder()(
+        assetObjectKey(asset.user_id, fileName)
+      ).catch(() => null)
     : null;
 
   const hasThumbnail =
@@ -1771,7 +1787,9 @@ export async function toAssetResponse(asset: Asset): Promise<JsonObject> {
     asset.content_type.startsWith("audio/") ||
     asset.content_type === "application/pdf";
   const thumbUrl = hasThumbnail
-    ? await getHttpUrlBuilder()(thumbnailKey(asset.id)).catch(() => null)
+    ? await getHttpUrlBuilder()(
+        assetObjectKey(asset.user_id, thumbnailKey(asset.id))
+      ).catch(() => null)
     : null;
 
   return {
@@ -1880,6 +1898,7 @@ export async function handleAssetsRoot(
         bytes: fileBuffer.byteLength
       });
       await storeAssetWithThumbnail(
+        asset.user_id,
         asset.id,
         fileName,
         new Uint8Array(fileBuffer),
@@ -1920,9 +1939,12 @@ export async function handleExtractAudio(
     return errorResponse(400, "Asset is not a video");
   }
 
-  const adapter = getAssetAdapter();
-  const sourceKey = getAssetFileName(source.id, source.content_type);
-  const videoBytes = await adapter.retrieve(adapter.uriForKey(sourceKey));
+  const videoBytes = await retrieveAssetBytes(
+    getAssetAdapter(),
+    source.user_id,
+    source.id,
+    source.content_type
+  );
   if (!videoBytes) {
     return errorResponse(404, "Asset bytes not found");
   }
@@ -1966,6 +1988,7 @@ export async function handleExtractAudio(
 
   const audioKey = getAssetFileName(audioAsset.id, audioAsset.content_type);
   await storeAssetWithThumbnail(
+    audioAsset.user_id,
     audioAsset.id,
     audioKey,
     wavBytes,

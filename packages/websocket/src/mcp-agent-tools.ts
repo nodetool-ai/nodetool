@@ -94,7 +94,13 @@ function buildAgentToolContext(userId: string): ProcessingContext {
       if (args.content) {
         const ext = MIME_TO_EXT[args.contentType] ?? "bin";
         const key = `${asset.id}.${ext}`;
-        await storeAssetWithThumbnail(asset.id, key, args.content, args.contentType);
+        await storeAssetWithThumbnail(
+          asset.user_id,
+          asset.id,
+          key,
+          args.content,
+          args.contentType
+        );
         asset.size = args.content.length;
       }
       await asset.save();

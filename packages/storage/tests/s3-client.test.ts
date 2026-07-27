@@ -258,6 +258,41 @@ describe("S3Client operations", () => {
     expect(parsed.searchParams.get("X-Amz-SignedHeaders")).toBe("host");
     expect(parsed.searchParams.get("X-Amz-Signature")).toMatch(/^[0-9a-f]{64}$/);
   });
+
+  it("presignPutObject signs for PUT, not GET", async () => {
+    const s3 = client(mockFetch());
+    const put = await s3.presignPutObject({
+      bucket: "b",
+      key: "user-1/f.png",
+      expiresIn: 900
+    });
+    const get = await s3.presignGetObject({
+      bucket: "b",
+      key: "user-1/f.png",
+      expiresIn: 900
+    });
+    const parsed = new URL(put);
+    expect(parsed.host).toBe("b.s3.us-east-1.amazonaws.com");
+    expect(parsed.pathname).toBe("/user-1/f.png");
+    expect(parsed.searchParams.get("X-Amz-Expires")).toBe("900");
+    expect(parsed.searchParams.get("X-Amz-Signature")).toMatch(
+      /^[0-9a-f]{64}$/
+    );
+    // Method is part of the canonical request, so the two must differ.
+    expect(parsed.searchParams.get("X-Amz-Signature")).not.toBe(
+      new URL(get).searchParams.get("X-Amz-Signature")
+    );
+  });
+
+  it("presignPutObject refuses keys with dot segments", async () => {
+    await expect(
+      client(mockFetch()).presignPutObject({
+        bucket: "b",
+        key: "user-1/../other/f.png",
+        expiresIn: 900
+      })
+    ).rejects.toThrow(/normalized away/);
+  });
 });
 
 describe("S3Client error mapping", () => {

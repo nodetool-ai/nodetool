@@ -79,6 +79,20 @@ export class Asset extends DBModel {
     return asset;
   }
 
+  /**
+   * Every asset across all users, oldest first — for offline maintenance
+   * (the storage key backfill). Deliberately not user-scoped, so it must
+   * never back a request handler; pass `userId` to narrow it.
+   */
+  static async allForMigration(userId?: string): Promise<Asset[]> {
+    const db = getDb();
+    const query = db.select().from(assets);
+    const rows = await (userId
+      ? query.where(eq(assets.user_id, userId))
+      : query);
+    return rows.map((row) => new Asset(row as Partial<Asset>));
+  }
+
   /** List assets in a folder. */
   static async paginate(
     userId: string,

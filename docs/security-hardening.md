@@ -39,6 +39,43 @@ These apply to **every** deployment, regardless of environment:
 - **Never commit `.env` files** with secrets. Add `.env` to `.gitignore`.
 - Provide the encryption master key (`SECRETS_MASTER_KEY`) on every server so they share one key, and store all other deployment secrets in your platform's secrets manager.
 
+### Asset Storage
+
+Asset objects live at `<userId>/<assetId>.<ext>`. The owner is the leading
+path segment, so the tenant boundary is enforceable by the storage backend
+itself, not just by the API:
+
+- **Run `nodetool storage migrate-keys`** when upgrading a deployment that
+  predates this layout. The local file backend falls back to the old flat key
+  on a miss, but Supabase and S3 resolve through signed URLs and need the
+  objects actually moved. `--dry-run` reports what would move.
+- **Keep the bucket private.** Reads go through short-lived signed URLs minted
+  per request; a public bucket bypasses that entirely.
+- **Add a storage policy keyed on the prefix** on Supabase (an RLS policy on
+  `storage.objects` matching `(storage.foldername(name))[1] = auth.uid()::text`)
+  or S3 (a bucket policy on the key prefix). The API already enforces this, but
+  a policy makes it hold even if a signed URL leaks or a handler regresses.
+- **Never ship `SUPABASE_KEY` to a client.** The service-role key stays
+  server-side; browsers upload through the one-shot, key-scoped targets that
+  `assets.createUpload` mints, which authorise a write to exactly one object.
+
+### Local File Access
+
+The file browser (tRPC `files.list`) and the preview stream
+(`GET /api/files/local`) read the server's own filesystem. Both are off when
+`NODETOOL_ENV=production`, and outside production both resolve paths against an
+allowlist of roots — the user's home directory unless
+`NODETOOL_LOCAL_FILE_ROOTS` overrides it (platform-delimited, like `PATH`).
+Sensitive entries under home (`.ssh`, `.aws`, `.gnupg`, `.kube`, `.docker`,
+`.config/gcloud`, `.netrc`, `.pgpass`, `.npmrc`) are refused inside a root, and
+symlinks that leave the roots are refused too.
+
+- **Keep the roots narrow.** Widen `NODETOOL_LOCAL_FILE_ROOTS` only to the
+  directories that actually hold media you preview — an external volume, a
+  scratch dir — never to `/`.
+- **Set `NODETOOL_ENV=production`** on any deployment more than one person can
+  reach, which disables both surfaces outright.
+
 ### Resource Limits
 
 - **Set container resource limits**: Use `mem_limit` and `cpus` to prevent runaway workloads.

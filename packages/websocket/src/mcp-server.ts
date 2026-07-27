@@ -15,6 +15,7 @@ import {
 } from "@modelcontextprotocol/ext-apps/server";
 import { z } from "zod";
 import { getListAssetsAppHtml } from "./mcp-apps/list-assets-app.js";
+import { assetKeyCandidates } from "@nodetool-ai/storage";
 import { getAssetAdapter } from "./lib/storage.js";
 import { thumbnailKey } from "./lib/thumbnail.js";
 import { getListWorkflowsAppHtml } from "./mcp-apps/list-workflows-app.js";
@@ -940,7 +941,12 @@ function assetHasThumb(asset: Asset): boolean {
 
 async function loadAssetThumb(asset: Asset): Promise<LoadedThumb | null> {
   if (!assetHasThumb(asset)) return null;
-  return loadStorageThumb(thumbnailKey(asset.id));
+  const fileName = thumbnailKey(asset.id);
+  for (const key of assetKeyCandidates(asset.user_id, fileName)) {
+    const thumb = await loadStorageThumb(key);
+    if (thumb) return thumb;
+  }
+  return null;
 }
 
 async function loadAssetThumbs(

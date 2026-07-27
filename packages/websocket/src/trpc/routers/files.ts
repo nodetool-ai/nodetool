@@ -4,11 +4,14 @@
  */
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import * as os from "node:os";
 
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
+import {
+  localPathDenialMessage,
+  resolveLocalPath
+} from "../../lib/local-file-access.js";
 import {
   listFilesInput,
   listFilesOutput
@@ -17,64 +20,20 @@ import { ApiErrorCode } from "@nodetool-ai/protocol/api-schemas/api-error-code.j
 
 // ── Sandbox helpers ─────────────────────────────────────────────────────────
 
-function getRootDir(): string {
-  return os.homedir();
-}
-
-function isWithinRoot(candidate: string, normalizedRoot: string): boolean {
-  return (
-    candidate === normalizedRoot ||
-    candidate.startsWith(normalizedRoot + path.sep)
-  );
-}
-
 /**
- * Resolve a user-provided path within the sandbox root.
- * Returns the resolved absolute path, or throws FORBIDDEN if the path escapes.
- *
- * The lexical check alone is not enough: a symlink that lives under the root but
- * points outside it passes `startsWith` yet resolves elsewhere at the syscall
- * level. So the real (symlink-resolved) path is also verified to stay within the
- * root. realpath is resolved on the deepest existing ancestor so a not-yet-
- * existing leaf still gets its parent chain checked.
+ * Resolve a caller-supplied path inside the allowed roots, or throw FORBIDDEN.
+ * The policy itself lives in lib/local-file-access.ts, shared with the REST
+ * preview stream (`GET /api/files/local`) so the two can't diverge.
  */
-async function resolveSandboxed(
-  rootDir: string,
-  userPath: string
-): Promise<string> {
-  const resolved = path.resolve(
-    rootDir,
-    userPath.startsWith("/") ? "." + userPath : userPath
-  );
-  const normalizedRoot = path.resolve(rootDir);
-  if (!isWithinRoot(resolved, normalizedRoot)) {
-    throwApiError(ApiErrorCode.FORBIDDEN, "Path traversal not allowed");
+async function resolveSandboxed(userPath: string): Promise<string> {
+  const result = await resolveLocalPath(userPath);
+  if (!result.ok) {
+    throwApiError(
+      ApiErrorCode.FORBIDDEN,
+      localPathDenialMessage(result.reason)
+    );
   }
-
-  // Resolve symlinks on the deepest existing ancestor and re-check containment.
-  let probe = resolved;
-  for (;;) {
-    try {
-      const real = await fs.realpath(probe);
-      if (!isWithinRoot(real, normalizedRoot)) {
-        throwApiError(ApiErrorCode.FORBIDDEN, "Path traversal not allowed");
-      }
-      break;
-    } catch (err) {
-      if (
-        err &&
-        typeof err === "object" &&
-        "name" in err &&
-        (err as { name: string }).name === "TRPCError"
-      ) {
-        throw err; // FORBIDDEN from the containment check above
-      }
-      const parent = path.dirname(probe);
-      if (parent === probe) break; // reached filesystem root without resolving
-      probe = parent;
-    }
-  }
-  return resolved;
+  return result.path;
 }
 
 // ── Router ──────────────────────────────────────────────────────────────────
@@ -91,8 +50,7 @@ export const filesRouter = router({
         );
       }
 
-      const rootDir = getRootDir();
-      const resolved = await resolveSandboxed(rootDir, input.path);
+      const resolved = await resolveSandboxed(input.path);
 
       try {
         const entries = await fs.readdir(resolved, { withFileTypes: true });

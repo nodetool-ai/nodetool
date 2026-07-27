@@ -147,6 +147,7 @@ Security notes:
 | `NODETOOL_TRUST_LOCALHOST` | Allow loopback connections to bypass auth as user `1` | no | Defaults **off** when auth is enforced (Supabase), **on** otherwise. Leave off behind a reverse proxy/SSH tunnel where the proxy connects from loopback. |
 | `NODETOOL_TRUST_LOCAL_NETWORKS` | ⚠️ Source CIDRs trusted as user `1` **without a password** (Local mode only) | no | Comma-separated IPs/CIDRs; ignored in Supabase mode. Needed so Docker's NAT'd bridge traffic isn't rejected — scope to the bridge (`172.16.0.0/12`), **never `0.0.0.0/0`** on a public IP. See [Authentication → Local mode in Docker](authentication.md#local-mode-in-docker). |
 | `NODETOOL_TRUSTED_PROXIES` | Reverse proxies whose `X-Forwarded-For` is trusted | no | Comma-separated IPs/CIDRs. When unset, `X-Forwarded-For` is ignored and the socket peer address is used. |
+| `NODETOOL_LOCAL_FILE_ROOTS` | Directories the file browser and local-file previews may read | no | Platform-delimited (`:` on POSIX, `;` on Windows), `~` expands. Defaults to the user's home directory. Both surfaces are disabled entirely when `NODETOOL_ENV=production`. See [Security hardening](security-hardening.md#local-file-access). |
 | `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` | Provider access | yes | Set only the providers you use |
 | `HF_TOKEN` / `FAL_API_KEY` / `REPLICATE_API_TOKEN` | HuggingFace-family providers | yes | Optional per workflow |
 | `OLLAMA_API_URL` | Local Ollama base URL | no | Default `http://127.0.0.1:11434` |

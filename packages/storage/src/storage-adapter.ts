@@ -41,6 +41,40 @@ export interface StorageAdapter {
 
   /** Stat an entry by URI. Returns null if it doesn't exist. */
   stat(uri: string): Promise<StorageStat | null>;
+
+  /**
+   * Mint a short-lived target the *client* can upload to directly, so object
+   * bytes never pass through the API process. The key is chosen by the
+   * caller (the server), never by the browser, so a client can only ever
+   * write where it was told to.
+   *
+   * Returns `null` on backends with no such concept — the local file store
+   * and the in-memory store — which is the signal to fall back to a
+   * server-side upload.
+   */
+  createUploadUrl?(
+    key: string,
+    opts?: UploadUrlOptions
+  ): Promise<UploadTarget | null>;
+}
+
+export interface UploadUrlOptions {
+  /** Sent as the object's Content-Type when the client uploads. */
+  contentType?: string;
+  /** Lifetime in seconds. Backends may clamp this to their own maximum. */
+  expiresIn?: number;
+}
+
+/** A one-shot, key-scoped upload target handed to a client. */
+export interface UploadTarget {
+  /** Absolute URL the client sends the bytes to. */
+  url: string;
+  /** HTTP method the client must use. */
+  method: "PUT" | "POST";
+  /** Headers the client must send verbatim (e.g. Content-Type). */
+  headers: Record<string, string>;
+  /** Epoch milliseconds after which the target stops working. */
+  expiresAt: number;
 }
 
 export interface StorageEntry {
