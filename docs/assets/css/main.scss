@@ -91,13 +91,23 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Lock the page horizontally. `clip` rather than `hidden` so the viewport
+   never becomes a scroll container — `hidden` leaks into a side-scroll on iOS
+   Safari, and it also turns the root into a scrollport, which breaks the
+   sticky header. Wide content (tables, code, diagrams) scrolls inside its own
+   box instead; see .table-scroll, pre, and .mermaid. */
+html,
+body {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
 body {
   font-family: var(--font-body);
   font-size: 1rem;
   line-height: 1.7;
   color: var(--color-text-primary);
   background: var(--color-bg-primary);
-  overflow-x: hidden;
   position: relative;
 }
 
@@ -1287,6 +1297,9 @@ blockquote {
 /* === Content Area === */
 .content {
   flex: 1;
+  /* Flex items default to min-width: auto, which lets wide content push the
+     column past the viewport. Without this the whole page grows sideways. */
+  min-width: 0;
   padding: var(--spacing-2xl) var(--spacing-xl);
   max-width: 900px;
   margin: 0 auto;
@@ -1328,6 +1341,17 @@ blockquote {
 
 .page-content {
   margin-bottom: var(--spacing-3xl);
+  /* Long URLs and identifiers break instead of widening the page. */
+  overflow-wrap: break-word;
+}
+
+/* Inline code often holds an unbreakable path or env var name; break it rather
+   than let it stick out. `break-word` and not `anywhere` on purpose — the
+   latter also shrinks min-content width, which squeezes table columns into
+   shredded paths instead of letting a wide table scroll. Code inside <pre>
+   keeps its formatting and scrolls with the block. */
+.page-content :not(pre) > code {
+  overflow-wrap: break-word;
 }
 
 .page-content img {
@@ -1385,6 +1409,19 @@ blockquote {
   color: var(--color-accent-cyan);
 }
 
+/* Wide tables are the main thing that used to push docs pages sideways. They
+   get their own horizontal scroller (added by theme.js) so the page stays put.
+   The chrome — border, radius, background — moves to the wrapper so the
+   rounded corners clip the scrolling table. */
+.page-content .table-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+  margin: var(--spacing-lg) 0;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+}
+
 .page-content table {
   width: 100%;
   border-collapse: collapse;
@@ -1392,7 +1429,32 @@ blockquote {
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  overflow: hidden;
+  /* Fallback for the moment before theme.js wraps the table, and for readers
+     with JS off: the table scrolls itself. `display: block` costs automatic
+     column sizing, so the wrapper above is the preferred path. */
+  display: block;
+  width: max-content;
+  min-width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.page-content .table-scroll:focus-visible {
+  outline: 2px solid var(--color-accent-cyan);
+  outline-offset: 2px;
+}
+
+.page-content .table-scroll > table {
+  display: table;
+  /* Fill the column when it fits, expand (and scroll) when it doesn't. */
+  width: auto;
+  min-width: 100%;
+  max-width: none;
+  overflow: visible;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
 }
 
 .page-content th,
