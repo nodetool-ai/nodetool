@@ -6,10 +6,14 @@
  * Action callbacks that depend on document are passed in as props; their
  * individual references are stable via `useCallback`.
  */
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useEffect } from "react";
 import SketchToolTopBar from "../SketchToolTopBar";
 import { useSketchStore, SKETCH_ZOOM_MIN, SKETCH_ZOOM_MAX } from "../state";
-import { useResolvedToolSettings, useToolChromeActions } from "../hooks";
+import {
+  useResolvedToolSettings,
+  useSketchIsMobile,
+  useToolChromeActions
+} from "../hooks";
 import {
   useTransformAdapter,
   type UseTransformAdapterParams
@@ -44,7 +48,23 @@ export const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
   const panelsHidden = useSketchStore((s) => s.panelsHidden);
   const togglePanelsHidden = useSketchStore((s) => s.togglePanelsHidden);
   const hasActiveSelection = useSketchStore((s) => s.hasActiveSelection);
+  const toolSettingsCollapsed = useSketchStore((s) => s.toolSettingsCollapsed);
+  const toggleToolSettingsCollapsed = useSketchStore(
+    (s) => s.toggleToolSettingsCollapsed
+  );
+  const setToolSettingsCollapsed = useSketchStore(
+    (s) => s.setToolSettingsCollapsed
+  );
   const toolSettings = useResolvedToolSettings();
+
+  // The settings rows wrap to two or three lines for most tools, which on a
+  // phone leaves little canvas. Start collapsed on mobile and expanded on
+  // desktop, re-applied on each breakpoint crossing (rotate/resize).
+  const isMobile = useSketchIsMobile();
+  useEffect(() => {
+    setToolSettingsCollapsed(isMobile);
+  }, [isMobile, setToolSettingsCollapsed]);
+
   const transform = useTransformAdapter({
     onTransformCommit: props.onTransformCommit,
     onTransformCancel: props.onTransformCancel,
@@ -162,6 +182,8 @@ export const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
       onCheckSegmentModel={props.segmentation.checkModel}
       onTogglePanelsHidden={togglePanelsHidden}
       onFit={handleFit}
+      settingsCollapsed={toolSettingsCollapsed}
+      onToggleSettingsCollapsed={toggleToolSettingsCollapsed}
     />
   );
 });
