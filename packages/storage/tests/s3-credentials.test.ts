@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { describe, it, expect, vi } from "vitest";
 import {
   cacheCredentials,
@@ -41,7 +42,9 @@ describe("createDefaultCredentialProvider", () => {
       accessKeyId: "AKIDFILE",
       secretAccessKey: "filesecret"
     });
-    expect(readFileFn).toHaveBeenCalledWith("/home/u/.aws/credentials");
+    expect(readFileFn).toHaveBeenCalledWith(
+      join("/home/u", ".aws", "credentials")
+    );
   });
 
   it("honors AWS_PROFILE and AWS_SHARED_CREDENTIALS_FILE", async () => {
