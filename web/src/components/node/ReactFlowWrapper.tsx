@@ -638,15 +638,19 @@ const ReactFlowWrapper = ({
     (_event: ReactMouseEvent, node: Node) => {
       if (node.type !== SUBGRAPH_NODE_TYPE) return;
       const data = node.data as {
-        workflow_id?: string;
         title?: string;
         properties?: { graph?: { nodes?: unknown[]; edges?: unknown[] } };
       };
       const innerGraph = data.properties?.graph ?? { nodes: [], edges: [] };
       const key = useSubgraphTabsStore.getState().openTab({
-        workflowId: data.workflow_id ?? "",
+        // The canvas this node is on, not `data.workflow_id`: that is only
+        // stamped on nodes the store created, so a node loaded from a saved
+        // graph would key its tab off "" and the strip would never find it.
+        workflowId,
         nodeId: node.id,
-        label: data.title || "Subgraph",
+        // Same fallback chain as the node's own header, so the tab is labelled
+        // with what the user sees on the canvas.
+        label: data.title || getMetadata(SUBGRAPH_NODE_TYPE)?.title || "Subgraph",
         initialGraph: {
           nodes: Array.isArray(innerGraph.nodes) ? innerGraph.nodes : [],
           edges: Array.isArray(innerGraph.edges) ? innerGraph.edges : []
@@ -664,7 +668,7 @@ const ReactFlowWrapper = ({
         }));
       }
     },
-    [workflowManagerStore]
+    [workflowManagerStore, workflowId, getMetadata]
   );
 
   const handlePaneClickWithSuppress = useCallback(

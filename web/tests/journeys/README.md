@@ -75,12 +75,6 @@ mutate it — adding nodes, sending messages. Assert against a measured baseline
 
 ## Known gaps
 
-- Three subgraph tests are `test.fixme`. Creating a SubgraphNode works and
-  double-clicking it does call `SubgraphTabsStore.openTab`, but the workspace
-  shell renders no subgraph tab strip and no subgraph canvas — the store is read
-  only by `PanelRight`. The tests assert on `.subgraph-tab`, which no longer
-  exists in the app. They stay as fixme because they describe the surface that
-  has to come back.
 - Editing a node's property on the canvas is not covered. Clicks near the left
   icon rail get intercepted, and stray keystrokes land on canvas shortcuts
   (typing `b` bypasses the selected node). The mini-app journey covers
