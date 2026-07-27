@@ -65,12 +65,31 @@ describe("application budgets", () => {
     await run("job-1", 2);
     expect((await applicationUsage(APP, "total")).spentUsd).toBe(2);
 
-    await settleInvocation("job-1", 0.25);
+    await settleInvocation(APP, "job-1", 0.25);
     expect((await applicationUsage(APP, "total")).spentUsd).toBe(0.25);
   });
 
   it("settling an unknown invocation reports nothing rather than throwing", async () => {
-    expect(await settleInvocation("ghost", 1)).toBeNull();
+    expect(await settleInvocation(APP, "ghost", 1)).toBeNull();
+  });
+
+  it("leaves an invocation belonging to another application untouched", async () => {
+    await run("job-1", 2);
+
+    expect(await settleInvocation("app-2", "job-1", 0)).toBeNull();
+
+    const [row] = await listInvocations(APP);
+    expect(row).toMatchObject({ actualUsd: null, status: "running" });
+    expect(row.settledAt).toBeNull();
+    // The reservation still stands, so the spend was not handed back.
+    expect((await applicationUsage(APP, "total")).spentUsd).toBe(2);
+  });
+
+  it("keeps the estimate standing when nothing measured the cost", async () => {
+    await run("job-1", 2);
+    const settled = await settleInvocation(APP, "job-1", null);
+    expect(settled).toMatchObject({ status: "completed", actualUsd: null });
+    expect((await applicationUsage(APP, "total")).spentUsd).toBe(2);
   });
 
   it("scopes usage to another application's ledger", async () => {

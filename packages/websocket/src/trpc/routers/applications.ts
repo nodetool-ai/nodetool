@@ -203,13 +203,18 @@ export const applicationsRouter = router({
       return invocationRecord.parse(decision.record);
     }),
 
-  /** Close a run out with what it actually cost. */
+  /**
+   * Close a run out with what it actually cost. `loadOwned` authorizes the
+   * application, and the settle itself is scoped to that application, so an
+   * invocation id belonging to someone else's app settles nothing.
+   */
   settleInvocation: protectedProcedure
     .input(settleInvocationInput)
     .output(invocationRecord.nullable())
     .mutation(async ({ ctx, input }) => {
       await loadOwned(ctx.userId, input.id);
       const settled = await settleInvocation(
+        input.id,
         input.invocationId,
         input.actualUsd,
         input.status
