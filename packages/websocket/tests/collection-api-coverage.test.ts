@@ -227,9 +227,15 @@ describe("error handling", () => {
     expect(body.detail).toContain("Collection not found");
   });
 
-  it("maps a generic Error to 500 with the message", async () => {
+  it("maps a generic Error to a 500 that does not echo the message", async () => {
+    // Provider errors carry SQL text, file paths and upstream URLs; the client
+    // gets a generic message and the detail goes to the log instead.
     providerMock.mockReturnValue({
-      getCollection: vi.fn().mockRejectedValue(new Error("boom"))
+      getCollection: vi
+        .fn()
+        .mockRejectedValue(
+          new Error("UNIQUE constraint failed: /var/lib/nodetool/vec.db")
+        )
     });
     const res = await handleCollectionRequest(
       uploadRequest("/api/collections/docs/index", {
@@ -240,11 +246,11 @@ describe("error handling", () => {
     );
     expect(res!.status).toBe(500);
     const body = await res!.json();
-    expect(body.detail).toContain("Vector store error");
-    expect(body.detail).toContain("boom");
+    expect(body.detail).toBe("Vector store error");
+    expect(body.detail).not.toContain("/var/lib");
   });
 
-  it("stringifies a non-Error throw in the 500 message", async () => {
+  it("does not surface a non-Error throw in the 500 body", async () => {
     providerMock.mockImplementation(() => {
       throw "raw failure";
     });
@@ -257,6 +263,102 @@ describe("error handling", () => {
     );
     expect(res!.status).toBe(500);
     const body = await res!.json();
-    expect(body.detail).toContain("raw failure");
+    expect(body.detail).toBe("Vector store error");
+    expect(body.detail).not.toContain("raw failure");
+  });
+});
+
+describe("ownership", () => {
+  // The index endpoint writes into a collection, so it enforces the same
+  // ownership rule as the tRPC router. See lib/collection-access.ts.
+  function requestAs(userId: string, urlPath: string) {
+    const form = new FormData();
+    form.set("file", new File(["hello world"], "note.txt"));
+    return new Request(`http://localhost${urlPath}`, {
+      method: "POST",
+      headers: { "x-user-id": userId },
+      body: form
+    });
+  }
+
+  it("refuses to index into another user's collection", async () => {
+    const collection = {
+      ...makeCollection(),
+      metadata: { owner_user_id: "user-2" }
+    };
+    providerMock.mockReturnValue({
+      getCollection: vi.fn().mockResolvedValue(collection)
+    });
+
+    const res = await handleCollectionRequest(
+      requestAs("user-1", "/api/collections/theirs/index"),
+      "/api/collections/theirs/index",
+      options
+    );
+
+    // 404 rather than 403 so the endpoint can't confirm the name exists.
+    expect(res!.status).toBe(404);
+    expect(collection.upsert).not.toHaveBeenCalled();
+  });
+
+  it("indexes into the caller's own collection", async () => {
+    const collection = {
+      ...makeCollection(),
+      metadata: { owner_user_id: "user-1" }
+    };
+    providerMock.mockReturnValue({
+      getCollection: vi.fn().mockResolvedValue(collection)
+    });
+
+    const res = await handleCollectionRequest(
+      requestAs("user-1", "/api/collections/mine/index"),
+      "/api/collections/mine/index",
+      options
+    );
+
+    expect(res!.status).toBe(200);
+    expect(collection.upsert).toHaveBeenCalledTimes(1);
+  });
+
+  it("indexes into an unowned legacy collection", async () => {
+    const collection = { ...makeCollection(), metadata: {} };
+    providerMock.mockReturnValue({
+      getCollection: vi.fn().mockResolvedValue(collection)
+    });
+
+    const res = await handleCollectionRequest(
+      requestAs("user-1", "/api/collections/legacy/index"),
+      "/api/collections/legacy/index",
+      options
+    );
+
+    expect(res!.status).toBe(200);
+  });
+});
+
+describe("upload size cap", () => {
+  it("rejects a file over the configured limit with 413", async () => {
+    // The whole file is read into a string and chunked in memory, so the cap
+    // is enforced before that rather than relying on Fastify's body limit.
+    process.env.NODETOOL_MAX_UPLOAD_BYTES = "16";
+    try {
+      const collection = makeCollection();
+      providerMock.mockReturnValue({
+        getCollection: vi.fn().mockResolvedValue(collection)
+      });
+
+      const res = await handleCollectionRequest(
+        uploadRequest("/api/collections/docs/index", {
+          file: { name: "big.txt", content: "x".repeat(64) }
+        }),
+        "/api/collections/docs/index",
+        options
+      );
+
+      expect(res!.status).toBe(413);
+      expect(collection.upsert).not.toHaveBeenCalled();
+    } finally {
+      delete process.env.NODETOOL_MAX_UPLOAD_BYTES;
+    }
   });
 });
