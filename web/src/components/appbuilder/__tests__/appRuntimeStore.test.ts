@@ -1,4 +1,5 @@
 import {
+  appInstanceId,
   createAppRuntimeStore,
   getAppRuntimeStore,
   disposeAppRuntimeStore,
@@ -61,6 +62,18 @@ describe("appRuntimeStore registry", () => {
     );
     expect(getAppRuntimeStore(workflowInstanceId("wf-2"))).not.toBe(first);
     disposeAppRuntimeStore(workflowInstanceId("wf-2"));
+  });
+
+  it("keys an application apart from the workflow that hosts it", () => {
+    const application = appInstanceId("application:app-1");
+    expect(application).not.toBe(workflowInstanceId("wf-1"));
+    getAppRuntimeStore(application)
+      .getState()
+      .dispatchEvent({ type: "setVariable", variableId: "result", value: "own" });
+    expect(
+      getAppRuntimeStore(instance).getState().variables.result
+    ).toBeUndefined();
+    disposeAppRuntimeStore(application);
   });
 
   it("dispose drops the stored state", () => {

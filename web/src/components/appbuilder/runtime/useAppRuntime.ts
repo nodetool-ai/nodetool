@@ -59,9 +59,9 @@ import { seedInputValue } from "../inputProperty";
 import { collectNodePropertyOverlays, withNodeProperties } from "../nodeBinding";
 import { buildTriggerSubgraph } from "./buildTriggerSubgraph";
 import {
+  appInstanceId,
   createAppRuntimeStore,
   getAppRuntimeStore,
-  workflowInstanceId,
   AppRuntimeStore
 } from "./appRuntimeStore";
 import {
@@ -233,20 +233,28 @@ export const useAppRuntime = (
     []
   );
 
-  // A design canvas gets an ephemeral store: widget writes there must not leak
-  // into the published app's state. A live app keeps its store in the instance
-  // registry so values survive View↔Edit tab switches and refetches.
+  // The app's identity — its application record when it has one, otherwise the
+  // host workflow — keys both its state and its persisted variables, so two
+  // applications over one workflow never share either.
   const identity = appVariableIdentity(application?.id, workflowId);
-  const store: AppRuntimeStore = useMemo(() => {
-    const target =
-      designMode || !workflowId
-        ? createAppRuntimeStore()
-        : getAppRuntimeStore(workflowInstanceId(workflowId));
-    const dispatchEvent = target.getState().dispatchEvent;
 
-    // Seeding fills only slots that have no value: workflow input defaults plus
-    // the select/boolean fallbacks the controls display, so an untouched form
-    // runs with what it shows.
+  // A design canvas gets an ephemeral store: widget writes there must not leak
+  // into the published app's state. It is created once per mount rather than
+  // per identity, so the canvas keeps its widget values when `document` or the
+  // operation runtimes are rebuilt. A live app keeps its store in the instance
+  // registry so values survive View↔Edit tab switches and refetches.
+  const designStoreRef = useRef<AppRuntimeStore | null>(null);
+  const store: AppRuntimeStore =
+    designMode || !identity
+      ? (designStoreRef.current ??= createAppRuntimeStore())
+      : getAppRuntimeStore(appInstanceId(identity));
+
+  // Seeding fills only slots that have no value: workflow input defaults plus
+  // the select/boolean fallbacks the controls display, so an untouched form
+  // runs with what it shows. Idempotent, so re-running it on any identity churn
+  // costs nothing and clobbers nothing.
+  useEffect(() => {
+    const dispatchEvent = store.getState().dispatchEvent;
     const values: Record<string, unknown> = {};
     for (const entry of operationRuntimes.values()) {
       for (const input of entry.io.inputs) {
@@ -276,8 +284,7 @@ export const useAppRuntime = (
       type: "seedVariables",
       values: initialVariableValues(variables)
     });
-    return target;
-  }, [designMode, document, identity, operationRuntimes, workflowId]);
+  }, [designMode, document, identity, operationRuntimes, store]);
 
   // Write persisting user-scoped variables back whenever they change. Instance
   // variables and widget-local view state are deliberately not persisted.
@@ -300,11 +307,15 @@ export const useAppRuntime = (
   // The resource each binding currently points at. A picker widget sets one;
   // an operation input mapped `from: "resource"` passes it to the run.
   const resourceRefsRef = useRef(new Map<string, ResourceRef>());
-  // Messages that arrived between dispatching a run and learning its job id.
-  const pendingRef = useRef<MsgpackData[]>([]);
+  // Messages that arrived between dispatching a run and learning its job id,
+  // buffered per job id. Two starts in flight — a `parallel` operation, or two
+  // operations dispatched at once — each replay only their own stream.
+  const pendingRef = useRef(new Map<string, MsgpackData[]>());
   const awaitingJobRef = useRef(0);
   // Timeout timers by invocation id, for operations that declare `timeoutMs`.
   const timersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  // Teardowns for the waits `awaitSettled` has open, so an unmount drops them.
+  const settleWaitsRef = useRef(new Set<() => void>());
 
   const clearTimeoutTimer = useCallback((invocationId: string) => {
     const timer = timersRef.current.get(invocationId);
@@ -315,9 +326,12 @@ export const useAppRuntime = (
 
   useEffect(() => {
     const timers = timersRef.current;
+    const waits = settleWaitsRef.current;
     return () => {
       for (const timer of timers.values()) clearTimeout(timer);
       timers.clear();
+      for (const stopWaiting of [...waits]) stopWaiting();
+      waits.clear();
     };
   }, []);
 
@@ -393,9 +407,14 @@ export const useAppRuntime = (
     [clearTimeoutTimer, stopJob, store]
   );
 
-  /** Resolve once every listed invocation has settled. */
+  /**
+   * Resolve once every listed invocation has settled. A predecessor that never
+   * reports would otherwise wedge the queue forever, so the waiting operation's
+   * own declared timeout is also the ceiling on the wait; an unmount drops the
+   * subscription and leaves the queued run unstarted.
+   */
   const awaitSettled = useCallback(
-    (invocationIds: ReadonlyArray<string>) =>
+    (invocationIds: ReadonlyArray<string>, timeoutMs?: number) =>
       new Promise<void>((resolve) => {
         const settled = () =>
           invocationIds.every((id) => {
@@ -406,11 +425,27 @@ export const useAppRuntime = (
           resolve();
           return;
         }
-        const unsubscribe = store.subscribe(() => {
+        const wait: {
+          timer?: ReturnType<typeof setTimeout>;
+          unsubscribe?: () => void;
+        } = {};
+        const stopWaiting = () => {
+          if (wait.timer) clearTimeout(wait.timer);
+          wait.unsubscribe?.();
+          settleWaitsRef.current.delete(stopWaiting);
+        };
+        settleWaitsRef.current.add(stopWaiting);
+        wait.unsubscribe = store.subscribe(() => {
           if (!settled()) return;
-          unsubscribe();
+          stopWaiting();
           resolve();
         });
+        if (timeoutMs && timeoutMs > 0) {
+          wait.timer = setTimeout(() => {
+            stopWaiting();
+            resolve();
+          }, timeoutMs);
+        }
       }),
     [store]
   );
@@ -458,8 +493,9 @@ export const useAppRuntime = (
         );
       }
 
-      const buffered = pendingRef.current;
-      pendingRef.current = [];
+      const buffered = pendingRef.current.get(jobId);
+      if (!buffered) return;
+      pendingRef.current.delete(jobId);
       for (const message of buffered) foldRef.current(message);
     },
     [outputKey, stopJob, store]
@@ -504,13 +540,19 @@ export const useAppRuntime = (
     // workflow was opened — calling into it here would double-append.
     const handler = (message: MsgpackData) => {
       const jobId = (message as Record<string, unknown>).job_id;
-      if (typeof jobId === "string" && ownedRef.current.has(jobId)) {
+      // A message carrying no job id cannot be attributed to an invocation, so
+      // folding it produces nothing either now or after a replay.
+      if (typeof jobId !== "string") return;
+      if (ownedRef.current.has(jobId)) {
         foldRef.current(message);
         return;
       }
-      // A run we started but whose job id has not come back yet. Buffer rather
-      // than drop, then replay once the id is known.
-      if (awaitingJobRef.current > 0) pendingRef.current.push(message);
+      // A run we started but whose job id has not come back yet. Buffer under
+      // that id rather than drop, then replay once the run claims it.
+      if (awaitingJobRef.current === 0) return;
+      const buffered = pendingRef.current.get(jobId);
+      if (buffered) buffered.push(message);
+      else pendingRef.current.set(jobId, [message]);
     };
 
     const unsubscribes = workflowIds.map((id) =>
@@ -581,7 +623,7 @@ export const useAppRuntime = (
       if (decision.kind === "replace") {
         await cancelInvocations(decision.cancel);
       } else if (decision.kind === "queue") {
-        await awaitSettled(decision.after);
+        await awaitSettled(decision.after, entry.operation.timeoutMs);
       }
 
       const state = store.getState();
@@ -630,13 +672,15 @@ export const useAppRuntime = (
           );
         claimInvocation(operationId, jobId, true);
       } catch (error) {
-        pendingRef.current = [];
         failInvocation(
           operationId,
           error instanceof Error ? error.message : "Run failed"
         );
       } finally {
         awaitingJobRef.current -= 1;
+        // Nothing is waiting for a job id any more, so whatever is still
+        // buffered belongs to a run this app never claimed.
+        if (awaitingJobRef.current === 0) pendingRef.current.clear();
       }
     },
     [
