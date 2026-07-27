@@ -95,6 +95,97 @@ describe("parseApplicationDocument", () => {
     expect(doc?.variables[0].persist).toBe(false);
   });
 
+  it("keeps every valid input and output mapping untouched", () => {
+    const inputs = {
+      n1: { from: "widget" },
+      n2: { from: "variable", variableId: "v1" },
+      n3: { from: "constant", value: { nested: [1, 2] } },
+      n4: { from: "constant", value: undefined },
+      n5: { from: "resource", resourceBindingId: "r1" }
+    };
+    const outputs = {
+      o1: { to: "display" },
+      o2: { to: "variable", variableId: "v1" }
+    };
+    const doc = parseApplicationDocument({
+      schemaVersion: 3,
+      ui: puck,
+      operations: [{ id: "main", workflowId: "wf1", inputs, outputs }]
+    });
+    expect(doc?.operations[0].inputs).toEqual(inputs);
+    expect(doc?.operations[0].outputs).toEqual(outputs);
+  });
+
+  it("drops malformed mappings and keeps the rest of the operation", () => {
+    const doc = parseApplicationDocument({
+      schemaVersion: 3,
+      ui: puck,
+      operations: [
+        {
+          id: "main",
+          workflowId: "wf1",
+          inputs: {
+            // Every shape the union does not describe.
+            noVariableId: { from: "variable" },
+            emptyVariableId: { from: "variable", variableId: "" },
+            wrongVariableIdType: { from: "variable", variableId: 7 },
+            noResourceId: { from: "resource" },
+            emptyResourceId: { from: "resource", resourceBindingId: "" },
+            unknownFrom: { from: "elsewhere" },
+            noFrom: {},
+            notARecord: "widget",
+            nullEntry: null,
+            arrayEntry: [{ from: "widget" }],
+            // …and one that is fine, to prove the operation survives.
+            ok: { from: "variable", variableId: "v1" }
+          },
+          outputs: {
+            noVariableId: { to: "variable" },
+            emptyVariableId: { to: "variable", variableId: "" },
+            wrongVariableIdType: { to: "variable", variableId: null },
+            unknownTo: { to: "somewhere" },
+            noTo: {},
+            notARecord: 42,
+            ok: { to: "variable", variableId: "v1" }
+          }
+        }
+      ]
+    });
+    const operation = doc?.operations[0];
+    expect(operation?.id).toBe("main");
+    expect(operation?.inputs).toEqual({ ok: { from: "variable", variableId: "v1" } });
+    expect(operation?.outputs).toEqual({ ok: { to: "variable", variableId: "v1" } });
+  });
+
+  it("drops mapping properties the union does not declare", () => {
+    const doc = parseApplicationDocument({
+      schemaVersion: 3,
+      ui: puck,
+      operations: [
+        {
+          id: "main",
+          workflowId: "wf1",
+          inputs: { n1: { from: "widget", variableId: "v1", stray: true } },
+          outputs: { o1: { to: "display", variableId: "v1" } }
+        }
+      ]
+    });
+    expect(doc?.operations[0].inputs).toEqual({ n1: { from: "widget" } });
+    expect(doc?.operations[0].outputs).toEqual({ o1: { to: "display" } });
+  });
+
+  it("treats non-record inputs and outputs as no mappings", () => {
+    const doc = parseApplicationDocument({
+      schemaVersion: 3,
+      ui: puck,
+      operations: [
+        { id: "main", workflowId: "wf1", inputs: "nope", outputs: [1, 2] }
+      ]
+    });
+    expect(doc?.operations[0].inputs).toEqual({});
+    expect(doc?.operations[0].outputs).toEqual({});
+  });
+
   it("rejects non-documents", () => {
     expect(parseApplicationDocument(null)).toBeNull();
     expect(parseApplicationDocument({ data: { root: {} } })).toBeNull();

@@ -133,6 +133,84 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isPuckData = (value: unknown): value is PuckData =>
   isRecord(value) && isRecord(value.root) && Array.isArray(value.content);
 
+/**
+ * Parse one input mapping, or null when the entry is not a mapping the union
+ * describes: a non-record, an unknown `from`, or a `variable`/`resource`
+ * mapping with no id to read. A `constant` keeps whatever `value` it carries,
+ * `undefined` included — that is a legitimate constant, and
+ * `resolveOperationParams` already omits undefined values from the run params.
+ */
+const parseInputMapping = (value: unknown): InputMapping | null => {
+  if (!isRecord(value)) return null;
+  switch (value.from) {
+    case "widget":
+      return { from: "widget" };
+    case "variable":
+      return typeof value.variableId === "string" && value.variableId.length > 0
+        ? { from: "variable", variableId: value.variableId }
+        : null;
+    case "constant":
+      return { from: "constant", value: value.value };
+    case "resource":
+      return typeof value.resourceBindingId === "string" &&
+        value.resourceBindingId.length > 0
+        ? { from: "resource", resourceBindingId: value.resourceBindingId }
+        : null;
+    default:
+      return null;
+  }
+};
+
+/**
+ * Parse one output mapping, or null when the entry is not a mapping the union
+ * describes: a non-record, an unknown `to`, or a `variable` mapping with no id
+ * to write.
+ */
+const parseOutputMapping = (value: unknown): OutputMapping | null => {
+  if (!isRecord(value)) return null;
+  switch (value.to) {
+    case "display":
+      return { to: "display" };
+    case "variable":
+      return typeof value.variableId === "string" && value.variableId.length > 0
+        ? { to: "variable", variableId: value.variableId }
+        : null;
+    default:
+      return null;
+  }
+};
+
+/**
+ * Parse a node-id-keyed mapping record, dropping every entry the mapping
+ * parser rejects. A dropped entry leaves the node unmapped, which is the
+ * documented default: an input takes its bound widget's value, an output
+ * displays. Losing one mapping is contained; rejecting the operation — and
+ * with it every other mapping and the widgets bound to it — is not.
+ */
+const parseMappings = <T>(
+  value: unknown,
+  parse: (entry: unknown) => T | null
+): Record<string, T> => {
+  if (!isRecord(value)) return {};
+  const mappings: Record<string, T> = {};
+  for (const [nodeId, entry] of Object.entries(value)) {
+    const mapping = parse(entry);
+    if (mapping !== null) mappings[nodeId] = mapping;
+  }
+  return mappings;
+};
+
+/**
+ * Parse one operation binding, or null when it carries no id or no workflow id.
+ *
+ * Every input and output mapping is parsed against its union, never cast:
+ * a malformed entry is dropped, so the returned binding's `inputs`/`outputs`
+ * only ever hold mappings with the ids their variant requires. That is what
+ * lets `resolveOperationParams` and `outputVariableTargets` read
+ * `mapping.variableId` without checking it — documents reach this parser from
+ * untrusted input (bundle import), and an id-less mapping used to become a
+ * read or a write keyed `undefined`.
+ */
 const parseOperation = (
   value: unknown,
   hostWorkflowId?: string
@@ -148,12 +226,8 @@ const parseOperation = (
     workflowId: workflowId || hostWorkflowId || "",
     workflowVersion:
       typeof value.workflowVersion === "number" ? value.workflowVersion : undefined,
-    inputs: isRecord(value.inputs)
-      ? (value.inputs as Record<string, InputMapping>)
-      : {},
-    outputs: isRecord(value.outputs)
-      ? (value.outputs as Record<string, OutputMapping>)
-      : {},
+    inputs: parseMappings(value.inputs, parseInputMapping),
+    outputs: parseMappings(value.outputs, parseOutputMapping),
     policy:
       policy === "parallel" || policy === "queue" ? policy : "replace",
     timeoutMs: typeof value.timeoutMs === "number" ? value.timeoutMs : undefined
@@ -228,6 +302,13 @@ export const DEFAULT_OPERATION_ID = "main";
  * they are resolved to node IDs against the live graph by `resolveBinding`,
  * which is where a missing name becomes a validation error rather than a
  * silent no-op.
+ *
+ * Everything outside `ui` is parsed, never cast. Malformed operations,
+ * variables, and resources are dropped; so is any single input/output mapping
+ * that does not match its union, which leaves that node on the documented
+ * default (an input reads its widget, an output displays). So a parsed
+ * document's mappings always carry the ids their variant requires — the
+ * runtimes can read `variableId` and `resourceBindingId` directly.
  */
 export const parseApplicationDocument = (
   value: unknown,
