@@ -29,7 +29,10 @@ import { AppRuntimeStore, AppRuntimeState } from "./appRuntimeStore";
 
 export interface AppRuntimeContextValue {
   store: AppRuntimeStore;
+  /** The default operation's graph surface. */
   io: WorkflowIO;
+  /** The graph surface of one bound operation; the default one when unnamed. */
+  ioFor: (operationId?: string) => WorkflowIO;
   /** Everything a stored binding string can resolve against. */
   scope: BindingScope;
   /** The operation a widget's `run` targets when it names none. */

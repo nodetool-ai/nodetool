@@ -233,9 +233,12 @@ const AppPreviewApp: React.FC = () => {
       variables: bundle.app.variables
     };
     const operations: OperationBinding[] = operationIO.map((e) => e.operation);
+    const byOperation = new Map(operationIO.map((e) => [e.operation.id, e.io]));
     return {
       store,
       io: first.io,
+      ioFor: (operationId?: string) =>
+        byOperation.get(operationId ?? first.operation.id) ?? first.io,
       scope,
       operation: first.operation,
       operations,

@@ -48,9 +48,11 @@ export const makeTestRuntime = (
   overrides: Partial<AppRuntimeContextValue> = {}
 ): TestRuntime => {
   const store = createAppRuntimeStore(initial);
+  const io = overrides.io ?? { inputs: [], outputs: [] };
   const value: AppRuntimeContextValue = {
     store,
-    io: { inputs: [], outputs: [] },
+    io,
+    ioFor: () => io,
     scope: TEST_SCOPE,
     operation: implicitOperation("wf1"),
     operations: [implicitOperation("wf1")],

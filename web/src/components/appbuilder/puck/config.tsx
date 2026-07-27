@@ -385,10 +385,11 @@ export const appConfig: Config = {
       label: "Workflow Input",
       fields: {
         binding: bindingField("write", "Workflow input"),
+        label: { type: "text", label: "Label" },
         events: eventsField("change", { commits: false }),
         ...conditionalFields({ format: false })
       },
-      defaultProps: { binding: "" },
+      defaultProps: { binding: "", label: "" },
       render: withConditions((props) => <WorkflowInputWidget {...props} />)
     },
     TextInput: {

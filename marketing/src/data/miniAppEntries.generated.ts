@@ -9,12 +9,12 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "Ask your own documents — with a local mode that never leaves your machine.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "ask-your-documents",
     "name": "Ask Your Documents",
     "summary": "Retrieval-augmented answers with citations, and a fully local fallback that reads one pasted document instead of the vector store.",
     "featured": false,
-    "note": "🖥️ The retrieval mode embeds with Ollama `nomic-embed-text` and answers with OpenAI, so it needs **both**. Local mode needs only Ollama.",
+    "note": "🖥️ The retrieval mode embeds with Ollama nomic-embed-text and answers with OpenAI, so it needs both. Local mode needs only Ollama.",
     "workflows": [
       {
         "name": "Chat With Your Documents",
@@ -28,7 +28,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/chat-with-your-documents",
-    "screenshot": null,
+    "screenshot": "/apps/ask-your-documents.png",
     "tags": [
       "assistant",
       "citations",
@@ -80,20 +80,12 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "outputs": [
       {
-        "label": "Searching your knowledge base…",
-        "kind": "progress"
-      },
-      {
         "label": "Answer",
         "kind": "text"
       },
       {
         "label": "Sources used",
         "kind": "text"
-      },
-      {
-        "label": "Thinking locally…",
-        "kind": "progress"
       },
       {
         "label": "Local answer",
@@ -108,7 +100,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "One brand identity drives three deliverables.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "brand-and-social",
     "name": "Brand & Social",
     "summary": "Fill in your brand once — the asset kit, the thumbnail factory, and the content calendar all read the same values.",
@@ -132,7 +124,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/brand-asset-generator",
-    "screenshot": null,
+    "screenshot": "/apps/brand-and-social.png",
     "tags": [
       "brand-asset",
       "branding",
@@ -194,20 +186,12 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "outputs": [
       {
-        "label": "Designing your assets…",
-        "kind": "progress"
-      },
-      {
         "label": "Your brand assets",
         "kind": "image"
       },
       {
         "label": "Brand brief",
         "kind": "text"
-      },
-      {
-        "label": "Writing hooks & rendering thumbnails…",
-        "kind": "progress"
       },
       {
         "label": "Thumbnail gallery",
@@ -220,10 +204,6 @@ export const miniAppEntries: MiniAppEntry[] = [
       {
         "label": "Featured thumbnail",
         "kind": "image"
-      },
-      {
-        "label": "Filling your calendar…",
-        "kind": "progress"
       },
       {
         "label": "Content calendar",
@@ -246,7 +226,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "Generate a gallery, pick one, polish it.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "concept-studio",
     "name": "Concept Studio",
     "summary": "The creative iteration loop: fan a brief into concept art, mix animals into creatures, then run the picked image through a keyless filter chain.",
@@ -270,7 +250,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/concept-art-iteration-board",
-    "screenshot": null,
+    "screenshot": "/apps/concept-studio.png",
     "tags": [
       "concept-art",
       "example",
@@ -333,24 +313,12 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "outputs": [
       {
-        "label": "Rendering variations…",
-        "kind": "progress"
-      },
-      {
         "label": "Concept art",
         "kind": "image"
       },
       {
-        "label": "Designing your creatures…",
-        "kind": "progress"
-      },
-      {
         "label": "Your creatures",
         "kind": "image"
-      },
-      {
-        "label": "Polishing…",
-        "kind": "progress"
       },
       {
         "label": "Polished",
@@ -365,7 +333,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "Describe the dataset you need — get it as a table.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "dataset-builder",
     "name": "Dataset Builder",
     "summary": "The smallest app in the set, and the reference for the Table widget: a dataframe reads better as rows than as a Preview node.",
@@ -379,7 +347,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/data-generator",
-    "screenshot": null,
+    "screenshot": "/apps/dataset-builder.png",
     "tags": [
       "agents"
     ],
@@ -398,10 +366,6 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "outputs": [
       {
-        "label": "Generating rows…",
-        "kind": "progress"
-      },
-      {
         "label": "Generated dataset",
         "kind": "data"
       }
@@ -414,7 +378,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "Brief → direction → storyboard → cut → key art.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "film-studio",
     "name": "Film Studio",
     "summary": "The showcase run: one brief drives a directed short, an editable rough cut, and the poster that sells it.",
@@ -438,7 +402,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/script-to-screen",
-    "screenshot": null,
+    "screenshot": "/apps/film-studio.png",
     "tags": [
       "ai",
       "creative",
@@ -479,10 +443,6 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "outputs": [
       {
-        "label": "Directing, storyboarding & shooting…",
-        "kind": "progress"
-      },
-      {
         "label": "Direction document",
         "kind": "text"
       },
@@ -495,16 +455,8 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "video"
       },
       {
-        "label": "Cutting the timeline…",
-        "kind": "progress"
-      },
-      {
         "label": "Editable rough cut",
         "kind": "video"
-      },
-      {
-        "label": "Designing your poster…",
-        "kind": "progress"
       },
       {
         "label": "Your poster",
@@ -519,7 +471,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "Recording in, minutes out — then question the transcript.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "meeting-room",
     "name": "Meeting Room",
     "summary": "Transcribe a recording, summarize it into notes and action items, then ask follow-up questions of the transcript on a local model.",
@@ -543,7 +495,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/transcribe-audio",
-    "screenshot": null,
+    "screenshot": "/apps/meeting-room.png",
     "tags": [
       "asr",
       "assistant",
@@ -575,16 +527,8 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "outputs": [
       {
-        "label": "Transcribing…",
-        "kind": "progress"
-      },
-      {
         "label": "Transcript",
         "kind": "text"
-      },
-      {
-        "label": "Writing the minutes…",
-        "kind": "progress"
       },
       {
         "label": "Meeting notes",
@@ -597,10 +541,6 @@ export const miniAppEntries: MiniAppEntry[] = [
       {
         "label": "Transcript used",
         "kind": "text"
-      },
-      {
-        "label": "Thinking locally…",
-        "kind": "progress"
       },
       {
         "label": "Answer",
@@ -652,10 +592,6 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "outputs": [
       {
-        "label": "Asking three models…",
-        "kind": "progress"
-      },
-      {
         "label": "OpenAI",
         "kind": "text"
       },
@@ -676,12 +612,12 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "Drag five sliders and watch the photo re-render — then run the same grade over a whole folder.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "photo-studio",
     "name": "Photo Studio",
     "summary": "A live photo editor and a batch retoucher behind one surface. The single-photo grade is pure GPU filters, so it runs with no API key at all.",
     "featured": true,
-    "note": "✨ `Enhance` is GPU-only and needs no keys. `Batch` adds a FAL grading pass, so it needs a FAL key.",
+    "note": "✨ Enhance is GPU-only and needs no keys. Batch adds a FAL grading pass, so it needs a FAL key.",
     "workflows": [
       {
         "name": "Image Enhance",
@@ -695,7 +631,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/image-enhance",
-    "screenshot": null,
+    "screenshot": "/apps/photo-studio.png",
     "tags": [
       "batch processing",
       "example",
@@ -746,16 +682,8 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "outputs": [
       {
-        "label": "Running the filter chain…",
-        "kind": "progress"
-      },
-      {
         "label": "Enhanced photo",
         "kind": "image"
-      },
-      {
-        "label": "Retouching each photo…",
-        "kind": "progress"
       },
       {
         "label": "Enhanced photos",
@@ -770,7 +698,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "One product photo in, mockups and a launch video out.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "product-launch-kit",
     "name": "Product Launch Kit",
     "summary": "Stage a product photo into lifestyle mockups, then — deliberately, because it costs real money — turn the same photo into a launch video.",
@@ -789,7 +717,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/product-mockup-generator",
-    "screenshot": null,
+    "screenshot": "/apps/product-launch-kit.png",
     "tags": [
       "business",
       "data",
@@ -834,20 +762,12 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "outputs": [
       {
-        "label": "Staging your mockups…",
-        "kind": "progress"
-      },
-      {
         "label": "Mockups",
         "kind": "image"
       },
       {
         "label": "Shot list",
         "kind": "text"
-      },
-      {
-        "label": "Producing your spot…",
-        "kind": "progress"
       },
       {
         "label": "Launch video",
@@ -862,7 +782,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "One topic, three sources, three briefings side by side.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "research-desk",
     "name": "Research Desk",
     "summary": "A research agent, a Hacker News reader, and an RSS digest all take the same topic and stream into their own panel.",
@@ -886,7 +806,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/research-agent",
-    "screenshot": null,
+    "screenshot": "/apps/research-desk.png",
     "tags": [
       "agent",
       "analysis",
@@ -918,24 +838,12 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "outputs": [
       {
-        "label": "Searching & browsing sources…",
-        "kind": "progress"
-      },
-      {
         "label": "Research brief",
         "kind": "text"
       },
       {
-        "label": "Reading the front page…",
-        "kind": "progress"
-      },
-      {
         "label": "Hacker News",
         "kind": "text"
-      },
-      {
-        "label": "Reading your feed…",
-        "kind": "progress"
       },
       {
         "label": "Feed digest",
@@ -950,7 +858,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "A deck of flashcards and the concept behind it, side by side.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "study-buddy",
     "name": "Study Buddy",
     "summary": "Structured data an app renders better than a graph does: the cards land in a table, the explanation beside them.",
@@ -969,7 +877,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/flashcard-generator",
-    "screenshot": null,
+    "screenshot": "/apps/study-buddy.png",
     "tags": [
       "ai",
       "beginner",
@@ -1000,10 +908,6 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "outputs": [
-      {
-        "label": "Writing cards…",
-        "kind": "progress"
-      },
       {
         "label": "Flashcards",
         "kind": "data"
