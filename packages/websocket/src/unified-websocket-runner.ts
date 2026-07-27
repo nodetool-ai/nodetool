@@ -9,7 +9,8 @@ import {
   createLogger,
   getDefaultAssetsPath,
   buildAssetUrl,
-  getByteLimitEnv
+  getByteLimitEnv,
+  isGoogleWorkspaceEnabled
 } from "@nodetool-ai/config";
 import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
@@ -108,6 +109,8 @@ import {
   getBuiltinTools,
   getAllMcpTools,
   registerBuiltinTools,
+  getGoogleWorkspaceTools,
+  registerGoogleWorkspaceTools,
   ListCollectionsTool,
   QueryCollectionTool,
   gateTools,
@@ -3926,9 +3929,14 @@ export class UnifiedWebSocketRunner {
     // selection anymore — the agent reasons over the full toolbelt and the
     // permission gate (below) governs execution.
     registerBuiltinTools();
+    // Google Workspace runs on the token from the user's Google sign-in, so it
+    // only exists on deployments that have a login. Local mode never sees it.
+    const googleWorkspace = isGoogleWorkspaceEnabled();
+    if (googleWorkspace) registerGoogleWorkspaceTools();
     const chatProviders = await this.getConfiguredProviders(userId);
     const rawToolbelt: Tool[] = [
       ...getBuiltinTools(),
+      ...(googleWorkspace ? getGoogleWorkspaceTools() : []),
       ...getAllMcpTools({
         registry: this.nodeRegistry,
         providers: chatProviders

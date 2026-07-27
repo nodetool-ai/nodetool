@@ -19,6 +19,8 @@ import {
 import {
   createLogger,
   loadAssetStorageConfig,
+  isGoogleWorkspaceEnabled,
+  GOOGLE_WORKSPACE_NAMESPACE,
   type StorageConfig
 } from "@nodetool-ai/config";
 import { createAssetUrlBuilder } from "@nodetool-ai/storage";
@@ -434,6 +436,15 @@ export async function handleNodeMetadata(
     nodes = [...loaded.nodesByType.values()];
   }
   nodes.sort((a, b) => a.node_type.localeCompare(b.node_type));
+
+  // Google Workspace nodes authenticate with the token from the user's Google
+  // sign-in. A server with no login can never produce one, so they stay out of
+  // the palette there rather than failing at run time.
+  if (!isGoogleWorkspaceEnabled()) {
+    nodes = nodes.filter(
+      (n) => !n.node_type.startsWith(`${GOOGLE_WORKSPACE_NAMESPACE}.`)
+    );
+  }
 
   // Exact node_type lookup returns the full metadata for that one node.
   if (nodeType) {

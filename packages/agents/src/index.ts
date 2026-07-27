@@ -187,6 +187,11 @@ export {
   registerBuiltinTools,
   resetBuiltinToolsRegistration
 } from "./tools/builtin-tools.js";
+export {
+  GOOGLE_WORKSPACE_TOOL_CLASSES,
+  getGoogleWorkspaceTools,
+  registerGoogleWorkspaceTools
+} from "./tools/google-workspace-tools.js";
 
 export {
   WorkspaceReadTool,

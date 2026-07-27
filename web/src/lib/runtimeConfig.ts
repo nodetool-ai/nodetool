@@ -23,6 +23,14 @@ export interface RuntimeConfig {
   supabaseAnonKey: string | null;
   /** Optional OAuth redirect override. */
   authRedirectUrl: string | null;
+  /**
+   * Whether the backend offers the Google Workspace integration (Drive, Gmail,
+   * Docs, Sheets, Calendar). It runs on the token from the Google login, so it
+   * is off in Local mode.
+   */
+  googleWorkspace: boolean;
+  /** Google OAuth scopes to request at sign-in when the integration is on. */
+  googleScopes: string[];
   /** Backend version, for diagnostics. */
   version: string | null;
 }
@@ -32,6 +40,8 @@ const DEFAULT_CONFIG: RuntimeConfig = {
   supabaseUrl: null,
   supabaseAnonKey: null,
   authRedirectUrl: null,
+  googleWorkspace: false,
+  googleScopes: [],
   version: null
 };
 
@@ -52,9 +62,14 @@ const coerce = (data: unknown): RuntimeConfig => {
     supabaseUrl: d.supabaseUrl ?? null,
     supabaseAnonKey: d.supabaseAnonKey ?? null,
     authRedirectUrl: d.authRedirectUrl ?? null,
+    googleWorkspace: d.googleWorkspace === true,
+    googleScopes: Array.isArray(d.googleScopes) ? d.googleScopes : [],
     version: d.version ?? null
   };
 };
+
+/** True when the backend offers the Google Workspace tools and nodes. */
+export const isGoogleWorkspaceEnabled = (): boolean => current.googleWorkspace;
 
 /**
  * Fetch public runtime config from the backend (`GET /api/config`). Cached

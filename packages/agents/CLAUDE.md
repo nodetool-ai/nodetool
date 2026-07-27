@@ -166,6 +166,39 @@ for await (const msg of agent.execute(ctx)) {
 const result = agent.getResults();
 ```
 
+## Google Workspace Tools (`src/tools/google-workspace-tools.ts`)
+
+Drive, Gmail, Docs, Sheets and Calendar tools that authenticate with the access
+token from the user's Google sign-in — there is no API key. The Supabase Google
+login hands the browser a `provider_token`, the web app posts it to
+`POST /api/oauth/google/session`, and the server stores it as an
+`OAuthCredential` under provider `google`. Tools read it back through the
+virtual secret key `GOOGLE_ACCESS_TOKEN`, which `getSecret` routes to
+`resolveGoogleAccessToken` (refreshing a stale token when `GOOGLE_CLIENT_ID` and
+`GOOGLE_CLIENT_SECRET` are set).
+
+They are not in `BUILTIN_TOOL_CLASSES`. A server without a login can never
+produce a token, so the chat toolbelt adds them only when
+`isGoogleWorkspaceEnabled()` (`@nodetool-ai/config`) is true — Supabase auth
+mode, or `NODETOOL_GOOGLE_WORKSPACE=1`. The matching `lib.google.*` nodes are
+filtered out of `/api/nodes/metadata` under the same condition.
+
+```ts
+import {
+  getGoogleWorkspaceTools,
+  registerGoogleWorkspaceTools
+} from "@nodetool-ai/agents";
+
+if (isGoogleWorkspaceEnabled()) {
+  registerGoogleWorkspaceTools();   // makes resolveTool(name) work
+  toolbelt.push(...getGoogleWorkspaceTools());
+}
+```
+
+A missing or revoked credential surfaces as `{ error }` telling the user to sign
+in with Google again, rather than throwing — the agent can then pick another
+route instead of failing the whole step.
+
 ## Plan Approval Gate
 
 `Agent` can pause after planning and present the plan for user approval before

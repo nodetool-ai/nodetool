@@ -35,6 +35,13 @@ npm install @nodetool-ai/integration-nodes
 **Mail** (`lib.mail.*`) — `SendEmail`, `GmailSearch`, `AddLabel`,
 `MoveToArchive`.
 
+**Google Workspace** (`lib.google.*`) — `DriveSearch`, `DriveReadFile`,
+`DriveCreateFile`, `GmailSearch`, `GmailSend`, `GmailModifyLabels`, `DocsRead`,
+`DocsCreate`, `DocsAppend`, `SheetsRead`, `SheetsAppend`, `SheetsUpdate`,
+`CalendarListEvents`, `CalendarCreateEvent`. These take no API key — they use
+the access token from the user's Google sign-in, so they appear only on servers
+that have a login (see Configuration below).
+
 **Messaging** (`messaging.*`) — Discord and Telegram bot triggers and senders:
 `discord.DiscordBotTrigger`, `discord.DiscordSendMessage`,
 `telegram.TelegramBotTrigger`, `telegram.TelegramSendMessage`.
@@ -65,6 +72,13 @@ Keys) or as environment variables:
 - KIE: `KIE_API_KEY`
 - Discord: `DISCORD_BOT_TOKEN`
 - Telegram: `TELEGRAM_BOT_TOKEN`
+
+The `lib.google.*` nodes are the exception: they authenticate with the Google
+token from the Supabase Google login, which the web app posts to
+`POST /api/oauth/google/session`. They are hidden when the server runs without a
+login (Local mode); set `NODETOOL_GOOGLE_WORKSPACE=1` to force them on, and
+`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` so the server can refresh the
+one-hour Google access token.
 
 ## Links
 
