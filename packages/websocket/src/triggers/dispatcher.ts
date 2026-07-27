@@ -26,10 +26,26 @@
  * would loop forever) and the run error is still written to
  * `registration.last_error` so the UI shows the last outcome.
  *
+ * ## Acceptance vs. completion
+ *
+ * `startJob` resolves on *terminal* status — it does not come back until the
+ * workflow has finished. A pass that awaited that would hold every other
+ * registration behind the slowest run in flight: a webhook arriving one second
+ * into a ten-minute triggered run waited ten minutes for its own dispatch.
+ *
+ * So a pass awaits **acceptance**, not completion. `startHeadlessJob` reports
+ * acceptance through `onAccepted` the moment the workflow resolves and the
+ * `Job` row exists; the run itself settles later, on its own. `drain()` is what
+ * awaits the runs, for shutdown and for tests.
+ *
+ * A `startJob` that never calls `onAccepted` (the test fakes, any other job
+ * starter) still works: acceptance then resolves when the job promise does,
+ * which is exactly the old behaviour.
+ *
  * ## Idempotency and the crash window
  *
- * An input is marked processed **after** the run is accepted, never before. In
- * process, `_inflight` (keyed by `inputId`) makes overlapping passes and
+ * An input is marked processed **when the run is accepted**, never before. In
+ * process, `inflight` (keyed by `inputId`) makes overlapping passes and
  * concurrent `dispatchInput` calls join the same dispatch instead of starting a
  * second run.
  *
@@ -38,6 +54,10 @@
  * redelivered and the run happens twice. This is deliberate — at-least-once
  * delivery. Dropping an event is worse than repeating one, and marking first
  * would turn any crash before acceptance into a silently lost event.
+ *
+ * A run that was never accepted (`startJob` rejected) leaves `last_fired_at`
+ * alone: nothing fired, and stamping it made the editor report a delivery that
+ * never happened.
  *
  * ## Who writes `last_fired_at`
  *
@@ -155,6 +175,46 @@ interface RegistrationState {
   chain: Promise<unknown>;
 }
 
+/**
+ * One input's dispatch, split at the acceptance point: `accepted` settles when
+ * the run was taken on (or refused), `done` when it has finished.
+ */
+interface Dispatch {
+  accepted: Promise<void>;
+  done: Promise<DispatchOutcome>;
+}
+
+interface Deferred {
+  promise: Promise<void>;
+  resolve: () => void;
+  reject: (reason: unknown) => void;
+  settled: boolean;
+}
+
+function deferred(): Deferred {
+  let resolve!: () => void;
+  let reject!: (reason: unknown) => void;
+  const promise = new Promise<void>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  const d: Deferred = {
+    promise,
+    settled: false,
+    resolve: () => {
+      if (d.settled) return;
+      d.settled = true;
+      resolve();
+    },
+    reject: (reason) => {
+      if (d.settled) return;
+      d.settled = true;
+      reject(reason);
+    }
+  };
+  return d;
+}
+
 function readPolicy(registration: TriggerRegistration): ConcurrencyPolicy {
   const raw = registration.config_json?.concurrency;
   if (raw === "queue" || raw === "skip" || raw === "parallel") return raw;
@@ -193,7 +253,9 @@ export class TriggerDispatcher {
   private readonly batchSize: number;
 
   private readonly states = new Map<string, RegistrationState>();
-  private readonly inflight = new Map<string, Promise<DispatchOutcome>>();
+  private readonly inflight = new Map<string, Dispatch>();
+  /** Runs a pass handed off but that have not finished. `drain()` awaits these. */
+  private readonly outstanding = new Set<Promise<unknown>>();
 
   private pass: Promise<void> | null = null;
   private pending = false;
@@ -208,12 +270,14 @@ export class TriggerDispatcher {
 
   /**
    * Drain every enabled registration's unprocessed inputs once. Resolves when
-   * all runs this pass started have settled; a single input's failure does not
-   * abort the pass.
+   * every input this pass picked up has been *accepted* — not when its run has
+   * finished, so one slow workflow cannot hold up the next pass (see the
+   * acceptance-vs-completion note above). Use `drain()` to await the runs. A
+   * single input's failure does not abort the pass.
    */
   async runOnce(): Promise<void> {
     const registrations = await listEnabledRegistrations();
-    const started: Array<Promise<unknown>> = [];
+    const accepted: Array<Promise<unknown>> = [];
 
     for (const registration of registrations) {
       const inputs = await this.store.findUnprocessed(
@@ -223,11 +287,13 @@ export class TriggerDispatcher {
       );
       for (const input of inputs) {
         // Swallow here only: each dispatch already records its own error.
-        started.push(this.enqueue(input, registration).catch(() => undefined));
+        accepted.push(
+          this.enqueue(input, registration).accepted.catch(() => undefined)
+        );
       }
     }
 
-    await Promise.all(started);
+    await Promise.all(accepted);
   }
 
   /** Adapter hint: run a pass now, coalescing concurrent notifies. */
@@ -240,10 +306,17 @@ export class TriggerDispatcher {
     });
   };
 
-  /** Await the currently running pass (and any pass it coalesced). */
+  /**
+   * Await the currently running pass (and any pass it coalesced) *and* every
+   * run those passes handed off. A settling run can enqueue nothing new, but a
+   * pass can, so both are re-checked until the two are quiet together.
+   */
   async drain(): Promise<void> {
-    while (this.pass) {
-      await this.pass;
+    while (this.pass || this.outstanding.size > 0) {
+      if (this.pass) await this.pass;
+      await Promise.all(
+        [...this.outstanding].map((p) => p.catch(() => undefined))
+      );
     }
   }
 
@@ -261,7 +334,7 @@ export class TriggerDispatcher {
   async dispatchInput(inputId: string): Promise<{ jobId: string }> {
     const existing = this.inflight.get(inputId);
     const settled = existing
-      ? await existing
+      ? await existing.done
       : await this.dispatchStoredInput(inputId);
     if (settled.status !== "dispatched") {
       throw new Error(`dispatch skipped: ${settled.reason}`);
@@ -283,7 +356,7 @@ export class TriggerDispatcher {
     if (registration.enabled !== 1) {
       throw new Error(`registration disabled: ${registration.id}`);
     }
-    return this.enqueue(input, registration);
+    return this.enqueue(input, registration).done;
   }
 
   /**
@@ -335,19 +408,31 @@ export class TriggerDispatcher {
   private enqueue(
     input: TriggerInput,
     registration: TriggerRegistration
-  ): Promise<DispatchOutcome> {
+  ): Dispatch {
     const existing = this.inflight.get(input.inputId);
     if (existing) return existing;
 
     const policy = readPolicy(registration);
     const state = this.stateFor(registration.id);
 
+    const acceptance = deferred();
+    /**
+     * The handoff point: the input is marked processed and the pass that
+     * picked it up is released. Idempotent, because a `startJob` that reports
+     * acceptance early also resolves when it finishes.
+     */
+    const accept = async (): Promise<void> => {
+      if (acceptance.settled) return;
+      await this.store.markProcessed(input.inputId);
+      acceptance.resolve();
+    };
+
     // The synchronous prefix of `run` (the `running` bump) executes as soon as
     // `run()` is called, so a second input enqueued in the same tick sees it.
     const run = async (): Promise<DispatchOutcome> => {
       if (policy === "skip" && state.running > 0) {
         await this.emitReceived(input, registration, policy, false);
-        await this.store.markProcessed(input.inputId);
+        await accept();
         log.debug("Trigger input skipped (run already in flight)", {
           inputId: input.inputId,
           registrationId: registration.id
@@ -359,34 +444,46 @@ export class TriggerDispatcher {
       }
       state.running += 1;
       try {
-        return await this.dispatchOne(input, registration, policy);
+        return await this.dispatchOne(input, registration, policy, accept);
       } finally {
         state.running -= 1;
       }
     };
 
-    let promise: Promise<DispatchOutcome>;
+    let done: Promise<DispatchOutcome>;
     if (policy === "queue") {
       // Both handlers run the dispatch: a failed predecessor must not cancel
       // its successors.
-      promise = state.chain.then(run, run);
-      state.chain = promise.catch(() => undefined);
+      done = state.chain.then(run, run);
+      state.chain = done.catch(() => undefined);
     } else {
-      promise = run();
+      done = run();
     }
 
-    this.inflight.set(input.inputId, promise);
-    const forget = (): void => {
+    const dispatch: Dispatch = { accepted: acceptance.promise, done };
+    this.inflight.set(input.inputId, dispatch);
+    this.outstanding.add(done);
+
+    const forget = (err?: unknown): void => {
       this.inflight.delete(input.inputId);
+      this.outstanding.delete(done);
+      // A dispatch that failed before it was ever accepted must not leave the
+      // pass awaiting an acceptance that will never come.
+      acceptance.reject(err);
     };
-    void promise.then(forget, forget);
-    return promise;
+    void done.then(() => forget(), forget);
+    // The pass attaches its own handler, but `dispatchInput` callers only take
+    // `done` — keep a rejected acceptance from surfacing as unhandled.
+    void acceptance.promise.catch(() => undefined);
+
+    return dispatch;
   }
 
   private async dispatchOne(
     input: TriggerInput,
     registration: TriggerRegistration,
-    policy: ConcurrencyPolicy
+    policy: ConcurrencyPolicy,
+    accept: () => Promise<void>
   ): Promise<DispatchOutcome> {
     const nowMs = Date.now();
     const gate = checkTriggerBounds(registration, nowMs);
@@ -394,7 +491,7 @@ export class TriggerDispatcher {
       // Exhausted: drop the event rather than leave it to redeliver forever,
       // and disarm so the next one never gets this far.
       await this.emitReceived(input, registration, policy, false);
-      await this.store.markProcessed(input.inputId);
+      await accept();
       disableTrigger(registration, gate.reason);
       await registration.save();
       log.info("Trigger registration disabled before dispatch", {
@@ -417,17 +514,24 @@ export class TriggerDispatcher {
           payload: input.payload,
           input_id: input.inputId
         },
+        // Release the pass as soon as the run is taken on, so a long workflow
+        // doesn't hold up every other registration's dispatch.
+        onAccepted: () => {
+          void accept();
+        },
         ...(this.registry ? { registry: this.registry } : {})
       });
     } catch (err) {
       // The run was never accepted: leave the input unprocessed so the next
       // tick redelivers it. It still counts as a failure — a registration
-      // whose workflow has gone missing redelivers forever otherwise.
+      // whose workflow has gone missing redelivers forever otherwise. Nothing
+      // fired, so `last_fired_at` is left alone.
       const error = err instanceof Error ? err : new Error(String(err));
       await this.settle(
         registration,
         `dispatch failed: ${error.message}`,
-        nowMs
+        nowMs,
+        { fired: false }
       );
       log.warn(
         `Trigger dispatch failed for input ${input.inputId} (registration ${registration.id})`,
@@ -437,7 +541,8 @@ export class TriggerDispatcher {
     }
 
     // Accepted — mark processed only now (see the crash-window note above).
-    await this.store.markProcessed(input.inputId);
+    // A no-op when `onAccepted` already fired mid-run.
+    await accept();
 
     await this.settle(
       registration,
@@ -489,13 +594,18 @@ export class TriggerDispatcher {
    * Record what the run did to the registration: its outcome, the failure
    * counters, and — for the kinds no ingestion adapter stamps — the fire time
    * the editor shows as "Last fired".
+   *
+   * `fired: false` marks an outcome where no run ever started, so there is no
+   * fire time to record however the kind is owned.
    */
   private async settle(
     registration: TriggerRegistration,
     error: string | null,
-    nowMs: number
+    nowMs: number,
+    opts: { fired: boolean } = { fired: true }
   ): Promise<void> {
-    const stampFiredAt = !ADAPTER_STAMPS_FIRED_AT.has(registration.kind);
+    const stampFiredAt =
+      opts.fired && !ADAPTER_STAMPS_FIRED_AT.has(registration.kind);
     const disabled = settleTriggerOutcome(registration, {
       error,
       stampFiredAt,

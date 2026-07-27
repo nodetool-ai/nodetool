@@ -1,10 +1,16 @@
 import { z } from "zod";
-import { TriggerRegistration, createTimeOrderedUuid } from "@nodetool-ai/models";
+import {
+  TriggerRegistration,
+  createTimeOrderedUuid
+} from "@nodetool-ai/models";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
-import { getTriggerWakeupService, dispatchInput } from "../../triggers/dispatcher.js";
+import {
+  getTriggerWakeupService,
+  dispatchInput
+} from "../../triggers/dispatcher.js";
 import {
   nextFireAtIso,
   scheduleIntervalSeconds
@@ -75,23 +81,31 @@ export const triggersRouter = router({
       };
     }),
 
-  fire: protectedProcedure
-    .input(fireInput)
-    .mutation(async ({ ctx, input }) => {
-      const reg = (await TriggerRegistration.get(
-        input.registrationId
-      )) as TriggerRegistration | null;
-      if (!reg || reg.user_id !== ctx.userId) {
-        throwApiError(ApiErrorCode.NOT_FOUND, "Trigger registration not found");
-      }
-      const inputId = input.idempotencyKey ?? createTimeOrderedUuid();
-      await getTriggerWakeupService().deliverTriggerInput({
-        runId: reg.workflow_id,
-        nodeId: reg.node_id,
-        inputId,
-        payload: input.payload ?? {}
-      });
-      const { jobId } = await dispatchInput(inputId);
-      return { job_id: jobId };
-    })
+  fire: protectedProcedure.input(fireInput).mutation(async ({ ctx, input }) => {
+    const reg = (await TriggerRegistration.get(
+      input.registrationId
+    )) as TriggerRegistration | null;
+    if (!reg || reg.user_id !== ctx.userId) {
+      throwApiError(ApiErrorCode.NOT_FOUND, "Trigger registration not found");
+    }
+    // Refuse before delivering, not after. The dispatcher rejects a disabled
+    // registration too, but by then the input is durably stored — and since
+    // a pass only scans *enabled* registrations, it would sit unprocessed
+    // until someone re-armed the trigger and then fire as a surprise.
+    if (reg.enabled !== 1) {
+      throwApiError(
+        ApiErrorCode.INVALID_INPUT,
+        "Trigger is not active — activate it before firing"
+      );
+    }
+    const inputId = input.idempotencyKey ?? createTimeOrderedUuid();
+    await getTriggerWakeupService().deliverTriggerInput({
+      runId: reg.workflow_id,
+      nodeId: reg.node_id,
+      inputId,
+      payload: input.payload ?? {}
+    });
+    const { jobId } = await dispatchInput(inputId);
+    return { job_id: jobId };
+  })
 });
