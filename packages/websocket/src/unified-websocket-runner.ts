@@ -2253,30 +2253,39 @@ export class UnifiedWebSocketRunner {
     if (!applicationId) return true;
     const jobId = req.job_id ?? randomUUID();
     req.job_id = jobId;
+    // The connection's authenticated user, not `req.user_id`: the request body
+    // is the thing being authorized, so it cannot supply the identity that
+    // authorizes it.
+    const userId = this.userId ?? "1";
+    // Authorization sits outside the try below, which swallows a ledger outage
+    // on purpose. Metering fails open; ownership fails closed — a lookup this
+    // never completed is not permission to bill the app it names.
+    let owned = false;
     try {
-      // The connection's authenticated user, not `req.user_id`: the request
-      // body is the thing being authorized, so it cannot supply the identity
-      // that authorizes it.
-      const userId = this.userId ?? "1";
       const application = await Application.findById(applicationId);
-      if (!application || application.user_id !== userId) {
-        log.warn("Run refused: application not owned by this user", {
-          applicationId,
-          jobId,
-          userId
-        });
-        // Applications are owned by one user and there is no path today that
-        // serves someone else's app to run — `releasedApplicationDocument`
-        // itself requires ownership — so refusing cannot break a legitimate
-        // run, and it is the only answer that keeps the budget a hard stop.
-        return this.refuseRun(
-          req,
-          jobId,
-          ApiErrorCode.NOT_FOUND,
-          "Application not found"
-        );
-      }
+      owned = application?.user_id === userId;
+    } catch (err) {
+      this.logError("application ownership check failed", err);
+    }
+    if (!owned) {
+      log.warn("Run refused: application not owned by this user", {
+        applicationId,
+        jobId,
+        userId
+      });
+      // Applications are owned by one user and there is no path today that
+      // serves someone else's app to run — `releasedApplicationDocument`
+      // itself requires ownership — so refusing cannot break a legitimate
+      // run, and it is the only answer that keeps the budget a hard stop.
+      return this.refuseRun(
+        req,
+        jobId,
+        ApiErrorCode.NOT_FOUND,
+        "Application not found"
+      );
+    }
 
+    try {
       const estimatedUsd = this.estimateRunCost(req);
       // The client says whether this is a release run or a draft run; the
       // server says which release. Taking the number from the client would let
