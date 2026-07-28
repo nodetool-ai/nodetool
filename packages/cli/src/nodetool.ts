@@ -55,6 +55,8 @@ import {
   connectPythonBridgeForGraph,
   resolvePythonNodeExecutor
 } from "@nodetool-ai/runtime";
+import type { AssetOutputMode } from "@nodetool-ai/runtime";
+import { mkdirSync } from "node:fs";
 import { registerPackageCommands } from "./commands/package.js";
 import { registerDeployCommands } from "./commands/deploy.js";
 import { registerHfCommands } from "./commands/models-hf.js";
@@ -541,8 +543,25 @@ workflows
   .description("Run a workflow by ID, JSON file, or TypeScript DSL file")
   .option("--params <json>", "JSON params string")
   .option("--json", "Output as JSON")
+  .option(
+    "--asset-output-mode <mode>",
+    "How media outputs are materialized: native | raw | data_uri | workspace | storage_url | temp_url",
+    "native"
+  )
+  .option(
+    "--workspace <dir>",
+    "Workspace directory for workspace-mode asset output (default: ./nodetool-output)"
+  )
   .action(
-    async (idOrFile: string, opts: { params?: string; json?: boolean }) => {
+    async (
+      idOrFile: string,
+      opts: {
+        params?: string;
+        json?: boolean;
+        assetOutputMode?: string;
+        workspace?: string;
+      }
+    ) => {
       try {
         await setupDb();
         let graph: { nodes: any[]; edges: any[] };
@@ -628,16 +647,96 @@ workflows
         const workspaceDir = workflowId
           ? await resolveWorkflowWorkspace(workflowId, "1")
           : null;
+        const ASSET_OUTPUT_MODES = [
+          "native",
+          "raw",
+          "data_uri",
+          "workspace",
+          "storage_url",
+          "temp_url"
+        ] as const;
+        const assetOutputMode = (opts.assetOutputMode ??
+          "native") as AssetOutputMode;
+        if (
+          !(ASSET_OUTPUT_MODES as readonly string[]).includes(assetOutputMode)
+        ) {
+          throw new Error(
+            `Unknown --asset-output-mode "${assetOutputMode}". ` +
+              `Expected one of: ${ASSET_OUTPUT_MODES.join(", ")}`
+          );
+        }
+
+        // `workspace` mode writes each output into <workspace>/assets, so it
+        // needs a directory even when the run has no saved workflow (a JSON or
+        // DSL file target). Fall back to ./nodetool-output so a bare
+        // `workflows run file.json --asset-output-mode workspace` produces
+        // files in the current directory rather than failing.
+        const effectiveWorkspaceDir =
+          opts.workspace ??
+          workspaceDir ??
+          (assetOutputMode === "workspace"
+            ? resolve(process.cwd(), "nodetool-output")
+            : null);
+        if (effectiveWorkspaceDir) {
+          mkdirSync(effectiveWorkspaceDir, { recursive: true });
+        }
+
+        const assetStorage = new FileStorageAdapter(getDefaultAssetsPath());
         const context = new ProcessingContext({
           jobId,
           workflowId,
           userId: "1",
           secretResolver: getSecret,
-          storage: new FileStorageAdapter(getDefaultAssetsPath()),
-          workspaceDir,
-          workspaceStorage: workspaceDir
-            ? new FileStorageAdapter(workspaceDir)
+          storage: assetStorage,
+          assetOutputMode,
+          workspaceDir: effectiveWorkspaceDir,
+          workspaceStorage: effectiveWorkspaceDir
+            ? new FileStorageAdapter(effectiveWorkspaceDir)
             : null
+        });
+
+        // Persist assets to the local DB + asset store. Without this, any node
+        // that saves an asset fails with "ProcessingContext model interface
+        // 'createAsset' is not configured" — the server wires this in
+        // createRuntimeContext(), the CLI previously wired nothing.
+        const MIME_TO_EXT: Record<string, string> = {
+          "image/png": "png",
+          "image/jpeg": "jpg",
+          "image/webp": "webp",
+          "image/gif": "gif",
+          "audio/mpeg": "mp3",
+          "audio/wav": "wav",
+          "audio/ogg": "ogg",
+          "video/mp4": "mp4",
+          "video/webm": "webm",
+          "application/pdf": "pdf",
+          "text/plain": "txt",
+          "text/html": "html",
+          "model/gltf-binary": "glb"
+        };
+        context.setModelInterfaces({
+          createAsset: async (args) => {
+            const asset = new Asset({
+              user_id: args.userId,
+              workflow_id: args.workflowId ?? null,
+              node_id: args.nodeId ?? null,
+              job_id: args.jobId ?? null,
+              name: args.name,
+              content_type: args.contentType,
+              parent_id: args.parentId ?? null
+            });
+            if (args.content) {
+              const ext = MIME_TO_EXT[args.contentType] ?? "bin";
+              await assetStorage.store(
+                `${asset.user_id}/${asset.id}.${ext}`,
+                args.content,
+                args.contentType
+              );
+              asset.size = args.content.length;
+            }
+            await asset.save();
+            return asset;
+          }
         });
 
         // Connect a Python worker bridge when the graph has non-TS (Python)
