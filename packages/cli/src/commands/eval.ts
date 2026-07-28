@@ -83,6 +83,24 @@ interface EvalSuite {
   run(deps: EvalRunDeps): Promise<EvalRunResult>;
 }
 
+/**
+ * Filter a suite's cases down to `--cases`, rejecting ids the suite doesn't
+ * have. Undefined ids run the whole suite.
+ */
+function selectCases<T extends { id: string }>(
+  all: readonly T[],
+  caseIds: string[] | undefined
+): readonly T[] {
+  if (!caseIds) return all;
+  const wanted = new Set(caseIds);
+  const picked = all.filter((c) => wanted.has(c.id));
+  const missing = [...wanted].filter((id) => !picked.some((c) => c.id === id));
+  if (missing.length > 0) {
+    throw new Error(`Unknown case ids: ${missing.join(", ")} (see --list)`);
+  }
+  return picked;
+}
+
 /** GraphPlanner one-shot DSL suite (`@nodetool-ai/agents`). */
 const graphPlannerSuite: EvalSuite = {
   id: "graph-planner",
@@ -100,17 +118,7 @@ const graphPlannerSuite: EvalSuite = {
     const { GRAPH_PLANNER_EVAL_CASES, runGraphPlannerEval, formatEvalReport } =
       await import("@nodetool-ai/agents");
 
-    let cases = GRAPH_PLANNER_EVAL_CASES;
-    if (deps.caseIds) {
-      const wanted = new Set(deps.caseIds);
-      cases = GRAPH_PLANNER_EVAL_CASES.filter((c) => wanted.has(c.id));
-      const missing = [...wanted].filter(
-        (id) => !cases.some((c) => c.id === id)
-      );
-      if (missing.length > 0) {
-        throw new Error(`Unknown case ids: ${missing.join(", ")} (see --list)`);
-      }
-    }
+    const cases = selectCases(GRAPH_PLANNER_EVAL_CASES, deps.caseIds);
 
     console.log(
       `Running ${cases.length} case(s) with ${deps.providerId}/${deps.model}` +
@@ -154,17 +162,7 @@ const subtaskSuite: EvalSuite = {
     const { SUBTASK_EVAL_CASES, runSubtaskEval, formatSubtaskReport } =
       await import("@nodetool-ai/agents");
 
-    let cases = SUBTASK_EVAL_CASES;
-    if (deps.caseIds) {
-      const wanted = new Set(deps.caseIds);
-      cases = SUBTASK_EVAL_CASES.filter((c) => wanted.has(c.id));
-      const missing = [...wanted].filter(
-        (id) => !cases.some((c) => c.id === id)
-      );
-      if (missing.length > 0) {
-        throw new Error(`Unknown case ids: ${missing.join(", ")} (see --list)`);
-      }
-    }
+    const cases = selectCases(SUBTASK_EVAL_CASES, deps.caseIds);
 
     console.log(
       `Running ${cases.length} subtask case(s) with ${deps.providerId}/${deps.model}` +
@@ -185,6 +183,89 @@ const subtaskSuite: EvalSuite = {
     return {
       report,
       formatted: formatSubtaskReport(report),
+      successRate: report.summary.successRate
+    };
+  }
+};
+
+/** TaskPlanner multi-task (plan mode) DAG-quality suite. */
+const taskPlannerSuite: EvalSuite = {
+  id: "task-planner",
+  description:
+    "Run the TaskPlanner (plan mode) eval suite — multi-task DAG quality: parallelism, decomposition size, tool routing — against a provider/model",
+  async listCases() {
+    const { TASK_PLANNER_EVAL_CASES } = await import("@nodetool-ai/agents");
+    return TASK_PLANNER_EVAL_CASES.map((c) => ({
+      id: c.id,
+      description: c.description,
+      needsModelProviders: c.needsModelProviders
+    }));
+  },
+  async run(deps) {
+    const {
+      TASK_PLANNER_EVAL_CASES,
+      runTaskPlannerEval,
+      formatTaskPlanReport
+    } = await import("@nodetool-ai/agents");
+
+    const cases = selectCases(TASK_PLANNER_EVAL_CASES, deps.caseIds);
+    console.log(
+      `Running ${cases.length} task-planner case(s) with ${deps.providerId}/${deps.model}`
+    );
+
+    const report = await runTaskPlannerEval({
+      provider: deps.provider,
+      model: deps.model,
+      providers: deps.providers,
+      cases,
+      maxRetries: deps.maxRetries,
+      onEvent: deps.onEvent
+    });
+
+    return {
+      report,
+      formatted: formatTaskPlanReport(report),
+      successRate: report.summary.successRate
+    };
+  }
+};
+
+/** ScriptPlanner (script mode) orchestration-script authoring suite. */
+const scriptPlannerSuite: EvalSuite = {
+  id: "script-planner",
+  description:
+    "Run the ScriptPlanner (script mode) eval suite — orchestration-script authoring: concurrency, loops, budget guards — against a provider/model",
+  async listCases() {
+    const { SCRIPT_PLANNER_EVAL_CASES } = await import("@nodetool-ai/agents");
+    return SCRIPT_PLANNER_EVAL_CASES.map((c) => ({
+      id: c.id,
+      description: c.description,
+      needsModelProviders: c.needsModelProviders
+    }));
+  },
+  async run(deps) {
+    const {
+      SCRIPT_PLANNER_EVAL_CASES,
+      runScriptPlannerEval,
+      formatScriptPlanReport
+    } = await import("@nodetool-ai/agents");
+
+    const cases = selectCases(SCRIPT_PLANNER_EVAL_CASES, deps.caseIds);
+    console.log(
+      `Running ${cases.length} script-planner case(s) with ${deps.providerId}/${deps.model}`
+    );
+
+    const report = await runScriptPlannerEval({
+      provider: deps.provider,
+      model: deps.model,
+      providers: deps.providers,
+      cases,
+      onEvent: deps.onEvent
+    });
+
+    return {
+      report,
+      formatted: formatScriptPlanReport(report),
       successRate: report.summary.successRate
     };
   }
@@ -238,20 +319,10 @@ function makeToolLoopSuite(
     async run(deps) {
       const mod = await import("@nodetool-ai/agents");
       const { runToolLoopEval, formatToolLoopReport } = mod;
-      let cases = pickCases(mod as unknown as Record<string, unknown>);
-
-      if (deps.caseIds) {
-        const wanted = new Set(deps.caseIds);
-        cases = cases.filter((c) => wanted.has(c.id));
-        const missing = [...wanted].filter(
-          (want) => !cases.some((c) => c.id === want)
-        );
-        if (missing.length > 0) {
-          throw new Error(
-            `Unknown case ids: ${missing.join(", ")} (see --list)`
-          );
-        }
-      }
+      const cases = selectCases(
+        pickCases(mod as unknown as Record<string, unknown>),
+        deps.caseIds
+      );
 
       console.log(
         `Running ${cases.length} ${id} case(s) with ${deps.providerId}/${deps.model}`
@@ -281,6 +352,8 @@ function makeToolLoopSuite(
 /** All evaluation suites exposed under `nodetool eval <suite>`. */
 export const EVAL_SUITES: readonly EvalSuite[] = [
   graphPlannerSuite,
+  taskPlannerSuite,
+  scriptPlannerSuite,
   subtaskSuite,
   makeToolLoopSuite(
     "tool-loop",

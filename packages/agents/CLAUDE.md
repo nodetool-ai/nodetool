@@ -389,6 +389,56 @@ npm run dev:nodetool -- eval graph-planner -p anthropic -m ... --min-success 0.8
 
 Harness tests (scripted provider, no network): `tests/graph-planner-eval.test.ts`.
 
+### Planning-mode eval suites (`task-planner`, `script-planner`)
+
+The graph-planner suite covers graph mode. The other two planning modes have a
+suite each, both scoring the *plan* statically — nothing is executed.
+
+**`task-planner`** runs `TaskPlanner.planMultiTask` and scores the committed
+`TaskPlan`. `PlanBuilder` already rejects structurally broken plans (duplicate
+step ids, dangling deps, cycles), so anything that comes back is valid by
+construction; what it cannot judge is quality, and that is the suite:
+parallel width, decomposition proportional to the objective, real dependencies
+modelled as dependencies, tool routing (`run_python` for arithmetic, not a
+reasoning step), the step-id prefix convention, and the prompt's hard rule that
+final synthesis belongs to the Compiler, not to an "assemble" task. Metrics per
+case: tasks, steps, parallel width, critical-path depth, planner tool calls,
+rejected `add_task`/`finish_plan` calls; aggregate adds a **clean rate** — the
+fraction of plans built without a single rejected call.
+
+**`script-planner`** runs `ScriptPlanner.plan` and scores the authored
+orchestration script by static analysis. `validateScript` already gates the
+submission (non-empty, calls `agent(`, has a `return`, compiles); the suite
+checks the control flow the objective demands — `parallel()`/`pipeline()` for
+independent work, a real `for`/`while` for unknown-size discovery, a
+`budget.remainingCalls()` guard on that loop, a `schema:` on the aggregating
+call — plus universal checks that the script does not shadow a prelude name
+(`agent`, `parallel`, `budget`, …), does not use `import`/`require` (no loader
+in the guest), and stays inside a character budget. Metrics: `agent()` call
+sites, script length, submit rounds, rejected submissions, one-shot rate.
+
+Cases + expectations live in `src/evals/{task,script}-planner-cases.ts`, the
+runners in `src/evals/{task,script}-planner-eval.ts`. Both offer the same
+never-executed tool library (`src/evals/planner-tools.ts`: `web_search`,
+`fetch_page`, `read_file`, `write_file`, `run_python`, `generate_image`) so the
+planner has something concrete to route work to.
+
+```bash
+npm run dev:nodetool -- eval task-planner --list
+npm run dev:nodetool -- eval task-planner -p anthropic -m claude-sonnet-5
+npm run dev:nodetool -- eval script-planner -p openai -m gpt-5.4-mini --min-success 0.8
+IS_SANDBOX=1 npm run dev:nodetool -- eval task-planner -p claude_agent_sdk -m sonnet --no-find-model
+```
+
+Harness tests (scripted provider, no network):
+`tests/task-planner-eval.test.ts`, `tests/script-planner-eval.test.ts`.
+
+**Cost reads `$0` on these two under `claude_agent_sdk`.** Both planners abort
+the provider loop from inside the accepting tool (`finish_plan` /
+`submit_script`), and the SDK only reports token usage on its terminal `result`
+message — which a cancelled query never emits. The run is not free; the usage
+is simply unobservable. Score, timing, and call counts are unaffected.
+
 ### Tool-loop eval suites (frontend `ui_*` surfaces)
 
 Where the graph-planner eval measures one-shot DSL authoring, the tool-loop

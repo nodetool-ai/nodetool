@@ -441,6 +441,17 @@ npm run dev:nodetool -- eval graph-planner -p openai -m gpt-5.4-mini --json --ou
 npm run dev:nodetool -- eval graph-planner -p anthropic -m ... --min-success 0.8   # non-zero exit below threshold
 ```
 
+The other two planning modes have a suite each, scoring the plan without
+running it: **`task-planner`** (multi-task DAG quality — parallel width,
+decomposition size, tool routing, no synthesis task) and **`script-planner`**
+(orchestration-script authoring — concurrency primitives, real loops, budget
+guards, no prelude shadowing).
+
+```bash
+npm run dev:nodetool -- eval task-planner -p anthropic -m claude-sonnet-5
+npm run dev:nodetool -- eval script-planner -p openai -m gpt-5.4-mini
+```
+
 Alongside `graph-planner` (one-shot DSL) there are seven **tool-loop** suites
 that drive a real provider through the frontend `ui_*` tool contract against a
 headless bridge — no browser — and score the multi-turn tool-calling flow
