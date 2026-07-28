@@ -3,7 +3,12 @@ import React, { useMemo, useCallback } from "react";
 import NodeInfo from "../../node_menu/NodeInfo";
 import { css } from "@emotion/react";
 import { useDraggable } from "../../../hooks/useDraggable";
-import { EditorButton, SPACING, getSpacingPx } from "../../ui_primitives";
+import {
+  EditorButton,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
+} from "../../ui_primitives";
 import { useReactFlow } from "@xyflow/react";
 import useNodeMenuStore from "../../../stores/NodeMenuStore";
 import { useTheme } from "@mui/material/styles";
@@ -13,12 +18,15 @@ import { usePanelStore } from "../../../stores/PanelStore";
 import { useNodes } from "../../../contexts/NodeContext";
 import { shallow } from "zustand/shallow";
 
+// Above every tier on the shared Z_INDEX scale, so it keeps its own value.
+const DOCUMENTATION_PANEL_Z_INDEX = 1000;
+
 const styles = (theme: Theme) => css`
   position: absolute;
-  z-index: 1000;
+  z-index: ${DOCUMENTATION_PANEL_Z_INDEX};
   background-color: ${theme.vars.palette.background.paper};
   border: 1px solid ${theme.vars.palette.divider};
-  border-radius: 4px;
+  border-radius: ${BORDER_RADIUS.sm};
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   padding: 0;
   max-width: 400px;
@@ -27,14 +35,14 @@ const styles = (theme: Theme) => css`
   .handle {
     cursor: move;
     min-height: 2rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: ${getSpacingPx(SPACING.md)};
     background-color: ${theme.vars.palette.background.default};
     border-bottom: 1px solid ${theme.vars.palette.divider};
   }
 
   h1 {
     font-size: var(--fontSizeBig);
-    margin-bottom: 1rem;
+    margin-bottom: ${getSpacingPx(SPACING.xl)};
     color: ${theme.vars.palette.primary.main};
   }
 
@@ -48,7 +56,7 @@ const styles = (theme: Theme) => css`
     color: ${theme.vars.palette.warning.main};
   }
   .content {
-    padding: ${getSpacingPx(SPACING.lg)}; /* was 10px */
+    padding: ${getSpacingPx(SPACING.lg)};
   }
 
   .close-button {
@@ -63,9 +71,9 @@ const styles = (theme: Theme) => css`
   }
 
   .open-node-menu-button {
-    color: ${"var(--palette-primary-main)"};
-    margin-top: ${getSpacingPx(SPACING.lg)}; /* was 10px */
-    margin-right: ${getSpacingPx(SPACING.lg)}; /* was 10px */
+    color: ${theme.vars.palette.primary.main};
+    margin-top: ${getSpacingPx(SPACING.lg)};
+    margin-right: ${getSpacingPx(SPACING.lg)};
   }
 `;
 
@@ -133,7 +141,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
             density="compact"
             className="open-node-menu-button"
             onClick={handleOpenNodeMenu}
-            sx={{ marginTop: getSpacingPx(SPACING.lg) }} // was 10px
+            sx={{ marginTop: getSpacingPx(SPACING.lg) }}
           >
             Search for similar nodes
           </EditorButton>
@@ -146,7 +154,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
           variant="contained"
           density="normal"
           onClick={handleAddNode}
-          sx={{ marginTop: getSpacingPx(SPACING.lg), marginRight: getSpacingPx(SPACING.lg) }} // was 10px
+          sx={{ marginTop: getSpacingPx(SPACING.lg), marginRight: getSpacingPx(SPACING.lg) }}
         >
           Add Node
         </EditorButton>

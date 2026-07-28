@@ -12,7 +12,8 @@ import {
   FlexColumn,
   FlexRow,
   Text,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  SPACING
 } from "../ui_primitives";
 
 interface CostPoint {
@@ -56,7 +57,7 @@ const CostGuide: React.FC = () => {
     <CollapsibleSection
       defaultOpen={false}
       title={
-        <FlexRow align="center" gap={1}>
+        <FlexRow align="center" gap={SPACING.xs}>
           <PaymentsOutlinedIcon
             sx={{ fontSize: 18, color: theme.vars.palette.primary.main }}
           />
@@ -66,7 +67,7 @@ const CostGuide: React.FC = () => {
         </FlexRow>
       }
     >
-      <FlexColumn gap={1.5} sx={{ mt: 1.5 }}>
+      <FlexColumn gap={SPACING.sm} sx={{ mt: SPACING.sm }}>
         {COST_POINTS.map((point) => (
           <Card
             key={point.title}
@@ -78,7 +79,7 @@ const CostGuide: React.FC = () => {
               backgroundColor: theme.vars.palette.background.paper
             }}
           >
-            <FlexRow align="flex-start" gap={1.5}>
+            <FlexRow align="flex-start" gap={SPACING.sm}>
               <FlexRow
                 align="center"
                 justify="center"
@@ -93,7 +94,7 @@ const CostGuide: React.FC = () => {
               >
                 {point.icon}
               </FlexRow>
-              <FlexColumn gap={0.25}>
+              <FlexColumn gap={SPACING.micro}>
                 <Text size="small" weight={600}>
                   {point.title}
                 </Text>
