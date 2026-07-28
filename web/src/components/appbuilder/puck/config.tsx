@@ -56,6 +56,7 @@ import {
   ModelSelectWidget
 } from "./WorkflowInputWidget";
 import { ChatThreadWidget, ChatComposerWidget } from "./ChatWidgets";
+import { SketchWidget, TimelineWidget } from "./DocumentWidgets";
 
 const ACTION_OPTIONS = [
   { label: "Run workflow", value: "run" },
@@ -274,6 +275,8 @@ export const appConfig: Config = {
         "Image",
         "Audio",
         "Video",
+        "Sketch",
+        "Timeline",
         "Json",
         "Table",
         "List",
@@ -378,6 +381,52 @@ export const appConfig: Config = {
       },
       defaultProps: { height: 320, placeholder: "No video yet" },
       render: withConditions((props) => <VideoWidget {...props} />)
+    },
+    Sketch: {
+      label: "Sketch",
+      fields: {
+        binding: bindingField("read"),
+        height: { type: "number", label: "Max height (px)" },
+        showDimensions: {
+          type: "radio",
+          label: "Show size",
+          options: [
+            { label: "Hide", value: false },
+            { label: "Show", value: true }
+          ]
+        },
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: {
+        height: 360,
+        showDimensions: false,
+        placeholder: "No sketch yet"
+      },
+      render: withConditions((props) => <SketchWidget {...props} />)
+    },
+    Timeline: {
+      label: "Timeline",
+      fields: {
+        binding: bindingField("read"),
+        height: { type: "number", label: "Max height (px)" },
+        showMetadata: {
+          type: "radio",
+          label: "Show metadata",
+          options: [
+            { label: "Hide", value: false },
+            { label: "Show", value: true }
+          ]
+        },
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: {
+        height: 360,
+        showMetadata: true,
+        placeholder: "No timeline yet"
+      },
+      render: withConditions((props) => <TimelineWidget {...props} />)
     },
     Json: {
       label: "JSON",

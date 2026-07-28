@@ -28,10 +28,19 @@ its own settings.
 | Image | An image. Fit `contain` or `cover`, fixed height, placeholder. |
 | Audio | An audio file, with a player. |
 | Video | A video, with a player, max height, placeholder. |
+| Sketch | A sketch document, layers composited. Max height, optional canvas size. |
+| Timeline | A timeline sequence, with its tracks and clips. Max height, optional metadata. |
 | JSON | Structured data, formatted. |
 | Table | A list, as rows. Max height, placeholder. |
 | Output | A value whose type varies; picks a display based on what arrives. |
 | Progress | How far along the run is. |
+
+Sketch and Timeline take a document reference — `{type: "sketch", id}` or
+`{type: "timeline", id}` — which is what the nodes that produce them emit. They
+also accept the document inline, so a node that returns the payload rather than
+a saved id renders too. Binding one to Image or Video instead shows nothing: a
+reference is not a media URL. On mobile these summarize the document (canvas
+size and layer count; duration, tracks, and clips) rather than drawing it.
 
 ### Widgets the user changes
 

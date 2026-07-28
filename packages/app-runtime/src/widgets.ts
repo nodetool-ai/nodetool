@@ -96,6 +96,29 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
     fields: { binding: "custom", height: "number", placeholder: "text" }
   },
   Json: { label: "JSON", mode: "read", format: true, fields: { binding: "custom" } },
+  // Composites the layers of a bound sketch document — what a run that emits a
+  // SketchRef needs, since the raw ref renders as an opaque `{type, id}`.
+  Sketch: {
+    label: "Sketch",
+    mode: "read",
+    fields: {
+      binding: "custom",
+      height: "number",
+      showDimensions: "radio",
+      placeholder: "text"
+    }
+  },
+  // Previews a bound timeline sequence: its tracks, clips, and current frame.
+  Timeline: {
+    label: "Timeline",
+    mode: "read",
+    fields: {
+      binding: "custom",
+      height: "number",
+      showMetadata: "radio",
+      placeholder: "text"
+    }
+  },
   // Lays out an array value as rows — what a run that emits N results needs.
   Table: {
     label: "Table",

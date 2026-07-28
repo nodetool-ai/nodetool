@@ -25,8 +25,13 @@ import {
 } from "react-native";
 import {
   composeUserMessage,
+  formatDuration,
   messagesFrom,
   messageText,
+  readSketchBinding,
+  readTimelineBinding,
+  sketchSummary,
+  timelineSummary,
   WIDGET_CATALOG,
   type AppEvent,
   type ConditionProps,
@@ -180,6 +185,81 @@ const MediaOutputWidget: React.FC<WidgetProps> = (widget) => {
         <OutputRenderer key={index} value={item} />
       ))}
     </View>
+  );
+};
+
+/**
+ * Sketch and timeline previews.
+ *
+ * Mobile has neither the layer compositor nor the preview renderer the web
+ * editors use, so these summarize the document instead of drawing it. A ref
+ * that carries only an id has nothing to summarize — mobile has no endpoint to
+ * resolve it — and says so rather than showing an empty frame.
+ */
+const DocumentCard: React.FC<{
+  title: string;
+  meta: string;
+  colors: ThemeColors;
+}> = ({ title, meta, colors }) => (
+  <View style={[styles.documentCard, { borderColor: colors.border }]}>
+    <Text style={[styles.label, { color: colors.text }]}>{title}</Text>
+    <Text style={[styles.hint, { color: colors.textTertiary }]}>{meta}</Text>
+  </View>
+);
+
+const SketchWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
+  const { document, id } = readSketchBinding(value);
+  const summary = sketchSummary(document);
+  if (summary) {
+    return (
+      <DocumentCard
+        title="Sketch"
+        meta={`${summary.width} × ${summary.height} · ${summary.layerCount} layer${
+          summary.layerCount === 1 ? "" : "s"
+        }`}
+        colors={colors}
+      />
+    );
+  }
+  if (id) {
+    return <DocumentCard title="Sketch" meta="Open on desktop to view" colors={colors} />;
+  }
+  return (
+    <Placeholder
+      text={str(widget.props.placeholder) || "No sketch yet"}
+      colors={colors}
+    />
+  );
+};
+
+const TimelineWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
+  const { document, id } = readTimelineBinding(value);
+  const summary = timelineSummary(document);
+  if (summary) {
+    return (
+      <DocumentCard
+        title={summary.name || "Timeline"}
+        meta={`${formatDuration(summary.durationMs)} · ${summary.trackCount} track${
+          summary.trackCount === 1 ? "" : "s"
+        } · ${summary.clipCount} clip${summary.clipCount === 1 ? "" : "s"}`}
+        colors={colors}
+      />
+    );
+  }
+  if (id) {
+    return (
+      <DocumentCard title="Timeline" meta="Open on desktop to view" colors={colors} />
+    );
+  }
+  return (
+    <Placeholder
+      text={str(widget.props.placeholder) || "No timeline yet"}
+      colors={colors}
+    />
   );
 };
 
@@ -1362,6 +1442,8 @@ const RENDERERS: Record<string, React.FC<WidgetProps>> = {
   Video: MediaOutputWidget,
   Json: MediaOutputWidget,
   Output: MediaOutputWidget,
+  Sketch: SketchWidget,
+  Timeline: TimelineWidget,
   Table: TableWidget,
   Progress: ProgressWidget,
   Alert: AlertWidget,
@@ -1517,6 +1599,12 @@ const styles = StyleSheet.create({
     gap: 4,
     padding: 12,
     borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  documentCard: {
+    gap: 4,
+    padding: 12,
+    borderRadius: 10,
     borderWidth: StyleSheet.hairlineWidth,
   },
   placeholder: {
