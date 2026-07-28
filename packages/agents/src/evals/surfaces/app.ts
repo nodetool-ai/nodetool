@@ -1156,5 +1156,111 @@ export const APP_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AppBridgeFinalState>
           }
         ]
       }
+    },
+    {
+      // A sketch output is a ref, not media — bind it to Image and the app
+      // shows nothing. The model has to find the widget that resolves it.
+      id: "show-sketch-output",
+      description:
+        "Pick the widget that renders a sketch output and bind it, over the media widgets",
+      objective:
+        "Show the workflow's sketch output in the app using the widget that renders a sketch document.",
+      createBridge: () =>
+        createAppToolBridge({
+          workflowId: "wf-app",
+          workflow: {
+            inputs: [{ nodeId: "in-1", name: "prompt", label: "Prompt" }],
+            outputs: [{ nodeId: "out-1", name: "artwork", label: "Artwork" }],
+            variables: []
+          }
+        }),
+      systemPrompt: APP_SYSTEM_PROMPT,
+      userPrompt:
+        "Objective: App 'app-1' (application_id 'app-1') is empty. Its workflow emits a sketch document " +
+        "(a layered image document) on the 'artwork' output. Add the widget that previews a sketch and bind it " +
+        "to that output. Look the widget type and the binding token up with the tools rather than guessing — " +
+        "a sketch is a document reference, not an image URL, so the Image widget will not render it.",
+      expect: {
+        requiredTools: ["ui_app_add_component"],
+        noErrorResults: true,
+        minToolCalls: 2,
+        maxToolCalls: 12,
+        finalState: [
+          {
+            name: "hasSketchWidget",
+            detail: "no Sketch widget present",
+            test: (s) => countByType(s, "Sketch") >= 1
+          },
+          {
+            name: "sketchBoundToArtworkOutput",
+            detail: "the Sketch widget is not bound to op:main/out:out-1",
+            test: (s) =>
+              s.components.some(
+                (c) =>
+                  c.type === "Sketch" && c.props.binding === "op:main/out:out-1"
+              )
+          },
+          {
+            name: "noImageWidget",
+            detail:
+              "an Image widget was added, which cannot render a sketch reference",
+            test: (s) => countByType(s, "Image") === 0
+          }
+        ]
+      }
+    },
+    {
+      id: "show-timeline-output",
+      description:
+        "Pick the widget that renders a timeline output and nest it in a Panel",
+      objective:
+        "Show the workflow's timeline output inside the app's existing Panel.",
+      createBridge: () =>
+        createAppToolBridge({
+          workflowId: "wf-app",
+          workflow: {
+            inputs: [],
+            outputs: [{ nodeId: "out-1", name: "cut", label: "Cut" }],
+            variables: []
+          },
+          components: [
+            { type: "Container", id: "panel-1", props: { title: "Preview" } }
+          ]
+        }),
+      systemPrompt: APP_SYSTEM_PROMPT,
+      userPrompt:
+        "Objective: App 'app-1' (application_id 'app-1') has an empty Panel (a Container widget with id 'panel-1'). " +
+        "The workflow emits a timeline sequence on its 'cut' output. Add the widget that previews a timeline inside " +
+        "that Panel's content slot and bind it to the output. A timeline is a document reference, not a video file — " +
+        "look the widget type and the binding token up with the tools rather than guessing.",
+      expect: {
+        requiredTools: ["ui_app_add_component"],
+        noErrorResults: true,
+        minToolCalls: 2,
+        maxToolCalls: 12,
+        finalState: [
+          {
+            name: "timelineNestedInPanel",
+            detail: "no Timeline widget nested in 'panel-1' content slot",
+            test: (s) =>
+              s.components.some(
+                (c) =>
+                  c.type === "Timeline" &&
+                  c.parentId === "panel-1" &&
+                  c.slot === "content"
+              )
+          },
+          {
+            name: "timelineBoundToCutOutput",
+            detail: "the Timeline widget is not bound to op:main/out:out-1",
+            test: (s) =>
+              s.components.some(
+                (c) =>
+                  c.type === "Timeline" &&
+                  c.props.binding === "op:main/out:out-1"
+              )
+          }
+        ]
+      }
     }
   ];

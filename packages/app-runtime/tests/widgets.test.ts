@@ -50,6 +50,18 @@ describe("widget catalog", () => {
     expect(WIDGET_CATALOG.ModelSelect.trigger).toBe("change");
   });
 
+  it("declares the sketch and timeline widgets as single-binding displays", () => {
+    for (const type of ["Sketch", "Timeline"]) {
+      expect(widgetMode(type)).toBe("read");
+      expect(widgetBindingProps(type)).toEqual([]);
+      expect(WIDGET_CATALOG[type].trigger).toBeUndefined();
+      // Neither renders formattable text, so the editor must not offer the
+      // format template — it would silently replace the document preview.
+      expect(WIDGET_CATALOG[type].format).toBeUndefined();
+      expect(widgetFields(type)).not.toHaveProperty("format");
+    }
+  });
+
   it("reports no extra bindings for a widget that binds once", () => {
     expect(widgetBindingProps("Text")).toEqual([]);
     expect(widgetBindingProps("Bogus")).toEqual([]);

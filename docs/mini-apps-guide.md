@@ -255,6 +255,24 @@ Turn on image attachments in the composer when the model is multimodal — the
 message then carries content parts instead of plain text, which is what a
 Message Input node and every provider expect.
 
+## 11. An app that shows a sketch or a timeline
+
+**Shape:** a run that produces an editor document, previewed in the app.
+**Good for:** generated artwork you want to see composited, a cut assembled from
+a script, anything where the result is a document rather than a file.
+
+1. Build the workflow so it ends at an Output node fed by a node that emits a
+   sketch (`nodetool.sketch.CreateSketch`, `nodetool.constant.Sketch`) or a
+   timeline (`nodetool.timeline.AddClips`, `nodetool.script.ScriptToTimeline`).
+2. Place a **Sketch** or **Timeline** widget and bind it to that Output node.
+3. Set a max height so a tall canvas or a long sequence doesn't push the rest of
+   the app off screen.
+
+These nodes emit a reference — `{type: "sketch", id}` — not an image or a video
+file, so the media widgets show nothing when bound to them. If you also want the
+flat result, add a `RenderSketch` or `RenderTimeline` node and bind an **Image**
+or **Video** widget to its output; the two can sit side by side.
+
 ---
 
 ## Before you share it
