@@ -13,7 +13,8 @@ import { css } from "@emotion/react";
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { BORDER_RADIUS, Box, Caption } from "../ui_primitives";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import { Box, Caption, Tooltip } from "../ui_primitives";
 import { useWorkflowCostEstimate } from "../../hooks/useWorkflowCostEstimate";
 import { formatMoney } from "./costsData";
 
@@ -98,14 +99,11 @@ const styles = (theme: Theme) =>
     },
     ".cost-unknown": {
       justifySelf: "start",
-      fontFamily: theme.fontFamily2,
-      fontSize: "var(--fontSizeSmaller)",
-      letterSpacing: "0.02em",
+      display: "inline-flex",
+      alignItems: "center",
       color: theme.vars.palette.warning.main,
-      padding: `1px ${theme.spacing(1)}`,
-      borderRadius: BORDER_RADIUS.sm,
-      border: `1px solid ${theme.vars.palette.warning.main}`,
-      whiteSpace: "nowrap"
+      fontSize: theme.fontSizeNormal,
+      cursor: "help"
     },
 
     ".cost-total": {
@@ -175,7 +173,11 @@ const WorkflowCostEstimatePanelInternal: React.FC<
                   {item.node_type}
                 </span>
                 {item.confidence === "unknown" ? (
-                  <span className="cost-unknown">unknown price</span>
+                  <Tooltip title="Price unknown — excluded from the total" arrow>
+                    <span className="cost-unknown" aria-label="Price unknown">
+                      <HelpOutlineIcon fontSize="inherit" />
+                    </span>
+                  </Tooltip>
                 ) : (
                   <span className="cost-cell-model">
                     {item.provider}
