@@ -16,9 +16,11 @@ import {
   useQuery,
   useQueryClient,
   type QueryKey,
+  type UseMutationResult,
+  type UseQueryResult,
 } from '@tanstack/react-query';
 
-import { documentBackend } from './backends';
+import { documentBackend, type DocumentSummary } from './backends';
 import { disposeDocumentStore } from './documentStore';
 import { DOCUMENT_KINDS, type DocumentKind } from './kinds';
 
@@ -38,7 +40,10 @@ const listKey = (kind: DocumentKind, limit: number): QueryKey => [
 ];
 
 /** One kind's documents. */
-export function useDocumentsOfKind(kind: DocumentKind, limit = 50) {
+export function useDocumentsOfKind(
+  kind: DocumentKind,
+  limit = 50
+): UseQueryResult<DocumentListEntry[], Error> {
   return useQuery({
     queryKey: listKey(kind, limit),
     queryFn: async (): Promise<DocumentListEntry[]> => {
@@ -54,13 +59,22 @@ export function useDocumentsOfKind(kind: DocumentKind, limit = 50) {
   });
 }
 
+/** Four kinds' queries collapsed into one list, one status, one error. */
+export interface AllDocuments {
+  documents: DocumentListEntry[];
+  isLoading: boolean;
+  isRefetching: boolean;
+  error: Error | null;
+  refetch: () => void;
+}
+
 /**
  * Every browsable kind in one list, newest first across kinds.
  *
  * One hook call per kind rather than a loop, so the hook order is fixed and the
  * memo's dependencies can name the exact values it reads.
  */
-export function useAllDocuments(limit = 50) {
+export function useAllDocuments(limit = 50): AllDocuments {
   const storyboards = useDocumentsOfKind('storyboard', limit);
   const scripts = useDocumentsOfKind('script', limit);
   const timelines = useDocumentsOfKind('timeline', limit);
@@ -103,7 +117,11 @@ function useInvalidateKind() {
   );
 }
 
-export function useCreateDocument() {
+export function useCreateDocument(): UseMutationResult<
+  DocumentSummary & { kind: DocumentKind },
+  Error,
+  { kind: DocumentKind; name: string }
+> {
   const invalidate = useInvalidateKind();
   return useMutation({
     mutationFn: async ({ kind, name }: { kind: DocumentKind; name: string }) => {
@@ -116,7 +134,11 @@ export function useCreateDocument() {
   });
 }
 
-export function useRenameDocument() {
+export function useRenameDocument(): UseMutationResult<
+  { kind: DocumentKind; id: string; name: string },
+  Error,
+  { kind: DocumentKind; id: string; name: string }
+> {
   const invalidate = useInvalidateKind();
   return useMutation({
     mutationFn: async ({
@@ -137,7 +159,11 @@ export function useRenameDocument() {
   });
 }
 
-export function useDeleteDocument() {
+export function useDeleteDocument(): UseMutationResult<
+  { kind: DocumentKind; id: string },
+  Error,
+  { kind: DocumentKind; id: string }
+> {
   const invalidate = useInvalidateKind();
   return useMutation({
     mutationFn: async ({ kind, id }: { kind: DocumentKind; id: string }) => {

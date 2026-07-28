@@ -13,13 +13,23 @@
  */
 
 import { useMemo } from 'react';
-import { useQuery, type QueryKey } from '@tanstack/react-query';
+import {
+  useQuery,
+  type QueryKey,
+  type UseQueryResult,
+} from '@tanstack/react-query';
 import {
   parseApplicationDocument,
   type ApplicationDocument,
 } from '@nodetool-ai/app-runtime';
 
-import { apiService, normalizeWorkflow } from '../services/api';
+import {
+  apiService,
+  normalizeWorkflow,
+  type ApplicationListItem,
+  type ApplicationReleaseResponse,
+  type ApplicationResponse,
+} from '../services/api';
 import { trpc } from '../trpc/client';
 import type { Workflow } from '../types/workflow';
 
@@ -35,7 +45,9 @@ export const applicationKeys = {
 };
 
 /** Every app on the server, newest first. */
-export function useApplications(projectId?: string) {
+export function useApplications(
+  projectId?: string
+): UseQueryResult<ApplicationListItem[], Error> {
   return useQuery({
     queryKey: applicationKeys.list(projectId),
     queryFn: async () => {
@@ -46,7 +58,9 @@ export function useApplications(projectId?: string) {
 }
 
 /** One app's draft: name, description, and the document being authored. */
-export function useApplication(id: string | undefined) {
+export function useApplication(
+  id: string | undefined
+): UseQueryResult<ApplicationResponse, Error> {
   return useQuery({
     queryKey: applicationKeys.detail(id ?? ''),
     enabled: Boolean(id),
@@ -55,7 +69,9 @@ export function useApplication(id: string | undefined) {
 }
 
 /** The released snapshot, or null when the app has never been published. */
-export function useApplicationRelease(id: string | undefined) {
+export function useApplicationRelease(
+  id: string | undefined
+): UseQueryResult<ApplicationReleaseResponse | null, Error> {
   return useQuery({
     queryKey: applicationKeys.release(id ?? ''),
     enabled: Boolean(id),
