@@ -424,7 +424,7 @@ Just start typing what you want!
 
 ## Next Steps
 
-- **[Workflow Editor deep dive](workflow-editor.md)** – Master the canvas
+- **[Workflow Editor](workflow-editor.md)** – Master the canvas
 - **[Editor Panels](editor-panels.md)** – Left, right, bottom, and floating panels
 - **[Tips & Tricks](tips-and-tricks.md)** – Power user secrets
 - **[Cookbook](cookbook.md)** – Learn workflow patterns

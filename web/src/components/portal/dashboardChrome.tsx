@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
-import { forwardRef, memo, type ReactNode } from "react";
+import { memo, type ReactNode, type Ref } from "react";
 import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 
 /** Shared horizontal rhythm for the dashboard: a centered column that the hero
@@ -138,70 +138,71 @@ interface DashboardSearchBoxProps {
   placeholder: string;
   kbd?: string;
   "aria-label": string;
+  ref?: Ref<HTMLInputElement>;
 }
 
-export const DashboardSearchBox = memo(
-  forwardRef<HTMLInputElement, DashboardSearchBoxProps>(
-    function DashboardSearchBox(
-      { value, onChange, placeholder, kbd, "aria-label": ariaLabel },
-      ref
-    ) {
-      const theme = useTheme();
-      const hasValue = value.length > 0;
-      return (
-        <label css={searchStyles(theme)}>
+export const DashboardSearchBox = memo(function DashboardSearchBox({
+  value,
+  onChange,
+  placeholder,
+  kbd,
+  "aria-label": ariaLabel,
+  ref
+}: DashboardSearchBoxProps) {
+  const theme = useTheme();
+  const hasValue = value.length > 0;
+  return (
+    <label css={searchStyles(theme)}>
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      >
+        <circle cx="7" cy="7" r="4.5" />
+        <path d="m10.5 10.5 3 3" />
+      </svg>
+      <input
+        ref={ref}
+        value={value}
+        placeholder={placeholder}
+        aria-label={ariaLabel}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape" && hasValue) {
+            e.stopPropagation();
+            onChange("");
+          }
+        }}
+      />
+      {hasValue ? (
+        <button
+          type="button"
+          className="search-clear"
+          aria-label="Clear search"
+          // Keep focus in the input so typing can continue immediately.
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onChange("")}
+        >
           <svg
-            width="14"
-            height="14"
+            width="11"
+            height="11"
             viewBox="0 0 16 16"
             fill="none"
             stroke="currentColor"
-            strokeWidth="1.5"
+            strokeWidth="1.6"
           >
-            <circle cx="7" cy="7" r="4.5" />
-            <path d="m10.5 10.5 3 3" />
+            <path d="m4 4 8 8M12 4l-8 8" />
           </svg>
-          <input
-            ref={ref}
-            value={value}
-            placeholder={placeholder}
-            aria-label={ariaLabel}
-            onChange={(e) => onChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape" && hasValue) {
-                e.stopPropagation();
-                onChange("");
-              }
-            }}
-          />
-          {hasValue ? (
-            <button
-              type="button"
-              className="search-clear"
-              aria-label="Clear search"
-              // Keep focus in the input so typing can continue immediately.
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => onChange("")}
-            >
-              <svg
-                width="11"
-                height="11"
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
-              >
-                <path d="m4 4 8 8M12 4l-8 8" />
-              </svg>
-            </button>
-          ) : (
-            kbd && <span className="kbd">{kbd}</span>
-          )}
-        </label>
-      );
-    }
-  )
-);
+        </button>
+      ) : (
+        kbd && <span className="kbd">{kbd}</span>
+      )}
+    </label>
+  );
+});
 
 /** Small "Browse all →" style link used in section headers. */
 const linkStyles = (theme: Theme) =>

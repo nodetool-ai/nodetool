@@ -11,13 +11,7 @@
  * - `SketchCanvasPresentation` — stacked canvas JSX, chrome, info bar
  */
 
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  forwardRef
-} from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Asset } from "../../stores/ApiTypes";
 import {
   deserializeDragData,
@@ -230,376 +224,375 @@ export interface SketchCanvasProps {
   // ── Layout / testing ───────────────────────────────────────────────
   /** Merged onto the root container (e.g. for layout hooks / E2E). */
   className?: string;
+  ref?: React.Ref<SketchCanvasRef>;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
-  function SketchCanvas(props, ref) {
-    const {
-      document: doc,
-      activeTool,
-      interactionTool,
-      zoom,
-      pan,
-      mirrorX,
-      mirrorY,
-      symmetryMode,
-      symmetryRays,
-      isolatedLayerId,
-      onZoomChange,
-      onPanChange,
-      onStrokeStart,
-      onStrokeEnd,
-      onLayerTransformChange,
-      onLayerContentBoundsChange,
-      onBrushSizeChange,
-      onContextMenu,
-      onTransformContextMenu,
-      onCropComplete,
-      onEyedropperPick,
-      selection,
-      selectionPreviewMode,
-      onSelectionChange,
-      onAutoPickLayer,
-      foregroundColor,
-      className: rootClassName,
-      onCanvasLeave,
-      onDropImage,
-      onDropAsset,
-      onCanvasResizeStart,
-      onCanvasResize
-    } = props;
+function SketchCanvas({ ref, ...props }: SketchCanvasProps) {
+  const {
+    document: doc,
+    activeTool,
+    interactionTool,
+    zoom,
+    pan,
+    mirrorX,
+    mirrorY,
+    symmetryMode,
+    symmetryRays,
+    isolatedLayerId,
+    onZoomChange,
+    onPanChange,
+    onStrokeStart,
+    onStrokeEnd,
+    onLayerTransformChange,
+    onLayerContentBoundsChange,
+    onBrushSizeChange,
+    onContextMenu,
+    onTransformContextMenu,
+    onCropComplete,
+    onEyedropperPick,
+    selection,
+    selectionPreviewMode,
+    onSelectionChange,
+    onAutoPickLayer,
+    foregroundColor,
+    className: rootClassName,
+    onCanvasLeave,
+    onDropImage,
+    onDropAsset,
+    onCanvasResizeStart,
+    onCanvasResize
+  } = props;
 
-    // Subscribe to live toolSettings directly so that brush/color changes trigger
-    // only a SketchCanvas re-render (not a compositing cascade). The bare `doc`
-    // prop is intentionally passed to useCompositing so that compositing effects
-    // do not fire on every slider tick.
-    const liveToolSettings = useSketchStore((s) => s.toolSettings);
-    const docWithTools = useMemo(
-      () => ({ ...doc, toolSettings: liveToolSettings }),
-      [doc, liveToolSettings]
-    );
+  // Subscribe to live toolSettings directly so that brush/color changes trigger
+  // only a SketchCanvas re-render (not a compositing cascade). The bare `doc`
+  // prop is intentionally passed to useCompositing so that compositing effects
+  // do not fire on every slider tick.
+  const liveToolSettings = useSketchStore((s) => s.toolSettings);
+  const docWithTools = useMemo(
+    () => ({ ...doc, toolSettings: liveToolSettings }),
+    [doc, liveToolSettings]
+  );
 
-    // ─── Transform preview bridge ──────────────────────────────────────
+  // ─── Transform preview bridge ──────────────────────────────────────
 
-    const coordinatorRef = useRef<DisplayFrameCoordinator | null>(null);
-    if (!coordinatorRef.current) {
-      coordinatorRef.current = new DisplayFrameCoordinator();
-    }
-
-    const {
-      transformPreviewByLayerIdRef,
-      requestPreviewRedrawRef,
-      invalidateLayerRef,
-      setLayerTransformPreview,
-      clearLayerTransformPreview
-    } = useTransformPreviewBridge({ coordinatorRef });
-
-    // ─── Canvas orchestration (refs, compositing, overlay, pointer) ────
-
-    const {
-      containerRef,
-      selectionGpuCanvasRef,
-      selectionCanvasRef,
-      cursorCanvasRef,
-      gizmoCanvasRef,
-      lastPointerClientRef,
-      compositing,
-      overlay,
-      pointerHandlers
-    } = useCanvasOrchestration({
-      doc,
-      docWithTools,
-      activeTool,
-      interactionTool,
-      zoom,
-      pan,
-      mirrorX,
-      mirrorY,
-      symmetryMode,
-      symmetryRays,
-      selection,
-      selectionPreviewMode,
-      isolatedLayerId,
-      foregroundColor,
-      transformPreviewByLayerIdRef,
-      requestPreviewRedrawRef,
-      invalidateLayerRef,
-      coordinatorRef,
-      setLayerTransformPreview,
-      clearLayerTransformPreview,
-      onZoomChange,
-      onPanChange,
-      onStrokeStart,
-      onStrokeEnd,
-      onLayerTransformChange,
-      onLayerContentBoundsChange,
-      onBrushSizeChange,
-      onContextMenu,
-      onTransformContextMenu,
-      onCropComplete,
-      onEyedropperPick,
-      onSelectionChange,
-      onAutoPickLayer,
-      onCanvasLeave
-    });
-
-    // ─── Drag-and-drop image import ─────────────────────────────────
-
-    const handleDragOver = useCallback((e: React.DragEvent) => {
-      if (
-        e.dataTransfer.types.includes("Files") ||
-        e.dataTransfer.types.includes(DRAG_DATA_MIME) ||
-        e.dataTransfer.types.includes("asset")
-      ) {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = "copy";
-      }
-    }, []);
-
-    const handleDrop = useCallback(
-      (e: React.DragEvent) => {
-        e.preventDefault();
-        const dragData = deserializeDragData(e.dataTransfer);
-        const draggedAsset =
-          dragData?.type === "asset" ? (dragData.payload as Asset) : null;
-        if (
-          draggedAsset &&
-          draggedAsset.content_type.startsWith("image/") &&
-          onDropAsset
-        ) {
-          onDropAsset(draggedAsset);
-          return;
-        }
-        const file = Array.from(e.dataTransfer.files).find((f) =>
-          f.type.startsWith("image/")
-        );
-        if (file && onDropImage) {
-          onDropImage(file);
-        }
-      },
-      [onDropAsset, onDropImage]
-    );
-
-    // ─── Imperative handle ──────────────────────────────────────────────
-
-    useCanvasImperativeHandle({
-      ref,
-      doc,
-      runtime: compositing.runtime,
-      containerRef,
-      displayCanvasRef: compositing.displayCanvasRef,
-      overlayCanvasRef: compositing.overlayCanvasRef,
-      redraw: compositing.redraw,
-      drainPendingStrokeCommit: compositing.drainPendingStrokeCommit,
-      zoom,
-      lastPointerClientRef,
-      cancelActiveTool: pointerHandlers.cancelActiveTool,
-      commitPendingCrop: pointerHandlers.commitPendingCrop
-    });
-
-    // ─── Redraw cursor when tool settings change ──────────────────────
-    // When brush size/hardness/etc. change via sliders or keyboard shortcuts,
-    // the cursor ring must update immediately even without pointer movement.
-    useEffect(() => {
-      const client = lastPointerClientRef.current;
-      if (client) {
-        overlay.drawCursor(client.x, client.y);
-      }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [overlay.drawCursor]);
-
-    // ─── Document-space cursor tracking ─────────────────────────────────
-
-    // The document-space cursor lives in the store only (`cursorDocPos`), not
-    // in local state: pointer moves fire at 60–120+ Hz and a local setState
-    // here would re-render the whole canvas subtree per event. The store
-    // setter dedupes same-cell writes, and only the tiny readout components
-    // (status bar / info pill) subscribe to it.
-    const setStoreCursorDocPos = useSketchStore((s) => s.setCursorDocPos);
-    // The standalone editor (bound document) shows the full-width status bar,
-    // which subsumes the floating info pill — hide the pill there. The in-node
-    // modal (no documentId) keeps the pill.
-    const standaloneDocumentId = useSketchSessionStore((s) => s.documentId);
-
-    const updateCursorDocPosFromClient = useCallback(
-      (clientX: number, clientY: number) => {
-        const displayCanvas = compositing.displayCanvasRef.current;
-        if (displayCanvas) {
-          const rect = displayCanvas.getBoundingClientRect();
-          if (rect.width > 0 && rect.height > 0) {
-            const p = {
-              x: ((clientX - rect.left) / rect.width) * doc.canvas.width,
-              y: ((clientY - rect.top) / rect.height) * doc.canvas.height
-            };
-            setStoreCursorDocPos({ x: Math.floor(p.x), y: Math.floor(p.y) });
-            return;
-          }
-        }
-
-        const container = containerRef.current;
-        if (container) {
-          const rect = container.getBoundingClientRect();
-          const p = clientToDocumentCanvas(
-            clientX,
-            clientY,
-            rect,
-            zoom,
-            pan,
-            doc.canvas.width,
-            doc.canvas.height
-          );
-          setStoreCursorDocPos({ x: Math.floor(p.x), y: Math.floor(p.y) });
-        }
-      },
-      [
-        compositing.displayCanvasRef,
-        doc.canvas.width,
-        doc.canvas.height,
-        containerRef,
-        zoom,
-        pan,
-        setStoreCursorDocPos
-      ]
-    );
-
-    // `pointerHandlers` (from useCanvasOrchestration) is a fresh object each
-    // render, but the handlers inside it are useCallback-stable. Destructure
-    // the ones the wrappers below call so the wrappers depend on stable
-    // function identities, not the churning object — keeping SketchCanvas-
-    // Presentation's memoization intact.
-    const {
-      handlePointerDown: drawPointerDown,
-      handlePointerMove: drawPointerMove,
-      handlePointerUp: drawPointerUp,
-      cancelDrawing
-    } = pointerHandlers;
-
-    // Two-finger pan / pinch-zoom. Runs before the drawing handlers and, once a
-    // pinch begins, consumes the touch events so a gesture never paints. The
-    // hook returns a fresh object each render, so destructure the individually
-    // memoized handlers and depend on those (not the wrapper object) to keep
-    // the pointer callbacks stable for the memoized presentation layer.
-    const {
-      onPointerDown: onGesturePointerDown,
-      onPointerMove: onGesturePointerMove,
-      onPointerUp: onGesturePointerUp,
-      onPointerCancel: onGesturePointerCancel
-    } = useCanvasTouchGestures({
-      containerRef,
-      zoom,
-      pan,
-      onZoomChange,
-      onPanChange,
-      cancelDrawing
-    });
-
-    const handlePointerMoveWithCoords = useCallback(
-      (e: React.PointerEvent) => {
-        lastPointerClientRef.current = { x: e.clientX, y: e.clientY };
-        if (onGesturePointerMove(e)) {
-          return;
-        }
-        drawPointerMove(e);
-        updateCursorDocPosFromClient(e.clientX, e.clientY);
-      },
-      [
-        lastPointerClientRef,
-        drawPointerMove,
-        onGesturePointerMove,
-        updateCursorDocPosFromClient
-      ]
-    );
-
-    const handlePointerDownWithClient = useCallback(
-      (e: React.PointerEvent) => {
-        lastPointerClientRef.current = { x: e.clientX, y: e.clientY };
-        if (onGesturePointerDown(e)) {
-          return;
-        }
-        drawPointerDown(e);
-      },
-      [lastPointerClientRef, drawPointerDown, onGesturePointerDown]
-    );
-
-    const handlePointerUpWithGesture = useCallback(
-      (e: React.PointerEvent) => {
-        if (onGesturePointerUp(e)) {
-          return;
-        }
-        drawPointerUp(e);
-      },
-      [drawPointerUp, onGesturePointerUp]
-    );
-
-    // pointercancel (OS interrupts the touch, or pointer capture is lost) must
-    // tear down the gesture refs so a later touch isn't consumed by a stuck
-    // "always active" gesture. When it wasn't a gesture, the input sequence was
-    // aborted — discard the in-progress stroke via cancelDrawing() rather than
-    // committing it like a normal pointerup would.
-    const handlePointerCancelWithGesture = useCallback(
-      (e: React.PointerEvent) => {
-        if (onGesturePointerCancel(e)) {
-          return;
-        }
-        cancelDrawing();
-      },
-      [cancelDrawing, onGesturePointerCancel]
-    );
-
-    const handleMouseLeaveWithCoords = useCallback(() => {
-      pointerHandlers.handleMouseLeave();
-      setStoreCursorDocPos(null);
-    }, [pointerHandlers, setStoreCursorDocPos]);
-
-    // ─── Render ──────────────────────────────────────────────────────────
-
-    const transformTool = useMemo(() => {
-      const handler = getToolHandler("transform");
-      if (!(handler instanceof TransformTool)) {
-        throw new Error("Expected TransformTool singleton from tool registry");
-      }
-      return handler;
-    }, []);
-
-    return (
-      <SketchCanvasPresentation
-        containerRef={containerRef}
-        bootstrapDisplayRef={compositing.bootstrapDisplayRef}
-        displayCanvasRef={compositing.displayCanvasRef}
-        overlayCanvasRef={compositing.overlayCanvasRef}
-        selectionGpuCanvasRef={selectionGpuCanvasRef}
-        selectionCanvasRef={selectionCanvasRef}
-        cursorCanvasRef={cursorCanvasRef}
-        gizmoCanvasRef={gizmoCanvasRef}
-        transformTool={transformTool}
-        canvasWidth={doc.canvas.width}
-        canvasHeight={doc.canvas.height}
-        zoom={zoom}
-        pan={pan}
-        interactionTool={interactionTool}
-        bootstrapPhaseActive={compositing.bootstrapPhaseActive}
-        backend={compositing.backend}
-        showInfoBar={!standaloneDocumentId}
-        containerCursor={pointerHandlers.containerCursor}
-        onPointerDown={handlePointerDownWithClient}
-        onPointerMove={handlePointerMoveWithCoords}
-        onPointerUp={handlePointerUpWithGesture}
-        onPointerCancel={handlePointerCancelWithGesture}
-        onDoubleClick={pointerHandlers.handleDoubleClick}
-        onPointerLeave={pointerHandlers.handlePointerLeave}
-        onMouseLeave={handleMouseLeaveWithCoords}
-        onContextMenu={pointerHandlers.handleContextMenu}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
-        onCanvasResizeStart={onCanvasResizeStart}
-        onCanvasResize={onCanvasResize}
-        className={rootClassName}
-        docOverlay={<GeneratingLayerOverlay />}
-      />
-    );
+  const coordinatorRef = useRef<DisplayFrameCoordinator | null>(null);
+  if (!coordinatorRef.current) {
+    coordinatorRef.current = new DisplayFrameCoordinator();
   }
-);
+
+  const {
+    transformPreviewByLayerIdRef,
+    requestPreviewRedrawRef,
+    invalidateLayerRef,
+    setLayerTransformPreview,
+    clearLayerTransformPreview
+  } = useTransformPreviewBridge({ coordinatorRef });
+
+  // ─── Canvas orchestration (refs, compositing, overlay, pointer) ────
+
+  const {
+    containerRef,
+    selectionGpuCanvasRef,
+    selectionCanvasRef,
+    cursorCanvasRef,
+    gizmoCanvasRef,
+    lastPointerClientRef,
+    compositing,
+    overlay,
+    pointerHandlers
+  } = useCanvasOrchestration({
+    doc,
+    docWithTools,
+    activeTool,
+    interactionTool,
+    zoom,
+    pan,
+    mirrorX,
+    mirrorY,
+    symmetryMode,
+    symmetryRays,
+    selection,
+    selectionPreviewMode,
+    isolatedLayerId,
+    foregroundColor,
+    transformPreviewByLayerIdRef,
+    requestPreviewRedrawRef,
+    invalidateLayerRef,
+    coordinatorRef,
+    setLayerTransformPreview,
+    clearLayerTransformPreview,
+    onZoomChange,
+    onPanChange,
+    onStrokeStart,
+    onStrokeEnd,
+    onLayerTransformChange,
+    onLayerContentBoundsChange,
+    onBrushSizeChange,
+    onContextMenu,
+    onTransformContextMenu,
+    onCropComplete,
+    onEyedropperPick,
+    onSelectionChange,
+    onAutoPickLayer,
+    onCanvasLeave
+  });
+
+  // ─── Drag-and-drop image import ─────────────────────────────────
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    if (
+      e.dataTransfer.types.includes("Files") ||
+      e.dataTransfer.types.includes(DRAG_DATA_MIME) ||
+      e.dataTransfer.types.includes("asset")
+    ) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+    }
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      const dragData = deserializeDragData(e.dataTransfer);
+      const draggedAsset =
+        dragData?.type === "asset" ? (dragData.payload as Asset) : null;
+      if (
+        draggedAsset &&
+        draggedAsset.content_type.startsWith("image/") &&
+        onDropAsset
+      ) {
+        onDropAsset(draggedAsset);
+        return;
+      }
+      const file = Array.from(e.dataTransfer.files).find((f) =>
+        f.type.startsWith("image/")
+      );
+      if (file && onDropImage) {
+        onDropImage(file);
+      }
+    },
+    [onDropAsset, onDropImage]
+  );
+
+  // ─── Imperative handle ──────────────────────────────────────────────
+
+  useCanvasImperativeHandle({
+    ref,
+    doc,
+    runtime: compositing.runtime,
+    containerRef,
+    displayCanvasRef: compositing.displayCanvasRef,
+    overlayCanvasRef: compositing.overlayCanvasRef,
+    redraw: compositing.redraw,
+    drainPendingStrokeCommit: compositing.drainPendingStrokeCommit,
+    zoom,
+    lastPointerClientRef,
+    cancelActiveTool: pointerHandlers.cancelActiveTool,
+    commitPendingCrop: pointerHandlers.commitPendingCrop
+  });
+
+  // ─── Redraw cursor when tool settings change ──────────────────────
+  // When brush size/hardness/etc. change via sliders or keyboard shortcuts,
+  // the cursor ring must update immediately even without pointer movement.
+  useEffect(() => {
+    const client = lastPointerClientRef.current;
+    if (client) {
+      overlay.drawCursor(client.x, client.y);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overlay.drawCursor]);
+
+  // ─── Document-space cursor tracking ─────────────────────────────────
+
+  // The document-space cursor lives in the store only (`cursorDocPos`), not
+  // in local state: pointer moves fire at 60–120+ Hz and a local setState
+  // here would re-render the whole canvas subtree per event. The store
+  // setter dedupes same-cell writes, and only the tiny readout components
+  // (status bar / info pill) subscribe to it.
+  const setStoreCursorDocPos = useSketchStore((s) => s.setCursorDocPos);
+  // The standalone editor (bound document) shows the full-width status bar,
+  // which subsumes the floating info pill — hide the pill there. The in-node
+  // modal (no documentId) keeps the pill.
+  const standaloneDocumentId = useSketchSessionStore((s) => s.documentId);
+
+  const updateCursorDocPosFromClient = useCallback(
+    (clientX: number, clientY: number) => {
+      const displayCanvas = compositing.displayCanvasRef.current;
+      if (displayCanvas) {
+        const rect = displayCanvas.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          const p = {
+            x: ((clientX - rect.left) / rect.width) * doc.canvas.width,
+            y: ((clientY - rect.top) / rect.height) * doc.canvas.height
+          };
+          setStoreCursorDocPos({ x: Math.floor(p.x), y: Math.floor(p.y) });
+          return;
+        }
+      }
+
+      const container = containerRef.current;
+      if (container) {
+        const rect = container.getBoundingClientRect();
+        const p = clientToDocumentCanvas(
+          clientX,
+          clientY,
+          rect,
+          zoom,
+          pan,
+          doc.canvas.width,
+          doc.canvas.height
+        );
+        setStoreCursorDocPos({ x: Math.floor(p.x), y: Math.floor(p.y) });
+      }
+    },
+    [
+      compositing.displayCanvasRef,
+      doc.canvas.width,
+      doc.canvas.height,
+      containerRef,
+      zoom,
+      pan,
+      setStoreCursorDocPos
+    ]
+  );
+
+  // `pointerHandlers` (from useCanvasOrchestration) is a fresh object each
+  // render, but the handlers inside it are useCallback-stable. Destructure
+  // the ones the wrappers below call so the wrappers depend on stable
+  // function identities, not the churning object — keeping SketchCanvas-
+  // Presentation's memoization intact.
+  const {
+    handlePointerDown: drawPointerDown,
+    handlePointerMove: drawPointerMove,
+    handlePointerUp: drawPointerUp,
+    cancelDrawing
+  } = pointerHandlers;
+
+  // Two-finger pan / pinch-zoom. Runs before the drawing handlers and, once a
+  // pinch begins, consumes the touch events so a gesture never paints. The
+  // hook returns a fresh object each render, so destructure the individually
+  // memoized handlers and depend on those (not the wrapper object) to keep
+  // the pointer callbacks stable for the memoized presentation layer.
+  const {
+    onPointerDown: onGesturePointerDown,
+    onPointerMove: onGesturePointerMove,
+    onPointerUp: onGesturePointerUp,
+    onPointerCancel: onGesturePointerCancel
+  } = useCanvasTouchGestures({
+    containerRef,
+    zoom,
+    pan,
+    onZoomChange,
+    onPanChange,
+    cancelDrawing
+  });
+
+  const handlePointerMoveWithCoords = useCallback(
+    (e: React.PointerEvent) => {
+      lastPointerClientRef.current = { x: e.clientX, y: e.clientY };
+      if (onGesturePointerMove(e)) {
+        return;
+      }
+      drawPointerMove(e);
+      updateCursorDocPosFromClient(e.clientX, e.clientY);
+    },
+    [
+      lastPointerClientRef,
+      drawPointerMove,
+      onGesturePointerMove,
+      updateCursorDocPosFromClient
+    ]
+  );
+
+  const handlePointerDownWithClient = useCallback(
+    (e: React.PointerEvent) => {
+      lastPointerClientRef.current = { x: e.clientX, y: e.clientY };
+      if (onGesturePointerDown(e)) {
+        return;
+      }
+      drawPointerDown(e);
+    },
+    [lastPointerClientRef, drawPointerDown, onGesturePointerDown]
+  );
+
+  const handlePointerUpWithGesture = useCallback(
+    (e: React.PointerEvent) => {
+      if (onGesturePointerUp(e)) {
+        return;
+      }
+      drawPointerUp(e);
+    },
+    [drawPointerUp, onGesturePointerUp]
+  );
+
+  // pointercancel (OS interrupts the touch, or pointer capture is lost) must
+  // tear down the gesture refs so a later touch isn't consumed by a stuck
+  // "always active" gesture. When it wasn't a gesture, the input sequence was
+  // aborted — discard the in-progress stroke via cancelDrawing() rather than
+  // committing it like a normal pointerup would.
+  const handlePointerCancelWithGesture = useCallback(
+    (e: React.PointerEvent) => {
+      if (onGesturePointerCancel(e)) {
+        return;
+      }
+      cancelDrawing();
+    },
+    [cancelDrawing, onGesturePointerCancel]
+  );
+
+  const handleMouseLeaveWithCoords = useCallback(() => {
+    pointerHandlers.handleMouseLeave();
+    setStoreCursorDocPos(null);
+  }, [pointerHandlers, setStoreCursorDocPos]);
+
+  // ─── Render ──────────────────────────────────────────────────────────
+
+  const transformTool = useMemo(() => {
+    const handler = getToolHandler("transform");
+    if (!(handler instanceof TransformTool)) {
+      throw new Error("Expected TransformTool singleton from tool registry");
+    }
+    return handler;
+  }, []);
+
+  return (
+    <SketchCanvasPresentation
+      containerRef={containerRef}
+      bootstrapDisplayRef={compositing.bootstrapDisplayRef}
+      displayCanvasRef={compositing.displayCanvasRef}
+      overlayCanvasRef={compositing.overlayCanvasRef}
+      selectionGpuCanvasRef={selectionGpuCanvasRef}
+      selectionCanvasRef={selectionCanvasRef}
+      cursorCanvasRef={cursorCanvasRef}
+      gizmoCanvasRef={gizmoCanvasRef}
+      transformTool={transformTool}
+      canvasWidth={doc.canvas.width}
+      canvasHeight={doc.canvas.height}
+      zoom={zoom}
+      pan={pan}
+      interactionTool={interactionTool}
+      bootstrapPhaseActive={compositing.bootstrapPhaseActive}
+      backend={compositing.backend}
+      showInfoBar={!standaloneDocumentId}
+      containerCursor={pointerHandlers.containerCursor}
+      onPointerDown={handlePointerDownWithClient}
+      onPointerMove={handlePointerMoveWithCoords}
+      onPointerUp={handlePointerUpWithGesture}
+      onPointerCancel={handlePointerCancelWithGesture}
+      onDoubleClick={pointerHandlers.handleDoubleClick}
+      onPointerLeave={pointerHandlers.handlePointerLeave}
+      onMouseLeave={handleMouseLeaveWithCoords}
+      onContextMenu={pointerHandlers.handleContextMenu}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+      onCanvasResizeStart={onCanvasResizeStart}
+      onCanvasResize={onCanvasResize}
+      className={rootClassName}
+      docOverlay={<GeneratingLayerOverlay />}
+    />
+  );
+}
 
 export default SketchCanvas;

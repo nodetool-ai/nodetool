@@ -19,7 +19,7 @@ import type { SketchRuntime } from "../rendering";
 import { useSketchStore } from "../state/useSketchStore";
 
 export interface UseCanvasImperativeHandleParams {
-  ref: Ref<SketchCanvasRef>;
+  ref: Ref<SketchCanvasRef> | undefined;
   doc: SketchDocument;
   /** The rendering runtime that owns layer storage and compositing. */
   runtime: SketchRuntime;

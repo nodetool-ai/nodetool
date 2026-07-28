@@ -1,6 +1,16 @@
-import { memo, useCallback, forwardRef, useMemo } from "react";
+import { memo, useCallback, useMemo, type Ref } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Tooltip, Text, ToolbarIconButton, FlexRow, Box, BORDER_RADIUS, FONT_WEIGHT, SPACING, getSpacingPx } from "../ui_primitives";
+import {
+  Tooltip,
+  Text,
+  ToolbarIconButton,
+  FlexRow,
+  Box,
+  BORDER_RADIUS,
+  FONT_WEIGHT,
+  SPACING,
+  getSpacingPx
+} from "../ui_primitives";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import CheckIcon from "@mui/icons-material/Check";
@@ -11,7 +21,10 @@ import { IconForType } from "../../config/IconForType";
 import { HighlightText } from "../ui_primitives";
 import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_SHORT } from "../../config/constants";
+import {
+  TOOLTIP_ENTER_DELAY,
+  NOTIFICATION_TIMEOUT_SHORT
+} from "../../config/constants";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
 import { findSnippetByNodeType } from "../../config/snippetMetadata";
 
@@ -28,378 +41,397 @@ interface NodeItemProps {
   onToggleSelection?: (nodeType: string) => void;
   showFavoriteButton?: boolean;
   showDescriptionTooltip?: boolean;
+  ref?: Ref<HTMLDivElement>;
 }
 
-const NodeItem = memo(
-  forwardRef<HTMLDivElement, NodeItemProps>(
-    (
-      {
-        node,
-        onDragStart,
-        onDragEnd,
-        onClick,
-        showCheckbox = false,
-        isSelected = false,
-        onToggleSelection,
-        showFavoriteButton = true,
-        showDescriptionTooltip = false
-      },
-      ref
-    ) => {
-      const theme = useTheme();
-      const outputType =
-        node.outputs.length > 0 ? node.outputs[0].type.type : "";
-      const hasRuntimeDeps =
-        node.required_runtimes && node.required_runtimes.length > 0;
-      const isSnippet = !!findSnippetByNodeType(node.node_type);
-      const { searchTerm, hoveredNode, setHoveredNode } = useNodeMenuStore(
-        useShallow((state) => ({
-          searchTerm: state.searchTerm,
-          hoveredNode: state.hoveredNode,
-          setHoveredNode: state.setHoveredNode
-        }))
-      );
-      const isHovered = hoveredNode?.node_type === node.node_type;
-      const isFavorite = useFavoriteNodesStore((state) =>
-        state.isFavorite(node.node_type)
-      );
-      const toggleFavorite = useFavoriteNodesStore(
-        (state) => state.toggleFavorite
-      );
-      const addNotification = useNotificationStore(
-        (state) => state.addNotification
-      );
+const NodeItem = memo(function NodeItem({
+  node,
+  onDragStart,
+  onDragEnd,
+  onClick,
+  showCheckbox = false,
+  isSelected = false,
+  onToggleSelection,
+  showFavoriteButton = true,
+  showDescriptionTooltip = false,
+  ref
+}: NodeItemProps) {
+  const theme = useTheme();
+  const outputType = node.outputs.length > 0 ? node.outputs[0].type.type : "";
+  const hasRuntimeDeps =
+    node.required_runtimes && node.required_runtimes.length > 0;
+  const isSnippet = !!findSnippetByNodeType(node.node_type);
+  const { searchTerm, hoveredNode, setHoveredNode } = useNodeMenuStore(
+    useShallow((state) => ({
+      searchTerm: state.searchTerm,
+      hoveredNode: state.hoveredNode,
+      setHoveredNode: state.setHoveredNode
+    }))
+  );
+  const isHovered = hoveredNode?.node_type === node.node_type;
+  const isFavorite = useFavoriteNodesStore((state) =>
+    state.isFavorite(node.node_type)
+  );
+  const toggleFavorite = useFavoriteNodesStore((state) => state.toggleFavorite);
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
 
-      const parsedDescription = useMemo(() => {
-        if (!node.description) {
-          return null;
-        }
-        return formatNodeDocumentation(node.description);
-      }, [node.description]);
+  const parsedDescription = useMemo(() => {
+    if (!node.description) {
+      return null;
+    }
+    return formatNodeDocumentation(node.description);
+  }, [node.description]);
 
-      const tooltipContent = useMemo(() => {
-        if (!parsedDescription) {
-          return node.title;
-        }
-        return (
-          <Box sx={{ maxWidth: 300 }}>
-            <Text size="normal" weight={FONT_WEIGHT.medium} sx={{ mb: 0.5 }}>
-              {parsedDescription.description}
-            </Text>
-            {parsedDescription.tags.length > 0 && (
-              <FlexRow gap={0.5} wrap sx={{ mt: 1 }}>
-                {parsedDescription.tags.map((tag) => (
-                  <Box
-                    key={tag}
-                    component="span"
-                    sx={{
-                      fontSize: "var(--fontSizeSmaller)",
-                      fontWeight: FONT_WEIGHT.medium,
-                      textTransform: "uppercase",
-                      bgcolor: "grey.700",
-                      color: "grey.300",
-                      px: SPACING.xs,
-                      py: SPACING.micro,
-                      borderRadius: BORDER_RADIUS.sm
-                    }}
-                  >
-                    {tag}
-                  </Box>
-                ))}
-              </FlexRow>
-            )}
-            {parsedDescription.useCases.raw && (
-              <Box sx={{ mt: 1 }}>
-                <Text size="smaller" weight={FONT_WEIGHT.semibold} sx={{ color: "grey.400", textTransform: "uppercase", mb: 0.5 }}>
-                  Use cases
-                </Text>
-                <Box component="ul" sx={{ m: 0, pl: 2, fontSize: "var(--fontSizeSmall)", color: "grey.300" }}>
-                  {parsedDescription.useCases.raw.split("\n").map((useCase, index) => (
-                    <li key={`${useCase}-${index}`}>{useCase}</li>
-                  ))}
-                </Box>
-              </Box>
-            )}
-          </Box>
-        );
-      }, [parsedDescription, node.title]);
-
-      const onMouseEnter = useCallback(() => {
-        setHoveredNode(node);
-      }, [node, setHoveredNode]);
-
-      const handleClick = useCallback(
-        (e: React.MouseEvent) => {
-          if (showCheckbox && onToggleSelection) {
-            e.preventDefault();
-            onToggleSelection(node.node_type);
-          } else {
-            onClick(node);
-          }
-        },
-        [showCheckbox, onToggleSelection, node, onClick]
-      );
-
-      const handleFavoriteClick = useCallback(
-        (e: React.MouseEvent) => {
-          e.stopPropagation();
-          const wasAdded = !isFavorite;
-          toggleFavorite(node.node_type);
-          addNotification({
-            type: "info",
-            content: wasAdded
-              ? "Node added to favorites"
-              : "Node removed from favorites",
-            timeout: NOTIFICATION_TIMEOUT_SHORT
-          });
-        },
-        [node.node_type, isFavorite, toggleFavorite, addNotification]
-      );
-
-      const handleDragStart = useCallback(
-        (e: React.DragEvent<HTMLDivElement>) => {
-          if (!showCheckbox) {
-            onDragStart(node, e);
-          }
-        },
-        [showCheckbox, onDragStart, node]
-      );
-
-      const nodeButtonStyle = useMemo(
-        () => ({
-          cursor: "pointer" as const,
-          display: "flex",
-          alignItems: "center",
-          flex: 1,
-          gap: "0.5em",
-          position: "relative" as const,
-          minHeight: "34px",
-          paddingLeft: showCheckbox ? "24px" : undefined
-        }),
-        [showCheckbox]
-      );
-
-      const checkboxContainerStyle = useMemo(
-        () => ({
-          position: "absolute" as const,
-          left: "4px",
-          width: "20px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center"
-        }),
-        []
-      );
-
-      const iconContainerStyle = useMemo(
-        () => ({
-          display: "flex",
-          alignItems: "center",
-          gap: "0.5em",
-          flex: 1,
-          minWidth: 0
-        }),
-        []
-      );
-
-      const iconForTypeContainerStyle = useMemo(
-        () => ({
-          borderRadius: `0 0 ${BORDER_RADIUS.xs} 0`,
-          marginLeft: "0",
-          marginTop: "0"
-        }),
-        []
-      );
-
-      const iconForTypeBgStyle = useMemo(
-        () => ({
-          backgroundColor: theme.vars.palette.grey[900],
-          margin: "0",
-          padding: getSpacingPx(SPACING.micro), // was 1px
-          borderRadius: `0 0 ${BORDER_RADIUS.xs} 0`,
-          boxShadow: `inset 1px 1px 2px ${theme.vars.palette.action.disabledBackground}`,
-          width: "20px",
-          height: "20px"
-        }),
-        [theme.vars.palette.grey, theme.vars.palette.action.disabledBackground]
-      );
-
-      const iconForTypeSvgProps = useMemo(
-        () => ({ width: "15px", height: "15px" }),
-        []
-      );
-
-      const favoriteButtonSx = useMemo(
-        () => ({
-          padding: getSpacingPx(SPACING.micro),
-          marginLeft: "auto",
-          opacity: isFavorite ? 1 : 0.5,
-          color: isFavorite ? "warning.main" : "text.secondary",
-          "&:hover": {
-            backgroundColor: "action.hover",
-            opacity: 1
-          }
-        }),
-        [isFavorite]
-      );
-
-      const iconWithText = (
-        <>
-          <IconForType
-            iconName={outputType}
-            containerStyle={iconForTypeContainerStyle}
-            bgStyle={iconForTypeBgStyle}
-            svgProps={iconForTypeSvgProps}
-          />
-          <Text
-            size="small"
-            sx={{
-              lineHeight: 1.3,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis"
-            }}
-          >
-            <HighlightText
-              text={node.title}
-              query={searchTerm}
-              matchStyle="primary"
-            />
-          </Text>
-        </>
-      );
-
-      return (
-        <div
-          ref={ref}
-          className={`node ${isHovered ? "hovered" : ""} ${
-            showCheckbox && isSelected ? "selected" : ""
-          }`}
-          draggable={!showCheckbox}
-          onMouseEnter={onMouseEnter}
-          onDragStart={handleDragStart}
-          onDragEnd={onDragEnd}
-        >
-          <div
-            className="node-button"
-            role="button"
-            tabIndex={0}
-            onClick={handleClick}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                if (showCheckbox && onToggleSelection) {
-                  onToggleSelection(node.node_type);
-                } else {
-                  onClick(node);
-                }
-              }
-            }}
-            style={nodeButtonStyle}
-          >
-            {showCheckbox && (
-              <div style={checkboxContainerStyle}>
-                {isSelected && (
-                  <CheckIcon
-                    sx={{
-                      fontSize: "var(--fontSizeBig)",
-                      color: theme.vars.palette.primary.main,
-                      padding: getSpacingPx(SPACING.micro)
-                    }}
-                  />
-                )}
-              </div>
-            )}
-            {showDescriptionTooltip ? (
-              <Tooltip
-                title={tooltipContent}
-                placement="right"
-                delay={TOOLTIP_ENTER_DELAY}
-                slotProps={{
-                  popper: { sx: { zIndex: theme.zIndex.commandMenu } },
-                  tooltip: { sx: { bgcolor: "grey.800", color: "grey.100", maxWidth: 350, padding: getSpacingPx(SPACING.xl) } }
-                }}
-              >
-                <div style={iconContainerStyle}>
-                  {iconWithText}
-                </div>
-              </Tooltip>
-            ) : (
-              <div style={iconContainerStyle}>
-                {iconWithText}
-              </div>
-            )}
-            {hasRuntimeDeps && (
-              <Tooltip
-                title={`Requires: ${node.required_runtimes!.join(", ")}`}
-                placement="top"
-                delay={TOOLTIP_ENTER_DELAY}
-                slotProps={{
-                  popper: { sx: { zIndex: theme.zIndex.tooltip } },
-                  tooltip: { sx: { bgcolor: "grey.800", color: "grey.100", fontSize: "var(--fontSizeSmaller)" } }
-                }}
-              >
-                <Box
-                  component="span"
-                  sx={{
-                    fontSize: "var(--fontSizeSmaller)",
-                    fontWeight: FONT_WEIGHT.semibold,
-                    textTransform: "uppercase",
-                    bgcolor: `color-mix(in srgb, ${theme.vars.palette.warning.main} 20%, transparent)`,
-                    color: theme.vars.palette.warning.main,
-                    px: SPACING.micro,
-                    py: SPACING.micro,
-                    borderRadius: BORDER_RADIUS.sm,
-                    whiteSpace: "nowrap",
-                    flexShrink: 0
-                  }}
-                >
-                  {node.required_runtimes!.join(", ")}
-                </Box>
-              </Tooltip>
-            )}
-            {isSnippet && (
+  const tooltipContent = useMemo(() => {
+    if (!parsedDescription) {
+      return node.title;
+    }
+    return (
+      <Box sx={{ maxWidth: 300 }}>
+        <Text size="normal" weight={FONT_WEIGHT.medium} sx={{ mb: 0.5 }}>
+          {parsedDescription.description}
+        </Text>
+        {parsedDescription.tags.length > 0 && (
+          <FlexRow gap={0.5} wrap sx={{ mt: 1 }}>
+            {parsedDescription.tags.map((tag) => (
               <Box
+                key={tag}
                 component="span"
                 sx={{
                   fontSize: "var(--fontSizeSmaller)",
-                  fontWeight: FONT_WEIGHT.semibold,
-                  fontFamily: "monospace",
-                  letterSpacing: "0.03em",
-                  bgcolor: `color-mix(in srgb, ${theme.vars.palette.info.main} 18%, transparent)`,
-                  color: theme.vars.palette.info.main,
-                  px: SPACING.micro,
+                  fontWeight: FONT_WEIGHT.medium,
+                  textTransform: "uppercase",
+                  bgcolor: "grey.700",
+                  color: "grey.300",
+                  px: SPACING.xs,
                   py: SPACING.micro,
-                  borderRadius: BORDER_RADIUS.sm,
-                  whiteSpace: "nowrap",
-                  flexShrink: 0
+                  borderRadius: BORDER_RADIUS.sm
                 }}
               >
-                JS
+                {tag}
               </Box>
-            )}
-            {showFavoriteButton && (
-              <ToolbarIconButton
-                icon={isFavorite ? <StarIcon fontSize="small" /> : <StarBorderIcon fontSize="small" />}
-                tooltip={isFavorite ? "Remove from favorites" : "Add to favorites"}
-                tooltipPlacement="top"
-                size="small"
-                onClick={handleFavoriteClick}
-                sx={favoriteButtonSx}
-                aria-label={
-                  isFavorite
-                    ? `Remove ${node.title} from favorites`
-                    : `Add ${node.title} to favorites`
-                }
+            ))}
+          </FlexRow>
+        )}
+        {parsedDescription.useCases.raw && (
+          <Box sx={{ mt: 1 }}>
+            <Text
+              size="smaller"
+              weight={FONT_WEIGHT.semibold}
+              sx={{ color: "grey.400", textTransform: "uppercase", mb: 0.5 }}
+            >
+              Use cases
+            </Text>
+            <Box
+              component="ul"
+              sx={{
+                m: 0,
+                pl: 2,
+                fontSize: "var(--fontSizeSmall)",
+                color: "grey.300"
+              }}
+            >
+              {parsedDescription.useCases.raw
+                .split("\n")
+                .map((useCase, index) => (
+                  <li key={`${useCase}-${index}`}>{useCase}</li>
+                ))}
+            </Box>
+          </Box>
+        )}
+      </Box>
+    );
+  }, [parsedDescription, node.title]);
+
+  const onMouseEnter = useCallback(() => {
+    setHoveredNode(node);
+  }, [node, setHoveredNode]);
+
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (showCheckbox && onToggleSelection) {
+        e.preventDefault();
+        onToggleSelection(node.node_type);
+      } else {
+        onClick(node);
+      }
+    },
+    [showCheckbox, onToggleSelection, node, onClick]
+  );
+
+  const handleFavoriteClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      const wasAdded = !isFavorite;
+      toggleFavorite(node.node_type);
+      addNotification({
+        type: "info",
+        content: wasAdded
+          ? "Node added to favorites"
+          : "Node removed from favorites",
+        timeout: NOTIFICATION_TIMEOUT_SHORT
+      });
+    },
+    [node.node_type, isFavorite, toggleFavorite, addNotification]
+  );
+
+  const handleDragStart = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      if (!showCheckbox) {
+        onDragStart(node, e);
+      }
+    },
+    [showCheckbox, onDragStart, node]
+  );
+
+  const nodeButtonStyle = useMemo(
+    () => ({
+      cursor: "pointer" as const,
+      display: "flex",
+      alignItems: "center",
+      flex: 1,
+      gap: "0.5em",
+      position: "relative" as const,
+      minHeight: "34px",
+      paddingLeft: showCheckbox ? "24px" : undefined
+    }),
+    [showCheckbox]
+  );
+
+  const checkboxContainerStyle = useMemo(
+    () => ({
+      position: "absolute" as const,
+      left: "4px",
+      width: "20px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    }),
+    []
+  );
+
+  const iconContainerStyle = useMemo(
+    () => ({
+      display: "flex",
+      alignItems: "center",
+      gap: "0.5em",
+      flex: 1,
+      minWidth: 0
+    }),
+    []
+  );
+
+  const iconForTypeContainerStyle = useMemo(
+    () => ({
+      borderRadius: `0 0 ${BORDER_RADIUS.xs} 0`,
+      marginLeft: "0",
+      marginTop: "0"
+    }),
+    []
+  );
+
+  const iconForTypeBgStyle = useMemo(
+    () => ({
+      backgroundColor: theme.vars.palette.grey[900],
+      margin: "0",
+      padding: getSpacingPx(SPACING.micro), // was 1px
+      borderRadius: `0 0 ${BORDER_RADIUS.xs} 0`,
+      boxShadow: `inset 1px 1px 2px ${theme.vars.palette.action.disabledBackground}`,
+      width: "20px",
+      height: "20px"
+    }),
+    [theme.vars.palette.grey, theme.vars.palette.action.disabledBackground]
+  );
+
+  const iconForTypeSvgProps = useMemo(
+    () => ({ width: "15px", height: "15px" }),
+    []
+  );
+
+  const favoriteButtonSx = useMemo(
+    () => ({
+      padding: getSpacingPx(SPACING.micro),
+      marginLeft: "auto",
+      opacity: isFavorite ? 1 : 0.5,
+      color: isFavorite ? "warning.main" : "text.secondary",
+      "&:hover": {
+        backgroundColor: "action.hover",
+        opacity: 1
+      }
+    }),
+    [isFavorite]
+  );
+
+  const iconWithText = (
+    <>
+      <IconForType
+        iconName={outputType}
+        containerStyle={iconForTypeContainerStyle}
+        bgStyle={iconForTypeBgStyle}
+        svgProps={iconForTypeSvgProps}
+      />
+      <Text
+        size="small"
+        sx={{
+          lineHeight: 1.3,
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis"
+        }}
+      >
+        <HighlightText
+          text={node.title}
+          query={searchTerm}
+          matchStyle="primary"
+        />
+      </Text>
+    </>
+  );
+
+  return (
+    <div
+      ref={ref}
+      className={`node ${isHovered ? "hovered" : ""} ${
+        showCheckbox && isSelected ? "selected" : ""
+      }`}
+      draggable={!showCheckbox}
+      onMouseEnter={onMouseEnter}
+      onDragStart={handleDragStart}
+      onDragEnd={onDragEnd}
+    >
+      <div
+        className="node-button"
+        role="button"
+        tabIndex={0}
+        onClick={handleClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            if (showCheckbox && onToggleSelection) {
+              onToggleSelection(node.node_type);
+            } else {
+              onClick(node);
+            }
+          }
+        }}
+        style={nodeButtonStyle}
+      >
+        {showCheckbox && (
+          <div style={checkboxContainerStyle}>
+            {isSelected && (
+              <CheckIcon
+                sx={{
+                  fontSize: "var(--fontSizeBig)",
+                  color: theme.vars.palette.primary.main,
+                  padding: getSpacingPx(SPACING.micro)
+                }}
               />
             )}
           </div>
-        </div>
-      );
-    }
-  )
-);
-
-NodeItem.displayName = "NodeItem";
+        )}
+        {showDescriptionTooltip ? (
+          <Tooltip
+            title={tooltipContent}
+            placement="right"
+            delay={TOOLTIP_ENTER_DELAY}
+            slotProps={{
+              popper: { sx: { zIndex: theme.zIndex.commandMenu } },
+              tooltip: {
+                sx: {
+                  bgcolor: "grey.800",
+                  color: "grey.100",
+                  maxWidth: 350,
+                  padding: getSpacingPx(SPACING.xl)
+                }
+              }
+            }}
+          >
+            <div style={iconContainerStyle}>{iconWithText}</div>
+          </Tooltip>
+        ) : (
+          <div style={iconContainerStyle}>{iconWithText}</div>
+        )}
+        {hasRuntimeDeps && (
+          <Tooltip
+            title={`Requires: ${node.required_runtimes!.join(", ")}`}
+            placement="top"
+            delay={TOOLTIP_ENTER_DELAY}
+            slotProps={{
+              popper: { sx: { zIndex: theme.zIndex.tooltip } },
+              tooltip: {
+                sx: {
+                  bgcolor: "grey.800",
+                  color: "grey.100",
+                  fontSize: "var(--fontSizeSmaller)"
+                }
+              }
+            }}
+          >
+            <Box
+              component="span"
+              sx={{
+                fontSize: "var(--fontSizeSmaller)",
+                fontWeight: FONT_WEIGHT.semibold,
+                textTransform: "uppercase",
+                bgcolor: `color-mix(in srgb, ${theme.vars.palette.warning.main} 20%, transparent)`,
+                color: theme.vars.palette.warning.main,
+                px: SPACING.micro,
+                py: SPACING.micro,
+                borderRadius: BORDER_RADIUS.sm,
+                whiteSpace: "nowrap",
+                flexShrink: 0
+              }}
+            >
+              {node.required_runtimes!.join(", ")}
+            </Box>
+          </Tooltip>
+        )}
+        {isSnippet && (
+          <Box
+            component="span"
+            sx={{
+              fontSize: "var(--fontSizeSmaller)",
+              fontWeight: FONT_WEIGHT.semibold,
+              fontFamily: "monospace",
+              letterSpacing: "0.03em",
+              bgcolor: `color-mix(in srgb, ${theme.vars.palette.info.main} 18%, transparent)`,
+              color: theme.vars.palette.info.main,
+              px: SPACING.micro,
+              py: SPACING.micro,
+              borderRadius: BORDER_RADIUS.sm,
+              whiteSpace: "nowrap",
+              flexShrink: 0
+            }}
+          >
+            JS
+          </Box>
+        )}
+        {showFavoriteButton && (
+          <ToolbarIconButton
+            icon={
+              isFavorite ? (
+                <StarIcon fontSize="small" />
+              ) : (
+                <StarBorderIcon fontSize="small" />
+              )
+            }
+            tooltip={isFavorite ? "Remove from favorites" : "Add to favorites"}
+            tooltipPlacement="top"
+            size="small"
+            onClick={handleFavoriteClick}
+            sx={favoriteButtonSx}
+            aria-label={
+              isFavorite
+                ? `Remove ${node.title} from favorites`
+                : `Add ${node.title} to favorites`
+            }
+          />
+        )}
+      </div>
+    </div>
+  );
+});
 
 export default NodeItem;

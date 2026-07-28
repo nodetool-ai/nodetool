@@ -1,9 +1,19 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useCallback, forwardRef, useState, useMemo } from "react";
+import { memo, useCallback, useState, useMemo, type Ref } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Box, Collapse, MOTION, BORDER_RADIUS, FONT_WEIGHT, Z_INDEX, SPACING, getSpacingPx } from "../ui_primitives";
+import {
+  Text,
+  Box,
+  Collapse,
+  MOTION,
+  BORDER_RADIUS,
+  FONT_WEIGHT,
+  Z_INDEX,
+  SPACING,
+  getSpacingPx
+} from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -42,6 +52,7 @@ interface SearchResultItemProps {
    * space is narrow (~280 px). Default false.
    */
   compact?: boolean;
+  ref?: Ref<HTMLDivElement>;
 }
 
 const searchResultStyles = (theme: Theme, compact: boolean) =>
@@ -214,337 +225,316 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
     }
   });
 
-const SearchResultItem = memo(
-  forwardRef<HTMLDivElement, SearchResultItemProps>(
-    (
-      {
-        node,
-        onDragStart,
-        onDragEnd,
-        onClick,
-        isKeyboardSelected = false,
-        compact = false
-      },
-      ref
-    ) => {
-      const theme = useTheme();
-      const outputType =
-        node.outputs.length > 0 ? node.outputs[0].type.type : "";
-      const providerKind = getProviderKindForNamespace(node.namespace);
-      const searchTerm = useNodeMenuStore((state) => state.searchTerm);
-      const isFavorite = useFavoriteNodesStore((state) =>
-        state.isFavorite(node.node_type)
-      );
-      const toggleFavorite = useFavoriteNodesStore(
-        (state) => state.toggleFavorite
-      );
-      const addNotification = useNotificationStore(
-        (state) => state.addNotification
-      );
+const SearchResultItem = memo(function SearchResultItem({
+  node,
+  onDragStart,
+  onDragEnd,
+  onClick,
+  isKeyboardSelected = false,
+  compact = false,
+  ref
+}: SearchResultItemProps) {
+  const theme = useTheme();
+  const outputType = node.outputs.length > 0 ? node.outputs[0].type.type : "";
+  const providerKind = getProviderKindForNamespace(node.namespace);
+  const searchTerm = useNodeMenuStore((state) => state.searchTerm);
+  const isFavorite = useFavoriteNodesStore((state) =>
+    state.isFavorite(node.node_type)
+  );
+  const toggleFavorite = useFavoriteNodesStore((state) => state.toggleFavorite);
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
 
-      const handleFavoriteToggle = useCallback(
-        (next: boolean) => {
-          toggleFavorite(node.node_type);
-          addNotification({
-            type: "info",
-            content: next
-              ? "Node added to favorites"
-              : "Node removed from favorites",
-            timeout: NOTIFICATION_TIMEOUT_SHORT
-          });
-        },
-        [toggleFavorite, addNotification, node.node_type]
-      );
+  const handleFavoriteToggle = useCallback(
+    (next: boolean) => {
+      toggleFavorite(node.node_type);
+      addNotification({
+        type: "info",
+        content: next
+          ? "Node added to favorites"
+          : "Node removed from favorites",
+        timeout: NOTIFICATION_TIMEOUT_SHORT
+      });
+    },
+    [toggleFavorite, addNotification, node.node_type]
+  );
 
-      const { description, tags } = useMemo(
-        () =>
-          formatNodeDocumentation(
-            node.description,
-            searchTerm,
-            node.searchInfo
-          ),
-        [node.description, searchTerm, node.searchInfo]
-      );
+  const { description, tags } = useMemo(
+    () =>
+      formatNodeDocumentation(node.description, searchTerm, node.searchInfo),
+    [node.description, searchTerm, node.searchInfo]
+  );
 
-      const matchingTags = useMemo(() => {
-        if (!searchTerm) {
-          return [];
-        }
-        const searchLower = searchTerm.toLowerCase();
-        return tags.filter((tag) => tag.toLowerCase().includes(searchLower));
-      }, [searchTerm, tags]);
+  const matchingTags = useMemo(() => {
+    if (!searchTerm) {
+      return [];
+    }
+    const searchLower = searchTerm.toLowerCase();
+    return tags.filter((tag) => tag.toLowerCase().includes(searchLower));
+  }, [searchTerm, tags]);
 
-      const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
-      const handleClick = useCallback(() => {
+  const handleClick = useCallback(() => {
+    onClick(node);
+  }, [onClick, node]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
         onClick(node);
-      }, [onClick, node]);
+      }
+    },
+    [onClick, node]
+  );
 
-      const handleKeyDown = useCallback(
-        (e: React.KeyboardEvent) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onClick(node);
-          }
-        },
-        [onClick, node]
-      );
+  const handleToggleExpand = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsExpanded((prev) => !prev);
+  }, []);
 
-      const handleToggleExpand = useCallback((e: React.MouseEvent) => {
-        e.stopPropagation();
-        setIsExpanded((prev) => !prev);
-      }, []);
+  const handleExpandKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsExpanded((prev) => !prev);
+    }
+  }, []);
 
-      const handleExpandKeyDown = useCallback(
-        (e: React.KeyboardEvent) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            e.stopPropagation();
-            setIsExpanded((prev) => !prev);
-          }
-        },
-        []
-      );
+  const handleDragStart = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      onDragStart(node, event);
+    },
+    [onDragStart, node]
+  );
 
-      const handleDragStart = useCallback(
-        (event: React.DragEvent<HTMLDivElement>) => {
-          onDragStart(node, event);
-        },
-        [onDragStart, node]
-      );
+  const compactBgStyle = useMemo(
+    () => ({
+      backgroundColor: theme.vars.palette.grey[900],
+      width: "18px",
+      height: "18px",
+      margin: 0,
+      padding: getSpacingPx(SPACING.micro),
+      borderRadius: BORDER_RADIUS.sm
+    }),
+    [theme.vars.palette.grey[900]]
+  );
 
-      const compactBgStyle = useMemo(
-        () => ({
-          backgroundColor: theme.vars.palette.grey[900],
-          width: "18px",
-          height: "18px",
-          margin: 0,
-          padding: getSpacingPx(SPACING.micro),
-          borderRadius: BORDER_RADIUS.sm
-        }),
-        [theme.vars.palette.grey[900]]
-      );
+  const expandedContainerStyle = useMemo(
+    () => ({
+      marginLeft: "0",
+      marginTop: "0"
+    }),
+    []
+  );
 
-      const expandedContainerStyle = useMemo(
-        () => ({
-          marginLeft: "0",
-          marginTop: "0"
-        }),
-        []
-      );
+  const expandedBgStyle = useMemo(
+    () => ({
+      backgroundColor: theme.vars.palette.action.hover,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      margin: "0",
+      padding: getSpacingPx(SPACING.xs),
+      borderRadius: BORDER_RADIUS.md,
+      width: "28px",
+      height: "28px"
+    }),
+    [theme.vars.palette.action.hover, theme.vars.palette.divider]
+  );
 
-      const expandedBgStyle = useMemo(
-        () => ({
-          backgroundColor: theme.vars.palette.action.hover,
-          border: `1px solid ${theme.vars.palette.divider}`,
-          margin: "0",
-          padding: getSpacingPx(SPACING.xs),
-          borderRadius: BORDER_RADIUS.md,
-          width: "28px",
-          height: "28px"
-        }),
-        [theme.vars.palette.action.hover, theme.vars.palette.divider]
-      );
+  const cssStyles = useMemo(
+    () => searchResultStyles(theme, compact),
+    [theme, compact]
+  );
 
-      const cssStyles = useMemo(
-        () => searchResultStyles(theme, compact),
-        [theme, compact]
-      );
+  const providerTagStyle = useMemo(
+    () => ({
+      color:
+        providerKind === "api"
+          ? theme.vars.palette.c_provider_api
+          : theme.vars.palette.c_provider_local
+    }),
+    [
+      providerKind,
+      theme.vars.palette.c_provider_api,
+      theme.vars.palette.c_provider_local
+    ]
+  );
 
-      const providerTagStyle = useMemo(
-        () => ({
-          color:
-            providerKind === "api"
-              ? theme.vars.palette.c_provider_api
-              : theme.vars.palette.c_provider_local
-        }),
-        [providerKind, theme.vars.palette.c_provider_api, theme.vars.palette.c_provider_local]
-      );
+  if (compact) {
+    return (
+      <div
+        ref={ref}
+        className={`search-result-item ${isKeyboardSelected ? "keyboard-selected" : ""}`}
+        css={cssStyles}
+        role="button"
+        tabIndex={0}
+        draggable
+        onClick={handleClick}
+        onKeyDown={handleKeyDown}
+        onDragStart={handleDragStart}
+        onDragEnd={onDragEnd}
+      >
+        <IconForType
+          iconName={outputType}
+          bgStyle={compactBgStyle}
+          svgProps={COMPACT_SVG_PROPS}
+        />
+        <Text className="result-title" component="div" sx={COMPACT_TITLE_SX}>
+          <HighlightText
+            text={node.title}
+            query={searchTerm}
+            matchStyle="primary"
+          />
+        </Text>
+        <span className="provider-tag" style={providerTagStyle}>
+          {providerKind === "api" ? "API" : "Local"}
+        </span>
+        <FavoriteButton
+          isFavorite={isFavorite}
+          onToggle={handleFavoriteToggle}
+          buttonSize="small"
+        />
+      </div>
+    );
+  }
 
-      if (compact) {
-        return (
-          <div
-            ref={ref}
-            className={`search-result-item ${isKeyboardSelected ? "keyboard-selected" : ""}`}
-            css={cssStyles}
-            role="button"
-            tabIndex={0}
-            draggable
-            onClick={handleClick}
-            onKeyDown={handleKeyDown}
-            onDragStart={handleDragStart}
-            onDragEnd={onDragEnd}
-          >
+  return (
+    <div
+      ref={ref}
+      className={`search-result-item ${isExpanded ? "expanded" : ""} ${isKeyboardSelected ? "keyboard-selected" : ""}`}
+      css={cssStyles}
+      role="button"
+      tabIndex={0}
+      draggable
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      onDragStart={handleDragStart}
+      onDragEnd={onDragEnd}
+    >
+      <div className="result-header">
+        <div className="result-main">
+          <div className="result-title-row">
             <IconForType
               iconName={outputType}
-              bgStyle={compactBgStyle}
-              svgProps={COMPACT_SVG_PROPS}
+              containerStyle={expandedContainerStyle}
+              bgStyle={expandedBgStyle}
+              svgProps={EXPANDED_SVG_PROPS}
             />
-            <Text
-              className="result-title"
-              component="div"
-              sx={COMPACT_TITLE_SX}
-            >
+            <Text className="result-title" component="div">
               <HighlightText
                 text={node.title}
                 query={searchTerm}
                 matchStyle="primary"
               />
             </Text>
-            <span
-              className="provider-tag"
-              style={providerTagStyle}
-            >
+            {matchingTags.length > 0 && (
+              <div className="matched-tags-inline">
+                {matchingTags.slice(0, 2).map((tag, idx) => (
+                  <span
+                    key={`${node.node_type}-tag-${tag}-${idx}`}
+                    className="result-tag matched"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+            <span className="provider-tag" style={providerTagStyle}>
               {providerKind === "api" ? "API" : "Local"}
             </span>
-            <FavoriteButton
-              isFavorite={isFavorite}
-              onToggle={handleFavoriteToggle}
-              buttonSize="small"
-            />
           </div>
-        );
-      }
-
-      return (
-        <div
-          ref={ref}
-          className={`search-result-item ${isExpanded ? "expanded" : ""} ${isKeyboardSelected ? "keyboard-selected" : ""}`}
-          css={cssStyles}
-          role="button"
-          tabIndex={0}
-          draggable
-          onClick={handleClick}
-          onKeyDown={handleKeyDown}
-          onDragStart={handleDragStart}
-          onDragEnd={onDragEnd}
-        >
-          <div className="result-header">
-            <div className="result-main">
-              <div className="result-title-row">
-                <IconForType
-                  iconName={outputType}
-                  containerStyle={expandedContainerStyle}
-                  bgStyle={expandedBgStyle}
-                  svgProps={EXPANDED_SVG_PROPS}
-                />
-                <Text className="result-title" component="div">
-                  <HighlightText
-                    text={node.title}
-                    query={searchTerm}
-                    matchStyle="primary"
-                  />
-                </Text>
-                {matchingTags.length > 0 && (
-                  <div className="matched-tags-inline">
-                    {matchingTags.slice(0, 2).map((tag, idx) => (
-                      <span key={`${node.node_type}-tag-${tag}-${idx}`} className="result-tag matched">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <span
-                  className="provider-tag"
-                  style={providerTagStyle}
-                >
-                  {providerKind === "api" ? "API" : "Local"}
-                </span>
-              </div>
-            </div>
-            <div className="result-header-right">
-              <Text className="result-namespace" component="div">
-                <HighlightText
-                  text={node.namespace}
-                  query={searchTerm}
-                  matchStyle="primary"
-                />
-              </Text>
-              <FavoriteButton
-                isFavorite={isFavorite}
-                onToggle={handleFavoriteToggle}
-                buttonSize="small"
-              />
-              <div
-                className={`expand-indicator ${isExpanded ? "expanded" : ""}`}
-                role="button"
-                tabIndex={0}
-                onClick={handleToggleExpand}
-                onKeyDown={handleExpandKeyDown}
-                aria-expanded={isExpanded}
-                aria-label={isExpanded ? "Collapse details" : "Show details"}
-                title={isExpanded ? "Collapse details" : "Show details"}
-              >
-                <ExpandMoreIcon />
-              </div>
-            </div>
-          </div>
-
-          {description && (
-            <Text className="result-description" component="div">
-              <HighlightText
-                text={description}
-                query={searchTerm}
-                matchStyle="primary"
-              />
-            </Text>
-          )}
-
-          {/* Input/Output info - click to expand (absolutely positioned overlay) */}
-          <Collapse in={isExpanded} timeout={150} className="io-info-wrapper">
-            <Box className="io-info">
-              {node.properties.length > 0 && (
-                <Box className="io-row">
-                  <span className="io-label">Input:</span>
-                  <Box className="io-items">
-                    {node.properties.slice(0, 6).map((prop) => (
-                      <span
-                        key={prop.name}
-                        className="io-item"
-                        style={{
-                          borderColor: colorForType(prop.type.type)
-                        }}
-                      >
-                        {prop.name}
-                      </span>
-                    ))}
-                    {node.properties.length > 6 && (
-                      <span
-                        className="io-item"
-                        style={{ borderColor: "var(--palette-grey-500)" }}
-                      >
-                        +{node.properties.length - 6}
-                      </span>
-                    )}
-                  </Box>
-                </Box>
-              )}
-              {node.outputs.length > 0 && (
-                <Box className="io-row">
-                  <span className="io-label">Output:</span>
-                  <Box className="io-items">
-                    {node.outputs.map((output) => (
-                      <span
-                        key={output.name}
-                        className="io-item"
-                        style={{
-                          borderColor: colorForType(output.type.type)
-                        }}
-                      >
-                        {output.type.type}
-                      </span>
-                    ))}
-                  </Box>
-                </Box>
-              )}
-            </Box>
-          </Collapse>
         </div>
-      );
-    }
-  )
-);
+        <div className="result-header-right">
+          <Text className="result-namespace" component="div">
+            <HighlightText
+              text={node.namespace}
+              query={searchTerm}
+              matchStyle="primary"
+            />
+          </Text>
+          <FavoriteButton
+            isFavorite={isFavorite}
+            onToggle={handleFavoriteToggle}
+            buttonSize="small"
+          />
+          <div
+            className={`expand-indicator ${isExpanded ? "expanded" : ""}`}
+            role="button"
+            tabIndex={0}
+            onClick={handleToggleExpand}
+            onKeyDown={handleExpandKeyDown}
+            aria-expanded={isExpanded}
+            aria-label={isExpanded ? "Collapse details" : "Show details"}
+            title={isExpanded ? "Collapse details" : "Show details"}
+          >
+            <ExpandMoreIcon />
+          </div>
+        </div>
+      </div>
 
-SearchResultItem.displayName = "SearchResultItem";
+      {description && (
+        <Text className="result-description" component="div">
+          <HighlightText
+            text={description}
+            query={searchTerm}
+            matchStyle="primary"
+          />
+        </Text>
+      )}
+
+      {/* Input/Output info - click to expand (absolutely positioned overlay) */}
+      <Collapse in={isExpanded} timeout={150} className="io-info-wrapper">
+        <Box className="io-info">
+          {node.properties.length > 0 && (
+            <Box className="io-row">
+              <span className="io-label">Input:</span>
+              <Box className="io-items">
+                {node.properties.slice(0, 6).map((prop) => (
+                  <span
+                    key={prop.name}
+                    className="io-item"
+                    style={{
+                      borderColor: colorForType(prop.type.type)
+                    }}
+                  >
+                    {prop.name}
+                  </span>
+                ))}
+                {node.properties.length > 6 && (
+                  <span
+                    className="io-item"
+                    style={{ borderColor: "var(--palette-grey-500)" }}
+                  >
+                    +{node.properties.length - 6}
+                  </span>
+                )}
+              </Box>
+            </Box>
+          )}
+          {node.outputs.length > 0 && (
+            <Box className="io-row">
+              <span className="io-label">Output:</span>
+              <Box className="io-items">
+                {node.outputs.map((output) => (
+                  <span
+                    key={output.name}
+                    className="io-item"
+                    style={{
+                      borderColor: colorForType(output.type.type)
+                    }}
+                  >
+                    {output.type.type}
+                  </span>
+                ))}
+              </Box>
+            </Box>
+          )}
+        </Box>
+      </Collapse>
+    </div>
+  );
+});
 
 export default SearchResultItem;
