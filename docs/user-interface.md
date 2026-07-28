@@ -106,6 +106,10 @@ Touch-optimized Dashboard, Chat, and Graph Editor. See [Mobile App](mobile-app.m
 
 ![Mobile Dashboard](assets/screenshots/dashboard-mobile.png)
 
+At tablet width the same layout keeps the panels but widens the content column:
+
+![Tablet Dashboard](assets/screenshots/dashboard-tablet.png)
+
 ### Desktop (Electron)
 
 The desktop app shares all the views above, plus an Install Wizard, System Tray, and frameless mini-app windows. See [Desktop App Views](electron-views.md).
@@ -129,8 +133,6 @@ Five workspaces:
 ## The App Menu
 
 The logo at the top of the left rail opens the app menu — your navigation hub:
-
-![App Menu](assets/screenshots/app-header.png)
 
 - **Dashboard** – Home screen
 - **Examples** – Browse ready-to-run example workflows
@@ -267,6 +269,8 @@ A form or dashboard over one or more workflows, with the graph hidden.
 
 The workflows an app runs stay separate resources. **Linked workflows** on the app tab opens one in its own workflow tab. See [Mini Apps](mini-apps.md).
 
+![Mini App — Run view](assets/screenshots/mini-app-run.png)
+
 ### Standalone Mini-App Windows
 
 Launch mini-apps in dedicated windows from the system tray:
@@ -331,6 +335,10 @@ Download, organize, and configure AI models.
 ## Panels and Layout
 
 NodeTool's interface is flexible – customize it to your workflow.
+
+Open documents sit in a tab bar across the top — workflows, sketches, timelines, storyboards and apps all share it.
+
+![Workspace tab bar](assets/screenshots/editor-tabs-bar.png)
 
 ### Rearranging Panels
 

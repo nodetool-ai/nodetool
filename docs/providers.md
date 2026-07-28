@@ -231,6 +231,14 @@ Or set the variable directly in `.env.development.local` (or your shell environm
 
 Local providers (Ollama, vLLM, LM Studio, llama.cpp) don't need a key — point NodeTool at the server's URL instead, either in Settings → Providers or via the matching `*_URL` environment variable.
 
+## Tracking spend
+
+Every cloud call records its token counts and cost. The **Costs** page (`/costs`, or **Costs** in the app menu) aggregates them by day, provider, model, and workflow, so you can see which pipeline is expensive before the invoice does.
+
+![Costs dashboard](assets/screenshots/costs-dashboard.png)
+
+The same records are readable from the terminal with `nodetool costs summary`.
+
 ## Adding a new provider
 
 Every provider is a class in `packages/runtime/src/providers/` extending `BaseProvider` (or `OpenAIProvider` / `AnthropicProvider` for OpenAI- or Anthropic-compatible APIs), registered in `provider-registry.ts` with the environment variables it needs. The right approach differs by provider — live model discovery, a hand-maintained manifest, or codegen from upstream schemas — so follow the [Provider Guides](developer/providers/index.md) runbook for your case rather than reverse-engineering it from an existing provider. Run `npm run check` (typecheck, lint, test) before opening a PR.

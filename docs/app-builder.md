@@ -34,8 +34,12 @@ See [Key Concepts → How everything fits together](key-concepts.md#how-everythi
 2. Click an app, or create one with **New app** or **New app from workflow**.
 3. On the app tab, switch to **Design**.
 
+![App Builder — Design view](assets/screenshots/mini-app-design.png)
+
 **Run** shows the app the way its users see it. **Settings** holds the name,
 description, versions, and spending limit.
+
+![The same app in Run](assets/screenshots/mini-app-run.png)
 
 ## Build an app
 

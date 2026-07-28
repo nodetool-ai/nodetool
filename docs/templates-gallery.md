@@ -32,7 +32,7 @@ Browse the full list on the [Workflow Examples]({{ '/workflows/' | relative_url 
 2. Hit **Open** (or double-click) to load it into the editor as a new workflow.
 3. Save a copy with `Ctrl/⌘ + S` — edits never modify the original template.
 
-![Template Preview](assets/screenshots/screenshot-placeholder.svg)
+![Examples page](assets/screenshots/examples-page.png)
 
 ---
 

@@ -6,6 +6,14 @@ description: "How NodeTool packages are structured, registered, and managed in t
 
 NodeTool packages bundle reusable nodes, assets, and example workflows. The package registry discovers and registers node classes so workflows can reference them at runtime.
 
+## Manage packs in the app
+
+The **Package Manager** (`/packages`, or **Packages** in the app menu) is where installed packs are turned on and off. Included packs ship with NodeTool; the Registry and Third-party tabs list what can be installed. Provider packs light up on their own once you set the matching API key.
+
+![Package Manager](assets/screenshots/packages-manager.png)
+
+Toggling a pack takes effect after the NodeTool server restarts.
+
 ## Package Anatomy
 
 A package is a standard npm workspace package that exports node classes and a registration function:

@@ -11,12 +11,24 @@ unexpected pixel diffs.
 | Spec | Flow |
 | --- | --- |
 | `node-graph.spec.ts` | Empty canvas · nodes+edges · inspector panel · node library · timeline editor |
+| `editor-surfaces.spec.ts` | Bottom panel (logs) · left panel (workflows, assets) · command menu · node menu · node context menu |
 | `chat.spec.ts` | Empty conversation · message thread · media composer · model selector · dashboard |
+| `mini-app.spec.ts` | App Design surface · App Run surface |
+| `documents.spec.ts` | Sketch editor · storyboard · entities library · studio timeline |
+| `library.spec.ts` | Assets · collections · model manager · package manager · examples · workspaces |
 | `settings.spec.ts` | API Keys (provider cards) · Integrations · General · About |
-| `design-system.spec.ts` | Color picker · recommended-models · image comparer · layout primitives |
-| `theme.spec.ts` | Dashboard / chat / settings captured in **light** mode (dark is the default elsewhere) |
+| `design-system.spec.ts` | Color picker · recommended-models · image comparer · form controls · layout primitives |
+| `theme.spec.ts` | Dashboard / chat / settings / editor / assets captured in **light** mode (dark is the default elsewhere) |
 
-That's **20 distinct page states** across the critical flows.
+That's **42 distinct page states** across the critical flows, plus the frames
+`motion-design.spec.ts` captures from the timeline compositor.
+
+Two things the suite reaches by seeding rather than clicking: editor panels
+(`gotoPage(page, url, { panels })`) and `/workspace` document tabs
+(`gotoPage(page, "/workspace", { workspace: { tabs: [...] } })`). Both write the
+zustand persist slot the app rehydrates from, so the layout is fixed before
+first paint. The click paths through the left rail are the journey suite's job
+(`tests/journeys/`), not this one's.
 
 ## Projects (browser × viewport)
 
@@ -98,7 +110,7 @@ artifact. Download it, drop the folders into `web/tests/visual/`, commit — or
 run the `update=true` dispatch on the PR branch, which regenerates and commits
 them for you.
 
-Baselines are **CI-generated and Linux-only**. Screenshot filenames carry the
+Baselines are **Linux-only**. Screenshot filenames carry the
 platform (`…-desktop-chromium-linux.png`), so a macOS run writes a parallel
 `-darwin` set that CI never regenerates and that goes stale on the first UI
 change. Don't commit those — capture on a branch and run the `update=true`
@@ -122,6 +134,10 @@ Determinism is enforced in `visualHelpers.ts`:
 
 If a test is genuinely flaky, prefer masking the volatile region
 (`toHaveScreenshot(name, { mask: [locator] })`) over raising the tolerance.
+`volatileMask(page)` collects the regions that are volatile everywhere:
+timestamps, the editor status bar's live cpu/mem readout, and its worker
+connection state (whose WebSocket handshake races the capture). Every capture
+that includes the editor chrome passes it.
 
 ### When every spec fails at once
 
@@ -154,13 +170,13 @@ The job runs on every PR but is **non-blocking for now** (`continue-on-error`
 on the run step), matching the parent plan: report diffs first, enforce once
 baselines are stable in CI.
 
-Being non-blocking has a cost that has already landed: because nothing fails,
-nobody regenerates. The committed baselines have drifted behind `web/src` —
-whole pages are offset by a line-height and labels have been recased since
-capture, so most specs fail against them both in CI and in a clean local run.
-The small diff ratios (2–4%) read like anti-aliasing noise but aren't: these
-pages are mostly dark background, so a real layout shift only lights up the
-text pixels. Regenerate before reading any diff as a regression.
+Being non-blocking has a cost: because nothing fails, nobody regenerates, and
+the committed baselines drift behind `web/src` until someone notices. They were
+last regenerated in full alongside the specs added for the editor surfaces, mini
+apps, documents and library pages. When a diff shows up, check the capture date
+before reading it as a regression — small ratios (2–4%) look like anti-aliasing
+noise but aren't: these pages are mostly dark background, so a real layout shift
+only lights up the text pixels.
 
 To move to enforcement:
 
@@ -170,10 +186,11 @@ To move to enforcement:
 2. Once CI-generated baselines are in-tree, remove `continue-on-error: true`
    from the `Run visual regression tests` step so unexpected diffs fail the PR.
 
-> **Firefox scope.** The `firefox-desktop` project runs the chat + settings
-> `@smoke` tests only. The node-graph editor is Chromium-only — Firefox closes
-> the page when the editor mounts (likely a WebGPU/canvas init crash), so it is
-> excluded from the cross-browser smoke set.
+> **Firefox scope.** The `firefox-desktop` project runs the chat, settings and
+> library `@smoke` tests only. Everything that mounts the editor — the node
+> graph, the editor surfaces, mini apps, the sketch and timeline editors — is
+> Chromium-only: Firefox closes the page when the editor mounts (likely a
+> WebGPU/canvas init crash), so those specs carry no `@smoke` tag.
 
 ## Typechecking
 

@@ -132,6 +132,10 @@ strategy. It selects its mode from the presence of Supabase credentials:
 > `AUTH_PROVIDER` is only written into deployed-container environments by the
 > `@nodetool-ai/deploy` tooling. The server itself never branches on it.
 
+In Supabase mode the web UI shows a sign-in screen before anything else loads:
+
+![Sign-in screen](assets/screenshots/login-screen.png)
+
 To enable Supabase mode:
 
 ```bash

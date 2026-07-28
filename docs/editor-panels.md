@@ -173,8 +173,6 @@ A stack of toggles along the right canvas edge:
 
 The logo at the top of the left rail opens the app menu: **Dashboard**, **Examples**, **Costs**, **Model Manager**, **Collections**, **Workspaces** (when enabled), **Settings**, **Help**, and **Downloads**.
 
-![App Menu](assets/screenshots/app-header.png)
-
 See [User Interface → App Menu]({{ '/user-interface#the-app-menu' | relative_url }}) for details.
 
 ---
@@ -182,6 +180,20 @@ See [User Interface → App Menu]({{ '/user-interface#the-app-menu' | relative_u
 ## Customizing the Layout
 
 Every panel is a dockview tab — drag tabs between panels, out of panels to float them, or onto other tabs to stack them. The editor remembers your layout per workspace.
+
+Three combinations you'll land on most often:
+
+Left panel only, canvas taking the rest:
+
+![Left panel open, inspector and bottom panel closed](assets/screenshots/editor-panels-left-open-right-closed-bottom-collapsed.png)
+
+Left panel plus the Inspector, for editing node properties while browsing:
+
+![Left panel and inspector open](assets/screenshots/editor-panels-left-plus-inspector-bottom-collapsed.png)
+
+Everything open, with the logs docked at the bottom for a run:
+
+![Left panel, inspector and logs open](assets/screenshots/editor-panels-left-plus-inspector-plus-logs.png)
 
 To reset: open the command menu (`Ctrl+K` / `⌘+K`), type "reset layout", and hit Enter.
 
