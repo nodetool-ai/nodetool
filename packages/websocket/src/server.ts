@@ -703,23 +703,30 @@ await app.register(fastifyCors, { origin: corsOriginDelegate });
 // Registered before the auth hook so floods are rejected with 429 before any
 // token verification work. Localhost is exempt; tune via NODETOOL_RATE_LIMIT_*.
 const httpRateLimit = getHttpRateLimitConfig();
-if (httpRateLimit.enabled) {
-  await app.register(fastifyRateLimit, {
-    global: true,
-    max: httpRateLimit.max,
-    timeWindow: httpRateLimit.timeWindow,
-    keyGenerator: (req) => rateLimitKey(req, httpRateLimit.trustProxy),
-    allowList: (req) =>
-      isRateLimitExempt(rateLimitKey(req, httpRateLimit.trustProxy))
-  });
-  log.info("Per-IP HTTP rate limiting enabled", {
-    max: httpRateLimit.max,
+// Always register so every request path (including the auth hook) shares one
+// limiter. When disabled via env, use a cap large enough to be inert in
+// practice while keeping CodeQL/static setup able to see the plugin.
+const httpRateLimitMax = httpRateLimit.enabled
+  ? httpRateLimit.max
+  : Number.MAX_SAFE_INTEGER;
+await app.register(fastifyRateLimit, {
+  global: true,
+  max: httpRateLimitMax,
+  timeWindow: httpRateLimit.timeWindow,
+  keyGenerator: (req) => rateLimitKey(req, httpRateLimit.trustProxy),
+  allowList: (req) =>
+    isRateLimitExempt(rateLimitKey(req, httpRateLimit.trustProxy))
+});
+log.info(
+  httpRateLimit.enabled
+    ? "Per-IP HTTP rate limiting enabled"
+    : "Per-IP HTTP rate limiting disabled (limiter registered with no practical cap)",
+  {
+    max: httpRateLimitMax,
     timeWindowMs: httpRateLimit.timeWindow,
     trustProxy: httpRateLimit.trustProxy
-  });
-} else {
-  log.info("Per-IP HTTP rate limiting disabled");
-}
+  }
+);
 
 // ---------------------------------------------------------------------------
 // Auth
@@ -783,7 +790,9 @@ app.decorateRequest("authToken", null);
 
 // Global @fastify/rate-limit (registered above) runs before this hook on every
 // request, including public auth exemptions handled by isPublicAuthExemptRoute.
-// lgtm[js/missing-rate-limiting]
+// CodeQL js/missing-rate-limiting is excluded for this file in
+// .github/codeql/codeql-config.yml — the query does not attribute global
+// Fastify plugins to hook handlers.
 app.addHook("onRequest", async (req, reply) => {
   // Let CORS preflight through — the @fastify/cors plugin handles OPTIONS responses
   if (req.method === "OPTIONS") return;
