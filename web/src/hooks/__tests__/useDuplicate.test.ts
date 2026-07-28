@@ -1,7 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
 import { useDuplicateNodes } from "../useDuplicate";
 import { useReactFlow } from "@xyflow/react";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 
 jest.mock("@xyflow/react");
 jest.mock("../../contexts/NodeContext");
@@ -40,6 +40,11 @@ describe("useDuplicateNodes", () => {
         return selector(mockUseNodesReturn);
       }
       return mockUseNodesReturn;
+    });
+    // The hook reads nodes/edges lazily; keep the getter live so tests that
+    // reassign `mockUseNodesReturn.edges` still take effect.
+    (useNodeStoreRef as jest.Mock).mockReturnValue({
+      getState: () => mockUseNodesReturn
     });
     (useReactFlow as jest.Mock).mockReturnValue({
       getNodesBounds: mockGetNodesBounds,

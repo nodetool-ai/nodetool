@@ -1,14 +1,24 @@
 import { renderHook, act } from "@testing-library/react";
 import { useSelectConnected } from "../useSelectConnected";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import { Node, Edge } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 
 jest.mock("../../contexts/NodeContext", () => ({
-  useNodes: jest.fn()
+  useNodes: jest.fn(),
+  useNodeStoreRef: jest.fn()
 }));
 
 const mockUseNodes = useNodes as jest.MockedFunction<typeof useNodes>;
+const mockUseNodeStoreRef = useNodeStoreRef as jest.MockedFunction<
+  typeof useNodeStoreRef
+>;
+
+// Backs both the subscribed selectors and the hook's lazy `getState()` read.
+const setStore = (state: any) => {
+  mockUseNodes.mockImplementation((selector: any) => selector(state));
+  mockUseNodeStoreRef.mockReturnValue({ getState: () => state } as any);
+};
 
 const createMockNodeData = (): NodeData => ({
   properties: {},
@@ -61,7 +71,7 @@ describe("useSelectConnected", () => {
     it("should select all connected nodes when direction is 'both'", () => {
       const setSelectedNodes = createMockSetSelectedNodes();
 
-      mockUseNodes.mockReturnValue({
+      setStore({
         nodes: mockNodes,
         edges: mockEdges,
         getSelectedNodes: () => [mockNodes[1]],
@@ -81,7 +91,7 @@ describe("useSelectConnected", () => {
     it("should select connected nodes when multiple nodes are selected", () => {
       const setSelectedNodes = createMockSetSelectedNodes();
 
-      mockUseNodes.mockReturnValue({
+      setStore({
         nodes: mockNodes,
         edges: mockEdges,
         getSelectedNodes: () => [mockNodes[1], mockNodes[2]],
@@ -99,7 +109,7 @@ describe("useSelectConnected", () => {
     it("should call setSelectedNodes with all connected nodes", () => {
       const setSelectedNodes = createMockSetSelectedNodes();
 
-      mockUseNodes.mockReturnValue({
+      setStore({
         nodes: mockNodes,
         edges: mockEdges,
         getSelectedNodes: () => [mockNodes[1]],
@@ -127,7 +137,7 @@ describe("useSelectConnected", () => {
     it("should only select upstream nodes when direction is 'upstream'", () => {
       const setSelectedNodes = createMockSetSelectedNodes();
 
-      mockUseNodes.mockReturnValue({
+      setStore({
         nodes: mockNodes,
         edges: mockEdges,
         getSelectedNodes: () => [mockNodes[2]],
@@ -145,7 +155,7 @@ describe("useSelectConnected", () => {
     it("should not include selected nodes in upstream result", () => {
       const setSelectedNodes = createMockSetSelectedNodes();
 
-      mockUseNodes.mockReturnValue({
+      setStore({
         nodes: mockNodes,
         edges: mockEdges,
         getSelectedNodes: () => [mockNodes[0]],
@@ -163,7 +173,7 @@ describe("useSelectConnected", () => {
     it("should only select downstream nodes when direction is 'downstream'", () => {
       const setSelectedNodes = createMockSetSelectedNodes();
 
-      mockUseNodes.mockReturnValue({
+      setStore({
         nodes: mockNodes,
         edges: mockEdges,
         getSelectedNodes: () => [mockNodes[1]],
@@ -182,7 +192,7 @@ describe("useSelectConnected", () => {
     it("should not include selected nodes in downstream result", () => {
       const setSelectedNodes = createMockSetSelectedNodes();
 
-      mockUseNodes.mockReturnValue({
+      setStore({
         nodes: mockNodes,
         edges: mockEdges,
         getSelectedNodes: () => [mockNodes[3]],
@@ -200,7 +210,7 @@ describe("useSelectConnected", () => {
     it("should return empty array when no nodes are selected", () => {
       const setSelectedNodes = createMockSetSelectedNodes();
 
-      mockUseNodes.mockReturnValue({
+      setStore({
         nodes: mockNodes,
         edges: mockEdges,
         getSelectedNodes: () => [],
@@ -216,7 +226,7 @@ describe("useSelectConnected", () => {
     it("should not call setSelectedNodes when no nodes are selected", () => {
       const setSelectedNodes = createMockSetSelectedNodes();
 
-      mockUseNodes.mockReturnValue({
+      setStore({
         nodes: mockNodes,
         edges: mockEdges,
         getSelectedNodes: () => [],
@@ -237,7 +247,7 @@ describe("useSelectConnected", () => {
     it("should default to 'both' direction", () => {
       const setSelectedNodes = createMockSetSelectedNodes();
 
-      mockUseNodes.mockReturnValue({
+      setStore({
         nodes: mockNodes,
         edges: mockEdges,
         getSelectedNodes: () => [mockNodes[1]],
@@ -270,7 +280,7 @@ describe("useSelectConnected", () => {
 
       const setSelectedNodes = createMockSetSelectedNodes();
 
-      mockUseNodes.mockReturnValue({
+      setStore({
         nodes: branchedNodes,
         edges: branchedEdges,
         getSelectedNodes: () => [branchedNodes[0]],
