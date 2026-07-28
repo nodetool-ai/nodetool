@@ -1496,6 +1496,53 @@ interface ActiveJob {
   applicationId?: string | null;
 }
 
+function createRelayActivityWaiter(
+  context: Pick<ProcessingContext, "addMessageListener" | "hasMessages">,
+  executionSettled: Promise<void>,
+  abortSignal?: AbortSignal
+): () => Promise<void> {
+  let pending = context.hasMessages();
+  let resolveWaiter: (() => void) | null = null;
+  let disposed = false;
+
+  const notify = (): void => {
+    pending = true;
+    const resolve = resolveWaiter;
+    resolveWaiter = null;
+    resolve?.();
+  };
+
+  const removeMessageListener = context.addMessageListener(notify);
+  const dispose = (): void => {
+    if (disposed) return;
+    disposed = true;
+    removeMessageListener();
+    abortSignal?.removeEventListener("abort", onAbort);
+  };
+  const settle = (): void => {
+    notify();
+    dispose();
+  };
+  const onAbort = (): void => settle();
+  if (abortSignal?.aborted) {
+    settle();
+  } else {
+    abortSignal?.addEventListener("abort", onAbort, { once: true });
+  }
+  void executionSettled.then(settle, settle);
+
+  return async (): Promise<void> => {
+    if (pending) {
+      pending = false;
+      return;
+    }
+    await new Promise<void>((resolve) => {
+      resolveWaiter = resolve;
+    });
+    pending = false;
+  };
+}
+
 class ToolBridge {
   private waiters = new Map<
     string,
@@ -3009,7 +3056,7 @@ export class UnifiedWebSocketRunner {
       workflow_id: active.workflowId
     });
 
-    void executePromise
+    const executionSettled = executePromise
       .then((result) => {
         active.status = result.status;
         active.error = result.error;
@@ -3024,6 +3071,10 @@ export class UnifiedWebSocketRunner {
       .finally(() => {
         active.finished = true;
       });
+    const waitForActivity = createRelayActivityWaiter(
+      active.context,
+      executionSettled
+    );
 
     const graphNodes =
       (
@@ -3037,7 +3088,6 @@ export class UnifiedWebSocketRunner {
         graphNodeMap.set(n.id, n);
       }
     }
-
 
     while (!active.finished || active.context.hasMessages()) {
       while (active.context.hasMessages()) {
@@ -3265,7 +3315,7 @@ export class UnifiedWebSocketRunner {
         }
       }
       if (!active.finished) {
-        await new Promise((resolve) => setTimeout(resolve, 10));
+        await waitForActivity();
       }
     }
 
@@ -3333,9 +3383,7 @@ export class UnifiedWebSocketRunner {
       // this) and left the client waiting for state that never arrived.
       const job = (await Job.get(jobId)) as Job | null;
       const replayUnavailable =
-        job != null &&
-        job.status !== "failed" &&
-        job.status !== "cancelled";
+        job != null && job.status !== "failed" && job.status !== "cancelled";
       await this.sendMessage({
         type: "job_update",
         status: replayUnavailable ? "failed" : (job?.status ?? "failed"),
@@ -3348,8 +3396,8 @@ export class UnifiedWebSocketRunner {
                   "Job event replay is unavailable after the execution connection was lost."
               }
             : job.error
-            ? { error: job.error }
-            : {}
+              ? { error: job.error }
+              : {}
           : { error: `Job ${jobId} not found` })
       });
       return;
@@ -6270,7 +6318,7 @@ export class UnifiedWebSocketRunner {
       });
 
       let finalOutputs: Record<string, unknown[]> = {};
-      void executePromise
+      const executionSettled = executePromise
         .then((r) => {
           active.status = r.status;
           active.error = r.error;
@@ -6284,6 +6332,11 @@ export class UnifiedWebSocketRunner {
         .finally(() => {
           active.finished = true;
         });
+      const waitForActivity = createRelayActivityWaiter(
+        active.context,
+        executionSettled,
+        signal
+      );
 
       const nodeTypes = new Map<string, string>();
       const graphNodes = graph.nodes ?? [];
@@ -6374,7 +6427,7 @@ export class UnifiedWebSocketRunner {
           await this.sendMessage(outbound);
         }
         if (!active.finished) {
-          await new Promise((resolve) => setTimeout(resolve, 10));
+          await waitForActivity();
         }
       }
 
@@ -7067,8 +7120,7 @@ export class UnifiedWebSocketRunner {
           return this.apiOptions.sdkPreflightService.preflight(input);
         }
       },
-      getPrincipal: () =>
-        this.userId ? { userId: this.userId } : null,
+      getPrincipal: () => (this.userId ? { userId: this.userId } : null),
       environment: process.env,
       onInternalError: (error) =>
         this.logError("SDK lifecycle RPC failed", error)

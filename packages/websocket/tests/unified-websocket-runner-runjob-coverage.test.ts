@@ -89,9 +89,18 @@ function decodeAll(ws: MockWebSocket): Record<string, unknown>[] {
  */
 function fakeContext(messages: Record<string, unknown>[]) {
   const q = [...messages];
+  const listeners = new Set<() => void>();
   return {
     hasMessages: () => q.length > 0,
     popMessage: () => q.shift(),
+    addMessageListener: (listener: () => void) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    emit: (message: Record<string, unknown>) => {
+      q.push(message);
+      for (const listener of listeners) listener();
+    },
     normalizeOutputValue: vi.fn(async (v: unknown) => v),
     getNodeStatuses: () => ({}),
     getEdgeStatuses: () => ({})
@@ -207,6 +216,78 @@ describe("UnifiedWebSocketRunner run_job — streamJobMessages relay", () => {
     );
     expect(terminal).toBeDefined();
     expect((terminal?.result as any).outputs).toEqual({ out: ["v1"] });
+  });
+
+  it("waits for execution activity without scheduling a polling timer", async () => {
+    vi.useFakeTimers();
+    try {
+      const active = makeActive({
+        jobId: "J-LATENCY",
+        workflowId: "wf-latency",
+        messages: []
+      });
+      let resolveExecution:
+        | ((value: { status: "completed" }) => void)
+        | undefined;
+      const executePromise = new Promise<{ status: "completed" }>((resolve) => {
+        resolveExecution = resolve;
+      });
+
+      const streamPromise = streamTo(runner, active, executePromise);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(vi.getTimerCount()).toBe(0);
+
+      resolveExecution?.({ status: "completed" });
+      await streamPromise;
+      expect(
+        decodeAll(ws).some(
+          (message) =>
+            message.type === "job_update" && message.status === "completed"
+        )
+      ).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("relays a message emitted while execution is pending", async () => {
+    const active = makeActive({
+      jobId: "J-ACTIVITY",
+      workflowId: "wf-activity",
+      nodes: [{ id: "n1", type: "custom.Node" }],
+      messages: []
+    });
+    let resolveExecution:
+      | ((value: { status: "completed" }) => void)
+      | undefined;
+    const executePromise = new Promise<{ status: "completed" }>((resolve) => {
+      resolveExecution = resolve;
+    });
+
+    const streamPromise = streamTo(runner, active, executePromise);
+    active.context.emit({
+      type: "node_update",
+      node_id: "n1",
+      status: "running"
+    });
+    resolveExecution?.({ status: "completed" });
+    await streamPromise;
+
+    const frames = decodeAll(ws);
+    expect(
+      frames.some(
+        (message) =>
+          message.type === "node_update" &&
+          message.node_id === "n1" &&
+          message.status === "running"
+      )
+    ).toBe(true);
+    expect(
+      frames.some(
+        (message) =>
+          message.type === "job_update" && message.status === "completed"
+      )
+    ).toBe(true);
   });
 
   it("relays a node_update and normalizes its result before sending", async () => {
