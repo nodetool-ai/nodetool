@@ -34,7 +34,11 @@ import { readCachedHfModels, searchCachedHfModels } from "@nodetool-ai/huggingfa
 import { initMasterKey } from "@nodetool-ai/security";
 import { getDefaultDbPath, getDefaultAssetsPath } from "@nodetool-ai/config";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
-import { hydrateGraphNodeFlags, NodeRegistry } from "@nodetool-ai/node-sdk";
+import {
+  hydrateGraphNodeFlags,
+  isEditorOnlyType,
+  NodeRegistry
+} from "@nodetool-ai/node-sdk";
 import type { GraphData } from "@nodetool-ai/protocol";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
@@ -582,6 +586,16 @@ workflows
         if (!graph?.nodes || !graph?.edges) {
           throw new Error("Invalid workflow: missing nodes or edges");
         }
+
+        // Drop editor-only nodes (Comment, Group, Reroute). They are
+        // annotations the editor draws and carry no executable class, so
+        // resolveExecutor below would reject them as "Unknown node type" and
+        // fail the whole run — which is what happened to every shipped example
+        // containing a Comment. The headless job runner and `nodetool debug`
+        // already filter them at their own entry points.
+        graph.nodes = graph.nodes.filter(
+          (n: Record<string, unknown>) => !isEditorOnlyType(String(n.type ?? ""))
+        );
 
         // Normalize graph: convert node.data → node.properties (kernel format)
         graph.nodes = graph.nodes.map((n: Record<string, unknown>) => {

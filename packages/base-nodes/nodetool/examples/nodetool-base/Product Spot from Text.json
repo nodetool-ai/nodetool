@@ -1,0 +1,339 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-06-21T16:03:52.969Z",
+  "updated_at": "2026-06-21T16:55:51.256Z",
+  "name": "Product Spot from Text",
+  "tool_name": null,
+  "description": "Turn a product description into a short commercial spot — no photo needed. A prompt assembles a studio hero-shot brief, FLUX.2 [klein] renders the still, then LTX-2.3 animates that exact frame following only the camera notes. Cost note: the animation step is billed per second of output, so this costs more per run than an image-only template.",
+  "tags": [
+    "image",
+    "video",
+    "example"
+  ],
+  "thumbnail": "Product Spot from Text.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "comment-1",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "Product Spot from Text",
+          "comment": [
+            "Describe the product and how it should be staged; get a short commercial spot back.\n\n",
+            "Unlike Product Video Generator, this needs no product photo — the hero frame is generated.\n\n",
+            "The motion brief deliberately forbids restyling the product: the model may move the camera, nothing else."
+          ]
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "height": 180,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "in-product",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "product",
+          "value": "Matte-black wireless over-ear headphones with a brushed-copper accent ring",
+          "description": "What the product is, including materials and finish"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 240
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Product"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "in-staging",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "staging",
+          "value": "Polished dark concrete pedestal, volumetric rim light, fine dust drifting through a soft teal backlight",
+          "description": "Set, lighting, and atmosphere around the product"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Staging"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "in-motion",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "camera_motion",
+          "value": "Slow dolly push-in with a gentle rotation, shallow depth of field holding focus on the product",
+          "description": "How the camera should move during the clip"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 560
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Camera motion"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "prompt-still",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "Cinematic product photograph for a premium commercial.\n\nProduct: {{ product }}\nStaging: {{ staging }}\n\nSingle hero subject, centered, filling the frame. Macro detail on materials and edges. Moody premium studio lighting with deep shadows and controlled highlights. Physically plausible reflections. No text, no logos, no watermark, no packaging, no people, no hands."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 320
+          },
+          "zIndex": 0,
+          "width": 320,
+          "selectable": true,
+          "title": "Hero-shot brief"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "still",
+        "type": "nodetool.image.TextToImage",
+        "data": {
+          "model": {
+            "type": "image_model",
+            "provider": "fal_ai",
+            "id": "fal-ai/flux-2/klein/9b",
+            "name": "FLUX.2 [klein] 9B",
+            "path": null,
+            "supported_tasks": []
+          },
+          "negative_prompt": "text, logo, watermark, packaging, people, hands, clutter",
+          "width": 1280,
+          "height": 720,
+          "guidance_scale": 7.5,
+          "num_inference_steps": 6,
+          "seed": -1,
+          "safety_check": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 280
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Hero still"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "prompt-motion",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "Animate the reference still into a short product commercial.\n\nCamera: {{ camera_motion }}\n\nPreserve the product, its proportions, framing, and materials exactly as in the reference frame. Add camera movement and subtle atmospheric motion only. Do not deform, relabel, or restyle the product. Keep the motion smooth and physically plausible for the full duration."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 600
+          },
+          "zIndex": 0,
+          "width": 320,
+          "selectable": true,
+          "title": "Motion brief"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "spot",
+        "type": "nodetool.video.ImageToVideo",
+        "data": {
+          "model": {
+            "type": "video_model",
+            "provider": "fal_ai",
+            "id": "fal-ai/ltx-2.3/image-to-video/fast",
+            "name": "LTX-2.3 Image to Video Fast",
+            "path": null,
+            "supported_tasks": []
+          },
+          "negative_prompt": "",
+          "aspect_ratio": "16:9",
+          "resolution": "1080p",
+          "duration": 6,
+          "timeout_seconds": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1100,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "5  Animate"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "output-spot",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "spot"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1460,
+            "y": 420
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "6  Commercial spot"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in-product",
+        "sourceHandle": "output",
+        "target": "prompt-still",
+        "targetHandle": "product"
+      },
+      {
+        "id": "e2",
+        "source": "in-staging",
+        "sourceHandle": "output",
+        "target": "prompt-still",
+        "targetHandle": "staging"
+      },
+      {
+        "id": "e3",
+        "source": "prompt-still",
+        "sourceHandle": "output",
+        "target": "still",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e4",
+        "source": "in-motion",
+        "sourceHandle": "output",
+        "target": "prompt-motion",
+        "targetHandle": "camera_motion"
+      },
+      {
+        "id": "e5",
+        "source": "still",
+        "sourceHandle": "output",
+        "target": "spot",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e6",
+        "source": "prompt-motion",
+        "sourceHandle": "output",
+        "target": "spot",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e7",
+        "source": "spot",
+        "sourceHandle": "output",
+        "target": "output-spot",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "product": {
+        "type": "string",
+        "default": "Matte-black wireless over-ear headphones with a brushed-copper accent ring",
+        "label": ""
+      },
+      "staging": {
+        "type": "string",
+        "default": "Polished dark concrete pedestal, volumetric rim light, fine dust drifting through a soft teal backlight",
+        "label": ""
+      },
+      "camera_motion": {
+        "type": "string",
+        "default": "Slow dolly push-in with a gentle rotation, shallow depth of field holding focus on the product",
+        "label": ""
+      }
+    },
+    "required": [
+      "product",
+      "staging",
+      "camera_motion"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "spot": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "const": "video"
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      }
+    },
+    "required": [
+      "spot"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "e31acfae86ee104dbf9df243c9ba6084"
+}
