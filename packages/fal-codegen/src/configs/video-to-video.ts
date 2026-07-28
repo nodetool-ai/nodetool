@@ -433,18 +433,6 @@ export const config: ModuleConfig = {
         "Content repurposing"
       ]
     },
-    "fal-ai/scail": {
-      className: "Scail",
-      docstring: "Scail",
-      tags: ["video", "editing", "video-to-video", "vid2vid"],
-      useCases: [
-        "Video style transfer",
-        "Video enhancement and restoration",
-        "Automated video editing",
-        "Special effects generation",
-        "Content repurposing"
-      ]
-    },
     "clarityai/crystal-video-upscaler": {
       className: "ClarityaiCrystalVideoUpscaler",
       docstring: "Crystal Upscaler [Video]",
@@ -1027,19 +1015,6 @@ export const config: ModuleConfig = {
         "Content repurposing"
       ]
     },
-    "fal-ai/wan-fun-control": {
-      className: "WanFunControl",
-      docstring:
-        "Generate pose or depth controlled video using Alibaba-PAI's Wan 2.2 Fun",
-      tags: ["video", "editing", "video-to-video", "vid2vid"],
-      useCases: [
-        "Video style transfer",
-        "Video enhancement and restoration",
-        "Automated video editing",
-        "Special effects generation",
-        "Content repurposing"
-      ]
-    },
     "bria/video/increase-resolution": {
       className: "BriaVideoIncreaseResolution",
       docstring:
@@ -1376,19 +1351,6 @@ export const config: ModuleConfig = {
         "Content repurposing"
       ]
     },
-    "fal-ai/wan-vace-1-3b": {
-      className: "WanVace13b",
-      docstring:
-        "Vace a video generation model that uses a source image, mask, and video to create prompted videos with controllable sources.",
-      tags: ["video", "editing", "video-to-video", "vid2vid"],
-      useCases: [
-        "Video style transfer",
-        "Video enhancement and restoration",
-        "Automated video editing",
-        "Special effects generation",
-        "Content repurposing"
-      ]
-    },
     "fal-ai/luma-dream-machine/ray-2-flash/reframe": {
       className: "LumaDreamMachineRay2FlashReframe",
       docstring:
@@ -1484,19 +1446,6 @@ export const config: ModuleConfig = {
       className: "LtxVideo13bDevExtend",
       docstring: "Extend videos using LTX Video-0.9.7 13B and custom LoRA",
       tags: ["video", "editing", "video-to-video", "vid2vid"],
-      useCases: [
-        "Video style transfer",
-        "Video enhancement and restoration",
-        "Automated video editing",
-        "Special effects generation",
-        "Content repurposing"
-      ]
-    },
-    "fal-ai/ltx-video-lora/multiconditioning": {
-      className: "LtxVideoLoraMulticonditioning",
-      docstring:
-        "Generate videos from prompts, images, and videos using LTX Video-0.9.7 and custom LoRA",
-      tags: ["video", "editing", "video-to-video", "vid2vid", "lora"],
       useCases: [
         "Video style transfer",
         "Video enhancement and restoration",
@@ -1672,19 +1621,6 @@ export const config: ModuleConfig = {
         "Content repurposing"
       ]
     },
-    "fal-ai/dubbing": {
-      className: "Dubbing",
-      docstring:
-        "This endpoint delivers seamlessly localized videos by generating lip-synced dubs in multiple languages, ensuring natural and immersive multilingual experiences",
-      tags: ["video", "editing", "video-to-video", "vid2vid"],
-      useCases: [
-        "Video style transfer",
-        "Video enhancement and restoration",
-        "Automated video editing",
-        "Special effects generation",
-        "Content repurposing"
-      ]
-    },
     "fal-ai/controlnext": {
       className: "Controlnext",
       docstring:
@@ -1799,6 +1735,1111 @@ export const config: ModuleConfig = {
       className: "VoidVideoInpainting",
       docstring: "Void: video inpainting.",
       tags: ["editing", "video-to-video", "vid2vid", "inpainting"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "bria/video/background-removal/realtime": {
+      className: "VideoBackgroundRemovalRealtime",
+      docstring:
+        "Remove video backgrounds in real time with Bria’s VRMBG 3.0 model. Built for live streaming, real-time video apps, content creation, and low-latency workflows that need fast, accurate background removal.",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "bria",
+        "background",
+        "removal",
+        "realtime"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "bria/video/background-removal/v3": {
+      className: "VideoBackgroundRemovalV3",
+      docstring:
+        "Remove backgrounds from any video with Bria's VRMBG 3.0. Fast, accurate background removal across talking heads, podcasts, product videos, commercials, and cinematic footage.",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "bria",
+        "background",
+        "removal"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "decart/lucy-2-5/realtime": {
+      className: "Lucy25Realtime",
+      docstring:
+        "Real-time, prompt-driven video editing over WebRTC. Restyle, swap backgrounds, and add or replace objects live on a webcam or streamed feed at interactive latency.",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "decart",
+        "lucy",
+        "realtime"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "decart/lucy2-vton/realtime": {
+      className: "Lucy2VtonRealtime",
+      docstring: "Realtime Try On experience with Decart Lucy 2.1 VTON",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "decart",
+        "lucy2",
+        "vton",
+        "realtime"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/bernini-r/edit-video": {
+      className: "BerniniREditVideo",
+      docstring:
+        "Edit any video with a natural-language instruction using Bernini-R, changing objects, weather, background, or camera angle while keeping the rest of the scene intact.",
+      tags: ["editing", "video-to-video", "vid2vid", "bernini"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/bernini-r/reference-edit-video": {
+      className: "BerniniRReferenceEditVideo",
+      docstring:
+        "Edit a video guided by reference images with Bernini-R, bringing an object, material, background, style, or weather from a reference image into your video.",
+      tags: ["editing", "video-to-video", "vid2vid", "bernini", "reference"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/bytedance/dreamactor/v2": {
+      className: "BytedanceDreamactorV2",
+      docstring:
+        "Transfer motion from a video to characters in an image using Dreamactor v2. Great performance for non-human and multiple characters",
+      tags: ["editing", "video-to-video", "vid2vid", "bytedance", "dreamactor"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/cosmos-predict-2.5/video-to-video": {
+      className: "CosmosPredict25VideoToVideo",
+      docstring:
+        "Generate video from text and videos using NVIDIA's 2B Cosmos Post-Trained Model",
+      tags: ["editing", "video-to-video", "vid2vid", "cosmos", "predict"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/depth-anything-video": {
+      className: "DepthAnythingVideo",
+      docstring:
+        "Generates depth maps from video using Video Depth Anything (CVPR 2025). Produces per-frame depth estimation with temporal consistency across frames. Supports 3 model sizes (Small, Base, Large), 5 colormaps including grayscale, side-by-si...",
+      tags: ["editing", "video-to-video", "vid2vid", "depth", "anything"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/heygen/v2/translate/precision": {
+      className: "HeygenV2TranslatePrecision",
+      docstring: "Heygen Translate Model with Extreme Precision",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "heygen",
+        "translate",
+        "precision"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/heygen/v2/translate/speed": {
+      className: "HeygenV2TranslateSpeed",
+      docstring: "Heygen Translate Model with Extreme Speed",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "heygen",
+        "translate",
+        "speed"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/kling-video/v3/pro/motion-control": {
+      className: "KlingVideoV3ProMotionControl",
+      docstring:
+        "Transfer movements from a reference video to any character image. Cost-effective mode for motion transfer, perfect for portraits and simple animations.",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "kling",
+        "pro",
+        "motion",
+        "control"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/kling-video/v3/standard/motion-control": {
+      className: "KlingVideoV3StandardMotionControl",
+      docstring:
+        "Transfer movements from a reference video to any character image. Cost-effective mode for motion transfer, perfect for portraits and simple animations.",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "kling",
+        "standard",
+        "motion",
+        "control"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-22b/distilled/video-to-video": {
+      className: "Ltx2322bDistilledVideoToVideo",
+      docstring:
+        "Generate video with audio from videos using LTX-2.3 Distilled",
+      tags: ["editing", "video-to-video", "vid2vid", "ltx", "22b", "distilled"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-22b/distilled/video-to-video/lora": {
+      className: "Ltx2322bDistilledVideoToVideoLora",
+      docstring:
+        "Generate video with audio from videos using LTX-2.3 Distilled and custom LoRA",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "ltx",
+        "22b",
+        "distilled",
+        "lora"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-22b/extend-video": {
+      className: "Ltx2322bExtendVideo",
+      docstring: "Extend video with audio using LTX-2.3",
+      tags: ["editing", "video-to-video", "vid2vid", "ltx", "22b", "extend"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-22b/extend-video/lora": {
+      className: "Ltx2322bExtendVideoLora",
+      docstring: "Extend video with audio using LTX-2.3 and custom LoRA",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "ltx",
+        "22b",
+        "extend",
+        "lora"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-22b/video-to-video": {
+      className: "Ltx2322bVideoToVideo",
+      docstring: "Generate video with audio from videos using LTX-2.3",
+      tags: ["editing", "video-to-video", "vid2vid", "ltx", "22b"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-22b/video-to-video/lora": {
+      className: "Ltx2322bVideoToVideoLora",
+      docstring:
+        "Generate video with audio from videos using LTX-2.3 and custom LoRA",
+      tags: ["editing", "video-to-video", "vid2vid", "ltx", "22b", "lora"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/clean-plate": {
+      className: "Ltx23QualityCleanPlate",
+      docstring: "Remove character from your video using Ltx 2.3",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "ltx",
+        "quality",
+        "clean",
+        "plate"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/colorization": {
+      className: "Ltx23QualityColorization",
+      docstring: "Colorize high-quality video using LTX-2.3",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "ltx",
+        "quality",
+        "colorization"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/cross-eyed": {
+      className: "Ltx23QualityCrossEyed",
+      docstring: "Cross-eyes for high-quality video using LTX-2.3",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "ltx",
+        "quality",
+        "cross",
+        "eyed"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/day-to-night": {
+      className: "Ltx23QualityDayToNight",
+      docstring: "Day to Night for high-quality video using LTX-2.3",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "ltx",
+        "quality",
+        "day",
+        "night"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/deblur": {
+      className: "Ltx23QualityDeblur",
+      docstring: "Deblur high-quality video using LTX-2.3",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "ltx",
+        "quality",
+        "deblur"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/decompression": {
+      className: "Ltx23QualityDecompression",
+      docstring: "Decompression / Denoise high-quality video using LTX-2.3",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "ltx",
+        "quality",
+        "decompression"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/extend-video": {
+      className: "Ltx23QualityExtendVideo",
+      docstring:
+        "Extend high-quality video with audio from input video using LTX-2.3",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "ltx",
+        "quality",
+        "extend"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/extend-video/lora": {
+      className: "Ltx23QualityExtendVideoLora",
+      docstring:
+        "Extend high-quality video with audio from input video using LTX-2.3 with Lora",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "ltx",
+        "quality",
+        "extend",
+        "lora"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/hdr": {
+      className: "Ltx23QualityHdr",
+      docstring: "Generate HDR from reference video using LTX-2.3",
+      tags: ["editing", "video-to-video", "vid2vid", "ltx", "quality", "hdr"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/hdr/lora": {
+      className: "Ltx23QualityHdrLora",
+      docstring: "Generate HDR from reference video using LTX-2.3 with lora",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "ltx",
+        "quality",
+        "hdr",
+        "lora"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/inpaint": {
+      className: "Ltx23QualityInpaint",
+      docstring: "Inpaint high-quality video using LTX-2.3",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "ltx",
+        "quality",
+        "inpaint"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/inpaint/lora": {
+      className: "Ltx23QualityInpaintLora",
+      docstring: "Inpaint high-quality video using LTX-2.3 with lora",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "ltx",
+        "quality",
+        "inpaint",
+        "lora"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/instant-shave": {
+      className: "Ltx23QualityInstantShave",
+      docstring: "Instant shave high-quality video using LTX-2.3",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "ltx",
+        "quality",
+        "instant",
+        "shave"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/outpaint": {
+      className: "Ltx23QualityOutpaint",
+      docstring: "Outpaint high-quality video using LTX-2.3",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "ltx",
+        "quality",
+        "outpaint"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/outpaint/lora": {
+      className: "Ltx23QualityOutpaintLora",
+      docstring: "Outpaint high-quality video using LTX-2.3 with Lora",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "ltx",
+        "quality",
+        "outpaint",
+        "lora"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/reference-video-to-video": {
+      className: "Ltx23QualityReferenceVideoToVideo",
+      docstring:
+        "Generate high-quality video with audio from reference video, text and images using LTX-2.3",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "ltx",
+        "quality",
+        "reference"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/reference-video-to-video/lora": {
+      className: "Ltx23QualityReferenceVideoToVideoLora",
+      docstring:
+        "Generate high-quality video with audio from reference video, text and images using LTX-2.3 and custom LoRA",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "ltx",
+        "quality",
+        "reference",
+        "lora"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/render-to-real": {
+      className: "Ltx23QualityRenderToReal",
+      docstring:
+        "Transform your 3D video render into realistic using first frame with Ltx 2.3",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "ltx",
+        "quality",
+        "render",
+        "real"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/water-simulation": {
+      className: "Ltx23QualityWaterSimulation",
+      docstring:
+        "Water Simulation transformation for high-quality video using LTX-2.3",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "ltx",
+        "quality",
+        "water",
+        "simulation"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3/extend-video": {
+      className: "Ltx23ExtendVideo",
+      docstring:
+        "LTX-2.3 is a high-quality, fast AI video model available in Pro and Fast variants for text-to-video, image-to-video, and audio-to-video.",
+      tags: ["editing", "video-to-video", "vid2vid", "ltx", "extend"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3/reframe": {
+      className: "Ltx23Reframe",
+      docstring:
+        "LTX-2.3 Reframe converts your videos to any aspect ratio without destructive cropping. It intelligently recenters the original footage and generatively fills the newly exposed areas with content that seamlessly matches the scene, so the...",
+      tags: ["editing", "video-to-video", "vid2vid", "ltx", "reframe"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3/retake-video": {
+      className: "Ltx23RetakeVideo",
+      docstring:
+        "LTX-2.3 is a high-quality, fast AI video model available in Pro and Fast variants for text-to-video, image-to-video, and audio-to-video.",
+      tags: ["editing", "video-to-video", "vid2vid", "ltx", "retake"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/pixverse/v6/extend": {
+      className: "PixverseV6Extend",
+      docstring: "Pixverse's latest v6 Model.",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "pixverse",
+        "v6",
+        "extend"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/sam-3-1/video": {
+      className: "Sam31Video",
+      docstring:
+        "SAM 3.1 builds comes with Object Multiplex, a shared-memory approach for joint multi-object tracking that delivers faster speeds with larger number of objects tracked.",
+      tags: ["editing", "video-to-video", "vid2vid", "sam"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/sam-3-1/video-rle": {
+      className: "Sam31VideoRle",
+      docstring:
+        "SAM 3.1 builds comes with Object Multiplex, a shared-memory approach for joint multi-object tracking that delivers faster speeds with larger number of objects tracked.",
+      tags: ["editing", "video-to-video", "vid2vid", "sam", "rle"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/scail-2": {
+      className: "Scail2",
+      docstring:
+        "SCAIL-2 is an end-to-end character animation model that drives a reference character from a source video without relying on intermediate pose representations like skeleton maps.",
+      tags: ["editing", "video-to-video", "vid2vid", "scail"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/sync-lipsync/v3": {
+      className: "SyncLipsyncV3",
+      docstring:
+        "sync-3 most powerful lipsync model yet, featuring native visual intelligence for professional-quality video.",
+      tags: ["editing", "video-to-video", "vid2vid", "sync", "lipsync"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/wan-motion": {
+      className: "WanMotion",
+      docstring:
+        "Wan Motion is a streamlined character animation model that transfers motion from a driving video onto a reference character image. Based on Wan-Animate which preserves the original character's proportions, Simple uses pose retargeting to...",
+      tags: ["editing", "video-to-video", "vid2vid", "wan", "motion"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/wan/v2.7/edit-video": {
+      className: "WanV27EditVideo",
+      docstring:
+        "Wan 2.7 is the latest generation AI video model, delivering enhanced motion smoothness, superior scene fidelity, and greater visual coherence.",
+      tags: ["editing", "video-to-video", "vid2vid", "wan"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/workflow-utilities/blend-video": {
+      className: "WorkflowUtilitiesBlendVideo",
+      docstring: "FFMPEG Utility for Blending Videos",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "workflow",
+        "utilities",
+        "blend"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/workflow-utilities/reverse-video": {
+      className: "WorkflowUtilitiesReverseVideo",
+      docstring: "FFMPEG Utility to Reverse Videos",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "workflow",
+        "utilities",
+        "reverse"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/workflow-utilities/scale-video": {
+      className: "WorkflowUtilitiesScaleVideo",
+      docstring: "FFMPEG Utilities to Scale Videos",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "workflow",
+        "utilities",
+        "scale"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/workflow-utilities/trim-video": {
+      className: "WorkflowUtilitiesTrimVideo",
+      docstring: "FFMPEG Utility for Trim Video",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "workflow",
+        "utilities",
+        "trim"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "google/gemini-omni-flash/edit": {
+      className: "GeminiOmniFlashEdit",
+      docstring:
+        "Edits generated video across multiple conversational turns while preserving scene coherence. Applies iterative changes through natural-language instructions without regenerating the full sequence from scratch.",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "google",
+        "gemini",
+        "omni",
+        "flash"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "luma/agent/ray/v3.2/reframe": {
+      className: "LumaAgentRayV32Reframe",
+      docstring:
+        "Luma Ray 3.2 reframes an existing video into a new aspect ratio guided by a text prompt, preserving the original footage frame-for-frame while controlling resolution and outpainting the surrounding canvas.",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "luma",
+        "agent",
+        "ray",
+        "reframe"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "luma/agent/ray/v3.2/video-to-video": {
+      className: "LumaAgentRayV32VideoToVideo",
+      docstring:
+        "Luma Ray 3.2 re-renders an existing video into new cinematic motion guided by a text prompt, preserving the source's look and movement while controlling resolution, duration, and HDR.",
+      tags: ["editing", "video-to-video", "vid2vid", "luma", "agent", "ray"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "mirelo-ai/sfx1.6/video-to-video": {
+      className: "Sfx16VideoToVideo",
+      docstring:
+        "Generate synced sounds for any video, and return it with its new sound track (like MMAudio). Now up to 60 seconds!",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "mirelo",
+        "sfx1",
+        "mirelo-ai"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "pixelcut/video-background-removal": {
+      className: "VideoBackgroundRemoval",
+      docstring:
+        "Pixelcut's Video Background Remover is an AI segmentation model that erases backgrounds frame by frame, with seamless temporal consistency.",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "pixelcut",
+        "background",
+        "removal"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "sonilo/v1.1/video-to-video-music": {
+      className: "SoniloV11VideoToVideoMusic",
+      docstring:
+        "Generates perfectly synced music for any video. Return a licensed music soundtrack ready for commercial use (optional preservation of the original speech in video)",
+      tags: ["editing", "video-to-video", "vid2vid", "sonilo", "music"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "sonilo/v1.1/video-to-video-sound-effects": {
+      className: "SoniloV11VideoToVideoSoundEffects",
+      docstring:
+        "Adds synchronized, royalty-free, commercial-use-safe sound effects to a video. Returns the finished video with the generated audio mixed in.",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "sonilo",
+        "sound",
+        "effects"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "veed/lipsync/v2": {
+      className: "VeedLipsyncV2",
+      docstring:
+        "Generate production-quality lipsync from any audio using VEED's most advanced model yet.",
+      tags: ["editing", "video-to-video", "vid2vid", "veed", "lipsync"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "veed/subtitles": {
+      className: "Subtitles",
+      docstring:
+        "VEED’s Subtitles API transforms raw footage into polished, publish-ready content with professional burned-in subtitles starting at a base rate of $0.10 per minute.",
+      tags: ["editing", "video-to-video", "vid2vid", "veed", "subtitles"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "wan/v2.6/reference-to-video/flash": {
+      className: "WanV26ReferenceToVideoFlash",
+      docstring: "Wan 2.6 reference-to-video flash model.",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "wan",
+        "reference",
+        "flash"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "xai/grok-imagine-video/edit-video": {
+      className: "GrokImagineVideoEditVideo",
+      docstring: "Edit videos using xAI's Grok Imagine",
+      tags: ["editing", "video-to-video", "vid2vid", "xai", "grok", "imagine"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "xai/grok-imagine-video/extend-video": {
+      className: "GrokImagineVideoExtendVideo",
+      docstring: "Extend videos with xAI's Grok Imagine video model",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "xai",
+        "grok",
+        "imagine",
+        "extend"
+      ],
       useCases: [
         "Automated content generation",
         "Creative workflows",

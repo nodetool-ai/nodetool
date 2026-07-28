@@ -40,9 +40,9 @@ describe("promoTrailerCast", () => {
     });
     expect(outputsOf("wan25")?.status).toBe("completed");
 
-    // …while seedance (7100) and wan26 (7900) are still generating.
+    // …while seedance (7100) and wan27 (7900) are still generating.
     expect(outputsOf("seedance")?.status).toBe("running");
-    expect(outputsOf("wan26")?.status).toBe("running");
+    expect(outputsOf("wan27")?.status).toBe("running");
 
     engine.dispose();
   });
@@ -50,7 +50,7 @@ describe("promoTrailerCast", () => {
   it("lands all four takes by the end", () => {
     const engine = new DemoEngine(promoTrailerCast, { resolveAssetUrl });
     engine.seekToTime(promoTrailerCast.durationMs);
-    for (const nodeId of ["seedance", "seedanceFast", "wan26", "wan25"]) {
+    for (const nodeId of ["seedance", "seedanceFast", "wan27", "wan25"]) {
       const last = useResultsStore
         .getState()
         .getLiveGenerations(promoTrailerCast.workflow.id, nodeId)

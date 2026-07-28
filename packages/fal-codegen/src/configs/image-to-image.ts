@@ -1261,9 +1261,7 @@ export const config: ModuleConfig = {
 
     // AI Home
 
-
     // AI Baby and Aging
-
 
     // Wan Image
     "wan/v2.6/image-to-image": {
@@ -1950,18 +1948,6 @@ export const config: ModuleConfig = {
         "Automated image optimization"
       ]
     },
-    "fal-ai/lucidflux": {
-      className: "Lucidflux",
-      docstring: "Lucidflux",
-      tags: ["flux", "editing", "transformation", "image-to-image", "img2img"],
-      useCases: [
-        "Professional photo editing and enhancement",
-        "Creative image transformations",
-        "Batch image processing workflows",
-        "Product photography refinement",
-        "Automated image optimization"
-      ]
-    },
     "fal-ai/qwen-image-edit/image-to-image": {
       className: "QwenImageEditImageToImage",
       docstring: "Qwen Image Edit",
@@ -2361,18 +2347,6 @@ export const config: ModuleConfig = {
     "fal-ai/nano-banana/edit": {
       className: "NanoBananaEdit",
       docstring: "Nano Banana",
-      tags: ["editing", "transformation", "image-to-image", "img2img"],
-      useCases: [
-        "Professional photo editing and enhancement",
-        "Creative image transformations",
-        "Batch image processing workflows",
-        "Product photography refinement",
-        "Automated image optimization"
-      ]
-    },
-    "fal-ai/nextstep-1": {
-      className: "Nextstep1",
-      docstring: "Nextstep 1",
       tags: ["editing", "transformation", "image-to-image", "img2img"],
       useCases: [
         "Professional photo editing and enhancement",
@@ -3574,18 +3548,6 @@ export const config: ModuleConfig = {
         "Automated image optimization"
       ]
     },
-    "fal-ai/plushify": {
-      className: "Plushify",
-      docstring: "Turn any image into a cute plushie!",
-      tags: ["editing", "transformation", "image-to-image", "img2img"],
-      useCases: [
-        "Professional photo editing and enhancement",
-        "Creative image transformations",
-        "Batch image processing workflows",
-        "Product photography refinement",
-        "Automated image optimization"
-      ]
-    },
     "fal-ai/instant-character": {
       className: "InstantCharacter",
       docstring:
@@ -3651,19 +3613,6 @@ export const config: ModuleConfig = {
         "Automated image optimization"
       ]
     },
-    "fal-ai/star-vector": {
-      className: "StarVector",
-      docstring:
-        "AI vectorization model that transforms raster images into scalable SVG graphics, preserving visual details while enabling infinite scaling and easy editing capabilities.  ",
-      tags: ["editing", "transformation", "image-to-image", "img2img"],
-      useCases: [
-        "Professional photo editing and enhancement",
-        "Creative image transformations",
-        "Batch image processing workflows",
-        "Product photography refinement",
-        "Automated image optimization"
-      ]
-    },
     "fal-ai/ghiblify": {
       className: "Ghiblify",
       docstring:
@@ -3690,19 +3639,6 @@ export const config: ModuleConfig = {
         "Automated image optimization"
       ]
     },
-    "fal-ai/mix-dehaze-net": {
-      className: "MixDehazeNet",
-      docstring:
-        "An advanced dehaze model to remove atmospheric haze, restoring clarity and detail in images through intelligent neural network processing.",
-      tags: ["editing", "transformation", "image-to-image", "img2img"],
-      useCases: [
-        "Professional photo editing and enhancement",
-        "Creative image transformations",
-        "Batch image processing workflows",
-        "Product photography refinement",
-        "Automated image optimization"
-      ]
-    },
     "fal-ai/gemini-flash-edit": {
       className: "GeminiFlashEdit",
       docstring:
@@ -3720,19 +3656,6 @@ export const config: ModuleConfig = {
       className: "GeminiFlashEditMulti",
       docstring:
         "Gemini Flash Edit Multi Image is a model that can edit multiple images using a text prompt and a reference image.",
-      tags: ["editing", "transformation", "image-to-image", "img2img"],
-      useCases: [
-        "Professional photo editing and enhancement",
-        "Creative image transformations",
-        "Batch image processing workflows",
-        "Product photography refinement",
-        "Automated image optimization"
-      ]
-    },
-    "fal-ai/invisible-watermark": {
-      className: "InvisibleWatermark",
-      docstring:
-        "Invisible Watermark is a model that can add an invisible watermark to an image.",
       tags: ["editing", "transformation", "image-to-image", "img2img"],
       useCases: [
         "Professional photo editing and enhancement",
@@ -4282,19 +4205,6 @@ export const config: ModuleConfig = {
         "Automated image optimization"
       ]
     },
-    "fal-ai/flux-differential-diffusion": {
-      className: "FluxDifferentialDiffusion",
-      docstring:
-        "FLUX.1 Differential Diffusion is a rapid endpoint that enables swift, granular control over image transformations through change maps, delivering fast and precise region-specific modifications while maintaining FLUX.1 [dev]'s high-quality output.",
-      tags: ["flux", "editing", "transformation", "image-to-image", "img2img"],
-      useCases: [
-        "Professional photo editing and enhancement",
-        "Creative image transformations",
-        "Batch image processing workflows",
-        "Product photography refinement",
-        "Automated image optimization"
-      ]
-    },
     "fal-ai/flux-pulid": {
       className: "FluxPulid",
       docstring:
@@ -4703,18 +4613,6 @@ export const config: ModuleConfig = {
         "Automated image optimization"
       ]
     },
-    "fal-ai/sd15-depth-controlnet": {
-      className: "Sd15DepthControlnet",
-      docstring: "SD 1.5 ControlNet",
-      tags: ["editing", "transformation", "image-to-image", "img2img"],
-      useCases: [
-        "Professional photo editing and enhancement",
-        "Creative image transformations",
-        "Batch image processing workflows",
-        "Product photography refinement",
-        "Automated image optimization"
-      ]
-    },
     "fal-ai/omni-zero": {
       className: "OmniZero",
       docstring: "Any pose, any style, any identity",
@@ -5059,6 +4957,856 @@ export const config: ModuleConfig = {
       className: "BytedanceSeedreamV5LiteEdit",
       docstring: "Edit images with ByteDance Seedream v5 Lite.",
       tags: ["editing", "image-to-image", "img2img", "seedream", "bytedance"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "bria/embed-product": {
+      className: "EmbedProduct",
+      docstring:
+        "Seamlessly embed products into any scene with pixel-perfect control, automatic perspective, and natural lighting. Trained on licensed data - risk-free for advertising and eCommerce production.",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "bria",
+        "embed",
+        "product"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "bria/extract-object": {
+      className: "ExtractObject",
+      docstring:
+        "Bria Extract Object uses text prompts to isolate a selected object from an image and return it as an RGBA PNG with a transparent background. Ideal for product, ecommerce, advertising, and creative editing workflows. Bria's Extract Object...",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "bria",
+        "extract",
+        "object"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "bria/genfill/v2": {
+      className: "GenfillV2",
+      docstring:
+        "The GenFill Route enables the generation of objects by prompt in a specific region of an image. You can define the area for object generation by using a mask that outlines the region where the object will be created. Our model is optimiz...",
+      tags: ["editing", "image-to-image", "img2img", "bria", "genfill"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "bria/product-dimensions": {
+      className: "ProductDimensions",
+      docstring:
+        "Bria Product Dimensions turns one product photo and its measurements into a marketplace-ready dimension image with callout lines, labels, and weight or capacity readouts",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "bria",
+        "product",
+        "dimensions"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "bria/upscale/creative": {
+      className: "UpscaleCreative",
+      docstring:
+        "Professional-grade creative upscaler that doubles resolution up to 10MP, regenerating sharper textures, refined details, and cleaner faces. Trained exclusively on licensed data for risk-free commercial use.",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "bria",
+        "upscale",
+        "creative"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "bytedance/seedream/v5/lite/edit": {
+      className: "SeedreamV5LiteEdit",
+      docstring:
+        "Image editing endpoint for the fast Lite version of Seedream 5.0, supporting high quality intelligent image editing with multiple inputs.",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "bytedance",
+        "seedream",
+        "v5"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "bytedance/seedream/v5/pro/edit": {
+      className: "SeedreamV5ProEdit",
+      docstring:
+        "Seedream 5.0 Pro is grounded, region-precise image editing model that changes one element while keeping the rest of the frame intact with layer separation, sketch completion, and up to 10 reference images.",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "bytedance",
+        "seedream",
+        "v5",
+        "pro"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/bernini-r/edit-image": {
+      className: "BerniniREditImage",
+      docstring:
+        "Edit any image with a natural-language instruction using Bernini-R, changing the weather, materials, objects, or style while preserving the original composition.",
+      tags: ["editing", "image-to-image", "img2img", "bernini"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/boogu-image/edit": {
+      className: "BooguImageEdit",
+      docstring: "Image To Image Model using Boogu-Image",
+      tags: ["editing", "image-to-image", "img2img", "boogu"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/control-light": {
+      className: "ControlLight",
+      docstring:
+        "ControlLight is a LoRA fine-tune of FLUX.2 [klein] 9B that enhances low-light images while preserving scene structure and fine details, with a single alpha parameter that gives continuous control over enhancement strength from subtle to...",
+      tags: ["editing", "image-to-image", "img2img", "control", "light"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/firered-image-edit": {
+      className: "FireredImageEdit",
+      docstring:
+        "FireRed Image Edit is FireRed's state of the art open source editing model, re-trained from Qwen Image Edit 2509.",
+      tags: ["editing", "image-to-image", "img2img", "firered"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/firered-image-edit-v1.1": {
+      className: "FireredImageEditV11",
+      docstring:
+        "FireRed Image Edit v1.1 is an updated version of FireRed Image Edit, with improved image editing capabilities.",
+      tags: ["editing", "image-to-image", "img2img", "firered"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/flux-2-pro/outpaint": {
+      className: "Flux2ProOutpaint",
+      docstring:
+        "Outpainting generation with FLUX.2 [pro] from Black Forest Labs. Optimized for maximum quality, exceptional photorealism and artistic images.",
+      tags: ["editing", "image-to-image", "img2img", "flux", "pro", "outpaint"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/flux-2/klein/4b/edit/lora": {
+      className: "Flux2Klein4bEditLora",
+      docstring:
+        "Image-to-image editing with FLUX.2 [klein] 4B from Black Forest Labs and custom LoRA. Precise modifications using natural language descriptions and hex color control.",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "flux",
+        "klein",
+        "4b",
+        "lora"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/flux-2/klein/9b/edit/lora": {
+      className: "Flux2Klein9bEditLora",
+      docstring:
+        "Image-to-image editing with FLUX.2 [klein] 9B from Black Forest Labs and custom LoRA. Precise modifications using natural language descriptions and hex color control.",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "flux",
+        "klein",
+        "9b",
+        "lora"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/flux-2/klein/realtime": {
+      className: "Flux2KleinRealtime",
+      docstring:
+        "Realtime generation with FLUX.2 [klein] from Black Forest Labs.",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "flux",
+        "klein",
+        "realtime"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/flux-pro/v1/erase": {
+      className: "FluxProV1Erase",
+      docstring:
+        "Latest object erasing model from Black Forest Labs. Remove undesired objects, texts from images.",
+      tags: ["editing", "image-to-image", "img2img", "flux", "pro", "erase"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/flux-pro/v1/vto": {
+      className: "FluxProV1Vto",
+      docstring:
+        "Generate virtual try-on results from a person image plus one or more garment references.",
+      tags: ["editing", "image-to-image", "img2img", "flux", "pro", "vto"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/gemini-3.1-flash-image-preview/edit": {
+      className: "Gemini31FlashImagePreviewEdit",
+      docstring:
+        "Gemini 3.1 Flash Image (a.k.a. Nano Banana 2) is Google's new state-of-the-art fast image generation and editing model",
+      tags: ["editing", "image-to-image", "img2img", "gemini", "flash"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/hidream-o1-image/dev/edit": {
+      className: "HidreamO1ImageDevEdit",
+      docstring:
+        "Unified image generation with HiDream-O1-Image. Create, edit, and personalize high-resolution images up to 2K—single native model handles text-to-image, editing, and custom subjects without external components.",
+      tags: ["editing", "image-to-image", "img2img", "hidream", "o1", "dev"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/hidream-o1-image/edit": {
+      className: "HidreamO1ImageEdit",
+      docstring:
+        "Unified image generation with HiDream-O1-Image. Create, edit, and personalize high-resolution images up to 2K—single native model handles text-to-image, editing, and custom subjects without external components.",
+      tags: ["editing", "image-to-image", "img2img", "hidream", "o1"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/hy-wu-edit": {
+      className: "HyWuEdit",
+      docstring:
+        "Image editing with HY-WU. Transfer outfits, swap faces, and blend textures instantly—no finetuning needed, just describe what you want and provide reference images.",
+      tags: ["editing", "image-to-image", "img2img", "hy", "wu"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ideogram/remove-background": {
+      className: "IdeogramRemoveBackground",
+      docstring:
+        "Remove backgrounds from existing images with Ideogram's remove background feature. Isolate subjects cleanly for compositing and creative reuse.",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "ideogram",
+        "remove",
+        "background"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ideogram/v3/layerize-text": {
+      className: "IdeogramV3LayerizeText",
+      docstring:
+        "Ideogram Layerize takes an existing flat graphic, removes text, and returns structured text containers you can edit/recompose in html or json format.",
+      tags: ["editing", "image-to-image", "img2img", "ideogram", "layerize"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/joyai-image-edit": {
+      className: "JoyaiImageEdit",
+      docstring:
+        "All-in-one image AI with JoyAI-Image. Understand, create, and edit images through natural language—the model's deep visual understanding powers more accurate generation and precise editing in a unified system.",
+      tags: ["editing", "image-to-image", "img2img", "joyai"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/kling-image/v3/image-to-image": {
+      className: "KlingImageV3ImageToImage",
+      docstring: "Kling Image V3: Latest kling image model",
+      tags: ["editing", "image-to-image", "img2img", "kling"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/patina": {
+      className: "Patina",
+      docstring:
+        "PATINA creates seamless high-resolution normal, roughness, basecolor (albedo), height (displacement) and metalness maps from images",
+      tags: ["editing", "image-to-image", "img2img", "patina"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/patina/material/extract": {
+      className: "PatinaMaterialExtract",
+      docstring:
+        "Extract seamless tiling textures with PBR attribute maps from images",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "patina",
+        "material",
+        "extract"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/phota/edit": {
+      className: "PhotaEdit",
+      docstring:
+        "Phota's model enables personalized photo editing, preserving identity while erasing distractions seamlessly.",
+      tags: ["editing", "image-to-image", "img2img", "phota"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/phota/enhance": {
+      className: "PhotaEnhance",
+      docstring: "Enhance images while preserving identities with Phota",
+      tags: ["editing", "image-to-image", "img2img", "phota", "enhance"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/qwen-image-2/edit": {
+      className: "QwenImage2Edit",
+      docstring:
+        "Qwen-Image-2.0 is a next-generation foundational unified generation-and-editing model",
+      tags: ["editing", "image-to-image", "img2img", "qwen"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/qwen-image-2/pro/edit": {
+      className: "QwenImage2ProEdit",
+      docstring:
+        "Qwen-Image-2.0 is a next-generation foundational unified generation-and-editing model",
+      tags: ["editing", "image-to-image", "img2img", "qwen", "pro"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/sam-3-1/image": {
+      className: "Sam31Image",
+      docstring:
+        "SAM 3.1 builds comes with Object Multiplex, a shared-memory approach for joint multi-object tracking that delivers faster speeds with larger number of objects tracked.",
+      tags: ["editing", "image-to-image", "img2img", "sam"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/sam-3-1/image-rle": {
+      className: "Sam31ImageRle",
+      docstring:
+        "SAM 3.1 builds comes with Object Multiplex, a shared-memory approach for joint multi-object tracking that delivers faster speeds with larger number of objects tracked.",
+      tags: ["editing", "image-to-image", "img2img", "sam", "rle"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/seedvr/upscale/image/seamless": {
+      className: "SeedvrUpscaleImageSeamless",
+      docstring: "Use SeedVR2 to upscale images, retaining seamless tiling",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "seedvr",
+        "upscale",
+        "seamless"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/smart-resize": {
+      className: "SmartResize",
+      docstring:
+        "Smart image resize to arbitrary dimensions, powered by Nano Banana Pro with vision-LLM-guided prompting for composition-aware recomposition. Crop, cropping, resize ads.",
+      tags: ["editing", "image-to-image", "img2img", "smart", "resize"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/telestyle-v2": {
+      className: "TelestyleV2",
+      docstring:
+        "Restyle any image with TeleStyle v2 — provide an original image and a styling reference, and the model re-renders the original in the reference's visual style while preserving its content and composition.",
+      tags: ["editing", "image-to-image", "img2img", "telestyle"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/vecglypher/image-to-svg": {
+      className: "VecglypherImageToSvg",
+      docstring:
+        "Vector font generation with VecGlypher. Create custom glyphs from text descriptions or reference images—outputs clean SVG paths directly without raster-to-vector conversion.",
+      tags: ["editing", "image-to-image", "img2img", "vecglypher", "svg"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/wan/v2.7/edit": {
+      className: "WanV27Edit",
+      docstring:
+        "Transform and edit existing images with text-guided instructions using the WAN 2.7 model for creative image manipulation.",
+      tags: ["editing", "image-to-image", "img2img", "wan"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/wan/v2.7/pro/edit": {
+      className: "WanV27ProEdit",
+      docstring:
+        "Edit and transform images using text instructions with the WAN 2.7 Pro model for precise, professional-grade image modifications.",
+      tags: ["editing", "image-to-image", "img2img", "wan", "pro"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/workflow-utilities/extract-nth-frame": {
+      className: "WorkflowUtilitiesExtractNthFrame",
+      docstring: "FFMPEG Untility for Extracting nth Frame",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "workflow",
+        "utilities",
+        "extract",
+        "nth",
+        "frame"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "google/nano-banana-lite/edit": {
+      className: "NanoBananaLiteEdit",
+      docstring:
+        "Nano banana lite is the efficiency-focused model in the image generation family. Sub-2 second latency with cost-effective generation and editing, fast multi-turn local edits, and 14 supported aspect ratios.",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "google",
+        "nano",
+        "banana"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "ideogram/v4/image-to-image": {
+      className: "IdeogramV4ImageToImage",
+      docstring:
+        "Ideogram V4.0q Image-to-Image transforms an input image with a text prompt, restyling and reworking the composition while preserving its core structure for prompt-faithful, high-fidelity edits.",
+      tags: ["editing", "image-to-image", "img2img", "ideogram", "v4"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "ideogram/v4/image-to-image/lora": {
+      className: "IdeogramV4ImageToImageLora",
+      docstring:
+        "Ideogram V4.0q Image-to-Image LoRA applies a custom-trained LoRA on top of an input image, steering edits toward a specific style, subject, or brand identity while keeping the source composition intact.",
+      tags: ["editing", "image-to-image", "img2img", "ideogram", "v4", "lora"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "ideogram/v4/tiling": {
+      className: "IdeogramV4Tiling",
+      docstring:
+        "Ideogram V4.0q Tiling generates seamless, edge-matching textures and patterns that repeat infinitely in any direction, ideal for backgrounds, surfaces, and wallpapers.",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "ideogram",
+        "v4",
+        "tiling"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "ideogram/v4/tiling/lora": {
+      className: "IdeogramV4TilingLora",
+      docstring:
+        "Ideogram V4.0q Tiling LoRA produces seamless repeatable patterns guided by a custom-trained LoRA, locking a specific aesthetic or motif into tileable textures for cohesive, large-scale surface design.",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "ideogram",
+        "v4",
+        "tiling",
+        "lora"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "imagineart/imagineart-2.0-edit-preview/image-to-image": {
+      className: "Imagineart20EditPreviewImageToImage",
+      docstring:
+        "ImagineArt 2.0 Edit delivers precise prompt-guided image editing at 2K resolution, preserving fine detail and realism while accurately applying targeted changes across one or more reference images.",
+      tags: ["editing", "image-to-image", "img2img", "imagineart"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "luma/agent/uni-1/v1/edit": {
+      className: "LumaAgentUni1V1Edit",
+      docstring:
+        "Luma Uni-1 Edit reworks a source image from a text instruction, preserving the original composition while applying style changes and following optional reference images to steer the result.",
+      tags: ["editing", "image-to-image", "img2img", "luma", "agent", "uni"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "luma/agent/uni-1/v1/max/edit": {
+      className: "LumaAgentUni1V1MaxEdit",
+      docstring:
+        "Luma Uni-1 Max Edit applies text-guided edits to a source image at maximum fidelity, holding the original structure while honoring reference images for precise, high-detail revisions.",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "luma",
+        "agent",
+        "uni",
+        "max"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "microsoft/mai-image-2.5/edit": {
+      className: "MaiImage25Edit",
+      docstring:
+        "MAI-Image-2.5 is Microsoft's photorealistic image generation and editing model that turns text prompts or uploaded images into high-quality, design-ready visuals with fine-grained, pixel-level control.",
+      tags: ["editing", "image-to-image", "img2img", "microsoft", "mai"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "pixelcut/background-removal": {
+      className: "BackgroundRemoval",
+      docstring:
+        "Pixelcut’s Background Remover enables fast, ultra high-quality removal of backgrounds from images. Perfect for e-commerce and image editing workflows. Powered by advanced AI for clean, perfect cutouts every time.",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "pixelcut",
+        "background",
+        "removal"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "reve/2.1/edit": {
+      className: "Reve21Edit",
+      docstring:
+        "Edit images from text prompts with strong prompt adherence, layout intelligence, and accurate text rendering using Reve 2.1",
+      tags: ["editing", "image-to-image", "img2img", "reve"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "reve/2.1/remix": {
+      className: "Reve21Remix",
+      docstring:
+        "Remix images from text prompts with strong prompt adherence, layout intelligence, and accurate text rendering using Reve 2.1",
+      tags: ["editing", "image-to-image", "img2img", "reve", "remix"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "xai/grok-imagine-image/edit": {
+      className: "GrokImagineImageEdit",
+      docstring: "Edit images precisely with xAI's Grok Imagine model",
+      tags: ["editing", "image-to-image", "img2img", "xai", "grok", "imagine"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "xai/grok-imagine-image/quality/edit": {
+      className: "GrokImagineImageQualityEdit",
+      docstring:
+        "Grok Imagine Pro is an advanced AI model from xAI that creates high-quality visuals from text prompts and allows you to edit or analyze existing images.",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "xai",
+        "grok",
+        "imagine",
+        "quality"
+      ],
       useCases: [
         "Automated content generation",
         "Creative workflows",

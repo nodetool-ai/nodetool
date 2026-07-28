@@ -122,18 +122,6 @@ export const config: ModuleConfig = {
         "Rapid prototyping"
       ]
     },
-    "fal-ai/pshuman": {
-      className: "Pshuman",
-      docstring: "Pshuman",
-      tags: ["3d", "generation", "image-to-3d", "modeling"],
-      useCases: [
-        "Automated content generation",
-        "Creative workflows",
-        "Batch processing",
-        "Professional applications",
-        "Rapid prototyping"
-      ]
-    },
     "fal-ai/hunyuan_world/image-to-world": {
       className: "Hunyuan_WorldImageToWorld",
       docstring: "Hunyuan World",
@@ -318,6 +306,194 @@ export const config: ModuleConfig = {
       className: "MeshyV6MultiImageTo3d",
       docstring: "Meshy v6: multi-image to 3D mesh generation.",
       tags: ["3d", "generation", "image-to-3d", "meshy", "modeling"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/hunyuan-3d/v3.1/pro/image-to-3d": {
+      className: "Hunyuan3dV31ProImageTo3d",
+      docstring: "Generate 3D models from images with Hunyuan 3D Pro",
+      tags: ["generation", "image-to-3d", "3d", "mesh", "hunyuan", "pro"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/hunyuan-3d/v3.1/rapid/image-to-3d": {
+      className: "Hunyuan3dV31RapidImageTo3d",
+      docstring: "Rapidly generate 3D models from images using Hunyuan 3D.",
+      tags: ["generation", "image-to-3d", "3d", "mesh", "hunyuan", "rapid"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/hyper3d/rodin/v2.5": {
+      className: "Hyper3dRodinV25",
+      docstring:
+        "Rodin V2.5 by Hyper3D generates realistic and production ready 3D models from text or images.",
+      tags: ["generation", "image-to-3d", "3d", "mesh", "hyper3d", "rodin"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/hyper3d/rodin/v2.5/fast": {
+      className: "Hyper3dRodinV25Fast",
+      docstring:
+        "Rodin V2.5 by Hyper3D generates realistic and production ready 3D models from text or images. Do fast prototyping using the fast model.",
+      tags: [
+        "generation",
+        "image-to-3d",
+        "3d",
+        "mesh",
+        "hyper3d",
+        "rodin",
+        "fast"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/meshy/v6/image-to-3d": {
+      className: "MeshyV6ImageTo3d",
+      docstring:
+        "Meshy-6 is the latest model from Meshy. It generates realistic and production ready 3D models.",
+      tags: ["generation", "image-to-3d", "3d", "mesh", "meshy", "v6"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/pixal3d": {
+      className: "Pixal3d",
+      docstring:
+        "Pixal3D turns a single image into a high-fidelity 3D model with detailed geometry and realistic textures.",
+      tags: ["generation", "image-to-3d", "3d", "mesh", "pixal3d"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/reconviagen-0.5": {
+      className: "Reconviagen05",
+      docstring:
+        "Generate 3D models from one or more images using ReconViaGen 0.5",
+      tags: ["generation", "image-to-3d", "3d", "mesh", "reconviagen"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/trellis-2-lora": {
+      className: "Trellis2Lora",
+      docstring: "Run inference on LoRA adapters for TRELLIS.2 model",
+      tags: ["generation", "image-to-3d", "3d", "mesh", "trellis", "lora"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/trellis-2/retexture": {
+      className: "Trellis2Retexture",
+      docstring:
+        "Generate 3D models from your images using Trellis 2. A native 3D generative model enabling versatile and high-quality 3D asset creation.",
+      tags: ["generation", "image-to-3d", "3d", "mesh", "trellis", "retexture"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "tripo3d/h3.1/image-to-3d": {
+      className: "H31ImageTo3d",
+      docstring:
+        "Generate high-quality 3D models from a single image using Tripo H3.1.",
+      tags: ["generation", "image-to-3d", "3d", "mesh", "tripo3d", "h3"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "tripo3d/h3.1/multiview-to-3d": {
+      className: "H31MultiviewTo3d",
+      docstring:
+        "Generate 3D models from multiple view images using Tripo H3.1.",
+      tags: [
+        "generation",
+        "image-to-3d",
+        "3d",
+        "mesh",
+        "tripo3d",
+        "h3",
+        "multiview"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "tripo3d/p1/image-to-3d": {
+      className: "P1ImageTo3d",
+      docstring: "Generate 3D models from a single image using Tripo P1.",
+      tags: ["generation", "image-to-3d", "3d", "mesh", "tripo3d", "p1"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "tripo3d/triposplat": {
+      className: "Triposplat",
+      docstring:
+        "TripoSplat is an open-source model from TripoAI / VAST AI Research that converts a single 2D image into high-quality 3D Gaussians using a novel learned density-control approach",
+      tags: [
+        "generation",
+        "image-to-3d",
+        "3d",
+        "mesh",
+        "tripo3d",
+        "triposplat"
+      ],
       useCases: [
         "Automated content generation",
         "Creative workflows",

@@ -53,6 +53,101 @@ export const config: ModuleConfig = {
         "Architectural prototyping",
         "Product design visualization"
       ]
+    },
+    "fal-ai/hunyuan-3d/v3.1/pro/text-to-3d": {
+      className: "Hunyuan3dV31ProTextTo3d",
+      docstring: "Generate 3D models from text prompts with Hunyuan 3D Pro",
+      tags: ["generation", "text-to-3d", "3d", "mesh", "hunyuan", "pro"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/hunyuan-3d/v3.1/rapid/text-to-3d": {
+      className: "Hunyuan3dV31RapidTextTo3d",
+      docstring: "Create detailed, fully-textured 3D models with text",
+      tags: ["generation", "text-to-3d", "3d", "mesh", "hunyuan", "rapid"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/hyper3d/rodin/v2.5/text-to-3d": {
+      className: "Hyper3dRodinV25TextTo3d",
+      docstring:
+        "Rodin V2.5 by Hyper3D generates realistic and production ready 3D models from text or images.",
+      tags: ["generation", "text-to-3d", "3d", "mesh", "hyper3d", "rodin"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/hyper3d/rodin/v2.5/text-to-3d/fast": {
+      className: "Hyper3dRodinV25TextTo3dFast",
+      docstring:
+        "Rodin V2.5 by Hyper3D generates realistic and production ready 3D models from text or images. Do fast prototyping using the fast model.",
+      tags: [
+        "generation",
+        "text-to-3d",
+        "3d",
+        "mesh",
+        "hyper3d",
+        "rodin",
+        "fast"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/meshy/v6/text-to-3d": {
+      className: "MeshyV6TextTo3d",
+      docstring:
+        "Meshy-6 is the latest model from Meshy. It generates realistic and production ready 3D models.",
+      tags: ["generation", "text-to-3d", "3d", "mesh", "meshy", "v6"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "tripo3d/h3.1/text-to-3d": {
+      className: "H31TextTo3d",
+      docstring: "Generate 3D models from text descriptions using Tripo H3.1.",
+      tags: ["generation", "text-to-3d", "3d", "mesh", "tripo3d", "h3"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "tripo3d/p1/text-to-3d": {
+      className: "P1TextTo3d",
+      docstring: "Generate 3D models from text descriptions using Tripo P1.",
+      tags: ["generation", "text-to-3d", "3d", "mesh", "tripo3d", "p1"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
     }
   }
 };

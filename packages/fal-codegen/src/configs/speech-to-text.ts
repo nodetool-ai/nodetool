@@ -178,6 +178,27 @@ export const config: ModuleConfig = {
         "Professional applications",
         "Rapid prototyping"
       ]
+    },
+    "nvidia/nemotron-asr-multilingual/asr": {
+      className: "NemotronAsrMultilingualAsr",
+      docstring:
+        "Nemotron-ASR-Streaming is a multi lingual, streaming Automatic Speech Recognition (ASR) engineered to deliver high-quality multi lingual transcription across both low-latency streaming and high-throughput batch workloads.",
+      tags: [
+        "transcription",
+        "speech-to-text",
+        "stt",
+        "nvidia",
+        "nemotron",
+        "asr",
+        "multilingual"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
     }
   }
 };
