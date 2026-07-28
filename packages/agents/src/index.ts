@@ -507,6 +507,44 @@ export type {
   ToolRecorder
 } from "./evals/subtask-cases.js";
 
+// Planning-mode evaluation harnesses (TaskPlanner DAG, ScriptPlanner script)
+export {
+  runTaskPlannerEval,
+  formatTaskPlanReport,
+  checkTaskPlanExpectations,
+  criticalPathDepth
+} from "./evals/task-planner-eval.js";
+export type {
+  TaskPlanCaseResult,
+  TaskPlanEvalReport,
+  RunTaskPlannerEvalOptions
+} from "./evals/task-planner-eval.js";
+export { TASK_PLANNER_EVAL_CASES } from "./evals/task-planner-cases.js";
+export type {
+  TaskPlannerEvalCase,
+  TaskPlannerEvalExpectations
+} from "./evals/task-planner-cases.js";
+export {
+  runScriptPlannerEval,
+  formatScriptPlanReport,
+  checkScriptExpectations,
+  countAgentCalls
+} from "./evals/script-planner-eval.js";
+export type {
+  ScriptPlanCaseResult,
+  ScriptPlanEvalReport,
+  RunScriptPlannerEvalOptions
+} from "./evals/script-planner-eval.js";
+export { SCRIPT_PLANNER_EVAL_CASES } from "./evals/script-planner-cases.js";
+export type {
+  ScriptPlannerEvalCase,
+  ScriptPlannerEvalExpectations
+} from "./evals/script-planner-cases.js";
+export {
+  createPlannerTools,
+  PLANNER_TOOL_NAMES
+} from "./evals/planner-tools.js";
+
 // Graph-native planning & execution
 export { evaluateGraphDsl } from "./graph-dsl.js";
 export type { GraphDslResult, EvaluateGraphDslOptions } from "./graph-dsl.js";
