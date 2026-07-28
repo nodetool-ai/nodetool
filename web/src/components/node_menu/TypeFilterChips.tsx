@@ -145,8 +145,8 @@ const typeFilterChipsStyles = (theme: Theme) =>
         paddingInline: theme.spacing(0.5)
       },
       "& .MuiChip-icon": {
-        marginLeft: theme.spacing(0.75),
-        marginRight: theme.spacing(0.25),
+        marginLeft: theme.spacing(SPACING.xs),
+        marginRight: theme.spacing(SPACING.micro),
         display: "inline-flex",
         alignItems: "center"
       },

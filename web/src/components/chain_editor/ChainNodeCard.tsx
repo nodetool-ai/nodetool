@@ -15,7 +15,8 @@ import {
   Divider,
   ToolbarIconButton,
   Box,
-  reducedMotion
+  reducedMotion,
+  activateOnKey
 } from "../ui_primitives";
 import { PREVIEW_NODE_TYPE } from "../../constants/nodeTypes";
 import { getOutputFromResult } from "../node/outputResult";
@@ -160,6 +161,11 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
         align="center"
         padding={2}
         onClick={onToggleExpanded}
+        onKeyDown={activateOnKey(onToggleExpanded)}
+        role="button"
+        tabIndex={0}
+        aria-expanded={node.expanded}
+        aria-label={node.metadata.title}
         sx={{ cursor: "pointer", "&:hover": { backgroundColor: theme.vars.palette.action.hover } }}
       >
         <Box

@@ -31,14 +31,15 @@ import LayersIcon from "@mui/icons-material/Layers";
 import DownloadIcon from "@mui/icons-material/Download";
 import AddIcon from "@mui/icons-material/Add";
 import {
+  BORDER_RADIUS,
   CheckerDropzone,
   DynamicInputButton,
   FlexColumn,
-  ToolbarIconButton,
-  VideoPlayer,
-  BORDER_RADIUS,
   MOTION,
   reducedMotion,
+  SPACING,
+  ToolbarIconButton,
+  VideoPlayer,
   Z_INDEX
 } from "../ui_primitives";
 import { NodeInputs } from "../node/NodeInputs";
@@ -162,7 +163,7 @@ const styles = (theme: Theme) =>
       ".video-preview-actions button": {
         width: 24,
         height: 24,
-        padding: theme.spacing(0.25),
+        padding: theme.spacing(SPACING.micro),
         backgroundColor: theme.vars.palette.c_scrim,
         color: theme.vars.palette.grey[0],
         borderRadius: BORDER_RADIUS.sm,

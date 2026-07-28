@@ -227,7 +227,7 @@ const styles = (theme: Theme) =>
       height: "2em",
       margin: "0.1em",
       padding: "0 0.1em",
-      borderRadius: "0em !important",
+      borderRadius: "0 !important",
       backgroundColor: "transparent"
     },
     ".asset-delete": {

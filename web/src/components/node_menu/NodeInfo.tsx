@@ -65,7 +65,7 @@ const nodeInfoStyles = (theme: Theme) =>
       display: "inline-flex",
       alignItems: "center",
       padding: "0.25em 0.5em",
-      borderRadius: "0.25em",
+      borderRadius: BORDER_RADIUS.sm,
       height: "1.5em"
     },
     ".replicate-status.online": {

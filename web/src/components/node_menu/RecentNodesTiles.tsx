@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type { DragEvent as ReactDragEvent } from "react";
@@ -16,6 +16,7 @@ import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
+import ConfirmDialog from "../dialogs/ConfirmDialog";
 import { QUICK_ACTION_BUTTONS } from "./QuickActionTiles.constants";
 import { colorForType } from "../../config/data_types";
 import { IconForType } from "../../config/IconForType";
@@ -264,6 +265,8 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
     [getMetadata, requestCreate]
   );
 
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+
   const handleClearRecent = useCallback(() => {
     clearRecentNodes();
   }, [clearRecentNodes]);
@@ -312,7 +315,7 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
           tooltipPlacement="top"
           size="small"
           className="clear-button"
-          onClick={handleClearRecent}
+          onClick={() => setClearConfirmOpen(true)}
           aria-label="Clear recent nodes"
         />
       </div>
@@ -371,6 +374,17 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
           );
         })}
       </div>
+      <ConfirmDialog
+        open={clearConfirmOpen}
+        onClose={() => setClearConfirmOpen(false)}
+        onConfirm={handleClearRecent}
+        title="Clear recent nodes?"
+        content="This clears your recently used nodes list. This cannot be undone."
+        confirmText="Clear recent"
+        cancelText="Cancel"
+        notificationMessage="Recent nodes cleared"
+        notificationType="success"
+      />
     </div>
   );
 });

@@ -34,6 +34,8 @@ export interface TextProps extends Omit<TypographyProps, 'variant'> {
   target?: string;
   /** Link rel attribute */
   rel?: string;
+  /** Button type, for `component="button"` usage */
+  type?: "button" | "submit" | "reset";
 }
 
 /**

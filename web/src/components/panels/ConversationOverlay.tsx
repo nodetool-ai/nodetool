@@ -27,6 +27,7 @@ import useGlobalChatStore, {
   useThreadsQuery
 } from "../../stores/GlobalChatStore";
 import useCanvasChatDockStore from "../../stores/CanvasChatDockStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import { useCanvasDockResize } from "../../hooks/handlers/useCanvasDockResize";
 import ChatThreadView from "../chat/thread/ChatThreadView";
 import ThreadList from "../chat/thread/ThreadList";
@@ -297,6 +298,10 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
   const status: ThreadStatus =
     rawStatus === "stopping" ? "connected" : (rawStatus as ThreadStatus);
 
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
+
   const handleNewConversation = useCallback(async () => {
     try {
       const id = await createNewThread();
@@ -319,9 +324,13 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
     (id: string) => {
       deleteThread(id).catch((err) => {
         console.error("Failed to delete conversation:", err);
+        addNotification({
+          type: "error",
+          content: "Could not delete the conversation. Please try again."
+        });
       });
     },
-    [deleteThread]
+    [deleteThread, addNotification]
   );
 
   const handleExpand = useCallback(() => {

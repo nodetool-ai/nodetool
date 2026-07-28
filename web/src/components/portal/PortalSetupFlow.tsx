@@ -20,7 +20,7 @@ const styles = (theme: Theme) =>
     ".portal-setup-providers": {
       display: "flex",
       flexDirection: "column",
-      gap: `${theme.spacing(0.75)}`,
+      gap: `${theme.spacing(SPACING.xs)}`,
     },
     ".portal-setup-provider": {
       display: "flex",
@@ -29,7 +29,7 @@ const styles = (theme: Theme) =>
       background: theme.vars.palette.c_gray1,
       border: `1px solid ${theme.vars.palette.c_gray2}`,
       borderRadius: BORDER_RADIUS.lg,
-      padding: `${theme.spacing(1.5)} ${theme.spacing(1.75)}`,
+      padding: `${theme.spacing(1.5)} ${theme.spacing(SPACING.md)}`,
       cursor: "pointer",
       transition: `border-color ${MOTION.fast}`,
       "&:hover": {
@@ -120,7 +120,7 @@ const styles = (theme: Theme) =>
     ".portal-setup-ollama-status": {
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.c_gray5,
-      marginTop: `${theme.spacing(0.75)}`,
+      marginTop: `${theme.spacing(SPACING.xs)}`,
       padding: `${theme.spacing(1)} ${theme.spacing(1.5)}`,
       background: theme.vars.palette.c_gray1,
       borderRadius: BORDER_RADIUS.lg,

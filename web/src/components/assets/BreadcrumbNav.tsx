@@ -26,6 +26,10 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: "0.1em",
       cursor: "pointer",
+      background: "none",
+      border: "none",
+      padding: 0,
+      fontFamily: "inherit",
       color: theme.vars.palette.grey[400],
       fontSize: theme.fontSizeSmall,
       whiteSpace: "nowrap",
@@ -138,14 +142,28 @@ const BreadcrumbNav: React.FC = () => {
             {index > 0 && (
               <NavigateNextIcon className="breadcrumb-separator" />
             )}
-            <Text
-              className={`breadcrumb-item ${isLast ? "current" : ""}`}
-              onClick={() => !isLast && handleClick(crumb.id)}
-              component="span"
-            >
-              {isRoot && <HomeIcon className="breadcrumb-home" />}
-              {!isRoot && crumb.name}
-            </Text>
+            {isLast ? (
+              <Text
+                className="breadcrumb-item current"
+                component="span"
+                aria-current="page"
+                aria-label={isRoot ? "Home" : crumb.name}
+              >
+                {isRoot && <HomeIcon className="breadcrumb-home" />}
+                {!isRoot && crumb.name}
+              </Text>
+            ) : (
+              <Text
+                className="breadcrumb-item"
+                component="button"
+                type="button"
+                onClick={() => handleClick(crumb.id)}
+                aria-label={isRoot ? "Home" : crumb.name}
+              >
+                {isRoot && <HomeIcon className="breadcrumb-home" />}
+                {!isRoot && crumb.name}
+              </Text>
+            )}
           </React.Fragment>
         );
       })}

@@ -563,6 +563,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         <span className="inspector-reset-tooltip" style={INLINE_FLEX_STYLE}>
           <ToolbarIconButton
             className={`inspector-reset-button${isChanged ? " is-changed" : ""}`}
+            ariaLabel="Reset to default"
             onClick={handleResetToDefault}
             disabled={!isChanged}
             size="small"

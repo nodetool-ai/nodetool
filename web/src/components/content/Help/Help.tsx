@@ -222,6 +222,7 @@ const Help = ({
       onClose={handleClose}
       fullWidth
       maxWidth="lg"
+      aria-label="Help"
     >
         <div css={helpStyles(theme)}>
           <div className="help">

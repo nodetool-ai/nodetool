@@ -9,7 +9,8 @@ import {
   MOTION,
   BORDER_RADIUS,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  activateOnKey
 } from "../ui_primitives";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import CheckIcon from "@mui/icons-material/Check";
@@ -39,6 +40,14 @@ export const OutputSelector: React.FC<OutputSelectorProps> = React.memo(function
     <>
       <Box
         onClick={(e) => setAnchorEl(e.currentTarget)}
+        onKeyDown={activateOnKey<HTMLDivElement>((e) =>
+          setAnchorEl(e.currentTarget)
+        )}
+        role="button"
+        tabIndex={0}
+        aria-haspopup="menu"
+        aria-expanded={Boolean(anchorEl)}
+        aria-label="Select output"
         sx={{
           display: "inline-flex",
           alignItems: "center",

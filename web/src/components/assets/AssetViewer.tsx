@@ -755,6 +755,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         fullWidth
         open={open}
         onClose={handleClose}
+        aria-label="Asset viewer"
         slotProps={{
           // Override the primitive's default glass/rounded/bordered paper so the
           // viewer is a true edge-to-edge fullscreen surface with no top gap.

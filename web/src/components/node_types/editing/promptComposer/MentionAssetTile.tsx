@@ -60,7 +60,7 @@ const styles = (theme: Theme) =>
     width: TILE_WIDTH,
     display: "flex",
     flexDirection: "column",
-    gap: theme.spacing(0.75),
+    gap: theme.spacing(SPACING.xs),
     padding: theme.spacing(0.5),
     borderRadius: BORDER_RADIUS.md,
     border: "1px solid transparent",

@@ -4,6 +4,7 @@ import { restFetch } from "../lib/rest-fetch";
 import { CollectionList as CollectionListType } from "./ApiTypes";
 import { trpcClient } from "../trpc/client";
 import { queryClient } from "../queryClient";
+import { useNotificationStore } from "./NotificationStore";
 
 interface IndexResponseData {
   path: string;
@@ -27,6 +28,8 @@ interface CollectionStore {
   isLoading: boolean;
   error: string | null;
   deleteTarget: string | null;
+  /** Name of the collection whose deletion is in flight, if any. */
+  deletingCollection: string | null;
   showForm: boolean;
   dragOverCollection: string | null;
   indexProgress: IndexProgressState | null;
@@ -67,6 +70,7 @@ export const useCollectionStore = create<CollectionStore>()(
       isLoading: false,
       error: null,
       deleteTarget: null,
+      deletingCollection: null,
       showForm: false,
       dragOverCollection: null,
       indexProgress: null,
@@ -110,9 +114,27 @@ export const useCollectionStore = create<CollectionStore>()(
 
       confirmDelete: async () => {
         const deleteTarget = get().deleteTarget;
-        if (deleteTarget) {
+        if (!deleteTarget) {return;}
+        const addNotification = useNotificationStore.getState().addNotification;
+        set({ deletingCollection: deleteTarget });
+        try {
           await get().deleteCollection(deleteTarget);
           set({ deleteTarget: null });
+          addNotification({
+            type: "success",
+            alert: true,
+            content: `Deleted collection "${deleteTarget}"`
+          });
+        } catch (err) {
+          addNotification({
+            type: "error",
+            alert: true,
+            content: `Could not delete collection "${deleteTarget}": ${
+              err instanceof Error ? err.message : "unknown error"
+            }`
+          });
+        } finally {
+          set({ deletingCollection: null });
         }
       },
 

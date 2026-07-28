@@ -28,6 +28,7 @@ import {
 import { trpc } from "../../trpc/client";
 import { groupByDate } from "../../utils/groupByDate";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
+import { notifyMutationError } from "../../utils/notifyMutationError";
 import CategorySearchBar from "../node_menu/CategorySearchBar";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import {
@@ -328,7 +329,7 @@ export const CreateTimelineButton = memo(function CreateTimelineButton() {
       }
       setVisibility(false);
     } catch (error) {
-      console.error("Failed to create timeline", error);
+      notifyMutationError("create the timeline", error);
     }
   }, [createTimeline, location.pathname, navigate, openTab, setVisibility]);
 
@@ -487,7 +488,7 @@ const TimelineListPanel = () => {
           }
         });
       } catch (error) {
-        console.error("Failed to duplicate timeline", error);
+        notifyMutationError("duplicate the timeline", error);
       }
     },
     [utils, createTimeline, updateTimeline]

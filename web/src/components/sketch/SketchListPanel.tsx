@@ -27,6 +27,7 @@ import {
 import { trpc } from "../../trpc/client";
 import { groupByDate } from "../../utils/groupByDate";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
+import { notifyMutationError } from "../../utils/notifyMutationError";
 import CategorySearchBar from "../node_menu/CategorySearchBar";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import {
@@ -332,7 +333,7 @@ export const CreateSketchButton = memo(function CreateSketchButton() {
       }
       setVisibility(false);
     } catch (error) {
-      console.error("Failed to create sketch", error);
+      notifyMutationError("create the sketch", error);
     }
   }, [createSketch, location.pathname, navigate, openTab, setVisibility]);
 
@@ -481,7 +482,7 @@ const SketchListPanel = () => {
           document: source.document
         });
       } catch (error) {
-        console.error("Failed to duplicate sketch", error);
+        notifyMutationError("duplicate the sketch", error);
       }
     },
     [utils, createSketch, updateSketch]

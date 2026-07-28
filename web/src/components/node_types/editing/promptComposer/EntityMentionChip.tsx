@@ -5,7 +5,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type { EntityKind } from "@nodetool-ai/protocol";
 
-import { BORDER_RADIUS, Tooltip } from "../../../ui_primitives";
+import { BORDER_RADIUS, SPACING, Tooltip } from "../../../ui_primitives";
 import { useAssetById } from "../../../../serverState/useAssetById";
 import { readEntityMarker } from "../../../../serverState/useEntities";
 import { ENTITY_KIND_ICON } from "../../../entities/entityKind";
@@ -54,8 +54,8 @@ const previewCardStyles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",
-    gap: theme.spacing(0.75),
-    padding: theme.spacing(0.75),
+    gap: theme.spacing(SPACING.xs),
+    padding: theme.spacing(SPACING.xs),
     background: theme.vars.palette.background.paper,
     border: `1px solid ${theme.vars.palette.divider}`,
     borderRadius: BORDER_RADIUS.lg,

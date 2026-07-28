@@ -154,6 +154,8 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
       >
         <Button
           className="open-colors-button"
+          aria-label="Choose color"
+          aria-haspopup="dialog"
           onClick={handleClick}
           style={{
             color: "white",
@@ -198,6 +200,9 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
                 border: cellColor === null ? "2px dashed gray" : "none",
                 backgroundColor: cellColor || "transparent"
               }}
+              aria-label={
+                cellColor === null ? "No color" : `Color ${cellColor}`
+              }
               onClick={handleColorCellButtonClick}
             />
           ))}

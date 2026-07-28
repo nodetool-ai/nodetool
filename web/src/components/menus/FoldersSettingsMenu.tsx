@@ -130,6 +130,13 @@ const FoldersSettings = () => {
     }) => updateSettings(settings, secrets),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });
+    },
+    onError: (error: Error) => {
+      addNotification({
+        content: `Could not save folder settings: ${error.message}`,
+        type: "error",
+        alert: true
+      });
     }
   });
 
@@ -282,6 +289,7 @@ const FoldersSettings = () => {
                   onClick={handleSave}
                   color="primary"
                   className="save-button"
+                  disabled={updateSettingsMutation.isPending}
                 />
               </div>
             </>

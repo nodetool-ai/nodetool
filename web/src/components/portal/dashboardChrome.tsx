@@ -78,7 +78,7 @@ const searchStyles = (theme: Theme) =>
     alignItems: "center",
     gap: `${theme.spacing(1)}`,
     height: 32,
-    padding: `0 ${theme.spacing(1.375)}`,
+    padding: `0 ${theme.spacing(SPACING.sm)}`,
     background: theme.vars.palette.c_node_bg,
     border: `1px solid ${theme.vars.palette.divider}`,
     borderRadius: BORDER_RADIUS.sm,
@@ -103,7 +103,7 @@ const searchStyles = (theme: Theme) =>
       fontFamily: theme.fontFamily2,
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.secondary,
-      padding: `${theme.spacing(0.125)} ${theme.spacing(0.75)}`,
+      padding: `${theme.spacing(SPACING.none)} ${theme.spacing(SPACING.xs)}`,
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: BORDER_RADIUS.xs,
       lineHeight: 1.4
@@ -208,7 +208,7 @@ const linkStyles = (theme: Theme) =>
   css({
     display: "inline-flex",
     alignItems: "center",
-    gap: `${theme.spacing(0.75)}`,
+    gap: `${theme.spacing(SPACING.xs)}`,
     fontSize: "var(--fontSizeSmall)",
     color: theme.vars.palette.primary.main,
     background: "none",

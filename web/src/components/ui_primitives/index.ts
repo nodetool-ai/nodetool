@@ -252,6 +252,9 @@ export {
   reducedMotion
 } from "./tokens";
 
+// Keyboard activation for non-native-button click targets
+export { activateOnKey } from "./keyboardActivation";
+
 // Keyboard shortcuts display
 export { KeyboardShortcutCard } from "./KeyboardShortcutCard";
 export type { KeyboardShortcutCardProps, ShortcutItem } from "./KeyboardShortcutCard";

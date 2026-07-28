@@ -227,7 +227,7 @@ const VideoRecorder = (props: VideoRecorderProps) => {
                 backgroundColor: "var(--palette-warning-main)",
                 color: "var(--palette-grey-900)",
                 padding: ".2em 0.5em",
-                borderRadius: "0.2em",
+                borderRadius: BORDER_RADIUS.xs,
                 zIndex: Z_INDEX.overlay,
                 top: "0.5em",
                 left: "0.5em"

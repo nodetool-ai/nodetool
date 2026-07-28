@@ -88,7 +88,7 @@ const styles = (theme: Theme, accent: string, active: boolean) =>
       display: "flex",
       flexDirection: "column",
       gap: 4,
-      padding: `${theme.spacing(1.25)} ${theme.spacing(1.5)}`
+      padding: `${theme.spacing(SPACING.sm)} ${theme.spacing(1.5)}`
     },
     ".level": {
       alignSelf: "flex-start",

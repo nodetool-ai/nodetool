@@ -12,14 +12,19 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type { Entity } from "@nodetool-ai/protocol";
 
-import { BORDER_RADIUS, MOTION, reducedMotion } from "../../../ui_primitives";
+import {
+  BORDER_RADIUS,
+  MOTION,
+  reducedMotion,
+  SPACING
+} from "../../../ui_primitives";
 import { ENTITY_KIND_COLOR, ENTITY_KIND_ICON } from "../../../entities/entityKind";
 
 const styles = (theme: Theme) =>
   css({
     display: "inline-flex",
     alignItems: "center",
-    gap: theme.spacing(0.75),
+    gap: theme.spacing(SPACING.xs),
     padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
     borderRadius: BORDER_RADIUS.xl,
     border: "1px solid transparent",

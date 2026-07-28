@@ -167,7 +167,7 @@ const styles = (
 
       "& .MuiIconButton-root, .MuiButton-root": {
         padding: `${theme.spacing(1)}`,
-        margin: `0 ${theme.spacing(0.75)}`,
+        margin: `0 ${theme.spacing(SPACING.xs)}`,
         borderRadius: BORDER_RADIUS.lg,
         backgroundColor: "transparent",
         transition: `${MOTION.background}, color ${MOTION.fast}`,

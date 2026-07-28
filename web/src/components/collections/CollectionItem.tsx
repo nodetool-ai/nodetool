@@ -2,11 +2,7 @@ import React, { memo, useCallback, useMemo } from "react";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import { DeleteButton, FlexRow, FlexColumn, Text, Caption, Tooltip, LoadingSpinner, EditorButton, ProgressBar, MOTION, BORDER_RADIUS, SPACING, Z_INDEX } from "../ui_primitives";
 import { CollectionResponse } from "../../stores/ApiTypes";
-import {
-  UseMutationResult,
-  useMutation,
-  useQueryClient
-} from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import WorkflowSelect from "./WorkflowSelect";
 import { useState } from "react";
 import { trpcClient } from "../../trpc/client";
@@ -25,7 +21,8 @@ interface CollectionItemProps {
   onDrop: (e: React.DragEvent<HTMLDivElement>) => void;
   onDragOver: (e: React.DragEvent<HTMLDivElement>, collection: string) => void;
   onDragLeave: (e: React.DragEvent<HTMLDivElement>) => void;
-  deleteMutation: UseMutationResult<void, Error, string>;
+  /** Name of the collection whose deletion is in flight, if any. */
+  deletingCollection: string | null;
 }
 
 const IndexingProgress = memo(function IndexingProgress({
@@ -83,8 +80,9 @@ const CollectionItem = ({
   onDrop,
   onDragOver,
   onDragLeave,
-  deleteMutation
+  deletingCollection
 }: CollectionItemProps) => {
+  const isDeleting = deletingCollection !== null;
   const addNotification = useNotificationStore((state) => state.addNotification);
   const queryClient = useQueryClient();
   const [isEditingWorkflow, setIsEditingWorkflow] = useState(false);
@@ -174,14 +172,13 @@ const CollectionItem = ({
       gap={2}
     >
       <FlexRow justify="flex-end" sx={{ position: "absolute", top: 8, right: 8 }}>
-        {deleteMutation.isPending &&
-          deleteMutation.variables === collection.name ? (
+        {deletingCollection === collection.name ? (
           <LoadingSpinner size={20} inline />
         ) : (
           <DeleteButton
             onClick={handleDeleteClick}
             tooltip="Delete this collection"
-            disabled={deleteMutation.isPending}
+            disabled={isDeleting}
             sx={{ mt: -10 }}
             nodrag={false}
           />

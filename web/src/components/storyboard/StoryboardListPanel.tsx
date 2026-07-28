@@ -30,6 +30,7 @@ import {
 import { trpc } from "../../trpc/client";
 import { groupByDate } from "../../utils/groupByDate";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
+import { notifyMutationError } from "../../utils/notifyMutationError";
 import CategorySearchBar from "../node_menu/CategorySearchBar";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import {
@@ -242,7 +243,7 @@ export const CreateStoryboardButton = memo(function CreateStoryboardButton() {
       }
       setVisibility(false);
     } catch (error) {
-      console.error("Failed to create storyboard", error);
+      notifyMutationError("create the storyboard", error);
     }
   }, [createStoryboard, location.pathname, navigate, openTab, setVisibility]);
 
@@ -378,7 +379,7 @@ const StoryboardListPanel = () => {
           document: source.document
         });
       } catch (error) {
-        console.error("Failed to duplicate storyboard", error);
+        notifyMutationError("duplicate the storyboard", error);
       }
     },
     [utils, createStoryboard, updateStoryboard]

@@ -10,6 +10,7 @@ import { useAssets } from "../../serverState/useAssets";
 import AssetTree from "./AssetTree";
 import { Asset } from "../../stores/ApiTypes";
 import { useAuth } from "../../stores/useAuth";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import {
   Dialog,
   DialogActionButtons,
@@ -50,6 +51,9 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
   const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
   const user = useAuth((state) => state.user);
   const queryClient = useQueryClient();
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
 
   useEffect(() => {
     if (!dialogOpen) {return;} // Only process when dialog is actually open
@@ -119,14 +123,38 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
       // Invalidate all asset queries (including workflow-specific ones)
       await queryClient.invalidateQueries({ queryKey: ["assets"] });
       await refetchAssetsAndFolders();
+      const parts = [
+        folderCount > 0
+          ? `${folderCount} folder${folderCount !== 1 ? "s" : ""}`
+          : null,
+        fileCount > 0 ? `${fileCount} file${fileCount !== 1 ? "s" : ""}` : null
+      ].filter((part): part is string => part !== null);
+      addNotification({
+        type: "success",
+        alert: true,
+        content: `Deleted ${parts.join(" and ") || "selection"}`
+      });
     } catch (error) {
-      if (error instanceof Error) {
-        console.error("Execute deletion error:", error.message);
-      }
+      addNotification({
+        type: "error",
+        alert: true,
+        content: `Could not delete: ${
+          error instanceof Error ? error.message : "unknown error"
+        }`
+      });
     } finally {
       setIsLoading(false);
     }
-  }, [mutation, assets, setDialogOpen, refetchAssetsAndFolders, queryClient]);
+  }, [
+    mutation,
+    assets,
+    setDialogOpen,
+    refetchAssetsAndFolders,
+    queryClient,
+    addNotification,
+    folderCount,
+    fileCount
+  ]);
 
   const getDialogTitle = () => {
     if (isAssetTreeLoading && folderCount > 0) {

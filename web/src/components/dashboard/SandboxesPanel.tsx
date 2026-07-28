@@ -16,7 +16,9 @@ import {
   getSpacingPx
 } from "../ui_primitives";
 import PanelToolbar from "../panels/PanelToolbar";
+import ConfirmDialog from "../dialogs/ConfirmDialog";
 import { trpc } from "../../trpc/client";
+import { useNotificationStore } from "../../stores/NotificationStore";
 
 interface SandboxStatus {
   container_id: string;
@@ -86,7 +88,11 @@ function isSafeVncUrl(url: string): boolean {
 const SandboxesPanel: React.FC = () => {
   const theme = useTheme();
   const [selectedSandboxId, setSelectedSandboxId] = useState<string | null>(null);
+  const [sandboxToKill, setSandboxToKill] = useState<SandboxStatus | null>(null);
   const vncIframeRef = useRef<HTMLIFrameElement | null>(null);
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
 
   const enterVncFullscreen = useCallback(() => {
     const el = vncIframeRef.current;
@@ -106,20 +112,33 @@ const SandboxesPanel: React.FC = () => {
   const sandboxesQuery = trpc.sandboxes.list.useQuery(undefined, {
     refetchInterval: SANDBOX_LIST_REFETCH_INTERVAL_MS
   });
+  const notifyActionFailed = useCallback(
+    (action: string, error: { message: string }) => {
+      addNotification({
+        type: "error",
+        alert: true,
+        content: `Could not ${action} sandbox: ${error.message}`
+      });
+    },
+    [addNotification]
+  );
   const pauseSandbox = trpc.sandboxes.pause.useMutation({
     onSuccess: async () => {
       await sandboxesQuery.refetch();
-    }
+    },
+    onError: (error) => notifyActionFailed("pause", error)
   });
   const resumeSandbox = trpc.sandboxes.resume.useMutation({
     onSuccess: async () => {
       await sandboxesQuery.refetch();
-    }
+    },
+    onError: (error) => notifyActionFailed("resume", error)
   });
   const killSandbox = trpc.sandboxes.kill.useMutation({
     onSuccess: async () => {
       await sandboxesQuery.refetch();
-    }
+    },
+    onError: (error) => notifyActionFailed("kill", error)
   });
 
   const sandboxes = sandboxesQuery.data ?? EMPTY_SANDBOXES;
@@ -197,7 +216,16 @@ const SandboxesPanel: React.FC = () => {
                       align="center"
                       justify="space-between"
                       sx={{ cursor: "pointer" }}
+                      role="button"
+                      tabIndex={0}
+                      aria-pressed={isSelected}
                       onClick={() => setSelectedSandboxId(sandbox.container_id)}
+                      onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setSelectedSandboxId(sandbox.container_id);
+                        }
+                      }}
                     >
                       <FlexColumn gap={0.5}>
                         <Text size="normal" weight={600}>
@@ -248,9 +276,7 @@ const SandboxesPanel: React.FC = () => {
                         density="compact"
                         variant="outlined"
                         disabled={actionPending}
-                        onClick={() =>
-                          killSandbox.mutate({ container_id: sandbox.container_id })
-                        }
+                        onClick={() => setSandboxToKill(sandbox)}
                       >
                         Kill
                       </EditorButton>
@@ -354,6 +380,19 @@ const SandboxesPanel: React.FC = () => {
           </FlexColumn>
         )}
       </FlexColumn>
+      <ConfirmDialog
+        open={sandboxToKill !== null}
+        onClose={() => setSandboxToKill(null)}
+        onConfirm={() => {
+          if (sandboxToKill) {
+            killSandbox.mutate({ container_id: sandboxToKill.container_id });
+          }
+        }}
+        title="Kill sandbox"
+        content={`Kill "${sandboxToKill?.name ?? ""}"? The container is destroyed and cannot be resumed.`}
+        confirmText="Kill"
+        cancelText="Cancel"
+      />
     </FlexColumn>
   );
 };

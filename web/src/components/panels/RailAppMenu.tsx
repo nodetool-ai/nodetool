@@ -40,7 +40,7 @@ const logoButtonStyles = (theme: Theme) =>
     justifyContent: "center",
     width: "40px",
     height: "34px",
-    margin: `0 ${theme.spacing(0.625)}`,
+    margin: `0 ${theme.spacing(SPACING.micro)}`,
     padding: 0,
     border: "none",
     borderRadius: BORDER_RADIUS.lg,

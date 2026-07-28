@@ -7,7 +7,8 @@ import {
   getSpacingPx,
   Checkbox,
   FormControlLabel,
-  Slider
+  Slider,
+  activateOnKey
 } from "../../ui_primitives";
 import {
   BlurSettings,
@@ -223,10 +224,18 @@ export const GradientSettingsPanel = memo(function GradientSettingsPanel({
         <Text className="setting-label">Start</Text>
         <Box
           sx={{ ...colorSwatchSx }}
+          role="button"
+          tabIndex={0}
+          aria-label="Gradient start color"
+          aria-haspopup="dialog"
           onClick={(e) => {
             setStartInitial(settings.startColor);
             setStartAnchor(e.currentTarget);
           }}
+          onKeyDown={activateOnKey<HTMLDivElement>((e) => {
+            setStartInitial(settings.startColor);
+            setStartAnchor(e.currentTarget);
+          })}
         >
           <Box
             sx={{
@@ -241,10 +250,18 @@ export const GradientSettingsPanel = memo(function GradientSettingsPanel({
         <Text className="setting-label">End</Text>
         <Box
           sx={{ ...colorSwatchSx }}
+          role="button"
+          tabIndex={0}
+          aria-label="Gradient end color"
+          aria-haspopup="dialog"
           onClick={(e) => {
             setEndInitial(settings.endColor);
             setEndAnchor(e.currentTarget);
           }}
+          onKeyDown={activateOnKey<HTMLDivElement>((e) => {
+            setEndInitial(settings.endColor);
+            setEndAnchor(e.currentTarget);
+          })}
         >
           <Box
             sx={{

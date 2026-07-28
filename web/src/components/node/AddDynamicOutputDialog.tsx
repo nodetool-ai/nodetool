@@ -11,7 +11,7 @@ import {
   DialogActions,
   MenuItem
 } from "../ui_primitives";
-import { useCallback, useState, memo } from "react";
+import { useCallback, useState, memo, useId } from "react";
 import { TypeMetadata } from "../../stores/ApiTypes";
 import { validateIdentifierName } from "../../utils/identifierValidation";
 
@@ -33,6 +33,7 @@ const AddDynamicOutputDialog: React.FC<AddDynamicOutputDialogProps> = ({
   onClose,
   onAdd
 }) => {
+  const titleId = useId();
   const [name, setName] = useState("");
   const [type, setType] = useState("str");
   const [nameError, setNameError] = useState<string | undefined>();
@@ -61,8 +62,14 @@ const AddDynamicOutputDialog: React.FC<AddDynamicOutputDialogProps> = ({
   }, [name, type, onAdd, reset, onClose]);
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
-      <DialogTitle>Add Output</DialogTitle>
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth="xs"
+      fullWidth
+      aria-labelledby={titleId}
+    >
+      <DialogTitle id={titleId}>Add Output</DialogTitle>
       <DialogContent>
         <FlexRow css={css({ gap: 8, marginTop: 8 })}>
           <TextField

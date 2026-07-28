@@ -18,11 +18,12 @@ import AutorenewRoundedIcon from "@mui/icons-material/AutorenewRounded";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
 import {
-  FlexRow,
-  FlexColumn,
   BORDER_RADIUS,
+  FlexColumn,
+  FlexRow,
   MOTION,
   reducedMotion,
+  SPACING,
   Z_INDEX
 } from "../ui_primitives";
 import type {
@@ -215,7 +216,7 @@ const treeStyles = (theme: Theme) =>
     ".tl-content": {
       flex: 1,
       minWidth: 0,
-      paddingBottom: theme.spacing(2.5)
+      paddingBottom: theme.spacing(SPACING.lg)
     },
 
     ".tl-item.last > .tl-content": {
@@ -315,7 +316,7 @@ const treeStyles = (theme: Theme) =>
     },
 
     ".tl-detail": {
-      marginTop: theme.spacing(0.25),
+      marginTop: theme.spacing(SPACING.micro),
       fontFamily: theme.fontFamily2,
       fontSize: "var(--fontSizeSmaller)",
       lineHeight: 1.6,
@@ -372,7 +373,7 @@ const treeStyles = (theme: Theme) =>
     ".tl-inspector-section": {
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.25)
+      gap: theme.spacing(SPACING.micro)
     },
 
     ".tl-inspector-label": {
@@ -408,7 +409,7 @@ const treeStyles = (theme: Theme) =>
     ".tl-inspector-tool": {
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.25),
+      gap: theme.spacing(SPACING.micro),
       padding: theme.spacing(0.5, 0),
       borderTop: `1px dashed ${theme.vars.palette.divider}`,
       "&:first-of-type": { borderTop: "none" }

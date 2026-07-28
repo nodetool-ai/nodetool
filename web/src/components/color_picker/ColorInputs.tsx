@@ -90,6 +90,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
                   <InputAdornment position="start">#</InputAdornment>
                 )
               }}
+              inputProps={{ "aria-label": "Hex color" }}
               placeholder="FFFFFF"
             />
             <TextInput
@@ -103,7 +104,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
                   <InputAdornment position="end">%</InputAdornment>
                 )
               }}
-              inputProps={{ min: 0, max: 100 }}
+              inputProps={{ min: 0, max: 100, "aria-label": "Alpha (percent)" }}
               style={widthStyle}
             />
           </div>

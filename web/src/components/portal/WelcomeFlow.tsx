@@ -118,7 +118,7 @@ const styles = (theme: Theme, fullWidth: boolean) =>
       color: theme.vars.palette.text.primary
     },
     ".welcome-card-blurb": {
-      marginTop: `${theme.spacing(0.25)}`,
+      marginTop: `${theme.spacing(SPACING.micro)}`,
       marginBottom: `${theme.spacing(1)}`,
       fontSize: "var(--fontSizeSmall)",
       lineHeight: 1.45,
@@ -127,7 +127,7 @@ const styles = (theme: Theme, fullWidth: boolean) =>
     ".welcome-card-node": {
       display: "inline-flex",
       alignItems: "center",
-      padding: `${theme.spacing(0.25)} ${theme.spacing(1)}`,
+      padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(1)}`,
       borderRadius: BORDER_RADIUS.pill,
       background: theme.vars.palette.action.selected,
       color: theme.vars.palette.text.secondary,
@@ -145,7 +145,7 @@ const styles = (theme: Theme, fullWidth: boolean) =>
     ".welcome-skip": {
       background: "none",
       border: "none",
-      padding: `${theme.spacing(0.75)} ${theme.spacing(1.25)}`,
+      padding: `${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.sm)}`,
       borderRadius: BORDER_RADIUS.sm,
       fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,

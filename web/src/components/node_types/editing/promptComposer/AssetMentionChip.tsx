@@ -8,7 +8,7 @@ import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import MovieIcon from "@mui/icons-material/Movie";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 
-import { BORDER_RADIUS, Tooltip } from "../../../ui_primitives";
+import { BORDER_RADIUS, SPACING, Tooltip } from "../../../ui_primitives";
 import { useAssetById } from "../../../../serverState/useAssetById";
 import { assetMediaKind, parseAssetUri } from "./promptTokens";
 
@@ -55,8 +55,8 @@ const previewCardStyles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",
-    gap: theme.spacing(0.75),
-    padding: theme.spacing(0.75),
+    gap: theme.spacing(SPACING.xs),
+    padding: theme.spacing(SPACING.xs),
     background: theme.vars.palette.background.paper,
     border: `1px solid ${theme.vars.palette.divider}`,
     borderRadius: BORDER_RADIUS.lg,

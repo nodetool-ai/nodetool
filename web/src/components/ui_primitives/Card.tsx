@@ -9,6 +9,7 @@ import React, { memo, forwardRef } from "react";
 import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { MOTION } from "./tokens";
+import { activateOnKey } from "./keyboardActivation";
 
 export interface CardProps extends BoxProps {
   /** Padding size variant */
@@ -94,6 +95,13 @@ const CardInternal = forwardRef<HTMLDivElement, CardProps>(({
     <Box
       ref={ref}
       onClick={clickable ? onClick : undefined}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={
+        clickable
+          ? activateOnKey<HTMLDivElement>((event) => event.currentTarget.click())
+          : undefined
+      }
       sx={{
         padding: theme.spacing(paddingValue),
         backgroundColor: theme.vars.palette.background.paper,
