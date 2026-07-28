@@ -17,6 +17,9 @@ import QueueOverlay from "../panels/QueueOverlay";
 import StatusMessage from "../panels/StatusMessage";
 import NodeCreateBridge from "../editor/NodeCreateBridge";
 import WorkflowChainSurface from "./WorkflowChainSurface";
+import SubgraphTabStrip from "./SubgraphTabStrip";
+import SubgraphTabContent from "./SubgraphTabContent";
+import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { FlexColumn, LoadingSpinner } from "../ui_primitives";
 
@@ -48,6 +51,13 @@ const WorkflowEditorSurface = ({
     (state) => state.settings.editorViewMode
   );
   const [missing, setMissing] = useState(false);
+  // Only this workflow's subgraph tabs may take over its canvas — another
+  // workflow tab's open subgraph must not hijack this one.
+  const activeSubgraph = useSubgraphTabsStore((state) =>
+    state.tabs.find(
+      (tab) => tab.key === state.activeKey && tab.workflowId === workflowId
+    )
+  );
 
   useEffect(() => {
     if (nodeStore) {
@@ -104,6 +114,11 @@ const WorkflowEditorSurface = ({
                   <StatusMessage />
                 </div>
               )}
+              <SubgraphTabStrip
+                hostId={workflowId}
+                hostActiveKey={null}
+                hostLabel="Workflow"
+              />
               <div
                 style={{
                   flex: 1,
@@ -120,11 +135,19 @@ const WorkflowEditorSurface = ({
                   style={{
                     width: "100%",
                     height: "100%",
-                    display: showChain ? "none" : undefined
+                    display: showChain || activeSubgraph ? "none" : undefined
                   }}
                 >
                   <NodeEditor workflowId={workflowId} active={active} />
                 </div>
+                {/* A subgraph takes over the canvas the same way the chain view
+                    does, and for the same reason: the parent editor stays
+                    mounted underneath so returning to it keeps its viewport. */}
+                {activeSubgraph && !showChain && (
+                  <div style={{ position: "absolute", inset: 0 }}>
+                    <SubgraphTabContent tab={activeSubgraph} />
+                  </div>
+                )}
                 {showChain && (
                   <div
                     style={{

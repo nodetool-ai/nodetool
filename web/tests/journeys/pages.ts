@@ -117,12 +117,31 @@ export class ChatPage {
   }
 }
 
-/** A mini app rendered by the app runtime at `/apps/<id>`. */
+/**
+ * A mini app, opened the way a user opens one.
+ *
+ * An app is its own resource: there is no standalone `/apps/<id>` route any
+ * more. A user reaches one from the editor's left rail — Apps → the app — which
+ * opens it as a workspace tab in Design mode, then switches that tab to Run.
+ */
 export class MiniAppPage {
   constructor(private readonly page: Page) {}
 
-  async open(workflowId: string): Promise<void> {
-    await goto(this.page, `/apps/${workflowId}`);
+  /** Open the app named `appName` and switch its tab to Run. */
+  async open(appName: string): Promise<void> {
+    await goto(this.page, "/workspace");
+    await this.page.getByRole("button", { name: "Apps" }).first().click();
+    await this.page
+      .getByRole("button", { name: appName })
+      .first()
+      .click({ timeout: 30_000 });
+
+    // The tab opens in Design mode; Run is the surface a user runs the app on.
+    await this.page
+      .getByRole("button", { name: "Run", exact: true })
+      .first()
+      .click({ timeout: 30_000 });
+
     await this.runButton().waitFor({ state: "visible", timeout: 30_000 });
   }
 

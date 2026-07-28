@@ -19,6 +19,13 @@ export const COLLECTION_NODE_TYPE = "nodetool.control.Collection";
 export const WORKFLOW_NODE_TYPE = "nodetool.workflows.workflow_node.Workflow";
 export const SUBGRAPH_NODE_TYPE = "nodetool.workflows.subgraph.Subgraph";
 
+/**
+ * Accent for everything subgraph — the node's header and the tab that opens its
+ * canvas. Violet, distinct from WorkflowNode's teal, so a subgraph canvas is
+ * never mistaken for the parent workflow's.
+ */
+export const SUBGRAPH_ACCENT_COLOR = "#7C3AED";
+
 // --- Special editor nodes --------------------------------------------------
 export const SKETCH_NODE_TYPE = "nodetool.constant.Sketch";
 export const CODE_NODE_TYPE = "nodetool.code.Code";

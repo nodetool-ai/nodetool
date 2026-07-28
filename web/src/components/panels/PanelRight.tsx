@@ -163,8 +163,15 @@ const PanelRight: React.FC = () => {
       : BOTTOM_PANEL_HEADER_HEIGHT;
   const panelRightStyles = useMemo(() => styles(theme, bottomOffset, isVisible), [theme, bottomOffset, isVisible]);
 
+  const currentWorkflowId = useWorkflowManager(
+    (state) => state.currentWorkflowId
+  );
+  // Tab keys are `${workflowId}:${nodeId}`, nested ones `${parentKey}:${nodeId}`
+  // — so the prefix says whether the open subgraph belongs to the workflow on
+  // screen. Without it, switching workflow tabs leaves the inspector pointed at
+  // the other workflow's subgraph.
   const activeSubgraphTab = useSubgraphTabsStore((state) =>
-    state.activeKey
+    state.activeKey && state.activeKey.startsWith(`${currentWorkflowId}:`)
       ? state.tabs.find((t) => t.key === state.activeKey)
       : undefined
   );
@@ -174,10 +181,6 @@ const PanelRight: React.FC = () => {
       : undefined
   );
   const activeNodeStore = activeSubgraphTab?.store ?? workflowNodeStore;
-
-  const currentWorkflowId = useWorkflowManager(
-    (state) => state.currentWorkflowId
-  );
 
   const handleMobileSheetClose = useCallback(
     () => setVisibility(false),

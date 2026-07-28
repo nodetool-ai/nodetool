@@ -19,8 +19,12 @@ import {
 
 /** Ids seeded by `packages/websocket/src/screenshot-server.ts`. */
 export const FIXTURES = {
-  /** Two-node echo graph + app document. Used by the mini-app journey. */
+  /** Two-node echo graph. The workflow the mini app's operation binds. */
   miniApp: "wf-mini-app",
+  /** The `applications` row built on that graph. Used by the mini-app journey. */
+  miniAppId: "app-mini-app",
+  /** Its display name — how a user picks it out of the Apps panel. */
+  miniAppName: "Echo Mini App",
   /** Same graph, separate row — the editor journey mutates this one. */
   editorGraph: "wf-editor-journey",
   /** Seeded thread with existing messages. */
