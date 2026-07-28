@@ -37,9 +37,16 @@ import {
   type ConditionProps,
 } from "@nodetool-ai/app-runtime";
 
+import { useQuery } from "@tanstack/react-query";
+
 import { useTheme } from "../../hooks/useTheme";
 import type { ThemeColors } from "../../utils/theme";
 import { apiService } from "../../services/api";
+import { documentBackend } from "../../documents/backends";
+import {
+  SketchRenderer,
+  asSketchDocument,
+} from "../sketch/SketchRenderer";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import { OutputRenderer } from "../outputs/OutputRenderer";
 import {
@@ -191,10 +198,13 @@ const MediaOutputWidget: React.FC<WidgetProps> = (widget) => {
 /**
  * Sketch and timeline previews.
  *
- * Mobile has neither the layer compositor nor the preview renderer the web
- * editors use, so these summarize the document instead of drawing it. A ref
- * that carries only an id has nothing to summarize — mobile has no endpoint to
- * resolve it — and says so rather than showing an empty frame.
+ * The sketch widget draws: `components/sketch/SketchRenderer` composites the
+ * bound document the same way the viewer screen does. A ref carrying only an id
+ * is read through the sketch document backend, so an app whose run emits a
+ * `SketchRef` shows the picture rather than a card pointing at a desktop.
+ *
+ * Timelines still summarize — mobile has no preview compositor — and a timeline
+ * ref that resolves to nothing says so rather than showing an empty frame.
  */
 const DocumentCard: React.FC<{
   title: string;
@@ -207,24 +217,59 @@ const DocumentCard: React.FC<{
   </View>
 );
 
+/** How tall a sketch preview grows before it shrinks to fit. */
+const SKETCH_DEFAULT_HEIGHT = 320;
+
 const SketchWidget: React.FC<WidgetProps> = (widget) => {
   const { colors } = useTheme();
   const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
   const { document, id } = readSketchBinding(value);
-  const summary = sketchSummary(document);
-  if (summary) {
+
+  const inline = useMemo(() => asSketchDocument(document), [document]);
+  // Only fetch when the value carried a bare ref: an inline document is already
+  // everything the compositor needs.
+  const shouldLoad = Boolean(id) && inline === null;
+  const query = useQuery({
+    queryKey: ["app-runtime", "sketch", id],
+    queryFn: async () => {
+      const loaded = await documentBackend("sketch").read(id ?? "");
+      return loaded.doc;
+    },
+    enabled: shouldLoad,
+    staleTime: 30_000,
+    retry: false,
+  });
+  const loaded = useMemo(() => asSketchDocument(query.data), [query.data]);
+  const doc = inline ?? loaded;
+
+  if (doc) {
     return (
-      <DocumentCard
-        title="Sketch"
-        meta={`${summary.width} × ${summary.height} · ${summary.layerCount} layer${
-          summary.layerCount === 1 ? "" : "s"
-        }`}
-        colors={colors}
+      <SketchRenderer
+        doc={doc}
+        maxHeight={numOr(widget.props.height, SKETCH_DEFAULT_HEIGHT)}
+        showDimensions={widget.props.showDimensions === true}
       />
     );
   }
+  if (shouldLoad && query.isLoading) {
+    return <ActivityIndicator color={colors.primary} />;
+  }
   if (id) {
-    return <DocumentCard title="Sketch" meta="Open on desktop to view" colors={colors} />;
+    // A ref that resolves to nothing, or to a body the compositor cannot read.
+    const summary = sketchSummary(document);
+    return (
+      <DocumentCard
+        title="Sketch"
+        meta={
+          summary
+            ? `${summary.width} × ${summary.height} · ${summary.layerCount} layer${
+                summary.layerCount === 1 ? "" : "s"
+              }`
+            : "Could not load this sketch"
+        }
+        colors={colors}
+      />
+    );
   }
   return (
     <Placeholder

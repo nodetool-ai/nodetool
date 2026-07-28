@@ -3,14 +3,15 @@
  *
  * The document store is mocked so the screen's states can be driven directly,
  * and `assets.get` is mocked at the tRPC client so layer asset resolution is
- * exercised without a server. The canvas gets a width through a synthetic
- * `onLayout`, which is what turns the document's pixel geometry into layout.
+ * exercised without a server. Compositing itself is covered in
+ * `components/sketch/__tests__/SketchRenderer.test.tsx`; what is checked here is
+ * the screen around it — loading, retry, and the layer list.
  */
 
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
-import SketchViewerScreen, { layerDataImageUri } from '../SketchViewerScreen';
+import SketchViewerScreen from '../SketchViewerScreen';
 import type { DocumentStatus } from '../../documents/documentStore';
 
 // ── Module mocks ───────────────────────────────────────────────────────────
@@ -202,53 +203,12 @@ describe('SketchViewerScreen', () => {
     expect(load).toHaveBeenCalled();
   });
 
-  it('composites only the visible layers, hidden ones excluded', () => {
+  it('draws the composite for the loaded document', () => {
     renderScreen();
 
     expect(screen.getByLabelText('Sketch preview, 3 visible layers')).toBeTruthy();
     expect(screen.getByLabelText('Layer Background')).toBeTruthy();
-    expect(screen.getByLabelText('Layer Sky')).toBeTruthy();
     expect(screen.queryByLabelText('Layer Notes')).toBeNull();
-  });
-
-  it('renders an inline layer raster and an asset-backed one at document scale', () => {
-    renderScreen();
-
-    const base = screen.getByLabelText('Layer Background');
-    expect(base.props.source).toEqual({ uri: 'data:image/png;base64,AAAA' });
-
-    const sky = screen.getByLabelText('Layer Sky');
-    expect(sky.props.source).toEqual({
-      uri: 'https://example.test/api/assets/a-sky/file',
-    });
-    // Canvas is 200px wide shown at 400pt, so document pixels double.
-    expect(sky.props.style).toEqual(
-      expect.arrayContaining([
-        { left: 20, top: 40, width: 200, height: 100 },
-        { opacity: 0.5 },
-      ])
-    );
-  });
-
-  it('renders a placeholder instead of a broken image for a failed layer', () => {
-    renderScreen();
-
-    expect(screen.queryByLabelText('Layer Dragon')).toBeNull();
-    expect(
-      screen.getByLabelText('Layer Dragon has no image: Failed')
-    ).toBeTruthy();
-    expect(screen.getByText('Dragon · Failed')).toBeTruthy();
-  });
-
-  it('renders a placeholder when a layer has neither raster nor asset', () => {
-    const doc = makeDoc();
-    doc.layerBindings = [];
-    mockState = { ...mockState, doc };
-    renderScreen();
-
-    expect(
-      screen.getByLabelText('Layer Sky has no image: No image')
-    ).toBeTruthy();
   });
 
   it('lists every layer top-first with its generation status', () => {
@@ -262,76 +222,4 @@ describe('SketchViewerScreen', () => {
     expect(screen.getByText('raster · 50%')).toBeTruthy();
   });
 
-  it('dims a layer by its ancestor group opacity and drops hidden groups', () => {
-    mockState = {
-      ...mockState,
-      doc: {
-        sketch: {
-          canvas: CANVAS,
-          layers: [
-            { id: 'g-1', name: 'Folder', type: 'group', visible: true, opacity: 0.5 },
-            {
-              id: 'l-1',
-              name: 'Inside',
-              type: 'raster',
-              visible: true,
-              opacity: 0.5,
-              parentId: 'g-1',
-              data: 'data:image/png;base64,AAAA',
-            },
-            {
-              id: 'g-2',
-              name: 'Closed folder',
-              type: 'group',
-              visible: false,
-              opacity: 1,
-            },
-            {
-              id: 'l-2',
-              name: 'Buried',
-              type: 'raster',
-              visible: true,
-              opacity: 1,
-              parentId: 'g-2',
-              data: 'data:image/png;base64,BBBB',
-            },
-          ],
-        },
-        layerBindings: [],
-      },
-    };
-    renderScreen();
-
-    // Groups hold no pixels, so only one layer composites.
-    expect(screen.getByLabelText('Sketch preview, 1 visible layer')).toBeTruthy();
-    expect(screen.getByLabelText('Layer Inside').props.style).toEqual(
-      expect.arrayContaining([{ opacity: 0.25 }])
-    );
-    expect(screen.queryByLabelText('Layer Buried')).toBeNull();
-  });
-});
-
-describe('layerDataImageUri', () => {
-  it('passes a legacy bare data URL straight through', () => {
-    expect(layerDataImageUri('data:image/png;base64,AAAA')).toBe(
-      'data:image/png;base64,AAAA'
-    );
-  });
-
-  it('unwraps an ntlayer: payload', () => {
-    const payload = btoa(
-      JSON.stringify({
-        version: 1,
-        image: 'data:image/png;base64,CCCC',
-        bounds: { x: 0, y: 0, width: 4, height: 4 },
-      })
-    );
-    expect(layerDataImageUri(`ntlayer:${payload}`)).toBe('data:image/png;base64,CCCC');
-  });
-
-  it('returns null for an empty or undecodable payload', () => {
-    expect(layerDataImageUri(null)).toBeNull();
-    expect(layerDataImageUri('ntlayer:@@@not-base64@@@')).toBeNull();
-    expect(layerDataImageUri(`ntlayer:${btoa('{"version":1,"image":null}')}`)).toBeNull();
-  });
 });
