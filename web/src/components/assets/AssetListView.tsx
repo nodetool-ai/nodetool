@@ -372,6 +372,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
           key={key}
           role="button"
           tabIndex={0}
+          aria-expanded={isExpanded}
           style={style}
           className="asset-content-type-header"
           onClick={(e) => {

@@ -381,6 +381,7 @@ const PropertyDropzone = ({
                   style={{ width: "100%", height: "20px" }}
                   onVolumeChange={handleVolumeChange}
                   src={uri as string}
+                  aria-label={filename || "Audio"}
                 >
                   Your browser does not support the audio element.
                 </audio>
@@ -408,6 +409,7 @@ const PropertyDropzone = ({
                   style={{ width: "100%", height: "auto" }}
                   controls
                   src={uri}
+                  aria-label={filename || "Video"}
                 >
                   Your browser does not support the video element.
                 </video>

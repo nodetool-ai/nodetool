@@ -20,14 +20,15 @@ import {
   getPostgresDatabaseUrl,
   loadEnvironment
 } from "@nodetool-ai/config";
-import type { NodeMetadata } from "@nodetool-ai/node-sdk";
 import { registerTransformersJsProvider } from "@nodetool-ai/transformers-js-provider";
-import { bootstrapNodeRegistry } from "./node-registry-setup.js";
+import {
+  bootstrapNodeRegistry,
+  mergePythonBridgeMetadata
+} from "./node-registry-setup.js";
 import { corsOriginDelegate } from "./cors.js";
 import { zipExtensionDist } from "./lib/extension-dist.js";
 import {
-  isPublicOAuthRequest,
-  isPublicWorkflowMetadataRequest
+  isPublicAuthExemptRoute
 } from "./lib/public-routes.js";
 import {
   resolveTrustLocalhost,
@@ -67,7 +68,7 @@ import fastifyWebSocket from "@fastify/websocket";
 import fastifyCors from "@fastify/cors";
 import fastifyRateLimit from "@fastify/rate-limit";
 import fastifyStatic from "@fastify/static";
-import { pack } from "msgpackr";
+import { packWebSocketMessage } from "./messagepack.js";
 import { SupabaseAuthProvider, LocalAuthProvider } from "@nodetool-ai/auth";
 import {
   fastifyTRPCPlugin,
@@ -89,7 +90,7 @@ import {
 } from "./triggers/boot.js";
 
 import websocketPlugin from "./plugins/websocket.js";
-import healthRoute from "./routes/health.js";
+import healthRoute, { getVersion } from "./routes/health.js";
 import configRoute from "./routes/config.js";
 import assetsRoutes from "./routes/assets.js";
 import workflowsRoutes from "./routes/workflows.js";
@@ -97,6 +98,14 @@ import nodesRoutes from "./routes/nodes.js";
 import storageRoutes from "./routes/storage.js";
 import openaiRoutes from "./routes/openai.js";
 import oauthRoutes from "./routes/oauth.js";
+import {
+  isSdkV1AuthenticationRequired,
+  isSdkV1DiscoveryRequest
+} from "./sdk/sdk-route-policy.js";
+import { createNodeToolSdkV1CapabilitiesProvider } from "./sdk/sdk-runtime-capabilities-service.js";
+import { createNodeToolSdkV1PreflightService } from "./sdk/sdk-preflight-service.js";
+import { createSdkV1ExecutionTargetReadiness } from "./sdk/sdk-execution-target-readiness.js";
+import { SdkLiveRunnerRegistry } from "./sdk/sdk-live-runner-registry.js";
 import workspaceRoutes from "./routes/workspace.js";
 import filesRoutes from "./routes/files.js";
 import collectionsRoutes from "./routes/collections.js";
@@ -159,7 +168,7 @@ async function broadcastResourceChange(
     resource: Record<string, unknown>;
   }
 ): Promise<void> {
-  const message = pack({
+  const message = packWebSocketMessage({
     type: "resource_change",
     ...change
   });
@@ -694,23 +703,30 @@ await app.register(fastifyCors, { origin: corsOriginDelegate });
 // Registered before the auth hook so floods are rejected with 429 before any
 // token verification work. Localhost is exempt; tune via NODETOOL_RATE_LIMIT_*.
 const httpRateLimit = getHttpRateLimitConfig();
-if (httpRateLimit.enabled) {
-  await app.register(fastifyRateLimit, {
-    global: true,
-    max: httpRateLimit.max,
-    timeWindow: httpRateLimit.timeWindow,
-    keyGenerator: (req) => rateLimitKey(req, httpRateLimit.trustProxy),
-    allowList: (req) =>
-      isRateLimitExempt(rateLimitKey(req, httpRateLimit.trustProxy))
-  });
-  log.info("Per-IP HTTP rate limiting enabled", {
-    max: httpRateLimit.max,
+// Always register so every request path (including the auth hook) shares one
+// limiter. When disabled via env, use a cap large enough to be inert in
+// practice while keeping CodeQL/static setup able to see the plugin.
+const httpRateLimitMax = httpRateLimit.enabled
+  ? httpRateLimit.max
+  : Number.MAX_SAFE_INTEGER;
+await app.register(fastifyRateLimit, {
+  global: true,
+  max: httpRateLimitMax,
+  timeWindow: httpRateLimit.timeWindow,
+  keyGenerator: (req) => rateLimitKey(req, httpRateLimit.trustProxy),
+  allowList: (req) =>
+    isRateLimitExempt(rateLimitKey(req, httpRateLimit.trustProxy))
+});
+log.info(
+  httpRateLimit.enabled
+    ? "Per-IP HTTP rate limiting enabled"
+    : "Per-IP HTTP rate limiting disabled (limiter registered with no practical cap)",
+  {
+    max: httpRateLimitMax,
     timeWindowMs: httpRateLimit.timeWindow,
     trustProxy: httpRateLimit.trustProxy
-  });
-} else {
-  log.info("Per-IP HTTP rate limiting disabled");
-}
+  }
+);
 
 // ---------------------------------------------------------------------------
 // Auth
@@ -772,26 +788,21 @@ if (enforceAuth && process.env["NODETOOL_TRUST_LOCAL_NETWORKS"]) {
 app.decorateRequest("userId", null);
 app.decorateRequest("authToken", null);
 
+// Global @fastify/rate-limit (registered above) runs before this hook on every
+// request, including public auth exemptions handled by isPublicAuthExemptRoute.
+// CodeQL js/missing-rate-limiting is excluded for this file in
+// .github/codeql/codeql-config.yml — the query does not attribute global
+// Fastify plugins to hook handlers.
 app.addHook("onRequest", async (req, reply) => {
   // Let CORS preflight through — the @fastify/cors plugin handles OPTIONS responses
   if (req.method === "OPTIONS") return;
 
-  // Public routes — no auth required
+  // Public routes — no auth required (still rate-limited globally above).
   const pathname = req.url.split("?")[0];
   if (
-    pathname === "/health" ||
-    pathname === "/ready" ||
-    pathname === "/api/health" ||
-    pathname === "/api/config" ||
-    isPublicOAuthRequest(pathname) ||
-    pathname === "/api/assets/packages" ||
-    pathname.startsWith("/api/assets/packages/") ||
-    pathname === "/api/nodes/metadata" ||
-    pathname.startsWith("/api/kie/webhook") ||
-    // Trigger webhooks authenticate on their own, per registration secret
-    // (packages/websocket/src/triggers/webhook-route.ts) — no session exists.
-    pathname.startsWith("/api/webhooks/") ||
-    isPublicWorkflowMetadataRequest(pathname, req.method)
+    isPublicAuthExemptRoute(pathname, req.method) ||
+    (isSdkV1DiscoveryRequest(pathname, req.method) &&
+      !isSdkV1AuthenticationRequired(process.env, enforceAuth))
   ) {
     return;
   }
@@ -911,7 +922,70 @@ if (_resolvedExamplesDir) {
 // API options for HTTP route handlers
 // ---------------------------------------------------------------------------
 
-const apiOptions: HttpApiOptions = { metadataRoots, registry };
+const sdkLiveRunnerRegistry = new SdkLiveRunnerRegistry();
+const resolveExecutionTarget = createSdkV1ExecutionTargetReadiness({
+  getActiveWorker: () => workerManager.getActiveWorker()
+});
+
+const apiOptions: HttpApiOptions = {
+  metadataRoots,
+  registry,
+  getPythonBridgeReady,
+  getSdkCapabilities: createNodeToolSdkV1CapabilitiesProvider({
+    nodetoolVersion: getVersion(),
+    registry,
+    pythonBridge: () => (getPythonBridgeReady() ? "ready" : "starting"),
+    profiles: {
+      discovery: "available",
+      execution: "available",
+      preflight: "available",
+      temporary_asset_upload: "available"
+    },
+    authModes: enforceAuth ? ["bearer"] : ["trusted_local"],
+    assetUriSchemes: ["asset"],
+    limits: {
+      maxRpcBatch: 100,
+      // The initial SDK profile deliberately prefers asset references for
+      // media instead of promising an inline payload size.
+      maxInlineBytes: 0,
+      maxQueuedJobs: 0,
+      maxJobEventReplay: 0,
+      requestTimeoutSeconds: 30
+    }
+  }),
+  sdkPreflightService: createNodeToolSdkV1PreflightService({
+    registry,
+    getPythonBridgeReady,
+    getExecutionTargetReadiness: ({ request, principal }) => {
+      const target = request.execution_target;
+      if (target?.kind === "runner") {
+        const ready = sdkLiveRunnerRegistry.has(
+          target.runner_id,
+          principal.userId
+        );
+        return {
+          id: target.runner_id,
+          name: "Live runner",
+          ready,
+          message: ready ? null : "Selected live runner is not available."
+        };
+      }
+      return resolveExecutionTarget(target);
+    },
+    getExecutionCapacitySnapshot: ({ request, principal }) => {
+      const target = request.execution_target;
+      if (target?.kind !== "runner") {
+        throw new Error("Execution capacity requires a selected live runner.");
+      }
+      return sdkLiveRunnerRegistry.getCapacity({
+        runnerId: target.runner_id,
+        userId: principal.userId,
+        workflowId: request.workflow_id,
+        concurrent: target.concurrent
+      });
+    }
+  })
+};
 if (_resolvedExamplesDir) {
   apiOptions.examplesDir = _resolvedExamplesDir;
   if (existsSync(_bundledAssetsDir)) {
@@ -997,6 +1071,7 @@ await app.register(websocketPlugin, {
   registry,
   pythonBridge,
   apiOptions,
+  sdkLiveRunnerRegistry,
   workerManager,
   getPythonBridgeReady,
   ensurePythonBridge: async () => {
@@ -1021,27 +1096,9 @@ await app.register(websocketPlugin, {
     pythonBridgeReady = true;
     log.info(`Python bridge lazy start completed [${startupMs()}]`);
     const meta = pythonBridge.getNodeMetadata();
-    // Register Python bridge nodes — skip those already loaded from JSON metadata
-    let bridgeOnly = 0;
-    for (const nodeMeta of meta) {
-      if (!nodeMeta.node_type) continue;
-      if (registry.getMetadata(nodeMeta.node_type)) continue;
-      bridgeOnly++;
-      registry.loadMetadata(nodeMeta.node_type, {
-        ...(nodeMeta as unknown as NodeMetadata),
-        namespace: nodeMeta.node_type.split(".").slice(0, -1).join("."),
-        layout: "default",
-        recommended_models: nodeMeta.recommended_models ?? [],
-        required_settings: nodeMeta.required_settings ?? [],
-        // Python worker still emits `is_dynamic` on the stdio wire; map it to
-        // the protocol's `supports_dynamic_inputs`.
-        supports_dynamic_inputs: nodeMeta.is_dynamic ?? false,
-        is_streaming_output: nodeMeta.is_streaming_output ?? false,
-        supports_dynamic_outputs: false
-      });
-    }
+    const mergeResult = mergePythonBridgeMetadata(registry, meta);
     log.info(
-      `Python bridge connected [${startupMs()}] — ${meta.length} Python nodes (${bridgeOnly} bridge-only, ${meta.length - bridgeOnly} from JSON)`
+      `Python bridge connected [${startupMs()}] — ${mergeResult.total} Python nodes (${mergeResult.bridgeOnly} bridge-only, ${mergeResult.alreadyKnown} already registered)`
     );
     (
       pythonBridge as {
@@ -1373,26 +1430,9 @@ if (pythonBridge.isAvailable()) {
       pythonBridgeReady = true;
       log.info(`Python bridge eager start completed [${startupMs()}]`);
       const meta = pythonBridge.getNodeMetadata();
-      let bridgeOnly = 0;
-      for (const nodeMeta of meta) {
-        if (!nodeMeta.node_type) continue;
-        if (registry.getMetadata(nodeMeta.node_type)) continue;
-        bridgeOnly++;
-        registry.loadMetadata(nodeMeta.node_type, {
-          ...(nodeMeta as unknown as NodeMetadata),
-          namespace: nodeMeta.node_type.split(".").slice(0, -1).join("."),
-          layout: "default",
-          recommended_models: nodeMeta.recommended_models ?? [],
-          required_settings: nodeMeta.required_settings ?? [],
-          // Python worker still emits `is_dynamic` on the stdio wire; map it to
-          // the protocol's `supports_dynamic_inputs`.
-          supports_dynamic_inputs: nodeMeta.is_dynamic ?? false,
-          is_streaming_output: nodeMeta.is_streaming_output ?? false,
-          supports_dynamic_outputs: false
-        });
-      }
+      const mergeResult = mergePythonBridgeMetadata(registry, meta);
       log.info(
-        `Python bridge connected [${startupMs()}] — ${meta.length} Python nodes (${bridgeOnly} bridge-only, ${meta.length - bridgeOnly} from JSON)`
+        `Python bridge connected [${startupMs()}] — ${mergeResult.total} Python nodes (${mergeResult.bridgeOnly} bridge-only, ${mergeResult.alreadyKnown} already registered)`
       );
       (
         pythonBridge as {

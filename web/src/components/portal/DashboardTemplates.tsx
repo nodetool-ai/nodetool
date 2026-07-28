@@ -19,6 +19,7 @@ import {
   LoadingSpinner,
   MOTION,
   BORDER_RADIUS,
+  SPACING,
   getSpacingPx
 } from "../ui_primitives";
 import {
@@ -32,12 +33,12 @@ const MAX_VISIBLE = 8;
 
 const styles = (theme: Theme) =>
   css({
-    paddingTop: 8,
+    paddingTop: getSpacingPx(SPACING.md),
     ".cats": {
       display: "flex",
-      gap: 8,
+      gap: getSpacingPx(SPACING.md),
       flexWrap: "wrap",
-      marginBottom: 8
+      marginBottom: getSpacingPx(SPACING.md)
     },
     ".cat": {
       display: "inline-flex",
@@ -72,7 +73,7 @@ const styles = (theme: Theme) =>
     ".tpl-grid": {
       display: "grid",
       gridTemplateColumns: "repeat(4, 1fr)",
-      gap: 8,
+      gap: getSpacingPx(SPACING.md),
       [theme.breakpoints.down("lg")]: {
         gridTemplateColumns: "repeat(3, 1fr)"
       },
@@ -98,8 +99,8 @@ const fullPageStyles = css({
   flex: 1,
   minHeight: 0,
   overflowY: "auto",
-  paddingTop: 24,
-  paddingBottom: 32
+  paddingTop: getSpacingPx(SPACING.xxl),
+  paddingBottom: getSpacingPx(SPACING.xxxl)
 });
 
 interface DashboardTemplatesProps {

@@ -37,6 +37,7 @@ import {
   LoadingSpinner,
   BORDER_RADIUS,
   MOTION,
+  reducedMotion,
   FONT_WEIGHT,
   SPACING,
   thinScrollbarStyles
@@ -135,6 +136,7 @@ const styles = (theme: Theme) =>
       cursor: "pointer",
       userSelect: "none",
       transition: MOTION.background,
+      ...reducedMotion({ transition: MOTION.none }),
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover
       }
@@ -167,7 +169,8 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       opacity: 0,
-      transition: MOTION.opacity
+      transition: MOTION.opacity,
+      ...reducedMotion({ transition: MOTION.none })
     },
     ".list-head:hover .list-actions, .list-head:focus-within .list-actions": {
       opacity: 1
@@ -180,7 +183,8 @@ const styles = (theme: Theme) =>
       flexShrink: 0,
       fontSize: theme.fontSizeNormal,
       color: theme.vars.palette.text.secondary,
-      transition: MOTION.transform
+      transition: MOTION.transform,
+      ...reducedMotion({ transition: MOTION.none })
     },
     ".list-chevron.expanded": {
       transform: "rotate(90deg)"

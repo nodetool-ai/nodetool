@@ -38,6 +38,7 @@ import {
   VideoPlayer,
   BORDER_RADIUS,
   MOTION,
+  reducedMotion,
   Z_INDEX
 } from "../ui_primitives";
 import { NodeInputs } from "../node/NodeInputs";
@@ -148,7 +149,8 @@ const styles = (theme: Theme) =>
         display: "flex",
         gap: theme.spacing(0.5),
         opacity: 0,
-        transition: MOTION.opacity
+        transition: MOTION.opacity,
+        ...reducedMotion({ transition: MOTION.none })
       },
       ".video-preview:hover .video-preview-actions": {
         opacity: 1

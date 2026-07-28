@@ -87,17 +87,16 @@ test.describe("Asset browser", () => {
 });
 
 test.describe("Fixture wiring", () => {
-  test("the seeded mini-app workflow is served with its app document", async ({
+  test("the mini app's workflow is served with its echo graph", async ({
     request
   }) => {
-    // Guards the fixture the mini-app journey depends on: if `app_doc` ever
-    // stops being persisted, this fails with a clear cause instead of the
-    // mini-app spec failing on a missing Run button.
+    // Guards the workflow half of the fixture the mini-app journey depends on:
+    // if the echo graph ever loses a node, this fails with a clear cause
+    // instead of the mini-app spec failing on an Output that stays empty.
     const res = await request.get(`/api/workflows/${FIXTURES.miniApp}`);
     expect(res.ok()).toBe(true);
 
     const workflow = await res.json();
-    expect(workflow.app_doc, "mini-app fixture lost its app_doc").toBeTruthy();
     expect(workflow.graph.nodes).toHaveLength(2);
   });
 });

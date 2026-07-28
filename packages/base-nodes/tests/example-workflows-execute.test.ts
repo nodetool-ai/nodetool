@@ -203,6 +203,7 @@ function classifyError(message: string | undefined): string {
   if (m.includes("no provider available")) return "no-provider";
   if (m.includes("failed to create a task plan")) return "no-provider";
   if (m.includes("no add_item tool calls")) return "no-provider";
+  if (m.includes("libpng") || m.includes("vips2png")) return "image-codec";
   if (m.includes("does not support")) return "unsupported-capability";
   if (m.includes("exceeded") && m.includes("ms")) return "timeout";
   if (m.includes("not found") || m.includes("enoent")) return "not-found";

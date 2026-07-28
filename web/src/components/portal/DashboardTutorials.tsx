@@ -6,15 +6,16 @@ import { memo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { TutorialCard } from "../tutorials/TutorialCard";
 import { TUTORIALS } from "../tutorials/tutorialsData";
+import { SPACING, getSpacingPx } from "../ui_primitives";
 import { wrapStyles, SectionHeader, SectionLink } from "./dashboardChrome";
 
 const gridStyles = (theme: Theme) =>
   css({
-    paddingTop: 8,
+    paddingTop: getSpacingPx(SPACING.md),
     ".tut-grid": {
       display: "grid",
       gridTemplateColumns: "repeat(3, 1fr)",
-      gap: 8,
+      gap: getSpacingPx(SPACING.md),
       [theme.breakpoints.down("md")]: {
         gridTemplateColumns: "repeat(2, 1fr)"
       },

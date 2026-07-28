@@ -14,7 +14,7 @@ import {
   removeClassNamesFromElement
 } from "@lexical/utils";
 import { $patchStyleText } from "@lexical/selection";
-import { getSpacingPx, SPACING } from "../ui_primitives";
+import { BORDER_RADIUS, getSpacingPx, SPACING } from "../ui_primitives";
 import { copyAsMarkdown } from "./exportMarkdown";
 import { INSERT_HORIZONTAL_RULE_COMMAND } from "./horizontalRuleCommand";
 
@@ -23,15 +23,15 @@ const toolbarStyles = css`
   gap: ${getSpacingPx(SPACING.xs)};
   background-color: var(--palette-c_overlay_strong);
   padding: ${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)};
-  border-radius: 3px;
+  border-radius: ${BORDER_RADIUS.sm};
   button {
-    padding: ${getSpacingPx(0.5)} ${getSpacingPx(1.5)};
+    padding: ${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)};
     min-width: 20px;
     font-size: var(--fontSizeSmall);
     border: none;
     line-height: 1.2em;
     background-color: transparent;
-    border-radius: 3px;
+    border-radius: ${BORDER_RADIUS.sm};
     color: black;
     cursor: pointer;
 

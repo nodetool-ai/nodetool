@@ -488,7 +488,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                   sx: {
                     "& .MuiAutocomplete-option": {
                       minHeight: "30px",
-                      py: 0.5
+                      py: SPACING.micro
                     }
                   }
                 }
@@ -535,7 +535,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                   sx: {
                     "& .MuiAutocomplete-option": {
                       minHeight: "30px",
-                      py: 0.5
+                      py: SPACING.micro
                     }
                   }
                 }

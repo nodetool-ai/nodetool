@@ -141,14 +141,14 @@ const styles = (theme: Theme) =>
         appearance: "none",
         width: 12,
         height: 12,
-        borderRadius: "50%",
+        borderRadius: BORDER_RADIUS.circle,
         backgroundColor: theme.vars.palette.primary.main,
         cursor: "pointer"
       },
       "&::-moz-range-thumb": {
         width: 12,
         height: 12,
-        borderRadius: "50%",
+        borderRadius: BORDER_RADIUS.circle,
         backgroundColor: theme.vars.palette.primary.main,
         border: "none",
         cursor: "pointer"

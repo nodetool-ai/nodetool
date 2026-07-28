@@ -66,6 +66,19 @@ interface DownloadState {
   onProgress: ProgressCallback | undefined;
 }
 
+export interface DownloadStateSnapshot {
+  repoId: string;
+  path: string | null;
+  modelType: string | null;
+  downloadedBytes: number;
+  totalBytes: number;
+  status: DownloadState["status"];
+  downloadedFiles: readonly string[];
+  currentFiles: readonly string[];
+  totalFiles: number;
+  errorMessage: string | null;
+}
+
 /** Represents a file entry from the HF API tree listing. */
 interface HfTreeEntry {
   type: string;
@@ -414,6 +427,50 @@ export class DownloadManager {
       total_files: state.totalFiles
     });
   }
+
+  /**
+   * Return an immutable snapshot of a tracked download without starting,
+   * cancelling, or otherwise changing it.
+   */
+  getDownloadState(id: string): DownloadStateSnapshot | null {
+    const state = this.downloads.get(id);
+    return state ? this.snapshot(state) : null;
+  }
+
+  /**
+   * Return the most relevant tracked state for a repository, including
+   * file-specific downloads whose internal id is `repo/path`.
+   */
+  getRepositoryDownloadState(repoId: string): DownloadStateSnapshot | null {
+    let fallback: DownloadState | null = null;
+    for (const state of this.downloads.values()) {
+      if (state.repoId !== repoId) continue;
+      if (
+        state.status === "idle" ||
+        state.status === "start" ||
+        state.status === "progress"
+      ) {
+        return this.snapshot(state);
+      }
+      fallback = state;
+    }
+    return fallback ? this.snapshot(fallback) : null;
+  }
+
+  private snapshot(state: DownloadState): DownloadStateSnapshot {
+    return {
+      repoId: state.repoId,
+      path: state.path,
+      modelType: state.modelType,
+      downloadedBytes: state.downloadedBytes,
+      totalBytes: state.totalBytes,
+      status: state.status,
+      downloadedFiles: [...state.downloadedFiles],
+      currentFiles: [...state.currentFiles],
+      totalFiles: state.totalFiles,
+      errorMessage: state.errorMessage
+    };
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -433,4 +490,14 @@ export function getDownloadManager(userId?: string): DownloadManager {
     _managers.set(key, manager);
   }
   return manager;
+}
+
+/**
+ * Return an already-created manager without creating per-user state.
+ * Intended for side-effect-free status/readiness checks.
+ */
+export function getExistingDownloadManager(
+  userId?: string
+): DownloadManager | null {
+  return _managers.get(userId ?? "__default__") ?? null;
 }

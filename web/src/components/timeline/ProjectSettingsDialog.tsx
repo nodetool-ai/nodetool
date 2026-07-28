@@ -160,7 +160,7 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
       <FlexColumn gap={4} sx={{ py: 1 }}>
         {/* ── Canvas size ─────────────────────────────────────────── */}
         <FlexColumn gap={1.5}>
-          <Text size="small" sx={{ fontWeight: 600, mb: 1.5 }}>
+          <Text size="small" weight={600} sx={{ mb: 1.5 }}>
             Canvas size
           </Text>
           {/* Label hidden — the section header names it; an outlined variant
@@ -208,7 +208,7 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
 
         {/* ── Frame rate ──────────────────────────────────────────── */}
         <FlexColumn gap={1.5}>
-          <Text size="small" sx={{ fontWeight: 600, mb: 1.5 }}>
+          <Text size="small" weight={600} sx={{ mb: 1.5 }}>
             Frame rate
           </Text>
           <FlexRow gap={1.5} align="flex-start">

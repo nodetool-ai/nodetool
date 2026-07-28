@@ -122,12 +122,12 @@ const SearchProviderSection = memo(function SearchProviderSection({
             />
           )}
           <Text
+            size="small"
             sx={{
               color: hasAllCredentials ?
                 theme.palette.success.dark :
                 theme.palette.warning.dark,
-              margin: 0,
-              fontSize: "0.9em"
+              margin: 0
             }}
           >
             {hasAllCredentials
@@ -144,9 +144,7 @@ const SearchProviderSection = memo(function SearchProviderSection({
           style={{
             marginTop: "1.5em",
             padding: "1em",
-            backgroundColor: theme.palette.mode === "dark" ?
-              "rgba(255,255,255,0.05)" :
-              "rgba(0,0,0,0.02)",
+            backgroundColor: theme.vars.palette.c_overlay_subtle,
             borderLeft: `4px solid ${theme.palette.primary.main}`,
             borderRadius: BORDER_RADIUS.sm
           }}

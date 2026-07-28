@@ -4,7 +4,7 @@ import React, { useCallback, useMemo, memo } from "react";
 import Prism from "prismjs";
 import "../../../../prismGlobal";
 import DOMPurify from "dompurify";
-import { CopyButton, BORDER_RADIUS, FONT_SIZE_SANS, FONT_WEIGHT, SPACING, getSpacingPx } from "../../../ui_primitives";
+import { CopyButton, BORDER_RADIUS, FlexRow, FONT_SIZE_SANS, FONT_WEIGHT, SPACING, getSpacingPx } from "../../../ui_primitives";
 import { useIsDarkMode } from "../../../../hooks/useIsDarkMode";
 import {
   CodeThemeColors,
@@ -152,7 +152,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
       <div css={cssStyles} className="code-block-container">
         <div className="code-block-header">
           <span className="code-block-language">{match ? match[1] : ""}</span>
-          <div style={{ display: "flex", gap: getSpacingPx(SPACING.md), alignItems: "center" }}>
+          <FlexRow gap={SPACING.md} align="center">
             {typeof onInsert === "function" && (
               <button
                 type="button"
@@ -173,7 +173,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
               </button>
             )}
             <CopyButton value={codeContent} />
-          </div>
+          </FlexRow>
         </div>
         <div
           className="code-block-content"

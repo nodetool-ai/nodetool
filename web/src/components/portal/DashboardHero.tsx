@@ -29,11 +29,11 @@ const heroStyles = (theme: Theme) =>
     },
     ".hero-wrap": {
       position: "relative",
-      paddingTop: 8,
-      paddingBottom: 8,
+      paddingTop: getSpacingPx(SPACING.md),
+      paddingBottom: getSpacingPx(SPACING.md),
       [theme.breakpoints.down("sm")]: {
-        paddingTop: 8,
-        paddingBottom: 8
+        paddingTop: getSpacingPx(SPACING.md),
+        paddingBottom: getSpacingPx(SPACING.md)
       }
     },
     ".hero-composer": {
@@ -41,10 +41,10 @@ const heroStyles = (theme: Theme) =>
       maxWidth: 720
     },
     ".hero-foot": {
-      marginTop: 8,
+      marginTop: getSpacingPx(SPACING.md),
       display: "flex",
       alignItems: "center",
-      gap: 8,
+      gap: getSpacingPx(SPACING.md),
       flexWrap: "wrap"
     },
     ".hero-skip": {

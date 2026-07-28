@@ -43,6 +43,12 @@ import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { syncRegistrations } from "../../triggers/registration-sync.js";
 import {
+  getWorkflowInterfaceV1,
+  getWorkflowInterfacesV1,
+  listWorkflowSummariesV1,
+  WorkflowInterfaceServiceError
+} from "../../workflow-interface-service.js";
+import {
   listInput,
   listOutput,
   getInput,
@@ -67,6 +73,12 @@ import {
   terminalOutputsInput,
   terminalOutputsOutput,
   workflowResponse,
+  workflowInterfaceInput,
+  workflowInterfaceV1,
+  workflowInterfacesInput,
+  workflowInterfacesOutput,
+  sdkWorkflowSummariesInput,
+  sdkWorkflowSummariesOutput,
   graph as graphSchema,
   sharingGetInput,
   sharingGetOutput,
@@ -86,6 +98,19 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
 const log = createLogger("nodetool.websocket.trpc.workflows");
+
+function throwWorkflowInterfaceError(error: unknown): never {
+  if (!(error instanceof WorkflowInterfaceServiceError)) {
+    throw error;
+  }
+  if (error.code === "feature_disabled") {
+    throwApiError(ApiErrorCode.SERVICE_UNAVAILABLE, error.message);
+  }
+  if (error.code === "workflow_not_found") {
+    throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, error.message);
+  }
+  throwApiError(ApiErrorCode.INVALID_INPUT, error.message);
+}
 
 /**
  * Reconcile `trigger_registrations` against the workflow's current graph.
@@ -441,6 +466,34 @@ function buildExampleWorkflows(
 // ── Router ─────────────────────────────────────────────────────────────────
 
 export const workflowsRouter = router({
+  sdkSummaries: protectedProcedure
+    .input(sdkWorkflowSummariesInput)
+    .output(sdkWorkflowSummariesOutput)
+    .query(async ({ ctx, input }) => {
+      try {
+        const result = await listWorkflowSummariesV1({
+          userId: ctx.userId,
+          limit: input.limit,
+          ...(input.cursor ? { cursor: input.cursor } : {})
+        });
+        return {
+          workflows: result.workflows.map((workflow) => ({
+            id: workflow.id,
+            name: workflow.name,
+            description: workflow.description,
+            revision: workflow.updated_at,
+            registry_revision: Number.isSafeInteger(ctx.registry.revision)
+              ? ctx.registry.revision
+              : null,
+            run_mode: workflow.run_mode
+          })),
+          next: result.next
+        };
+      } catch (error) {
+        throwWorkflowInterfaceError(error);
+      }
+    }),
+
   // ── list (GET /api/workflows) ─────────────────────────────────────────────
   list: protectedProcedure
     .input(listInput)
@@ -449,7 +502,8 @@ export const workflowsRouter = router({
       const [workflows, cursor] = await Workflow.paginate(ctx.userId, {
         limit: input.limit,
         runMode: input.run_mode,
-        tag: input.tag
+        tag: input.tag,
+        startKey: input.cursor
       });
       let filtered = workflows;
       if (input.mediaOutput) {
@@ -474,6 +528,38 @@ export const workflowsRouter = router({
         "viewer"
       );
       return toWorkflowResponse(workflow);
+    }),
+
+  // SDK-only, versioned workflow contract. Existing workflow responses remain
+  // unchanged, and the flag lets deployments roll this out independently.
+  interface: protectedProcedure
+    .input(workflowInterfaceInput)
+    .output(workflowInterfaceV1)
+    .query(async ({ ctx, input }) => {
+      try {
+        return await getWorkflowInterfaceV1({
+          workflowId: input.id,
+          userId: ctx.userId,
+          registry: ctx.registry
+        });
+      } catch (error) {
+        throwWorkflowInterfaceError(error);
+      }
+    }),
+
+  interfaces: protectedProcedure
+    .input(workflowInterfacesInput)
+    .output(workflowInterfacesOutput)
+    .query(async ({ ctx, input }) => {
+      try {
+        return await getWorkflowInterfacesV1({
+          workflowIds: input.ids,
+          userId: ctx.userId,
+          registry: ctx.registry
+        });
+      } catch (error) {
+        throwWorkflowInterfaceError(error);
+      }
     }),
 
   // ── create (POST /api/workflows) ─────────────────────────────────────────

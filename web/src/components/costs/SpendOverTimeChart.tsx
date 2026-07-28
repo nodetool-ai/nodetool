@@ -184,8 +184,9 @@ const SpendOverTimeChartInternal: React.FC<SpendOverTimeChartProps> = ({
             const barPx = (visibleTotal / axisMax) * PLOT_HEIGHT;
             const isHovered = hovered === index;
             return (
-              <Box
+              <FlexColumn
                 key={index}
+                justify="flex-end"
                 onMouseEnter={() => setHovered(index)}
                 onMouseLeave={() => setHovered((h) => (h === index ? null : h))}
                 sx={{
@@ -193,9 +194,6 @@ const SpendOverTimeChartInternal: React.FC<SpendOverTimeChartProps> = ({
                   flex: "1 1 0",
                   maxWidth: 34,
                   height: PLOT_HEIGHT,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "flex-end",
                   cursor: "default"
                 }}
               >
@@ -238,7 +236,7 @@ const SpendOverTimeChartInternal: React.FC<SpendOverTimeChartProps> = ({
                     isActive={isActive}
                   />
                 )}
-              </Box>
+              </FlexColumn>
             );
           })}
         </FlexRow>

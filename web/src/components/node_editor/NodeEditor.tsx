@@ -7,7 +7,8 @@ import {
   Box,
   TextInput,
   BORDER_RADIUS,
-  Modal
+  Modal,
+  SPACING
 } from "../ui_primitives";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -75,7 +76,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
       transform: "translateX(-50%)",
       width: "80vw",
       maxWidth: "1400px",
-      padding: 4,
+      padding: SPACING.xl,
       backgroundColor: theme.vars.palette.grey[800],
       boxShadow: 24,
       borderRadius: BORDER_RADIUS.lg,

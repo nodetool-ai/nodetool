@@ -26,6 +26,7 @@ import {
   ToolbarIconButton,
   BORDER_RADIUS,
   MOTION,
+  reducedMotion,
   SPACING,
   thinScrollbarStyles
 } from "../../ui_primitives";
@@ -87,6 +88,7 @@ const styles = (theme: Theme) =>
       alignContent: "start",
       borderRadius: BORDER_RADIUS.sm,
       transition: MOTION.background,
+      ...reducedMotion({ transition: MOTION.none }),
       ...thinScrollbarStyles(theme)
     },
     "&.drag-over .col-grid": {
@@ -140,7 +142,8 @@ const styles = (theme: Theme) =>
       top: 2,
       right: 2,
       opacity: 0,
-      transition: MOTION.opacity
+      transition: MOTION.opacity,
+      ...reducedMotion({ transition: MOTION.none })
     },
     ".col-tile:hover .col-remove, .col-tile:focus-within .col-remove": {
       opacity: 1

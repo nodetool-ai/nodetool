@@ -1,6 +1,12 @@
 import { FsSafeError, root, type Root } from "@openclaw/fs-safe";
 import { mkdirSync, realpathSync } from "node:fs";
-import { readdir, stat as fsStat, unlink } from "node:fs/promises";
+import {
+  lstat,
+  readdir,
+  realpath,
+  stat as fsStat,
+  unlink
+} from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import type {
@@ -150,6 +156,18 @@ export class FileStorageAdapter implements StorageAdapter {
       return false;
     }
     try {
+      // @openclaw/fs-safe's pinned stat helper is not available on Windows.
+      // Keep the same boundary, symlink, and hardlink checks for that platform
+      // instead of making local storage unusable there.
+      if (process.platform === "win32") {
+        const absolute = resolve(this.rootDir, rel);
+        if (!isWithinRoot(this.rootDir, absolute)) return false;
+        const info = await lstat(absolute);
+        if (info.isSymbolicLink() || (info.isFile() && info.nlink > 1)) {
+          return false;
+        }
+        return isWithinRoot(this.rootDir, await realpath(absolute));
+      }
       return await r.exists(rel);
     } catch {
       return false;
@@ -243,7 +261,10 @@ export class FileStorageAdapter implements StorageAdapter {
         if (!child.isFile()) continue;
         try {
           const st = await fsStat(childAbs);
-          const rel = childAbs.slice(this.rootDir.length).replace(/^[\\/]+/, "");
+          const rel = childAbs
+            .slice(this.rootDir.length)
+            .replace(/^[\\/]+/, "")
+            .replaceAll("\\", "/");
           entries.push({
             key: rel,
             uri: pathToFileURL(childAbs).toString(),

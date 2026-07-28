@@ -1,17 +1,18 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  afterEach,
-  vi
-} from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import Fastify, { type FastifyInstance } from "fastify";
+
+vi.mock("@nodetool-ai/node-sdk", async (orig) => ({
+  ...(await orig<typeof import("@nodetool-ai/node-sdk")>()),
+  deriveWorkflowInterfaceV1: (
+    await import("../../node-sdk/src/workflow-interface.js")
+  ).deriveWorkflowInterfaceV1
+}));
+
 import { initTestDb, Workflow, Job, Asset } from "@nodetool-ai/models";
-import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { NodeRegistry, type NodeMetadata } from "@nodetool-ai/node-sdk";
 import {
   handleApiRequest,
   handleAssetsRoot,
@@ -106,6 +107,7 @@ describe("http-api extra: workflows root + by-id branches", () => {
     app = await makeApp();
   });
   afterEach(async () => {
+    vi.unstubAllEnvs();
     await app.close();
   });
 
@@ -142,6 +144,358 @@ describe("http-api extra: workflows root + by-id branches", () => {
     const data = res.json() as { workflows: Array<{ name: string }> };
     expect(data.workflows.map((w) => w.name)).toContain("ToolWF");
     expect(data.workflows.map((w) => w.name)).not.toContain("PlainWF");
+  });
+
+  it("GET /api/workflows advances past the supplied cursor", async () => {
+    await makeWorkflow({ user_id: "user-1", name: "Oldest" });
+    await makeWorkflow({ user_id: "user-1", name: "Middle" });
+    await makeWorkflow({ user_id: "user-1", name: "Newest" });
+
+    const first = await app.inject({
+      method: "GET",
+      url: "/api/workflows?limit=1",
+      headers: { "x-user-id": "user-1" }
+    });
+    const firstPage = first.json() as {
+      workflows: Array<{ id: string }>;
+      next: string;
+    };
+    expect(firstPage.workflows).toHaveLength(1);
+    expect(firstPage.next).toBeTruthy();
+
+    const second = await app.inject({
+      method: "GET",
+      url: `/api/workflows?limit=1&cursor=${encodeURIComponent(firstPage.next)}`,
+      headers: { "x-user-id": "user-1" }
+    });
+    const secondPage = second.json() as {
+      workflows: Array<{ id: string }>;
+      next: string | null;
+    };
+
+    expect(second.statusCode).toBe(200);
+    expect(secondPage.workflows).toHaveLength(1);
+    expect(secondPage.workflows[0]?.id).not.toBe(firstPage.workflows[0]?.id);
+  });
+
+  it("GET /api/sdk/v1/workflows excludes graph and inline media data", async () => {
+    vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
+    await app.close();
+    app = await makeApp({ registry: new NodeRegistry() });
+    await makeWorkflow({
+      name: "Large workflow",
+      description: "Small summary",
+      graph: {
+        nodes: [
+          {
+            id: "image",
+            type: "nodetool.input.ImageInput",
+            properties: {
+              value: { type: "image", data: "x".repeat(100_000) }
+            }
+          }
+        ],
+        edges: []
+      }
+    });
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/sdk/v1/workflows?limit=25",
+      headers: { "x-user-id": "user-1" }
+    });
+    const body = response.body;
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      workflows: [
+        {
+          name: "Large workflow",
+          description: "Small summary",
+          registry_revision: 0,
+          run_mode: "workflow"
+        }
+      ],
+      next: null
+    });
+    expect(body).not.toContain("nodes");
+    expect(body).not.toContain("x".repeat(100));
+  });
+
+  it("returns a stable REST error when SDK discovery is disabled", async () => {
+    vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/sdk/v1/workflows",
+      headers: { "x-user-id": "user-1" }
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({
+      code: "SDK_WORKFLOW_INTERFACE_DISABLED",
+      message: "SDK workflow interface v1 is disabled",
+      retryable: false,
+      detail: "SDK workflow interface v1 is disabled"
+    });
+  });
+
+  it("keeps current workflow, node, and asset reads available with all SDK flags disabled", async () => {
+    vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
+    vi.stubEnv("NODETOOL_REQUIRE_SDK_AUTH_V1", "0");
+    vi.stubEnv("NODETOOL_DISABLE_SDK_LIFECYCLE_V1", "1");
+    await makeWorkflow({ user_id: "user-1", name: "Current workflow" });
+
+    const [workflows, nodes, assets] = await Promise.all([
+      app.inject({
+        method: "GET",
+        url: "/api/workflows",
+        headers: { "x-user-id": "user-1" }
+      }),
+      app.inject({
+        method: "GET",
+        url: "/api/nodes/metadata?fields=summary",
+        headers: { "x-user-id": "user-1" }
+      }),
+      handleAssetsRoot(
+        req("/api/assets", {
+          method: "POST",
+          headers: {
+            "x-user-id": "user-1",
+            "content-type": "application/json"
+          },
+          body: JSON.stringify({
+            name: "baseline.png",
+            content_type: "image/png",
+            parent_id: "user-1"
+          })
+        }),
+        {}
+      )
+    ]);
+
+    expect(workflows.statusCode).toBe(200);
+    expect((workflows.json() as { workflows: unknown[] }).workflows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "Current workflow" })
+      ])
+    );
+    expect(nodes.statusCode).toBe(200);
+    expect(assets.status).toBe(200);
+  });
+
+  it("redacts unexpected REST discovery errors", async () => {
+    vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
+    vi.spyOn(Workflow, "paginateSummaries").mockRejectedValueOnce(
+      new Error("secret database connection string")
+    );
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/sdk/v1/workflows",
+      headers: { "x-user-id": "user-1" }
+    });
+
+    expect(response.statusCode).toBe(500);
+    expect(response.json()).toEqual({
+      code: "INTERNAL_ERROR",
+      message: "Internal server error",
+      retryable: true,
+      detail: "Internal server error"
+    });
+    expect(response.body).not.toContain("secret database");
+  });
+
+  it("GET /api/sdk/v1/node-types returns bounded hybrid type usage", async () => {
+    vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
+    const registry = new NodeRegistry();
+    registry.loadMetadata(
+      "python.ListImage",
+      {
+        title: "List Image",
+        description: "",
+        namespace: "python",
+        node_type: "python.ListImage",
+        properties: [
+          {
+            name: "images",
+            type: {
+              type: "list",
+              type_args: [{ type: "image", type_args: [] }]
+            }
+          }
+        ],
+        outputs: []
+      },
+      { source: "python-bridge" }
+    );
+    await app.close();
+    app = await makeApp({
+      registry,
+      getPythonBridgeReady: () => true
+    });
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/sdk/v1/node-types?cursor=0&limit=1"
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      version: 1,
+      registry_revision: registry.revision,
+      registry_ready: true,
+      python_bridge_ready: true,
+      node_count: 1,
+      type_count: 2,
+      provenance_counts: { "python-bridge": 1 },
+      cursor: 0,
+      next_cursor: 1
+    });
+    expect(response.json().types).toHaveLength(1);
+  });
+
+  it("rejects invalid node type inventory bounds and honors the flag", async () => {
+    vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
+    const invalid = await app.inject({
+      method: "GET",
+      url: "/api/sdk/v1/node-types?limit=101"
+    });
+    expect(invalid.statusCode).toBe(400);
+
+    vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
+    const disabled = await app.inject({
+      method: "GET",
+      url: "/api/sdk/v1/node-types"
+    });
+    expect(disabled.statusCode).toBe(503);
+    expect(disabled.json()).toEqual({
+      code: "SDK_NODE_TYPE_INVENTORY_DISABLED",
+      message: "SDK node/type inventory v1 is disabled",
+      retryable: false,
+      detail: "SDK node/type inventory v1 is disabled"
+    });
+  });
+
+  it("GET /api/workflows/:id/interface returns the compact v1 contract", async () => {
+    vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
+    const nodeType = "nodetool.input.StringInput";
+    const metadata: NodeMetadata = {
+      title: "String Input",
+      description: "",
+      namespace: "nodetool.input",
+      node_type: nodeType,
+      properties: [],
+      outputs: [
+        {
+          name: "output",
+          type: { type: "str", optional: false, type_args: [] }
+        }
+      ]
+    };
+    const registry = new NodeRegistry({
+      metadataByType: new Map([[nodeType, metadata]])
+    });
+    await app.close();
+    app = await makeApp({ registry });
+    const workflow = await makeWorkflow({
+      graph: {
+        nodes: [
+          {
+            id: "input",
+            type: nodeType,
+            properties: { name: "prompt", value: "hello" }
+          },
+          {
+            id: "output",
+            type: "nodetool.output.Output",
+            properties: { name: "text" }
+          }
+        ],
+        edges: [
+          {
+            id: "edge",
+            source: "input",
+            sourceHandle: "output",
+            target: "output",
+            targetHandle: "value"
+          }
+        ]
+      }
+    });
+
+    const response = await app.inject({
+      method: "GET",
+      url: `/api/workflows/${workflow.id}/interface?version=1`,
+      headers: { "x-user-id": "user-1" }
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      version: 1,
+      workflow_id: workflow.id,
+      source: "server",
+      inputs: [{ node_id: "input", name: "prompt", default: "hello" }],
+      outputs: [{ node_id: "output", name: "text" }],
+      diagnostics: []
+    });
+    expect(response.body).not.toContain("edges");
+    expect(response.body).not.toContain("properties");
+  });
+
+  it("POST /api/sdk/v1/workflow-interfaces preserves order and isolates errors", async () => {
+    vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
+    await app.close();
+    app = await makeApp({ registry: new NodeRegistry() });
+    const first = await makeWorkflow({ name: "First" });
+    const second = await makeWorkflow({ name: "Second" });
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/sdk/v1/workflow-interfaces",
+      headers: JSON_HEADERS(),
+      payload: JSON.stringify({
+        ids: [second.id, "missing", first.id],
+        version: 1
+      })
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      interfaces: [
+        { workflow_id: second.id, version: 1, source: "server" },
+        { workflow_id: first.id, version: 1, source: "server" }
+      ],
+      errors: [
+        {
+          workflow_id: "missing",
+          code: "workflow_not_found",
+          message: "Workflow not found"
+        }
+      ]
+    });
+    expect(response.body).not.toContain("graph");
+    expect(response.body).not.toContain("nodes");
+  });
+
+  it("POST /api/sdk/v1/workflow-interfaces enforces the 100-id bound", async () => {
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/sdk/v1/workflow-interfaces",
+      headers: JSON_HEADERS(),
+      payload: JSON.stringify({
+        ids: Array.from({ length: 101 }, (_, index) => `wf-${index}`),
+        version: 1
+      })
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      code: "INVALID_INPUT",
+      message: "Expected 1 to 100 unique workflow ids",
+      retryable: false,
+      detail: "Expected 1 to 100 unique workflow ids"
+    });
   });
 
   it("DELETE /api/workflows/:id returns 405 for an unsupported method", async () => {
@@ -231,11 +585,7 @@ describe("http-api extra: workflow run guard branches", () => {
   beforeEach(() => initTestDb());
 
   it("405 for a non-POST method", async () => {
-    const res = await handleWorkflowRun(
-      req("/x", { method: "GET" }),
-      "w1",
-      {}
-    );
+    const res = await handleWorkflowRun(req("/x", { method: "GET" }), "w1", {});
     expect(res.status).toBe(405);
   });
 
@@ -831,7 +1181,9 @@ describe("http-api extra: createHttpApiServer", () => {
 
   it("serves a request over a real listening socket", async () => {
     const server = createHttpApiServer({});
-    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve)
+    );
     const address = server.address();
     if (!address || typeof address === "string") {
       throw new Error("Expected a TCP address");
@@ -855,7 +1207,9 @@ describe("http-api extra: createHttpApiServer", () => {
       .spyOn(Workflow, "paginate")
       .mockRejectedValue(new Error("boom from paginate"));
     const server = createHttpApiServer({});
-    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve)
+    );
     const address = server.address();
     if (!address || typeof address === "string") {
       throw new Error("Expected a TCP address");

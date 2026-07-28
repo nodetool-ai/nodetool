@@ -7,7 +7,9 @@ import {
   LoadingSpinner,
   FlexRow,
   ListItemText,
-  ListItemIcon
+  ListItemIcon,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
 import { useOllamaModels } from "../../hooks/useOllamaModels";
@@ -106,7 +108,7 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
             <LoadingSpinner size="medium" />
           </FlexRow>
         ) : ollamaError ? (
-          <div style={{ padding: 8, maxWidth: 300 }}>
+          <div style={{ padding: getSpacingPx(SPACING.md), maxWidth: 300 }}>
             <Text size="small" color="error" sx={{ mb: 1 }}>
               Could not load Ollama models
             </Text>

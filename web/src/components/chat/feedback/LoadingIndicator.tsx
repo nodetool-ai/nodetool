@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css, keyframes } from "@emotion/react";
 import React from "react";
-import { SPACING, getSpacingPx, MOTION } from "../../ui_primitives";
+import { SPACING, getSpacingPx, MOTION, BORDER_RADIUS } from "../../ui_primitives";
 
 const rotate = keyframes`
   0% { transform: rotate(0deg); }
@@ -49,6 +49,9 @@ const styles = {
     animation: ${rotate} ${MOTION.spin} infinite;
     transform-origin: 50% 50%;
     will-change: transform;
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   `,
   circle: css`
     fill: none;
@@ -58,6 +61,9 @@ const styles = {
     animation: ${dash} ${MOTION.pulse} infinite;
     opacity: 0.8;
     will-change: stroke-dasharray, stroke-dashoffset;
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   `,
   core: css`
     position: absolute;
@@ -67,10 +73,13 @@ const styles = {
     height: 6px;
     margin-left: -${getSpacingPx(SPACING.xs)};
     margin-top: -${getSpacingPx(SPACING.xs)};
-    border-radius: 50%;
+    border-radius: ${BORDER_RADIUS.circle};
     background: currentColor;
     animation: ${pulse} ${MOTION.pulse} infinite;
     will-change: transform, opacity;
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   `,
   wrapper: css`
     position: relative;

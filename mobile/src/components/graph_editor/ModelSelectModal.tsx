@@ -188,7 +188,7 @@ export const ModelSelectModal: React.FC<ModelSelectModalProps> = ({
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle="pageSheet"
+      presentationStyle="fullScreen"
       onRequestClose={handleClose}
     >
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>

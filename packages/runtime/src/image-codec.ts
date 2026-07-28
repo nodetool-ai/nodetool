@@ -11,8 +11,9 @@
 import { importHidden } from "@nodetool-ai/config";
 import { isRawRgbaImage, type ImageRef } from "@nodetool-ai/protocol";
 
-type SharpFn = typeof import("sharp");
-type SharpModule = SharpFn | { default: SharpFn };
+type SharpModuleNs = typeof import("sharp");
+type SharpFn = SharpModuleNs["default"];
+type SharpModule = SharpModuleNs | { default: SharpFn };
 
 let _sharpPromise: Promise<SharpFn | null> | null = null;
 
@@ -43,7 +44,7 @@ async function loadSharp(): Promise<SharpFn | null> {
     const attempt = (async (): Promise<SharpFn | null> => {
       const mod = await importHidden<SharpModule>("sharp");
       if (!mod) return null;
-      return (mod as { default?: SharpFn }).default ?? (mod as SharpFn);
+      return (mod as { default?: SharpFn }).default ?? (mod as unknown as SharpFn);
     })();
     _sharpPromise = attempt;
     attempt.catch(() => {

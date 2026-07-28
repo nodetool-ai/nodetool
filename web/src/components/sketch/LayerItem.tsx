@@ -259,9 +259,9 @@ const LayerItem: React.FC<LayerItemProps> = ({
             />
           )
         ) : (
-          <Box
+          <FlexRow
             className="layer-thumbnail-wrapper"
-            sx={{ position: "relative", display: "flex", flexShrink: 0 }}
+            sx={{ position: "relative", flexShrink: 0 }}
           >
             {thumbnailSrc ? (
               <img
@@ -296,7 +296,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
                 <MagicGenerationFill />
               </Box>
             )}
-          </Box>
+          </FlexRow>
         )}
 
         {!isGroup && (

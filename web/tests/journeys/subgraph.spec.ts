@@ -3,12 +3,13 @@
  *
  * Exercises the full UI flow:
  *  - Add Subgraph via pane context menu
- *  - Verify the SubgraphNode appears on the canvas with the violet accent
- *  - Double-click to open it in a tab
- *  - Verify the tab chrome (violet border) appears
- *  - Switch back to the parent workflow tab
- *  - Close the subgraph tab; verify cleanup
- *  - Group existing nodes via NodeContextMenu and verify a subgraph is formed
+ *  - Double-click it to open its canvas in a tab
+ *  - Edit that canvas, and switch and close the tab
+ *  - Confirm the edit landed on the parent node rather than dying with the tab
+ *
+ * The last one is the assertion that matters: a subgraph tab holds its own
+ * NodeStore, so a canvas that renders and edits perfectly can still lose every
+ * change the moment the tab closes.
  *
  * Runs against the real backend started by `tests/globalSetup.ts`.
  */
@@ -93,6 +94,48 @@ const openPaneContextMenu = async (page: Page): Promise<void> => {
   }
 };
 
+/**
+ * Open the first SubgraphNode's canvas by double-clicking it, as a user would.
+ *
+ * A real double-click, not a synthetic dispatch: React Flow's
+ * `onNodeDoubleClick` is what opens the tab, and it is the handler that
+ * registers the subgraph's NodeStore.
+ */
+const openSubgraphTab = async (page: Page): Promise<void> => {
+  await page.locator(".subgraph-node").first().dblclick();
+  await page
+    .locator(".subgraph-tab.active")
+    .first()
+    .waitFor({ state: "visible", timeout: 5000 });
+};
+
+/**
+ * Add a String Input node to the open subgraph canvas via its pane menu.
+ *
+ * The subgraph canvas overlays the parent one, so a real right-click at the
+ * centre of the editor area lands on the subgraph's pane.
+ */
+const addStringInputToSubgraph = async (page: Page): Promise<void> => {
+  await page.mouse.move(960, 540);
+  await page.mouse.click(960, 540, { button: "right" });
+
+  await page
+    .locator(".pane-context-menu")
+    .first()
+    .waitFor({ state: "visible", timeout: 5000 });
+
+  await page
+    .locator(".pane-context-menu")
+    .getByText("Add Input Node", { exact: false })
+    .first()
+    .click();
+  await page
+    .locator(".pane-submenu")
+    .getByText("String", { exact: true })
+    .first()
+    .click();
+};
+
 const clickAddSubgraph = async (page: Page): Promise<void> => {
   // Locate the "Add Subgraph" item by visible text within the open pane menu.
   const item = page
@@ -122,19 +165,7 @@ test.describe("Subgraph feature", () => {
     expect(after).toBe(1);
   });
 
-  /**
-   * PRE-EXISTING FAILURE — not caused by moving this spec into the journey
-   * suite. Creating a SubgraphNode works (the test above passes), but
-   * double-clicking it never opens a `.subgraph-tab`, so every test that
-   * depends on the tab opening times out. Reproduced identically against both
-   * the hermetic backend and real providers (`NODETOOL_FAKE_PROVIDERS=0`).
-   *
-   * This spec previously lived at `tests/subgraph-e2e.spec.ts`, where no CI
-   * workflow ran it — which is why the regression went unnoticed. Marked fixme
-   * so the nightly journey run stays meaningful; remove once the tab-opening
-   * path is fixed.
-   */
-  test.fixme("opens a violet-accented tab when double-clicked", async ({ page }) => {
+  test("opens a violet-accented tab when double-clicked", async ({ page }) => {
     await gotoEditor(page);
 
     await openPaneContextMenu(page);
@@ -145,43 +176,7 @@ test.describe("Subgraph feature", () => {
 
     expect(await page.locator(".subgraph-tab").count()).toBe(0);
 
-    // Get the subgraph node's React Flow id (data-id attribute) and dispatch
-    // a synthetic dblclick on the actual .react-flow__node wrapper so React
-    // Flow's onNodeDoubleClick handler picks it up.
-    const fired = await page.evaluate(() => {
-      const node = document.querySelector(".subgraph-node");
-      const wrapper = node?.closest(".react-flow__node") as HTMLElement | null;
-      if (!wrapper) return false;
-      const rect = wrapper.getBoundingClientRect();
-      const eventInit = {
-        bubbles: true,
-        cancelable: true,
-        view: window,
-        clientX: rect.left + rect.width / 2,
-        clientY: rect.top + rect.height / 2,
-        button: 0,
-        buttons: 0,
-        detail: 2
-      };
-      wrapper.dispatchEvent(new MouseEvent("mousedown", eventInit));
-      wrapper.dispatchEvent(new MouseEvent("mouseup", eventInit));
-      wrapper.dispatchEvent(new MouseEvent("click", eventInit));
-      wrapper.dispatchEvent(new MouseEvent("dblclick", eventInit));
-      return true;
-    });
-    expect(fired).toBe(true);
-
-    await page.waitForFunction(
-      () => document.querySelectorAll(".subgraph-tab").length > 0,
-      undefined,
-      { timeout: 5000 }
-    );
-
-    await page.waitForFunction(
-      () => document.querySelectorAll(".subgraph-tab.active").length > 0,
-      undefined,
-      { timeout: 5000 }
-    );
+    await openSubgraphTab(page);
 
     // The subgraph tab's canvas must actually mount a ReactFlow viewport —
     // not the "Workflow not found" error state from a failed useWorkflow
@@ -204,19 +199,7 @@ test.describe("Subgraph feature", () => {
     expect(paneCount).toBeGreaterThan(0);
   });
 
-  /**
-   * PRE-EXISTING FAILURE — not caused by moving this spec into the journey
-   * suite. Creating a SubgraphNode works (the test above passes), but
-   * double-clicking it never opens a `.subgraph-tab`, so every test that
-   * depends on the tab opening times out. Reproduced identically against both
-   * the hermetic backend and real providers (`NODETOOL_FAKE_PROVIDERS=0`).
-   *
-   * This spec previously lived at `tests/subgraph-e2e.spec.ts`, where no CI
-   * workflow ran it — which is why the regression went unnoticed. Marked fixme
-   * so the nightly journey run stays meaningful; remove once the tab-opening
-   * path is fixed.
-   */
-  test.fixme("subgraph canvas accepts new nodes via pane context menu", async ({
+  test("subgraph canvas accepts new nodes via pane context menu", async ({
     page
   }) => {
     await gotoEditor(page);
@@ -226,33 +209,7 @@ test.describe("Subgraph feature", () => {
     const subgraphNode = page.locator(".subgraph-node").first();
     await subgraphNode.waitFor({ state: "attached", timeout: 5000 });
 
-    // Open the subgraph in a tab.
-    await page.evaluate(() => {
-      const node = document.querySelector(".subgraph-node");
-      const wrapper = node?.closest(".react-flow__node") as HTMLElement | null;
-      if (!wrapper) return;
-      const rect = wrapper.getBoundingClientRect();
-      const eventInit = {
-        bubbles: true,
-        cancelable: true,
-        view: window,
-        clientX: rect.left + rect.width / 2,
-        clientY: rect.top + rect.height / 2,
-        button: 0,
-        buttons: 0,
-        detail: 2
-      };
-      wrapper.dispatchEvent(new MouseEvent("mousedown", eventInit));
-      wrapper.dispatchEvent(new MouseEvent("mouseup", eventInit));
-      wrapper.dispatchEvent(new MouseEvent("click", eventInit));
-      wrapper.dispatchEvent(new MouseEvent("dblclick", eventInit));
-    });
-
-    await page.waitForFunction(
-      () => document.querySelectorAll(".subgraph-tab.active").length > 0,
-      undefined,
-      { timeout: 5000 }
-    );
+    await openSubgraphTab(page);
     await page.waitForSelector(".react-flow__viewport", {
       state: "attached",
       timeout: 10_000
@@ -270,28 +227,7 @@ test.describe("Subgraph feature", () => {
       );
     });
 
-    // Right-click on the subgraph pane via real mouse. The
-    // SubgraphTabContent Box covers the editor area with zIndex above the
-    // (invisible) parent canvas, so this lands on the subgraph pane.
-    await page.mouse.move(960, 540);
-    await page.mouse.click(960, 540, { button: "right" });
-
-    await page
-      .locator(".pane-context-menu")
-      .first()
-      .waitFor({ state: "visible", timeout: 5000 });
-
-    // Click "Add Input Node" → "String" inside the now-open menu.
-    await page
-      .locator(".pane-context-menu")
-      .getByText("Add Input Node", { exact: false })
-      .first()
-      .click();
-    await page
-      .locator(".pane-submenu")
-      .getByText("String", { exact: true })
-      .first()
-      .click();
+    await addStringInputToSubgraph(page);
 
     // The node count inside the subgraph canvas should increase by one.
     await page.waitForFunction(
@@ -306,19 +242,7 @@ test.describe("Subgraph feature", () => {
     );
   });
 
-  /**
-   * PRE-EXISTING FAILURE — not caused by moving this spec into the journey
-   * suite. Creating a SubgraphNode works (the test above passes), but
-   * double-clicking it never opens a `.subgraph-tab`, so every test that
-   * depends on the tab opening times out. Reproduced identically against both
-   * the hermetic backend and real providers (`NODETOOL_FAKE_PROVIDERS=0`).
-   *
-   * This spec previously lived at `tests/subgraph-e2e.spec.ts`, where no CI
-   * workflow ran it — which is why the regression went unnoticed. Marked fixme
-   * so the nightly journey run stays meaningful; remove once the tab-opening
-   * path is fixed.
-   */
-  test.fixme("switches back to parent workflow tab and closes subgraph tab", async ({
+  test("switches back to parent workflow tab and closes subgraph tab", async ({
     page
   }) => {
     await gotoEditor(page);
@@ -328,49 +252,47 @@ test.describe("Subgraph feature", () => {
     const subgraphNode = page.locator(".subgraph-node").first();
     await subgraphNode.waitFor({ state: "attached", timeout: 5000 });
 
-    // Open the subgraph tab via JS dispatch (same as test 2).
-    await page.evaluate(() => {
-      const node = document.querySelector(".subgraph-node");
-      const wrapper = node?.closest(".react-flow__node") as HTMLElement | null;
-      if (!wrapper) return;
-      const rect = wrapper.getBoundingClientRect();
-      const eventInit = {
-        bubbles: true,
-        cancelable: true,
-        view: window,
-        clientX: rect.left + rect.width / 2,
-        clientY: rect.top + rect.height / 2,
-        button: 0,
-        buttons: 0,
-        detail: 2
-      };
-      wrapper.dispatchEvent(new MouseEvent("mousedown", eventInit));
-      wrapper.dispatchEvent(new MouseEvent("mouseup", eventInit));
-      wrapper.dispatchEvent(new MouseEvent("click", eventInit));
-      wrapper.dispatchEvent(new MouseEvent("dblclick", eventInit));
-    });
+    await openSubgraphTab(page);
 
-    await page.waitForFunction(
-      () => document.querySelectorAll(".subgraph-tab").length > 0,
-      undefined,
-      { timeout: 5000 }
-    );
+    // Back to the parent canvas: the subgraph tab stays open, the parent
+    // graph is what the canvas shows again.
+    await page.locator(".parent-tab").first().click();
+    await expect(page.locator(".subgraph-tab.active")).toHaveCount(0);
+    await expect(page.locator(".subgraph-node").first()).toBeVisible();
 
-    // Close the subgraph tab via the close icon. The close-icon is an SVG
-    // element so we dispatch a synthetic click that bubbles through React.
-    await page.evaluate(() => {
-      const tab = document.querySelector(".subgraph-tab");
-      const close = tab?.querySelector(".close-icon");
-      if (!close) return;
-      close.dispatchEvent(
-        new MouseEvent("click", { bubbles: true, cancelable: true })
-      );
-    });
+    await page.locator(".subgraph-tab .close-icon").first().click();
 
-    await page.waitForFunction(
-      () => document.querySelectorAll(".subgraph-tab").length === 0,
-      undefined,
-      { timeout: 5000 }
-    );
+    // The strip disappears with its last subgraph tab.
+    await expect(page.locator(".subgraph-tab")).toHaveCount(0);
+  });
+
+  test("keeps subgraph edits on the parent node", async ({ page }) => {
+    await gotoEditor(page);
+
+    await openPaneContextMenu(page);
+    await clickAddSubgraph(page);
+    await page
+      .locator(".subgraph-node")
+      .first()
+      .waitFor({ state: "attached", timeout: 5000 });
+
+    const handlesBefore = await page
+      .locator(".subgraph-node .react-flow__handle")
+      .count();
+
+    await openSubgraphTab(page);
+    await addStringInputToSubgraph(page);
+
+    // Back on the parent canvas the SubgraphNode must expose the new boundary
+    // port. That only happens if the inner graph was written back onto the
+    // node — SubgraphSync derives the node's ports from `properties.graph`, so
+    // a canvas whose edits never leave the tab would show no new handle.
+    await page.locator(".parent-tab").first().click();
+    await expect
+      .poll(
+        () => page.locator(".subgraph-node .react-flow__handle").count(),
+        { timeout: 15_000 }
+      )
+      .toBeGreaterThan(handlesBefore);
   });
 });

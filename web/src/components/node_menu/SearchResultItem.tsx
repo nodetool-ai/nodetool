@@ -471,6 +471,8 @@ const SearchResultItem = memo(
                 tabIndex={0}
                 onClick={handleToggleExpand}
                 onKeyDown={handleExpandKeyDown}
+                aria-expanded={isExpanded}
+                aria-label={isExpanded ? "Collapse details" : "Show details"}
                 title={isExpanded ? "Collapse details" : "Show details"}
               >
                 <ExpandMoreIcon />

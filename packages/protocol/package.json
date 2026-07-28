@@ -10,6 +10,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "generate:sdk-protocol": "tsx scripts/generate-sdk-protocol.ts",
+    "check:sdk-protocol": "tsx scripts/generate-sdk-protocol.ts --check",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit"
@@ -69,6 +71,7 @@
   },
   "files": [
     "dist",
+    "schema",
     "README.md"
   ],
   "keywords": [

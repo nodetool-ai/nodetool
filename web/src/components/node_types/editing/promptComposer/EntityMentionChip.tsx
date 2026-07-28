@@ -38,7 +38,7 @@ const chipStyles = (theme: Theme) =>
       height: "1.5em",
       width: "1.5em",
       objectFit: "cover",
-      borderRadius: "50%"
+      borderRadius: BORDER_RADIUS.circle
     },
     "& .chip-label": {
       minWidth: 0,

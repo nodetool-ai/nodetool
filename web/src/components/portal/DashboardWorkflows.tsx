@@ -28,15 +28,15 @@ type ViewMode = "grid" | "list";
 
 const styles = (theme: Theme) =>
   css({
-    paddingTop: 8,
-    paddingBottom: 8,
+    paddingTop: getSpacingPx(SPACING.md),
+    paddingBottom: getSpacingPx(SPACING.md),
     ".viewtog": {
       display: "flex",
-      gap: 2,
+      gap: getSpacingPx(SPACING.micro),
       background: theme.vars.palette.c_node_bg,
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: BORDER_RADIUS.md,
-      padding: 2
+      padding: getSpacingPx(SPACING.micro)
     },
     ".viewtog button": {
       width: 28,
@@ -56,7 +56,7 @@ const styles = (theme: Theme) =>
     ".rec-grid": {
       display: "grid",
       gridTemplateColumns: "repeat(4, 1fr)",
-      gap: 8,
+      gap: getSpacingPx(SPACING.md),
       [theme.breakpoints.down("lg")]: {
         gridTemplateColumns: "repeat(3, 1fr)"
       },
@@ -70,7 +70,7 @@ const styles = (theme: Theme) =>
     ".rec-new": {
       display: "flex",
       flexDirection: "column",
-      gap: 8,
+      gap: getSpacingPx(SPACING.md),
       textAlign: "left",
       background: "transparent",
       border: "none",
@@ -107,7 +107,7 @@ const styles = (theme: Theme) =>
       fontFamily: theme.fontFamily2,
       fontSize: 12,
       color: theme.vars.palette.text.disabled,
-      marginTop: 2
+      marginTop: getSpacingPx(SPACING.micro)
     },
     ".rec-list": {
       height: 420,

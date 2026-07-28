@@ -1,4 +1,5 @@
 import type { Theme } from "@mui/material/styles";
+import { getSpacingPx, SPACING } from "../ui_primitives";
 
 // Returns CSS styles for Lexical code highlighting tokens using the provided theme.
 export const codeHighlightTokenStyles = (theme: Theme) => ({
@@ -6,10 +7,10 @@ export const codeHighlightTokenStyles = (theme: Theme) => ({
     backgroundColor: theme.vars.palette.grey[900],
     fontFamily: "JetBrains Mono, Consolas, 'Courier New', monospace",
     display: "block",
-    padding: "8px 12px",
+    padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`,
     lineHeight: "1.53",
     fontSize: "var(--fontSizeSmall)",
-    margin: "8px 0",
+    margin: `${getSpacingPx(SPACING.md)} 0`,
     borderRadius: "1em",
     tabSize: 2,
     overflow: "auto"

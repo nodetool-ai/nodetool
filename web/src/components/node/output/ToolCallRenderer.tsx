@@ -133,6 +133,7 @@ export const ToolCallRenderer: React.FC<Props> = memo(({ chunk }) => {
         className="header"
         onClick={() => setOpen((v) => !v)}
         role="button"
+        aria-expanded={open}
         tabIndex={0}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {

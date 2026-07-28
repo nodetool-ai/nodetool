@@ -43,9 +43,14 @@ Seeded in `screenshot-server.ts`:
 
 | Id | What it is |
 | --- | --- |
-| `wf-mini-app` | `StringInput → Output` echo graph plus an app document (input, Run button, Output widget). Used by the mini-app journey. |
+| `wf-mini-app` | `StringInput → Output` echo graph. The workflow the mini app's one operation binds. |
+| `app-mini-app` | The `applications` row built on that graph — an app document with an input, a Run button and an Output widget. Used by the mini-app journey. |
 | `wf-editor-journey` | The same graph in a separate row, so the editor journey's edits can't disturb the mini-app journey. |
 | `thread-story` | Chat thread with existing messages. |
+
+An app is its own resource, not a workflow with an `app_doc`: there is no
+standalone `/apps/<id>` route. The mini-app journey opens the app the way a user
+does — the editor's left rail, Apps, the app, then the tab's Run toggle.
 
 The echo graph is deliberately trivial: both nodes are structural, so the value
 the UI shows after a run is genuinely the value that travelled through the
@@ -70,11 +75,6 @@ mutate it — adding nodes, sending messages. Assert against a measured baseline
 
 ## Known gaps
 
-- Three subgraph tests are `test.fixme`. Creating a SubgraphNode works;
-  double-clicking it never opens its tab. Reproduced against both the hermetic
-  backend and real providers, so it is a product bug, not a harness one. The
-  spec previously lived at `tests/subgraph-e2e.spec.ts` where no CI workflow ran
-  it, which is why it went unnoticed.
 - Editing a node's property on the canvas is not covered. Clicks near the left
   icon rail get intercepted, and stray keystrokes land on canvas shortcuts
   (typing `b` bypasses the selected node). The mini-app journey covers

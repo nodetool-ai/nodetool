@@ -271,6 +271,7 @@ const EditableTitle = memo(function EditableTitle({
             className="remove-title"
             onClick={handleRemoveTitle}
             title="Remove note"
+            aria-label="Remove note"
           >
             <CloseIcon className="icon" />
           </button>

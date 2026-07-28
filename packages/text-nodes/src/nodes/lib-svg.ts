@@ -19,14 +19,16 @@ const SHARP_UNAVAILABLE_MESSAGE =
 // (musl, unbundled serverless, ABI mismatch), so the caller throws a clear
 // actionable error rather than an opaque module-load throw. A rejected attempt
 // is never cached, so a fixed install is picked up on the next call.
-type SharpFn = typeof import("sharp");
+type SharpModule = typeof import("sharp");
+type SharpFn = SharpModule["default"];
 let _sharpPromise: Promise<SharpFn | null> | null = null;
 async function loadSharp(): Promise<SharpFn | null> {
   if (!_sharpPromise) {
     const attempt = (async (): Promise<SharpFn | null> => {
-      const mod = await importHidden<SharpFn | { default: SharpFn }>("sharp");
+      const mod = await importHidden<SharpModule | SharpFn>("sharp");
       if (!mod) return null;
-      return (mod as { default?: SharpFn }).default ?? (mod as SharpFn);
+      if (typeof mod === "function") return mod;
+      return mod.default ?? null;
     })();
     _sharpPromise = attempt;
     attempt.catch(() => {

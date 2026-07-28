@@ -21,6 +21,9 @@ import {
   handleWorkflowExamplesSearch,
   handleWorkflowExamplesThumbnail,
   handleWorkflowTools,
+  handleSdkWorkflowSummaries,
+  handleWorkflowInterface,
+  handleWorkflowInterfaces,
   handleWorkflowsRoot,
   handlePublicWorkflowById,
   handlePublicWorkflows
@@ -87,6 +90,18 @@ const workflowsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     );
   });
 
+  app.get("/api/sdk/v1/workflows", async (req, reply) => {
+    await bridge(req, reply, (request) =>
+      handleSdkWorkflowSummaries(request, apiOptions)
+    );
+  });
+
+  app.post("/api/sdk/v1/workflow-interfaces", async (req, reply) => {
+    await bridge(req, reply, (request) =>
+      handleWorkflowInterfaces(request, apiOptions)
+    );
+  });
+
   // Bundle export/import (.nodetool). Static paths registered before
   // `/api/workflows/:id` so they aren't captured as a workflow id.
   app.post("/api/workflows/export-bundle", async (req, reply) => {
@@ -130,6 +145,13 @@ const workflowsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     );
   });
 
+  app.get("/api/workflows/:id/interface", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    await bridge(req, reply, (request) =>
+      handleWorkflowInterface(request, id, apiOptions)
+    );
+  });
+
   app.get("/api/workflows/:id/export-bundle", async (req, reply) => {
     const { id } = req.params as { id: string };
     await bridge(req, reply, (request) =>
@@ -137,11 +159,15 @@ const workflowsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     );
   });
 
-  app.get("/api/workflows/:id", async (req, reply) => {
-    const { id } = req.params as { id: string };
-    await bridge(req, reply, (request) =>
-      handleWorkflowById(request, id, apiOptions)
-    );
+  app.route({
+    method: ["GET", "PUT", "DELETE"],
+    url: "/api/workflows/:id",
+    handler: async (req, reply) => {
+      const { id } = req.params as { id: string };
+      await bridge(req, reply, (request) =>
+        handleWorkflowById(request, id, apiOptions)
+      );
+    }
   });
 };
 

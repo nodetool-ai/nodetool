@@ -23,6 +23,7 @@ import {
   EditorButton,
   FlexColumn,
   MOTION,
+  reducedMotion,
   Text,
   Tooltip,
   BORDER_RADIUS,
@@ -93,6 +94,7 @@ const styles = (theme: Theme) =>
       border: `1px solid ${theme.vars.palette.action.selected}`,
       boxShadow: `0 6px 18px ${theme.vars.palette.c_scrim_soft}`,
       transition: `${MOTION.transform}, ${MOTION.shadow}, background-position ${MOTION.slow}`,
+      ...reducedMotion({ transition: MOTION.none }),
       overflow: "hidden",
       "&::before": {
         content: "''",
@@ -104,7 +106,8 @@ const styles = (theme: Theme) =>
         background:
           `linear-gradient(120deg, transparent, ${theme.vars.palette.c_overlay_strong}, transparent)`,
         transform: "skewX(-20deg)",
-        transition: `left ${MOTION.slow}`
+        transition: `left ${MOTION.slow}`,
+        ...reducedMotion({ transition: MOTION.none })
       },
       "&:hover": {
         transform: "translateY(-1px)",

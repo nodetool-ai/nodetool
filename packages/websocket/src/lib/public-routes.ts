@@ -56,3 +56,28 @@ export function isPublicOAuthRequest(pathname: string): boolean {
     pathname === "/api/oauth/github/callback"
   );
 }
+
+/**
+ * Paths that skip session auth in the server's `onRequest` hook. Every entry
+ * must carry no per-caller private state, or authenticate on its own (webhook
+ * secret, OAuth PKCE state, KIE webhook signature). All of these are still
+ * covered by the global `@fastify/rate-limit` plugin registered before auth.
+ */
+export function isPublicAuthExemptRoute(
+  pathname: string,
+  method: string
+): boolean {
+  return (
+    pathname === "/health" ||
+    pathname === "/ready" ||
+    pathname === "/api/health" ||
+    pathname === "/api/config" ||
+    isPublicOAuthRequest(pathname) ||
+    pathname === "/api/assets/packages" ||
+    pathname.startsWith("/api/assets/packages/") ||
+    pathname === "/api/nodes/metadata" ||
+    pathname.startsWith("/api/kie/webhook") ||
+    pathname.startsWith("/api/webhooks/") ||
+    isPublicWorkflowMetadataRequest(pathname, method)
+  );
+}

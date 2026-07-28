@@ -575,6 +575,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
           <button
             type="button"
             className={activeTab.mode === "view" ? "on" : ""}
+            aria-pressed={activeTab.mode === "view"}
             onClick={() => setMode(activeTab.id, "view")}
           >
             View
@@ -582,6 +583,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
           <button
             type="button"
             className={activeTab.mode === "edit" ? "on" : ""}
+            aria-pressed={activeTab.mode === "edit"}
             onClick={() => setMode(activeTab.id, "edit")}
           >
             Edit

@@ -44,6 +44,63 @@ describe("NodeRegistry", () => {
     expect(registry.has("test.NodeA")).toBe(true);
   });
 
+  it("records only explicit package identities", () => {
+    registry.register(NodeA);
+    expect(registry.getNodePackageId("test.NodeA")).toBeUndefined();
+
+    registry.registerPackage("base", (target) => target.register(NodeB));
+    expect(registry.getNodePackageId("test.NodeB")).toBe("base");
+    expect(registry.listNodePackageIds()).toEqual(["base"]);
+  });
+
+  it("clears package registration context after registrar failure", () => {
+    expect(() =>
+      registry.registerPackage("broken", () => {
+        throw new Error("registration failed");
+      })
+    ).toThrow("registration failed");
+
+    registry.register(NodeA);
+    expect(registry.getNodePackageId("test.NodeA")).toBeUndefined();
+  });
+
+  it("increments its revision whenever registry metadata changes", () => {
+    const initialRevision = registry.revision;
+    registry.register(NodeA);
+    expect(registry.revision).toBe(initialRevision + 1);
+    registry.loadMetadata("python.Node", {
+      title: "Python Node",
+      description: "",
+      namespace: "python",
+      node_type: "python.Node",
+      properties: [],
+      outputs: []
+    });
+    expect(registry.revision).toBe(initialRevision + 2);
+  });
+
+  it("tracks the authoritative metadata source", () => {
+    registry.register(NodeA);
+    registry.loadMetadata(
+      "python.BridgeNode",
+      {
+        title: "Bridge Node",
+        description: "",
+        namespace: "python",
+        node_type: "python.BridgeNode",
+        properties: [],
+        outputs: []
+      },
+      { source: "python-bridge" }
+    );
+
+    expect(registry.getMetadataSource("test.NodeA")).toBe("typescript");
+    expect(registry.getMetadataSource("python.BridgeNode")).toBe(
+      "python-bridge"
+    );
+    expect(registry.getMetadataSource("missing.Node")).toBeUndefined();
+  });
+
   it("has() returns false for unregistered types", () => {
     expect(registry.has("test.Unknown")).toBe(false);
   });

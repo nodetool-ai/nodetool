@@ -6,7 +6,10 @@ import {
   Tooltip,
   Divider,
   Box,
-  Z_INDEX,
+  AlertBanner,
+  EditorButton,
+  SPACING,
+  getSpacingPx,
   ToolbarIconButton
 } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
@@ -113,7 +116,7 @@ const SelectedItemsInfo: React.FC<{
           tooltipPlacement="top"
           onClick={onClear}
           size="small"
-          sx={{ ml: 0.5, "& .MuiSvgIcon-root": { fontSize: 14 } }}
+          sx={{ ml: SPACING.micro, "& .MuiSvgIcon-root": { fontSize: 14 } }}
         />
       </div>
     </div>
@@ -147,7 +150,8 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   isMobile = false,
   forceGlobalAssets = false
 }) => {
-  const { error, folderFilesFiltered, folderTree } = useAssets();
+  const { error, folderFilesFiltered, folderTree, refetchAssetsAndFolders } =
+    useAssets();
   const {
     setOpenAsset,
     setSelectedAssetIds,
@@ -351,23 +355,13 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     [isHorizontal, itemSpacing, isMobile, effectiveFoldersVisible, addFoldersPanel]
   );
 
+  // Stale/cached assets may still render while a refresh fails. Empty-folder
+  // failures are handled inside AssetGridContent's EmptyState instead.
+  const showInlineFetchError =
+    error != null && (folderFilesFiltered?.length ?? 0) > 0;
+
   return (
     <Box css={styles(theme)} className="asset-grid-container">
-      {error && (
-        <Text
-          className="error-message"
-          color="error"
-          sx={{
-            position: "absolute",
-            top: "1em",
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: Z_INDEX.toast
-          }}
-        >
-          {error.message}
-        </Text>
-      )}
       {openAsset && (
         <AssetViewer
           asset={openAsset}
@@ -383,6 +377,30 @@ const AssetGrid: React.FC<AssetGridProps> = ({
           isFullscreenAssets={foldersDocked}
           hideFolderControls={isWorkflowOutputScope}
         />
+      )}
+      {showInlineFetchError && (
+        <AlertBanner
+          className="asset-grid-fetch-error"
+          severity="error"
+          compact
+          title="Could not refresh assets"
+          sx={{
+            flexShrink: 0,
+            mb: getSpacingPx(SPACING.sm),
+            mx: isMobile ? getSpacingPx(SPACING.md) : 0
+          }}
+          action={
+            <EditorButton
+              color="inherit"
+              size="small"
+              onClick={() => refetchAssetsAndFolders()}
+            >
+              Retry
+            </EditorButton>
+          }
+        >
+          {error.message}
+        </AlertBanner>
       )}
       {!isMobile && (
         <SelectedItemsInfo

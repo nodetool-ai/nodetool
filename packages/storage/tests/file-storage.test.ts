@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import { FileStorage } from "../src/file-storage.js";
 
 describe("FileStorage", () => {
@@ -39,7 +40,7 @@ describe("FileStorage", () => {
     await setup();
     const url = storage.getUrl("file.txt");
     expect(url.startsWith("file://")).toBe(true);
-    expect(url).toContain(tmpDir);
+    expect(fileURLToPath(url)).toBe(path.resolve(tmpDir, "file.txt"));
   });
 
   it("upload creates nested directories automatically", async () => {

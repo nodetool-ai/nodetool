@@ -386,7 +386,7 @@ describe("UnifiedWebSocketRunner", () => {
     await outputRunner.disconnect();
   });
 
-  it("includes outputs in terminal job_update", async () => {
+  it("emits one authoritative terminal job_update when requested", async () => {
     const outputRunner = new UnifiedWebSocketRunner({
       resolveExecutor: (node) => {
         if (node.type === "nodetool.constant.String") {
@@ -424,7 +424,7 @@ describe("UnifiedWebSocketRunner", () => {
           id: "n2",
           type: "nodetool.output.Output",
           name: "nodetool.output.Output",
-          properties: {}
+          properties: { name: "result" }
         }
       ],
       edges: [
@@ -441,19 +441,22 @@ describe("UnifiedWebSocketRunner", () => {
 
     await outputRunner.handleCommand({
       command: "run_job",
-      data: { graph, params: {} }
+      data: { graph, params: {}, require_terminal_result: true }
     });
     await new Promise((r) => setTimeout(r, 30));
 
     const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
-    const terminal = sent
-      .filter((m) => m.type === "job_update" && m.status === "completed")
-      .at(-1) as Record<string, unknown> | undefined;
+    const terminals = sent.filter(
+      (m) => m.type === "job_update" && m.status === "completed"
+    );
+    expect(terminals).toHaveLength(1);
+    const terminal = terminals[0] as Record<string, unknown> | undefined;
     expect(terminal).toBeDefined();
     expect(terminal?.result).toBeDefined();
     const result = terminal?.result as { outputs?: Record<string, unknown[]> };
     expect(result.outputs).toBeDefined();
-    const outputValues = result.outputs?.["nodetool.output.Output"] ?? [];
+    expect(result.outputs).toHaveProperty("result");
+    const outputValues = result.outputs?.result ?? [];
     expect(Array.isArray(outputValues)).toBe(true);
     expect(outputValues).toContain("hello world");
 

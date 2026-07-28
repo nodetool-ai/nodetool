@@ -74,7 +74,7 @@ const styles = (theme: Theme, fullWidth: boolean) =>
     ".welcome-grid": {
       display: "grid",
       gridTemplateColumns: "repeat(4, 1fr)",
-      gap: 8,
+      gap: getSpacingPx(SPACING.md),
       animation: `${rise} ${MOTION.slow} ${320}ms backwards`,
       [theme.breakpoints.down("md")]: {
         gridTemplateColumns: "repeat(2, 1fr)"

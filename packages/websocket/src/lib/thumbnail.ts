@@ -38,7 +38,7 @@ export function thumbnailKey(assetId: string): string {
   return `${assetId}_thumb.jpg`;
 }
 
-function resizeAndEncode(pipeline: sharp.Sharp): Promise<Buffer> {
+function resizeAndEncode(pipeline: ReturnType<typeof sharp>): Promise<Buffer> {
   return pipeline
     .resize({
       width: THUMB_MAX_DIM,

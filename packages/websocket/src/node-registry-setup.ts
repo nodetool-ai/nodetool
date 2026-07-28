@@ -12,8 +12,11 @@ import {
   NodeRegistry,
   loadInstalledPacks,
   readBuiltinPackOverrides,
+  type NodeMetadata,
+  type NodePackAvailabilityDiagnostic,
   type LoadedPackResult
 } from "@nodetool-ai/node-sdk";
+import type { PythonNodeMetadata } from "@nodetool-ai/runtime";
 import {
   BUILTIN_NODE_PACKS,
   resolveBuiltinPackEnabled,
@@ -119,6 +122,88 @@ export interface RegisterBuiltInNodesOptions {
   log?: BootstrapLogger;
 }
 
+export function getUnavailableBuiltinPackDiagnostics(): NodePackAvailabilityDiagnostic[] {
+  const overrides = isCloudProfile()
+    ? cloudPackOverrides()
+    : readBuiltinPackOverrides();
+  return BUILTIN_NODE_PACKS.flatMap((pack) => {
+    if (!resolveBuiltinPackEnabled(pack, overrides[pack.id])) {
+      return [
+        {
+          id: pack.id,
+          name: pack.name,
+          reason: "disabled by built-in pack configuration"
+        }
+      ];
+    }
+    if (pack.id === "transformers-js" && isProduction()) {
+      return [
+        {
+          id: pack.id,
+          name: pack.name,
+          reason: "unavailable in production"
+        }
+      ];
+    }
+    return [];
+  });
+}
+
+export interface PythonBridgeMetadataMergeResult {
+  total: number;
+  bridgeOnly: number;
+  alreadyKnown: number;
+}
+
+/**
+ * Merge metadata discovered from the live Python worker into the shared
+ * registry. Metadata already supplied by a package JSON file or a registered
+ * TypeScript class remains authoritative; the bridge only fills genuine gaps.
+ *
+ * Keeping this operation centralized ensures REST, tRPC, WebSocket discovery,
+ * and workflow-interface derivation all observe the same hybrid registry.
+ */
+export function mergePythonBridgeMetadata(
+  registry: NodeRegistry,
+  metadata: readonly PythonNodeMetadata[]
+): PythonBridgeMetadataMergeResult {
+  let bridgeOnly = 0;
+  let alreadyKnown = 0;
+
+  for (const nodeMeta of metadata) {
+    if (!nodeMeta.node_type) continue;
+    if (registry.getMetadata(nodeMeta.node_type)) {
+      alreadyKnown++;
+      continue;
+    }
+
+    bridgeOnly++;
+    registry.loadMetadata(
+      nodeMeta.node_type,
+      {
+        ...(nodeMeta as unknown as NodeMetadata),
+        namespace: nodeMeta.node_type.split(".").slice(0, -1).join("."),
+        layout: "default",
+        recommended_models: nodeMeta.recommended_models ?? [],
+        required_settings: nodeMeta.required_settings ?? [],
+        // Python worker still emits `is_dynamic` on the bridge wire; normalize it
+        // to the current registry contract.
+        supports_dynamic_inputs: nodeMeta.is_dynamic ?? false,
+        is_streaming_input: nodeMeta.is_streaming_input ?? false,
+        is_streaming_output: nodeMeta.is_streaming_output ?? false,
+        supports_dynamic_outputs: false
+      },
+      { source: "python-bridge" }
+    );
+  }
+
+  return {
+    total: metadata.length,
+    bridgeOnly,
+    alreadyKnown
+  };
+}
+
 /**
  * Register the enabled first-party node packs into `registry` (synchronous).
  * Required packs and packs enabled by default or by the user load; the rest
@@ -143,7 +228,7 @@ export function registerBuiltInNodes(
     if (!register) {
       throw new Error(`No registrar for built-in node pack "${pack.id}"`);
     }
-    register(registry);
+    registry.registerPackage(pack.id, register);
   }
 }
 
@@ -164,7 +249,7 @@ export function applyBuiltinPackEnabled(
     throw new Error(`No registrar for built-in node pack "${id}"`);
   }
   if (enabled) {
-    register(registry);
+    registry.registerPackage(id, register);
     return;
   }
   const packOnly = new NodeRegistry();

@@ -15,6 +15,8 @@ import {
   Tooltip,
   Box,
   BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
   List,
   ListItemButton,
   ListItemText
@@ -494,6 +496,20 @@ const listStyles = css({
   maxHeight: "calc(100% - 20px)"
 });
 
+// Horizontal strip used on narrow screens, where an 88px sidebar would eat a
+// quarter of the viewport.
+const horizontalListStyles = css({
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "stretch",
+  gap: getSpacingPx(SPACING.xs),
+  overflowX: "auto",
+  overflowY: "hidden",
+  paddingTop: 0,
+  paddingBottom: 0,
+  "& > *": { flexShrink: 0 }
+});
+
 type ProviderStoreHook = <Selected>(
   selector: (state: {
     selectedProvider: string | null;
@@ -509,6 +525,8 @@ export interface ProviderListProps {
   storeHook?: ProviderStoreHook;
   forceUnselect?: boolean;
   iconOnly?: boolean;
+  /** "horizontal" lays the providers out as a scrolling strip (mobile). */
+  orientation?: "vertical" | "horizontal";
 }
 
 const ProviderList: React.FC<ProviderListProps> = ({
@@ -517,7 +535,8 @@ const ProviderList: React.FC<ProviderListProps> = ({
   isError,
   storeHook = useLanguageModelMenuStore,
   forceUnselect = false,
-  iconOnly = false
+  iconOnly = false,
+  orientation = "vertical"
 }) => {
   const theme = useTheme();
   const selected = storeHook((s) => s.selectedProvider);
@@ -534,6 +553,9 @@ const ProviderList: React.FC<ProviderListProps> = ({
   const { isApiKeySet } = useSecrets();
 
   const isDarkMode = useIsDarkMode();
+  const isHorizontal = orientation === "horizontal";
+  const tooltipPlacement = isHorizontal ? "bottom" : "right";
+  const itemMinWidth = isHorizontal ? 76 : undefined;
 
   // Sort providers: enabled first (alphabetical), then disabled (alphabetical)
   const sortedProviders = React.useMemo(() => {
@@ -620,8 +642,8 @@ const ProviderList: React.FC<ProviderListProps> = ({
   return (
     <List
       dense
-      css={listStyles}
-      className="model-menu__providers-list"
+      css={isHorizontal ? horizontalListStyles : listStyles}
+      className={`model-menu__providers-list ${isHorizontal ? "is-horizontal" : ""}`}
       sx={{ fontSize: (theme: Theme) => theme.vars.fontSizeSmall, px: iconOnly ? 0.5 : 0 }}
     >
       {isLoading && (
@@ -644,6 +666,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
           justifyContent: iconOnly ? "center" : "flex-start",
           px: iconOnly ? 0 : 2,
           minHeight: iconOnly ? 52 : "auto",
+          minWidth: itemMinWidth,
           borderRadius: iconOnly ? 1 : 0
         }}
       >
@@ -651,7 +674,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
           <Tooltip
             className="model-menu__all-providers-tooltip"
             title="All providers"
-            placement="right"
+            placement={tooltipPlacement}
           >
             <FlexColumn align="center" gap={0.5} sx={{ py: 0.5 }}>
               <FormatListBulletedIcon className="model-menu__all-providers-icon" />
@@ -774,6 +797,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                   justifyContent: iconOnly ? "center" : "flex-start",
                   px: iconOnly ? 0 : 2,
                   minHeight: iconOnly ? 68 : "auto",
+                  minWidth: itemMinWidth,
                   borderRadius: iconOnly ? 1 : 0
                 }}
               >
@@ -781,7 +805,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                   <Tooltip
                     className="model-menu__provider-icon-tooltip"
                     title={providerLabel}
-                    placement="right"
+                    placement={tooltipPlacement}
                   >
                     <FlexColumn align="center" gap={0.5} sx={{ py: 0.5 }}>
                       <FlexRow

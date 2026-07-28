@@ -111,13 +111,10 @@ const isAbsolute = (p: string): boolean =>
   nodePath ? nodePath.isAbsolute(p) : notOnNode("node:path.isAbsolute");
 const join = (...parts: string[]): string =>
   nodePath ? nodePath.join(...parts) : notOnNode("node:path.join");
-const normalize = (p: string): string =>
-  nodePath ? nodePath.normalize(p) : notOnNode("node:path.normalize");
 const relative = (from: string, to: string): string =>
   nodePath ? nodePath.relative(from, to) : notOnNode("node:path.relative");
 const resolve = (...parts: string[]): string =>
   nodePath ? nodePath.resolve(...parts) : notOnNode("node:path.resolve");
-const sep = nodePath?.sep ?? "/";
 
 const fileURLToPath = (u: string | URL): string =>
   nodeUrl ? nodeUrl.fileURLToPath(u) : notOnNode("node:url.fileURLToPath");
@@ -544,13 +541,20 @@ async function coerceEntityList(
 }
 
 function normalizeStorageKey(key: string): string {
-  const cleaned = normalize(key.replaceAll("\\", "/")).replace(/^\/+/, "");
-  if (
-    !cleaned ||
-    cleaned === "." ||
-    cleaned.startsWith("..") ||
-    cleaned.includes(`..${sep}`)
-  ) {
+  const segments: string[] = [];
+  for (const segment of key.replaceAll("\\", "/").split("/")) {
+    if (!segment || segment === ".") continue;
+    if (segment === "..") {
+      if (segments.length === 0) {
+        throw new Error(`Invalid storage key: ${key}`);
+      }
+      segments.pop();
+      continue;
+    }
+    segments.push(segment);
+  }
+  const cleaned = segments.join("/");
+  if (!cleaned) {
     throw new Error(`Invalid storage key: ${key}`);
   }
   return cleaned;
@@ -1475,7 +1479,13 @@ export class ProcessingContext {
    */
   async resolveTempUrl(uri: string): Promise<string> {
     if (!this._tempUrlResolver) return uri;
-    return this._tempUrlResolver(uri);
+    const resolvedUri = await this._tempUrlResolver(uri);
+    if (ProcessingContext.isClientFetchableResolvedAssetUri(uri, resolvedUri)) {
+      return resolvedUri;
+    }
+    throw new Error(
+      `Temp URL resolver returned an unsafe URL for '${uri}': '${resolvedUri}'`
+    );
   }
 
   async getSecret(key: string): Promise<string | null> {
@@ -3165,6 +3175,19 @@ export class ProcessingContext {
     return null;
   }
 
+  private static isClientFetchableResolvedAssetUri(
+    sourceUri: string,
+    resolvedUri: string
+  ): boolean {
+    return (
+      resolvedUri.startsWith("/api/storage/") ||
+      resolvedUri.startsWith("api/storage/") ||
+      (/^(memory|file|s3|supabase):\/\//.test(sourceUri) &&
+        resolvedUri !== sourceUri &&
+        /^https?:\/\//.test(resolvedUri))
+    );
+  }
+
   private async getAssetBytes(
     asset: Record<string, unknown>
   ): Promise<Uint8Array | null> {
@@ -3205,6 +3228,34 @@ export class ProcessingContext {
       return rawAsset;
     }
 
+    // A fetchable reference with no inline bytes is already materialized for
+    // an HTTP client. Reuse it instead of downloading the asset into this
+    // process and writing an identical second temp object. This is especially
+    // important for SDK pass-through workflows: their large input was already
+    // uploaded once and should not be copied again on output.
+    if (mode === "temp_url") {
+      const uri = typeof rawAsset.uri === "string" ? rawAsset.uri : "";
+      const hasInlineBytes =
+        ProcessingContext.decodeAssetData(rawAsset.data) !== null;
+      const isStorageRoute =
+        uri.startsWith("/api/storage/") || uri.startsWith("api/storage/");
+      const isAdapterUri = /^(file|s3|supabase):\/\//.test(uri);
+      if (uri && !hasInlineBytes && (isStorageRoute || isAdapterUri)) {
+        const resolvedUri = this._tempUrlResolver
+          ? await this._tempUrlResolver(uri)
+          : uri;
+        if (
+          ProcessingContext.isClientFetchableResolvedAssetUri(uri, resolvedUri)
+        ) {
+          return {
+            ...rawAsset,
+            uri: resolvedUri,
+            data: undefined
+          };
+        }
+      }
+    }
+
     // Raw in-flight RGBA → encode to PNG up front so every downstream mode
     // treats it as an ordinary image (correct mime, extension, and bytes).
     const asset = (await encodeRawImageRef(rawAsset)) as Record<
@@ -3240,12 +3291,9 @@ export class ProcessingContext {
       if (!this.storage) return asset;
       const key = `temp/${randomUUID()}.${ProcessingContext.extForMime(mime)}`;
       const storedUri = await this.storage.store(key, bytes, mime);
-      const resolvedUri = this._tempUrlResolver
-        ? await this._tempUrlResolver(storedUri)
-        : storedUri;
       return {
         ...asset,
-        uri: resolvedUri,
+        uri: await this.resolveTempUrl(storedUri),
         data: undefined
       };
     }

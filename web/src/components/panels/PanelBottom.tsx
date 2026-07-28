@@ -6,6 +6,7 @@ import type { Theme } from "@mui/material/styles";
 import {
   Tooltip,
   Box,
+  FlexColumn,
   MOTION,
   BORDER_RADIUS,
   SPACING,
@@ -452,20 +453,18 @@ const PanelBodyContent = memo(function PanelBodyContent({
       return <LogPanel />;
     case "queue":
       return (
-        <Box
+        <FlexColumn
           className="queue-panel"
+          fullWidth
+          fullHeight
           sx={{
-            display: "flex",
-            flexDirection: "column",
-            width: "100%",
-            height: "100%",
             overflow: "hidden",
             padding: "0 1em"
           }}
         >
           <PanelHeadline title="Queue" />
           <QueuePanel />
-        </Box>
+        </FlexColumn>
       );
     case "sandboxes":
       return sandboxesEnabled ? <SandboxesPanel /> : null;

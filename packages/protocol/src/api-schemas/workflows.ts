@@ -142,6 +142,109 @@ export const workflowResponse = z.object({
 });
 export type WorkflowResponse = z.infer<typeof workflowResponse>;
 
+// ── SDK workflow interface v1 ──────────────────────────────────────────────
+
+export const workflowInterfaceType = dynamicOutputTypeMetadata;
+
+export const workflowInterfaceDiagnostic = z.object({
+  severity: z.enum(["warning", "error"]),
+  code: z.string(),
+  message: z.string(),
+  node_id: z.string().optional(),
+  pin_name: z.string().optional()
+});
+
+const workflowInterfacePin = z.object({
+  node_id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  type: workflowInterfaceType
+});
+
+export const workflowInterfaceInputPin = workflowInterfacePin.extend({
+  required: z.boolean(),
+  default: z.json(),
+  min: z.number().optional(),
+  max: z.number().optional()
+});
+
+export const workflowInterfaceOutputPin = workflowInterfacePin.extend({
+  stream: z.boolean()
+});
+
+export const workflowInterfaceV1 = z.object({
+  version: z.literal(1),
+  workflow_id: z.string(),
+  etag: z.string().nullable(),
+  source: z.literal("server"),
+  inputs: z.array(workflowInterfaceInputPin),
+  outputs: z.array(workflowInterfaceOutputPin),
+  diagnostics: z.array(workflowInterfaceDiagnostic)
+});
+export type WorkflowInterfaceV1Response = z.infer<typeof workflowInterfaceV1>;
+
+export const workflowInterfaceInput = z.object({
+  id: z.string().min(1),
+  version: z.literal(1)
+});
+export type WorkflowInterfaceInput = z.infer<typeof workflowInterfaceInput>;
+
+export const workflowInterfacesInput = z.object({
+  ids: z
+    .array(z.string().min(1))
+    .min(1)
+    .max(100)
+    .refine((ids) => new Set(ids).size === ids.length, {
+      message: "Workflow ids must be unique"
+    }),
+  version: z.literal(1)
+});
+export type WorkflowInterfacesInput = z.infer<typeof workflowInterfacesInput>;
+
+export const workflowInterfaceError = z.object({
+  workflow_id: z.string(),
+  code: z.enum(["workflow_not_found", "invalid_graph"]),
+  message: z.string()
+});
+export type WorkflowInterfaceError = z.infer<typeof workflowInterfaceError>;
+
+export const workflowInterfacesOutput = z.object({
+  interfaces: z.array(workflowInterfaceV1),
+  errors: z.array(workflowInterfaceError)
+});
+export type WorkflowInterfacesOutput = z.infer<typeof workflowInterfacesOutput>;
+
+export const sdkWorkflowSummariesInput = z.object({
+  limit: z.number().int().min(1).max(100).default(50),
+  cursor: z.string().optional()
+});
+export type SdkWorkflowSummariesInput = z.infer<
+  typeof sdkWorkflowSummariesInput
+>;
+
+export const sdkWorkflowSummary = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  revision: z.string(),
+  /**
+   * Revision of the node registry used to derive workflow interfaces. A
+   * client must refresh a cached interface when either this value or the
+   * workflow revision changes.
+   */
+  registry_revision: z.number().int().nonnegative().nullable(),
+  run_mode: z.string().nullable()
+});
+export type SdkWorkflowSummary = z.infer<typeof sdkWorkflowSummary>;
+
+export const sdkWorkflowSummariesOutput = z.object({
+  workflows: z.array(sdkWorkflowSummary),
+  next: z.string().nullable()
+});
+export type SdkWorkflowSummariesOutput = z.infer<
+  typeof sdkWorkflowSummariesOutput
+>;
+
 // ── list (GET /api/workflows) ─────────────────────────────────────────────────
 
 export const listInput = z.object({
