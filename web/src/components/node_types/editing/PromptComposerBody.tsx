@@ -90,6 +90,9 @@ const styles = (theme: Theme) =>
       background: "transparent",
       padding: theme.spacing(1),
       overflow: "auto",
+      // The node body carries `.node-drag-handle` (cursor: grabbing !important);
+      // the composer is a text field, so override it back to a text caret.
+      cursor: "text !important",
       transition: `${MOTION.background}, ${MOTION.border}`,
       ...reducedMotion({ transition: MOTION.none }),
       "&:focus-within": {
@@ -99,6 +102,7 @@ const styles = (theme: Theme) =>
     },
     ".composer-input": {
       outline: "none",
+      cursor: "text !important",
       minHeight: 72,
       width: "100%",
       whiteSpace: "pre-wrap",
