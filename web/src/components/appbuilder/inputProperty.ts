@@ -14,7 +14,8 @@ export const MODEL_INPUT_KINDS: ReadonlySet<WorkflowInputKind> = new Set([
   "video_model",
   "tts_model",
   "asr_model",
-  "embedding_model"
+  "embedding_model",
+  "huggingface_model"
 ]);
 
 const KIND_TO_PROPERTY_TYPE: Record<
@@ -44,7 +45,12 @@ const KIND_TO_PROPERTY_TYPE: Record<
   image_list: "list",
   video_list: "list",
   audio_list: "list",
-  text_list: "list"
+  text_list: "list",
+  // The node types these kinds come from: Model3DInput emits `model_3d`,
+  // ImageSizeInput `image_size`, HuggingFaceModelInput `hf.model`.
+  model3d: "model_3d",
+  image_size: "image_size",
+  huggingface_model: "hf.model"
 };
 
 const getTypeArgsForKind = (kind: WorkflowInputKind) => {

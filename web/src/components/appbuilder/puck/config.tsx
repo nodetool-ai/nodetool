@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
-import type { Config, ArrayField } from "@puckeditor/core";
+import type { Config, ArrayField, Field } from "@puckeditor/core";
 
 import { Box, Text, FlexColumn, SPACING, SPACING_PX } from "../../ui_primitives";
 import { APP_THEMES, appThemeFrame, resolveAppTheme } from "../appThemes";
@@ -57,6 +57,8 @@ import {
 } from "./WorkflowInputWidget";
 import { ChatThreadWidget, ChatComposerWidget } from "./ChatWidgets";
 import { SketchWidget, TimelineWidget } from "./DocumentWidgets";
+import { GalleryWidget, Model3DWidget, PDFWidget } from "./MediaWidgets";
+import { ChartWidget } from "./ChartWidget";
 
 const ACTION_OPTIONS = [
   { label: "Run workflow", value: "run" },
@@ -137,20 +139,57 @@ const optionsField: ArrayField = {
   getItemSummary: (item: Record<string, unknown>) => String(item.value ?? "option")
 };
 
-/** Palette entry for a standalone media/color input of a fixed kind. */
+/**
+ * The fields every fixed-kind input shares. `extra` slots a widget's own field
+ * (a path's placeholder, a table's height) between the label and the events.
+ */
+const fixedInputFields = (extra: Record<string, Field> = {}) => ({
+  binding: bindingField("write", "Workflow input"),
+  label: { type: "text" as const, label: "Label" },
+  ...extra,
+  events: eventsField("change", { commits: false }),
+  ...conditionalFields({ format: false })
+});
+
+/** Palette entry for a standalone input of a fixed kind. */
 const fixedInputEntry = (label: string, kind: FixedInputKind) => ({
   label,
-  fields: {
-    binding: bindingField("write", "Workflow input"),
-    label: { type: "text" as const, label: "Label" },
-    events: eventsField("change", { commits: false }),
-    ...conditionalFields({ format: false })
-  },
+  fields: fixedInputFields(),
   defaultProps: { binding: "", label: "" },
   render: withConditions((props: FixedInputWidgetProps) => (
     <FixedKindInputWidget {...props} kind={kind} />
   ))
 });
+
+/** Palette entry for a path input — its placeholder becomes the control's hint. */
+const pathInputEntry = (
+  label: string,
+  kind: Extract<FixedInputKind, "file_path" | "folder_path">,
+  placeholder: string
+) => ({
+  label,
+  fields: fixedInputFields({
+    placeholder: { type: "text" as const, label: "Placeholder" }
+  }),
+  defaultProps: { binding: "", label: "", placeholder },
+  render: withConditions((props: FixedInputWidgetProps) => (
+    <FixedKindInputWidget {...props} kind={kind} />
+  ))
+});
+
+/** Which list input a MediaListInput binds. */
+const LIST_KINDS: Record<
+  string,
+  Extract<
+    FixedInputKind,
+    "image_list" | "video_list" | "audio_list" | "text_list"
+  >
+> = {
+  image_list: "image_list",
+  video_list: "video_list",
+  audio_list: "audio_list",
+  text_list: "text_list"
+};
 
 /**
  * The app page. Its theme comes from the root prop the author picked, falling
@@ -258,7 +297,13 @@ export const appConfig: Config = {
         "AudioInput",
         "VideoInput",
         "DocumentInput",
-        "ColorInput"
+        "ColorInput",
+        "DataFrameInput",
+        "FilePathInput",
+        "FolderPathInput",
+        "Model3DInput",
+        "ImageSizeInput",
+        "MediaListInput"
       ]
     },
     ai: {
@@ -286,7 +331,11 @@ export const appConfig: Config = {
         "Stat",
         "Alert",
         "CodeBlock",
-        "Download"
+        "Download",
+        "Model3D",
+        "Chart",
+        "PDF",
+        "Gallery"
       ]
     },
     layout: {
@@ -557,6 +606,71 @@ export const appConfig: Config = {
       },
       render: withConditions((props) => <DownloadWidget {...props} />)
     },
+    Model3D: {
+      label: "3D Model",
+      fields: {
+        binding: bindingField("read"),
+        height: { type: "number", label: "Height (px)" },
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: { height: 320, placeholder: "No 3D model yet" },
+      render: withConditions((props) => <Model3DWidget {...props} />)
+    },
+    Chart: {
+      label: "Chart",
+      fields: {
+        binding: bindingField("read"),
+        label: { type: "text", label: "Label" },
+        chartKind: {
+          type: "select",
+          label: "Chart type",
+          options: [
+            { label: "Line", value: "line" },
+            { label: "Bar", value: "bar" },
+            { label: "Scatter", value: "scatter" },
+            { label: "Pie", value: "pie" }
+          ]
+        },
+        height: { type: "number", label: "Height (px)" },
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: {
+        label: "",
+        chartKind: "line",
+        height: 320,
+        placeholder: "Nothing to plot yet"
+      },
+      render: withConditions((props) => <ChartWidget {...props} />)
+    },
+    PDF: {
+      label: "PDF",
+      fields: {
+        binding: bindingField("read"),
+        height: { type: "number", label: "Height (px)" },
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: { height: 480, placeholder: "No document yet" },
+      render: withConditions((props) => <PDFWidget {...props} />)
+    },
+    Gallery: {
+      label: "Gallery",
+      fields: {
+        binding: bindingField("read"),
+        label: { type: "text", label: "Label" },
+        tileSize: { type: "number", label: "Tile size (px)" },
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: {
+        label: "",
+        tileSize: 140,
+        placeholder: "Nothing to show yet"
+      },
+      render: withConditions((props) => <GalleryWidget {...props} />)
+    },
     // ── Inputs ──
     WorkflowInput: {
       label: "Workflow Input",
@@ -826,7 +940,8 @@ export const appConfig: Config = {
             { label: "Video", value: "video_model" },
             { label: "Speech (TTS)", value: "tts_model" },
             { label: "Transcription (ASR)", value: "asr_model" },
-            { label: "Embedding", value: "embedding_model" }
+            { label: "Embedding", value: "embedding_model" },
+            { label: "Hugging Face", value: "huggingface_model" }
           ]
         },
         label: { type: "text", label: "Label" },
@@ -845,6 +960,54 @@ export const appConfig: Config = {
     VideoInput: fixedInputEntry("Video Input", "video"),
     DocumentInput: fixedInputEntry("Document Input", "document"),
     ColorInput: fixedInputEntry("Color Input", "color"),
+    Model3DInput: fixedInputEntry("3D Model Input", "model3d"),
+    ImageSizeInput: fixedInputEntry("Image Size Input", "image_size"),
+    FilePathInput: pathInputEntry(
+      "File Path Input",
+      "file_path",
+      "Pick a file…"
+    ),
+    FolderPathInput: pathInputEntry(
+      "Folder Path Input",
+      "folder_path",
+      "Pick a folder…"
+    ),
+    DataFrameInput: {
+      label: "Data Table Input",
+      fields: fixedInputFields({
+        maxHeight: { type: "number", label: "Max height (px)" }
+      }),
+      defaultProps: { binding: "", label: "", maxHeight: 320 },
+      render: withConditions(
+        (props: FixedInputWidgetProps & { maxHeight?: number }) => (
+          <FixedKindInputWidget {...props} kind="dataframe" />
+        )
+      )
+    },
+    MediaListInput: {
+      label: "Media List Input",
+      fields: fixedInputFields({
+        listKind: {
+          type: "select",
+          label: "List of",
+          options: [
+            { label: "Images", value: "image_list" },
+            { label: "Videos", value: "video_list" },
+            { label: "Audio", value: "audio_list" },
+            { label: "Text", value: "text_list" }
+          ]
+        }
+      }),
+      defaultProps: { binding: "", label: "", listKind: "image_list" },
+      render: withConditions(
+        (props: FixedInputWidgetProps & { listKind?: string }) => (
+          <FixedKindInputWidget
+            {...props}
+            kind={LIST_KINDS[props.listKind ?? ""] ?? "image_list"}
+          />
+        )
+      )
+    },
     // ── Actions ──
     Button: {
       label: "Button",

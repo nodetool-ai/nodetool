@@ -10,7 +10,11 @@ import * as ImagePicker from "expo-image-picker";
 
 import { apiService } from "../../services/api";
 
-export type MediaKind = "image" | "audio" | "video" | "document";
+/**
+ * `model_3d` matches the `Model3DRef` type tag a workflow's 3D input reads, so a
+ * picked mesh needs no translation on the way into the graph.
+ */
+export type MediaKind = "image" | "audio" | "video" | "document" | "model_3d";
 
 export interface MediaValue {
   type: MediaKind;
@@ -23,6 +27,7 @@ const DEFAULTS: Record<MediaKind, { ext: string; mime: string }> = {
   audio: { ext: ".wav", mime: "audio/wav" },
   video: { ext: ".mp4", mime: "video/mp4" },
   document: { ext: ".pdf", mime: "application/pdf" },
+  model_3d: { ext: ".glb", mime: "model/gltf-binary" },
 };
 
 const upload = async (
