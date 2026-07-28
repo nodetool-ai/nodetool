@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "writtenAt": "2026-05-30T22:18:32.198Z",
+  "writtenAt": "2026-07-28T07:24:10.138Z",
   "byNodeType": {
     "kie.image.Seedream45TextToImage": {
       "model_id": "seedream/4.5-text-to-image",
@@ -38,6 +38,15 @@
       "tier_count": 1,
       "pricing_url": "https://kie.ai/seedream5-0-lite"
     },
+    "kie.image.Seedream5ProTextToImage": {
+      "model_id": "seedream/5-pro-text-to-image",
+      "unit_price": 7,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.035,
+      "tier_count": 2,
+      "pricing_url": "https://kie.ai/seedream-5-0-pro"
+    },
     "kie.image.ZImage": {
       "model_id": "z-image",
       "unit_price": 0.8,
@@ -46,15 +55,6 @@
       "usd_price": 0.004,
       "tier_count": 1,
       "pricing_url": "https://kie.ai/z-image"
-    },
-    "kie.image.GoogleNanoBanana2": {
-      "model_id": "nano-banana-2",
-      "unit_price": 8,
-      "billing_unit": "image",
-      "currency": "credits",
-      "usd_price": 0.04,
-      "tier_count": 3,
-      "pricing_url": "https://kie.ai/nano-banana-2"
     },
     "kie.image.GoogleImagen4Fast": {
       "model_id": "google/imagen4-fast",
@@ -100,6 +100,24 @@
       "usd_price": 0.09,
       "tier_count": 2,
       "pricing_url": "https://kie.ai/nano-banana-pro"
+    },
+    "kie.image.GoogleNanoBanana2": {
+      "model_id": "nano-banana-2",
+      "unit_price": 8,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.04,
+      "tier_count": 3,
+      "pricing_url": "https://kie.ai/nano-banana-2"
+    },
+    "kie.image.NanoBanana2Lite": {
+      "model_id": "nano-banana-2-lite",
+      "unit_price": 4,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.02,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/nano-banana-2-lite"
     },
     "kie.image.Flux2ProImageToImage": {
       "model_id": "flux-2/pro-image-to-image",
@@ -299,15 +317,6 @@
       "tier_count": 1,
       "pricing_url": "https://kie.ai/wan-2-7-image"
     },
-    "kie.audio.ElevenlabsAudioIsolation": {
-      "model_id": "elevenlabs-audio-isolation",
-      "unit_price": 0.2,
-      "billing_unit": "second",
-      "currency": "credits",
-      "usd_price": 0.001,
-      "tier_count": 1,
-      "pricing_url": "https://kie.ai/elevenlabs-audio-isolation"
-    },
     "kie.audio.ElevenlabsTextToDialogueV3": {
       "model_id": "elevenlabs/text-to-dialogue-v3",
       "unit_price": 14,
@@ -422,7 +431,7 @@
       "billing_unit": "request",
       "currency": "credits",
       "usd_price": 0.05,
-      "tier_count": 2,
+      "tier_count": 3,
       "pricing_url": "https://kie.ai/suno-api"
     },
     "kie.audio.GenerateMidi": {
@@ -487,6 +496,15 @@
       "usd_price": 0.05,
       "tier_count": 4,
       "pricing_url": "https://kie.ai/grok-imagine"
+    },
+    "kie.video.GrokImagineVideo15PreviewCreateTask": {
+      "model_id": "grok-imagine-video-1-5-preview",
+      "unit_price": 1.6,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.008,
+      "tier_count": 2,
+      "pricing_url": "https://kie.ai/grok-imagine-video-1.5"
     },
     "kie.video.Kling26TextToVideo": {
       "model_id": "kling-2.6/text-to-video",
@@ -593,7 +611,7 @@
       "billing_unit": "second",
       "currency": "credits",
       "usd_price": 0.057,
-      "tier_count": 6,
+      "tier_count": 8,
       "pricing_url": "https://kie.ai/seedance-2-0"
     },
     "kie.video.BytedanceSeedance2Fast": {
@@ -604,6 +622,23 @@
       "usd_price": 0.045,
       "tier_count": 4,
       "pricing_url": "https://kie.ai/seedance-2-0"
+    },
+    "kie.video.BytedanceSeedance2Mini": {
+      "model_id": "bytedance/seedance-2-mini",
+      "unit_price": 6,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.03,
+      "tier_count": 4
+    },
+    "kie.video.BytedanceSeedance15Pro": {
+      "model_id": "bytedance/seedance-1.5-pro",
+      "unit_price": 1.75,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.00875,
+      "tier_count": 6,
+      "pricing_url": "https://kie.ai/seedance-1-5-pro"
     },
     "kie.video.Hailuo23ImageToVideoPro": {
       "model_id": "hailuo/2-3-image-to-video-pro",
@@ -794,14 +829,59 @@
       "tier_count": 2,
       "pricing_url": "https://kie.ai/happyhorse-1-0"
     },
+    "kie.video.Happyhorse11ImageToVideo": {
+      "model_id": "happyhorse-1-1/image-to-video",
+      "unit_price": 22.5,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.1125,
+      "tier_count": 2,
+      "pricing_url": "https://kie.ai/happyhorse-1-1"
+    },
+    "kie.video.Happyhorse11TextToVideo": {
+      "model_id": "happyhorse-1-1/text-to-video",
+      "unit_price": 22.5,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.1125,
+      "tier_count": 2,
+      "pricing_url": "https://kie.ai/happyhorse-1-1"
+    },
+    "kie.video.Happyhorse11ReferenceToVideo": {
+      "model_id": "happyhorse-1-1/reference-to-video",
+      "unit_price": 22.5,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.1125,
+      "tier_count": 2,
+      "pricing_url": "https://kie.ai/happyhorse-1-1"
+    },
     "kie.video.GeminiOmniVideo": {
       "model_id": "gemini-omni-video",
-      "unit_price": 90,
+      "unit_price": 63,
       "billing_unit": "varies",
       "currency": "credits",
-      "usd_price": 0.45,
+      "usd_price": 0.315,
       "tier_count": 15,
       "pricing_url": "https://kie.ai/gemini-omni"
+    },
+    "kie.video.Omnihuman15": {
+      "model_id": "omnihuman-1-5",
+      "unit_price": 27,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.135,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/omnihuman-1-5"
+    },
+    "kie.video.VolcengineVideoToVideoLipSync": {
+      "model_id": "volcengine-video-to-video-lip-sync",
+      "unit_price": 8,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.04,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/volcengine-video-to-video-lip-sync"
     }
   }
 }

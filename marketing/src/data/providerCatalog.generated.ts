@@ -2263,11 +2263,11 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
   },
   "kie": {
     "id": "kie",
-    "total": 121,
+    "total": 140,
     "counts": {
-      "image": 41,
+      "image": 44,
       "audio": 25,
-      "video": 53,
+      "video": 69,
       "text": 2
     },
     "topTags": [],
@@ -2448,6 +2448,13 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
+        "id": "nano-banana-2-lite",
+        "name": "Google Nano Banana 2 Lite",
+        "kind": "image",
+        "desc": "Google - Nano Banana 2 Lite via Kie.ai.",
+        "tags": []
+      },
+      {
         "id": "nano-banana-pro",
         "name": "Google Nano Banana Pro",
         "kind": "image",
@@ -2532,24 +2539,17 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
-        "id": "topaz/image-upscale",
-        "name": "Topaz Image Upscale",
+        "id": "seedream/5-pro-image-to-image",
+        "name": "Seedream5.0 Pro Image to Image",
         "kind": "image",
-        "desc": "Topaz - Image Upscale via Kie.ai.",
+        "desc": "Seedream5.0 Pro - Image to Image via Kie.ai.",
         "tags": []
       },
       {
-        "id": "wan/2-7-image",
-        "name": "Wan 2.7 Image",
+        "id": "seedream/5-pro-text-to-image",
+        "name": "Seedream5.0 Pro Text to Image",
         "kind": "image",
-        "desc": "Wan 2.7 Image via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "wan/2-7-image-pro",
-        "name": "Wan 2.7 Image Pro",
-        "kind": "image",
-        "desc": "Wan 2.7 Image Pro via Kie.ai.",
+        "desc": "Seedream5.0 Pro - Text to Image via Kie.ai.",
         "tags": []
       },
       {
@@ -2571,6 +2571,13 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Bytedance Seedance 2.0 Fast",
         "kind": "video",
         "desc": "Bytedance Seedance 2.0 Fast via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "bytedance/seedance-2-mini",
+        "name": "Bytedance Seedance 2.0 Mini",
+        "kind": "video",
+        "desc": "Bytedance Seedance 2.0 Mini via Kie.ai.",
         "tags": []
       },
       {
@@ -2613,6 +2620,13 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Gemini Omni Video",
         "kind": "video",
         "desc": "Gemini Omni Video via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "grok-imagine-video-1-5-preview",
+        "name": "Grok Imagine Video 1.5 Preview",
+        "kind": "video",
+        "desc": "Grok Imagine Video 1.5 Preview via Kie.ai.",
         "tags": []
       },
       {
@@ -2683,6 +2697,27 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Hailuo 2.3 Standard Image to Video",
         "kind": "video",
         "desc": "Hailuo 2.3 Standard Image to Video via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "happyhorse-1-1/image-to-video",
+        "name": "Happy Horse 1 1 image to video",
+        "kind": "video",
+        "desc": "HappyHorse-1-1 image-to-video via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "happyhorse-1-1/reference-to-video",
+        "name": "Happy Horse 1 1 reference to video",
+        "kind": "video",
+        "desc": "HappyHorse-1-1 reference-to-video via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "happyhorse-1-1/text-to-video",
+        "name": "Happy Horse 1 1 text to video",
+        "kind": "video",
+        "desc": "HappyHorse-1-1 text-to-video via Kie.ai.",
         "tags": []
       },
       {
@@ -2795,41 +2830,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Kling V2.1 Standard",
         "kind": "video",
         "desc": "Kling V2.1 Standard via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "kling/v2-5-turbo-text-to-video-pro",
-        "name": "Kling V2.5 Turbo Text to Video Pro",
-        "kind": "video",
-        "desc": "Kling - V2.5 Turbo Text to Video Pro via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "topaz/video-upscale",
-        "name": "Topaz Video Upscale",
-        "kind": "video",
-        "desc": "Topaz - Video Upscale via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "wan/2-2-a14b-image-to-video-turbo",
-        "name": "Wan Image to Video",
-        "kind": "video",
-        "desc": "Wan - Image to Video via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "wan/2-2-a14b-speech-to-video-turbo",
-        "name": "Wan 2.2 A14 B Speech to Video Turbo",
-        "kind": "video",
-        "desc": "Wan - 2.2 A14B Speech to Video Turbo via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "wan/2-2-a14b-text-to-video-turbo",
-        "name": "Wan Text to Video",
-        "kind": "video",
-        "desc": "Wan - Text to Video via Kie.ai.",
         "tags": []
       },
       {

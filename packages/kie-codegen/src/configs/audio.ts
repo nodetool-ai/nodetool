@@ -637,6 +637,16 @@ export const audioConfig: ModuleConfig = {
             "style_persona",
             "voice_persona"
           ]
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "default": 20,
+          "title": "Duration",
+          "description": "Audio duration. Optional; only effective when custom_mode is true and model is V5_5.",
+          "required": false,
+          "min": 10,
+          "max": 360
         }
       ],
       "validation": [
@@ -794,6 +804,14 @@ export const audioConfig: ModuleConfig = {
             "style_persona",
             "voice_persona"
           ]
+        },
+        {
+          "name": "instrumental",
+          "type": "bool",
+          "default": false,
+          "title": "Instrumental",
+          "description": "Is it an instrumental track? The prompt parameter is required only if false. If true, do not include it.",
+          "required": false
         }
       ],
       "validation": [
@@ -962,6 +980,16 @@ export const audioConfig: ModuleConfig = {
             "voice_persona",
             "style_persona"
           ]
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 20,
+          "title": "Duration",
+          "description": "Duration is selectable; valid only when `custom_mode` is `true` and `model` is `V5_5`.",
+          "required": false,
+          "min": 10,
+          "max": 360
         }
       ],
       "uploads": [
@@ -1126,7 +1154,7 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Persona Id",
-          "description": "Only available when Custom Mode (`customMode: true`) is enabled. Persona ID or Voice ID to apply to the generated music. Optional. Use this to apply a specific persona style to your music generation. To generate a persona ID, use the [Generate Persona](https://docs.kie.ai/suno-api/generate-persona) endpoint to create a personalized music Persona based on generated music. To generate a Voice ID, use the [Generate Voice](https://docs.kie.ai/suno-api/suno-voice-generate)endpoint",
+          "description": "Only available when Custom Mode (`defaultParamFlag: true`) is enabled. Persona ID or Voice ID to apply to the generated music. Optional. Use this to apply a specific persona style to your music generation. To generate a persona ID, use the [Generate Persona](https://docs.kie.ai/suno-api/generate-persona) endpoint to create a personalized music Persona based on generated music. To generate a Voice ID, use the [Generate Voice](https://docs.kie.ai/suno-api/suno-voice-generate)endpoint",
           "required": false
         },
         {
@@ -1207,7 +1235,8 @@ export const audioConfig: ModuleConfig = {
           "default": "",
           "title": "Negative Tags",
           "description": "Music styles or characteristics to exclude from the generated audio. Used to avoid specific unwanted music elements.",
-          "required": true
+          "required": true,
+          "max": 200
         },
         {
           "name": "tags",
@@ -1215,7 +1244,8 @@ export const audioConfig: ModuleConfig = {
           "default": "",
           "title": "Tags",
           "description": "Music styles or tags to include in the generated music. Defines the desired music style and characteristics.",
-          "required": true
+          "required": true,
+          "max": 1000
         },
         {
           "name": "vocalGender",
@@ -1329,7 +1359,8 @@ export const audioConfig: ModuleConfig = {
           "default": "",
           "title": "Negative Tags",
           "description": "Excluded music styles. Used to avoid including specific styles or elements in the generated music.",
-          "required": true
+          "required": true,
+          "max": 200
         },
         {
           "name": "style",
@@ -1337,7 +1368,8 @@ export const audioConfig: ModuleConfig = {
           "default": "",
           "title": "Style",
           "description": "Music style. Such as jazz, electronic, classical and other music types.",
-          "required": true
+          "required": true,
+          "max": 1000
         },
         {
           "name": "vocalGender",
@@ -1527,22 +1559,6 @@ export const audioConfig: ModuleConfig = {
       "sunoEndpoint": "/api/v1/generate/replace-section",
       "fields": [
         {
-          "name": "taskId",
-          "type": "str",
-          "default": "",
-          "title": "Task Id",
-          "description": "Original task ID (parent task), used to identify the source music for section replacement",
-          "required": true
-        },
-        {
-          "name": "audioId",
-          "type": "str",
-          "default": "",
-          "title": "Audio Id",
-          "description": "Unique identifier of the audio track to replace. This ID is returned in the callback data after music generation completes.",
-          "required": true
-        },
-        {
           "name": "prompt",
           "type": "str",
           "default": "",
@@ -1599,19 +1615,62 @@ export const audioConfig: ModuleConfig = {
           "title": "Full Lyrics",
           "description": "Complete lyrics after modification, combining both modified and unmodified lyrics. This parameter contains the full lyrics text that will be used for the entire song after the section replacement.",
           "required": true
+        },
+        {
+          "name": "taskId",
+          "type": "str",
+          "default": "",
+          "title": "Task Id",
+          "description": "Original task ID (parent task), used to identify the source music for section replacement.",
+          "required": true
+        },
+        {
+          "name": "audioId",
+          "type": "str",
+          "default": "",
+          "title": "Audio Id",
+          "description": "Unique identifier of the audio track to replace. This ID is returned in the callback data after music generation completes.",
+          "required": true
+        },
+        {
+          "name": "uploadUrl",
+          "type": "audio",
+          "default": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Upload Url",
+          "description": "URL of the custom audio uploaded by the user.",
+          "required": false
+        },
+        {
+          "name": "model",
+          "type": "enum",
+          "default": "",
+          "title": "Model",
+          "description": "AI model version used for generation. - Available options: - **`V5_5`**: A tailor-made exclusive model that fits your unique taste. - **`V5`**: Better musical expressiveness with faster generation speed. - **`V4_5PLUS`**: V4.5+ with richer timbre, new creative methods, up to 8 minutes. - **`V4_5`**: V4.5 with smarter prompts, faster generation speed, up to 8 minutes. - **`V4_5ALL`**: V4.5ALL with smarter prompts, faster generation speed, up to 8 minutes. - **`V4`**: V4 with improved vocal quality, up to 4 minutes.",
+          "required": false,
+          "values": [
+            "V4",
+            "V4_5",
+            "V4_5PLUS",
+            "V4_5ALL",
+            "V5",
+            "V5_5"
+          ]
+        }
+      ],
+      "uploads": [
+        {
+          "field": "uploadUrl",
+          "kind": "audio",
+          "paramName": "uploadUrl"
         }
       ],
       "validation": [
-        {
-          "field": "taskId",
-          "rule": "not_empty",
-          "message": "Task Id is required"
-        },
-        {
-          "field": "audioId",
-          "rule": "not_empty",
-          "message": "Audio Id is required"
-        },
         {
           "field": "prompt",
           "rule": "not_empty",
@@ -1631,6 +1690,16 @@ export const audioConfig: ModuleConfig = {
           "field": "fullLyrics",
           "rule": "not_empty",
           "message": "Full Lyrics is required"
+        },
+        {
+          "field": "taskId",
+          "rule": "not_empty",
+          "message": "Task Id is required"
+        },
+        {
+          "field": "audioId",
+          "rule": "not_empty",
+          "message": "Audio Id is required"
         }
       ]
     },
@@ -1750,6 +1819,16 @@ export const audioConfig: ModuleConfig = {
           "required": false,
           "min": 0,
           "max": 1
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 20,
+          "title": "Duration",
+          "description": "Duration is selectable; valid only when `custom_mode` is `true` and `model` is `V5_5`.",
+          "required": false,
+          "min": 10,
+          "max": 360
         }
       ],
       "uploads": [
@@ -1847,17 +1926,138 @@ export const audioConfig: ModuleConfig = {
       "className": "SeparateVocals",
       "modelId": "separate-vocals",
       "title": "Vocal & Instrument Stem Separation",
-      "description": "Vocal & Instrument Stem Separation via Kie.ai.\n\n    kie, audio, ai\n\n    Separate music into vocal, instrumental, and individual instrument tracks using advanced audio processing technology.",
+      "description": "Vocal & Instrument Stem Separation via Kie.ai.\n\n    kie, audio, ai\n\n    Use advanced audio processing technology to separate music into vocals, accompaniment, and individual instrumental stems.",
       "outputType": "audio",
       "useSuno": true,
       "sunoEndpoint": "/api/v1/vocal-removal/generate",
       "fields": [
         {
+          "name": "type",
+          "type": "enum",
+          "default": "separate_vocal",
+          "title": "Type",
+          "description": "Separation type, options: - **separate_vocal**: Separate vocals and accompaniment, generating a vocal track and an instrumental track. - **split_stem**: Separate various instrument sounds, generating multiple instrument tracks. - **split_stem_advanced**: Advanced multi-track separation, supporting the specification of a particular instrument track to generate finer instrument tracks.",
+          "required": false,
+          "values": [
+            "separate_vocal",
+            "split_stem",
+            "split_stem_advanced"
+          ]
+        },
+        {
+          "name": "stemName",
+          "type": "enum",
+          "default": "",
+          "title": "Stem Name",
+          "description": "Only used when `type` is `split_stem_advanced` to request a specific stem track/instrument name.",
+          "required": true,
+          "values": [
+            "Lead Vocal",
+            "Drum Kit",
+            "Kick",
+            "Snare",
+            "Risers",
+            "Bass",
+            "Backing Vocals",
+            "Piano",
+            "Electric Guitar",
+            "Percussion",
+            "String Section",
+            "Synth",
+            "Acoustic Guitar",
+            "Sound Effects",
+            "Synth Pad",
+            "Synth Bass",
+            "Guitar",
+            "Brass Section",
+            "Organ",
+            "Electronic Drum Kit",
+            "Lead Electric Guitar",
+            "Synth Keys",
+            "Rhythm Electric Guitar",
+            "Electric Piano",
+            "Upright Bass",
+            "Keyboards",
+            "Distorted Electric Guitar",
+            "Synth Strings",
+            "Synth Lead",
+            "Woodwinds",
+            "Rhythm Acoustic Guitar",
+            "Flute",
+            "Harp",
+            "Tambourine",
+            "Trumpet",
+            "Arpeggiator",
+            "Accordion",
+            "Fiddle",
+            "Pedal Steel Guitar",
+            "Synth Voice",
+            "Violin",
+            "Digital Piano",
+            "Synth Brass",
+            "Mandolin",
+            "Choir",
+            "Banjo",
+            "Bells",
+            "Clarinet",
+            "Tenor Saxophone",
+            "Trombone",
+            "Shaker",
+            "French Horn",
+            "Glockenspiel",
+            "Electric Bass",
+            "Cello",
+            "Timpani",
+            "Harmonica",
+            "Marimba",
+            "Vibraphone",
+            "Lap Steel Guitar",
+            "Saxophone",
+            "Orchestra",
+            "Horns",
+            "Cymbals",
+            "Hand Clap",
+            "Oboe",
+            "Celesta",
+            "Congas",
+            "Drone",
+            "Alto Saxophone",
+            "Double Bass",
+            "Ukulele",
+            "Harpsichord",
+            "Baritone Saxophone",
+            "Xylophone",
+            "Tuba",
+            "Bass Guitar",
+            "Whistle",
+            "Lead Guitar",
+            "Rhodes",
+            "808",
+            "Bongos",
+            "Bassoon",
+            "Cowbell",
+            "Viola",
+            "Sitar",
+            "Steel Drums",
+            "Piccolo",
+            "Theremin",
+            "Bagpipes",
+            "Hi-Hat",
+            "Music Box",
+            "Melodica",
+            "Tabla",
+            "Koto",
+            "Djembe",
+            "Taiko",
+            "Didgeridoo"
+          ]
+        },
+        {
           "name": "taskId",
           "type": "str",
           "default": "",
           "title": "Task Id",
-          "description": "Unique identifier of the music generation task. This should be a taskId returned from either the \"Generate Music\" or \"Extend Music\" endpoints.",
+          "description": "Unique identifier of the music generation task. This should be a taskId returned from the Generate Music or Extend Music endpoint.",
           "required": true
         },
         {
@@ -1869,19 +2069,33 @@ export const audioConfig: ModuleConfig = {
           "required": true
         },
         {
-          "name": "type",
-          "type": "enum",
-          "default": "separate_vocal",
-          "title": "Type",
-          "description": "Separation type with the following options: - **separate_vocal**: Separate vocals and accompaniment, generating vocal and instrumental tracks - **split_stem**: Separate various instrument sounds, generating vocals, backing vocals, drums, bass, guitar, keyboard, strings, brass, woodwinds, percussion, synthesizer, effects, and other tracks",
-          "required": false,
-          "values": [
-            "separate_vocal",
-            "split_stem"
-          ]
+          "name": "audioUrl",
+          "type": "audio",
+          "default": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Audio Url",
+          "description": "Custom audio URL uploaded by the user. The maximum file size is 20MB.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "audioUrl",
+          "kind": "audio",
+          "paramName": "audioUrl"
         }
       ],
       "validation": [
+        {
+          "field": "stemName",
+          "rule": "not_empty",
+          "message": "Stem Name is required"
+        },
         {
           "field": "taskId",
           "rule": "not_empty",

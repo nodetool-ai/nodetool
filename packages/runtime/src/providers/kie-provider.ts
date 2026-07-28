@@ -83,12 +83,83 @@ interface KieChatModel {
   basePath: string;
 }
 
+// Mirrors the "Chat Models" section of docs.kie.ai/llms.txt. Each entry's
+// basePath is the model's documented endpoint prefix: the Claude models share
+// /claude/v1/messages, the GPT and Grok models post to a /responses endpoint,
+// and every Gemini (plus GPT 5.2) endpoint is OpenAI chat-completions with the
+// model pinned by the path.
 const KIE_CHAT_MODELS: KieChatModel[] = [
+  {
+    id: "gpt-5-6-sol",
+    name: "GPT 5.6 Sol",
+    api: "responses",
+    basePath: "/codex/v1"
+  },
+  {
+    id: "gpt-5-6-terra",
+    name: "GPT 5.6 Terra",
+    api: "responses",
+    basePath: "/codex/v1"
+  },
+  {
+    id: "gpt-5-6-luna",
+    name: "GPT 5.6 Luna",
+    api: "responses",
+    basePath: "/codex/v1"
+  },
   {
     id: "gpt-5-5",
     name: "GPT 5.5",
     api: "responses",
     basePath: "/codex/v1"
+  },
+  {
+    id: "gpt-5-4",
+    name: "GPT 5.4",
+    api: "responses",
+    basePath: "/codex/v1"
+  },
+  {
+    id: "gpt-5.1-codex",
+    name: "GPT Codex",
+    api: "responses",
+    basePath: "/api/v1"
+  },
+  {
+    id: "gpt-5-2",
+    name: "GPT 5.2",
+    api: "openai",
+    basePath: "/gpt-5-2/v1"
+  },
+  {
+    id: "claude-opus-5",
+    name: "Claude Opus 5",
+    api: "anthropic",
+    basePath: "/claude"
+  },
+  {
+    id: "claude-sonnet-5",
+    name: "Claude Sonnet 5",
+    api: "anthropic",
+    basePath: "/claude"
+  },
+  {
+    id: "claude-fable-5",
+    name: "Claude Fable 5",
+    api: "anthropic",
+    basePath: "/claude"
+  },
+  {
+    id: "claude-opus-4-8",
+    name: "Claude Opus 4.8",
+    api: "anthropic",
+    basePath: "/claude"
+  },
+  {
+    id: "claude-opus-4-7",
+    name: "Claude Opus 4.7",
+    api: "anthropic",
+    basePath: "/claude"
   },
   {
     id: "claude-opus-4-6",
@@ -103,10 +174,34 @@ const KIE_CHAT_MODELS: KieChatModel[] = [
     basePath: "/claude"
   },
   {
+    id: "claude-opus-4-5",
+    name: "Claude Opus 4.5",
+    api: "anthropic",
+    basePath: "/claude"
+  },
+  {
+    id: "claude-sonnet-4-5",
+    name: "Claude Sonnet 4.5",
+    api: "anthropic",
+    basePath: "/claude"
+  },
+  {
     id: "claude-haiku-4-5",
     name: "Claude Haiku 4.5",
     api: "anthropic",
     basePath: "/claude"
+  },
+  {
+    id: "grok-4-5",
+    name: "Grok 4.5",
+    api: "responses",
+    basePath: "/grok/v1"
+  },
+  {
+    id: "grok-4-3",
+    name: "Grok 4.3",
+    api: "responses",
+    basePath: "/grok/v1"
   },
   {
     id: "gemini-3.1-pro",
@@ -115,10 +210,40 @@ const KIE_CHAT_MODELS: KieChatModel[] = [
     basePath: "/gemini-3.1-pro/v1"
   },
   {
+    id: "gemini-3-pro",
+    name: "Gemini 3 Pro",
+    api: "openai",
+    basePath: "/gemini-3-pro/v1"
+  },
+  {
+    id: "gemini-3-6-flash",
+    name: "Gemini 3.6 Flash",
+    api: "openai",
+    basePath: "/gemini-3-6-flash-openai/v1"
+  },
+  {
+    id: "gemini-3-5-flash",
+    name: "Gemini 3.5 Flash",
+    api: "openai",
+    basePath: "/gemini-3-5-flash-openai/v1"
+  },
+  {
     id: "gemini-3-flash",
     name: "Gemini 3 Flash",
     api: "openai",
     basePath: "/gemini-3-flash/v1"
+  },
+  {
+    id: "gemini-2.5-pro",
+    name: "Gemini 2.5 Pro",
+    api: "openai",
+    basePath: "/gemini-2.5-pro/v1"
+  },
+  {
+    id: "gemini-2.5-flash",
+    name: "Gemini 2.5 Flash",
+    api: "openai",
+    basePath: "/gemini-2.5-flash/v1"
   }
 ];
 
