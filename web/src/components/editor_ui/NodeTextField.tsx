@@ -11,7 +11,7 @@
  * - `density`: Controls compact vs normal sizing
  */
 
-import { forwardRef, memo } from "react";
+import { memo, type Ref } from "react";
 import { TextField, TextFieldProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "./EditorUiContext";
@@ -24,8 +24,10 @@ interface SlotPropsWithClassName {
   [key: string]: unknown;
 }
 
-export interface NodeTextFieldProps
-  extends Omit<TextFieldProps, "variant" | "size"> {
+export interface NodeTextFieldProps extends Omit<
+  TextFieldProps,
+  "variant" | "size"
+> {
   /**
    * Additional class name for the root element.
    */
@@ -38,6 +40,7 @@ export interface NodeTextFieldProps
    * Validation failed — shows error state
    */
   invalid?: boolean;
+  ref?: Ref<HTMLDivElement>;
 }
 
 /**
@@ -55,90 +58,78 @@ export interface NodeTextFieldProps
  *   maxRows={2}
  * />
  */
-export const NodeTextField = forwardRef<HTMLDivElement, NodeTextFieldProps>(
-  (
-    {
-      className,
-      slotProps,
-      sx,
-      changed,
-      invalid,
-      // Extract legacy props that Autocomplete passes - these contain critical refs
-      InputProps,
-      inputProps,
-      ...props
-    },
-    ref
-  ) => {
-    const theme = useTheme();
-    const scope = useEditorScope();
-    const scopeClass =
-      scope === "inspector"
-        ? editorUiClasses.scopeInspector
-        : editorUiClasses.scopeNode;
+export function NodeTextField({
+  className,
+  slotProps,
+  sx,
+  changed,
+  invalid,
+  // Extract legacy props that Autocomplete passes - these contain critical refs
+  InputProps,
+  inputProps,
+  ref,
+  ...props
+}: NodeTextFieldProps) {
+  const theme = useTheme();
+  const scope = useEditorScope();
+  const scopeClass =
+    scope === "inspector"
+      ? editorUiClasses.scopeInspector
+      : editorUiClasses.scopeNode;
 
-    return (
-      <TextField
-        ref={ref}
-        variant="outlined"
-        size="small"
-        fullWidth
-        autoComplete="off"
-        autoCorrect="off"
-        autoCapitalize="off"
-        spellCheck={false}
-        className={cn(
-          editorClassNames.nodrag,
-          editorUiClasses.control,
-          scopeClass,
-          className
-        )}
-        slotProps={
-          {
-            ...slotProps,
-            input: {
-              // Merge legacy InputProps (from Autocomplete) with slotProps.input
-              ...InputProps,
-              ...slotProps?.input,
-              className: cn(
-                editorClassNames.nodrag,
-                editorUiClasses.control,
-                scopeClass,
-                (InputProps as SlotPropsWithClassName | undefined)?.className,
-                (slotProps?.input as SlotPropsWithClassName | undefined)
-                  ?.className
-              )
-            },
-            htmlInput: {
-              // Merge legacy inputProps (from Autocomplete) with slotProps.htmlInput
-              ...inputProps,
-              ...slotProps?.htmlInput,
-              className: cn(
-                editorClassNames.nodrag,
-                (inputProps as SlotPropsWithClassName | undefined)?.className,
-                (slotProps?.htmlInput as SlotPropsWithClassName | undefined)
-                  ?.className
-              )
-            }
-          }
+  return (
+    <TextField
+      ref={ref}
+      variant="outlined"
+      size="small"
+      fullWidth
+      autoComplete="off"
+      autoCorrect="off"
+      autoCapitalize="off"
+      spellCheck={false}
+      className={cn(
+        editorClassNames.nodrag,
+        editorUiClasses.control,
+        scopeClass,
+        className
+      )}
+      slotProps={{
+        ...slotProps,
+        input: {
+          // Merge legacy InputProps (from Autocomplete) with slotProps.input
+          ...InputProps,
+          ...slotProps?.input,
+          className: cn(
+            editorClassNames.nodrag,
+            editorUiClasses.control,
+            scopeClass,
+            (InputProps as SlotPropsWithClassName | undefined)?.className,
+            (slotProps?.input as SlotPropsWithClassName | undefined)?.className
+          )
+        },
+        htmlInput: {
+          // Merge legacy inputProps (from Autocomplete) with slotProps.htmlInput
+          ...inputProps,
+          ...slotProps?.htmlInput,
+          className: cn(
+            editorClassNames.nodrag,
+            (inputProps as SlotPropsWithClassName | undefined)?.className,
+            (slotProps?.htmlInput as SlotPropsWithClassName | undefined)
+              ?.className
+          )
         }
-        sx={{
-          ...(invalid && {
-            "& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline": {
-              borderColor: theme.vars.palette.error.main
-            }
-          }),
-          ...sx
-        }}
-        {...props}
-      />
-    );
-  }
-);
+      }}
+      sx={{
+        ...(invalid && {
+          "& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline": {
+            borderColor: theme.vars.palette.error.main
+          }
+        }),
+        ...sx
+      }}
+      {...props}
+    />
+  );
+}
 
-NodeTextField.displayName = "NodeTextField";
-
-const NodeTextFieldMemo = memo(NodeTextField);
-NodeTextFieldMemo.displayName = "NodeTextField";
-
-export default NodeTextFieldMemo;
+export default memo(NodeTextField);

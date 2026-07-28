@@ -1,15 +1,16 @@
-import React, { forwardRef } from "react";
+import type { Ref } from "react";
 import StopIcon from "@mui/icons-material/Stop";
 import { ToolbarIconButton, MOTION } from "../../ui_primitives";
 
 interface StopGenerationButtonProps {
   onClick: () => void;
+  ref?: Ref<HTMLButtonElement>;
 }
 
-export const StopGenerationButton = forwardRef<
-  HTMLButtonElement,
-  StopGenerationButtonProps
->(({ onClick }, ref) => {
+export function StopGenerationButton({
+  onClick,
+  ref
+}: StopGenerationButtonProps) {
   return (
     <ToolbarIconButton
       ref={ref}
@@ -37,6 +38,4 @@ export const StopGenerationButton = forwardRef<
       })}
     />
   );
-});
-
-StopGenerationButton.displayName = "StopGenerationButton";
+}

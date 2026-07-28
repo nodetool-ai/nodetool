@@ -9,20 +9,34 @@
  */
 
 import React, {
-  forwardRef,
   memo,
   useCallback,
   useEffect,
   useId,
   useMemo,
   useRef,
-  useState
+  useState,
+  type Ref
 } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-import { NodeSlider, Tooltip, MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT, SPACING, getSpacingPx, reducedMotion, SelectField, Switch, type SelectOption } from "../../ui_primitives";
+import {
+  NodeSlider,
+  Tooltip,
+  MOTION,
+  BORDER_RADIUS,
+  FONT_SIZE_SANS,
+  FONT_SIZE_MONO,
+  FONT_WEIGHT,
+  SPACING,
+  getSpacingPx,
+  reducedMotion,
+  SelectField,
+  Switch,
+  type SelectOption
+} from "../../ui_primitives";
 import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
 
 // ── Header ─────────────────────────────────────────────────────────────────
@@ -368,205 +382,200 @@ export interface InspectorPillInputProps {
    * `value` parses as a plain number (not timecodes).
    */
   scrub?: InspectorPillScrub;
+  ref?: Ref<HTMLInputElement>;
 }
 
-export const InspectorPillInput = memo(
-  forwardRef<HTMLInputElement, InspectorPillInputProps>(
-    function InspectorPillInput(
-      {
-        value,
-        onCommit,
-        unit,
-        placeholder,
-        disabled = false,
-        ariaLabel,
-        id,
-        minWidth,
-        scrub
-      },
-      ref
-    ) {
-      const theme = useTheme();
-      const [draft, setDraft] = useState(value);
-      const [focused, setFocused] = useState(false);
+export const InspectorPillInput = memo(function InspectorPillInput({
+  value,
+  onCommit,
+  unit,
+  placeholder,
+  disabled = false,
+  ariaLabel,
+  id,
+  minWidth,
+  scrub,
+  ref
+}: InspectorPillInputProps) {
+  const theme = useTheme();
+  const [draft, setDraft] = useState(value);
+  const [focused, setFocused] = useState(false);
 
-      const inputRef = useRef<HTMLInputElement | null>(null);
-      const setRefs = useCallback(
-        (node: HTMLInputElement | null) => {
-          inputRef.current = node;
-          if (typeof ref === "function") {
-            ref(node);
-          } else if (ref) {
-            ref.current = node;
-          }
-        },
-        [ref]
-      );
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const setRefs = useCallback(
+    (node: HTMLInputElement | null) => {
+      inputRef.current = node;
+      if (typeof ref === "function") {
+        ref(node);
+      } else if (ref) {
+        ref.current = node;
+      }
+    },
+    [ref]
+  );
 
-      useEffect(() => {
-        if (!focused) {
-          setDraft(value);
-        }
-      }, [value, focused]);
-
-      const commit = useCallback(() => {
-        if (draft !== value) {
-          onCommit(draft);
-        }
-      }, [draft, value, onCommit]);
-
-      const handleKeyDown = useCallback(
-        (e: React.KeyboardEvent<HTMLInputElement>) => {
-          if (e.key === "Enter") {
-            (e.target as HTMLInputElement).blur();
-          } else if (e.key === "Escape") {
-            setDraft(value);
-            (e.target as HTMLInputElement).blur();
-          }
-        },
-        [value]
-      );
-
-      // ── Scrub gesture ────────────────────────────────────────────────────
-      // Drag scrubs; a click without movement focuses the input for typing.
-      // pointerdown preventDefault stops the native focus so the drag doesn't
-      // enter edit mode; store writes are rAF-coalesced and wrapped in one
-      // undo batch, same as InspectorSliderRow.
-
-      const history = useTimelineHistoryBatch();
-      const onCommitRef = useRef(onCommit);
-      onCommitRef.current = onCommit;
-      const gestureRef = useRef<{
-        pointerId: number;
-        startX: number;
-        startValue: number;
-        moved: boolean;
-      } | null>(null);
-      const pendingRef = useRef<string | null>(null);
-      const rafIdRef = useRef<number | null>(null);
-
-      const scrubDecimals = useMemo(() => {
-        if (!scrub) return 0;
-        return (String(scrub.step).split(".")[1] ?? "").length;
-      }, [scrub]);
-
-      const flushScrub = useCallback(() => {
-        rafIdRef.current = null;
-        if (pendingRef.current === null) return;
-        const next = pendingRef.current;
-        pendingRef.current = null;
-        onCommitRef.current(next);
-        history.mark();
-      }, [history]);
-
-      const handlePointerDown = useCallback(
-        (e: React.PointerEvent<HTMLDivElement>) => {
-          if (!scrub || disabled || focused || e.button !== 0) return;
-          const start = parseFloat(value);
-          if (!Number.isFinite(start)) return;
-          e.preventDefault();
-          e.currentTarget.setPointerCapture(e.pointerId);
-          gestureRef.current = {
-            pointerId: e.pointerId,
-            startX: e.clientX,
-            startValue: start,
-            moved: false
-          };
-        },
-        [scrub, disabled, focused, value]
-      );
-
-      const handlePointerMove = useCallback(
-        (e: React.PointerEvent<HTMLDivElement>) => {
-          const gesture = gestureRef.current;
-          if (!gesture || !scrub) return;
-          const dx = e.clientX - gesture.startX;
-          if (!gesture.moved) {
-            if (Math.abs(dx) < 3) return;
-            gesture.moved = true;
-            history.begin();
-          }
-          const multiplier = e.shiftKey ? 10 : e.altKey ? 0.1 : 1;
-          let next = gesture.startValue + dx * scrub.step * multiplier;
-          if (scrub.min != null) next = Math.max(scrub.min, next);
-          if (scrub.max != null) next = Math.min(scrub.max, next);
-          const formatted = next.toFixed(scrubDecimals);
-          setDraft(formatted);
-          pendingRef.current = formatted;
-          if (rafIdRef.current === null) {
-            rafIdRef.current = requestAnimationFrame(flushScrub);
-          }
-        },
-        [scrub, scrubDecimals, history, flushScrub]
-      );
-
-      const handlePointerUp = useCallback(
-        (e: React.PointerEvent<HTMLDivElement>) => {
-          const gesture = gestureRef.current;
-          if (!gesture || gesture.pointerId !== e.pointerId) return;
-          gestureRef.current = null;
-          if (gesture.moved) {
-            if (rafIdRef.current !== null) {
-              cancelAnimationFrame(rafIdRef.current);
-              rafIdRef.current = null;
-            }
-            if (pendingRef.current !== null) {
-              const next = pendingRef.current;
-              pendingRef.current = null;
-              onCommitRef.current(next);
-              history.mark();
-            }
-            history.end();
-          } else {
-            inputRef.current?.focus();
-            inputRef.current?.select();
-          }
-        },
-        [history]
-      );
-
-      useEffect(() => {
-        return () => {
-          if (rafIdRef.current !== null) {
-            cancelAnimationFrame(rafIdRef.current);
-          }
-        };
-      }, []);
-
-      return (
-        <div
-          css={pillWrapStyles(theme, disabled, focused, !!scrub)}
-          style={minWidth ? { minWidth } : undefined}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-        >
-          <input
-            id={id}
-            ref={setRefs}
-            type="text"
-            // size=1 kills the input's ~20-char intrinsic width so the pill
-            // sizes from minWidth instead of overflowing narrow panels.
-            size={1}
-            css={pillInputStyles(theme, !!scrub, focused)}
-            value={draft}
-            placeholder={placeholder}
-            disabled={disabled}
-            aria-label={ariaLabel}
-            onChange={(e) => setDraft(e.target.value)}
-            onFocus={() => setFocused(true)}
-            onBlur={() => {
-              setFocused(false);
-              commit();
-            }}
-            onKeyDown={handleKeyDown}
-          />
-          {unit && <span css={pillUnitStyles(theme)}>{unit}</span>}
-        </div>
-      );
+  useEffect(() => {
+    if (!focused) {
+      setDraft(value);
     }
-  )
-);
+  }, [value, focused]);
+
+  const commit = useCallback(() => {
+    if (draft !== value) {
+      onCommit(draft);
+    }
+  }, [draft, value, onCommit]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        (e.target as HTMLInputElement).blur();
+      } else if (e.key === "Escape") {
+        setDraft(value);
+        (e.target as HTMLInputElement).blur();
+      }
+    },
+    [value]
+  );
+
+  // ── Scrub gesture ────────────────────────────────────────────────────
+  // Drag scrubs; a click without movement focuses the input for typing.
+  // pointerdown preventDefault stops the native focus so the drag doesn't
+  // enter edit mode; store writes are rAF-coalesced and wrapped in one
+  // undo batch, same as InspectorSliderRow.
+
+  const history = useTimelineHistoryBatch();
+  const onCommitRef = useRef(onCommit);
+  onCommitRef.current = onCommit;
+  const gestureRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startValue: number;
+    moved: boolean;
+  } | null>(null);
+  const pendingRef = useRef<string | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+
+  const scrubDecimals = useMemo(() => {
+    if (!scrub) return 0;
+    return (String(scrub.step).split(".")[1] ?? "").length;
+  }, [scrub]);
+
+  const flushScrub = useCallback(() => {
+    rafIdRef.current = null;
+    if (pendingRef.current === null) return;
+    const next = pendingRef.current;
+    pendingRef.current = null;
+    onCommitRef.current(next);
+    history.mark();
+  }, [history]);
+
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!scrub || disabled || focused || e.button !== 0) return;
+      const start = parseFloat(value);
+      if (!Number.isFinite(start)) return;
+      e.preventDefault();
+      e.currentTarget.setPointerCapture(e.pointerId);
+      gestureRef.current = {
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startValue: start,
+        moved: false
+      };
+    },
+    [scrub, disabled, focused, value]
+  );
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const gesture = gestureRef.current;
+      if (!gesture || !scrub) return;
+      const dx = e.clientX - gesture.startX;
+      if (!gesture.moved) {
+        if (Math.abs(dx) < 3) return;
+        gesture.moved = true;
+        history.begin();
+      }
+      const multiplier = e.shiftKey ? 10 : e.altKey ? 0.1 : 1;
+      let next = gesture.startValue + dx * scrub.step * multiplier;
+      if (scrub.min != null) next = Math.max(scrub.min, next);
+      if (scrub.max != null) next = Math.min(scrub.max, next);
+      const formatted = next.toFixed(scrubDecimals);
+      setDraft(formatted);
+      pendingRef.current = formatted;
+      if (rafIdRef.current === null) {
+        rafIdRef.current = requestAnimationFrame(flushScrub);
+      }
+    },
+    [scrub, scrubDecimals, history, flushScrub]
+  );
+
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const gesture = gestureRef.current;
+      if (!gesture || gesture.pointerId !== e.pointerId) return;
+      gestureRef.current = null;
+      if (gesture.moved) {
+        if (rafIdRef.current !== null) {
+          cancelAnimationFrame(rafIdRef.current);
+          rafIdRef.current = null;
+        }
+        if (pendingRef.current !== null) {
+          const next = pendingRef.current;
+          pendingRef.current = null;
+          onCommitRef.current(next);
+          history.mark();
+        }
+        history.end();
+      } else {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }
+    },
+    [history]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <div
+      css={pillWrapStyles(theme, disabled, focused, !!scrub)}
+      style={minWidth ? { minWidth } : undefined}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+    >
+      <input
+        id={id}
+        ref={setRefs}
+        type="text"
+        // size=1 kills the input's ~20-char intrinsic width so the pill
+        // sizes from minWidth instead of overflowing narrow panels.
+        size={1}
+        css={pillInputStyles(theme, !!scrub, focused)}
+        value={draft}
+        placeholder={placeholder}
+        disabled={disabled}
+        aria-label={ariaLabel}
+        onChange={(e) => setDraft(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => {
+          setFocused(false);
+          commit();
+        }}
+        onKeyDown={handleKeyDown}
+      />
+      {unit && <span css={pillUnitStyles(theme)}>{unit}</span>}
+    </div>
+  );
+});
 
 // ── Select ─────────────────────────────────────────────────────────────────
 
@@ -888,8 +897,7 @@ export const InspectorSliderRow: React.FC<InspectorSliderRowProps> = memo(
       ((Math.min(max, Math.max(min, v)) - min) / span) * 100;
     const valuePct = toPct(value);
     const originPct = toPct(origin ?? min);
-    const showTick =
-      origin !== undefined && origin > min && origin < max;
+    const showTick = origin !== undefined && origin > min && origin < max;
 
     const fillVars = {
       "--fill-lo": `${Math.min(originPct, valuePct)}%`,

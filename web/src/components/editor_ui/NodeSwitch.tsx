@@ -9,7 +9,7 @@
  * - `changed`: Shows visual indicator when value differs from default
  */
 
-import { forwardRef, useMemo, memo } from "react";
+import { memo, type Ref } from "react";
 import { Switch, SwitchProps } from "@mui/material";
 import { useEditorScope } from "./EditorUiContext";
 import { editorUiClasses } from "../../constants/editorUiClasses";
@@ -24,6 +24,7 @@ export interface NodeSwitchProps extends Omit<SwitchProps, "size"> {
    * Value differs from default — shows visual indicator
    */
   changed?: boolean;
+  ref?: Ref<HTMLButtonElement>;
 }
 
 /**
@@ -41,38 +42,33 @@ export interface NodeSwitchProps extends Omit<SwitchProps, "size"> {
  *   name="enabled"
  * />
  */
-export const NodeSwitch = forwardRef<HTMLButtonElement, NodeSwitchProps>(
-  ({ className, sx, changed, ...props }, ref) => {
-    const scope = useEditorScope();
-    const scopeClass =
-      scope === "inspector"
-        ? editorUiClasses.scopeInspector
-        : editorUiClasses.scopeNode;
+export function NodeSwitch({
+  className,
+  sx,
+  changed,
+  ref,
+  ...props
+}: NodeSwitchProps) {
+  const scope = useEditorScope();
+  const scopeClass =
+    scope === "inspector"
+      ? editorUiClasses.scopeInspector
+      : editorUiClasses.scopeNode;
 
-    const switchSx = useMemo(() => ({
-      ...sx
-    }), [sx]);
+  return (
+    <Switch
+      ref={ref}
+      size="small"
+      className={cn(
+        editorClassNames.nodrag,
+        editorUiClasses.switchRoot,
+        scopeClass,
+        className
+      )}
+      sx={sx}
+      {...props}
+    />
+  );
+}
 
-    return (
-      <Switch
-        ref={ref}
-        size="small"
-        className={cn(
-          editorClassNames.nodrag,
-          editorUiClasses.switchRoot,
-          scopeClass,
-          className
-        )}
-        sx={switchSx}
-        {...props}
-      />
-    );
-  }
-);
-
-NodeSwitch.displayName = "NodeSwitch";
-
-const NodeSwitchMemo = memo(NodeSwitch);
-NodeSwitchMemo.displayName = "NodeSwitch";
-
-export default NodeSwitchMemo;
+export default memo(NodeSwitch);

@@ -1,8 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, {
-  forwardRef,
-  memo
-} from "react";
+import React, { memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -37,9 +34,18 @@ interface MediaControlChipProps {
   truncate?: boolean;
   /** Max width in px when truncating. Defaults to 200. */
   maxWidth?: number;
+  ref?: React.Ref<HTMLButtonElement>;
 }
 
-const createStyles = (theme: Theme, size: "sm" | "md", emphasis: "default" | "primary", active: boolean, truncate: boolean, iconOnly: boolean, maxWidth: number) =>
+const createStyles = (
+  theme: Theme,
+  size: "sm" | "md",
+  emphasis: "default" | "primary",
+  active: boolean,
+  truncate: boolean,
+  iconOnly: boolean,
+  maxWidth: number
+) =>
   css({
     display: "inline-flex",
     alignItems: "center",
@@ -101,72 +107,71 @@ const createStyles = (theme: Theme, size: "sm" | "md", emphasis: "default" | "pr
  * (mode selector, model chip, resolution chip, aspect ratio, duration, etc.).
  * Matches the pill shape shown in the reference screenshots.
  */
-const MediaControlChip = memo(
-  forwardRef<HTMLButtonElement, MediaControlChipProps>(
-    (
-      {
-        icon,
-        label,
-        title,
-        active = false,
-        showChevron = true,
-        onClick,
-        disabled = false,
-        size = "md",
-        className,
-        emphasis = "default",
-        truncate = false,
-        maxWidth = 200
-      },
-      ref
-    ) => {
-      const theme = useTheme();
-      const hasLabel =
-        label !== undefined && label !== null && label !== "";
-      return (
-        <button
-          ref={ref}
-          type="button"
-          title={title}
-          aria-label={!hasLabel ? title : undefined}
-          className={`media-control-chip${className ? ` ${className}` : ""}${active ? " active" : ""}`}
-          css={createStyles(theme, size, emphasis, active, truncate, !hasLabel, maxWidth)}
-          onClick={onClick}
-          disabled={disabled}
-          aria-pressed={active || undefined}
-        >
-          <FlexRow align="center" gap={hasLabel ? 1 : 0}>
-            {icon && <span className="media-chip-icon">{icon}</span>}
-            {hasLabel && (
-              <Text
-                component="span"
-                size="small"
-                weight={500}
-                sx={{
-                  color: "inherit",
-                  lineHeight: 1.2,
-                  ...(truncate && {
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap"
-                  })
-                }}
-              >
-                {label}
-              </Text>
-            )}
-            {showChevron && (
-              <span className="media-chip-chevron">
-                <ExpandLessIcon />
-              </span>
-            )}
-          </FlexRow>
-        </button>
-      );
-    }
-  )
-);
-
-MediaControlChip.displayName = "MediaControlChip";
+const MediaControlChip = memo(function MediaControlChip({
+  icon,
+  label,
+  title,
+  active = false,
+  showChevron = true,
+  onClick,
+  disabled = false,
+  size = "md",
+  className,
+  emphasis = "default",
+  truncate = false,
+  maxWidth = 200,
+  ref
+}: MediaControlChipProps) {
+  const theme = useTheme();
+  const hasLabel = label !== undefined && label !== null && label !== "";
+  return (
+    <button
+      ref={ref}
+      type="button"
+      title={title}
+      aria-label={!hasLabel ? title : undefined}
+      className={`media-control-chip${className ? ` ${className}` : ""}${active ? " active" : ""}`}
+      css={createStyles(
+        theme,
+        size,
+        emphasis,
+        active,
+        truncate,
+        !hasLabel,
+        maxWidth
+      )}
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={active || undefined}
+    >
+      <FlexRow align="center" gap={hasLabel ? 1 : 0}>
+        {icon && <span className="media-chip-icon">{icon}</span>}
+        {hasLabel && (
+          <Text
+            component="span"
+            size="small"
+            weight={500}
+            sx={{
+              color: "inherit",
+              lineHeight: 1.2,
+              ...(truncate && {
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap"
+              })
+            }}
+          >
+            {label}
+          </Text>
+        )}
+        {showChevron && (
+          <span className="media-chip-chevron">
+            <ExpandLessIcon />
+          </span>
+        )}
+      </FlexRow>
+    </button>
+  );
+});
 
 export default MediaControlChip;
