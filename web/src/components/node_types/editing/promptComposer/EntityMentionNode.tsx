@@ -2,7 +2,6 @@ import React from "react";
 import {
   DecoratorNode,
   type DOMExportOutput,
-  type LexicalNode,
   type NodeKey,
   type SerializedLexicalNode,
   type Spread
@@ -112,7 +111,3 @@ export const $createEntityMentionNode = (
   label: string,
   thumb?: string
 ): EntityMentionNode => new EntityMentionNode(uri, label || uri, thumb);
-
-export const $isEntityMentionNode = (
-  node: LexicalNode | null | undefined
-): node is EntityMentionNode => node instanceof EntityMentionNode;

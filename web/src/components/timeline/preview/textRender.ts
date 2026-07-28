@@ -15,7 +15,7 @@ export interface TextRenderStagger {
   localMs: number;
 }
 
-export function textStyleSignature(
+function textStyleSignature(
   style: ClipTextStyle,
   width: number,
   height: number

@@ -65,7 +65,7 @@ export const extractVariableNames = (workflow?: Workflow | null): string[] => {
 
 const NON_BINDABLE_TYPES = new Set([COMMENT_NODE_TYPE, GROUP_NODE_TYPE]);
 
-export const extractBindableNodes = (
+const extractBindableNodes = (
   workflow?: Workflow | null
 ): BindableGraphNode[] => {
   const nodes = workflow?.graph?.nodes;

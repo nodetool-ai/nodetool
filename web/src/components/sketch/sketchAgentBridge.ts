@@ -231,6 +231,6 @@ export function getSketchAgentHandler(documentId: string): SketchAgentHandler {
 }
 
 /** Ids of every image document currently open in an editor. */
-export function listOpenSketchDocumentIds(): string[] {
+function listOpenSketchDocumentIds(): string[] {
   return [...handlers.keys()];
 }

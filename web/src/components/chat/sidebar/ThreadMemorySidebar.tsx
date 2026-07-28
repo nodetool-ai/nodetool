@@ -21,7 +21,7 @@ import { trpc, type RouterOutputs } from "../../../trpc/client";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import ConfirmDialog from "../../dialogs/ConfirmDialog";
 
-export const THREAD_MEMORY_SIDEBAR_WIDTH = 300;
+const THREAD_MEMORY_SIDEBAR_WIDTH = 300;
 /** Asset thumbnail edge (px), on the 4px grid — a fixed component dimension. */
 const THUMB_SIZE = 48;
 
