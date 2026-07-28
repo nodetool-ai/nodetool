@@ -108,7 +108,7 @@ export const DEFAULT_MODELS: Record<string, string> = {
   together: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
   openrouter: "openai/gpt-5.4-mini",
   huggingface: "meta-llama/Llama-3.3-70B-Instruct",
-  replicate: "meta/meta-llama-3-70b-instruct",
+  replicate: "anthropic/claude-4.5-sonnet",
   kie: "gpt-5-5",
   aki: "llama3_chat",
   ollama: "qwen-3.5:4b",

@@ -292,6 +292,11 @@ export class ReplicateProvider extends BaseProvider {
         name: "Claude Opus 4.6",
         provider: "replicate"
       },
+      {
+        id: "anthropic/claude-opus-4.7",
+        name: "Claude Opus 4.7",
+        provider: "replicate"
+      },
       { id: "openai/gpt-4o", name: "GPT-4o", provider: "replicate" },
       { id: "openai/gpt-4o-mini", name: "GPT-4o Mini", provider: "replicate" },
       { id: "openai/gpt-4.1", name: "GPT-4.1", provider: "replicate" },
@@ -300,8 +305,14 @@ export class ReplicateProvider extends BaseProvider {
         name: "GPT-4.1 Mini",
         provider: "replicate"
       },
+      {
+        id: "openai/gpt-4.1-nano",
+        name: "GPT-4.1 Nano",
+        provider: "replicate"
+      },
       { id: "openai/gpt-5", name: "GPT-5", provider: "replicate" },
       { id: "openai/gpt-5-mini", name: "GPT-5 Mini", provider: "replicate" },
+      { id: "openai/gpt-5-nano", name: "GPT-5 Nano", provider: "replicate" },
       { id: "openai/gpt-5.2", name: "GPT-5.2", provider: "replicate" },
       { id: "openai/o1", name: "O1", provider: "replicate" },
       { id: "openai/o4-mini", name: "O4 Mini", provider: "replicate" },
@@ -312,6 +323,12 @@ export class ReplicateProvider extends BaseProvider {
         provider: "replicate"
       },
       { id: "moonshotai/kimi-k2.5", name: "Kimi K2.5", provider: "replicate" },
+      { id: "moonshotai/kimi-k2.6", name: "Kimi K2.6", provider: "replicate" },
+      {
+        id: "ibm-granite/granite-4.1-8b",
+        name: "Granite 4.1 8B",
+        provider: "replicate"
+      },
       {
         id: "snowflake/snowflake-arctic-instruct",
         name: "Snowflake Arctic Instruct",
@@ -344,10 +361,51 @@ export class ReplicateProvider extends BaseProvider {
         name: "MiniMax Speech 2.8 HD",
         provider: "replicate"
       },
+      {
+        id: "minimax/speech-2.8-turbo",
+        name: "MiniMax Speech 2.8 Turbo",
+        provider: "replicate"
+      },
+      {
+        id: "google/gemini-3.1-flash-tts",
+        name: "Gemini 3.1 Flash TTS",
+        provider: "replicate"
+      },
+      { id: "qwen/qwen3-tts", name: "Qwen3 TTS", provider: "replicate" },
+      {
+        id: "inworld/tts-1.5-max",
+        name: "Inworld TTS 1.5 Max",
+        provider: "replicate"
+      },
+      {
+        id: "inworld/tts-1.5-mini",
+        name: "Inworld TTS 1.5 Mini",
+        provider: "replicate"
+      },
+      {
+        id: "inworld/realtime-tts-2",
+        name: "Inworld Realtime TTS 2",
+        provider: "replicate"
+      },
+      {
+        id: "xai/grok-text-to-speech",
+        name: "Grok Text To Speech",
+        provider: "replicate"
+      },
       { id: "jaaari/kokoro-82m", name: "Kokoro 82M", provider: "replicate" },
       {
         id: "resemble-ai/chatterbox-pro",
         name: "Chatterbox Pro",
+        provider: "replicate"
+      },
+      {
+        id: "resemble-ai/chatterbox-turbo",
+        name: "Chatterbox Turbo",
+        provider: "replicate"
+      },
+      {
+        id: "resemble-ai/chatterbox-multilingual",
+        name: "Chatterbox Multilingual",
         provider: "replicate"
       },
       { id: "x-lance/f5-tts", name: "F5 TTS", provider: "replicate" }
@@ -365,8 +423,28 @@ export class ReplicateProvider extends BaseProvider {
   async getAvailableASRModels(): Promise<ASRModel[]> {
     return [
       {
+        id: "elevenlabs/scribe-v2",
+        name: "ElevenLabs Scribe V2",
+        provider: "replicate"
+      },
+      {
         id: "openai/gpt-4o-transcribe",
         name: "GPT-4o Transcribe",
+        provider: "replicate"
+      },
+      {
+        id: "openai/gpt-4o-mini-transcribe",
+        name: "GPT-4o Mini Transcribe",
+        provider: "replicate"
+      },
+      {
+        id: "xai/grok-speech-to-text",
+        name: "Grok Speech To Text",
+        provider: "replicate"
+      },
+      {
+        id: "nvidia/parakeet-rnnt-1.1b",
+        name: "Parakeet RNNT 1.1B",
         provider: "replicate"
       },
       {
@@ -415,6 +493,30 @@ export class ReplicateProvider extends BaseProvider {
         name: "Granite Embedding 278M Multilingual",
         provider: "replicate",
         dimensions: 768
+      },
+      {
+        id: "ibm-granite/granite-embedding-small-english-r2",
+        name: "Granite Embedding Small English R2",
+        provider: "replicate",
+        dimensions: 384
+      },
+      {
+        id: "adirik/e5-mistral-7b-instruct",
+        name: "E5 Mistral 7B Instruct",
+        provider: "replicate",
+        dimensions: 4096
+      },
+      {
+        id: "mark3labs/embeddings-gte-base",
+        name: "GTE Base",
+        provider: "replicate",
+        dimensions: 768
+      },
+      {
+        id: "center-for-curriculum-redesign/bge_1-5_query_embeddings",
+        name: "BGE 1.5 Query Embeddings",
+        provider: "replicate",
+        dimensions: 1024
       },
       {
         id: "beautyyuyanli/multilingual-e5-large",
