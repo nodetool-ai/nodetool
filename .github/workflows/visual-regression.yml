@@ -116,15 +116,23 @@ jobs:
 
       - name: Regenerate baselines
         working-directory: web
+        # A spec that fails for a non-snapshot reason shouldn't discard the
+        # baselines the other specs just wrote — commit what was produced and
+        # let the step's own red mark surface the failure.
+        continue-on-error: true
         env:
           SECRETS_MASTER_KEY: "U0NSRUVOU0hPVF9URVNUX0tFWV9ET19OT1RfVVNFISE="
         run: npm run test:visual:update
 
       - name: Commit updated baselines
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add web/tests/visual/**/*-snapshots/
+          # Stage the whole suite dir: a `**/*-snapshots/` glob does not survive
+          # bash here (globstar is off, so `**` collapses to `*` and matches
+          # nothing), and only the baselines change during an update run.
+          git add -A -- web/tests/visual
           if git diff --cached --quiet; then
             echo "No baseline changes to commit."
           else
