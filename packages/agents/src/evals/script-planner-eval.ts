@@ -42,8 +42,12 @@ const BUDGET_GUARD_RE =
   /budget\s*\.\s*(?:remainingCalls|agentCalls|spentUsd)\s*\(/;
 /** A schema passed to `agent()` — structured, validated sub-agent output. */
 const SCHEMA_OPT_RE = /\bschema\s*:/;
-/** Module syntax the sandbox has no loader for. */
-const MODULE_SYNTAX_RE = /(?:^|\n)\s*import\s|(?<![\w.$])require\s*\(/;
+/**
+ * Module syntax the sandbox has no loader for. The leading run is horizontal
+ * whitespace only — `\s*` after a `\n` alternative would also match newlines,
+ * so the two overlap and a newline-heavy script backtracks polynomially.
+ */
+const MODULE_SYNTAX_RE = /^[ \t]*import\s|(?<![\w.$])require\s*\(/m;
 
 export interface ScriptPlanCaseResult {
   caseId: string;
