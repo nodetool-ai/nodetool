@@ -216,9 +216,24 @@ function buildAppVerdict(
     const nodeIds = new Set(
       graph.nodes.map((n) => (typeof n.id === "string" ? n.id : "")).filter(Boolean)
     );
+    // Variables a widget writes rather than the graph — a chat composer's
+    // conversation. Nothing the run emits fills them, so an empty one after a
+    // headless run says nothing about the wiring.
+    const uiWrittenVariables = new Set(
+      (report.spec?.widgets ?? []).flatMap((w) =>
+        w.extraBindings
+          .filter((extra) => extra.ref?.kind === "variable")
+          .map((extra) =>
+            extra.ref?.kind === "variable" ? extra.ref.variableId : ""
+          )
+      )
+    );
     for (const w of report.widgets) {
       if (w.bindingMode !== "read" || !w.binding || w.hasValue) continue;
       const ref = parseBinding(w.binding);
+      if (ref?.kind === "variable" && uiWrittenVariables.has(ref.variableId)) {
+        continue;
+      }
       if (ref?.kind === "execution") {
         // Execution state is not a value the graph emits — an empty one only
         // means the operation never ran, or reported no activity.

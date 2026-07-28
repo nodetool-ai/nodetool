@@ -233,6 +233,28 @@ graph: emit one flag from a node and condition on that.
 `nodetool app debug` can't simulate resource inputs — resources only exist in the
 browser. Test these in the app.
 
+## 10. A chat app
+
+**Shape:** a conversation the user adds to, one workflow run per turn.
+**Good for:** assistants, Q&A over a collection, anything where the previous
+turns matter.
+
+1. Build the workflow with a **Message List Input** (the whole conversation) or a
+   **String Input** (just the latest message), an LLM node, and an Output node.
+2. Declare a variable — call it `chat` — to hold the conversation.
+3. Place a **Chat Thread**: bind it to `var:chat`, and set **Live reply** to the
+   Output node so the answer appears as it streams.
+4. Place a **Chat Composer** below it: bind it to the workflow input, set
+   **Conversation variable** to `chat`, and pick what it sends — *Whole
+   conversation* for a Message List Input, *Message text* for a String Input.
+   Its **On click** event runs the operation.
+5. Add a **Model Select** bound to the LLM node's `model` property to let the
+   user choose the model.
+
+Turn on image attachments in the composer when the model is multimodal — the
+message then carries content parts instead of plain text, which is what a
+Message Input node and every provider expect.
+
 ---
 
 ## Before you share it

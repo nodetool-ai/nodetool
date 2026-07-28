@@ -184,6 +184,44 @@ describe("validateApp", () => {
     expect(errors.join("\n")).toMatch(/no SetVariable node/);
   });
 
+  it("resolves and validates a chat app's second binding", () => {
+    const ok = parseAppSpec(
+      appDoc([
+        widget("ChatThread", "ChatThread-1", {
+          binding: "dark",
+          streamBinding: "result"
+        }),
+        widget("ChatComposer", "ChatComposer-1", {
+          binding: "prompt",
+          historyBinding: "dark",
+          events: [{ trigger: "click", kind: "run" }]
+        })
+      ]),
+      io
+    ).spec!;
+    expect(ok.widgets[0].extraBindings[0]).toMatchObject({
+      prop: "streamBinding",
+      binding: "result"
+    });
+    // The thread displays the output through streamBinding, so nothing warns
+    // that the workflow's output goes unshown.
+    expect(validateApp(ok, io)).toEqual({ errors: [], warnings: [] });
+
+    const broken = parseAppSpec(
+      appDoc([
+        widget("ChatThread", "ChatThread-1", {
+          binding: "dark",
+          streamBinding: "ghost"
+        }),
+        widget("Button", "Button-1", { events: [{ trigger: "click", kind: "run" }] })
+      ]),
+      io
+    ).spec!;
+    expect(validateApp(broken, io).errors.join("\n")).toMatch(
+      /streamBinding is bound to "ghost"/
+    );
+  });
+
   it("flags an app that can never run and warns on undisplayed outputs", () => {
     const { spec } = parseAppSpec(
       appDoc([widget("TextInput", "TextInput-1", { binding: "prompt" })]),

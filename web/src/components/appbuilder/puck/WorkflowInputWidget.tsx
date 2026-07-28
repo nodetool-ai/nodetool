@@ -250,6 +250,78 @@ export const WorkflowInputWidget: React.FC<WorkflowInputWidgetProps> = (
   );
 };
 
+/**
+ * The model kinds a ModelSelect widget can offer. Same six the workflow input
+ * form resolves, picked here by the app author instead of by a node's type —
+ * an app often wants to drive an LLM node's `model` property directly.
+ */
+export const MODEL_WIDGET_KINDS = [
+  "language_model",
+  "image_model",
+  "video_model",
+  "tts_model",
+  "asr_model",
+  "embedding_model"
+] as const;
+
+export type ModelWidgetKind = (typeof MODEL_WIDGET_KINDS)[number];
+
+const MODEL_KIND_NODE_TYPE: Record<ModelWidgetKind, string> = {
+  language_model: "nodetool.input.LanguageModelInput",
+  image_model: "nodetool.input.ImageModelInput",
+  video_model: "nodetool.input.VideoModelInput",
+  tts_model: "nodetool.input.TTSModelInput",
+  asr_model: "nodetool.input.ASRModelInput",
+  embedding_model: "nodetool.input.EmbeddingModelInput"
+};
+
+const isModelKind = (value: unknown): value is ModelWidgetKind =>
+  MODEL_WIDGET_KINDS.includes(value as ModelWidgetKind);
+
+export interface ModelSelectWidgetProps {
+  id: string;
+  binding?: string;
+  label?: string;
+  modelKind?: string;
+  events?: AppEvent[];
+}
+
+/**
+ * Picks a model and writes its reference — `{type, id, provider, name}` — to
+ * the bound input or node property.
+ */
+export const ModelSelectWidget: React.FC<ModelSelectWidgetProps> = (props) => {
+  const kind = isModelKind(props.modelKind) ? props.modelKind : "language_model";
+  const { value, setValue, emit } = useWidgetRuntime({
+    id: props.id,
+    bindingMode: "write",
+    binding: props.binding,
+    events: props.events
+  });
+
+  const input = useMemo<WorkflowInputIO>(
+    () => ({
+      nodeId: props.id,
+      nodeType: MODEL_KIND_NODE_TYPE[kind],
+      name: props.label || "Model",
+      label: props.label || "Model",
+      kind
+    }),
+    [kind, props.id, props.label]
+  );
+
+  return (
+    <InputControl
+      input={input}
+      value={value}
+      onValue={(next) => {
+        setValue(next);
+        emit("change");
+      }}
+    />
+  );
+};
+
 /** Kinds exposed as standalone palette widgets alongside the auto-resolving
  * WorkflowInput — so an app authored from scratch can offer media pickers. */
 export type FixedInputKind = "image" | "audio" | "video" | "document" | "color";

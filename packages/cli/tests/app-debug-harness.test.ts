@@ -135,6 +135,55 @@ describe("runAppDebug", () => {
     expect(report.verdict.issues.join("\n")).toMatch(/never received a value/);
   });
 
+  it("passes a chat app whose conversation only the UI writes", async () => {
+    // The composer's send and the thread's fold are browser-side, so the
+    // conversation variable is empty after a headless run. That says nothing
+    // about the wiring, and must not read as a missing value.
+    const runOnServer = stubRunner([
+      { type: "output_update", node_id: "out1", output_name: "output", value: "hi" },
+      { type: "job_update", status: "completed" }
+    ]);
+    const report = await runAppDebug(
+      workflowFile({
+        app_doc: {
+          version: 2,
+          variables: [
+            { id: "chat", name: "chat", scope: "instance", persist: false }
+          ],
+          data: {
+            root: { props: { title: "Chat" } },
+            content: [
+              {
+                type: "ChatThread",
+                props: {
+                  id: "ChatThread-1",
+                  binding: "var:chat",
+                  streamBinding: "result"
+                }
+              },
+              {
+                type: "ChatComposer",
+                props: {
+                  id: "ChatComposer-1",
+                  binding: "prompt",
+                  historyBinding: "var:chat",
+                  events: [{ trigger: "click", kind: "run", key: "", value: "" }]
+                }
+              }
+            ],
+            zones: {}
+          }
+        }
+      }),
+      { outDir: mkdtempSync(join(tmpdir(), "app-bundle-")) },
+      deps(runOnServer)
+    );
+
+    expect(report.interactions[0]).toMatchObject({ step: "click ChatComposer-1" });
+    expect(report.verdict.issues).toEqual([]);
+    expect(report.verdict.ok).toBe(true);
+  });
+
   it("warns rather than fails when the empty widget sits on an untaken branch", async () => {
     // One `If` fires one handle per run, so the other branch's widget is
     // legitimately empty. It still gets said out loud: a branch no input can
