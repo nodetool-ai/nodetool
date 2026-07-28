@@ -49,6 +49,9 @@ description, versions, and spending limit.
 3. Wire each field to the matching Input node.
 4. Add a Button with the **Run workflow** action, pointing at the workflow to
    run.
+
+   ![A Button's On click event set to Run workflow](assets/screenshots/mini-app-button-action.png)
+
 5. Add result widgets — Text, Markdown, Image, JSON, Progress.
 6. Wire each result widget to the matching Output node.
 7. Click **Save**.
@@ -68,6 +71,8 @@ Good prompts describe the result you want:
 
 The picker lists what each workflow actually offers. Wiring points at node ids,
 so renaming a node doesn't break the app.
+
+![The wiring picker on a selected field](assets/screenshots/mini-app-binding-picker.png)
 
 | Widget kind | Wires to |
 | --- | --- |

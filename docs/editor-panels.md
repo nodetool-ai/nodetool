@@ -12,7 +12,7 @@ The NodeTool [Workflow Editor]({{ '/workflow-editor' | relative_url }}) is surro
 
 ## Left Panel
 
-Opens from the icons down the left edge. It's a tabbed drawer — click an icon to expand, click the same icon to collapse. The top-level views are: **Nodes**, **Workflows**, **Sketches**, **Timelines**, **Settings**, **History**, **Favorites**, and **Assets**.
+Opens from the icons down the left edge. It's a tabbed drawer — click an icon to expand, click the same icon to collapse. The top-level views are: **Nodes**, **Workflows**, **Sketches**, **Timelines**, **Settings**, **History**, **Favorites**, **Assets**, and **Apps**.
 
 ![Left Panel](assets/screenshots/editor-left-panel.png)
 
@@ -63,6 +63,12 @@ Your starred nodes for quick access.
 Folder tree plus file grid. Drag a file onto the canvas to instantly create the matching input node.
 
 ![Left Panel — Assets](assets/screenshots/editor-left-panel-assets.png)
+
+### Apps Tab
+
+Your Mini Apps. Click one to open it as a workspace tab; the two header icons create an app from a workflow or start an empty one. See [Mini Apps]({{ '/mini-apps' | relative_url }}).
+
+![Left Panel — Apps](assets/screenshots/editor-left-panel-apps.png)
 
 ---
 

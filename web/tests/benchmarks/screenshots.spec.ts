@@ -130,6 +130,7 @@ type LeftPanelView =
   | "history"
   | "favorites"
   | "assets"
+  | "apps"
   | "nodes";
 type RightPanelView = "inspector";
 type BottomPanelView =
@@ -749,6 +750,62 @@ if (process.env.JEST_WORKER_ID) {
       await saveScreenshot(page, "mini-app-run.png");
     });
 
+    /**
+     * Select a widget on the Design canvas by the text it renders, so the
+     * right-hand inspector shows that widget's fields. Puck's own class names
+     * are content-hashed, so the canvas is addressed by text and the inspector
+     * by the stable `_Sidebar--right` prefix.
+     */
+    async function selectWidget(page: Page, text: string): Promise<void> {
+      await openMiniApp(page);
+      await page
+        .getByRole("button", { name: "Design", exact: true })
+        .first()
+        .waitFor({ state: "visible", timeout: 20000 })
+        .catch(() => {});
+      await waitForAnimation(page, 2000);
+      await page
+        .getByText(text, { exact: true })
+        .first()
+        .click({ force: true })
+        .catch(() => {});
+      await waitForAnimation(page, 1000);
+    }
+
+    const RIGHT_SIDEBAR = '[class*="_Sidebar--right"]';
+
+    // The binding picker, open. It lists what the bound workflow actually
+    // offers — its Input nodes, the settings of each node, its Output nodes —
+    // which is the step people get stuck on when wiring their first app.
+    test("Mini app – binding picker", async ({ page }) => {
+      test.skip(shouldSkip("mini-app-binding-picker.png"), "Already captured");
+      await selectWidget(page, "Prompt");
+      await page
+        .locator(RIGHT_SIDEBAR)
+        .first()
+        .getByRole("combobox")
+        .first()
+        .click({ force: true })
+        .catch(() => {});
+      await waitForAnimation(page, 800);
+      await saveScreenshot(page, "mini-app-binding-picker.png");
+    });
+
+    // A Button's On click event expanded to its Run workflow action.
+    test("Mini app – button action", async ({ page }) => {
+      test.skip(shouldSkip("mini-app-button-action.png"), "Already captured");
+      await selectWidget(page, "Run echo");
+      await page
+        .locator(RIGHT_SIDEBAR)
+        .first()
+        .getByText("run", { exact: true })
+        .first()
+        .click({ force: true })
+        .catch(() => {});
+      await waitForAnimation(page, 1000);
+      await saveScreenshot(page, "mini-app-button-action.png");
+    });
+
     // ── Sketch / Image editor ─────────────────────────────────────────────────
     // Backed by the seeded ImageDocument "sk-demo-portrait" (screenshot-server).
     test("Sketch editor", async ({ page }) => {
@@ -851,7 +908,8 @@ if (process.env.JEST_WORKER_ID) {
       { view: "settings", filename: "editor-left-panel-settings.png" },
       { view: "history", filename: "editor-left-panel-history.png" },
       { view: "favorites", filename: "editor-left-panel-favorites.png" },
-      { view: "assets", filename: "editor-left-panel-assets.png" }
+      { view: "assets", filename: "editor-left-panel-assets.png" },
+      { view: "apps", filename: "editor-left-panel-apps.png" }
     ];
 
     for (const { view, filename } of LEFT_PANEL_VIEWS) {

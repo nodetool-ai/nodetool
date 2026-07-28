@@ -31,21 +31,39 @@ the app itself is twenty minutes of layout.
 
 Every app below begins here.
 
-1. Open the **Apps** panel in the left sidebar.
+1. Open the **Apps** panel in the left sidebar. The two icons in its header are
+   **New app from workflow** and **New app**.
+
+   ![The Apps panel in the left sidebar](assets/screenshots/editor-left-panel-apps.png)
+
 2. Click **New app** for an empty screen, or **New app from workflow** to get a
    starting layout with one widget per Input and Output node. Either way the app
    opens as its own workspace tab.
-3. Switch the tab to **Design**. That's App Builder.
+3. Switch the tab to **Design**. That's App Builder: palette on the left, the app
+   screen in the middle, the selected widget's settings on the right.
+
+   ![App Builder — palette, canvas, and inspector](assets/screenshots/mini-app-design.png)
+
 4. Drag widgets from the palette onto the canvas.
 5. Select a widget and pick what it's wired to in the right-hand panel. The menu
    lists what the workflow actually offers: Input nodes for widgets the user
    types into, Output nodes and variables for widgets that show results.
+
+   ![The binding picker, listing the workflow's inputs, node settings, and outputs](assets/screenshots/mini-app-binding-picker.png)
+
 6. Add a **Button** and give it an **On click** event with the **Run workflow**
    action.
+
+   ![A Button's On click event set to Run workflow](assets/screenshots/mini-app-button-action.png)
+
 7. Click **Save**.
-8. Switch the tab to **Run** and try it. Then run
-   `nodetool app debug <application_id>` to check the wiring the way the runtime
-   sees it.
+8. Switch the tab to **Run** and try it. This is what the person using the app
+   sees — no palette, no inspector, no graph.
+
+   ![The same app in Run](assets/screenshots/mini-app-run.png)
+
+   Then run `nodetool app debug <application_id>` to check the wiring the way the
+   runtime sees it.
 
 To edit the graph while you build, open **Linked workflows** on the app tab and
 click the workflow. It opens as a normal workflow tab; the app tab stays put.
