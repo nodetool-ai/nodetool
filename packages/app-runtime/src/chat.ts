@@ -29,13 +29,25 @@ export const messagesFrom = (value: unknown): ChatMessage[] => {
   if (value == null || value === "") return [];
   const items = Array.isArray(value) ? value : [value];
   const messages: ChatMessage[] = [];
+  // A streaming output accumulates one item per chunk. Those chunks are one
+  // reply, so consecutive text joins into the turn in progress rather than
+  // giving the thread a bubble per token.
+  let streaming = false;
   for (const item of items) {
     if (item == null || item === "") continue;
     if (isRecord(item) && typeof item.role === "string") {
       messages.push({ role: item.role, content: item.content ?? "" });
-    } else {
-      messages.push({ role: "assistant", content: item });
+      streaming = false;
+      continue;
     }
+    const chunk = typeof item === "string" ? item : null;
+    const last = messages[messages.length - 1];
+    if (chunk !== null && streaming && last) {
+      last.content = `${last.content as string}${chunk}`;
+      continue;
+    }
+    messages.push({ role: "assistant", content: item });
+    streaming = chunk !== null;
   }
   return messages;
 };

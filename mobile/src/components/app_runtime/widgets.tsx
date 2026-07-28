@@ -52,6 +52,7 @@ import {
 import { useWidgetRuntime } from "./useWidgetRuntime";
 import { SliderControl } from "./SliderControl";
 import { RESOURCE_RENDERERS } from "./resourceWidgets";
+import { ModelSelectWidget } from "./ModelSelectWidget";
 import { pickMediaValue, type MediaKind } from "./mediaPicker";
 import { clampNumber } from "./inputKinds";
 
@@ -1469,6 +1470,7 @@ const RENDERERS: Record<string, React.FC<WidgetProps>> = {
   ...RESOURCE_RENDERERS,
   ChatThread: ChatThreadWidget,
   ChatComposer: ChatComposerWidget,
+  ModelSelect: ModelSelectWidget,
   Button: ButtonWidget,
   Container: ContainerWidget,
   Columns: ColumnsWidget,
