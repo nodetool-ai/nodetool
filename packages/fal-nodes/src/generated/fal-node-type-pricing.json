@@ -2,12 +2,6 @@
   "schemaVersion": 1,
   "writtenAt": "2026-05-17T22:25:00.943Z",
   "byNodeType": {
-    "fal.3d_to_3d.Ultrashape": {
-      "endpoint_id": "fal-ai/ultrashape",
-      "unit_price": 0.15,
-      "billing_unit": "generations",
-      "currency": "USD"
-    },
     "fal.3d_to_3d.Sam33DAlign": {
       "endpoint_id": "fal-ai/sam-3/3d-align",
       "unit_price": 0.02,
@@ -812,12 +806,6 @@
       "billing_unit": "megapixels",
       "currency": "USD"
     },
-    "fal.image_to_image.Lucidflux": {
-      "endpoint_id": "fal-ai/lucidflux",
-      "unit_price": 0.05,
-      "billing_unit": "megapixels",
-      "currency": "USD"
-    },
     "fal.image_to_image.QwenImageEditImageToImage": {
       "endpoint_id": "fal-ai/qwen-image-edit/image-to-image",
       "unit_price": 0.03,
@@ -1520,12 +1508,6 @@
       "billing_unit": "generations",
       "currency": "USD"
     },
-    "fal.image_to_image.Plushify": {
-      "endpoint_id": "fal-ai/plushify",
-      "unit_price": 0.1,
-      "billing_unit": "images",
-      "currency": "USD"
-    },
     "fal.image_to_image.InstantCharacter": {
       "endpoint_id": "fal-ai/instant-character",
       "unit_price": 0.1,
@@ -1556,12 +1538,6 @@
       "billing_unit": "images",
       "currency": "USD"
     },
-    "fal.image_to_image.StarVector": {
-      "endpoint_id": "fal-ai/star-vector",
-      "unit_price": 0.1,
-      "billing_unit": "megapixels",
-      "currency": "USD"
-    },
     "fal.image_to_image.Ghiblify": {
       "endpoint_id": "fal-ai/ghiblify",
       "unit_price": 0.05,
@@ -1571,12 +1547,6 @@
     "fal.image_to_image.Thera": {
       "endpoint_id": "fal-ai/thera",
       "unit_price": 0.0021,
-      "billing_unit": "megapixels",
-      "currency": "USD"
-    },
-    "fal.image_to_image.MixDehazeNet": {
-      "endpoint_id": "fal-ai/mix-dehaze-net",
-      "unit_price": 0.025,
       "billing_unit": "megapixels",
       "currency": "USD"
     },
@@ -1590,12 +1560,6 @@
       "endpoint_id": "fal-ai/gemini-flash-edit/multi",
       "unit_price": 0.04,
       "billing_unit": "images",
-      "currency": "USD"
-    },
-    "fal.image_to_image.InvisibleWatermark": {
-      "endpoint_id": "fal-ai/invisible-watermark",
-      "unit_price": 0.00017,
-      "billing_unit": "compute seconds",
       "currency": "USD"
     },
     "fal.image_to_image.RundiffusionFalJuggernautFluxBaseImageToImage": {
@@ -1832,12 +1796,6 @@
       "billing_unit": "megapixels",
       "currency": "USD"
     },
-    "fal.image_to_image.FluxDifferentialDiffusion": {
-      "endpoint_id": "fal-ai/flux-differential-diffusion",
-      "unit_price": 0.05,
-      "billing_unit": "megapixels",
-      "currency": "USD"
-    },
     "fal.image_to_image.FluxPulid": {
       "endpoint_id": "fal-ai/flux-pulid",
       "unit_price": 0.0333,
@@ -2028,12 +1986,6 @@
       "endpoint_id": "fal-ai/dwpose",
       "unit_price": 0.0006,
       "billing_unit": "seconds",
-      "currency": "USD"
-    },
-    "fal.image_to_image.Sd15DepthControlnet": {
-      "endpoint_id": "fal-ai/sd15-depth-controlnet",
-      "unit_price": 0.00125,
-      "billing_unit": "compute seconds",
       "currency": "USD"
     },
     "fal.image_to_image.OmniZero": {
@@ -2267,12 +2219,6 @@
     "fal.image_to_3d.Hyper3DRodinV2": {
       "endpoint_id": "fal-ai/hyper3d/rodin/v2",
       "unit_price": 0.4,
-      "billing_unit": "generations",
-      "currency": "USD"
-    },
-    "fal.image_to_3d.Pshuman": {
-      "endpoint_id": "fal-ai/pshuman",
-      "unit_price": 0.75,
       "billing_unit": "generations",
       "currency": "USD"
     },
@@ -2912,12 +2858,6 @@
       "billing_unit": "seconds",
       "currency": "USD"
     },
-    "fal.image_to_video.HunyuanPortrait": {
-      "endpoint_id": "fal-ai/hunyuan-portrait",
-      "unit_price": 0.08,
-      "billing_unit": "seconds",
-      "currency": "USD"
-    },
     "fal.image_to_video.KlingVideoV16StandardElements": {
       "endpoint_id": "fal-ai/kling-video/v1.6/standard/elements",
       "unit_price": 0.056,
@@ -2938,12 +2878,6 @@
     },
     "fal.image_to_video.LtxVideo13bDevImageToVideo": {
       "endpoint_id": "fal-ai/ltx-video-13b-dev/image-to-video",
-      "unit_price": 0.2,
-      "billing_unit": "videos",
-      "currency": "USD"
-    },
-    "fal.image_to_video.LtxVideoLoraImageToVideo": {
-      "endpoint_id": "fal-ai/ltx-video-lora/image-to-video",
       "unit_price": 0.2,
       "billing_unit": "videos",
       "currency": "USD"
@@ -3140,12 +3074,6 @@
       "billing_unit": "5 seconds",
       "currency": "USD"
     },
-    "fal.image_to_video.HunyuanVideoImg2vidLora": {
-      "endpoint_id": "fal-ai/hunyuan-video-img2vid-lora",
-      "unit_price": 0.3,
-      "billing_unit": "videos",
-      "currency": "USD"
-    },
     "fal.image_to_video.PixverseV35ImageToVideoFast": {
       "endpoint_id": "fal-ai/pixverse/v3.5/image-to-video/fast",
       "unit_price": 0.1,
@@ -3336,12 +3264,6 @@
       "endpoint_id": "openrouter/router/openai/v1/chat/completions",
       "unit_price": 0.01,
       "billing_unit": "units",
-      "currency": "USD"
-    },
-    "fal.llm.Qwen3Guard": {
-      "endpoint_id": "fal-ai/qwen-3-guard",
-      "unit_price": 0.002,
-      "billing_unit": "1000 tokens",
       "currency": "USD"
     },
     "fal.llm.RouterOpenaiV1Responses": {
@@ -4424,12 +4346,6 @@
       "billing_unit": "compute seconds",
       "currency": "USD"
     },
-    "fal.text_to_image.LayerDiffusion": {
-      "endpoint_id": "fal-ai/layer-diffusion",
-      "unit_price": 0.00125,
-      "billing_unit": "compute seconds",
-      "currency": "USD"
-    },
     "fal.text_to_image.FastLightningSdxl": {
       "endpoint_id": "fal-ai/fast-lightning-sdxl",
       "unit_price": 0.00125,
@@ -4754,12 +4670,6 @@
       "billing_unit": "compute seconds",
       "currency": "USD"
     },
-    "fal.text_to_video.AnimateDiffSparseCtrlLCM": {
-      "endpoint_id": "fal-ai/animatediff-sparsectrl-lcm",
-      "unit_price": 0.00125,
-      "billing_unit": "compute seconds",
-      "currency": "USD"
-    },
     "fal.text_to_video.VeedAvatarsTextToVideo": {
       "endpoint_id": "veed/avatars/text-to-video",
       "unit_price": 0.000575,
@@ -4866,12 +4776,6 @@
       "endpoint_id": "fal-ai/kandinsky5-pro/text-to-video",
       "unit_price": 0.2,
       "billing_unit": "videos",
-      "currency": "USD"
-    },
-    "fal.text_to_video.WanV26TextToVideo": {
-      "endpoint_id": "wan/v2.6/text-to-video",
-      "unit_price": 0.1,
-      "billing_unit": "seconds",
       "currency": "USD"
     },
     "fal.text_to_video.KlingVideoV26ProTextToVideo": {
@@ -5280,12 +5184,6 @@
       "endpoint_id": "fal-ai/hunyuan-video-lora",
       "unit_price": 0.4,
       "billing_unit": "",
-      "currency": "USD"
-    },
-    "fal.text_to_video.Transpixar": {
-      "endpoint_id": "fal-ai/transpixar",
-      "unit_price": 0.4,
-      "billing_unit": "videos",
       "currency": "USD"
     },
     "fal.text_to_video.KlingVideoV16StandardTextToVideo": {
@@ -5792,12 +5690,6 @@
       "billing_unit": "seconds",
       "currency": "USD"
     },
-    "fal.video_to_video.Scail": {
-      "endpoint_id": "fal-ai/scail",
-      "unit_price": 0.08,
-      "billing_unit": "seconds",
-      "currency": "USD"
-    },
     "fal.video_to_video.ClarityaiCrystalVideoUpscaler": {
       "endpoint_id": "clarityai/crystal-video-upscaler",
       "unit_price": 1,
@@ -6086,12 +5978,6 @@
       "billing_unit": "minutes",
       "currency": "USD"
     },
-    "fal.video_to_video.WanFunControl": {
-      "endpoint_id": "fal-ai/wan-fun-control",
-      "unit_price": 0.1,
-      "billing_unit": "seconds",
-      "currency": "USD"
-    },
     "fal.video_to_video.BriaVideoIncreaseResolution": {
       "endpoint_id": "bria/video/increase-resolution",
       "unit_price": 0.14,
@@ -6296,12 +6182,6 @@
       "billing_unit": "videos",
       "currency": "USD"
     },
-    "fal.video_to_video.LtxVideoLoraMulticonditioning": {
-      "endpoint_id": "fal-ai/ltx-video-lora/multiconditioning",
-      "unit_price": 0.2,
-      "billing_unit": "videos",
-      "currency": "USD"
-    },
     "fal.video_to_video.MagiExtendVideo": {
       "endpoint_id": "fal-ai/magi/extend-video",
       "unit_price": 0.2,
@@ -6378,12 +6258,6 @@
       "endpoint_id": "fal-ai/sync-lipsync",
       "unit_price": 0.7,
       "billing_unit": "minutes",
-      "currency": "USD"
-    },
-    "fal.video_to_video.Dubbing": {
-      "endpoint_id": "fal-ai/dubbing",
-      "unit_price": 1,
-      "billing_unit": "minute of video ",
       "currency": "USD"
     },
     "fal.video_to_video.Controlnext": {

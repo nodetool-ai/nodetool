@@ -2351,19 +2351,6 @@ export const config: ModuleConfig = {
       ]
     },
 
-    "fal-ai/layer-diffusion": {
-      className: "LayerDiffusion",
-      docstring: "SDXL with an alpha channel.",
-      tags: ["generation", "text-to-image", "txt2img", "ai-art"],
-      useCases: [
-        "AI-powered art generation",
-        "Marketing and advertising visuals",
-        "Concept art and ideation",
-        "Social media content creation",
-        "Rapid prototyping and mockups"
-      ]
-    },
-
     "fal-ai/fast-lightning-sdxl": {
       className: "FastLightningSdxl",
       docstring: "Run SDXL at the speed of light",
@@ -2402,7 +2389,6 @@ export const config: ModuleConfig = {
         "Rapid prototyping and mockups"
       ]
     },
-
 
     "fal-ai/fast-lcm-diffusion": {
       className: "FastLcmDiffusion",
@@ -2484,19 +2470,6 @@ export const config: ModuleConfig = {
       ]
     },
 
-    "fal-ai/diffusion-edge": {
-      className: "DiffusionEdge",
-      docstring: "Diffusion based high quality edge detection",
-      tags: ["generation", "text-to-image", "txt2img", "ai-art"],
-      useCases: [
-        "AI-powered art generation",
-        "Marketing and advertising visuals",
-        "Concept art and ideation",
-        "Social media content creation",
-        "Rapid prototyping and mockups"
-      ]
-    },
-
     "fal-ai/kling-image/o3/text-to-image": {
       className: "KlingImageO3TextToImage",
       docstring:
@@ -2565,7 +2538,14 @@ export const config: ModuleConfig = {
     "fal-ai/ernie-image/lora/turbo": {
       className: "ErnieImageLoraTurbo",
       docstring: "ERNIE Image Turbo with LoRA weights.",
-      tags: ["generation", "text-to-image", "txt2img", "ernie", "lora", "turbo"],
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "ernie",
+        "lora",
+        "turbo"
+      ],
       useCases: [
         "Automated content generation",
         "Creative workflows",
@@ -2649,7 +2629,848 @@ export const config: ModuleConfig = {
     "fal-ai/ideogram/custom-models/generate": {
       className: "IdeogramCustomModelsGenerate",
       docstring: "Generate images with a custom-trained Ideogram model.",
-      tags: ["generation", "text-to-image", "txt2img", "ideogram", "custom-model"],
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "ideogram",
+        "custom-model"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "bria/fibo-bbq-preview/generate": {
+      className: "FiboBbqPreviewGenerate",
+      docstring:
+        "A preview to the next level of control of Text-to-Image models.",
+      tags: ["generation", "text-to-image", "txt2img", "bria", "fibo", "bbq"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "bytedance/seedream/v5/lite/text-to-image": {
+      className: "SeedreamV5LiteTextToImage",
+      docstring:
+        "Text to Image endpoint for the fast Lite version of Seedream 5.0, supporting high quality intelligent text-to-image generation.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "bytedance",
+        "seedream",
+        "v5"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "bytedance/seedream/v5/pro/text-to-image": {
+      className: "SeedreamV5ProTextToImage",
+      docstring:
+        "ByteDance's Seedream 5.0 Pro is flagship text-to-image model, with deep-thinking prompt understanding, native text in 14 languages, and precise control over dense layouts and structured designs.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "bytedance",
+        "seedream",
+        "v5",
+        "pro"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/bitdance": {
+      className: "Bitdance",
+      docstring:
+        "Image generation with BitDance. Fast, high-resolution photorealistic images using an autoregressive LLM— for efficient, high-quality results.",
+      tags: ["generation", "text-to-image", "txt2img", "bitdance"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/boogu-image": {
+      className: "BooguImage",
+      docstring: "Text To Image Model using Boogu-Image",
+      tags: ["generation", "text-to-image", "txt2img", "boogu"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/flux-2/klein/4b/lora": {
+      className: "Flux2Klein4bLora",
+      docstring:
+        "Text-to-image generation with FLUX.2 [klein] 4B from Black Forest Labs and custom LoRA. Enhanced realism, crisper text generation, and native editing capabilities.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "flux",
+        "klein",
+        "4b",
+        "lora"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/flux-2/klein/9b/lora": {
+      className: "Flux2Klein9bLora",
+      docstring:
+        "Text-to-image generation with FLUX.2 [klein] 9B from Black Forest Labs and custom LoRA.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "flux",
+        "klein",
+        "9b",
+        "lora"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/gemini-3.1-flash-image-preview": {
+      className: "Gemini31FlashImagePreview",
+      docstring:
+        "Gemini 3.1 Flash Image (a.k.a Nano Banana 2) is Google's new state-of-the-art fast image generation and editing model",
+      tags: ["generation", "text-to-image", "txt2img", "gemini", "flash"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/hidream-o1-image": {
+      className: "HidreamO1Image",
+      docstring:
+        "Unified image generation with HiDream-O1-Image. Create, edit, and personalize high-resolution images up to 2K—single native model handles text-to-image, editing, and custom subjects without external components.",
+      tags: ["generation", "text-to-image", "txt2img", "hidream", "o1"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/hidream-o1-image/dev": {
+      className: "HidreamO1ImageDev",
+      docstring:
+        "Unified image generation with HiDream-O1-Image. Create, edit, and personalize high-resolution images up to 2K—single native model handles text-to-image, editing, and custom subjects without external components.",
+      tags: ["generation", "text-to-image", "txt2img", "hidream", "o1", "dev"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ideogram/v3/generate-transparent": {
+      className: "IdeogramV3GenerateTransparent",
+      docstring:
+        "Generate images with transparent backgrounds using Ideogram Transparent model",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "ideogram",
+        "transparent"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/kling-image/v3/text-to-image": {
+      className: "KlingImageV3TextToImage",
+      docstring: "Kling V3: Latest Kling Image model",
+      tags: ["generation", "text-to-image", "txt2img", "kling"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/krea-2/turbo": {
+      className: "Krea2Turbo",
+      docstring:
+        "Generate high-fidelity images from text in seconds with Krea 2 Turbo, the speed-optimized open-source version of Krea 2, preserving its aesthetic range for rapid ideation.",
+      tags: ["generation", "text-to-image", "txt2img", "krea", "turbo"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/krea-2/turbo/lora": {
+      className: "Krea2TurboLora",
+      docstring:
+        "Generate high-fidelity images from text with Krea 2 using a custom-trained LoRA. Apply your LoRA weights to carry a learned subject, character, or style into new generations, with aspect ratio, creativity, and seed controls.",
+      tags: ["generation", "text-to-image", "txt2img", "krea", "turbo", "lora"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/krea-2/turbo/style": {
+      className: "Krea2TurboStyle",
+      docstring:
+        "Generate high-fidelity images from text with Krea 2 using a style reference image. Apply a reference image to guide the visual style into new generations, with aspect ratio, creativity, and seed controls.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "krea",
+        "turbo",
+        "style"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/patina/material": {
+      className: "PatinaMaterial",
+      docstring:
+        "Generate complete seamlessly tiling PBR materials including normal, roughness, basecolor, height and metalness maps up to 8K",
+      tags: ["generation", "text-to-image", "txt2img", "patina", "material"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/phota": {
+      className: "Phota",
+      docstring:
+        "Phota's model empowers developers, photographers, and creators with personalized photograph generation and editing.",
+      tags: ["generation", "text-to-image", "txt2img", "phota"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/qwen-image-2/pro/text-to-image": {
+      className: "QwenImage2ProTextToImage",
+      docstring:
+        "Qwen-Image-2.0 is a next-generation foundational unified generation-and-editing model",
+      tags: ["generation", "text-to-image", "txt2img", "qwen", "pro"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/qwen-image-2/text-to-image": {
+      className: "QwenImage2TextToImage",
+      docstring:
+        "Qwen-Image-2.0 is a next-generation foundational unified generation-and-editing model",
+      tags: ["generation", "text-to-image", "txt2img", "qwen"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/recraft/v4.1/pro/text-to-image": {
+      className: "RecraftV41ProTextToImage",
+      docstring:
+        "Recraft V4.1 Pro pushes the V4.1 model into high-resolution territory — up to 2048×2048 and ultra-wide formats. Made for hero imagery, campaign work, and print, it preserves the same design taste at sizes ready for the final deliverable.",
+      tags: ["generation", "text-to-image", "txt2img", "recraft", "v4", "pro"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/recraft/v4.1/pro/text-to-vector": {
+      className: "RecraftV41ProTextToVector",
+      docstring:
+        "Recraft V4.1 Pro Vector generates large-format, fully editable SVGs with the structural clarity professional illustrators expect. Built for poster art, complex brand assets, and detailed scene illustration, it scales without losing geome...",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "recraft",
+        "v4",
+        "pro",
+        "vector"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/recraft/v4.1/text-to-image": {
+      className: "RecraftV41TextToImage",
+      docstring:
+        "Recraft V4.1 builds on the design-first foundation of V4 with sharper prompt control and cleaner composition. Tuned for brand systems and editorial work, it delivers production-ready raster images that hold up next to a designer's hand.",
+      tags: ["generation", "text-to-image", "txt2img", "recraft", "v4"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/recraft/v4.1/text-to-vector": {
+      className: "RecraftV41TextToVector",
+      docstring:
+        "Recraft V4.1 Vector turns prompts into fully editable SVGs with structured layers and clean geometry. Built for logos, icons, and illustration systems, it produces artwork that goes straight from generation into Figma or Illustrator.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "recraft",
+        "v4",
+        "vector"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/recraft/v4.1/utility/pro/text-to-image": {
+      className: "RecraftV41UtilityProTextToImage",
+      docstring:
+        "Recraft V4.1 Utility Pro pairs the high-resolution output of V4.1 Pro with a faster, cost-efficient runtime. Designed for studios shipping large-format work at scale, it makes premium-quality raster generation viable across full creative...",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "recraft",
+        "v4",
+        "utility",
+        "pro"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/recraft/v4.1/utility/text-to-image": {
+      className: "RecraftV41UtilityTextToImage",
+      docstring:
+        "Recraft V4.1 Utility is a faster, lighter variant of V4.1 made for high-volume creative workflows. Ideal for ideation, A/B exploration, and content pipelines, it keeps Recraft's design sensibility while optimizing for throughput and cost.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "recraft",
+        "v4",
+        "utility"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/recraft/v4/pro/text-to-image": {
+      className: "RecraftV4ProTextToImage",
+      docstring:
+        "Recraft V4 was developed with designers to bring true visual taste to AI image generation. Built for brand systems and production-ready workflows, it goes beyond prompt accuracy — delivering stronger composition, refined lighting, realis...",
+      tags: ["generation", "text-to-image", "txt2img", "recraft", "v4", "pro"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/recraft/v4/pro/text-to-vector": {
+      className: "RecraftV4ProTextToVector",
+      docstring:
+        "Recraft V4 was developed with designers to bring true visual taste to AI image generation. Built for brand systems and production-ready workflows, it goes beyond prompt accuracy — delivering stronger composition, refined lighting, realis...",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "recraft",
+        "v4",
+        "pro",
+        "vector"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/recraft/v4/text-to-image": {
+      className: "RecraftV4TextToImage",
+      docstring:
+        "Recraft V4 was developed with designers to bring true visual taste to AI image generation. Built for brand systems and production-ready workflows, it goes beyond prompt accuracy delivering stronger composition, refined lighting, realisti...",
+      tags: ["generation", "text-to-image", "txt2img", "recraft", "v4"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/recraft/v4/text-to-vector": {
+      className: "RecraftV4TextToVector",
+      docstring:
+        "Recraft V4 was developed with designers to bring true visual taste to AI image generation. Built for brand systems and production-ready workflows, it goes beyond prompt accuracy — delivering stronger composition, refined lighting, realis...",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "recraft",
+        "v4",
+        "vector"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/sensenova-u1-infographic": {
+      className: "SensenovaU1Infographic",
+      docstring: "Generate Infographic Image with Sensenova U1",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "sensenova",
+        "u1",
+        "infographic"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/vecglypher": {
+      className: "Vecglypher",
+      docstring:
+        "Vector font generation with VecGlypher. Create custom glyphs from text descriptions or reference images—outputs clean SVG paths directly without raster-to-vector conversion.",
+      tags: ["generation", "text-to-image", "txt2img", "vecglypher"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/wan/v2.7/pro/text-to-image": {
+      className: "WanV27ProTextToImage",
+      docstring:
+        "Generate premium-quality images from text prompts using the enhanced WAN 2.7 Pro model with superior detail and composition.",
+      tags: ["generation", "text-to-image", "txt2img", "wan", "pro"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/wan/v2.7/text-to-image": {
+      className: "WanV27TextToImage",
+      docstring:
+        "Generate high-quality images from text prompts using the WAN 2.7 model with advanced prompt understanding and detailed output.",
+      tags: ["generation", "text-to-image", "txt2img", "wan"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/z-image/turbo/tiling": {
+      className: "ZImageTurboTiling",
+      docstring:
+        "Generate seamlessly tiling photorealistic images from text using Z-Image Turbo",
+      tags: ["generation", "text-to-image", "txt2img", "turbo", "tiling"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/z-image/turbo/tiling/lora": {
+      className: "ZImageTurboTilingLora",
+      docstring:
+        "Generate seamlessly tiling photorealistic images from text using Z-Image Turbo and custom LoRA",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "turbo",
+        "tiling",
+        "lora"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "google/nano-banana-2-lite": {
+      className: "NanoBanana2Lite",
+      docstring:
+        "Nano banana lite is the efficiency-focused model in the image generation family. Sub-2 second latency with cost-effective generation and editing, fast multi-turn local edits, and 14 supported aspect ratios.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "google",
+        "nano",
+        "banana"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "google/nano-banana-lite": {
+      className: "NanoBananaLite",
+      docstring:
+        "Nano banana lite is the efficiency-focused model in the image generation family. Sub-2 second latency with cost-effective generation and editing, fast multi-turn local edits, and 14 supported aspect ratios.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "google",
+        "nano",
+        "banana"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "ideogram/v4": {
+      className: "IdeogramV4",
+      docstring:
+        "Generate high-quality images, posters, and logos with Ideogram's latest V4.0q — producing crisp visuals with accurate text rendering, fine detail, and full creative control for polished, ready-to-use designs.",
+      tags: ["generation", "text-to-image", "txt2img", "ideogram", "v4"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "ideogram/v4/fast": {
+      className: "IdeogramV4Fast",
+      docstring:
+        "Generate high-quality images, posters, and logos with Ideogram's latest V4.0q — producing crisp visuals with accurate text rendering, fine detail, and full creative control for polished, ready-to-use designs IN A SECOND.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "ideogram",
+        "v4",
+        "fast"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "ideogram/v4/instant": {
+      className: "IdeogramV4Instant",
+      docstring:
+        "Generate high-quality images, posters, and logos with Ideogram's latest V4.0q — producing crisp visuals with accurate text rendering, fine detail, and full creative control for polished, ready-to-use designs FRACTION OF A SECOND.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "ideogram",
+        "v4",
+        "instant"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "ideogram/v4/lora": {
+      className: "IdeogramV4Lora",
+      docstring:
+        "Generate high-quality images, posters, and logos with Ideogram's latest V4.0q using LoRA — producing crisp visuals with accurate text rendering, fine detail, and full creative control for polished, ready-to-use designs.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "ideogram",
+        "v4",
+        "lora"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "krea/v2/large/text-to-image": {
+      className: "KreaV2LargeTextToImage",
+      docstring:
+        "Generate high-fidelity images from text with Krea 2 Large, supporting aspect ratio, creativity, seed controls, and optional style references.",
+      tags: ["generation", "text-to-image", "txt2img", "krea", "large"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "krea/v2/medium/text-to-image": {
+      className: "KreaV2MediumTextToImage",
+      docstring:
+        "Generate high-quality images from text with Krea 2 Medium, supporting aspect ratio, creativity controls, seeds, and optional style references.",
+      tags: ["generation", "text-to-image", "txt2img", "krea", "medium"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "krea/v2/medium/turbo/text-to-image": {
+      className: "KreaV2MediumTurboTextToImage",
+      docstring:
+        "Generate high-fidelity images extremely fast from text with Krea 2 Medium Turbo, supporting aspect ratio, creativity, seed controls, and optional style references.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "krea",
+        "medium",
+        "turbo"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "luma/agent/uni-1/v1/max": {
+      className: "LumaAgentUni1V1Max",
+      docstring:
+        "Luma Uni-1 Max generates a single image at the model's highest fidelity, delivering richer detail and stronger prompt adherence than the base tier for hero-quality stills.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "luma",
+        "agent",
+        "uni",
+        "max"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "luma/agent/uni-1/v1/text-to-image": {
+      className: "LumaAgentUni1V1TextToImage",
+      docstring:
+        "Luma Uni-1 turns a text prompt into a single high-fidelity image, with control over aspect ratio and visual style, plus optional web-sourced and reference-image guidance for sharper grounding.",
+      tags: ["generation", "text-to-image", "txt2img", "luma", "agent", "uni"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "microsoft/mai-image-2.5": {
+      className: "MaiImage25",
+      docstring:
+        "MAI-Image-2.5 is Microsoft's photorealistic image generation and editing model that turns text prompts or uploaded images into high-quality, design-ready visuals with fine-grained, pixel-level control.",
+      tags: ["generation", "text-to-image", "txt2img", "microsoft", "mai"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "nvidia/cosmos-3-super/text-to-image": {
+      className: "Cosmos3SuperTextToImage",
+      docstring:
+        "Cosmos3 is a collection of Omnimodal world models capable of generating dynamic, high-quality video, image, audio, and action commands from combinations of text, image, video, and action trajectory inputs.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "nvidia",
+        "cosmos",
+        "super"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "reve/2.1/text-to-image": {
+      className: "Reve21TextToImage",
+      docstring:
+        "Generate high-quality images from text prompts with strong prompt adherence, layout intelligence, and accurate text rendering using Reve 2.1.",
+      tags: ["generation", "text-to-image", "txt2img", "reve"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "xai/grok-imagine-image": {
+      className: "GrokImagineImage",
+      docstring:
+        "Generate highly aesthetic images with xAI's Grok Imagine Image generation model.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "xai",
+        "grok",
+        "imagine"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "xai/grok-imagine-image/quality/text-to-image": {
+      className: "GrokImagineImageQualityTextToImage",
+      docstring:
+        "Grok Imagine Pro is an advanced AI model from xAI that creates high-quality visuals from text prompts and allows you to edit or analyze existing images.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "xai",
+        "grok",
+        "imagine",
+        "quality"
+      ],
       useCases: [
         "Automated content generation",
         "Creative workflows",

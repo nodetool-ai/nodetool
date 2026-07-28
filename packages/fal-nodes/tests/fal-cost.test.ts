@@ -11,7 +11,7 @@ import {
 const MEGAPIXELS = "fal.audio_to_video.Ltx219BDistilledAudioToVideoLora";
 const IMAGES = "fal.image_to_image.IdeogramV2Edit";
 const SECONDS = "fal.audio_to_audio.NovaSr";
-const GENERATIONS = "fal.3d_to_3d.Ultrashape";
+const GENERATIONS = "fal.3d_to_3d.MeshyV5Retexture";
 
 describe("estimateFalCost", () => {
   it("returns null for an unknown node type", () => {

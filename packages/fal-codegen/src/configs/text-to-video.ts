@@ -73,28 +73,6 @@ export const config: ModuleConfig = {
       ]
     },
 
-    "fal-ai/animatediff-sparsectrl-lcm": {
-      className: "AnimateDiffSparseCtrlLCM",
-      docstring:
-        "AnimateDiff SparseCtrl LCM animates drawings with latent consistency models for fast generation.",
-      tags: [
-        "video",
-        "generation",
-        "animatediff",
-        "sparsectrl",
-        "lcm",
-        "animation",
-        "text-to-video"
-      ],
-      useCases: [
-        "Animate hand-drawn sketches",
-        "Bring drawings to life",
-        "Create animated illustrations",
-        "Generate animations from concept art",
-        "Produce animation from sparse frames"
-      ]
-    },
-
     "veed/avatars/text-to-video": {
       className: "VeedAvatarsTextToVideo",
       docstring:
@@ -229,7 +207,6 @@ export const config: ModuleConfig = {
       ]
     },
 
-
     "fal-ai/mochi-v1": {
       className: "MochiV1",
       docstring:
@@ -250,7 +227,6 @@ export const config: ModuleConfig = {
         "Create unique visual content"
       ]
     },
-
 
     "fal-ai/stable-video": {
       className: "StableVideo",
@@ -286,10 +262,6 @@ export const config: ModuleConfig = {
         "Create efficient video workflows"
       ]
     },
-
-
-
-
 
     "fal-ai/luma-dream-machine": {
       className: "LumaDreamMachineTextToVideo",
@@ -332,13 +304,6 @@ export const config: ModuleConfig = {
         "Create realistic visual content"
       ]
     },
-
-
-
-
-
-
-
 
     "fal-ai/pixverse/v5.6/text-to-video": {
       className: "PixverseV56TextToVideo",
@@ -409,19 +374,6 @@ export const config: ModuleConfig = {
       className: "Kandinsky5ProTextToVideo",
       docstring: "Kandinsky5 Pro",
       tags: ["video", "generation", "text-to-video", "txt2vid", "professional"],
-      useCases: [
-        "AI-generated video content",
-        "Marketing and advertising videos",
-        "Educational content creation",
-        "Social media video posts",
-        "Automated video production"
-      ]
-    },
-
-    "wan/v2.6/text-to-video": {
-      className: "WanV26TextToVideo",
-      docstring: "Wan v2.6 Text to Video",
-      tags: ["video", "generation", "text-to-video", "txt2vid"],
       useCases: [
         "AI-generated video content",
         "Marketing and advertising videos",
@@ -1251,7 +1203,6 @@ export const config: ModuleConfig = {
       ]
     },
 
-
     "fal-ai/wan-t2v": {
       className: "WanT2v",
       docstring:
@@ -1341,20 +1292,6 @@ export const config: ModuleConfig = {
       docstring:
         "Hunyuan Video is an Open video generation model with high visual quality, motion diversity, text-video alignment, and generation stability",
       tags: ["video", "generation", "text-to-video", "txt2vid", "lora"],
-      useCases: [
-        "AI-generated video content",
-        "Marketing and advertising videos",
-        "Educational content creation",
-        "Social media video posts",
-        "Automated video production"
-      ]
-    },
-
-    "fal-ai/transpixar": {
-      className: "Transpixar",
-      docstring:
-        "Transform text into stunning videos with TransPixar - an AI model that generates both RGB footage and alpha channels, enabling seamless compositing and creative video effects.",
-      tags: ["video", "generation", "text-to-video", "txt2vid"],
       useCases: [
         "AI-generated video content",
         "Marketing and advertising videos",
@@ -1545,7 +1482,14 @@ export const config: ModuleConfig = {
     "bytedance/seedance-2.0/fast/text-to-video": {
       className: "BytedanceSeedance20FastTextToVideo",
       docstring: "Fast text-to-video with ByteDance Seedance 2.0.",
-      tags: ["generation", "text-to-video", "txt2vid", "seedance", "bytedance", "fast"],
+      tags: [
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "seedance",
+        "bytedance",
+        "fast"
+      ],
       useCases: [
         "Automated content generation",
         "Creative workflows",
@@ -1557,7 +1501,13 @@ export const config: ModuleConfig = {
     "alibaba/happy-horse/text-to-video": {
       className: "AlibabaHappyHorseTextToVideo",
       docstring: "Generate videos from text with Alibaba Happy Horse.",
-      tags: ["generation", "text-to-video", "txt2vid", "happy-horse", "alibaba"],
+      tags: [
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "happy-horse",
+        "alibaba"
+      ],
       useCases: [
         "Automated content generation",
         "Creative workflows",
@@ -1594,6 +1544,451 @@ export const config: ModuleConfig = {
       className: "HeygenV3VideoAgent",
       docstring: "HeyGen v3 Video Agent: generate avatar videos from text.",
       tags: ["generation", "text-to-video", "txt2vid", "heygen", "avatar"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "alibaba/happy-horse/v1.1/text-to-video": {
+      className: "HappyHorseV11TextToVideo",
+      docstring:
+        "Happy Horse 1.1 is Alibaba's #1-ranked video model. This text-to-video endpoint generates 1080p video with synchronized native audio and multilingual lip-sync from a text prompt alone.",
+      tags: [
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "alibaba",
+        "happy",
+        "horse"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "bytedance/seedance-2.0/mini/text-to-video": {
+      className: "Seedance20MiniTextToVideo",
+      docstring:
+        "Seedance 2.0 Mini is a faster version of Seedance 2.0 that brings great performance and high generation speed at a lower cost.",
+      tags: [
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "bytedance",
+        "seedance",
+        "mini"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/bernini-r/text-to-video": {
+      className: "BerniniRTextToVideo",
+      docstring:
+        "Generate high-quality video from a text prompt with Bernini-R, ByteDance's unified video generation and editing model.",
+      tags: ["generation", "text-to-video", "txt2vid", "bernini"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/cosmos-predict-2.5/distilled/text-to-video": {
+      className: "CosmosPredict25DistilledTextToVideo",
+      docstring:
+        "Generate video from text and videos using NVIDIA's 2B Cosmos Distilled Model",
+      tags: [
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "cosmos",
+        "predict",
+        "distilled"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/cosmos-predict-2.5/text-to-video": {
+      className: "CosmosPredict25TextToVideo",
+      docstring:
+        "Generate video from text using NVIDIA's 2B Cosmos Post-Trained Model",
+      tags: ["generation", "text-to-video", "txt2vid", "cosmos", "predict"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/heygen/avatar3/digital-twin": {
+      className: "HeygenAvatar3DigitalTwin",
+      docstring: "Heygen Avatar V3 Model for Digital Twin",
+      tags: [
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "heygen",
+        "avatar3",
+        "digital",
+        "twin"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/heygen/avatar4/digital-twin": {
+      className: "HeygenAvatar4DigitalTwin",
+      docstring: "Heygen Avatar 4 Digital Twin Model",
+      tags: [
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "heygen",
+        "avatar4",
+        "digital",
+        "twin"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/heygen/avatar5/digital-twin": {
+      className: "HeygenAvatar5DigitalTwin",
+      docstring:
+        "Create natural HeyGen Avatar V digital twin videos from text or audio, with lip-sync, optional backgrounds, captions, and MP4/WebM output.",
+      tags: [
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "heygen",
+        "avatar5",
+        "digital",
+        "twin"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/heygen/v2/video-agent": {
+      className: "HeygenV2VideoAgent",
+      docstring: "Heygen Text to Video Generation Model",
+      tags: ["generation", "text-to-video", "txt2vid", "heygen", "agent"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/kling-video/v3/turbo/pro/text-to-video": {
+      className: "KlingVideoV3TurboProTextToVideo",
+      docstring:
+        "Generate high quality 1080p videos using Kling's Turbo 3.0 model, with improved lipsync and multishot generation capabilities.",
+      tags: ["generation", "text-to-video", "txt2vid", "kling", "turbo", "pro"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/kling-video/v3/turbo/standard/text-to-video": {
+      className: "KlingVideoV3TurboStandardTextToVideo",
+      docstring:
+        "Kling 3.0 Turbo Standard is a fast, cost-efficient video generation model that turns text prompts directly into 720P video with native audio, optimized for rapid iteration and high-volume production",
+      tags: [
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "kling",
+        "turbo",
+        "standard"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-22b/distilled/text-to-video": {
+      className: "Ltx2322bDistilledTextToVideo",
+      docstring: "Generate video with audio from text using LTX-2.3 Distilled",
+      tags: [
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "ltx",
+        "22b",
+        "distilled"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-22b/distilled/text-to-video/lora": {
+      className: "Ltx2322bDistilledTextToVideoLora",
+      docstring:
+        "Generate video with audio from text using LTX-2.3 Distilled and custom LoRA",
+      tags: [
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "ltx",
+        "22b",
+        "distilled",
+        "lora"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-22b/text-to-video": {
+      className: "Ltx2322bTextToVideo",
+      docstring: "Generate video with audio from text using LTX-2.3",
+      tags: ["generation", "text-to-video", "txt2vid", "ltx", "22b"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-22b/text-to-video/lora": {
+      className: "Ltx2322bTextToVideoLora",
+      docstring:
+        "Generate video with audio from text using LTX-2.3 and custom LoRA",
+      tags: ["generation", "text-to-video", "txt2vid", "ltx", "22b", "lora"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/text-to-video": {
+      className: "Ltx23QualityTextToVideo",
+      docstring:
+        "Generate high-quality video with audio from text using LTX-2.3",
+      tags: ["generation", "text-to-video", "txt2vid", "ltx", "quality"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/text-to-video/lora": {
+      className: "Ltx23QualityTextToVideoLora",
+      docstring:
+        "Generate high-quality video with audio from text using LTX-2.3 and custom LoRA",
+      tags: [
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "ltx",
+        "quality",
+        "lora"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3/text-to-video": {
+      className: "Ltx23TextToVideo",
+      docstring:
+        "LTX-2.3 is a high-quality, fast AI video model available in Pro and Fast variants for text-to-video, image-to-video, and audio-to-video.",
+      tags: ["generation", "text-to-video", "txt2vid", "ltx"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3/text-to-video/fast": {
+      className: "Ltx23TextToVideoFast",
+      docstring:
+        "LTX-2.3 is a high-quality, fast AI video model available in Pro and Fast variants for text-to-video, image-to-video, and audio-to-video.",
+      tags: ["generation", "text-to-video", "txt2vid", "ltx", "fast"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/pixverse/c1/text-to-video": {
+      className: "PixverseC1TextToVideo",
+      docstring:
+        "Generate film-grade videos from text prompts with native audio, up to 1080p and 15 seconds, using PixVerse C1.",
+      tags: ["generation", "text-to-video", "txt2vid", "pixverse", "c1"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/pixverse/v6/text-to-video": {
+      className: "PixverseV6TextToVideo",
+      docstring: "Pixverse's latest v6 Model.",
+      tags: ["generation", "text-to-video", "txt2vid", "pixverse", "v6"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/veo3.1/lite": {
+      className: "Veo31Lite",
+      docstring:
+        "Veo 3.1 Lite balances practical utility with professional capabilities, supporting Text-to-Video and Image-to-Video",
+      tags: ["generation", "text-to-video", "txt2vid", "veo3"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/vidu/q3/text-to-video": {
+      className: "ViduQ3TextToVideo",
+      docstring: "Vidu's latest Q3 pro models",
+      tags: ["generation", "text-to-video", "txt2vid", "vidu", "q3"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/vidu/q3/text-to-video/turbo": {
+      className: "ViduQ3TextToVideoTurbo",
+      docstring: "Vidu's Q3 Turbo Model.",
+      tags: ["generation", "text-to-video", "txt2vid", "vidu", "q3", "turbo"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/wan/v2.7/text-to-video": {
+      className: "WanV27TextToVideo",
+      docstring:
+        "Wan 2.7 is the latest generation AI video model, delivering enhanced motion smoothness, superior scene fidelity, and greater visual coherence.",
+      tags: ["generation", "text-to-video", "txt2vid", "wan"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "google/gemini-omni-flash": {
+      className: "GeminiOmniFlash",
+      docstring:
+        "Creates video with synchronized audio from text input. Grounded in Gemini's real-world knowledge, with improved physics understanding for more coherent motion and interaction.",
+      tags: [
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "google",
+        "gemini",
+        "omni",
+        "flash"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "luma/agent/ray/v3.2/text-to-video": {
+      className: "LumaAgentRayV32TextToVideo",
+      docstring:
+        "Luma Ray 3.2 generates cinematic video from a text prompt, with control over resolution, duration, and seamless looping, plus reference images to lock in subject and style.",
+      tags: ["generation", "text-to-video", "txt2vid", "luma", "agent", "ray"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "xai/grok-imagine-video/text-to-video": {
+      className: "GrokImagineVideoTextToVideo",
+      docstring:
+        "Generate videos with audio from text using Grok Imagine Video.",
+      tags: [
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "xai",
+        "grok",
+        "imagine"
+      ],
       useCases: [
         "Automated content generation",
         "Creative workflows",

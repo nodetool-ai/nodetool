@@ -455,6 +455,65 @@ export const config: ModuleConfig = {
         "Professional applications",
         "Rapid prototyping"
       ]
+    },
+    "fal-ai/marlin": {
+      className: "Marlin",
+      docstring:
+        "Marlin is a 2B video VLM tuned for the two questions developers actually want to ask of their videos: what is happening, and when?",
+      tags: ["vision", "image-understanding", "analysis", "marlin"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/marlin/find": {
+      className: "MarlinFind",
+      docstring:
+        "Marlin is a 2B video VLM tuned for the two questions developers actually want to ask of their videos: what is happening, and when?",
+      tags: ["vision", "image-understanding", "analysis", "marlin", "find"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/nemotron-diffusion-vlm": {
+      className: "NemotronDiffusionVlm",
+      docstring:
+        "Nemotron-Labs-Diffusion-VLM-8B is the vision-language extension of the Nemotron-Labs-Diffusion family.",
+      tags: [
+        "vision",
+        "image-understanding",
+        "analysis",
+        "nemotron",
+        "diffusion",
+        "vlm"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/scene-finder": {
+      className: "SceneFinder",
+      docstring:
+        "Search any video with a text prompt - Scene Finder locates the matching moments and returns their time segments and extracted frames.",
+      tags: ["vision", "image-understanding", "analysis", "scene", "finder"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
     }
   }
 };

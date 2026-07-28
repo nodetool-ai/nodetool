@@ -28,19 +28,6 @@ export const config: ModuleConfig = {
         "Text classification"
       ]
     },
-    "bria/fibo-lite/generate/structured_prompt/lite": {
-      className: "BriaFiboLiteGenerateStructured_promptLite",
-      docstring:
-        "Structured Prompt Generation endpoint for Fibo-Lite, Bria's SOTA Open source model",
-      tags: ["text", "analysis", "json", "extraction"],
-      useCases: [
-        "Text analysis to structured data",
-        "Content extraction",
-        "Data structuring",
-        "Information extraction",
-        "Text classification"
-      ]
-    },
     "bria/fibo/generate/structured_prompt": {
       className: "BriaFiboGenerateStructured_prompt",
       docstring:

@@ -22,7 +22,7 @@ import {
 const STRING_INPUT = "nodetool.input.StringInput";
 const SEEDANCE = "fal.text_to_video.BytedanceSeedance20TextToVideo";
 const SEEDANCE_FAST = "fal.text_to_video.BytedanceSeedance20FastTextToVideo";
-const WAN_26 = "fal.text_to_video.WanV26TextToVideo";
+const WAN_27 = "fal.text_to_video.WanV27TextToVideo";
 const WAN_25 = "fal.text_to_video.Wan25PreviewTextToVideo";
 
 const WF = "wf-promo-trailer";
@@ -55,7 +55,7 @@ const nodes = [
     value: BRIEF,
   }),
   node("seedance", SEEDANCE, 480, 40, 320, "Seedance 2.0", { prompt: BRIEF }),
-  node("wan26", WAN_26, 880, 40, 320, "Wan 2.6", { prompt: BRIEF }),
+  node("wan27", WAN_27, 880, 40, 320, "Wan 2.7", { prompt: BRIEF }),
   node("seedanceFast", SEEDANCE_FAST, 480, 560, 320, "Seedance 2.0 Fast", {
     prompt: BRIEF,
   }),
@@ -64,7 +64,7 @@ const nodes = [
 
 const edges = [
   edge("e-seedance", "brief", "output", "seedance", "prompt"),
-  edge("e-wan26", "brief", "output", "wan26", "prompt"),
+  edge("e-wan27", "brief", "output", "wan27", "prompt"),
   edge("e-seedanceFast", "brief", "output", "seedanceFast", "prompt"),
   edge("e-wan25", "brief", "output", "wan25", "prompt"),
 ];
@@ -79,7 +79,7 @@ const unsortedEvents: CastEvent[] = [
     output: BRIEF,
   }),
   m.edgeUpdate(1200, "e-seedance", "active"),
-  m.edgeUpdate(1350, "e-wan26", "active"),
+  m.edgeUpdate(1350, "e-wan27", "active"),
   m.edgeUpdate(1500, "e-seedanceFast", "active"),
   m.edgeUpdate(1650, "e-wan25", "active"),
 
@@ -87,13 +87,13 @@ const unsortedEvents: CastEvent[] = [
   // fills up: the Fast variant lands first, the big models take longer.
   m.nodeUpdate(1800, "seedance", "Seedance 2.0", SEEDANCE, "running"),
   m.nodeUpdate(2050, "seedanceFast", "Seedance 2.0 Fast", SEEDANCE_FAST, "running"),
-  m.nodeUpdate(2300, "wan26", "Wan 2.6", WAN_26, "running"),
+  m.nodeUpdate(2300, "wan27", "Wan 2.7", WAN_27, "running"),
   m.nodeUpdate(2550, "wan25", "Wan 2.5 Preview", WAN_25, "running"),
 
   ...m.progress("seedanceFast", 12, 2600, 2700),
   ...m.progress("wan25", 14, 2800, 3400),
   ...m.progress("seedance", 16, 3000, 4000),
-  ...m.progress("wan26", 16, 3200, 4600),
+  ...m.progress("wan27", 16, 3200, 4600),
 
   m.nodeUpdate(5400, "seedanceFast", "Seedance 2.0 Fast", SEEDANCE_FAST, "completed", {
     output: WHEEL,
@@ -110,13 +110,13 @@ const unsortedEvents: CastEvent[] = [
   }),
   m.edgeUpdate(7300, "e-seedance", "completed"),
 
-  m.nodeUpdate(7900, "wan26", "Wan 2.6", WAN_26, "completed", {
+  m.nodeUpdate(7900, "wan27", "Wan 2.7", WAN_27, "completed", {
     output: RIDER,
   }),
-  m.edgeUpdate(8100, "e-wan26", "completed"),
+  m.edgeUpdate(8100, "e-wan27", "completed"),
 
   m.jobUpdate(8400, "completed", {
-    outputs: { seedance: DRIFT, seedanceFast: WHEEL, wan26: RIDER, wan25: SPARKS },
+    outputs: { seedance: DRIFT, seedanceFast: WHEEL, wan27: RIDER, wan25: SPARKS },
   }),
 ];
 
@@ -134,7 +134,7 @@ export const promoTrailerCast: DemoCast = {
   workflow: cookbookWorkflow(
     WF,
     "Trailer takes",
-    "Shot brief → Seedance 2.0 + Seedance 2.0 Fast + Wan 2.6 + Wan 2.5, in parallel.",
+    "Shot brief → Seedance 2.0 + Seedance 2.0 Fast + Wan 2.7 + Wan 2.5, in parallel.",
     nodes,
     edges
   ),
@@ -142,7 +142,7 @@ export const promoTrailerCast: DemoCast = {
     [STRING_INPUT]: stringInputMeta(),
     [SEEDANCE]: videoNodeMeta(SEEDANCE, "Seedance 2.0"),
     [SEEDANCE_FAST]: videoNodeMeta(SEEDANCE_FAST, "Seedance 2.0 Fast"),
-    [WAN_26]: videoNodeMeta(WAN_26, "Wan 2.6"),
+    [WAN_27]: videoNodeMeta(WAN_27, "Wan 2.7"),
     [WAN_25]: videoNodeMeta(WAN_25, "Wan 2.5 Preview"),
   },
   events,

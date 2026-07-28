@@ -192,26 +192,6 @@ export const config: ModuleConfig = {
         "Create dependable audio content"
       ]
     },
-    "fal-ai/xtts": {
-      className: "XTTS",
-      docstring:
-        "XTTS generates expressive speech with voice cloning capabilities.",
-      tags: [
-        "audio",
-        "tts",
-        "speech",
-        "voice-cloning",
-        "expressive",
-        "text-to-speech"
-      ],
-      useCases: [
-        "Clone and generate voices",
-        "Create personalized speech",
-        "Produce voice-matched content",
-        "Generate custom voice audio",
-        "Create voice replications"
-      ]
-    },
     "fal-ai/minimax-music/v2": {
       className: "MinimaxMusicV2",
       docstring: "Minimax Music",
@@ -270,30 +250,6 @@ export const config: ModuleConfig = {
         "Batch processing",
         "Professional applications",
         "Rapid prototyping"
-      ]
-    },
-    "sonauto/v2/inpaint": {
-      className: "SonautoV2Inpaint",
-      docstring: "Sonauto V2",
-      tags: ["audio", "generation", "text-to-audio", "tts"],
-      useCases: [
-        "Automated content generation",
-        "Creative workflows",
-        "Batch processing",
-        "Professional applications",
-        "Rapid prototyping"
-      ]
-    },
-    "sonauto/v2/text-to-music": {
-      className: "SonautoV2TextToMusic",
-      docstring: "Create full songs in any style",
-      tags: ["audio", "generation", "text-to-audio", "sound"],
-      useCases: [
-        "Sound effect generation",
-        "Music composition",
-        "Audio content creation",
-        "Background music generation",
-        "Podcast audio production"
       ]
     },
     "fal-ai/lyria2": {
@@ -520,6 +476,240 @@ export const config: ModuleConfig = {
       className: "MinimaxMusicV26",
       docstring: "MiniMax Music v2.6: text-to-music generation.",
       tags: ["audio", "music", "text-to-audio", "minimax"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "bytedance/seed-audio-1.0": {
+      className: "SeedAudio10",
+      docstring:
+        "Seed Audio 1.0 is a new audio model from Bytedance that can generate high-quality, natural sounding audio using text, reference audios or an image.",
+      tags: ["generation", "text-to-audio", "audio", "bytedance", "seed"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/gemini-tts": {
+      className: "GeminiTts",
+      docstring: "Use Gemini TTS Models to convert your prompts to real audio.",
+      tags: ["generation", "text-to-audio", "audio", "gemini", "tts"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/text-to-audio": {
+      className: "Ltx23QualityTextToAudio",
+      docstring: "Text to Audio high-quality using LTX-2.3",
+      tags: ["generation", "text-to-audio", "audio", "ltx", "quality"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/text-to-audio/lora": {
+      className: "Ltx23QualityTextToAudioLora",
+      docstring: "Text to Audio high-quality using LTX-2.3 with Lora",
+      tags: ["generation", "text-to-audio", "audio", "ltx", "quality", "lora"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/lyria3": {
+      className: "Lyria3",
+      docstring: "Lyria 3 is most recent music model from Google",
+      tags: ["generation", "text-to-audio", "audio", "lyria3"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/lyria3/pro": {
+      className: "Lyria3Pro",
+      docstring: "Lyria 3 Pro is the latest music model from Google",
+      tags: ["generation", "text-to-audio", "audio", "lyria3", "pro"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/stable-audio-3/medium/base/text-to-audio": {
+      className: "StableAudio3MediumBaseTextToAudio",
+      docstring:
+        "Stable Audio 3 Medium Base is the foundational 1.4 billion parameter text-to-audio checkpoint generating stereo music up to 6 minutes, intended as the unmodified base for custom fine-tuning workflows.",
+      tags: [
+        "generation",
+        "text-to-audio",
+        "audio",
+        "stable",
+        "medium",
+        "base"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/stable-audio-3/medium/text-to-audio": {
+      className: "StableAudio3MediumTextToAudio",
+      docstring:
+        "Stable Audio 3 Medium is a 1.4 billion parameter latent diffusion model that generates high-quality stereo music up to 6 minutes from text prompts, trained on fully licensed data for safe commercial use.",
+      tags: ["generation", "text-to-audio", "audio", "stable", "medium"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/stable-audio-3/small/music/base/text-to-audio": {
+      className: "StableAudio3SmallMusicBaseTextToAudio",
+      docstring:
+        "Stable Audio 3 Small Music Base is the foundational 459 million parameter checkpoint generating full music compositions up to 2 minutes from text prompts, intended as the unmodified base for fine-tuning.",
+      tags: [
+        "generation",
+        "text-to-audio",
+        "audio",
+        "stable",
+        "small",
+        "music",
+        "base"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/stable-audio-3/small/music/text-to-audio": {
+      className: "StableAudio3SmallMusicTextToAudio",
+      docstring:
+        "Stable Audio 3 Small Music is a 459 million parameter latent diffusion model that generates full stereo music compositions up to 2 minutes from text prompts, lightweight enough for on-device deployment.",
+      tags: [
+        "generation",
+        "text-to-audio",
+        "audio",
+        "stable",
+        "small",
+        "music"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/stable-audio-3/small/sfx/base/text-to-audio": {
+      className: "StableAudio3SmallSfxBaseTextToAudio",
+      docstring:
+        "Stable Audio 3 Small SFX Base is the foundational 459 million parameter checkpoint generating sound effects from text prompts, intended as the unmodified base for fine-tuning.",
+      tags: [
+        "generation",
+        "text-to-audio",
+        "audio",
+        "stable",
+        "small",
+        "sfx",
+        "base"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/stable-audio-3/small/sfx/text-to-audio": {
+      className: "StableAudio3SmallSfxTextToAudio",
+      docstring:
+        "Stable Audio 3 Small SFX is a 459 million parameter latent diffusion model that generates high-quality sound effects from text prompts, designed for on-device deployment on mobile phones and consumer laptops.",
+      tags: ["generation", "text-to-audio", "audio", "stable", "small", "sfx"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "mirelo-ai/sfx1.6/text-to-audio": {
+      className: "Sfx16TextToAudio",
+      docstring:
+        "Generate ambient sounds for any text prompt. Now you can turn any SFX into a natural loop for ambient soundscapes.",
+      tags: [
+        "generation",
+        "text-to-audio",
+        "audio",
+        "mirelo",
+        "sfx1",
+        "mirelo-ai"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "sonilo/v1.1/text-to-music": {
+      className: "SoniloV11TextToMusic",
+      docstring:
+        "Generates licensed, commercial-use-safe music from a single text prompt, with full control over style, mood, instrumentation, and exact duration.",
+      tags: ["generation", "text-to-audio", "audio", "sonilo", "music"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "sonilo/v1.1/text-to-sound-effects": {
+      className: "SoniloV11TextToSoundEffects",
+      docstring:
+        "Generates high-quality, commercial-use-safe sound effects from a text prompt, with full control over type, texture, intensity, and exact duration.",
+      tags: [
+        "generation",
+        "text-to-audio",
+        "audio",
+        "sonilo",
+        "sound",
+        "effects"
+      ],
       useCases: [
         "Automated content generation",
         "Creative workflows",

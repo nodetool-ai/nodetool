@@ -52,6 +52,39 @@ export const config: ModuleConfig = {
         "Music extraction",
         "Sound effect isolation"
       ]
+    },
+    "sonilo/v1.1/video-to-music": {
+      className: "SoniloV11VideoToMusic",
+      docstring:
+        "Analyzes your video’s pacing, mood, and timing to generate a frame-synced, licensed, commercial-use-safe soundtrack in seconds.",
+      tags: ["extraction", "video-to-audio", "audio", "sonilo", "music"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "sonilo/v1.1/video-to-sound-effects": {
+      className: "SoniloV11VideoToSoundEffects",
+      docstring:
+        "Analyzes a video and generates synchronized, royalty-free sound effects timed to visible actions. Returns the generated sound-effects audio track for commercial use.",
+      tags: [
+        "extraction",
+        "video-to-audio",
+        "audio",
+        "sonilo",
+        "sound",
+        "effects"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
     }
   }
 };
