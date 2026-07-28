@@ -9,7 +9,13 @@
  * never create or delete the underlying asset — they only write the marker.
  */
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseMutationResult,
+  type UseQueryResult
+} from "@tanstack/react-query";
 import type { Entity, EntityKind } from "@nodetool-ai/protocol";
 import type { Asset } from "../stores/ApiTypes";
 import { trpcClient } from "../trpc/client";
@@ -88,7 +94,7 @@ export function assetToEntity(asset: Asset): Entity | null {
 }
 
 /** Fetch all assets tagged as entities, mapped to {@link Entity} objects. */
-export function useEntities() {
+export function useEntities(): UseQueryResult<Entity[], Error> {
   return useQuery({
     queryKey: ENTITIES_QUERY_KEY,
     queryFn: async (): Promise<Entity[]> => {
@@ -123,7 +129,11 @@ export interface SaveEntityInput {
 }
 
 /** Tag (or re-tag) an existing image asset as an entity. */
-export function useSaveEntity() {
+export function useSaveEntity(): UseMutationResult<
+  Entity | null,
+  Error,
+  SaveEntityInput
+> {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: SaveEntityInput): Promise<Entity | null> => {
@@ -154,7 +164,7 @@ export function useSaveEntity() {
 }
 
 /** Remove the entity marker from an asset. The asset itself is left intact. */
-export function useDeleteEntity() {
+export function useDeleteEntity(): UseMutationResult<void, Error, string> {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (assetId: string): Promise<void> => {

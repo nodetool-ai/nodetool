@@ -5,7 +5,11 @@
  * lodash dependency can be removed from the web package.
  */
 
-interface DebouncedFunction<T extends (...args: any[]) => void> {
+// Parameters are contravariant, so `never[]` accepts every argument list
+// without `any` leaking into the inferred `Parameters<T>`.
+type AnyVoidFn = (...args: never[]) => void;
+
+interface DebouncedFunction<T extends AnyVoidFn> {
   (...args: Parameters<T>): void;
   cancel(): void;
 }
@@ -15,7 +19,7 @@ interface DebouncedFunction<T extends (...args: any[]) => void> {
  * milliseconds have elapsed since the last call.  Calling `.cancel()` on the
  * returned function clears any pending timeout.
  */
-export function debounce<T extends (...args: any[]) => void>(
+export function debounce<T extends AnyVoidFn>(
   fn: T,
   ms: number
 ): DebouncedFunction<T> {
@@ -42,7 +46,7 @@ export function debounce<T extends (...args: any[]) => void>(
   return debounced;
 }
 
-interface ThrottledFunction<T extends (...args: any[]) => void> {
+interface ThrottledFunction<T extends AnyVoidFn> {
   (...args: Parameters<T>): void;
   cancel(): void;
 }
@@ -53,7 +57,7 @@ interface ThrottledFunction<T extends (...args: any[]) => void> {
  * window are deferred to the end of the window.  `.cancel()` clears any
  * pending trailing invocation.
  */
-export function throttle<T extends (...args: any[]) => void>(
+export function throttle<T extends AnyVoidFn>(
   fn: T,
   ms: number
 ): ThrottledFunction<T> {
