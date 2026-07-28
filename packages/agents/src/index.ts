@@ -375,6 +375,11 @@ export {
   DEFAULT_MAX_AGENT_CALLS
 } from "./script-runner.js";
 export type { ScriptRunnerOptions } from "./script-runner.js";
+export {
+  PlanOrchestrationScriptTool,
+  DEFAULT_TOOL_MAX_AGENT_CALLS
+} from "./tools/plan-orchestration-script-tool.js";
+export type { PlanOrchestrationScriptToolOptions } from "./tools/plan-orchestration-script-tool.js";
 
 // GraphPlanner evaluation harness
 export {

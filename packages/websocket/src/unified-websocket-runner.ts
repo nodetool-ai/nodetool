@@ -105,7 +105,8 @@ import { Tool } from "@nodetool-ai/agents";
 import {
   RunSubtaskTool,
   RunSearchTool,
-  PlanWorkflowGraphTool
+  PlanWorkflowGraphTool,
+  PlanOrchestrationScriptTool
 } from "@nodetool-ai/agents";
 import {
   ToolSearchTool,
@@ -1160,10 +1161,16 @@ const CHAT_AGENT_SYSTEM_PROMPT = `You are NodeTool's chat assistant. Reply in cl
   read each other's results; sequence dependent work across turns.
 - Subtasks can themselves call \`run_subtask\` (bounded recursion). Don't
   decompose work that you could just do directly.
+- When the shape of the work needs control flow a flat list of subtasks
+  cannot express — fan-out over a list whose size you learn at runtime,
+  loop-until-done, per-item pipelines, budget-scaled depth — call
+  \`plan_orchestration_script\` instead. It writes ONE JavaScript script
+  coordinating sub-agents (\`agent\`, \`parallel\`, \`pipeline\`, \`budget\`)
+  and runs it; progress streams to the user.
 
 # Your toolbelt
 You start with a resident core, always available without loading:
-- Delegation: \`run_subtask\` (and \`run_search\`).
+- Delegation: \`run_subtask\`, \`plan_orchestration_script\` (and \`run_search\`).
 - Nodes and workflows: \`run_node\`, \`run_workflow\`, \`search_nodes\`,
   \`list_nodes\`, \`get_node_info\`, \`list_workflows\`, \`get_workflow\`.
 - Workflow building: \`plan_workflow_graph\`, \`validate_workflow\`,
@@ -1272,6 +1279,7 @@ const RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
   // Delegation primitives.
   "run_subtask",
   "run_search",
+  "plan_orchestration_script",
   // Node + workflow discovery and execution — the bread-and-butter toolbelt.
   "search_nodes",
   "get_node_info",
@@ -4443,6 +4451,20 @@ export class UnifiedWebSocketRunner {
           model,
           parentTools: () => baseTools,
           forwardMessage: forwardSubtaskMessage
+        })
+      );
+
+      // Code-shaped orchestration: the ScriptPlanner writes a script, the
+      // ScriptRunner executes it, and every `agent()` call inside runs on the
+      // same gated toolset as a subtask. Shares the subtask forwarder so
+      // planner progress and sub-agent events nest under this tool's card.
+      serverTools.unshift(
+        new PlanOrchestrationScriptTool({
+          provider,
+          model,
+          parentTools: () => baseTools,
+          forwardMessage: forwardSubtaskMessage,
+          signal: () => this.chatAbort?.signal
         })
       );
 

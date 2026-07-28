@@ -124,6 +124,7 @@ export type MsgpackData =
   | TaskUpdate
   | TodoUpdate
   | PlanningUpdate
+  | LogUpdate
   | OutputUpdate
   | StepResult
   | WorkflowCreatedUpdate
@@ -1355,6 +1356,28 @@ export async function handleChatWebSocketMessage(
     applyReducer(applyOutputUpdate, data);
   } else if (data.type === "tool_call_update") {
     applyReducer(applyToolCallUpdate, data);
+  } else if (data.type === "planning_update") {
+    // Server-side planners (plan_workflow_graph, plan_orchestration_script)
+    // forward their progress as bare events rather than agent_execution
+    // messages, so drive the thread runtime directly.
+    if (tid) {
+      set((state) => threadRuntimeUpdate(state, tid, { planningUpdate: data }));
+    }
+  } else if (data.type === "task_update") {
+    if (tid) {
+      const taskUpdate = data;
+      set((state) => ({
+        ...threadRuntimeUpdate(state, tid, { taskUpdate }),
+        lastTaskUpdatesByThread: {
+          ...state.lastTaskUpdatesByThread,
+          [tid]: taskUpdate
+        }
+      }));
+    }
+  } else if (data.type === "log_update") {
+    if (tid) {
+      set((state) => threadRuntimeUpdate(state, tid, { logUpdate: data }));
+    }
   } else if (data.type === "todo_update") {
     if (tid) {
       set((state) => ({
