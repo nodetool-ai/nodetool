@@ -28,7 +28,8 @@ function toMessageResponse(msg: MessageModel): MessageResponse {
     role: msg.role,
     name: msg.name ?? null,
     content: resolveContentUrls(
-      msg.content as string | unknown[] | Record<string, unknown> | null
+      msg.content as string | unknown[] | Record<string, unknown> | null,
+      msg.user_id
     ),
     tool_calls: msg.tool_calls,
     tool_call_id: msg.tool_call_id ?? null,

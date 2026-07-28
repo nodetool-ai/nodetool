@@ -1713,6 +1713,11 @@ export class OpenAIProvider extends BaseProvider {
       { signal: params.signal }
     )) as OpenAI.Images.ImagesResponse;
 
+    this.trackUsage(params.model.id, {
+      imageCount: response.data?.length ?? 1,
+      imageQuality: params.quality ?? undefined
+    });
+
     const item = response.data?.[0];
     if (!item) {
       throw new Error("OpenAI image generation returned no image data.");
@@ -1828,6 +1833,11 @@ export class OpenAIProvider extends BaseProvider {
       { signal: params.signal }
     )) as OpenAI.Images.ImagesResponse;
 
+    this.trackUsage(params.model.id, {
+      imageCount: response.data?.length ?? 1,
+      imageQuality: params.quality ?? undefined
+    });
+
     const item = response.data?.[0];
     if (!item) {
       throw new Error("OpenAI image editing returned no image data.");
@@ -1873,6 +1883,9 @@ export class OpenAIProvider extends BaseProvider {
         response_format: "pcm"
       });
 
+      // TTS is billed per input character, not per token.
+      this.trackUsage(args.model, { inputCharacters: args.text.length });
+
       let carry: number | undefined;
       for await (const chunk of response.iterBytes(4096)) {
         const incoming = asUint8Array(chunk);
@@ -1896,6 +1909,8 @@ export class OpenAIProvider extends BaseProvider {
       speed,
       response_format: "pcm"
     });
+
+    this.trackUsage(args.model, { inputCharacters: args.text.length });
 
     const bytes = asUint8Array(
       typeof response.arrayBuffer === "function"
@@ -1946,6 +1961,8 @@ export class OpenAIProvider extends BaseProvider {
       speed,
       response_format: fmt
     });
+
+    this.trackUsage(args.model, { inputCharacters: args.text.length });
 
     const bytes = asUint8Array(
       typeof response.arrayBuffer === "function"
@@ -2008,6 +2025,20 @@ export class OpenAIProvider extends BaseProvider {
     const response = await (
       this.getClient().audio.transcriptions as any
     ).create(requestParams);
+
+    // Whisper/transcribe is billed per second of audio. The duration is only
+    // reported on the verbose/diarized formats (and as `usage.seconds` on the
+    // newer transcribe models); skip accounting when it is absent rather than
+    // guessing.
+    const durationSeconds =
+      typeof response.duration === "number"
+        ? response.duration
+        : typeof response.usage?.seconds === "number"
+          ? response.usage.seconds
+          : undefined;
+    if (durationSeconds !== undefined) {
+      this.trackUsage(args.model, { durationSeconds });
+    }
 
     const text = String(response.text ?? "");
 

@@ -2347,10 +2347,19 @@ export class ProcessingContext {
     }
 
     if (this.storage) {
-      // Keys assets are written under: `<id>.<ext>` (uploads, at root) and
-      // `assets/<id>` (runtime-materialized refs).
+      // Keys assets are written under: `<userId>/<id>.<ext>` (uploads — the
+      // current owner-prefixed layout), `<id>.<ext>` (the flat legacy layout)
+      // and `assets/<id>` (runtime-materialized refs). The owner-prefixed key
+      // goes first: without it every reference misses all the exact lookups
+      // and falls through to the prefix listing below, which degrades to
+      // `list("")` — a full recursive walk / whole-bucket `listObjectsV2`
+      // across every tenant, on every asset reference.
       for (const candidate of idCandidates) {
-        for (const key of [candidate, `assets/${candidate}`]) {
+        const keys = [candidate, `assets/${candidate}`];
+        if (this.userId && !candidate.startsWith(`${this.userId}/`)) {
+          keys.unshift(`${this.userId}/${candidate}`);
+        }
+        for (const key of keys) {
           const bytes = await tryStorageUri(this.storage.uriForKey(key));
           if (bytes) {
             return { bytes, attempts };

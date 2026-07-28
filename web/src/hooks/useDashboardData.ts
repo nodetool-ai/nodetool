@@ -4,13 +4,16 @@ import { WorkflowList, Workflow } from "../stores/ApiTypes";
 import { useSettingsStore } from "../stores/SettingsStore";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { trpcClient, type RouterOutputs } from "../trpc/client";
+import { workflowListQueryKey } from "../serverState/workflowQueryKeys";
 
 type WorkflowListResponse = RouterOutputs["workflows"]["list"];
+
+export const DASHBOARD_WORKFLOW_LIMIT = 20;
 
 const loadWorkflows = async (): Promise<WorkflowListResponse> => {
   return trpcClient.workflows.list.query({
     cursor: "",
-    limit: 20
+    limit: DASHBOARD_WORKFLOW_LIMIT
   });
 };
 
@@ -27,7 +30,7 @@ export const useDashboardData = (): UseDashboardDataResult => {
 
   const { data: workflowsData, isLoading: isLoadingWorkflows } =
     useQuery<WorkflowListResponse>({
-      queryKey: ["workflows"],
+      queryKey: workflowListQueryKey(DASHBOARD_WORKFLOW_LIMIT),
       queryFn: loadWorkflows
     });
 

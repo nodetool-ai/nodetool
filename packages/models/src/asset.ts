@@ -287,8 +287,14 @@ export class Asset extends DBModel {
       const pathParts: string[] = [];
       const pathIds: string[] = [];
       let currentId: string | null = asset.parent_id;
+      // A cyclic parent chain would loop here forever. better-sqlite3 is
+      // synchronous, so the awaits never yield to the macrotask queue and the
+      // whole process wedges rather than just this request.
+      const seenAncestors = new Set<string>();
 
       while (currentId && currentId !== userId) {
+        if (seenAncestors.has(currentId)) break;
+        seenAncestors.add(currentId);
         let parent = parentCache.get(currentId);
         if (!parent) {
           parent = (await Asset.find(userId, currentId)) ?? undefined;
@@ -328,9 +334,16 @@ export class Asset extends DBModel {
     const folder = await Asset.find(userId, folderId);
     if (!folder) return { assets: [] };
 
+    // Guards against cyclic parent links: without it the descent never
+    // terminates, and since better-sqlite3 is synchronous it starves the
+    // event loop instead of overflowing the stack.
+    const visited = new Set<string>();
+
     async function recursiveFetch(
       currentFolderId: string
     ): Promise<Record<string, unknown>[]> {
+      if (visited.has(currentFolderId)) return [];
+      visited.add(currentFolderId);
       const [assetList] = await Asset.paginate(userId, {
         parentId: currentFolderId,
         limit: 10000

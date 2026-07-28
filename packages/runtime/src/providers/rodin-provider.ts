@@ -197,6 +197,7 @@ export class RodinProvider extends BaseProvider {
     log.debug(`Rodin text-to-3D task submitted: ${submit.uuid}`);
 
     await this.pollTaskStatus(submit.subscriptionKey, maxAttempts, signal);
+    this.trackUsage(params.model.id, { taskCount: 1 });
     return this.downloadResult(submit.uuid, signal);
   }
 
@@ -225,6 +226,7 @@ export class RodinProvider extends BaseProvider {
     log.debug(`Rodin image-to-3D task submitted: ${submit.uuid}`);
 
     await this.pollTaskStatus(submit.subscriptionKey, maxAttempts, signal);
+    this.trackUsage(params.model.id, { taskCount: 1 });
     return this.downloadResult(submit.uuid, signal);
   }
 
@@ -237,12 +239,17 @@ export class RodinProvider extends BaseProvider {
     };
   }
 
-  private computeMaxAttempts(timeoutSeconds: number | null | undefined): number {
+  private computeMaxAttempts(
+    timeoutSeconds: number | null | undefined
+  ): number {
     // Stryker disable next-line EqualityOperator: `<= 0` vs `< 0` is equivalent — 0 is already caught by the falsy `!timeoutSeconds` check.
     if (!timeoutSeconds || timeoutSeconds <= 0) {
       return this.maxPollAttempts;
     }
-    return Math.max(1, Math.floor((timeoutSeconds * 1000) / this.pollIntervalMs));
+    return Math.max(
+      1,
+      Math.floor((timeoutSeconds * 1000) / this.pollIntervalMs)
+    );
   }
 
   /**
@@ -314,23 +321,23 @@ export class RodinProvider extends BaseProvider {
       const job = jobs[0];
       if (!job) {
         // Stryker disable next-line StringLiteral,ArithmeticOperator: diagnostic log message.
-        log.debug(`Rodin task: no jobs yet (attempt ${attempt + 1}/${maxAttempts})`);
+        log.debug(
+          `Rodin task: no jobs yet (attempt ${attempt + 1}/${maxAttempts})`
+        );
         await new Promise((r) => setTimeout(r, this.pollIntervalMs));
         continue;
       }
       // Stryker disable next-line StringLiteral: empty fallback only applies when status is absent; any non-status string is equivalent (still not DONE/FAILED/ERROR/CANCELLED).
       const status = String(job.status ?? "").toUpperCase();
       if (status === "DONE") return job;
-      if (
-        status === "FAILED" ||
-        status === "ERROR" ||
-        status === "CANCELLED"
-      ) {
+      if (status === "FAILED" || status === "ERROR" || status === "CANCELLED") {
         const errMsg = (job.error as string | undefined) ?? "Unknown error";
         throw new Error(`Rodin task failed: ${errMsg}`);
       }
       // Stryker disable next-line StringLiteral,ArithmeticOperator: diagnostic log message.
-      log.debug(`Rodin task status: ${status} (attempt ${attempt + 1}/${maxAttempts})`);
+      log.debug(
+        `Rodin task status: ${status} (attempt ${attempt + 1}/${maxAttempts})`
+      );
       await new Promise((r) => setTimeout(r, this.pollIntervalMs));
     }
     throw new Error(
@@ -356,7 +363,8 @@ export class RodinProvider extends BaseProvider {
     }
     const info = (await downloadInfoRes.json()) as Record<string, unknown>;
     const downloadUrl =
-      (info.model_url as string | undefined) ?? (info.url as string | undefined);
+      (info.model_url as string | undefined) ??
+      (info.url as string | undefined);
     if (!downloadUrl) {
       throw new Error(
         `No download URL in Rodin response: ${JSON.stringify(info)}`

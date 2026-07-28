@@ -237,7 +237,15 @@ describe("assets router", () => {
   describe("update", () => {
     it("updates basic fields (name, parent_id, metadata)", async () => {
       const a = makeAsset({ id: "a1", name: "old", parent_id: "p1" });
-      (Asset.find as ReturnType<typeof vi.fn>).mockResolvedValue(a);
+      const p2 = makeAsset({
+        id: "p2",
+        content_type: "folder",
+        parent_id: "user-1"
+      });
+      (Asset.find as ReturnType<typeof vi.fn>).mockImplementation(
+        (_userId: string, id: string) =>
+          Promise.resolve(id === "p2" ? p2 : a)
+      );
 
       const caller = createCaller(makeCtx());
       const result = await caller.assets.update({

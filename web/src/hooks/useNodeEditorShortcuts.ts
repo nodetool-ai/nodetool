@@ -439,7 +439,10 @@ export const useNodeEditorShortcuts = (
 
   useMenuHandler(handleMenuEvent);
 
-  const electronDetails = getIsElectronDetails();
+  // getIsElectronDetails() returns a fresh object literal on every call. Left
+  // unmemoized it invalidates the registration effect below on every render,
+  // tearing down and rebuilding ~60 shortcut combos per frame during drags.
+  const electronDetails = useMemo(getIsElectronDetails, []);
 
   // Helper to swap Control with Meta on macOS for registration purposes
   // Also maps Delete to Backspace on macOS since Mac keyboards send "Backspace" for the delete key

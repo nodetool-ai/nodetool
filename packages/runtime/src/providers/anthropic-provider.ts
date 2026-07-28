@@ -228,6 +228,48 @@ function toAnthropicTextBlock(part: MessageTextContent): AnthropicRawBlock {
   };
 }
 
+/**
+ * Anthropic requires every `tool_result` block for one assistant turn to live
+ * in a single user message. `convertMessage` emits one user message per
+ * `role: "tool"` message, so parallel tool calls would produce consecutive user
+ * messages and a 400. Merge them back into one.
+ */
+function mergeToolResultMessages(
+  messages: AnthropicRawBlock[]
+): AnthropicRawBlock[] {
+  const isToolResultMessage = (m: AnthropicRawBlock): boolean =>
+    m.role === "user" &&
+    Array.isArray(m.content) &&
+    m.content.length > 0 &&
+    m.content.every(
+      (block) =>
+        typeof block === "object" &&
+        block !== null &&
+        (block as { type?: unknown }).type === "tool_result"
+    );
+
+  const merged: AnthropicRawBlock[] = [];
+  for (const message of messages) {
+    const previous = merged[merged.length - 1];
+    if (
+      previous &&
+      isToolResultMessage(previous) &&
+      isToolResultMessage(message)
+    ) {
+      merged[merged.length - 1] = {
+        ...previous,
+        content: [
+          ...(previous.content as unknown[]),
+          ...(message.content as unknown[])
+        ]
+      };
+      continue;
+    }
+    merged.push(message);
+  }
+  return merged;
+}
+
 type ThinkingPolicy =
   | "manual"
   | "adaptive_optional"
@@ -253,7 +295,6 @@ function thinkingPolicy(model: string): ThinkingPolicy {
 function rejectsCustomSampling(model: string): boolean {
   return thinkingPolicy(model) !== "manual";
 }
-
 
 function isTextContent(content: MessageContent): content is MessageTextContent {
   return content.type === "text";
@@ -357,8 +398,8 @@ export class AnthropicProvider extends BaseProvider {
       "";
     const hasStructuredAuth = Boolean(
       options.clientOptions?.credentials ||
-        options.clientOptions?.config ||
-        options.clientOptions?.profile
+      options.clientOptions?.config ||
+      options.clientOptions?.profile
     );
     if (!apiKey && !authToken && !hasStructuredAuth) {
       throw new Error(
@@ -441,7 +482,7 @@ export class AnthropicProvider extends BaseProvider {
               "Anthropic Models API returned has_more without last_id"
             );
           }
-          afterId = page.has_more ? page.last_id ?? undefined : undefined;
+          afterId = page.has_more ? (page.last_id ?? undefined) : undefined;
         } while (afterId);
         return models;
       } catch (error) {
@@ -573,10 +614,7 @@ export class AnthropicProvider extends BaseProvider {
           throw new Error(`Failed to fetch URI: ${response.status}`);
         }
         const contentLength = Number(response.headers.get("content-length"));
-        if (
-          Number.isFinite(contentLength) &&
-          contentLength > MAX_IMAGE_BYTES
-        ) {
+        if (Number.isFinite(contentLength) && contentLength > MAX_IMAGE_BYTES) {
           throw new Error("Anthropic image exceeds the 5 MB limit");
         }
         mediaType =
@@ -622,10 +660,9 @@ export class AnthropicProvider extends BaseProvider {
         );
       }
       if (effectiveMime === "text/plain") {
-        const text =
-          parsed
-            ? Buffer.from(parsed.base64, "base64").toString("utf8")
-            : typeof data === "string"
+        const text = parsed
+          ? Buffer.from(parsed.base64, "base64").toString("utf8")
+          : typeof data === "string"
             ? data
             : Buffer.from(data).toString("utf8");
         source = { type: "text", media_type: "text/plain", data: text };
@@ -872,13 +909,10 @@ export class AnthropicProvider extends BaseProvider {
         ...(tool.deferLoading !== undefined
           ? { defer_loading: tool.deferLoading }
           : {}),
-        ...(tool.allowedCallers
-          ? { allowed_callers: tool.allowedCallers }
-          : {})
+        ...(tool.allowedCallers ? { allowed_callers: tool.allowedCallers } : {})
       };
     });
   }
-
 
   private extractSystemMessage(messages: Message[]): string {
     const systemMessages = messages.filter((m) => m.role === "system");
@@ -939,27 +973,40 @@ export class AnthropicProvider extends BaseProvider {
     if (thinking?.type === "disabled" && policy === "adaptive_required") {
       throw new Error(`${args.model} does not allow thinking to be disabled`);
     }
-    const thinkingEnabled =
-      thinking?.type === "adaptive" ||
-      thinking?.type === "manual" ||
-      (!thinking &&
-        (policy === "adaptive_default" || policy === "adaptive_required"));
-    if (args.toolChoice && thinkingEnabled) {
+    const explicitThinking =
+      thinking?.type === "adaptive" || thinking?.type === "manual";
+    // Policy-default thinking (no caller-supplied config) is implicit: a forced
+    // tool choice wins over it and thinking is turned off, so callers that
+    // always force a tool can still use adaptive-default models. An explicit
+    // thinking request combined with a forced tool choice is a real conflict.
+    const implicitThinking =
+      !thinking &&
+      (policy === "adaptive_default" || policy === "adaptive_required");
+    if (args.toolChoice && explicitThinking) {
       throw new Error(
         "Anthropic does not allow a forced tool choice while thinking is active"
       );
     }
-    const toolChoice =
-      args.toolChoice
-        ? args.toolChoice === "any"
-          ? { type: "any" }
-          : { type: "tool", name: args.toolChoice }
-        : undefined;
+    if (args.toolChoice && implicitThinking && policy === "adaptive_required") {
+      throw new Error(
+        `${args.model} does not allow thinking to be disabled, so a forced tool choice is unsupported`
+      );
+    }
+    const thinkingSuppressedByToolChoice = Boolean(
+      args.toolChoice && implicitThinking
+    );
+    const thinkingEnabled =
+      explicitThinking || (implicitThinking && !thinkingSuppressedByToolChoice);
+    const toolChoice = args.toolChoice
+      ? args.toolChoice === "any"
+        ? { type: "any" }
+        : { type: "tool", name: args.toolChoice }
+      : undefined;
     const maxTokens = thinkingEnabled
       ? thinking?.type !== "manual"
-        ? args.maxTokens ?? 8192
+        ? (args.maxTokens ?? 8192)
         : Math.max(args.maxTokens ?? 8192, thinking.budgetTokens + 1)
-      : args.maxTokens ?? 8192;
+      : (args.maxTokens ?? 8192);
     const sampling = rejectsCustomSampling(args.model)
       ? {}
       : !thinkingEnabled
@@ -968,9 +1015,7 @@ export class AnthropicProvider extends BaseProvider {
           : args.topP != null
             ? { top_p: args.topP }
             : {}
-        : thinking?.type === "manual" &&
-            args.topP != null &&
-            args.topP >= 0.95
+        : thinking?.type === "manual" && args.topP != null && args.topP >= 0.95
           ? { top_p: args.topP }
           : {};
 
@@ -986,7 +1031,7 @@ export class AnthropicProvider extends BaseProvider {
               budget_tokens: thinking.budgetTokens,
               ...(thinking.display ? { display: thinking.display } : {})
             }
-          : thinking?.type === "disabled"
+          : thinking?.type === "disabled" || thinkingSuppressedByToolChoice
             ? { type: "disabled" }
             : undefined;
 
@@ -1026,8 +1071,8 @@ export class AnthropicProvider extends BaseProvider {
         .filter((m) => m.role !== "system")
         .map((m) => this.convertMessage(m, args.signal))
     );
-    const anthropicMessages = converted.filter(
-      (m): m is Record<string, unknown> => m !== null
+    const anthropicMessages = mergeToolResultMessages(
+      converted.filter((m): m is Record<string, unknown> => m !== null)
     );
 
     const request = this.buildRequest({
@@ -1121,7 +1166,8 @@ export class AnthropicProvider extends BaseProvider {
             const thinkingDelta = delta.thinking;
             raw.thinking = String(raw.thinking ?? "") + thinkingDelta;
             const thinking = thinkingBlocks.at(-1);
-            if (thinking?.type === "thinking") thinking.thinking += thinkingDelta;
+            if (thinking?.type === "thinking")
+              thinking.thinking += thinkingDelta;
             yield {
               type: "chunk",
               content: thinkingDelta,
@@ -1135,7 +1181,8 @@ export class AnthropicProvider extends BaseProvider {
             const signatureDelta = delta.signature;
             raw.signature = String(raw.signature ?? "") + signatureDelta;
             const thinking = thinkingBlocks.at(-1);
-            if (thinking?.type === "thinking") thinking.signature += signatureDelta;
+            if (thinking?.type === "thinking")
+              thinking.signature += signatureDelta;
           } else if (
             "partial_json" in delta &&
             typeof delta.partial_json === "string"
@@ -1144,10 +1191,7 @@ export class AnthropicProvider extends BaseProvider {
               index,
               (jsonByIndex.get(index) ?? "") + delta.partial_json
             );
-          } else if (
-            "text" in delta &&
-            typeof delta.text === "string"
-          ) {
+          } else if ("text" in delta && typeof delta.text === "string") {
             const textDelta = delta.text;
             raw.text = String(raw.text ?? "") + textDelta;
             yield { type: "chunk", content: textDelta, done: false };
@@ -1263,8 +1307,8 @@ export class AnthropicProvider extends BaseProvider {
         .filter((m) => m.role !== "system")
         .map((m) => this.convertMessage(m, args.signal))
     );
-    const anthropicMessages = converted.filter(
-      (m): m is Record<string, unknown> => m !== null
+    const anthropicMessages = mergeToolResultMessages(
+      converted.filter((m): m is Record<string, unknown> => m !== null)
     );
 
     const request = this.buildRequest({
@@ -1326,9 +1370,7 @@ export class AnthropicProvider extends BaseProvider {
       stopReason === "max_tokens" ||
       stopReason === "model_context_window_exceeded"
     ) {
-      throw new Error(
-        `Anthropic response was truncated (${stopReason})`
-      );
+      throw new Error(`Anthropic response was truncated (${stopReason})`);
     }
     if (stopReason === "refusal") {
       throw new Error("Anthropic refused the request");

@@ -947,6 +947,39 @@ describe("ProcessingContext.resolveAssetBytes", () => {
     expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([4, 5, 6]));
   });
 
+  it("resolves the owner-prefixed key by exact lookup, without listing", async () => {
+    // Regression: assets are written under `<userId>/<id>.<ext>`, but only the
+    // flat and `assets/` candidates were probed. Every reference missed all
+    // exact lookups and fell through to the prefix listing, which degrades to
+    // `list("")` — a full recursive walk / whole-bucket scan across tenants.
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("user-7/abc.png", new Uint8Array([7, 8, 9]), "image/png");
+    const listSpy = vi.spyOn(storage, "list");
+    const ctx = new ProcessingContext({ jobId: "j1", userId: "user-7", storage });
+
+    const { bytes } = await ctx.resolveAssetBytes("asset://abc.png");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([7, 8, 9]));
+    expect(listSpy).not.toHaveBeenCalled();
+  });
+
+  it("still resolves a flat legacy key for the same user", async () => {
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("abc.png", new Uint8Array([1, 2]), "image/png");
+    const ctx = new ProcessingContext({ jobId: "j1", userId: "user-7", storage });
+
+    const { bytes } = await ctx.resolveAssetBytes("asset://abc.png");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([1, 2]));
+  });
+
+  it("does not double-prefix an id that already carries the owner", async () => {
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("user-7/abc.png", new Uint8Array([3, 4]), "image/png");
+    const ctx = new ProcessingContext({ jobId: "j1", userId: "user-7", storage });
+
+    const { bytes } = await ctx.resolveAssetBytes("asset://user-7/abc.png");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([3, 4]));
+  });
+
   it("resolves a bare `/api/storage/<key>` path against the storage adapter", async () => {
     // Regression: parseAssetIdCandidates treated the whole `/api/storage/...`
     // path as the id, probing a bogus key and building a double-prefixed url.

@@ -20,6 +20,7 @@ import {
 
 const log = createLogger("nodetool.assets");
 import {
+  assetKeyCandidates,
   assetObjectKey,
   createAssetUrlBuilder,
   getMaxUploadBytes
@@ -117,19 +118,69 @@ async function toAssetResponse(asset: AssetModel): Promise<AssetResponse> {
   };
 }
 
-/** Recursively delete a folder and collect all deleted asset ids. */
+/**
+ * Remove an asset's stored bytes and its thumbnail.
+ *
+ * Best-effort per object: the row is the source of truth, so a storage
+ * failure is logged rather than thrown — one unreachable object must not
+ * abort a recursive folder delete and strand everything after it. Both key
+ * shapes are tried, since objects written before the owner-prefixed layout
+ * are still flat.
+ */
+async function deleteAssetObjects(asset: AssetModel): Promise<void> {
+  if (asset.content_type === "folder") return;
+  const adapter = getAssetAdapter();
+  const fileNames = [
+    getAssetFileName(asset.id, asset.content_type),
+    thumbnailKey(asset.id)
+  ];
+  for (const fileName of fileNames) {
+    for (const key of assetKeyCandidates(asset.user_id, fileName)) {
+      try {
+        const uri = adapter.uriForKey(key);
+        if (await adapter.exists(uri)) {
+          await adapter.delete(uri);
+        }
+      } catch (err) {
+        log.warn("asset object delete failed", {
+          assetId: asset.id,
+          key,
+          error: String(err)
+        });
+      }
+    }
+  }
+}
+
+/** Delete an asset row together with the bytes it points at. */
+async function deleteAssetWithObjects(asset: AssetModel): Promise<void> {
+  await deleteAssetObjects(asset);
+  await asset.delete();
+}
+
+/**
+ * Recursively delete a folder and collect all deleted asset ids.
+ *
+ * `visited` breaks parent cycles. better-sqlite3 is synchronous, so a cycle
+ * here is an unbroken microtask chain that starves the event loop and wedges
+ * the process rather than merely overflowing the stack.
+ */
 async function deleteFolderRecursive(
   userId: string,
-  folderId: string
+  folderId: string,
+  visited: Set<string> = new Set()
 ): Promise<string[]> {
+  if (visited.has(folderId)) return [];
+  visited.add(folderId);
+
   const deletedIds: string[] = [];
   const children = await Asset.getChildren(userId, folderId, 10000);
   for (const child of children) {
     if (child.content_type === "folder") {
-      const subDeleted = await deleteFolderRecursive(userId, child.id);
+      const subDeleted = await deleteFolderRecursive(userId, child.id, visited);
       deletedIds.push(...subDeleted);
     } else {
-      await child.delete();
+      await deleteAssetWithObjects(child);
       deletedIds.push(child.id);
     }
   }
@@ -144,18 +195,70 @@ async function deleteFolderRecursive(
 /** Flat list of every asset under a folder (including nested sub-folders). */
 async function getAllAssetsRecursive(
   userId: string,
-  folderId: string
+  folderId: string,
+  visited: Set<string> = new Set()
 ): Promise<AssetModel[]> {
+  if (visited.has(folderId)) return [];
+  visited.add(folderId);
+
   const collected: AssetModel[] = [];
   const children = await Asset.getChildren(userId, folderId, 10000);
   for (const child of children) {
     collected.push(child);
     if (child.content_type === "folder") {
-      const subAssets = await getAllAssetsRecursive(userId, child.id);
+      const subAssets = await getAllAssetsRecursive(userId, child.id, visited);
       collected.push(...subAssets);
     }
   }
   return collected;
+}
+
+/**
+ * Reject a `parent_id` that would corrupt the folder tree: a missing parent,
+ * a non-folder parent, the asset itself, or any of its own descendants. A
+ * cycle can't be walked out of later — every recursive helper would loop —
+ * so it has to be refused at write time.
+ */
+async function assertValidParent(
+  userId: string,
+  asset: AssetModel,
+  parentId: string
+): Promise<void> {
+  // The synthetic "Home" folder is the user id itself and has no row.
+  if (parentId === userId) return;
+
+  if (parentId === asset.id) {
+    throwApiError(
+      ApiErrorCode.INVALID_INPUT,
+      "An asset cannot be its own parent"
+    );
+  }
+
+  const parent = await Asset.find(userId, parentId);
+  if (!parent) {
+    throwApiError(ApiErrorCode.INVALID_INPUT, "Parent folder not found");
+  }
+  if (parent.content_type !== "folder") {
+    throwApiError(ApiErrorCode.INVALID_INPUT, "Parent must be a folder");
+  }
+
+  // Walk up from the new parent: reaching the asset means the move would put
+  // it under one of its own descendants.
+  const seen = new Set<string>([parentId]);
+  let currentId: string | null = parent.parent_id ?? null;
+  while (currentId && currentId !== userId) {
+    if (currentId === asset.id) {
+      throwApiError(
+        ApiErrorCode.INVALID_INPUT,
+        "Cannot move an asset into one of its own descendants"
+      );
+    }
+    if (seen.has(currentId)) break; // pre-existing cycle; nothing more to learn
+    seen.add(currentId);
+    const ancestor: AssetModel | null = await Asset.find(userId, currentId);
+    if (!ancestor) break;
+    currentId = ancestor.parent_id ?? null;
+  }
 }
 
 export const assetsRouter = router({
@@ -364,7 +467,10 @@ export const assetsRouter = router({
         }
         asset.content_type = input.content_type;
       }
-      if (input.parent_id !== undefined) asset.parent_id = input.parent_id;
+      if (input.parent_id !== undefined) {
+        await assertValidParent(ctx.userId, asset, input.parent_id);
+        asset.parent_id = input.parent_id;
+      }
       if (input.metadata !== undefined) asset.metadata = input.metadata;
       if (input.sketch_document_id !== undefined) {
         asset.sketch_document_id = input.sketch_document_id;
@@ -413,7 +519,7 @@ export const assetsRouter = router({
       if (asset.content_type === "folder") {
         deletedAssetIds = await deleteFolderRecursive(ctx.userId, input.id);
       } else {
-        await asset.delete();
+        await deleteAssetWithObjects(asset);
         deletedAssetIds = [input.id];
       }
       return { deleted_asset_ids: deletedAssetIds };

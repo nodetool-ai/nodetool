@@ -122,7 +122,10 @@ describe("AnthropicProvider – convertMessage branches", () => {
     const result = await provider.convertMessage({
       role: "user",
       content: [
-        { type: "image_url", image: { data: `data:image/jpeg;base64,${base64}` } }
+        {
+          type: "image_url",
+          image: { data: `data:image/jpeg;base64,${base64}` }
+        }
       ]
     });
     expect((result as any).content[0].source.data).toBe(base64);
@@ -416,7 +419,6 @@ describe("AnthropicProvider – prepareJsonSchema via formatTools", () => {
   });
 });
 
-
 describe("AnthropicProvider – extractSystemMessage", () => {
   it("uses default when no system message", async () => {
     const create = vi.fn().mockResolvedValue({
@@ -501,9 +503,7 @@ describe("AnthropicProvider – streaming thinking chunks", () => {
       done: false
     });
   });
-
 });
-
 
 describe("AnthropicProvider – getAvailableLanguageModels edge cases", () => {
   it("returns empty on non-OK response", async () => {
@@ -560,7 +560,9 @@ describe("AnthropicProvider – bytesToBase64 with Uint8Array", () => {
 
     const result = await provider.convertMessage({
       role: "user",
-      content: [{ type: "image_url", image: { data: new Uint8Array([1, 2, 3]) } }]
+      content: [
+        { type: "image_url", image: { data: new Uint8Array([1, 2, 3]) } }
+      ]
     });
     expect((result as any).content[0].source.data).toBeTruthy();
   });
@@ -603,7 +605,10 @@ describe("AnthropicProvider – image fetch from remote URI", () => {
       provider.convertMessage({
         role: "user",
         content: [
-          { type: "image_url", image: { uri: "https://example.com/missing.jpg" } }
+          {
+            type: "image_url",
+            image: { uri: "https://example.com/missing.jpg" }
+          }
         ]
       })
     ).rejects.toThrow("Failed to fetch URI");
@@ -921,7 +926,26 @@ describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
     });
   });
 
-  it("rejects forced tool choice when model-default thinking is active", async () => {
+  it("disables policy-default thinking for a forced tool choice", async () => {
+    const create = vi.fn().mockResolvedValue({
+      content: [{ type: "text", text: "ok" }]
+    });
+    const provider = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: { messages: { create } } as any }
+    );
+    await provider.generateMessage({
+      model: "claude-sonnet-5",
+      messages: [{ role: "user", content: "search" }],
+      tools: [{ name: "lookup" }],
+      toolChoice: "any"
+    });
+    const request = create.mock.calls[0][0];
+    expect(request.tool_choice).toEqual({ type: "any" });
+    expect(request.thinking).toEqual({ type: "disabled" });
+  });
+
+  it("rejects forced tool choice when thinking was explicitly requested", async () => {
     const provider = new AnthropicProvider(
       { ANTHROPIC_API_KEY: "k" },
       { client: { messages: { create: vi.fn() } } as any }
@@ -931,9 +955,25 @@ describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
         model: "claude-sonnet-5",
         messages: [{ role: "user", content: "search" }],
         tools: [{ name: "lookup" }],
-        toolChoice: "any"
+        toolChoice: "any",
+        thinking: { type: "adaptive" }
       })
     ).rejects.toThrow("forced tool choice");
+  });
+
+  it("rejects forced tool choice on always-thinking models", async () => {
+    const provider = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: { messages: { create: vi.fn() } } as any }
+    );
+    await expect(
+      provider.generateMessage({
+        model: "claude-fable-5",
+        messages: [{ role: "user", content: "search" }],
+        tools: [{ name: "lookup" }],
+        toolChoice: "any"
+      })
+    ).rejects.toThrow("does not allow thinking to be disabled");
   });
 
   it("rejects disabling thinking on always-thinking models", async () => {
@@ -1094,18 +1134,32 @@ describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
         {
           type: "content_block_start",
           index: 0,
-          content_block: { type: "tool_use", id: "call", name: "lookup", input: {} }
+          content_block: {
+            type: "tool_use",
+            id: "call",
+            name: "lookup",
+            input: {}
+          }
         },
         { type: "content_block_stop", index: 0 },
         {
           type: "content_block_start",
           index: 1,
-          content_block: { type: "server_tool_use", id: "server", name: "web_search", input: {} }
+          content_block: {
+            type: "server_tool_use",
+            id: "server",
+            name: "web_search",
+            input: {}
+          }
         },
         {
           type: "content_block_start",
           index: 2,
-          content_block: { type: "web_search_tool_result", tool_use_id: "server", content: [] }
+          content_block: {
+            type: "web_search_tool_result",
+            tool_use_id: "server",
+            content: []
+          }
         }
       ])
     );

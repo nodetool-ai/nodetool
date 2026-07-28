@@ -40,6 +40,11 @@ export interface GraphValidationEdge {
   target?: unknown;
   targetHandle?: unknown;
   target_handle?: unknown;
+  /** `"control"` marks an edge the kernel excludes from data-flow analysis. */
+  edge_type?: unknown;
+  /** ReactFlow edge kind — `"control"` there too. */
+  type?: unknown;
+  data?: Record<string, unknown>;
 }
 
 export interface GraphValidationInput {
@@ -92,7 +97,13 @@ export interface GraphValidationRegistry {
   has(nodeType: string): boolean;
   getMetadata(nodeType: string): NodeMetadata | undefined;
   validateNode(
-    descriptor: { id: string; type: string; properties?: Record<string, unknown> },
+    descriptor: {
+      id: string;
+      type: string;
+      properties?: Record<string, unknown>;
+      dynamic_inputs?: Record<string, DynamicSlotMeta>;
+      dynamic_properties?: Record<string, unknown>;
+    },
     connectedHandles?: ReadonlySet<string>
   ): NodePropertyValidationIssue[];
 }
@@ -160,6 +171,20 @@ interface NormEdge {
   sourceHandle: string;
   target: string;
   targetHandle: string;
+  /** Control edges carry no data; the kernel's analyses skip them. */
+  isControl: boolean;
+}
+
+/**
+ * A control edge is spelled `edge_type: "control"` in the kernel/runner shape
+ * and `type: "control"` / `data.edge_type: "control"` in the ReactFlow shape.
+ */
+function isControlEdge(raw: GraphValidationEdge): boolean {
+  return (
+    raw.edge_type === "control" ||
+    raw.type === "control" ||
+    raw.data?.edge_type === "control"
+  );
 }
 
 function normalizeEdge(raw: GraphValidationEdge, index: number): NormEdge {
@@ -168,7 +193,8 @@ function normalizeEdge(raw: GraphValidationEdge, index: number): NormEdge {
     source: String(raw.source ?? ""),
     sourceHandle: String(raw.sourceHandle ?? raw.source_handle ?? ""),
     target: String(raw.target ?? ""),
-    targetHandle: String(raw.targetHandle ?? raw.target_handle ?? "")
+    targetHandle: String(raw.targetHandle ?? raw.target_handle ?? ""),
+    isControl: isControlEdge(raw)
   };
 }
 
@@ -238,7 +264,11 @@ export function validateGraph(
       {
         id,
         type,
-        properties: node.properties ?? node.data ?? {}
+        properties: node.properties ?? node.data ?? {},
+        // Without these the registry cannot reach validateDynamicSlots, so a
+        // slot declared `required` is never checked.
+        dynamic_inputs: readDynamicInputs(node),
+        dynamic_properties: readDynamicProperties(node)
       },
       connectedByNode.get(id) ?? new Set<string>()
     );
@@ -258,6 +288,9 @@ export function validateGraph(
   // example that validates cannot die at run time on exactly this.
   const fanIn = new Map<string, number>();
   for (const e of normEdges) {
+    // Control edges carry no data — `analyzeCorrelation` filters them out
+    // before counting, so counting them here would invent errors.
+    if (e.isControl) continue;
     if (!e.target || !e.targetHandle) continue;
     const key = `${e.target}\u0000${e.targetHandle}`;
     fanIn.set(key, (fanIn.get(key) ?? 0) + 1);
@@ -271,7 +304,12 @@ export function validateGraph(
     const propType = registry
       .getMetadata(type)
       ?.properties?.find((prop) => prop.name === handle)?.type;
-    const typeStr = typeMetaToString(propType);
+    // A dynamic slot is not a static property. The kernel merges declared slot
+    // types into `propertyTypes` (Graph.loadFromDict), so a slot declared
+    // `list[...]` is a legal fan-in target — resolve it the same way here.
+    const typeStr =
+      typeMetaToString(propType) ||
+      slotTypeToString(node ? readDynamicInputs(node)[handle] : undefined);
     if (!(typeStr === "list" || typeStr.startsWith("list["))) {
       issues.push({
         severity: "error",
@@ -316,9 +354,11 @@ export function validateGraph(
 
     if (sourceMeta && e.sourceHandle && !isReservedHandle(e.sourceHandle)) {
       const out = sourceMeta.outputs.find((o) => o.name === e.sourceHandle);
-      const supportsDynamicOut =
-        sourceNode.dynamic_outputs != null &&
-        typeof sourceNode.dynamic_outputs === "object";
+      // Metadata, not instance state: `reactFlowNodeToGraphNode` writes
+      // `dynamic_outputs: {}` on every node, so testing the instance field
+      // disabled this check for nearly every saved graph. Mirrors the target
+      // side's use of `supports_dynamic_inputs`.
+      const supportsDynamicOut = sourceMeta.supports_dynamic_outputs === true;
       if (!out && !supportsDynamicOut) {
         issues.push({
           severity: "error",

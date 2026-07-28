@@ -1490,6 +1490,13 @@ export class NodeActor {
         continue;
       }
 
+      // Nothing left to pop. A closed inbox accepts no further writes, so the
+      // still-pending handles can never be satisfied — stop waiting and let the
+      // node's declared defaults apply, mirroring the iterators' `_closed`
+      // check. Without this a cancelled run parks here forever: `closeAll()`
+      // leaves `_openCounts` untouched, so the pruning above never fires.
+      if (this.inbox.isClosed()) break;
+
       await this.inbox.waitForActivity();
     }
     // Re-queue held control events at the front, preserving arrival order,

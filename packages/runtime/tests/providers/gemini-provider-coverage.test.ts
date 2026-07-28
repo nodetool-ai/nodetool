@@ -36,6 +36,7 @@ function makeSSEStream(events: unknown[]): Response {
       released = true;
       return { done: false, value: bytes };
     },
+    async cancel() {},
     releaseLock() {}
   };
 
@@ -434,6 +435,7 @@ describe("GeminiProvider – streaming error handling", () => {
         released = true;
         return { done: false, value: bytes };
       },
+      async cancel() {},
       releaseLock() {}
     };
 
@@ -464,6 +466,7 @@ describe("GeminiProvider – streaming error handling", () => {
         released = true;
         return { done: false, value: bytes };
       },
+      async cancel() {},
       releaseLock() {}
     };
 

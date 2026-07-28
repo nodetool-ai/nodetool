@@ -188,9 +188,12 @@ export class MeshyProvider extends BaseProvider {
         maxAttempts,
         signal
       );
+      this.trackUsage(params.model.id, { taskCount: 1 });
       return this.downloadResultMesh(refineResult, params.outputFormat, signal);
     }
 
+    // The preview-only run is billed at the cheaper preview tier.
+    this.trackUsage(`${params.model.id}-preview`, { taskCount: 1 });
     return this.downloadResultMesh(previewResult, params.outputFormat, signal);
   }
 
@@ -215,6 +218,7 @@ export class MeshyProvider extends BaseProvider {
       maxAttempts,
       signal
     );
+    this.trackUsage(params.model.id, { taskCount: 1 });
     return this.downloadResultMesh(result, params.outputFormat, signal);
   }
 
@@ -227,12 +231,17 @@ export class MeshyProvider extends BaseProvider {
     };
   }
 
-  private computeMaxAttempts(timeoutSeconds: number | null | undefined): number {
+  private computeMaxAttempts(
+    timeoutSeconds: number | null | undefined
+  ): number {
     // Stryker disable next-line EqualityOperator: `<= 0` vs `< 0` is equivalent — 0 is already caught by the falsy `!timeoutSeconds` check.
     if (!timeoutSeconds || timeoutSeconds <= 0) {
       return this.maxPollAttempts;
     }
-    return Math.max(1, Math.floor((timeoutSeconds * 1000) / this.pollIntervalMs));
+    return Math.max(
+      1,
+      Math.floor((timeoutSeconds * 1000) / this.pollIntervalMs)
+    );
   }
 
   /**
@@ -339,7 +348,9 @@ export class MeshyProvider extends BaseProvider {
         throw new Error(`Meshy task failed: ${message}`);
       }
       // Stryker disable next-line StringLiteral,ArithmeticOperator: diagnostic log message.
-      log.debug(`Meshy task ${taskId} status: ${status} (attempt ${attempt + 1}/${maxAttempts})`);
+      log.debug(
+        `Meshy task ${taskId} status: ${status} (attempt ${attempt + 1}/${maxAttempts})`
+      );
       await new Promise((r) => setTimeout(r, this.pollIntervalMs));
     }
     throw new Error(

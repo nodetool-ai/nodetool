@@ -816,26 +816,44 @@ export async function handleWorkflowRun(
     graph: runnableGraph
   });
 
-  const workspaceDir = await resolveWorkflowWorkspace(workflowId, userId);
-  const runner = new WorkflowRunner(job.id, {
-    resolveExecutor: (node) =>
-      runtime.resolveExecutor(
-        node as { id: string; type: string; [key: string]: unknown }
-      ),
-    executionContext: buildWorkspaceExecutionContext({
-      jobId: job.id,
-      workflowId,
-      userId,
-      workspaceDir
-    })
-  });
-  const result = await runner.run(
-    { job_id: job.id, workflow_id: workflowId, params },
-    hydrateGraphNodeFlags(
-      runnableGraph as unknown as GraphData,
-      runtime.registry
-    )
-  );
+  // Everything after the row exists must finalize it. Workspace resolution,
+  // node-flag hydration and the run itself can all throw (fs, registry) — a
+  // bare throw here returned a 500 and stranded the row at "running" forever.
+  let result: Awaited<ReturnType<WorkflowRunner["run"]>>;
+  try {
+    const workspaceDir = await resolveWorkflowWorkspace(workflowId, userId);
+    const runner = new WorkflowRunner(job.id, {
+      resolveExecutor: (node) =>
+        runtime.resolveExecutor(
+          node as { id: string; type: string; [key: string]: unknown }
+        ),
+      executionContext: buildWorkspaceExecutionContext({
+        jobId: job.id,
+        workflowId,
+        userId,
+        workspaceDir
+      })
+    });
+    result = await runner.run(
+      { job_id: job.id, workflow_id: workflowId, params },
+      hydrateGraphNodeFlags(
+        runnableGraph as unknown as GraphData,
+        runtime.registry
+      )
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    try {
+      job.markFailed(message);
+      await job.save();
+    } catch (saveError) {
+      log.warn("failed to persist failed job status", {
+        jobId: job.id,
+        error: String(saveError)
+      });
+    }
+    throw error instanceof Error ? error : new Error(message);
+  }
 
   if (result.status === "completed") {
     job.markCompleted();
@@ -2199,13 +2217,28 @@ export async function handleAssetsRoot(
         contentType: asset.content_type,
         bytes: fileBuffer.byteLength
       });
-      await storeAssetWithThumbnail(
-        asset.user_id,
-        asset.id,
-        fileName,
-        new Uint8Array(fileBuffer),
-        asset.content_type
-      );
+      try {
+        await storeAssetWithThumbnail(
+          asset.user_id,
+          asset.id,
+          fileName,
+          new Uint8Array(fileBuffer),
+          asset.content_type
+        );
+      } catch (error) {
+        // The row was created before the bytes were written. If the store
+        // rejects (over the upload cap, or any S3/Supabase failure) drop the
+        // row rather than leave it pointing at bytes that never landed.
+        try {
+          await asset.delete();
+        } catch (deleteError) {
+          log.warn("failed to delete asset row after upload failure", {
+            assetId: asset.id,
+            error: String(deleteError)
+          });
+        }
+        throw error instanceof Error ? error : new Error(String(error));
+      }
     }
 
     return jsonResponse(await toAssetResponse(asset));

@@ -294,8 +294,11 @@ async function* decodeGeminiSse(
       if (done) break;
     }
   } finally {
-    if (signal?.aborted)
-      await reader.cancel(signal.reason).catch(() => undefined);
+    // Stop the underlying connection whenever the consumer bails early (abort
+    // or `break`); releasing the lock alone leaves the HTTP body undrained.
+    await reader
+      .cancel(signal?.aborted ? signal.reason : undefined)
+      .catch(() => undefined);
     reader.releaseLock();
   }
 }
@@ -400,24 +403,38 @@ export class GeminiProvider extends BaseProvider {
       let base64Data: string;
       let mimeType = img.mimeType ?? "image/jpeg";
 
+      const parseImageDataUri = (uri: string): string => {
+        const idx = uri.indexOf(",");
+        if (idx < 0) throw new Error("Invalid image data URI");
+        const header = uri.slice(5, idx);
+        mimeType = header.split(";")[0] || mimeType;
+        return uri.slice(idx + 1);
+      };
+
       if (
         (typeof img.data === "string" && img.data.length > 0) ||
         (img.data instanceof Uint8Array && img.data.length > 0)
       ) {
         if (typeof img.data === "string") {
-          base64Data = img.data;
+          // Inline data may itself be a data: URI — strip the prefix and take
+          // the real mime type from it rather than shipping the header as
+          // base64 payload.
+          base64Data = img.data.startsWith("data:")
+            ? parseImageDataUri(img.data)
+            : img.data;
         } else {
           base64Data = Buffer.from(img.data).toString("base64");
         }
       } else if (img.uri) {
-        if (img.uri.startsWith("data:")) {
-          const idx = img.uri.indexOf(",");
-          if (idx < 0) throw new Error("Invalid image data URI");
-          const header = img.uri.slice(5, idx);
-          mimeType = header.split(";")[0] || mimeType;
-          base64Data = img.uri.slice(idx + 1);
+        // resolveUri turns asset file:// URIs (what the chat pipeline produces)
+        // into data: URIs; http(s) URIs pass through to safeFetch.
+        const resolvedUri = img.uri.startsWith("data:")
+          ? img.uri
+          : await this.resolveUri(img.uri);
+        if (resolvedUri.startsWith("data:")) {
+          base64Data = parseImageDataUri(resolvedUri);
         } else {
-          const resp = await safeFetch(img.uri, undefined, 5, this._fetch);
+          const resp = await safeFetch(resolvedUri, undefined, 5, this._fetch);
           if (!resp.ok)
             throw new Error(`Failed to fetch image: ${resp.status}`);
           mimeType =
@@ -436,28 +453,37 @@ export class GeminiProvider extends BaseProvider {
       let base64Data: string;
       let mimeType = aud.mimeType;
 
+      const parseAudioDataUri = (uri: string): string => {
+        const idx = uri.indexOf(",");
+        if (idx < 0) throw new Error("Invalid audio data URI");
+        const header = uri.slice(5, idx);
+        mimeType = mimeType ?? header.split(";")[0];
+        return uri.slice(idx + 1);
+      };
+
       if (
         (typeof aud.data === "string" && aud.data.length > 0) ||
         (aud.data instanceof Uint8Array && aud.data.length > 0)
       ) {
         if (typeof aud.data === "string") {
-          base64Data = aud.data;
+          base64Data = aud.data.startsWith("data:")
+            ? parseAudioDataUri(aud.data)
+            : aud.data;
           mimeType =
-            mimeType ?? sniffAudioMime(Buffer.from(aud.data, "base64"));
+            mimeType ?? sniffAudioMime(Buffer.from(base64Data, "base64"));
         } else {
           const bytes = Buffer.from(aud.data);
           base64Data = bytes.toString("base64");
           mimeType = mimeType ?? sniffAudioMime(bytes);
         }
       } else if (aud.uri) {
-        if (aud.uri.startsWith("data:")) {
-          const idx = aud.uri.indexOf(",");
-          if (idx < 0) throw new Error("Invalid audio data URI");
-          const header = aud.uri.slice(5, idx);
-          mimeType = mimeType ?? header.split(";")[0];
-          base64Data = aud.uri.slice(idx + 1);
+        const resolvedUri = aud.uri.startsWith("data:")
+          ? aud.uri
+          : await this.resolveUri(aud.uri);
+        if (resolvedUri.startsWith("data:")) {
+          base64Data = parseAudioDataUri(resolvedUri);
         } else {
-          const resp = await safeFetch(aud.uri, undefined, 5, this._fetch);
+          const resp = await safeFetch(resolvedUri, undefined, 5, this._fetch);
           if (!resp.ok)
             throw new Error(`Failed to fetch audio: ${resp.status}`);
           const bytes = Buffer.from(await resp.arrayBuffer());
@@ -686,7 +712,15 @@ export class GeminiProvider extends BaseProvider {
     frequencyPenalty?: number;
     signal?: AbortSignal;
   }): Promise<Message> {
-    const { model, tools = [], maxTokens = 16384, temperature, topP } = args;
+    const {
+      model,
+      tools = [],
+      maxTokens = 16384,
+      temperature,
+      topP,
+      presencePenalty,
+      frequencyPenalty
+    } = args;
 
     const { geminiTools, nameMap, reverseMap } = this.formatTools(tools);
     const { contents, systemInstruction } = await this.convertMessages(
@@ -732,6 +766,10 @@ export class GeminiProvider extends BaseProvider {
     };
     if (temperature != null) generationConfig.temperature = temperature;
     if (topP != null) generationConfig.topP = topP;
+    if (presencePenalty != null)
+      generationConfig.presencePenalty = presencePenalty;
+    if (frequencyPenalty != null)
+      generationConfig.frequencyPenalty = frequencyPenalty;
     body.generationConfig = generationConfig;
 
     log.debug("Gemini request", { model });
@@ -800,7 +838,15 @@ export class GeminiProvider extends BaseProvider {
     audio?: Record<string, unknown>;
     signal?: AbortSignal;
   }): AsyncGenerator<ProviderStreamItem> {
-    const { model, tools = [], maxTokens = 16384, temperature, topP } = args;
+    const {
+      model,
+      tools = [],
+      maxTokens = 16384,
+      temperature,
+      topP,
+      presencePenalty,
+      frequencyPenalty
+    } = args;
 
     const { geminiTools, nameMap, reverseMap } = this.formatTools(tools);
     const { contents, systemInstruction } = await this.convertMessages(
@@ -846,6 +892,10 @@ export class GeminiProvider extends BaseProvider {
     };
     if (temperature != null) generationConfig.temperature = temperature;
     if (topP != null) generationConfig.topP = topP;
+    if (presencePenalty != null)
+      generationConfig.presencePenalty = presencePenalty;
+    if (frequencyPenalty != null)
+      generationConfig.frequencyPenalty = frequencyPenalty;
     body.generationConfig = generationConfig;
 
     log.debug("Gemini request", { model });

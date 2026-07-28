@@ -411,20 +411,34 @@ function compile(expr: string): (item: unknown) => unknown {
 }
 
 /**
+ * Wrap a parse failure with the offending expression. A silently-failing
+ * predicate looks exactly like "no item matched", so the compile error has to
+ * reach the user instead of being swallowed.
+ */
+function compileOrThrow(
+  src: string,
+  kind: string
+): (item: unknown) => unknown {
+  try {
+    return compile(src);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Invalid ${kind} expression \`${src}\`: ${reason}. ` +
+        `Only property access, comparisons, boolean logic, arithmetic and ` +
+        `typeof are supported — function calls are not.`
+    );
+  }
+}
+
+/**
  * Compile a predicate expression. Empty/blank source is always true. A parse
- * error yields a predicate that always returns false. Evaluation errors at
- * runtime also yield false.
+ * error throws. Evaluation errors at runtime yield false.
  */
 export function compileSafePredicate(expr: string): (item: unknown) => boolean {
   const src = (expr ?? "").toString().trim();
   if (!src) return () => true;
-  let evalFn: (item: unknown) => unknown;
-  try {
-    evalFn = compile(src);
-  } catch {
-    return () => false;
-  }
-  const fn = evalFn;
+  const fn = compileOrThrow(src, "predicate");
   return (item: unknown) => {
     try {
       return Boolean(fn(item));
@@ -435,22 +449,15 @@ export function compileSafePredicate(expr: string): (item: unknown) => boolean {
 }
 
 /**
- * Compile a key expression. A parse error yields a function that always
- * returns undefined; the caller decides how to fall back. Evaluation errors at
- * runtime also yield undefined.
+ * Compile a key expression. Empty/blank source yields undefined for every
+ * item. A parse error throws. Evaluation errors at runtime yield undefined.
  */
 export function compileSafeKey(
   expr: string
 ): (item: unknown) => unknown {
   const src = (expr ?? "").toString().trim();
   if (!src) return () => undefined;
-  let evalFn: (item: unknown) => unknown;
-  try {
-    evalFn = compile(src);
-  } catch {
-    return () => undefined;
-  }
-  const fn = evalFn;
+  const fn = compileOrThrow(src, "key");
   return (item: unknown) => {
     try {
       return fn(item);

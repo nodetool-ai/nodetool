@@ -510,6 +510,16 @@ export class NodeInbox {
   }
 
   /**
+   * Whether `closeAll()` has run. A closed inbox accepts no further writes, so
+   * anything not already buffered can never arrive. Consumers that manage their
+   * own draining must treat this as terminal — `closeAll()` deliberately leaves
+   * `_openCounts` alone, so `isOpen()` keeps reporting true after a close.
+   */
+  isClosed(): boolean {
+    return this._closed;
+  }
+
+  /**
    * Whether the inbox is fully drained:
    * all handles have no buffered data AND no open upstream sources.
    */
@@ -578,8 +588,13 @@ export class NodeInbox {
    * iterators, a close that produces no envelope still wakes the caller. Used by
    * consumers that manage their own draining (the controlled-node wait) and must
    * re-check handle state after an upstream close arrives while blocked.
+   *
+   * Returns immediately on a closed inbox: `closeAll()` wakes the waiters that
+   * exist at that moment and never fires again, so parking here after a close
+   * would block forever.
    */
   async waitForActivity(): Promise<void> {
+    if (this._closed) return;
     await this._waitForData();
   }
 

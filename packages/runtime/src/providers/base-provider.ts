@@ -396,7 +396,19 @@ export abstract class BaseProvider {
   }
 
   trackUsage(model: string, usage: UsageInfo): number {
-    const cost = CostCalculator.calculate(model, usage, this.provider);
+    // Accounting must never break a generation that already ran (and was
+    // already billed by the provider): fall back to zero cost, keep the token
+    // counts.
+    let cost = 0;
+    try {
+      cost = CostCalculator.calculate(model, usage, this.provider);
+    } catch (error) {
+      log.warn("Cost calculation failed; recording usage with zero cost", {
+        model,
+        provider: this.provider,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
     this._cost += cost;
     setLastUsage({
       inputTokens: usage.inputTokens ?? 0,
@@ -625,7 +637,11 @@ export abstract class BaseProvider {
         provider: this.provider,
         model: args.model,
         request: requestPayload,
-        nodetoolArgs: { model: args.model, messages: args.messages, tools: args.tools },
+        nodetoolArgs: {
+          model: args.model,
+          messages: args.messages,
+          tools: args.tools
+        },
         error: err
       });
       throw err;
@@ -658,7 +674,13 @@ export abstract class BaseProvider {
 
   private applyLlmRequestAttributes(
     span: Span,
-    args: { messages: unknown[]; model: string; tools?: unknown[]; maxTokens?: number; temperature?: number },
+    args: {
+      messages: unknown[];
+      model: string;
+      tools?: unknown[];
+      maxTokens?: number;
+      temperature?: number;
+    },
     streaming: boolean
   ): void {
     span.setAttributes({
@@ -757,8 +779,13 @@ export abstract class BaseProvider {
       // called return()), give the underlying generator a chance to close
       // so _tracedStream's finally runs and the LLM stream span ends.
       if (!exhausted) {
-        await runInSlot(() =>
-          source.return?.(undefined as never) ?? Promise.resolve({ done: true, value: undefined } as IteratorResult<ProviderStreamItem>)
+        await runInSlot(
+          () =>
+            source.return?.(undefined as never) ??
+            Promise.resolve({
+              done: true,
+              value: undefined
+            } as IteratorResult<ProviderStreamItem>)
         ).catch(() => {});
       }
       const usage = getUsage();
@@ -891,10 +918,20 @@ export abstract class BaseProvider {
         }
         const chunk = item as {
           content?: unknown;
+          content_type?: string;
           thinking?: boolean;
           done?: boolean;
         };
-        if (typeof chunk.content === "string" && !chunk.thinking) {
+        // Only text belongs in the assistant message. Audio/image chunks carry
+        // base64 in the same `content` field; concatenating those produced
+        // assistant messages full of binary garbage.
+        const isTextChunk =
+          chunk.content_type === undefined || chunk.content_type === "text";
+        if (
+          typeof chunk.content === "string" &&
+          !chunk.thinking &&
+          isTextChunk
+        ) {
           assistantText += chunk.content;
         }
         // `done: true` closes the provider's *completion*, which is not the same
@@ -937,7 +974,9 @@ export abstract class BaseProvider {
       // Carry Gemini thought-signature parts forward so multi-turn function
       // calling keeps working — the loop owns the message now, so a tool call
       // that arrived with raw parts can't stash them on the message itself.
-      const rawParts = pending.find((tc) => tc._rawGeminiParts)?._rawGeminiParts;
+      const rawParts = pending.find(
+        (tc) => tc._rawGeminiParts
+      )?._rawGeminiParts;
       if (rawParts) {
         assistantMsg._rawGeminiParts = rawParts;
       }
@@ -952,9 +991,7 @@ export abstract class BaseProvider {
 
       // Dispatch order: a tool's own `execute` (provider-driven) wins; else the
       // harness-supplied `executeTool` callback; else the tool is unavailable.
-      const runTool = async (
-        tc: ToolCall
-      ): Promise<ProviderToolResult> => {
+      const runTool = async (tc: ToolCall): Promise<ProviderToolResult> => {
         const tool = toolMap.get(tc.name);
         try {
           if (tool?.execute) return await tool.execute(tc.args ?? {}, tc.id);
@@ -1372,17 +1409,17 @@ export abstract class BaseProvider {
    */
   protected async resolveUri(uri: string): Promise<string> {
     const { importNodeBuiltin } = await import("@nodetool-ai/config");
-    const fsP = await importNodeBuiltin<typeof import("node:fs/promises")>(
-      "node:fs/promises"
-    );
+    const fsP =
+      await importNodeBuiltin<typeof import("node:fs/promises")>(
+        "node:fs/promises"
+      );
     if (!fsP) {
       throw new Error(
         "resolveUri requires node:fs/promises (Node-only feature)"
       );
     }
-    const pathMod = await importNodeBuiltin<typeof import("node:path")>(
-      "node:path"
-    );
+    const pathMod =
+      await importNodeBuiltin<typeof import("node:path")>("node:path");
     if (!pathMod) {
       throw new Error("resolveUri requires node:path (Node-only feature)");
     }
@@ -1404,9 +1441,8 @@ export abstract class BaseProvider {
     };
 
     if (uri.startsWith("file://")) {
-      const urlMod = await importNodeBuiltin<typeof import("node:url")>(
-        "node:url"
-      );
+      const urlMod =
+        await importNodeBuiltin<typeof import("node:url")>("node:url");
       if (!urlMod) {
         throw new Error("resolveUri file:// requires node:url");
       }
@@ -1555,9 +1591,16 @@ function applyUsageAttributes(span: Span, usage: LlmUsage | null): void {
 }
 
 const EXT_TO_MIME: Record<string, string> = {
-  jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
-  gif: "image/gif", webp: "image/webp", svg: "image/svg+xml",
-  mp4: "video/mp4", webm: "video/webm",
-  mp3: "audio/mpeg", wav: "audio/wav", ogg: "audio/ogg",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  gif: "image/gif",
+  webp: "image/webp",
+  svg: "image/svg+xml",
+  mp4: "video/mp4",
+  webm: "video/webm",
+  mp3: "audio/mpeg",
+  wav: "audio/wav",
+  ogg: "audio/ogg",
   pdf: "application/pdf"
 };

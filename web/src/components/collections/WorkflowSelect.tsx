@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { memo } from "react";
 import isEqual from "../../utils/isEqual";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { workflowListQueryKey } from "../../serverState/workflowQueryKeys";
 
 interface WorkflowSelectProps {
   id?: string;
@@ -21,13 +22,15 @@ interface WorkflowSelectProps {
   sx?: SxProps;
 }
 
+const WORKFLOW_SELECT_LIMIT = 100;
+
 const WorkflowSelect = (props: WorkflowSelectProps) => {
   const load = useWorkflowManager((state) => state.load);
 
   const { data, error, isLoading } = useQuery<WorkflowList, Error>({
-    queryKey: ["workflows"],
+    queryKey: workflowListQueryKey(WORKFLOW_SELECT_LIMIT),
     queryFn: async () => {
-      return await load();
+      return await load("", WORKFLOW_SELECT_LIMIT);
     }
   });
 

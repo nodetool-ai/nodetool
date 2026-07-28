@@ -255,6 +255,112 @@ describe("customEquality", () => {
 
       expect(customEquality(previous, current)).toBe(true);
     });
+
+    // Regression: these fields were missing from the comparison, so the
+    // temporal store skipped the history push and the edits were un-undoable.
+    test("returns false when exposedInputs differ", () => {
+      const base = createMockNode("node-1").data;
+      const previous = createMockStore({
+        nodes: [
+          createMockNode("node-1", {
+            data: { ...base, exposedInputs: [] } as NodeData
+          })
+        ]
+      });
+      const current = createMockStore({
+        nodes: [
+          createMockNode("node-1", {
+            data: { ...base, exposedInputs: ["prompt"] } as NodeData
+          })
+        ]
+      });
+
+      expect(customEquality(previous, current)).toBe(false);
+    });
+
+    test("returns false when exposedInputsLabeled differ", () => {
+      const base = createMockNode("node-1").data;
+      const previous = createMockStore({
+        nodes: [
+          createMockNode("node-1", {
+            data: { ...base, exposedInputsLabeled: ["prompt"] } as NodeData
+          })
+        ]
+      });
+      const current = createMockStore({
+        nodes: [
+          createMockNode("node-1", {
+            data: { ...base, exposedInputsLabeled: [] } as NodeData
+          })
+        ]
+      });
+
+      expect(customEquality(previous, current)).toBe(false);
+    });
+
+    test("returns false when exposedInputsHidden differ", () => {
+      const base = createMockNode("node-1").data;
+      const previous = createMockStore({
+        nodes: [
+          createMockNode("node-1", {
+            data: { ...base, exposedInputsHidden: [] } as NodeData
+          })
+        ]
+      });
+      const current = createMockStore({
+        nodes: [
+          createMockNode("node-1", {
+            data: { ...base, exposedInputsHidden: ["seed"] } as NodeData
+          })
+        ]
+      });
+
+      expect(customEquality(previous, current)).toBe(false);
+    });
+
+    test("returns false when a dynamic_inputs declaration changes type", () => {
+      const base = createMockNode("node-1").data;
+      const previous = createMockStore({
+        nodes: [
+          createMockNode("node-1", {
+            data: {
+              ...base,
+              dynamic_inputs: { a: { type: { type: "str", optional: false, type_args: [] } } }
+            } as NodeData
+          })
+        ]
+      });
+      const current = createMockStore({
+        nodes: [
+          createMockNode("node-1", {
+            data: {
+              ...base,
+              dynamic_inputs: { a: { type: { type: "int", optional: false, type_args: [] } } }
+            } as NodeData
+          })
+        ]
+      });
+
+      expect(customEquality(previous, current)).toBe(false);
+    });
+
+    test("returns true when exposed inputs and dynamic inputs are unchanged", () => {
+      const declaration = { type: { type: "str", optional: false, type_args: [] } };
+      const makeStore = () =>
+        createMockStore({
+          nodes: [
+            createMockNode("node-1", {
+              data: {
+                ...createMockNode("node-1").data,
+                exposedInputs: ["prompt"],
+                dynamic_inputs: { a: declaration }
+              } as NodeData
+            })
+          ]
+        });
+
+      expect(customEquality(makeStore(), makeStore())).toBe(true);
+    });
   });
 
   describe("comparing edges", () => {

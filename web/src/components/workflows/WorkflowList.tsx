@@ -26,6 +26,7 @@ import { useFavoriteWorkflowIds } from "../../stores/FavoriteWorkflowsStore";
 import { useSelectedTags } from "../../stores/WorkflowListViewStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { EmptyState, FlexColumn, FlexRow, LoadingSpinner } from "../ui_primitives";
+import { workflowListQueryKey } from "../../serverState/workflowQueryKeys";
 
 const styles = (theme: Theme) =>
   css({
@@ -42,6 +43,8 @@ const styles = (theme: Theme) =>
       overflow: "hidden"
     }
   });
+
+const WORKFLOW_LIST_PAGE_SIZE = 1000;
 
 const loadWorkflows = async (cursor?: string, limit?: number) => {
   return trpcClient.workflows.list.query({
@@ -71,7 +74,6 @@ const WorkflowList = () => {
   const [showCheckboxes, setShowCheckboxes] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
-  const pageSize = 1000;
   const [workflowToEdit, setWorkflowToEdit] = useState<Workflow | null>(null);
 
   const { data, isLoading, error, isError, refetch } = useQuery<
@@ -79,8 +81,8 @@ const WorkflowList = () => {
     Error
   >(
     {
-      queryKey: ["workflows"],
-      queryFn: () => loadWorkflows("", pageSize),
+      queryKey: workflowListQueryKey(WORKFLOW_LIST_PAGE_SIZE),
+      queryFn: () => loadWorkflows("", WORKFLOW_LIST_PAGE_SIZE),
       staleTime: 15 * 60 * 1000,
       refetchOnWindowFocus: false,
       refetchOnMount: false,
@@ -238,15 +240,18 @@ const WorkflowList = () => {
           name: newName
         });
         // Update the cache optimistically
-        queryClient.setQueryData<WorkflowListType>(["workflows"], (old) => {
-          if (!old) { return old; }
-          return {
-            ...old,
-            workflows: old.workflows.map((w) =>
-              w.id === workflow.id ? { ...w, name: newName } : w
-            )
-          };
-        });
+        queryClient.setQueryData<WorkflowListType>(
+          workflowListQueryKey(WORKFLOW_LIST_PAGE_SIZE),
+          (old) => {
+            if (!old) { return old; }
+            return {
+              ...old,
+              workflows: old.workflows.map((w) =>
+                w.id === workflow.id ? { ...w, name: newName } : w
+              )
+            };
+          }
+        );
         // The optimistic write only updates the list query. Detail consumers
         // (`["workflow", id]`) and the workflow tools picker also surface the
         // name and must be refetched. The backend resource_change broadcast

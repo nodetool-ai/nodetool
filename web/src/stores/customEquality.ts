@@ -23,6 +23,10 @@ function compareNode(a: Node<NodeData>, b: Node<NodeData>): boolean {
     shallow(a.data.properties, b.data.properties) &&
     shallow(a.data.dynamic_properties, b.data.dynamic_properties) &&
     shallow(a.data.dynamic_outputs, b.data.dynamic_outputs) &&
+    shallow(a.data.dynamic_inputs, b.data.dynamic_inputs) &&
+    shallow(a.data.exposedInputs, b.data.exposedInputs) &&
+    shallow(a.data.exposedInputsLabeled, b.data.exposedInputsLabeled) &&
+    shallow(a.data.exposedInputsHidden, b.data.exposedInputsHidden) &&
     a.position.x === b.position.x &&
     a.position.y === b.position.y &&
     a.parentId === b.parentId

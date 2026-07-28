@@ -5,6 +5,8 @@ import { useTheme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { workflowListQueryKey } from "../../serverState/workflowQueryKeys";
+import { DASHBOARD_WORKFLOW_LIMIT } from "../../hooks/useDashboardData";
 import { Workflow, WorkflowList as WorkflowListType } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -191,15 +193,17 @@ const DashboardWorkflows: React.FC<DashboardWorkflowsProps> = ({
           id: workflow.id,
           name: newName
         });
-        queryClient.setQueryData<WorkflowListType>(["workflows"], (old) =>
-          old
-            ? {
-                ...old,
-                workflows: old.workflows.map((w) =>
-                  w.id === workflow.id ? { ...w, name: newName } : w
-                )
-              }
-            : old
+        queryClient.setQueryData<WorkflowListType>(
+          workflowListQueryKey(DASHBOARD_WORKFLOW_LIMIT),
+          (old) =>
+            old
+              ? {
+                  ...old,
+                  workflows: old.workflows.map((w) =>
+                    w.id === workflow.id ? { ...w, name: newName } : w
+                  )
+                }
+              : old
         );
       } catch (err) {
         console.error("Failed to rename workflow:", err);

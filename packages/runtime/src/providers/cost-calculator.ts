@@ -132,6 +132,8 @@ export interface UsageInfo {
   inputCharacters?: number;
   durationSeconds?: number;
   imageCount?: number;
+  /** Requested image quality (`low` | `medium` | `high`) for per-image pricing. */
+  imageQuality?: string;
   videoSeconds?: number;
   /** Number of tasks submitted (for CostType.TASK_BASED providers). */
   taskCount?: number;
@@ -203,12 +205,47 @@ function calcTokenPriceUsd(
   // Stryker restore all
 
   const providerId = GENAI_PROVIDER_MAP[providerLower];
-  const result = calcPrice(
-    gpUsage,
-    modelId,
-    providerId ? { providerId } : undefined
-  );
-  return result ? result.total_price : null;
+  // calcPrice throws on inconsistent counts (e.g. a gateway reporting the
+  // uncached prompt portion in input_tokens while cache_read_tokens exceeds
+  // it). Cost accounting must never abort a generation that already happened,
+  // so treat a throw as "no price known".
+  try {
+    const result = calcPrice(
+      gpUsage,
+      modelId,
+      providerId ? { providerId } : undefined
+    );
+    return result ? result.total_price : null;
+  } catch (error) {
+    // Stryker disable next-line StringLiteral: warning text is for humans, not asserted.
+    log.warn(
+      `Cost calculation failed for model ${modelId} (provider: ${provider})`,
+      { error: error instanceof Error ? error.message : String(error) }
+    );
+    return null;
+  }
+}
+
+/**
+ * gpt-image-1 pricing tier for a given quality, or `null` when the model isn't
+ * a per-image gpt-image model / no image count was reported.
+ */
+function gptImageQualityTier(
+  modelId: string,
+  usage: UsageInfo
+): PricingTier | null {
+  if (usage.imageCount === undefined) return null;
+  const lower = modelId.toLowerCase();
+  if (!lower.includes("gpt-image") || modelId.includes("1.5")) return null;
+  const qualityMap: Record<string, string> = {
+    low: "imageGptLow",
+    medium: "imageGptMedium",
+    high: "imageGptHigh"
+  };
+  const tierName =
+    qualityMap[(usage.imageQuality ?? "medium").toLowerCase()] ??
+    "imageGptMedium";
+  return PRICING_TIERS[tierName] ?? null;
 }
 
 export class CostCalculator {
@@ -261,6 +298,13 @@ export class CostCalculator {
     usage: UsageInfo,
     provider: ProviderId
   ): number {
+    // gpt-image-1 is priced per image by quality, which no MODEL_TO_TIER entry
+    // can express — resolve it before the generic tier lookup.
+    const gptImageTier = gptImageQualityTier(modelId, usage);
+    if (gptImageTier) {
+      return CostCalculator._calculateForTier(gptImageTier, usage);
+    }
+
     // Non-token modalities (image / audio duration / characters / 3D task).
     const tierName = CostCalculator.getTier(modelId, provider);
     // Stryker disable next-line ConditionalExpression: forcing this true is equivalent — PRICING_TIERS[null] is undefined, so it falls through to token pricing with only a redundant warn.
@@ -372,21 +416,6 @@ export function calculateImageCost(
   quality: string = "medium",
   provider: ProviderId = PROVIDER_IDS.OPENAI
 ): number {
-  // gpt-image-1 is priced per image by quality.
-  if (modelId.toLowerCase().includes("gpt-image") && !modelId.includes("1.5")) {
-    const qualityMap: Record<string, string> = {
-      low: "imageGptLow",
-      medium: "imageGptMedium",
-      high: "imageGptHigh"
-    };
-    const tierOverride = qualityMap[quality.toLowerCase()] ?? "imageGptMedium";
-    const tier = PRICING_TIERS[tierOverride];
-    // Stryker disable next-line ConditionalExpression: tierOverride is always a valid PRICING_TIERS key (low/medium/high or the medium fallback), so tier is always defined here.
-    if (tier) {
-      return CostCalculator["_calculateForTier"](tier, { imageCount });
-    }
-  }
-
-  const usage: UsageInfo = { imageCount };
+  const usage: UsageInfo = { imageCount, imageQuality: quality };
   return CostCalculator.calculate(modelId, usage, provider);
 }
