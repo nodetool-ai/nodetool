@@ -24,6 +24,9 @@ import {
   View,
 } from "react-native";
 import {
+  composeUserMessage,
+  messagesFrom,
+  messageText,
   WIDGET_CATALOG,
   type AppEvent,
   type ConditionProps,
@@ -34,7 +37,13 @@ import type { ThemeColors } from "../../utils/theme";
 import { apiService } from "../../services/api";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import { OutputRenderer } from "../outputs/OutputRenderer";
-import { useAppRuntimeContext, useCondition, useFormatted } from "./AppRuntimeContext";
+import {
+  useAppRuntimeContext,
+  useBindingRef,
+  useBindingValue,
+  useCondition,
+  useFormatted,
+} from "./AppRuntimeContext";
 import { useWidgetRuntime } from "./useWidgetRuntime";
 import { SliderControl } from "./SliderControl";
 import { RESOURCE_RENDERERS } from "./resourceWidgets";
@@ -1007,6 +1016,153 @@ const WorkflowInputWidget: React.FC<WidgetProps> = (widget) => {
 
 // ── Actions ─────────────────────────────────────────────────────────────────
 
+// ── Chat ────────────────────────────────────────────────────────────────────
+
+/**
+ * The conversation, plus the reply streaming in from the current run. Unlike
+ * the web thread this one only displays: folding a finished reply back into the
+ * conversation variable happens wherever the app was authored, and doing it
+ * again here would double every turn when both surfaces are open.
+ */
+const ChatThreadWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
+  const streamValue = useBindingValue(
+    useBindingRef(str(widget.props.streamBinding) || undefined, "read")
+  );
+
+  const messages = useMemo(
+    () => [
+      ...messagesFrom(value),
+      ...messagesFrom(streamValue).map((m) => ({ ...m, role: "assistant" })),
+    ],
+    [streamValue, value]
+  );
+  const maxHeight = numOr(widget.props.maxHeight, 360);
+
+  return (
+    <View style={styles.field}>
+      <FieldLabel text={str(widget.props.label)} colors={colors} />
+      {messages.length === 0 ? (
+        <Placeholder
+          text={str(widget.props.placeholder) || "No messages yet"}
+          colors={colors}
+        />
+      ) : (
+        <ScrollView style={{ maxHeight }} contentContainerStyle={styles.stack}>
+          {messages.map((message, index) => (
+            <View
+              key={index}
+              style={[
+                styles.bubble,
+                {
+                  backgroundColor:
+                    message.role === "user" ? colors.inputBg : colors.surface,
+                  borderColor: colors.border,
+                  alignSelf:
+                    message.role === "user" ? "flex-end" : "flex-start",
+                },
+              ]}
+            >
+              <Text style={[styles.hint, { color: colors.textTertiary }]}>
+                {message.role === "user" ? "You" : message.role}
+              </Text>
+              <MarkdownRenderer content={messageText(message.content)} />
+              {(Array.isArray(message.content) ? message.content : [])
+                .filter(
+                  (part): part is Record<string, unknown> =>
+                    typeof part === "object" && part !== null &&
+                    (part as Record<string, unknown>).type !== "text"
+                )
+                .map((part, at) => (
+                  <OutputRenderer
+                    key={at}
+                    value={part.image ?? part.video ?? part.audio ?? part}
+                  />
+                ))}
+            </View>
+          ))}
+        </ScrollView>
+      )}
+    </View>
+  );
+};
+
+/** Writes the next message and runs the operation. No attachments on mobile. */
+const ChatComposerWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { write } = useAppRuntimeContext();
+  const { setValue, emit, running } = useWidgetRuntime({
+    ...widget,
+    bindingMode: "write",
+  });
+  const historyRef = useBindingRef(
+    str(widget.props.historyBinding) || undefined,
+    "read"
+  );
+  const historyValue = useBindingValue(historyRef);
+  const [draft, setDraft] = useState("");
+
+  const format = str(widget.props.valueFormat) || "text";
+  const canSend = draft.trim().length > 0 && !running && !widget.disabled;
+
+  const send = useCallback(() => {
+    const text = draft.trim();
+    if (!text) {return;}
+    const message = composeUserMessage(text);
+    const history = [...messagesFrom(historyValue), message];
+    if (historyRef) {write(historyRef, history);}
+    setValue(
+      format === "history" ? history : format === "message" ? message : text
+    );
+    setDraft("");
+    emit("click");
+  }, [draft, emit, format, historyRef, historyValue, setValue, write]);
+
+  return (
+    <View style={styles.field}>
+      <FieldLabel text={str(widget.props.label)} colors={colors} />
+      <TextInput
+        style={[
+          styles.input,
+          styles.inputMultiline,
+          {
+            backgroundColor: colors.inputBg,
+            color: colors.text,
+            borderColor: colors.border,
+          },
+        ]}
+        editable={!widget.disabled}
+        value={draft}
+        multiline
+        placeholder={str(widget.props.placeholder) || "Write a message…"}
+        placeholderTextColor={colors.textTertiary}
+        onChangeText={setDraft}
+      />
+      <TouchableOpacity
+        accessibilityRole="button"
+        disabled={!canSend}
+        onPress={send}
+        style={[
+          styles.button,
+          {
+            backgroundColor: colors.primary,
+            borderColor: colors.primary,
+            opacity: canSend ? 1 : 0.5,
+          },
+        ]}
+      >
+        {running ? (
+          <ActivityIndicator size="small" color={colors.textOnPrimary} />
+        ) : null}
+        <Text style={[styles.buttonText, { color: colors.textOnPrimary }]}>
+          {str(widget.props.sendLabel) || "Send"}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
 const ButtonWidget: React.FC<WidgetProps> = (widget) => {
   const { colors } = useTheme();
   const { emit, running } = useWidgetRuntime({
@@ -1229,6 +1385,8 @@ const RENDERERS: Record<string, React.FC<WidgetProps>> = {
   VideoInput: (props) => <MediaInputWidget {...props} kind="video" />,
   DocumentInput: (props) => <MediaInputWidget {...props} kind="document" />,
   ...RESOURCE_RENDERERS,
+  ChatThread: ChatThreadWidget,
+  ChatComposer: ChatComposerWidget,
   Button: ButtonWidget,
   Container: ContainerWidget,
   Columns: ColumnsWidget,
@@ -1353,6 +1511,13 @@ const styles = StyleSheet.create({
   },
   mediaPreview: {
     height: 180,
+  },
+  bubble: {
+    maxWidth: "88%",
+    gap: 4,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   placeholder: {
     padding: 24,

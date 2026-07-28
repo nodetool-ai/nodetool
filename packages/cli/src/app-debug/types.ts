@@ -56,6 +56,12 @@ export interface AppWidgetSpec {
    * state, so this is their binding rather than {@link binding}.
    */
   resourceBindingId: string | null;
+  /**
+   * Bindings the widget carries besides {@link binding} — a chat thread's live
+   * reply, a composer's conversation variable. Same resolution rules; `ref` is
+   * null when the workflow no longer has what the binding names.
+   */
+  extraBindings: Array<{ prop: string; binding: string; ref: BindingRef | null }>;
   label: string | null;
   events: AppEventSpec[];
   parentId: string | null;

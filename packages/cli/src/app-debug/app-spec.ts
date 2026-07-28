@@ -14,6 +14,7 @@ import {
   parseBinding,
   resolveBinding,
   stateKey,
+  widgetBindingProps,
   widgetMode,
   WIDGET_CATALOG,
   type ApplicationDocument,
@@ -251,6 +252,11 @@ export function parseAppSpec(
         stateKey: ref ? stateKey(ref) : null,
         canonicalBinding: ref ? encodeBinding(ref) : null,
         resourceBindingId,
+        extraBindings: widgetBindingProps(item.type).flatMap(({ prop, mode }) => {
+          const value = str(item.props[prop]);
+          if (!value) return [];
+          return [{ prop, binding: value, ref: resolveBinding(value, scope, mode) }];
+        }),
         label: str(item.props.label) ?? str(item.props.text) ?? null,
         events: parseEvents(item.props.events),
         parentId,
@@ -435,6 +441,15 @@ export function validateApp(
         errors.push(
           `${where}: bound to "${w.binding}" but the app declares no operation "${explicit.operationId}".`
         );
+      }
+    }
+    for (const extra of w.extraBindings) {
+      if (!extra.ref) {
+        errors.push(
+          `${where}: ${extra.prop} is bound to "${extra.binding}" but the workflow has no output or variable with that name.`
+        );
+      } else if (extra.ref.kind === "output") {
+        displayedOutputs.add(`${extra.ref.operationId}:${extra.ref.nodeId}`);
       }
     }
     if (w.ref?.kind === "output") {

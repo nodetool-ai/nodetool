@@ -38,6 +38,12 @@ export interface WidgetDescriptor {
   /** Props holding child widgets, for tree traversal. */
   slots?: ReadonlyArray<string>;
   /**
+   * Binding-carrying props besides `binding`. A chat thread reads its history
+   * from one binding and the in-flight reply from another, so validation has to
+   * look past the single `binding` prop every other widget uses.
+   */
+  bindingProps?: ReadonlyArray<{ prop: string; mode: "read" | "write" }>;
+  /**
    * The widget's own editor fields, name → kind. The three logic props every
    * widget shares are not listed here — `widgetFields` adds them.
    */
@@ -352,6 +358,55 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
       allowRemove: "radio"
     }
   },
+  // Chat & AI
+  //
+  // A chat app is two widgets: the thread shows the conversation so far plus
+  // the reply currently streaming in, the composer writes the next message and
+  // runs the operation. Both address the same conversation value — the thread
+  // reads it, the composer appends to it — which is why the pair carries a
+  // second binding beyond `binding`.
+  ChatThread: {
+    label: "Chat Thread",
+    mode: "read",
+    bindingProps: [{ prop: "streamBinding", mode: "read" }],
+    fields: {
+      binding: "custom",
+      streamBinding: "custom",
+      label: "text",
+      maxHeight: "number",
+      placeholder: "text"
+    }
+  },
+  ChatComposer: {
+    label: "Chat Composer",
+    mode: "write",
+    trigger: "click",
+    bindingProps: [{ prop: "historyBinding", mode: "read" }],
+    fields: {
+      binding: "custom",
+      historyBinding: "custom",
+      valueFormat: "select",
+      label: "text",
+      placeholder: "text",
+      sendLabel: "text",
+      attachments: "radio",
+      events: "array"
+    }
+  },
+  // Writes a model reference — `{type, id, provider, name}` — so an app can
+  // offer the model choice its workflow's LLM node reads.
+  ModelSelect: {
+    label: "Model Select",
+    mode: "write",
+    trigger: "change",
+    commits: false,
+    fields: {
+      binding: "custom",
+      modelKind: "select",
+      label: "text",
+      events: "array"
+    }
+  },
   // Actions
   Button: {
     label: "Button",
@@ -429,6 +484,15 @@ export const widgetFields = (
     ...(descriptor.format ? { format: "text" as const } : {})
   };
 };
+
+/**
+ * Binding-carrying props beyond `binding`, with the mode each resolves in.
+ * Empty for every widget that binds once.
+ */
+export const widgetBindingProps = (
+  type: string
+): ReadonlyArray<{ prop: string; mode: "read" | "write" }> =>
+  WIDGET_CATALOG[type]?.bindingProps ?? [];
 
 /** Slot field names of a widget — the props children nest into. */
 export const widgetSlots = (type: string): ReadonlyArray<string> =>

@@ -52,8 +52,10 @@ import {
   WorkflowInputWidget,
   FixedKindInputWidget,
   FixedInputKind,
-  FixedInputWidgetProps
+  FixedInputWidgetProps,
+  ModelSelectWidget
 } from "./WorkflowInputWidget";
+import { ChatThreadWidget, ChatComposerWidget } from "./ChatWidgets";
 
 const ACTION_OPTIONS = [
   { label: "Run workflow", value: "run" },
@@ -257,6 +259,10 @@ export const appConfig: Config = {
         "DocumentInput",
         "ColorInput"
       ]
+    },
+    ai: {
+      title: "Chat & AI",
+      components: ["ChatThread", "ChatComposer", "ModelSelect"]
     },
     actions: { title: "Actions", components: ["Button"] },
     display: {
@@ -697,6 +703,93 @@ export const appConfig: Config = {
         allowRemove: true
       },
       render: withConditions((props) => <StoryboardSceneListWidget {...props} />)
+    },
+    // ── Chat & AI ──
+    ChatThread: {
+      label: "Chat Thread",
+      fields: {
+        binding: bindingField("read", "Conversation"),
+        streamBinding: bindingField("read", "Live reply"),
+        label: { type: "text", label: "Label" },
+        maxHeight: { type: "number", label: "Max height (px)" },
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: {
+        binding: "",
+        streamBinding: "",
+        label: "",
+        maxHeight: 360,
+        placeholder: "No messages yet"
+      },
+      render: withConditions((props) => <ChatThreadWidget {...props} />)
+    },
+    ChatComposer: {
+      label: "Chat Composer",
+      fields: {
+        binding: bindingField("write", "Sends to"),
+        historyBinding: variableField("Conversation variable"),
+        valueFormat: {
+          type: "select",
+          label: "Sends",
+          options: [
+            { label: "Message text", value: "text" },
+            { label: "Message object", value: "message" },
+            { label: "Whole conversation", value: "history" }
+          ]
+        },
+        label: { type: "text", label: "Label" },
+        placeholder: { type: "text", label: "Placeholder" },
+        sendLabel: { type: "text", label: "Send button" },
+        attachments: {
+          type: "radio",
+          label: "Image attachments",
+          options: [
+            { label: "Off", value: false },
+            { label: "On", value: true }
+          ]
+        },
+        events: eventsField("click"),
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: {
+        binding: "",
+        historyBinding: "",
+        valueFormat: "text",
+        label: "",
+        placeholder: "Write a message…",
+        sendLabel: "Send",
+        attachments: false,
+        events: [{ trigger: "click", kind: "run", key: "", value: "" }]
+      },
+      render: withConditions((props) => <ChatComposerWidget {...props} />)
+    },
+    ModelSelect: {
+      label: "Model Select",
+      fields: {
+        binding: bindingField("write"),
+        modelKind: {
+          type: "select",
+          label: "Model kind",
+          options: [
+            { label: "Language", value: "language_model" },
+            { label: "Image", value: "image_model" },
+            { label: "Video", value: "video_model" },
+            { label: "Speech (TTS)", value: "tts_model" },
+            { label: "Transcription (ASR)", value: "asr_model" },
+            { label: "Embedding", value: "embedding_model" }
+          ]
+        },
+        label: { type: "text", label: "Label" },
+        events: eventsField("change", { commits: false }),
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: {
+        binding: "",
+        modelKind: "language_model",
+        label: "Model"
+      },
+      render: withConditions((props) => <ModelSelectWidget {...props} />)
     },
     ImageInput: fixedInputEntry("Image Input", "image"),
     AudioInput: fixedInputEntry("Audio Input", "audio"),

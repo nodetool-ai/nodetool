@@ -60,7 +60,7 @@ const str = (v: unknown): string =>
 const numOr = (v: unknown, fallback: number): number =>
   typeof v === "number" && Number.isFinite(v) ? v : fallback;
 
-const resolveImageSrc = (value: unknown): string | null => {
+export const resolveImageSrc = (value: unknown): string | null => {
   if (typeof value === "string") return value.length > 0 ? value : null;
   if (value && typeof value === "object") {
     const obj = value as Record<string, unknown>;
@@ -71,7 +71,7 @@ const resolveImageSrc = (value: unknown): string | null => {
 };
 
 /** Resolve a playable media source from a string, MediaRef, or data payload. */
-const resolveMediaSrc = (value: unknown, mime: string): string | null => {
+export const resolveMediaSrc = (value: unknown, mime: string): string | null => {
   const src = resolveImageSrc(value);
   if (!src) return null;
   // Raw base64 payloads (no scheme) become a data URI so <audio>/<video> play them.
@@ -172,7 +172,7 @@ const VideoItem: React.FC<{ src: string; height: number }> = ({
   />
 );
 
-const MarkdownBlock: React.FC<{ text: string }> = ({ text }) => (
+export const MarkdownBlock: React.FC<{ text: string }> = ({ text }) => (
   <Box className="appbuilder-markdown" sx={{ width: "100%" }}>
     <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
   </Box>
@@ -341,7 +341,7 @@ const mediaRefKind = (value: unknown): "image" | "audio" | "video" | null => {
 };
 
 /** Render one untyped output item by its runtime shape. */
-const renderOutputItem = (item: unknown, key: number): React.ReactNode => {
+export const renderOutputItem = (item: unknown, key: number): React.ReactNode => {
   switch (mediaRefKind(item)) {
     case "image": {
       const src = resolveImageSrc(item);

@@ -56,6 +56,24 @@ That's what makes on-release pacing possible — see
 | Resource Gallery | The same, from a grid of tiles. Tile size. | no |
 | Storyboard Scenes | Edits the bound storyboard directly. Fires no event. | no |
 
+### Chat and AI
+
+| Widget | Does |
+| --- | --- |
+| Chat Thread | Shows a conversation. `binding` is the conversation (an app variable, or an output that emits messages), `streamBinding` the reply arriving from the current run. Max height, placeholder. |
+| Chat Composer | Writes the next message and runs the operation. `binding` is the workflow input it sends to, `historyBinding` the conversation variable it appends to. Sends the message text, a message object, or the whole conversation. Optional image attachments. |
+| Model Select | Picks a model and writes its reference. Kind: language, image, video, speech, transcription, or embedding. |
+
+A conversation is a list of `{role, content}` objects. Anything else a binding
+holds — a streamed string, a media ref, a list of results — reads as one
+assistant turn, so a thread bound straight to an LLM output still renders.
+
+The thread does the bookkeeping a second turn needs: when a run settles, it
+folds the streamed reply into the conversation variable. An output slot is
+cleared at the start of every run, so a reply left there alone would disappear
+the moment the user sends again. This only happens when `binding` is a variable
+and `streamBinding` is an output.
+
 ### Buttons and layout
 
 | Widget | Does |

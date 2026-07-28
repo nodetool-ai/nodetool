@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   WIDGET_CATALOG,
   isKnownWidget,
+  widgetBindingProps,
   widgetFields,
   widgetMode,
   widgetSlots
@@ -33,6 +34,25 @@ describe("widget catalog", () => {
     // the resource provider, so it has no event of its own.
     expect(WIDGET_CATALOG.ResourceGallery.trigger).toBe("change");
     expect(WIDGET_CATALOG.StoryboardSceneList.trigger).toBeUndefined();
+  });
+
+  it("declares the chat and AI widgets with the bindings they carry", () => {
+    expect(widgetMode("ChatThread")).toBe("read");
+    expect(widgetBindingProps("ChatThread")).toEqual([
+      { prop: "streamBinding", mode: "read" }
+    ]);
+    expect(widgetMode("ChatComposer")).toBe("write");
+    expect(WIDGET_CATALOG.ChatComposer.trigger).toBe("click");
+    expect(widgetBindingProps("ChatComposer")).toEqual([
+      { prop: "historyBinding", mode: "read" }
+    ]);
+    expect(widgetMode("ModelSelect")).toBe("write");
+    expect(WIDGET_CATALOG.ModelSelect.trigger).toBe("change");
+  });
+
+  it("reports no extra bindings for a widget that binds once", () => {
+    expect(widgetBindingProps("Text")).toEqual([]);
+    expect(widgetBindingProps("Bogus")).toEqual([]);
   });
 
   it("reports unknown widget types rather than guessing a mode", () => {
