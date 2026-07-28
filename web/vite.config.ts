@@ -190,6 +190,44 @@ function stripExternalCssImportsPlugin(): Plugin {
 // Web Worker, whose memory is otherwise unreadable (dedicated workers expose
 // no performance.memory). Scoped to /perf-realtime so the app keeps its
 // normal embedding behavior.
+/** Benign while the backend is still booting or tsx is restarting. */
+function isBenignProxyError(err: unknown): boolean {
+  if (!err || typeof err !== "object") {
+    return false;
+  }
+  const code =
+    "code" in err && typeof err.code === "string" ? err.code : undefined;
+  if (code === "ECONNREFUSED" || code === "ECONNRESET" || code === "EPIPE") {
+    return true;
+  }
+  if (err instanceof AggregateError) {
+    return err.errors.length > 0 && err.errors.every(isBenignProxyError);
+  }
+  return false;
+}
+
+// Vite logs every failed /ws and /api proxy while the backend is down. During
+// `npm run dev` that window is normal (tsx boot + restarts), so swallow those.
+function suppressBenignDevProxyErrorsPlugin(): Plugin {
+  return {
+    name: "suppress-benign-dev-proxy-errors",
+    configureServer(server) {
+      const logger = server.config.logger;
+      const logError = logger.error.bind(logger);
+      logger.error = (msg, options) => {
+        if (
+          typeof msg === "string" &&
+          (msg.includes("ws proxy error") || msg.includes("http proxy error")) &&
+          isBenignProxyError(options?.error)
+        ) {
+          return;
+        }
+        logError(msg, options);
+      };
+    }
+  };
+}
+
 function perfPageIsolationPlugin(): Plugin {
   return {
     name: "perf-page-isolation",
@@ -274,7 +312,7 @@ export default defineConfig(async ({ mode }) => {
         "@monaco-editor/react",
         "@monaco-editor/loader",
       ],
-      esbuildOptions: {
+      rolldownOptions: {
         plugins: [stubNodeBuiltinsEsbuildPlugin()]
       }
     },
@@ -315,6 +353,7 @@ export default defineConfig(async ({ mode }) => {
       plugins: () => [stubServerTelemetryPlugin(), stubNodeProtocolPlugin(true)]
     },
     plugins: [
+      suppressBenignDevProxyErrorsPlugin(),
       perfPageIsolationPlugin(),
       stubNodeProtocolPlugin(),
       stripExternalCssImportsPlugin(),

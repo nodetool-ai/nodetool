@@ -23,7 +23,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { unpack } from "msgpackr";
 import {
+  DEFAULT_RUN_JOB_EXECUTION_OPTIONS,
   UnifiedWebSocketRunner,
+  resolveRunJobExecutionOptions,
   type WebSocketConnection,
   type WebSocketReceiveFrame
 } from "../src/unified-websocket-runner.js";
@@ -69,7 +71,8 @@ const resolveExecutor = () => ({
   }
 });
 
-const asAny = (r: UnifiedWebSocketRunner) => r as unknown as Record<string, any>;
+const asAny = (r: UnifiedWebSocketRunner) =>
+  r as unknown as Record<string, any>;
 
 /** Decode every frame sent over the wire (binary first, then text). */
 function decodeAll(ws: MockWebSocket): Record<string, unknown>[] {
@@ -101,8 +104,14 @@ function makeActive(opts: {
   workflowId?: string | null;
   nodes?: Array<Record<string, unknown>>;
   messages: Record<string, unknown>[];
+  executionOptions?: {
+    persistence?: "job" | "session";
+    event_detail?: "full" | "outputs" | "terminal";
+    asset_persistence?: "auto" | "temporary";
+  };
 }) {
   const context = fakeContext(opts.messages);
+  const now = performance.now();
   const active = {
     jobId: opts.jobId,
     workflowId: opts.workflowId ?? null,
@@ -110,10 +119,46 @@ function makeActive(opts: {
     runner: { cancel: vi.fn() },
     graph: { nodes: opts.nodes ?? [], edges: [] },
     finished: false,
-    status: "running" as const
+    status: "running" as const,
+    requireTerminalResult: false,
+    executionOptions: resolveRunJobExecutionOptions(opts.executionOptions),
+    timings: {
+      acceptedAt: now,
+      graphLoadedMs: 0,
+      graphHydratedMs: 0,
+      preRunMs: 0,
+      persistenceMs: 0,
+      kernelStartedAt: now
+    }
   };
   return active;
 }
+
+describe("run_job execution option defaults", () => {
+  it("preserves current behavior when absent or invalid", () => {
+    expect(resolveRunJobExecutionOptions(undefined)).toEqual(
+      DEFAULT_RUN_JOB_EXECUTION_OPTIONS
+    );
+    expect(
+      resolveRunJobExecutionOptions({
+        persistence: "invalid" as never,
+        event_detail: "invalid" as never,
+        asset_persistence: "invalid" as never
+      })
+    ).toEqual(DEFAULT_RUN_JOB_EXECUTION_OPTIONS);
+  });
+
+  it("defaults SDK runs to temporary assets without changing ordinary runs", () => {
+    expect(resolveRunJobExecutionOptions(undefined, true)).toEqual({
+      persistence: "job",
+      eventDetail: "full",
+      assetPersistence: "temporary"
+    });
+    expect(
+      resolveRunJobExecutionOptions({ asset_persistence: "auto" }, true)
+    ).toEqual(DEFAULT_RUN_JOB_EXECUTION_OPTIONS);
+  });
+});
 
 /** Run streamJobMessages to completion for a resolved/rejected executePromise. */
 async function streamTo(
@@ -179,7 +224,9 @@ describe("UnifiedWebSocketRunner run_job — streamJobMessages relay", () => {
       ]
     });
     await streamTo(runner, active, Promise.resolve({ status: "completed" }));
-    expect(active.context.normalizeOutputValue).toHaveBeenCalledWith({ raw: 1 });
+    expect(active.context.normalizeOutputValue).toHaveBeenCalledWith({
+      raw: 1
+    });
     const node = decodeAll(ws).find(
       (m) => m.type === "node_update" && m.node_id === "n1"
     );
@@ -231,9 +278,7 @@ describe("UnifiedWebSocketRunner run_job — streamJobMessages relay", () => {
     const bigError = "x".repeat(5000);
     const active = makeActive({
       jobId: "J5",
-      messages: [
-        { type: "notification", content: "hello", error: bigError }
-      ]
+      messages: [{ type: "notification", content: "hello", error: bigError }]
     });
     await streamTo(runner, active, Promise.resolve({ status: "completed" }));
     const note = decodeAll(ws).find((m) => m.type === "notification");
@@ -259,6 +304,70 @@ describe("UnifiedWebSocketRunner run_job — streamJobMessages relay", () => {
       (m) => m.type === "job_update" && m.status === "completed"
     );
     expect(completed).toHaveLength(1);
+  });
+
+  it("outputs detail suppresses ordinary node/edge events but retains outputs and errors", async () => {
+    const active = makeActive({
+      jobId: "J7",
+      nodes: [
+        { id: "worker", type: "custom.Worker" },
+        { id: "out", type: "nodetool.output.Output" }
+      ],
+      messages: [
+        { type: "node_update", node_id: "worker", status: "running" },
+        { type: "edge_update", edge_id: "edge", status: "active" },
+        { type: "output_update", node_id: "out", value: 42 },
+        {
+          type: "node_update",
+          node_id: "worker",
+          status: "error",
+          error: "boom"
+        }
+      ],
+      executionOptions: { event_detail: "outputs" }
+    });
+
+    await streamTo(runner, active, Promise.resolve({ status: "completed" }));
+    const frames = decodeAll(ws);
+    expect(
+      frames.some((m) => m.type === "node_update" && m.status === "running")
+    ).toBe(false);
+    expect(frames.some((m) => m.type === "edge_update")).toBe(false);
+    expect(
+      frames.some((m) => m.type === "output_update" && m.value === 42)
+    ).toBe(true);
+    expect(
+      frames.some((m) => m.type === "node_update" && m.status === "error")
+    ).toBe(true);
+  });
+
+  it("terminal detail emits only lifecycle/errors and normalizes final outputs", async () => {
+    const active = makeActive({
+      jobId: "J8",
+      nodes: [
+        { id: "worker", type: "custom.Worker" },
+        { id: "out", type: "nodetool.output.Output" }
+      ],
+      messages: [
+        { type: "node_update", node_id: "worker", status: "completed" },
+        { type: "output_update", node_id: "out", value: "streamed" }
+      ],
+      executionOptions: { event_detail: "terminal" }
+    });
+
+    await streamTo(
+      runner,
+      active,
+      Promise.resolve({ status: "completed", outputs: { out: ["final"] } })
+    );
+    const frames = decodeAll(ws);
+    expect(frames.some((m) => m.type === "node_update")).toBe(false);
+    expect(frames.some((m) => m.type === "output_update")).toBe(false);
+    const terminal = frames.find(
+      (m) => m.type === "job_update" && m.status === "completed"
+    );
+    expect((terminal?.result as any).outputs).toEqual({ out: ["final"] });
+    expect(active.context.normalizeOutputValue).toHaveBeenCalledWith("final");
   });
 });
 
@@ -289,6 +398,21 @@ describe("UnifiedWebSocketRunner run_job — terminal persistence", () => {
       graph: { nodes: [], edges: [] }
     });
   }
+
+  it("session-scoped execution does not write a final Job status", async () => {
+    await seedJob("SESSION");
+    const active = makeActive({
+      jobId: "SESSION",
+      workflowId: "wf",
+      messages: [],
+      executionOptions: { persistence: "session" }
+    });
+
+    await streamTo(runner, active, Promise.resolve({ status: "completed" }));
+
+    const job = await Job.get<Job>("SESSION");
+    expect(job?.status).toBe("running");
+  });
 
   it("marks the persisted job failed when the executor promise rejects", async () => {
     await seedJob("FJ");
@@ -459,6 +583,44 @@ describe("UnifiedWebSocketRunner run_job — generation autosave", () => {
     expect(gen?.index).toBe(0);
     await runner.disconnect();
   });
+
+  it("temporary asset mode relays generation output without autosaving it", async () => {
+    const runner = new UnifiedWebSocketRunner({
+      resolveExecutor,
+      getNodeMetadata: () =>
+        ({
+          auto_save_asset: true,
+          outputs: [{ name: "image", type: { type: "image" } }],
+          primary_output: "image"
+        }) as never
+    });
+    await runner.connect(ws);
+    const imageValue: Record<string, unknown> = {
+      type: "image",
+      data: Buffer.from([5, 6, 7, 8]).toString("base64")
+    };
+    const active = makeActive({
+      jobId: "GEN-TEMP",
+      workflowId: "wf",
+      nodes: [{ id: "g1", type: "fal.Image" }],
+      messages: [
+        {
+          type: "generation_complete",
+          node_id: "g1",
+          outputs: { image: imageValue }
+        }
+      ],
+      executionOptions: { asset_persistence: "temporary" }
+    });
+
+    await streamTo(runner, active, Promise.resolve({ status: "completed" }));
+    expect(imageValue.asset_id).toBeUndefined();
+    expect(imageValue.uri).toBeUndefined();
+    expect(decodeAll(ws).some((m) => m.type === "generation_complete")).toBe(
+      true
+    );
+    await runner.disconnect();
+  });
 });
 
 describe("UnifiedWebSocketRunner run_job — queue path", () => {
@@ -509,7 +671,8 @@ describe("UnifiedWebSocketRunner run_job — queue path", () => {
     await new Promise((r) => setTimeout(r, 10));
     expect(asAny(runner).jobQueue.size).toBe(1);
     const queued = decodeAll(ws).find(
-      (m) => m.type === "job_update" && m.status === "queued" && m.job_id === "Q1"
+      (m) =>
+        m.type === "job_update" && m.status === "queued" && m.job_id === "Q1"
     );
     expect(queued).toBeDefined();
     expect(queued?.queue_position).toBe(1);
@@ -545,7 +708,8 @@ describe("UnifiedWebSocketRunner run_job — queue path", () => {
     expect(res.message).toBe("Queued job cancelled");
     expect(asAny(runner).jobQueue.size).toBe(0);
     const cancelled = decodeAll(ws).find(
-      (m) => m.type === "job_update" && m.status === "cancelled" && m.job_id === "Q3"
+      (m) =>
+        m.type === "job_update" && m.status === "cancelled" && m.job_id === "Q3"
     );
     expect(cancelled).toBeDefined();
     const job = await Job.get<Job>("Q3");
@@ -686,9 +850,15 @@ describe("UnifiedWebSocketRunner run_job — emitBeforeRunFailure persistence", 
     });
     const runner = new UnifiedWebSocketRunner({ resolveExecutor });
     await runner.connect(ws);
-    await asAny(runner).emitBeforeRunFailure("BRF", "wf", new Error("bridge down"));
+    await asAny(runner).emitBeforeRunFailure(
+      "BRF",
+      "wf",
+      new Error("bridge down"),
+      true
+    );
     const failed = decodeAll(ws).find(
-      (m) => m.type === "job_update" && m.status === "failed" && m.job_id === "BRF"
+      (m) =>
+        m.type === "job_update" && m.status === "failed" && m.job_id === "BRF"
     );
     expect(failed?.error).toBe("bridge down");
     const job = await Job.get<Job>("BRF");

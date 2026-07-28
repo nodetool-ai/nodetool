@@ -92,6 +92,16 @@ export interface CostEstimateInput {
   ) => ModelUnitPricingLike | null | undefined;
   /** Optional per-node expected run count (fan-out). Defaults to 1. */
   quantities?: Record<string, number>;
+  /**
+   * Explicitly identifies graph plumbing or local utility nodes known not to
+   * create a billable provider request. Excluded nodes do not become
+   * misleading unknown-cost items.
+   */
+  isKnownNonBillable?: (node: {
+    id: string;
+    type: string;
+    data?: Record<string, unknown>;
+  }) => boolean;
   currency?: string;
 }
 
@@ -216,6 +226,9 @@ export function estimateWorkflowCost(input: CostEstimateInput): WorkflowCostEsti
   let unknownCount = 0;
 
   for (const node of input.nodes) {
+    if (input.isKnownNonBillable?.(node)) {
+      continue;
+    }
     const quantity = positiveQuantity(quantities[node.id]);
     const price = resolvePrice(
       input.getMetadata(node.type),

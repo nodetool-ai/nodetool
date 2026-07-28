@@ -1,4 +1,4 @@
-import { isAbsolute, normalize, relative, sep } from "node:path";
+import { isAbsolute, relative } from "node:path";
 
 export function isWithinRoot(root: string, target: string): boolean {
   const rel = relative(root, target);
@@ -6,13 +6,20 @@ export function isWithinRoot(root: string, target: string): boolean {
 }
 
 export function normalizeStorageKey(key: string): string {
-  const cleaned = normalize(key.replaceAll("\\", "/")).replace(/^\/+/, "");
-  if (
-    !cleaned ||
-    cleaned === "." ||
-    cleaned.startsWith("..") ||
-    cleaned.includes(`..${sep}`)
-  ) {
+  const segments: string[] = [];
+  for (const segment of key.replaceAll("\\", "/").split("/")) {
+    if (!segment || segment === ".") continue;
+    if (segment === "..") {
+      if (segments.length === 0) {
+        throw new Error(`Invalid storage key: ${key}`);
+      }
+      segments.pop();
+      continue;
+    }
+    segments.push(segment);
+  }
+  const cleaned = segments.join("/");
+  if (!cleaned) {
     throw new Error(`Invalid storage key: ${key}`);
   }
   return cleaned;

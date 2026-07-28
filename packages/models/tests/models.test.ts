@@ -335,6 +335,50 @@ describe("Workflow model", () => {
     expect(cursor).toBeTruthy();
   });
 
+  it("paginateSummaries returns compact, cursor-paginated rows", async () => {
+    await Workflow.create<Workflow>({
+      user_id: "u1",
+      name: "Large workflow",
+      description: "Compact summary",
+      graph: {
+        nodes: [
+          {
+            id: "image",
+            type: "nodetool.input.ImageInput",
+            data: { value: { type: "image", data: "x".repeat(100_000) } }
+          }
+        ],
+        edges: []
+      }
+    });
+    await Workflow.create<Workflow>({ user_id: "u1", name: "Second" });
+    await Workflow.create<Workflow>({ user_id: "u2", name: "Other user" });
+
+    const [firstPage, cursor] = await Workflow.paginateSummaries("u1", {
+      limit: 1
+    });
+    const [secondPage, finalCursor] = await Workflow.paginateSummaries("u1", {
+      limit: 1,
+      startKey: cursor
+    });
+
+    expect(firstPage).toHaveLength(1);
+    expect(secondPage).toHaveLength(1);
+    expect(firstPage[0]?.id).not.toBe(secondPage[0]?.id);
+    expect(cursor).toBe(firstPage[0]?.id);
+    expect(finalCursor).toBe("");
+    expect(Object.keys(firstPage[0] ?? {}).sort()).toEqual([
+      "description",
+      "id",
+      "name",
+      "run_mode",
+      "updated_at"
+    ]);
+    expect(JSON.stringify([...firstPage, ...secondPage])).not.toContain(
+      "x".repeat(100)
+    );
+  });
+
   it("paginate with access filter", async () => {
     await Workflow.create<Workflow>({
       user_id: "u1",

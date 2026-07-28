@@ -91,7 +91,7 @@
     "turbo:lint": "turbo run lint",
     "turbo:typecheck": "turbo run typecheck",
     "turbo:check": "turbo run typecheck lint test",
-    "dev": "concurrently --raw --kill-others-on-fail \"node scripts/dev-server.mjs\" \"npm run dev --workspace=web\"",
+    "dev": "concurrently --raw --kill-others-on-fail \"node scripts/dev-server.mjs\" \"node scripts/wait-for-api.mjs && npm run dev --workspace=web\"",
     "dev:fast": "npm run dev",
     "dev:web": "npm run dev --workspace=web",
     "storybook": "npm run storybook --workspace=web",
@@ -181,10 +181,12 @@
   "dependencies": {
     "keytar": "^7.9.0",
     "msgpackr": "^1.11.9",
+    "sharp": "^0.35.3",
     "ts-node": "^10.9.2"
   },
   "overrides": {
-    "unzipper": ">=0.12.3"
+    "unzipper": ">=0.12.3",
+    "sharp": "^0.35.3"
   },
   "engines": {
     "node": ">=22.0.0 <23.0.0"

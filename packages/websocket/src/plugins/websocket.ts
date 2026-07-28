@@ -14,6 +14,8 @@ import {
   type ExtensionSocket
 } from "../extension-cdp-bridge.js";
 import { setExtensionChannelProvider } from "@nodetool-ai/automation-nodes/lib/extension-channel-provider";
+import { packWebSocketMessage } from "../messagepack.js";
+import type { SdkLiveRunnerRegistry } from "../sdk/sdk-live-runner-registry.js";
 
 const log = createLogger("nodetool.websocket.ws");
 
@@ -29,6 +31,7 @@ export interface WebSocketPluginOptions {
   ensurePythonBridge: () => Promise<void>;
   /** Forwarded to the runner for read-only RPC commands (list_workflows, …). */
   apiOptions: HttpApiOptions;
+  sdkLiveRunnerRegistry?: SdkLiveRunnerRegistry;
   /**
    * Worker provisioning orchestrator. Present when the server is wired with a
    * worker subsystem; enables `scope: "worker"` model downloads on /ws/download.
@@ -149,6 +152,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
     getPythonBridgeReady,
     ensurePythonBridge,
     apiOptions,
+    sdkLiveRunnerRegistry,
     workerManager
   } = opts;
   const graphNodeTypeResolver = createGraphNodeTypeResolver(registry);
@@ -232,13 +236,36 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
       getPythonBridgeReady,
       apiOptions
     });
+    const runnerTargetId = sdkLiveRunnerRegistry?.register(
+      req.userId ?? "1",
+      runner
+    );
+    if (runnerTargetId) {
+      try {
+        socket.send(
+          packWebSocketMessage({
+            type: "sdk_execution_target",
+            runner_id: runnerTargetId
+          })
+        );
+      } catch {
+        sdkLiveRunnerRegistry?.unregister(runnerTargetId);
+        return;
+      }
+    }
     log.info("WebSocket client connected");
-    void runner.run(new WsAdapter(socket)).catch((error) => {
-      log.error(
-        "Runner crashed",
-        error instanceof Error ? error : new Error(String(error))
-      );
-    });
+    void runner
+      .run(new WsAdapter(socket))
+      .catch((error) => {
+        log.error(
+          "Runner crashed",
+          error instanceof Error ? error : new Error(String(error))
+        );
+      })
+      .finally(() => {
+        if (runnerTargetId)
+          sdkLiveRunnerRegistry?.unregister(runnerTargetId);
+      });
   });
 
   // Chrome-extension CDP side channel.

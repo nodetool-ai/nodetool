@@ -65,7 +65,9 @@ function stripDataUrlPrefix(data: string): string {
 
 /* ------------------------------ sharp (lazy) ------------------------------ */
 
-type SharpFn = typeof import("sharp");
+type SharpModuleNs = typeof import("sharp");
+type SharpFn = SharpModuleNs["default"];
+type SharpModule = SharpModuleNs | { default: SharpFn };
 let _sharpPromise: Promise<SharpFn | null> | null = null;
 
 /**
@@ -95,9 +97,9 @@ export async function loadSharp(): Promise<SharpFn | null> {
     // later, fixed install is picked up. A legitimate off-Node `null` resolves
     // and is cached — the addon won't appear later in the same process.
     const attempt = (async (): Promise<SharpFn | null> => {
-      const mod = await importHidden<SharpFn | { default: SharpFn }>("sharp");
+      const mod = await importHidden<SharpModule>("sharp");
       if (!mod) return null;
-      return (mod as { default?: SharpFn }).default ?? (mod as SharpFn);
+      return (mod as { default?: SharpFn }).default ?? (mod as unknown as SharpFn);
     })();
     _sharpPromise = attempt;
     attempt.catch(() => {

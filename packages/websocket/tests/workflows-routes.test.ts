@@ -25,4 +25,16 @@ describe("workflows REST routes", () => {
     expect(response.statusCode).toBe(400);
     expect(response.json()).toEqual({ detail: "Invalid workflow" });
   });
+
+  it.each(["PUT", "DELETE"] as const)(
+    "registers %s /api/workflows/:id",
+    (method) => {
+      expect(
+        app.hasRoute({
+          method,
+          url: "/api/workflows/:id"
+        })
+      ).toBe(true);
+    }
+  );
 });
