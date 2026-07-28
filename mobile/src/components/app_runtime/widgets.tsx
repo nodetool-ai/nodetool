@@ -614,6 +614,188 @@ const DownloadWidget: React.FC<WidgetProps> = (widget) => {
   );
 };
 
+/** The file name a ref points at, for cards that can only name their value. */
+const fileNameOf = (uri: string): string => {
+  const path = uri.split("?")[0] ?? uri;
+  const last = path.slice(path.lastIndexOf("/") + 1);
+  return last || path;
+};
+
+/**
+ * The card the three non-previewable display widgets share: it names the value,
+ * lists what metadata the ref carries, and — when there is a file behind it —
+ * hands it to the OS the same way `Download` does.
+ *
+ * `Model3D`, `Chart` and `PDF` all render this instead of a preview because
+ * mobile ships none of the machinery each needs: no `three`/`expo-gl` for a
+ * mesh, no charting library for a plot, and no WebView for a paginated PDF.
+ * Pulling three renderers in for widgets a phone app rarely leads with would
+ * cost more than it buys, and drawing something that only looks like the value
+ * would lie about it. Opening the file in a viewer the device already has is
+ * the honest affordance.
+ */
+const FallbackCard: React.FC<{
+  title: string;
+  meta: string;
+  uri: string | null;
+  openLabel: string;
+  disabled?: boolean;
+}> = ({ title, meta, uri, openLabel, disabled }) => {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.documentCard, { borderColor: colors.border }]}>
+      <Text style={[styles.label, { color: colors.text }]}>{title}</Text>
+      <Text style={[styles.hint, { color: colors.textTertiary }]}>{meta}</Text>
+      <Text style={[styles.hint, { color: colors.textTertiary }]}>
+        Not previewable on mobile
+      </Text>
+      {uri ? (
+        <TouchableOpacity
+          accessibilityRole="button"
+          disabled={disabled}
+          onPress={() => {
+            void Linking.openURL(uri);
+          }}
+          style={[styles.secondaryButton, { borderColor: colors.primary }]}
+        >
+          <Text style={{ color: colors.primary }}>{openLabel}</Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+};
+
+/** A bound `Model3DRef`, named rather than rendered — see `FallbackCard`. */
+const Model3DWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
+  const item = asItems(value)[0];
+  const uri = mediaUri(item);
+  if (item == null) {
+    return (
+      <Placeholder
+        text={str(widget.props.placeholder) || "No 3D model yet"}
+        colors={colors}
+      />
+    );
+  }
+  return (
+    <FallbackCard
+      title="3D model"
+      meta={uri ? fileNameOf(uri) : "In-memory mesh"}
+      uri={uri}
+      openLabel="Open model"
+      disabled={widget.disabled}
+    />
+  );
+};
+
+/** What a bound plot value amounts to, for the card that cannot draw it. */
+const chartSummary = (value: unknown): string | null => {
+  if (isRow(value) && Array.isArray((value as { data?: unknown[] }).data)) {
+    const frame = value as { data?: unknown[]; columns?: unknown };
+    const columns = Array.isArray(frame.columns) ? frame.columns.length : 0;
+    const rows = frame.data?.length ?? 0;
+    return `${rows} row${rows === 1 ? "" : "s"} · ${columns} column${
+      columns === 1 ? "" : "s"
+    }`;
+  }
+  const points = asItems(value).length;
+  if (points === 0) {return null;}
+  return `${points} point${points === 1 ? "" : "s"}`;
+};
+
+/** A bound series, summarized rather than plotted — see `FallbackCard`. */
+const ChartWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
+  const summary = chartSummary(value);
+  if (!summary) {
+    return (
+      <Placeholder
+        text={str(widget.props.placeholder) || "No data yet"}
+        colors={colors}
+      />
+    );
+  }
+  const kind = str(widget.props.chartKind) || "line";
+  return (
+    <FallbackCard
+      title={str(widget.props.label) || `${kind} chart`}
+      meta={summary}
+      uri={null}
+      openLabel=""
+    />
+  );
+};
+
+/** A bound PDF document, named rather than paged — see `FallbackCard`. */
+const PDFWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
+  const item = asItems(value)[0];
+  const uri = mediaUri(item);
+  if (item == null) {
+    return (
+      <Placeholder
+        text={str(widget.props.placeholder) || "No document yet"}
+        colors={colors}
+      />
+    );
+  }
+  return (
+    <FallbackCard
+      title="PDF"
+      meta={uri ? fileNameOf(uri) : "In-memory document"}
+      uri={uri}
+      openLabel="Open PDF"
+      disabled={widget.disabled}
+    />
+  );
+};
+
+/**
+ * A tiled grid of a bound array of media refs. Unlike the three cards above this
+ * one renders for real: the tiles are the same `Image` the `Image` widget draws.
+ */
+const GalleryWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
+  const tileSize = numOr(widget.props.tileSize, 120);
+  const uris = asItems(value)
+    .map(mediaUri)
+    .filter((uri): uri is string => uri !== null);
+
+  if (uris.length === 0) {
+    return (
+      <Placeholder
+        text={str(widget.props.placeholder) || "No images yet"}
+        colors={colors}
+      />
+    );
+  }
+  return (
+    <View style={styles.field}>
+      <FieldLabel text={str(widget.props.label)} colors={colors} />
+      <View style={styles.tileGrid}>
+        {uris.map((uri, index) => (
+          <Image
+            key={`${uri}-${index}`}
+            testID="gallery-tile"
+            accessibilityRole="image"
+            source={{ uri }}
+            style={[
+              styles.tile,
+              { width: tileSize, height: tileSize, borderColor: colors.border },
+            ]}
+            resizeMode="cover"
+          />
+        ))}
+      </View>
+    </View>
+  );
+};
+
 // ── Inputs ──────────────────────────────────────────────────────────────────
 
 const TextInputWidget: React.FC<WidgetProps> = (widget) => {
@@ -1012,6 +1194,15 @@ const ColorInputWidget: React.FC<WidgetProps> = (widget) => {
   );
 };
 
+/** Wording for the picker button — `model_3d` reads badly as a noun. */
+const MEDIA_LABEL: Record<MediaKind, string> = {
+  image: "image",
+  audio: "audio",
+  video: "video",
+  document: "document",
+  model_3d: "3D model",
+};
+
 const MediaInputWidget: React.FC<WidgetProps & { kind: MediaKind }> = ({
   kind,
   ...widget
@@ -1040,7 +1231,7 @@ const MediaInputWidget: React.FC<WidgetProps & { kind: MediaKind }> = ({
   return (
     <View style={styles.field}>
       <FieldLabel
-        text={str(widget.props.label) || `${kind} input`}
+        text={str(widget.props.label) || `${MEDIA_LABEL[kind]} input`}
         colors={colors}
       />
       {kind === "image" && uri ? (
@@ -1062,7 +1253,9 @@ const MediaInputWidget: React.FC<WidgetProps & { kind: MediaKind }> = ({
           <ActivityIndicator color={colors.primary} size="small" />
         ) : (
           <Text style={{ color: colors.primary }}>
-            {uri ? `Replace ${kind}` : `Choose ${kind}`}
+            {uri
+              ? `Replace ${MEDIA_LABEL[kind]}`
+              : `Choose ${MEDIA_LABEL[kind]}`}
           </Text>
         )}
       </TouchableOpacity>
@@ -1074,6 +1267,450 @@ const MediaInputWidget: React.FC<WidgetProps & { kind: MediaKind }> = ({
           {uri}
         </Text>
       ) : null}
+    </View>
+  );
+};
+
+/**
+ * A typed path rather than a browser: a phone sandbox has no user-visible
+ * filesystem to walk, and the path a `FilePathInput`/`FolderPathInput` feeds is
+ * read by the server running the workflow, not by the device. So the control is
+ * the field the value actually needs.
+ */
+const PathInputWidget: React.FC<WidgetProps & { kind: "file" | "folder" }> = ({
+  kind,
+  ...widget
+}) => {
+  const { colors } = useTheme();
+  const { value, setValue, emit } = useWidgetRuntime({
+    ...widget,
+    bindingMode: "write",
+  });
+  return (
+    <View style={styles.field}>
+      <FieldLabel
+        text={str(widget.props.label) || (kind === "file" ? "File path" : "Folder path")}
+        colors={colors}
+      />
+      <TextInput
+        style={[
+          styles.input,
+          {
+            backgroundColor: colors.inputBg,
+            color: colors.text,
+            borderColor: colors.border,
+          },
+        ]}
+        editable={!widget.disabled}
+        value={str(value)}
+        autoCapitalize="none"
+        autoCorrect={false}
+        placeholder={
+          str(widget.props.placeholder) ||
+          (kind === "file" ? "/path/to/file.txt" : "/path/to/folder")
+        }
+        placeholderTextColor={colors.textTertiary}
+        onChangeText={(text) => {
+          setValue(text);
+          emit("change");
+        }}
+        onBlur={() => emit("change", "commit")}
+      />
+      <Text style={[styles.hint, { color: colors.textTertiary }]}>
+        Path on the machine running the workflow
+      </Text>
+    </View>
+  );
+};
+
+/** Writes the `{width, height}` pair an image workflow's size input reads. */
+const ImageSizeInputWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { value, setValue, emit } = useWidgetRuntime({
+    ...widget,
+    bindingMode: "write",
+  });
+  const size = isRow(value) ? value : {};
+  const dimension = (key: "width" | "height"): string => {
+    const current = size[key];
+    return typeof current === "number" ? String(current) : "";
+  };
+  const write = (key: "width" | "height", text: string) => {
+    const parsed = Number(text);
+    setValue({
+      ...size,
+      [key]: text === "" || Number.isNaN(parsed) ? undefined : parsed,
+    });
+    emit("change");
+  };
+
+  return (
+    <View style={styles.field}>
+      <FieldLabel text={str(widget.props.label) || "Image size"} colors={colors} />
+      <View style={styles.row}>
+        {(["width", "height"] as const).map((key) => (
+          <TextInput
+            key={key}
+            style={[
+              styles.input,
+              styles.flex,
+              {
+                backgroundColor: colors.inputBg,
+                color: colors.text,
+                borderColor: colors.border,
+              },
+            ]}
+            accessibilityLabel={key}
+            editable={!widget.disabled}
+            value={dimension(key)}
+            keyboardType="numeric"
+            placeholder={key}
+            placeholderTextColor={colors.textTertiary}
+            onChangeText={(text) => write(key, text)}
+            onBlur={() => emit("change", "commit")}
+          />
+        ))}
+      </View>
+    </View>
+  );
+};
+
+/** Which media a `MediaListInput` collects. */
+type ListKind = "image" | "video" | "audio" | "text";
+
+const listKindOf = (value: unknown): ListKind =>
+  value === "video" || value === "audio" || value === "text"
+    ? value
+    : "image";
+
+/**
+ * Picks several values and writes them as an array — the one control behind the
+ * four list input nodes. A text list is edited as lines rather than as rows: a
+ * per-row field on a phone costs a tap per item and buys nothing.
+ */
+const MediaListInputWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { value, setValue, emit } = useWidgetRuntime({
+    ...widget,
+    bindingMode: "write",
+  });
+  const kind = listKindOf(widget.props.listKind);
+  const items = useMemo(() => (Array.isArray(value) ? value : []), [value]);
+  const [picking, setPicking] = useState(false);
+
+  const add = useCallback(async () => {
+    setPicking(true);
+    try {
+      const picked = await pickMediaValue(kind === "text" ? "document" : kind);
+      if (picked) {
+        setValue([...items, picked]);
+        emit("change");
+      }
+    } finally {
+      setPicking(false);
+    }
+  }, [emit, items, kind, setValue]);
+
+  const label = str(widget.props.label) || `${kind} list`;
+
+  if (kind === "text") {
+    return (
+      <View style={styles.field}>
+        <FieldLabel text={label} colors={colors} />
+        <TextInput
+          style={[
+            styles.input,
+            styles.inputMultiline,
+            {
+              backgroundColor: colors.inputBg,
+              color: colors.text,
+              borderColor: colors.border,
+            },
+          ]}
+          editable={!widget.disabled}
+          value={items.map(str).join("\n")}
+          multiline
+          placeholder="One entry per line"
+          placeholderTextColor={colors.textTertiary}
+          onChangeText={(text) => {
+            setValue(text === "" ? [] : text.split("\n"));
+            emit("change");
+          }}
+          onBlur={() => emit("change", "commit")}
+        />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.field}>
+      <FieldLabel text={label} colors={colors} />
+      {items.map((item, index) => {
+        const uri = mediaUri(item);
+        return (
+          <View key={index} style={styles.row}>
+            {kind === "image" && uri ? (
+              <Image
+                accessibilityRole="image"
+                source={{ uri }}
+                style={[styles.tile, { borderColor: colors.border }]}
+                resizeMode="cover"
+              />
+            ) : (
+              <Text
+                numberOfLines={1}
+                style={[styles.hint, styles.flex, { color: colors.textTertiary }]}
+              >
+                {uri ?? `${kind} ${index + 1}`}
+              </Text>
+            )}
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={`Remove ${kind} ${index + 1}`}
+              disabled={widget.disabled}
+              onPress={() => {
+                setValue(items.filter((_, at) => at !== index));
+                emit("change");
+              }}
+            >
+              <Text style={{ color: colors.error }}>Remove</Text>
+            </TouchableOpacity>
+          </View>
+        );
+      })}
+      <TouchableOpacity
+        accessibilityRole="button"
+        disabled={widget.disabled || picking}
+        onPress={() => void add()}
+        style={[
+          styles.secondaryButton,
+          { borderColor: colors.border, backgroundColor: colors.inputBg },
+        ]}
+      >
+        {picking ? (
+          <ActivityIndicator color={colors.primary} size="small" />
+        ) : (
+          <Text style={{ color: colors.primary }}>{`Add ${kind}`}</Text>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+/**
+ * A bound dataframe as an editable grid.
+ *
+ * Two value shapes reach this widget: the `DataframeRef` a workflow input holds
+ * (`{columns, data}`, rows as arrays) and the plain array of row objects an app
+ * variable usually carries. Both read into the same grid, and each is written
+ * back in the shape it arrived in, so editing never rewrites the value's type.
+ */
+interface Grid {
+  /** True when the value was a `DataframeRef` rather than an array of rows. */
+  frame: boolean;
+  columns: string[];
+  rows: unknown[][];
+}
+
+const readGrid = (value: unknown): Grid => {
+  if (
+    isRow(value) &&
+    (Array.isArray(value.data) || Array.isArray(value.columns))
+  ) {
+    const columns = Array.isArray(value.columns)
+      ? value.columns.map((column, index) =>
+          isRow(column) ? str(column.name) || `col ${index + 1}` : str(column)
+        )
+      : [];
+    const rows = (Array.isArray(value.data) ? value.data : []).map((row) =>
+      Array.isArray(row) ? [...row] : [row]
+    );
+    const width = Math.max(columns.length, ...rows.map((row) => row.length), 0);
+    return {
+      frame: true,
+      columns: Array.from(
+        { length: width },
+        (_, index) => columns[index] ?? `col ${index + 1}`
+      ),
+      rows,
+    };
+  }
+  if (Array.isArray(value)) {
+    const columns = tableColumns(value);
+    if (columns.length === 0) {
+      return { frame: false, columns: ["value"], rows: value.map((row) => [row]) };
+    }
+    return {
+      frame: false,
+      columns,
+      rows: value.map((row) =>
+        columns.map((column) => (isRow(row) ? row[column] : undefined))
+      ),
+    };
+  }
+  return { frame: false, columns: [], rows: [] };
+};
+
+const writeGrid = (value: unknown, grid: Grid): unknown => {
+  if (grid.frame && isRow(value)) {return { ...value, data: grid.rows };}
+  if (grid.columns.length === 1 && grid.columns[0] === "value") {
+    return grid.rows.map((row) => row[0]);
+  }
+  return grid.rows.map((row) =>
+    Object.fromEntries(grid.columns.map((column, index) => [column, row[index]]))
+  );
+};
+
+/** A cell keeps its type: a numeric column stays numeric while it parses. */
+const coerceCell = (previous: unknown, text: string): unknown => {
+  if (typeof previous !== "number") {return text;}
+  const parsed = Number(text);
+  return text !== "" && !Number.isNaN(parsed) ? parsed : text;
+};
+
+const DataFrameInputWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { value, setValue, emit } = useWidgetRuntime({
+    ...widget,
+    bindingMode: "write",
+  });
+  const grid = useMemo(() => readGrid(value), [value]);
+  const maxHeight = numOr(widget.props.maxHeight, 280);
+
+  const commit = useCallback(
+    (rows: unknown[][]) => {
+      setValue(writeGrid(value, { ...grid, rows }));
+      emit("change");
+    },
+    [emit, grid, setValue, value]
+  );
+
+  if (grid.columns.length === 0) {
+    return (
+      <View style={styles.field}>
+        <FieldLabel
+          text={str(widget.props.label) || "Data table"}
+          colors={colors}
+        />
+        <Placeholder text="No columns to edit" colors={colors} />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.field}>
+      <FieldLabel text={str(widget.props.label) || "Data table"} colors={colors} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <ScrollView style={{ maxHeight }} nestedScrollEnabled>
+          <View style={[styles.table, { borderColor: colors.border }]}>
+            <View style={[styles.tableRow, { backgroundColor: colors.inputBg }]}>
+              {grid.columns.map((column) => (
+                <Text
+                  key={column}
+                  numberOfLines={1}
+                  style={[styles.tableCell, styles.tableHeader, { color: colors.text }]}
+                >
+                  {column}
+                </Text>
+              ))}
+            </View>
+            {grid.rows.map((row, rowIndex) => (
+              <View
+                key={rowIndex}
+                style={[
+                  styles.tableRow,
+                  {
+                    borderTopColor: colors.border,
+                    borderTopWidth: StyleSheet.hairlineWidth,
+                  },
+                ]}
+              >
+                {grid.columns.map((column, cellIndex) => (
+                  <TextInput
+                    key={column}
+                    accessibilityLabel={`${column} row ${rowIndex + 1}`}
+                    style={[
+                      styles.tableCell,
+                      styles.cellInput,
+                      { color: colors.text },
+                    ]}
+                    editable={!widget.disabled}
+                    value={cellText(row[cellIndex])}
+                    onChangeText={(text) =>
+                      commit(
+                        grid.rows.map((current, at) =>
+                          at === rowIndex
+                            ? grid.columns.map((_, index) =>
+                                index === cellIndex
+                                  ? coerceCell(current[index], text)
+                                  : current[index]
+                              )
+                            : current
+                        )
+                      )
+                    }
+                    onBlur={() => emit("change", "commit")}
+                  />
+                ))}
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      </ScrollView>
+      <TouchableOpacity
+        accessibilityRole="button"
+        disabled={widget.disabled}
+        onPress={() => commit([...grid.rows, grid.columns.map(() => "")])}
+        style={[
+          styles.secondaryButton,
+          { borderColor: colors.border, backgroundColor: colors.inputBg },
+        ]}
+      >
+        <Text style={{ color: colors.primary }}>Add row</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+/**
+ * A Hugging Face repo id, typed. Mobile has no hub browser — the models screen
+ * lists what the server already cached, not the hub — so the control is the
+ * field, and it writes the `{type, repo_id}` ref the node reads.
+ */
+const HuggingFaceModelInputWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { value, setValue, emit } = useWidgetRuntime({
+    ...widget,
+    bindingMode: "write",
+  });
+  const current = isRow(value) ? str(value.repo_id) : str(value);
+  return (
+    <View style={styles.field}>
+      <FieldLabel
+        text={str(widget.props.label) || "Hugging Face model"}
+        colors={colors}
+      />
+      <TextInput
+        style={[
+          styles.input,
+          {
+            backgroundColor: colors.inputBg,
+            color: colors.text,
+            borderColor: colors.border,
+          },
+        ]}
+        editable={!widget.disabled}
+        value={current}
+        autoCapitalize="none"
+        autoCorrect={false}
+        placeholder="owner/model"
+        placeholderTextColor={colors.textTertiary}
+        onChangeText={(text) => {
+          setValue({ type: "hf.model", repo_id: text });
+          emit("change");
+        }}
+        onBlur={() => emit("change", "commit")}
+      />
     </View>
   );
 };
@@ -1135,6 +1772,47 @@ const WorkflowInputWidget: React.FC<WidgetProps> = (widget) => {
     case "video":
     case "document":
       return <MediaInputWidget {...props} kind={input.kind} />;
+    case "model3d":
+      return <MediaInputWidget {...props} kind="model_3d" />;
+    case "image_size":
+      return <ImageSizeInputWidget {...props} />;
+    case "dataframe":
+      return <DataFrameInputWidget {...props} />;
+    case "file_path":
+      return <PathInputWidget {...props} kind="file" />;
+    case "folder_path":
+    case "folder":
+      return <PathInputWidget {...props} kind="folder" />;
+    case "image_list":
+    case "video_list":
+    case "audio_list":
+    case "text_list":
+      return (
+        <MediaListInputWidget
+          {...props}
+          props={{
+            ...props.props,
+            listKind: input.kind.replace("_list", ""),
+          }}
+        />
+      );
+    case "huggingface_model":
+      return <HuggingFaceModelInputWidget {...props} />;
+    // The six model kinds render the picker, not a text box: a model reference
+    // is `{type, id, provider, name}`, which nobody types by hand.
+    case "language_model":
+    case "image_model":
+    case "video_model":
+    case "tts_model":
+    case "asr_model":
+    case "embedding_model":
+      return (
+        <ModelSelectWidget
+          {...props}
+          props={{ ...props.props, modelKind: input.kind }}
+        />
+      );
+    case "string":
     default:
       return <TextInputWidget {...props} />;
   }
@@ -1479,7 +2157,12 @@ const slotNodes = (value: unknown): ComponentNode[] =>
       )
     : [];
 
-const RENDERERS: Record<string, React.FC<WidgetProps>> = {
+/**
+ * One entry per `WIDGET_CATALOG` type — a missing entry renders the
+ * unknown-widget hint instead of the widget, which is what
+ * `catalogWidgets.test.tsx` guards.
+ */
+export const RENDERERS: Record<string, React.FC<WidgetProps>> = {
   Heading: HeadingWidget,
   Text: TextWidget,
   Markdown: MarkdownWidget,
@@ -1498,6 +2181,10 @@ const RENDERERS: Record<string, React.FC<WidgetProps>> = {
   KeyValue: KeyValueWidget,
   Stat: StatWidget,
   Download: DownloadWidget,
+  Model3D: Model3DWidget,
+  Chart: ChartWidget,
+  PDF: PDFWidget,
+  Gallery: GalleryWidget,
   WorkflowInput: WorkflowInputWidget,
   TextInput: TextInputWidget,
   NumberInput: NumberInputWidget,
@@ -1512,6 +2199,12 @@ const RENDERERS: Record<string, React.FC<WidgetProps>> = {
   AudioInput: (props) => <MediaInputWidget {...props} kind="audio" />,
   VideoInput: (props) => <MediaInputWidget {...props} kind="video" />,
   DocumentInput: (props) => <MediaInputWidget {...props} kind="document" />,
+  Model3DInput: (props) => <MediaInputWidget {...props} kind="model_3d" />,
+  DataFrameInput: DataFrameInputWidget,
+  FilePathInput: (props) => <PathInputWidget {...props} kind="file" />,
+  FolderPathInput: (props) => <PathInputWidget {...props} kind="folder" />,
+  ImageSizeInput: ImageSizeInputWidget,
+  MediaListInput: MediaListInputWidget,
   ...RESOURCE_RENDERERS,
   ChatThread: ChatThreadWidget,
   ChatComposer: ChatComposerWidget,
@@ -1640,6 +2333,20 @@ const styles = StyleSheet.create({
   },
   mediaPreview: {
     height: 180,
+  },
+  tileGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  tile: {
+    width: 56,
+    height: 56,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  cellInput: {
+    fontSize: 14,
   },
   bubble: {
     maxWidth: "88%",

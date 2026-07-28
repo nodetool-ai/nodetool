@@ -26,7 +26,10 @@ export type WorkflowInputKind =
   | "image_list"
   | "video_list"
   | "audio_list"
-  | "text_list";
+  | "text_list"
+  | "model3d"
+  | "image_size"
+  | "huggingface_model";
 
 export const getWorkflowInputKind = (
   nodeType: string
@@ -56,6 +59,12 @@ export const getWorkflowInputKind = (
     case "nodetool.input.DataFrameInput":
     case "nodetool.input.DataframeInput":
       return "dataframe";
+    case "nodetool.input.Model3DInput":
+      return "model3d";
+    case "nodetool.input.ImageSizeInput":
+      return "image_size";
+    case "nodetool.input.HuggingFaceModelInput":
+      return "huggingface_model";
     case "nodetool.input.FilePathInput":
       return "file_path";
     case "nodetool.input.FolderPathInput":

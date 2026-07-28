@@ -172,6 +172,17 @@ ApplicationAppView   # renders the document's widget tree
   at phone width), there is no reactive-subgraph path (no browser worker, so
   every run is a full server run), and `ResourcePicker`/`ResourceGallery`
   collapse into one list of rows — a grid of tiles buys nothing at phone width.
+- **Three display widgets are cards, not previews**: `Model3D`, `Chart` and
+  `PDF`. Mobile ships no 3D renderer, no charting library and no WebView, and
+  each card names the value, shows the metadata its ref carries, and hands the
+  file to the OS instead of drawing something that only looks like it.
+  `Gallery` does render — it tiles the bound refs with the same `Image` the
+  `Image` widget uses.
+- **Path inputs are typed fields**: a phone sandbox has no user-visible
+  filesystem, and a `FilePathInput`/`FolderPathInput` value is read by the
+  machine running the workflow, not by the device. Same reasoning as
+  `DateInput`. A Hugging Face model input is a repo-id field for the same
+  reason: mobile has no hub browser.
 - **Sketch widget**: a bound sketch draws rather than being summarised.
   `components/sketch/SketchRenderer` composites it — the same compositor the
   sketch viewer screen uses — for a document bound inline and for a bare
