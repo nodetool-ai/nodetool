@@ -1,6 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { useNodes } from "../contexts/NodeContext";
-import { shallow } from "zustand/shallow";
+import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
 
 type Direction = "upstream" | "downstream" | "both";
 
@@ -22,15 +21,12 @@ export const useSelectConnected = (
   options: UseSelectConnectedOptions = {}
 ): SelectConnectedResult => {
   const { direction = "both" } = options;
-  const { nodes, edges, getSelectedNodes, setSelectedNodes } = useNodes(
-    (state) => ({
-      nodes: state.nodes,
-      edges: state.edges,
-      getSelectedNodes: state.getSelectedNodes,
-      setSelectedNodes: state.setSelectedNodes
-    }),
-    shallow
-  );
+  // `edges` stays subscribed because the traversal derives from it. `nodes` is
+  // only needed inside `selectConnected`, so it is read lazily instead.
+  const edges = useNodes((state) => state.edges);
+  const getSelectedNodes = useNodes((state) => state.getSelectedNodes);
+  const setSelectedNodes = useNodes((state) => state.setSelectedNodes);
+  const nodeStore = useNodeStoreRef();
 
   const getConnectedNodeIds = useCallback((): string[] => {
     const selectedNodes = getSelectedNodes();
@@ -98,9 +94,11 @@ export const useSelectConnected = (
       ...connectedIds
     ]);
 
-    const nodesToSelect = nodes.filter((node) => allNodeIds.has(node.id));
+    const nodesToSelect = nodeStore
+      .getState()
+      .nodes.filter((node) => allNodeIds.has(node.id));
     setSelectedNodes(nodesToSelect);
-  }, [getSelectedNodes, getConnectedNodeIds, nodes, setSelectedNodes]);
+  }, [getSelectedNodes, getConnectedNodeIds, nodeStore, setSelectedNodes]);
 
   return {
     selectConnected,

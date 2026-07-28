@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { Node, Edge, useReactFlow } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 import { DUPLICATE_SPACING } from "../config/constants";
-import { useNodes } from "../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
 import { shallow } from "zustand/shallow";
 
 /**
@@ -22,23 +22,21 @@ export const useDuplicateNodes = (
   keepUpstreamConnections: boolean = true
 ): (() => void) => {
   const reactFlow = useReactFlow();
-  const {
-    nodes,
-    edges,
-    setNodes,
-    setEdges,
-    generateNodeIds,
-    getSelectedNodes
-  } = useNodes((state) => ({
-    nodes: state.nodes,
-    edges: state.edges,
-    setNodes: state.setNodes,
-    setEdges: state.setEdges,
-    getSelectedNodes: state.getSelectedNodes,
-    generateNodeIds: state.generateNodeIds
-  }), shallow);
+  // Subscribe to the actions only; `nodes`/`edges` are read lazily below so
+  // the returned callback keeps a stable identity.
+  const { setNodes, setEdges, generateNodeIds, getSelectedNodes } = useNodes(
+    (state) => ({
+      setNodes: state.setNodes,
+      setEdges: state.setEdges,
+      getSelectedNodes: state.getSelectedNodes,
+      generateNodeIds: state.generateNodeIds
+    }),
+    shallow
+  );
+  const nodeStore = useNodeStoreRef();
   return useCallback(() => {
     const getNodesBounds = reactFlow.getNodesBounds;
+    const { nodes, edges } = nodeStore.getState();
     const selectedNodes = getSelectedNodes();
 
     if (selectedNodes.length === 0) {
@@ -156,7 +154,6 @@ export const useDuplicateNodes = (
     reactFlow.getNodesBounds,
     setNodes,
     setEdges,
-    edges,
-    nodes
+    nodeStore
   ]);
 };
