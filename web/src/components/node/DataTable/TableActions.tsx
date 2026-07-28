@@ -153,10 +153,11 @@ const TableActions: React.FC<TableActionsProps> = memo(({
 
   const handleDeleteRows = useCallback(() => {
     if (Array.isArray(data)) {
+      const selectedIndices = new Set(
+        selectedRows.map((row) => row.getData().rownum)
+      );
       const filtered = (data as CellValue[]).filter((_, index) => {
-        return !selectedRows.some(
-          (selectedRow) => selectedRow.getData().rownum === index
-        );
+        return !selectedIndices.has(index);
       });
       onChangeRows(filtered);
     } else {
