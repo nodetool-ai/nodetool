@@ -12,7 +12,9 @@ import {
   FlexRow,
   Text,
   Tooltip,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  SPACING,
+  createPadding
 } from "../../ui_primitives";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../DownloadProgress";
@@ -57,17 +59,17 @@ const OnboardingModelRow: React.FC<OnboardingModelRowProps> = ({
 
   return (
     <FlexColumn
-      gap={1}
+      gap={SPACING.xs}
       sx={{
-        padding: "0.85rem 1rem",
+        padding: createPadding(theme, SPACING.lg, SPACING.xl),
         borderRadius: BORDER_RADIUS.md,
         border: `1px solid ${theme.vars.palette.divider}`,
         backgroundColor: theme.vars.palette.background.paper
       }}
     >
-      <FlexRow gap={2} align="flex-start" justify="space-between">
-        <FlexColumn gap={0.5} sx={{ minWidth: 0, flex: 1 }}>
-          <FlexRow gap={1} align="center" sx={{ flexWrap: "wrap" }}>
+      <FlexRow gap={SPACING.md} align="flex-start" justify="space-between">
+        <FlexColumn gap={SPACING.micro} sx={{ minWidth: 0, flex: 1 }}>
+          <FlexRow gap={SPACING.xs} align="center" sx={{ flexWrap: "wrap" }}>
             <Text size="normal" weight={600} sx={{ lineHeight: 1.2 }}>
               {entry.name}
             </Text>
@@ -83,7 +85,11 @@ const OnboardingModelRow: React.FC<OnboardingModelRowProps> = ({
           <Caption sx={{ opacity: 0.7, lineHeight: 1.45 }}>
             {entry.blurb}
           </Caption>
-          <FlexRow gap={1} align="center" sx={{ mt: 0.25, flexWrap: "wrap" }}>
+          <FlexRow
+            gap={SPACING.xs}
+            align="center"
+            sx={{ mt: SPACING.micro, flexWrap: "wrap" }}
+          >
             <Caption sx={{ fontVariantNumeric: "tabular-nums" }}>
               ~{entry.approxSizeGb} GB{entry.quant ? ` · ${entry.quant}` : ""}
             </Caption>
@@ -94,7 +100,7 @@ const OnboardingModelRow: React.FC<OnboardingModelRowProps> = ({
           </FlexRow>
         </FlexColumn>
 
-        <FlexColumn gap={0.75} align="flex-end" sx={{ flexShrink: 0 }}>
+        <FlexColumn gap={SPACING.xs} align="flex-end" sx={{ flexShrink: 0 }}>
           <Chip
             label={FIT_LABELS[fit]}
             compact
@@ -102,7 +108,7 @@ const OnboardingModelRow: React.FC<OnboardingModelRowProps> = ({
             variant={fit === "unknown" ? "outlined" : "filled"}
           />
           {downloaded ? (
-            <FlexRow gap={0.5} align="center">
+            <FlexRow gap={SPACING.micro} align="center">
               <CheckCircleIcon
                 sx={{
                   fontSize: 16,
@@ -126,7 +132,7 @@ const OnboardingModelRow: React.FC<OnboardingModelRowProps> = ({
       </FlexRow>
 
       {download && (
-        <Box sx={{ mt: 0.5 }}>
+        <Box sx={{ mt: SPACING.micro }}>
           <DownloadProgress name={downloadId} />
         </Box>
       )}

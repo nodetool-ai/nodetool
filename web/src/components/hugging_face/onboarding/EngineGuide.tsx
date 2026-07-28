@@ -14,7 +14,9 @@ import {
   LoadingSpinner,
   Text,
   TextLink,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
 } from "../../ui_primitives";
 import useNodePacksStore from "../../../stores/NodePacksStore";
 import { useShallow } from "zustand/react/shallow";
@@ -45,8 +47,8 @@ const EngineCard: React.FC<{ engine: OnboardingEngine }> = ({ engine }) => {
         height: "100%"
       }}
     >
-      <FlexColumn gap={1} sx={{ height: "100%" }}>
-        <FlexRow gap={1} align="center" justify="space-between">
+      <FlexColumn gap={SPACING.xs} sx={{ height: "100%" }}>
+        <FlexRow gap={SPACING.xs} align="center" justify="space-between">
           <Text size="normal" weight={600}>
             {engine.name}
           </Text>
@@ -61,7 +63,10 @@ const EngineCard: React.FC<{ engine: OnboardingEngine }> = ({ engine }) => {
         {engine.platform && (
           <Caption sx={{ opacity: 0.55 }}>{engine.platform}</Caption>
         )}
-        <FlexRow gap={0.5} sx={{ flexWrap: "wrap", mt: 0.5 }}>
+        <FlexRow
+          gap={SPACING.micro}
+          sx={{ flexWrap: "wrap", mt: SPACING.micro }}
+        >
           {engine.formats.map((fmt) => (
             <Chip key={fmt} label={fmt} compact variant="outlined" />
           ))}
@@ -69,9 +74,9 @@ const EngineCard: React.FC<{ engine: OnboardingEngine }> = ({ engine }) => {
         <TextLink
           href={engine.docsUrl}
           external
-          sx={{ mt: 0.5, fontSize: "var(--fontSizeSmall)" }}
+          sx={{ mt: SPACING.micro, fontSize: "var(--fontSizeSmall)" }}
         >
-          Learn more <OpenInNewIcon sx={{ fontSize: 12, ml: 0.25 }} />
+          Learn more <OpenInNewIcon sx={{ fontSize: 12, ml: SPACING.micro }} />
         </TextLink>
       </FlexColumn>
     </Card>
@@ -100,17 +105,17 @@ const NodePackRow: React.FC<{ pack: OnboardingNodePack }> = ({ pack }) => {
 
   return (
     <FlexRow
-      gap={2}
+      gap={SPACING.md}
       align="center"
       justify="space-between"
       sx={{
-        padding: "0.65rem 0.85rem",
+        padding: SPACING.lg,
         borderRadius: BORDER_RADIUS.sm,
         border: `1px solid ${theme.vars.palette.divider}`,
         backgroundColor: theme.vars.palette.background.paper
       }}
     >
-      <FlexColumn gap={0.25} sx={{ minWidth: 0 }}>
+      <FlexColumn gap={SPACING.micro} sx={{ minWidth: 0 }}>
         <Text size="small" weight={600}>
           {pack.name}
         </Text>
@@ -119,7 +124,7 @@ const NodePackRow: React.FC<{ pack: OnboardingNodePack }> = ({ pack }) => {
         </Caption>
       </FlexColumn>
       {isInstalled ? (
-        <FlexRow gap={0.5} align="center" sx={{ flexShrink: 0 }}>
+        <FlexRow gap={SPACING.micro} align="center" sx={{ flexShrink: 0 }}>
           <CheckCircleIcon
             sx={{ fontSize: 16, color: theme.vars.palette.success.main }}
           />
@@ -167,9 +172,9 @@ const EngineGuide: React.FC = () => {
   const engines = useMemo(() => ONBOARDING_ENGINES, []);
 
   return (
-    <FlexColumn gap={3}>
-      <FlexColumn gap={1.5}>
-        <FlexColumn gap={0.25}>
+    <FlexColumn gap={SPACING.lg}>
+      <FlexColumn gap={SPACING.sm}>
+        <FlexColumn gap={SPACING.micro}>
           <Text size="big" weight={600}>
             Local engines
           </Text>
@@ -181,7 +186,7 @@ const EngineGuide: React.FC = () => {
         <div
           css={{
             display: "grid",
-            gap: "0.75rem",
+            gap: getSpacingPx(SPACING.lg),
             gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))"
           }}
         >
@@ -191,9 +196,9 @@ const EngineGuide: React.FC = () => {
         </div>
       </FlexColumn>
 
-      <FlexColumn gap={1.5}>
-        <FlexRow gap={1} align="center" justify="space-between">
-          <FlexColumn gap={0.25}>
+      <FlexColumn gap={SPACING.sm}>
+        <FlexRow gap={SPACING.xs} align="center" justify="space-between">
+          <FlexColumn gap={SPACING.micro}>
             <Text size="big" weight={600}>
               Node packs
             </Text>
@@ -213,7 +218,7 @@ const EngineGuide: React.FC = () => {
             Package Manager
           </EditorButton>
         </FlexRow>
-        <FlexColumn gap={1}>
+        <FlexColumn gap={SPACING.xs}>
           {ONBOARDING_NODE_PACKS.map((pack) => (
             <NodePackRow key={pack.repoId} pack={pack} />
           ))}

@@ -19,7 +19,8 @@ import {
   Text,
   TextInput,
   BORDER_RADIUS,
-  MOTION
+  MOTION,
+  SPACING
 } from "../ui_primitives";
 import { useOAuthConnection } from "../../hooks/useOAuthConnection";
 import useSecretsStore from "../../stores/SecretsStore";
@@ -106,8 +107,8 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
         transition: `${MOTION.border}, ${MOTION.background}`
       }}
     >
-      <FlexColumn gap={1.5}>
-        <FlexRow align="center" gap={1.5}>
+      <FlexColumn gap={SPACING.sm}>
+        <FlexRow align="center" gap={SPACING.sm}>
           {/* Icon */}
           <FlexRow
             align="center"
@@ -137,8 +138,8 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
           </FlexRow>
 
           {/* Info */}
-          <FlexColumn sx={{ flex: 1, minWidth: 0 }} gap={0.25}>
-            <FlexRow align="center" gap={0.75}>
+          <FlexColumn sx={{ flex: 1, minWidth: 0 }} gap={SPACING.micro}>
+            <FlexRow align="center" gap={SPACING.xs}>
               <Text size="small" weight={600}>
                 {provider.name}
               </Text>
@@ -167,9 +168,9 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
           </FlexColumn>
 
           {/* Actions */}
-          <FlexRow align="center" gap={0.5} sx={{ flexShrink: 0 }}>
+          <FlexRow align="center" gap={SPACING.micro} sx={{ flexShrink: 0 }}>
             {isConnected ? (
-              <FlexRow align="center" gap={0.5}>
+              <FlexRow align="center" gap={SPACING.micro}>
                 <CheckCircleRoundedIcon
                   sx={{
                     fontSize: 18,
@@ -227,8 +228,8 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
 
         {/* Inline API-key entry */}
         {expanded && !isConnected && (
-          <FlexColumn gap={0.75} className="nodrag nowheel">
-            <FlexRow gap={1} align="center">
+          <FlexColumn gap={SPACING.xs} className="nodrag nowheel">
+            <FlexRow gap={SPACING.xs} align="center">
               <TextInput
                 size="small"
                 type="password"
@@ -253,7 +254,12 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
                 {saving ? <LoadingSpinner size="small" inline /> : "Connect"}
               </EditorButton>
             </FlexRow>
-            <FlexRow justify="space-between" align="center" gap={1} wrap>
+            <FlexRow
+              justify="space-between"
+              align="center"
+              gap={SPACING.xs}
+              wrap
+            >
               <EditorButton
                 density="compact"
                 variant="text"

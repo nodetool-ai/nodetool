@@ -5,6 +5,7 @@
  * compatibility for existing dataTransfer keys.
  */
 
+import { BORDER_RADIUS, FONT_WEIGHT } from "../../components/ui_primitives";
 import type { Asset, NodeMetadata } from "../../stores/ApiTypes";
 import type { DragData, DragDataType } from "./types";
 
@@ -236,14 +237,14 @@ export function createDragCountBadge(count: number): HTMLElement {
     background-color: var(--palette-background-paper);
     color: var(--palette-grey-300);
     border: 3px solid var(--palette-grey-800);
-    border-radius: 4px;
+    border-radius: ${BORDER_RADIUS.sm};
     height: 40px;
     width: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: var(--fontSizeBig);
-    font-weight: bold;
+    font-weight: ${FONT_WEIGHT.semibold};
   `;
   return dragImage;
 }

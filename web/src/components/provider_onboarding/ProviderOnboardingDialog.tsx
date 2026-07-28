@@ -17,7 +17,8 @@ import {
   FlexColumn,
   FlexRow,
   Text,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  SPACING
 } from "../ui_primitives";
 import { useSecrets } from "../../hooks/useSecrets";
 import useProviderOnboardingStore from "../../stores/ProviderOnboardingStore";
@@ -41,7 +42,7 @@ const SectionHeading = ({
 }) => {
   const theme = useTheme();
   return (
-    <FlexRow align="center" gap={1}>
+    <FlexRow align="center" gap={SPACING.xs}>
       <FlexRow
         align="center"
         justify="center"
@@ -49,7 +50,7 @@ const SectionHeading = ({
       >
         {icon}
       </FlexRow>
-      <FlexColumn gap={0}>
+      <FlexColumn gap={SPACING.none}>
         <Text size="small" weight={600}>
           {title}
         </Text>
@@ -119,7 +120,7 @@ const ProviderOnboardingDialog: React.FC = () => {
       maxWidth="sm"
       fullWidth
       title={
-        <FlexColumn gap={0.25}>
+        <FlexColumn gap={SPACING.micro}>
           <Text size="big" weight={600}>
             Connect an AI provider
           </Text>
@@ -129,7 +130,7 @@ const ProviderOnboardingDialog: React.FC = () => {
         </FlexColumn>
       }
     >
-      <FlexColumn gap={2.5} sx={{ mt: 1 }}>
+      <FlexColumn gap={SPACING.lg} sx={{ mt: SPACING.xs }}>
         <Caption sx={{ opacity: 0.75, lineHeight: 1.55 }}>
           NodeTool connects to AI providers with your own account. Pick one
           below — your credentials are encrypted and stored locally, and you can
@@ -137,7 +138,7 @@ const ProviderOnboardingDialog: React.FC = () => {
         </Caption>
 
         {oauthProviders.length > 0 && (
-          <FlexColumn gap={1.25}>
+          <FlexColumn gap={SPACING.sm}>
             <SectionHeading
               icon={<BoltRoundedIcon sx={{ fontSize: 18 }} />}
               title="Fastest way to start"
@@ -155,7 +156,7 @@ const ProviderOnboardingDialog: React.FC = () => {
         )}
 
         {keyProviders.length > 0 && (
-          <FlexColumn gap={1.25}>
+          <FlexColumn gap={SPACING.sm}>
             <SectionHeading
               icon={<KeyRoundedIcon sx={{ fontSize: 18 }} />}
               title="Connect with an API key"
@@ -173,7 +174,7 @@ const ProviderOnboardingDialog: React.FC = () => {
         )}
 
         {/* Free local option */}
-        <FlexColumn gap={1.25}>
+        <FlexColumn gap={SPACING.sm}>
           <SectionHeading
             icon={<ComputerRoundedIcon sx={{ fontSize: 18 }} />}
             title="Run locally, free"
@@ -187,7 +188,7 @@ const ProviderOnboardingDialog: React.FC = () => {
               border: `1px solid ${theme.vars.palette.divider}`
             }}
           >
-            <FlexRow align="center" gap={1.5}>
+            <FlexRow align="center" gap={SPACING.sm}>
               <FlexRow
                 align="center"
                 justify="center"
@@ -212,7 +213,7 @@ const ProviderOnboardingDialog: React.FC = () => {
                   }}
                 />
               </FlexRow>
-              <FlexColumn sx={{ flex: 1, minWidth: 0 }} gap={0.25}>
+              <FlexColumn sx={{ flex: 1, minWidth: 0 }} gap={SPACING.micro}>
                 <Text size="small" weight={600}>
                   Ollama
                 </Text>
@@ -242,7 +243,7 @@ const ProviderOnboardingDialog: React.FC = () => {
 
         <CostGuide />
 
-        <FlexRow justify="center" sx={{ pt: 0.5 }}>
+        <FlexRow justify="center" sx={{ pt: SPACING.micro }}>
           <EditorButton
             density="compact"
             variant="text"

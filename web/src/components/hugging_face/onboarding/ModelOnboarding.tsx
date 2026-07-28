@@ -9,7 +9,8 @@ import {
   Text,
   ToggleGroup,
   ToggleOption,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  SPACING
 } from "../../ui_primitives";
 import { useShallow } from "zustand/react/shallow";
 import type { UnifiedModel } from "../../../stores/ApiTypes";
@@ -143,10 +144,16 @@ const ModelOnboarding: React.FC<ModelOnboardingProps> = ({ onDownload }) => {
 
   return (
     <FlexColumn
-      gap={3}
-      sx={{ flex: 1, minHeight: 0, overflowY: "auto", pb: 4, pr: 1 }}
+      gap={SPACING.lg}
+      sx={{
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
+        pb: SPACING.xl,
+        pr: SPACING.xs
+      }}
     >
-      <FlexRow gap={1.5} align="center">
+      <FlexRow gap={SPACING.sm} align="center">
         <FlexRow
           align="center"
           justify="center"
@@ -160,7 +167,7 @@ const ModelOnboarding: React.FC<ModelOnboardingProps> = ({ onDownload }) => {
         >
           <RocketLaunchOutlinedIcon sx={{ fontSize: 22 }} />
         </FlexRow>
-        <FlexColumn gap={0.25}>
+        <FlexColumn gap={SPACING.micro}>
           <Text size="big" weight={600}>
             Get started with local models
           </Text>
@@ -175,8 +182,8 @@ const ModelOnboarding: React.FC<ModelOnboardingProps> = ({ onDownload }) => {
 
       <EngineGuide />
 
-      <FlexColumn gap={1.5}>
-        <FlexColumn gap={0.25}>
+      <FlexColumn gap={SPACING.sm}>
+        <FlexColumn gap={SPACING.micro}>
           <Text size="big" weight={600}>
             Recommended models
           </Text>
@@ -208,7 +215,11 @@ const ModelOnboarding: React.FC<ModelOnboardingProps> = ({ onDownload }) => {
         </ToggleGroup>
 
         {groups.map((group) => (
-          <FlexColumn key={group.capability} gap={1} sx={{ mt: 1 }}>
+          <FlexColumn
+            key={group.capability}
+            gap={SPACING.xs}
+            sx={{ mt: SPACING.xs }}
+          >
             <Text size="small" weight={600} color="secondary">
               {CAPABILITY_LABELS[group.capability]}
             </Text>

@@ -11,7 +11,8 @@ import {
   FlexRow,
   SelectField,
   Text,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  SPACING
 } from "../../ui_primitives";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 import { TIER_LABELS, type HardwareProfile } from "./useHardwareProfile";
@@ -75,8 +76,13 @@ const HardwareCard: React.FC<HardwareCardProps> = ({ profile }) => {
         backgroundColor: theme.vars.palette.background.paper
       }}
     >
-      <FlexRow gap={2} align="center" justify="space-between" sx={{ flexWrap: "wrap" }}>
-        <FlexRow gap={1.5} align="center" sx={{ minWidth: 0 }}>
+      <FlexRow
+        gap={SPACING.md}
+        align="center"
+        justify="space-between"
+        sx={{ flexWrap: "wrap" }}
+      >
+        <FlexRow gap={SPACING.sm} align="center" sx={{ minWidth: 0 }}>
           <FlexRow
             align="center"
             justify="center"
@@ -92,7 +98,7 @@ const HardwareCard: React.FC<HardwareCardProps> = ({ profile }) => {
             <DeveloperBoardIcon sx={{ fontSize: 22 }} />
           </FlexRow>
           <FlexColumn sx={{ minWidth: 0 }}>
-            <FlexRow gap={1} align="center" sx={{ flexWrap: "wrap" }}>
+            <FlexRow gap={SPACING.xs} align="center" sx={{ flexWrap: "wrap" }}>
               <Text size="normal" weight={600}>
                 Your machine
               </Text>
@@ -106,7 +112,7 @@ const HardwareCard: React.FC<HardwareCardProps> = ({ profile }) => {
           </FlexColumn>
         </FlexRow>
 
-        <FlexRow gap={3} align="center" sx={{ flexWrap: "wrap" }}>
+        <FlexRow gap={SPACING.lg} align="center" sx={{ flexWrap: "wrap" }}>
           <Stat
             icon={<DeveloperBoardIcon sx={{ fontSize: 14 }} />}
             label="GPU memory"
@@ -128,7 +134,7 @@ const HardwareCard: React.FC<HardwareCardProps> = ({ profile }) => {
             }
             highlight
           />
-          <FlexColumn gap={0.25} sx={{ minWidth: 128 }}>
+          <FlexColumn gap={SPACING.micro} sx={{ minWidth: 128 }}>
             <Caption sx={{ opacity: 0.55, whiteSpace: "nowrap" }}>
               GPU memory
             </Caption>
@@ -157,8 +163,8 @@ interface StatProps {
 const Stat: React.FC<StatProps> = ({ label, value, icon, highlight }) => {
   const theme = useTheme();
   return (
-    <FlexColumn align="flex-start" gap={0.25} sx={{ minWidth: 0 }}>
-      <FlexRow align="center" gap={0.5}>
+    <FlexColumn align="flex-start" gap={SPACING.micro} sx={{ minWidth: 0 }}>
+      <FlexRow align="center" gap={SPACING.micro}>
         {icon}
         <Text
           size="big"
