@@ -16,7 +16,8 @@ import { test, expect } from "@playwright/test";
 import {
   gotoPage,
   VISUAL_SCREENSHOT_OPTIONS,
-  ensureNoVisibleProgress
+  ensureNoVisibleProgress,
+  volatileMask
 } from "./visualHelpers";
 import { waitForAnimation } from "../benchmarks/helpers/waitHelpers";
 
@@ -47,10 +48,10 @@ test.describe("Node Graph Editor", () => {
       .catch(() => {});
     await ensureNoVisibleProgress(page);
     await waitForAnimation(page, 600);
-    await expect(page).toHaveScreenshot(
-      "node-graph-empty-canvas.png",
-      VISUAL_SCREENSHOT_OPTIONS
-    );
+    await expect(page).toHaveScreenshot("node-graph-empty-canvas.png", {
+      ...VISUAL_SCREENSHOT_OPTIONS,
+      mask: volatileMask(page)
+    });
   });
 
   test("nodes added and connected", async ({ page }) => {
@@ -59,10 +60,10 @@ test.describe("Node Graph Editor", () => {
     await gotoPage(page, "/editor/wf-story-generator");
     await waitForNodes(page, 1);
     await ensureNoVisibleProgress(page);
-    await expect(page).toHaveScreenshot(
-      "node-graph-nodes-connected.png",
-      VISUAL_SCREENSHOT_OPTIONS
-    );
+    await expect(page).toHaveScreenshot("node-graph-nodes-connected.png", {
+      ...VISUAL_SCREENSHOT_OPTIONS,
+      mask: volatileMask(page)
+    });
   });
 
   test("properties inspector panel open", async ({ page }) => {
@@ -73,10 +74,10 @@ test.describe("Node Graph Editor", () => {
     });
     await waitForNodes(page, 1);
     await ensureNoVisibleProgress(page);
-    await expect(page).toHaveScreenshot(
-      "node-graph-inspector-panel.png",
-      VISUAL_SCREENSHOT_OPTIONS
-    );
+    await expect(page).toHaveScreenshot("node-graph-inspector-panel.png", {
+      ...VISUAL_SCREENSHOT_OPTIONS,
+      mask: volatileMask(page)
+    });
   });
 
   test("left panel — node library", async ({ page }) => {
@@ -87,10 +88,10 @@ test.describe("Node Graph Editor", () => {
     });
     await waitForNodes(page, 1);
     await ensureNoVisibleProgress(page);
-    await expect(page).toHaveScreenshot(
-      "node-graph-left-panel-nodes.png",
-      VISUAL_SCREENSHOT_OPTIONS
-    );
+    await expect(page).toHaveScreenshot("node-graph-left-panel-nodes.png", {
+      ...VISUAL_SCREENSHOT_OPTIONS,
+      mask: volatileMask(page)
+    });
   });
 
   test("timeline editor view", async ({ page }) => {
@@ -104,9 +105,9 @@ test.describe("Node Graph Editor", () => {
       .catch(() => {});
     await ensureNoVisibleProgress(page);
     await waitForAnimation(page, 800);
-    await expect(page).toHaveScreenshot(
-      "timeline-editor-view.png",
-      VISUAL_SCREENSHOT_OPTIONS
-    );
+    await expect(page).toHaveScreenshot("timeline-editor-view.png", {
+      ...VISUAL_SCREENSHOT_OPTIONS,
+      mask: volatileMask(page)
+    });
   });
 });

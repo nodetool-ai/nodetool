@@ -73,7 +73,9 @@ place boxes and draw lines between them.
 
 You don't have to build one yet. NodeTool ships with **templates**: finished
 workflows you can open and run as they are. Find them on the Dashboard, the
-screen you land on when the app opens.
+screen you land on when the app opens, or on the Examples page.
+
+![Examples page](assets/screenshots/examples-page.png)
 
 ### Movie Posters
 
@@ -157,6 +159,8 @@ someone who should never have to look at a canvas.
 1. Open the workflow.
 2. Click **Mini-App** in the toolbar.
 3. Fill in the fields and run it. Same workflow underneath, no canvas.
+
+![A Mini App running](assets/screenshots/mini-app-run.png)
 
 To design the form yourself, see [Mini Apps](mini-apps.md) for what they are,
 [Building Mini Apps](mini-apps-guide.md) for worked examples, and

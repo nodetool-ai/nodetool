@@ -150,6 +150,12 @@ You can ask the agent to run a saved workflow as part of a turn: it calls the wo
 
 Save a workflow in the [workflow editor](workflow-editor.md) first, then reference it from chat.
 
+Inside the editor the same agent is one panel over, with the open graph as its
+subject — ask it to add a node, rewire a connection, or explain what a branch
+does.
+
+![Workflow assistant panel](assets/screenshots/editor-workflow-assistant.png)
+
 ---
 
 ## Available Tools

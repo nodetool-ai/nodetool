@@ -61,6 +61,13 @@ Each timeline (whether a standalone page or a workspace tab) runs in its own iso
 | **Tracks**    | The multi-track timeline — a canvas-rendered ruler, the playhead, and the clips      |
 | **Inspector** | Per-clip controls for transforms, motion, authored content, and generated clip nodes |
 
+![Video Editor — full layout](assets/screenshots/timeline-editor.png)
+
+The transcript panel on the left turns a script into beats: each line becomes a
+voiced, captioned clip on the timeline.
+
+![Transcript panel — one beat per line](assets/screenshots/studio-transcript-panel.png)
+
 ---
 
 ## Tracks & Clips

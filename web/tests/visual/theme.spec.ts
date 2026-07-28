@@ -15,7 +15,8 @@ import { test, expect, type Page } from "@playwright/test";
 import {
   gotoPage,
   VISUAL_SCREENSHOT_OPTIONS,
-  ensureNoVisibleProgress
+  ensureNoVisibleProgress,
+  volatileMask
 } from "./visualHelpers";
 import { waitForAnimation } from "../benchmarks/helpers/waitHelpers";
 
@@ -69,5 +70,42 @@ test.describe("Theme — light mode", () => {
       "theme-light-settings-api-keys.png",
       VISUAL_SCREENSHOT_OPTIONS
     );
+  });
+
+  test("node graph editor — light", async ({ page }) => {
+    // The editor carries the most theme-sensitive surfaces in the app: node
+    // bodies, handles, edges and the canvas grid all read from the palette,
+    // and none of them are exercised by the dashboard/chat/settings captures.
+    await gotoPage(page, "/editor/wf-story-generator", { theme: "light" });
+    await page
+      .waitForFunction(
+        () => document.querySelectorAll(".react-flow__node").length > 0,
+        undefined,
+        { timeout: 20_000 }
+      )
+      .catch(() => {});
+    await ensureNoVisibleProgress(page);
+    await waitForAnimation(page, 800);
+    await expect(page).toHaveScreenshot("theme-light-node-graph.png", {
+      ...VISUAL_SCREENSHOT_OPTIONS,
+      mask: volatileMask(page)
+    });
+  });
+
+  test("assets explorer — light", async ({ page }) => {
+    // A dense list/grid surface: row striping, folder-tree selection and card
+    // borders are all palette-driven.
+    await gotoPage(page, "/assets", { theme: "light" });
+    await page
+      .getByPlaceholder("Search current folder...")
+      .first()
+      .waitFor({ state: "visible", timeout: 20_000 })
+      .catch(() => {});
+    await ensureNoVisibleProgress(page);
+    await waitForAnimation(page, 800);
+    await expect(page).toHaveScreenshot("theme-light-assets.png", {
+      ...VISUAL_SCREENSHOT_OPTIONS,
+      mask: volatileMask(page)
+    });
   });
 });

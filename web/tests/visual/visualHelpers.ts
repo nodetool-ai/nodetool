@@ -63,9 +63,33 @@ export type PanelOverrides = {
   bottom?: { visible?: boolean; activeView?: BottomPanelView };
 };
 
+/** A `(type, ref)` document tab in the `/workspace` shell. */
+export type WorkspaceTabSeed = {
+  type:
+    | "workflow"
+    | "image"
+    | "sketch"
+    | "timeline"
+    | "storyboard"
+    | "application"
+    | "chat"
+    | "page";
+  ref: string;
+  title: string;
+  mode?: "view" | "edit";
+};
+
+export type WorkspaceOverrides = {
+  tabs: WorkspaceTabSeed[];
+  /** Tab id (`${type}:${ref}`) to focus. Defaults to the first tab. */
+  active?: string;
+};
+
 type GotoOptions = {
   theme?: Theme;
   panels?: PanelOverrides;
+  /** Pre-opened `/workspace` tabs (ignored on other routes). */
+  workspace?: WorkspaceOverrides;
   /** Extra delay (ms) after the app shell settles — bump for heavy pages. */
   settleMs?: number;
 };
@@ -191,6 +215,37 @@ export async function seedLocalStorage(
 }
 
 /**
+ * Pre-open tabs in the `/workspace` shell by seeding the WorkspaceTabsStore
+ * persist slot. Must run before navigation; the `version` must match the
+ * store's persist `version` or zustand discards the seeded state on rehydrate.
+ */
+export async function seedWorkspaceTabs(
+  page: Page,
+  workspace: WorkspaceOverrides
+): Promise<void> {
+  await page.addInitScript((ws: WorkspaceOverrides) => {
+    try {
+      const tabs = ws.tabs.map((t) => ({
+        id: `${t.type}:${t.ref}`,
+        type: t.type,
+        ref: t.ref,
+        mode: t.mode ?? "edit",
+        title: t.title
+      }));
+      window.localStorage.setItem(
+        "workspace-tabs-storage",
+        JSON.stringify({
+          state: { tabs, activeTabId: ws.active ?? tabs[0]?.id ?? null },
+          version: 1
+        })
+      );
+    } catch {
+      /* localStorage unavailable */
+    }
+  }, workspace);
+}
+
+/**
  * Fail fast if the React Router error boundary is visible — a crashed page
  * produces a misleading screenshot diff. Surface the error text so the failure
  * is actionable in CI logs instead of a cryptic pixel mismatch.
@@ -262,10 +317,11 @@ export async function gotoPage(
   url: string,
   opts: GotoOptions = {}
 ): Promise<void> {
-  const { theme = "dark", panels, settleMs = 600 } = opts;
+  const { theme = "dark", panels, workspace, settleMs = 600 } = opts;
   await disableAnimations(page);
   await pinTheme(page, theme);
   await seedLocalStorage(page, panels);
+  if (workspace) await seedWorkspaceTabs(page, workspace);
   await page.goto(url);
   await waitForAppReady(page);
   await waitForAnimation(page, settleMs);
@@ -297,7 +353,14 @@ export async function ensureNoVisibleProgress(
  */
 export function volatileMask(page: Page): Locator[] {
   return [
-    page.locator('time, [role="timer"], [data-testid*="timestamp" i]')
+    page.locator('time, [role="timer"], [data-testid*="timestamp" i]'),
+    // The editor status bar's live cpu/mem readout — it changes every poll.
+    // The node/edge counts share the cluster and are masked with it; they are
+    // asserted structurally by the journey suite, not by pixels.
+    page.locator('[aria-label="Workflow stats"]'),
+    // The same bar's worker status ("connected" / "offline"): whether the
+    // WebSocket has finished its handshake by capture time is a race.
+    page.locator('[aria-label^="Worker "]')
   ];
 }
 

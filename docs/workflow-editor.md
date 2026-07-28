@@ -218,6 +218,18 @@ Press `Space` to open, then:
 - **Move**: Drag the menu to reposition it
 - **Close**: `Esc` or click outside
 
+### Quick Add
+
+`Ctrl/⌘ + Shift + A` skips the browsing and goes straight to a search box — type a node name, hit Enter, and it lands on the canvas.
+
+![Quick add node](assets/screenshots/editor-quick-add-node.png)
+
+### Find in Workflow
+
+`Ctrl/⌘ + F` searches the workflow you already have: node names, types, and property values. Matches highlight on the canvas and the view pans to the one you pick.
+
+![Find in workflow](assets/screenshots/editor-find-in-workflow.png)
+
 ### Node Documentation
 
 Get help on any node:
@@ -248,6 +260,8 @@ NodeTool includes professional editing tools for creative work.
 
 ### Sketch Editor
 
+![Sketch Editor](assets/screenshots/sketch-editor.png)
+
 Open a blank canvas from **+ New → New image** in the workspace tab bar, or edit an existing image asset, to use the full layered editor:
 
 - **Layers**: Blend modes, per-layer opacity, lock, and visibility
@@ -257,6 +271,24 @@ Open a blank canvas from **+ New → New image** in the workspace tab bar, or ed
 - **History**: Unlimited undo/redo
 
 > **📖 Full Guide:** See [Sketch Editor](sketch-editor.md) for complete documentation with tool reference, shortcuts, and workflows.
+
+### Text and Code Editor
+
+![Text and code editor](assets/screenshots/text-code-editor.png)
+
+Long string properties open in a full editor with syntax highlighting, line numbers, and search — the same surface used for code nodes.
+
+### DataFrame Editor
+
+![DataFrame editor](assets/screenshots/dataframe-editor.png)
+
+Tabular values are edited as a spreadsheet: add and remove rows and columns, retype cells, and sort.
+
+### Image Comparer
+
+![Image comparer](assets/screenshots/image-compare.png)
+
+Preview nodes that hold a before/after pair render a slider you drag across the two images.
 
 ### Color Picker
 

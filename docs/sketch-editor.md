@@ -12,6 +12,8 @@ Draw, paint, mask, and generate AI imagery on a layered canvas — without leavi
 
 ## Overview
 
+![Sketch Editor](assets/screenshots/sketch-editor.png)
+
 The Sketch Editor is a layered raster editor with a built-in AI generation pipeline. It combines a familiar painting toolset (brush, eraser, fill, shapes, transform, selection) with the ability to **generate image content directly onto a layer** — bound either to a model or to one of your own workflows.
 
 **Features:**

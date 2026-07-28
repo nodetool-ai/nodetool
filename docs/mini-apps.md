@@ -79,6 +79,15 @@ workflow.
 | Linked workflows | A menu on the app tab, listing the workflows this app runs. Click one to open it as a normal workflow tab. |
 | Terminal | `nodetool app debug <application_id>`. See [Checking an app](#checking-an-app). |
 
+**Design** is where you place and wire widgets:
+
+![Mini App — Design view](assets/screenshots/mini-app-design.png)
+
+**Run** is what the person using the app sees — the fields, the button, and the
+result:
+
+![Mini App — Run view](assets/screenshots/mini-app-run.png)
+
 Apps run wherever their workflows run: the desktop app, a server you host, or
 NodeTool Cloud. On mobile, a published app opens as its own screen.
 

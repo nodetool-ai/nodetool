@@ -664,6 +664,91 @@ if (process.env.JEST_WORKER_ID) {
       await saveScreenshot(page, "models-list.png");
     });
 
+    // ── Packages ────────────────────────────────────────────────────────────
+    test("Package manager", async ({ page }) => {
+      test.skip(shouldSkip("packages-manager.png"), "Already captured");
+      await gotoPage(page, "/packages");
+      await page
+        .getByText("Included packs")
+        .first()
+        .waitFor({ state: "visible", timeout: 15000 })
+        .catch(() => {});
+      await ensureNoVisibleProgress(page);
+      await waitForAnimation(page, 600);
+      await saveScreenshot(page, "packages-manager.png");
+    });
+
+    // ── Examples / templates ────────────────────────────────────────────────
+    test("Examples page", async ({ page }) => {
+      test.skip(shouldSkip("examples-page.png"), "Already captured");
+      await gotoPage(page, "/examples");
+      await page
+        .getByText("Start from a template")
+        .first()
+        .waitFor({ state: "visible", timeout: 15000 })
+        .catch(() => {});
+      await ensureNoVisibleProgress(page);
+      await waitForAnimation(page, 800);
+      await saveScreenshot(page, "examples-page.png");
+    });
+
+    // ── Workspaces ──────────────────────────────────────────────────────────
+    test("Workspaces page", async ({ page }) => {
+      test.skip(shouldSkip("workspaces-page.png"), "Already captured");
+      await gotoPage(page, "/workspaces");
+      await waitForScreenshotReady(page, "workspaces-page.png");
+      await saveScreenshot(page, "workspaces-page.png");
+    });
+
+    // ── Mini app surfaces ───────────────────────────────────────────────────
+    // An app is its own resource opened as a workspace tab. "app-mini-app" is
+    // the seeded application; Design is where it is built, Run is what the
+    // person using it sees.
+    async function openMiniApp(page: Page): Promise<void> {
+      await seedWorkspaceTabs(
+        page,
+        [
+          {
+            type: "application",
+            ref: "app-mini-app",
+            title: "Echo Mini App"
+          }
+        ],
+        "application:app-mini-app"
+      );
+      await gotoPage(page, "/workspace");
+      await ensureNoVisibleProgress(page);
+    }
+
+    test("Mini app – design surface", async ({ page }) => {
+      test.skip(shouldSkip("mini-app-design.png"), "Already captured");
+      await openMiniApp(page);
+      await page
+        .getByRole("button", { name: "Design", exact: true })
+        .first()
+        .waitFor({ state: "visible", timeout: 20000 })
+        .catch(() => {});
+      await waitForAnimation(page, 800);
+      await saveScreenshot(page, "mini-app-design.png");
+    });
+
+    test("Mini app – run surface", async ({ page }) => {
+      test.skip(shouldSkip("mini-app-run.png"), "Already captured");
+      await openMiniApp(page);
+      const runMode = page
+        .getByRole("button", { name: "Run", exact: true })
+        .first();
+      await runMode.waitFor({ state: "visible", timeout: 20000 }).catch(() => {});
+      await runMode.click().catch(() => {});
+      await page
+        .getByRole("button", { name: /^run echo$/i })
+        .first()
+        .waitFor({ state: "visible", timeout: 20000 })
+        .catch(() => {});
+      await waitForAnimation(page, 800);
+      await saveScreenshot(page, "mini-app-run.png");
+    });
+
     // ── Sketch / Image editor ─────────────────────────────────────────────────
     // Backed by the seeded ImageDocument "sk-demo-portrait" (screenshot-server).
     test("Sketch editor", async ({ page }) => {
@@ -709,21 +794,6 @@ if (process.env.JEST_WORKER_ID) {
     });
 
     // ── Isolated components ─────────────────────────────────────────────────
-    test("App header strip", async ({ page }) => {
-      test.skip(shouldSkip("app-header.png"), "Already captured");
-      await page.setViewportSize({ width: DESKTOP_VIEWPORT.width, height: 80 });
-      await gotoPage(page, "/preview/app-header");
-      // The /preview routes lazy-load each component; wait for the actual
-      // header markup to appear before capturing.
-      await page
-        .locator('[data-preview="app-header"], header, [role="banner"]')
-        .first()
-        .waitFor({ state: "visible", timeout: 15000 })
-        .catch(() => {});
-      await waitForAnimation(page, 800);
-      await saveScreenshot(page, "app-header.png");
-    });
-
     test("Models – isolated component", async ({ page }) => {
       test.skip(shouldSkip("component-models.png"), "Already captured");
       await gotoPage(page, "/preview/models");
