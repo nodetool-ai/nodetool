@@ -67,3 +67,6 @@
 ## 2024-12-05 - O(N*E) bottleneck in WebSocket runner output processing
 **Learning:** Found an O(N*E) bottleneck in `packages/websocket/src/unified-websocket-runner.ts` inside `_streamJobMessagesInner` where `graphNodes.find((n) => n.id === nodeId)` was called for every output/node update message processed. Since `graphNodes` can be large and the runner streams many updates per job, this caused unnecessary CPU time.
 **Action:** Replaced the O(N) `.find()` lookup inside the message streaming loop with an O(1) `Map` lookup by extracting `graphNodes` into a pre-computed map before the loop.
+## 2026-05-25 - O(N*M) lookup optimization in TableActions
+**Learning:** Found an O(N*M) performance bottleneck in `web/src/components/node/DataTable/TableActions.tsx` where `selectedRows.some()` was called inside `data.filter()` during row deletion. For large tables with many selected rows, this nested loop blocks the UI thread.
+**Action:** Replaced `.some()` with a pre-initialized `Set` of selected row indices and used `.has()` for O(1) lookups, reducing time complexity from O(N*M) to O(N+M) and improving deletion speed for large selections.
