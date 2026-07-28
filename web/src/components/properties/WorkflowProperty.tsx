@@ -5,6 +5,7 @@ import { PropertyProps } from "../node/PropertyInput";
 import { memo, useCallback } from "react";
 import isEqual from "../../utils/isEqual";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { workflowListQueryKey } from "../../serverState/workflowQueryKeys";
 import { NodeSelect, NodeMenuItem } from "../editor_ui";
 import type { SelectChangeEvent } from "../ui_primitives";
 
@@ -14,7 +15,7 @@ const WorkflowProperty = (props: PropertyProps) => {
   const load = useWorkflowManager((state) => state.load);
 
   const { data, error, isLoading } = useQuery<WorkflowList, Error>({
-    queryKey: ["workflows"],
+    queryKey: workflowListQueryKey(200),
     queryFn: async () => {
       return await load("", 200);
     }

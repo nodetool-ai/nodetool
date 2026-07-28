@@ -35,6 +35,7 @@ import { useSurroundWithGroup } from "../../hooks/nodes/useSurroundWithGroup";
 import { useFitView } from "../../hooks/useFitView";
 import { useReactFlow } from "@xyflow/react";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
+import { workflowListQueryKey } from "../../serverState/workflowQueryKeys";
 import { useFindInWorkflowStore } from "../../stores/FindInWorkflowStore";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { areNodesEqualIgnoringPosition } from "../../utils/nodeEquality";
@@ -672,14 +673,17 @@ const AppCommands = memo(function AppCommands() {
   );
 });
 
+/** Matches the default page size of `WorkflowManagerStore.load`. */
+const COMMAND_MENU_WORKFLOW_LIMIT = 100;
+
 const OpenWorkflowCommands = memo(function OpenWorkflowCommands() {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   const navigate = useNavigate();
   const load = useWorkflowManager((state) => state.load);
 
   const { data: workflows } = useQuery<WorkflowList>({
-    queryKey: ["workflows"],
-    queryFn: () => load()
+    queryKey: workflowListQueryKey(COMMAND_MENU_WORKFLOW_LIMIT),
+    queryFn: () => load("", COMMAND_MENU_WORKFLOW_LIMIT)
   });
 
   const openWorkflow = useCallback(

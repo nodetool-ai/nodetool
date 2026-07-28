@@ -26,6 +26,16 @@ type OllamaToolCall = {
   };
 };
 
+/**
+ * Token counts Ollama reports on the final `/api/chat` object (and on the
+ * non-streaming response). Cost is zero for a local model, the token counts
+ * are not.
+ */
+type OllamaUsageFields = {
+  prompt_eval_count?: number;
+  eval_count?: number;
+};
+
 type OllamaChatMessage = {
   role?: string;
   content?: string;
@@ -332,7 +342,9 @@ export class OllamaProvider extends BaseProvider {
     const text = asTextParts(parts);
     const images = await Promise.all(
       parts
-        .filter((part): part is MessageImageContent => part.type === "image_url")
+        .filter(
+          (part): part is MessageImageContent => part.type === "image_url"
+        )
         .map((part) => this.imageToBase64(part.image))
     );
 
@@ -417,21 +429,49 @@ export class OllamaProvider extends BaseProvider {
       .filter((tc): tc is ToolCall => tc !== null);
   }
 
+  /**
+   * Record the token counts Ollama reports on its final chat object. Local
+   * models cost nothing, but the counts still belong in `llm_call` events and
+   * `llm.chat`/`llm.stream` spans.
+   */
+  private trackOllamaUsage(model: string, payload: OllamaUsageFields): void {
+    const inputTokens = payload.prompt_eval_count ?? 0;
+    const outputTokens = payload.eval_count ?? 0;
+    if (inputTokens === 0 && outputTokens === 0) return;
+    this.trackUsage(model, { inputTokens, outputTokens });
+  }
+
   private async buildChatRequest(args: {
     messages: Message[];
     model: string;
     tools?: ProviderTool[];
     maxTokens?: number;
+    temperature?: number;
+    topP?: number;
+    presencePenalty?: number;
+    frequencyPenalty?: number;
   }): Promise<Record<string, unknown>> {
+    // Ollama has one `repeat_penalty` knob rather than OpenAI's separate
+    // presence/frequency penalties; prefer the explicit frequency penalty and
+    // fall back to the presence penalty. Ollama's neutral value is 1.0 while
+    // OpenAI's is 0.0, so shift by one.
+    const repeatPenaltySource = args.frequencyPenalty ?? args.presencePenalty;
+    const options: Record<string, unknown> = {
+      num_predict: args.maxTokens ?? 8192
+    };
+    if (args.temperature != null) options.temperature = args.temperature;
+    if (args.topP != null) options.top_p = args.topP;
+    if (repeatPenaltySource != null) {
+      options.repeat_penalty = 1 + repeatPenaltySource;
+    }
+
     const request: Record<string, unknown> = {
       model: args.model,
       messages: await Promise.all(
         args.messages.map((m) => this.convertMessage(m))
       ),
       keep_alive: this.keepAlive,
-      options: {
-        num_predict: args.maxTokens ?? 8192
-      }
+      options
     };
 
     if (
@@ -471,18 +511,21 @@ export class OllamaProvider extends BaseProvider {
       messages,
       model: args.model,
       tools: requestTools,
-      maxTokens: args.maxTokens
+      maxTokens: args.maxTokens,
+      temperature: args.temperature,
+      topP: args.topP,
+      presencePenalty: args.presencePenalty,
+      frequencyPenalty: args.frequencyPenalty
     });
     request.stream = false;
 
     log.debug("Ollama request", { model: args.model });
 
     this.recordRequestPayload(request);
-    const response = await this.postJson<{ message?: OllamaChatMessage }>(
-      "/api/chat",
-      request,
-      args.signal
-    );
+    const response = await this.postJson<
+      { message?: OllamaChatMessage } & OllamaUsageFields
+    >("/api/chat", request, args.signal);
+    this.trackOllamaUsage(args.model, response);
     const message = response.message ?? {};
     const content = typeof message.content === "string" ? message.content : "";
 
@@ -528,7 +571,9 @@ export class OllamaProvider extends BaseProvider {
       if (msg.role === "system" && !systemFound) {
         systemFound = true;
         const existingContent =
-          typeof msg.content === "string" ? msg.content : "";
+          typeof msg.content === "string"
+            ? msg.content
+            : asTextParts(msg.content ?? []);
         result.push({ ...msg, content: existingContent + emulationSuffix });
       } else if (msg.role === "tool") {
         // Convert tool result to user message
@@ -581,7 +626,11 @@ export class OllamaProvider extends BaseProvider {
       messages,
       model: args.model,
       tools: requestTools,
-      maxTokens: args.maxTokens
+      maxTokens: args.maxTokens,
+      temperature: args.temperature,
+      topP: args.topP,
+      presencePenalty: args.presencePenalty,
+      frequencyPenalty: args.frequencyPenalty
     });
     request.stream = true;
 
@@ -620,7 +669,8 @@ export class OllamaProvider extends BaseProvider {
           const event = JSON.parse(line) as {
             message?: OllamaChatMessage;
             done?: boolean;
-          };
+          } & OllamaUsageFields;
+          if (event.done) this.trackOllamaUsage(args.model, event);
           const message = event.message ?? {};
 
           // Reasoning models stream their chain of thought in `thinking` while
@@ -673,7 +723,11 @@ export class OllamaProvider extends BaseProvider {
               for (const tc of emulatedCalls) {
                 yield tc;
               }
-              const doneChunk: Chunk = { type: "chunk", content: "", done: true };
+              const doneChunk: Chunk = {
+                type: "chunk",
+                content: "",
+                done: true
+              };
               yield doneChunk;
             }
           } else if (content.length > 0 || event.done) {

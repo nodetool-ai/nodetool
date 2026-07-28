@@ -9,7 +9,10 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { assetKeyOwner } from "@nodetool-ai/storage";
-import { canReadStorageKey } from "../../lib/storage-access.js";
+import {
+  callerOwnsStorageKey,
+  canReadStorageKey
+} from "../../lib/storage-access.js";
 import { resolveExistingAssetKey } from "../../lib/asset-paths.js";
 import { getAssetAdapter } from "../../lib/storage.js";
 import {
@@ -71,7 +74,19 @@ export const storageRouter = router({
           ctx.userId,
           input.key.slice(owner.length + 1)
         );
-        if (resolved) key = resolved;
+        // Falling back drops the owner prefix, and the prefix was the only
+        // thing that vouched for ownership — `<me>/<someone-else's-id>.png`
+        // would otherwise resolve to (and sign) their flat object. Re-check
+        // against the `assets` row, exactly as the REST route does.
+        if (resolved) {
+          const stillOwned =
+            assetKeyOwner(resolved) === ctx.userId ||
+            (await callerOwnsStorageKey(ctx.userId, resolved));
+          if (!stillOwned) {
+            throwApiError(ApiErrorCode.NOT_FOUND, "Object not found");
+          }
+          key = resolved;
+        }
       }
       const url = await getUrlBuilder()(key);
       return { url };

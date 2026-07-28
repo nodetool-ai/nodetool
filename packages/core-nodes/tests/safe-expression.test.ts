@@ -61,6 +61,32 @@ describe("compileSafePredicate", () => {
     expect(compileSafePredicate("item === false")(false)).toBe(true);
   });
 
+  // Regression: a swallowed parse error made FilterCode drop every item,
+  // TakeWhile emit nothing and DropWhile pass everything through, all while
+  // the workflow reported success.
+  it("parse errors throw instead of silently matching nothing", () => {
+    expect(() => compileSafePredicate('item.name.startsWith("a")')).toThrow(
+      Error
+    );
+    expect(() => compileSafePredicate('item.name.startsWith("a")')).toThrow(
+      /Invalid predicate expression/
+    );
+    expect(() => compileSafePredicate("item >")).toThrow(
+      /Invalid predicate expression/
+    );
+  });
+
+  it("the thrown message names the expression and the reason", () => {
+    let message = "";
+    try {
+      compileSafePredicate("item.foo(1)");
+    } catch (error) {
+      message = (error as Error).message;
+    }
+    expect(message).toContain("item.foo(1)");
+    expect(message).toContain("function calls are not");
+  });
+
   it("runtime errors on missing paths evaluate to false, not throw", () => {
     // item is null → property read returns undefined, comparison is false
     expect(compileSafePredicate("item.a.b > 0")(null)).toBe(false);
@@ -88,9 +114,17 @@ describe("compileSafePredicate", () => {
 
     it("all hostile expressions parse-fail or evaluate falsy without side effects", () => {
       for (const expr of hostile) {
-        const pred = compileSafePredicate(expr);
-        // Must not throw, must return a boolean, must be false (no truthy
-        // escape to a real global/function/prototype).
+        let pred: ((item: unknown) => boolean) | null = null;
+        try {
+          pred = compileSafePredicate(expr);
+        } catch (error) {
+          // A parse failure is a legitimate outcome — it must be loud.
+          expect(error).toBeInstanceOf(Error);
+          expect((error as Error).message).toContain(expr);
+          continue;
+        }
+        // Otherwise: must return a boolean, must be false (no truthy escape
+        // to a real global/function/prototype).
         const out = pred({ a: 1 });
         expect(typeof out).toBe("boolean");
         expect(out).toBe(false);
@@ -114,8 +148,13 @@ describe("compileSafePredicate", () => {
 
     it("does not mutate global state", () => {
       const before = (globalThis as { __pwned?: unknown }).__pwned;
-      compileSafePredicate("globalThis.__pwned = 1")({});
-      compileSafePredicate("this.__pwned = 1")({});
+      for (const expr of ["globalThis.__pwned = 1", "this.__pwned = 1"]) {
+        try {
+          compileSafePredicate(expr)({});
+        } catch {
+          // Parse failure is the expected outcome for assignments.
+        }
+      }
       expect((globalThis as { __pwned?: unknown }).__pwned).toBe(before);
     });
   });
@@ -133,10 +172,14 @@ describe("compileSafeKey", () => {
     expect(compileSafeKey("item.a.b")({ a: { b: 3 } })).toBe(3);
   });
 
-  it("parse error yields undefined", () => {
-    expect(compileSafeKey("item.constructor()")({ id: 1 })).toBeUndefined();
-    expect(compileSafeKey("process.exit(1)")({ id: 1 })).toBeUndefined();
-    expect(compileSafeKey("@@@")({ id: 1 })).toBeUndefined();
+  it("parse error throws with the expression and the reason", () => {
+    expect(() => compileSafeKey("item.constructor()")).toThrow(
+      /Invalid key expression/
+    );
+    expect(() => compileSafeKey("process.exit(1)")).toThrow(
+      /Invalid key expression/
+    );
+    expect(() => compileSafeKey("@@@")).toThrow(/Invalid key expression/);
   });
 
   it("runtime error yields undefined", () => {

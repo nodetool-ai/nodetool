@@ -87,12 +87,27 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
     return GlobalWebSocketManager.instance;
   }
 
+  /**
+   * True while an existing manager is still working towards a connection —
+   * including the reconnect-backoff window, during which `isConnected` and
+   * `isConnecting` are both false (the "close" event fires before the
+   * "reconnecting" event that the backoff timer eventually triggers).
+   * Without this, `ensureConnection` would build a second manager whose
+   * `on("message")` handler routes every message a second time.
+   */
+  private isManagerBusy(): boolean {
+    const state = this.wsManager?.getState();
+    return (
+      state === "connecting" || state === "reconnecting" || state === "disconnected"
+    );
+  }
+
   async ensureConnection(): Promise<void> {
     if (this.isConnected && this.wsManager) {
       return;
     }
 
-    if (this.isConnecting) {
+    if (this.isConnecting || (this.wsManager && this.isManagerBusy())) {
       // Wait for ongoing connection with timeout to prevent memory leak
       return new Promise((resolve, reject) => {
         const CONNECTION_TIMEOUT_MS = 30000; // 30 second timeout
@@ -101,6 +116,12 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
             clearInterval(checkInterval);
             clearTimeout(timeoutId);
             resolve();
+            return;
+          }
+          if (!this.isConnecting && !(this.wsManager && this.isManagerBusy())) {
+            clearInterval(checkInterval);
+            clearTimeout(timeoutId);
+            reject(new Error("WebSocket connection attempt failed"));
           }
         }, 100);
 
@@ -113,6 +134,12 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
     }
 
     this.isConnecting = true;
+
+    // Tear down any previous manager before replacing it. Overwriting
+    // `this.wsManager` while the old one still holds an open (or reconnecting)
+    // socket leaves an orphan that keeps routing messages into
+    // `routeMessage` — every chunk and node update handled twice.
+    this.teardownManager();
 
     try {
       const wsUrl = await this.buildAuthenticatedUrl();
@@ -329,12 +356,26 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
     this.wsManager.send(message);
   }
 
+  /**
+   * Close and fully detach the current manager. Dropping the reference alone
+   * is not enough: the manager keeps its socket and its reconnect timer, and
+   * its listeners keep feeding `routeMessage`.
+   */
+  private teardownManager(): void {
+    const manager = this.wsManager;
+    if (!manager) {
+      return;
+    }
+    this.wsManager = null;
+    this.isConnected = false;
+    manager.disconnect();
+    manager.destroy();
+  }
+
   disconnect(): void {
     if (this.wsManager) {
       console.info("GlobalWebSocketManager: Disconnecting");
-      this.wsManager.disconnect();
-      this.wsManager = null;
-      this.isConnected = false;
+      this.teardownManager();
       this.isConnecting = false;
     }
 

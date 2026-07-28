@@ -29,6 +29,7 @@ import {
 } from "@nodetool-ai/app-runtime";
 
 import { trpcClient } from "../../trpc/client";
+import { workflowListQueryKey } from "../../serverState/workflowQueryKeys";
 import {
   Box,
   Caption,
@@ -309,7 +310,7 @@ const AppDataPanel: React.FC<AppDataPanelProps> = ({
   workflowName
 }) => {
   const { data: workflows } = useQuery({
-    queryKey: ["workflows", "app-data-panel"],
+    queryKey: workflowListQueryKey(200),
     queryFn: () => trpcClient.workflows.list.query({ limit: 200 }),
     staleTime: 60_000
   });

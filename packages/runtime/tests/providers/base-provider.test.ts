@@ -434,6 +434,38 @@ describe("BaseProvider.generateLoop – turn boundary", () => {
   });
 });
 
+describe("BaseProvider.generateLoop – non-text chunks", () => {
+  class AudioProvider extends BaseProvider {
+    constructor() {
+      super("test");
+    }
+    async *generateMessages(): AsyncGenerator<ProviderStreamItem> {
+      yield { type: "chunk", content: "Here it is.", done: false };
+      yield {
+        type: "chunk",
+        content: "QUJDREVG",
+        content_type: "audio",
+        done: false
+      } as ProviderStreamItem;
+      yield { type: "chunk", content: "", done: true };
+    }
+  }
+
+  it("keeps base64 audio out of the assistant message text", async () => {
+    const provider = new AudioProvider();
+    const messages: Message[] = [];
+    for await (const item of provider.generateLoop({
+      messages: [{ role: "user", content: "speak" }],
+      model: "m"
+    })) {
+      if ((item as { type?: string }).type === "message") {
+        messages.push((item as { message: Message }).message);
+      }
+    }
+    expect(messages.at(-1)?.content).toBe("Here it is.");
+  });
+});
+
 describe("BaseProvider.generateLoop – image tool results", () => {
   // Yields one tool call on the first turn, then finishes — the "real provider"
   // path that emits ToolCall items (vs. the inline onToolCall callback).
@@ -535,9 +567,7 @@ describe("BaseProvider.generateLoop – image tool results", () => {
     }
 
     expect(
-      provider.secondTurnMessages
-        .map((message) => message.role)
-        .slice(0, 5)
+      provider.secondTurnMessages.map((message) => message.role).slice(0, 5)
     ).toEqual(["user", "assistant", "tool", "tool", "user"]);
   });
 
@@ -614,9 +644,9 @@ describe("BaseProvider.generateLoop – image tool results", () => {
       isProviderMessageEvent(e) ? String(e.message.content) : ""
     );
     expect(contents).toContain("ok result");
-    expect(contents.some((c) => /Error executing tool "bad_tool"/.test(c))).toBe(
-      true
-    );
+    expect(
+      contents.some((c) => /Error executing tool "bad_tool"/.test(c))
+    ).toBe(true);
   });
 
   it("dispatches a ProviderTool.execute and ends on terminal:true (no executeTool)", async () => {
@@ -632,7 +662,11 @@ describe("BaseProvider.generateLoop – image tool results", () => {
       async *generateMessages(): AsyncGenerator<ProviderStreamItem> {
         this.turns++;
         if (this.turns === 1) {
-          yield { id: "call_1", name: "finish", args: { value: 42 } } as ToolCall;
+          yield {
+            id: "call_1",
+            name: "finish",
+            args: { value: 42 }
+          } as ToolCall;
           return;
         }
         // Should never run — the terminal tool ends the loop after turn 1.

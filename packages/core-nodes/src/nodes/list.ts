@@ -35,6 +35,24 @@ export function assertOutputLength(
   }
 }
 
+/**
+ * How many values `buildRange(start, stop, step)` would produce, without
+ * allocating them — so the length guard can run before the allocation it
+ * exists to prevent.
+ */
+export function rangeLength(
+  start: number,
+  stop: number,
+  step: number
+): number {
+  if (step === 0) {
+    throw new Error("Range step must not be zero.");
+  }
+  const span = stop - start;
+  if (span === 0 || span / step <= 0) return 0;
+  return Math.ceil(span / step);
+}
+
 export function buildRange(
   start: number,
   stop: number,
@@ -121,19 +139,21 @@ export class RangeNode extends BaseNode {
     const step = Number(this.step ?? 1);
     const maxLen = resolveMaxOutputLength(this.max_output_length);
 
-    let values: number[];
     // Only the documented sentinel -1 switches to count mode; other negative
     // stops are legitimate (e.g. descending ranges like 0..-10 step -1).
-    if (Number.isFinite(rawStop) && rawStop !== -1) {
-      const start = Number(this.start ?? 0);
-      values = buildRange(start, rawStop, step);
-    } else {
-      const count = clampTimes(this.count ?? 0, 0);
-      values = buildRange(0, count, 1);
-    }
+    const useStop = Number.isFinite(rawStop) && rawStop !== -1;
+    const start = useStop ? Number(this.start ?? 0) : 0;
+    const stop = useStop ? rawStop : clampTimes(this.count ?? 0, 0);
+    const effectiveStep = useStop ? step : 1;
 
-    assertOutputLength(values.length, maxLen, "Range");
-    return { output: values };
+    // Guard BEFORE building: a huge stop would otherwise allocate the whole
+    // list and only then be rejected.
+    assertOutputLength(
+      rangeLength(start, stop, effectiveStep),
+      maxLen,
+      "Range"
+    );
+    return { output: buildRange(start, stop, effectiveStep) };
   }
 }
 

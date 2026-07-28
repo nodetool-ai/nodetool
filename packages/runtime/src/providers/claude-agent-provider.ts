@@ -647,8 +647,10 @@ export class ClaudeAgentProvider extends BaseProvider {
         }
 
         if (msg.type === "result") {
+          // Bill every terminal result, not just the successful ones: an
+          // errored/max-turns run still consumed (and was charged for) tokens.
+          this.trackResultUsage(msg, resolvedModel);
           if (msg.subtype === "success") {
-            this.trackResultUsage(msg, resolvedModel);
             yield { type: "chunk", content: "", done: true } as Chunk;
           } else {
             throw resultError(msg);
@@ -671,9 +673,8 @@ export class ClaudeAgentProvider extends BaseProvider {
     }
   }
 
-  /** Record token usage from the terminal success `result` message. */
+  /** Record token usage from a terminal `result` message (success or error). */
   private trackResultUsage(msg: SDKResultMessage, model: string): void {
-    if (msg.subtype !== "success") return;
     const usage = msg.usage;
     if (!usage) return;
     const input = num(usage.input_tokens);

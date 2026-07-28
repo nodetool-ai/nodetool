@@ -50,6 +50,44 @@ describe("list nodes", () => {
     });
   });
 
+  // Regression: the guard used to run on the finished array, so an enormous
+  // stop allocated the whole list before being rejected.
+  it("RangeNode rejects an oversized range without allocating it", async () => {
+    const node = new RangeNode();
+    node.assign({ start: 0, stop: 50_000_000, step: 1, max_output_length: 10 });
+    const before = process.memoryUsage().heapUsed;
+    const started = Date.now();
+    await expect(node.process()).rejects.toThrow(
+      /would produce 50000000 items/
+    );
+    expect(Date.now() - started).toBeLessThan(500);
+    expect(process.memoryUsage().heapUsed - before).toBeLessThan(
+      100 * 1024 * 1024
+    );
+  });
+
+  it("RangeNode reports the would-be length for a descending oversized range", async () => {
+    const node = new RangeNode();
+    node.assign({ start: 0, stop: -1_000_000, step: -2, max_output_length: 5 });
+    await expect(node.process()).rejects.toThrow(/would produce 500000 items/);
+  });
+
+  it("RangeNode counts a stepped range the way it builds it", async () => {
+    const node = new RangeNode();
+    node.assign({ start: 0, stop: 10, step: 3, max_output_length: 4 });
+    await expect(node.process()).resolves.toEqual({ output: [0, 3, 6, 9] });
+
+    const tooTight = new RangeNode();
+    tooTight.assign({ start: 0, stop: 10, step: 3, max_output_length: 3 });
+    await expect(tooTight.process()).rejects.toThrow(/would produce 4 items/);
+  });
+
+  it("RangeNode yields an empty list when start is already past stop", async () => {
+    const node = new RangeNode();
+    node.assign({ start: 5, stop: 1, step: 1, max_output_length: 1 });
+    await expect(node.process()).resolves.toEqual({ output: [] });
+  });
+
   it("TileNode repeats the full list N times", async () => {
     const node = new TileNode();
     node.assign({ input_list: ["A", "B", "C"], times: 3 });

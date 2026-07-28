@@ -1863,7 +1863,10 @@ export class UnifiedWebSocketRunner {
     if (Array.isArray(message.content)) {
       message = {
         ...message,
-        content: resolveContentUrls(message.content as unknown[])
+        content: resolveContentUrls(
+          message.content as unknown[],
+          (message.user_id as string | undefined) ?? this.userId ?? undefined
+        )
       };
     }
 
@@ -2652,7 +2655,14 @@ export class UnifiedWebSocketRunner {
       graph
     );
 
-    active.streamTask = this.streamJobMessages(active, executePromise);
+    // `streamJobMessages` handles its own failures, but nothing awaits this
+    // promise — attach a terminal handler so a bug there can never surface as
+    // an unhandled rejection (which Node 22 turns into a process exit).
+    active.streamTask = this.streamJobMessages(active, executePromise).catch(
+      (error: unknown) => {
+        this.logError("job stream task failed", error);
+      }
+    );
   }
 
   private async streamJobMessages(
@@ -2675,9 +2685,99 @@ export class UnifiedWebSocketRunner {
     // MAX_CONCURRENT_JOBS slot and stalls every queued run.
     try {
       await this._streamJobMessagesInner(active, executePromise);
+    } catch (error) {
+      // Without this catch the rejection escaped entirely: the caller only
+      // assigns `active.streamTask` and never awaits it, so Node's default
+      // unhandledRejection behaviour terminated the process — and none of the
+      // terminal bookkeeping below ran, leaving the DB row stuck at "running",
+      // the client UI spinning, and the app ledger holding the estimate.
+      const message = error instanceof Error ? error.message : String(error);
+      this.logError("job message streaming failed", error);
+      active.finished = true;
+      active.status = "failed";
+      active.error = message;
+      try {
+        await this.sendMessage({
+          type: "job_update",
+          status: "failed",
+          job_id: active.jobId,
+          workflow_id: active.workflowId,
+          error: message
+        });
+      } catch (sendError) {
+        this.logError("terminal job_update send failed", sendError);
+      }
+      await this.persistTerminalJobStatus(active);
+      await this.settleApplicationInvocation(active);
     } finally {
       this.activeJobs.delete(active.jobId);
       this.drainQueue();
+    }
+  }
+
+  /**
+   * Write the run's terminal status onto the persisted Job row. Never throws —
+   * persistence is best-effort and must not mask the run's own outcome.
+   */
+  private async persistTerminalJobStatus(active: ActiveJob): Promise<void> {
+    try {
+      const job = (await Job.get(active.jobId)) as Job | null;
+      // A DB-only cancel (tRPC `jobs.cancel`) can finalize the row as cancelled
+      // while the job is still executing in memory. Don't overwrite that with a
+      // completed/failed status when the in-flight run finishes.
+      if (job) {
+        if (job.status !== "cancelled") {
+          if (active.status === "completed") {
+            job.markCompleted();
+          } else if (active.status === "failed") {
+            job.markFailed(active.error ?? "Unknown error");
+          } else if (active.status === "cancelled") {
+            job.markCancelled();
+          } else if (active.status === "suspended") {
+            // A node paused the run (e.g. human-in-the-loop). Persist the
+            // saved state so the job can be resumed later.
+            job.markSuspended(
+              active.suspend?.node_id ?? "",
+              active.suspend?.reason ?? "",
+              active.suspend?.state,
+              active.suspend?.metadata
+            );
+          }
+        }
+        job.cost =
+          (active.providerCostTotal ?? 0) > 0
+            ? (active.providerCostTotal ?? null)
+            : null;
+        await job.save();
+      }
+    } catch (error) {
+      this.logError("job persistence (final status) failed", error);
+    }
+  }
+
+  /**
+   * Close the app's ledger row at what the run actually cost. Until this lands
+   * the run keeps counting against the budget at its estimate, which is the
+   * conservative direction: a crash cannot free spend it may have incurred.
+   * Only two node families report provider cost, so an absent total means
+   * "nothing measured this run", not "this run was free" — passing null keeps
+   * the estimate standing rather than handing the spend back. Never throws.
+   */
+  private async settleApplicationInvocation(active: ActiveJob): Promise<void> {
+    if (!active.applicationId) return;
+    try {
+      await settleInvocation(
+        active.applicationId,
+        active.jobId,
+        active.providerCostTotal ?? null,
+        active.status === "failed"
+          ? "failed"
+          : active.status === "cancelled"
+            ? "cancelled"
+            : "completed"
+      );
+    } catch (error) {
+      this.logError("application invocation settlement failed", error);
     }
   }
 
@@ -2973,63 +3073,8 @@ export class UnifiedWebSocketRunner {
       });
     }
 
-    // Persist final job status
-    try {
-      const job = (await Job.get(active.jobId)) as Job | null;
-      // A DB-only cancel (tRPC `jobs.cancel`) can finalize the row as cancelled
-      // while the job is still executing in memory. Don't overwrite that with a
-      // completed/failed status when the in-flight run finishes.
-      if (job) {
-        if (job.status !== "cancelled") {
-          if (active.status === "completed") {
-            job.markCompleted();
-          } else if (active.status === "failed") {
-            job.markFailed(active.error ?? "Unknown error");
-          } else if (active.status === "cancelled") {
-            job.markCancelled();
-          } else if (active.status === "suspended") {
-            // A node paused the run (e.g. human-in-the-loop). Persist the
-            // saved state so the job can be resumed later.
-            job.markSuspended(
-              active.suspend?.node_id ?? "",
-              active.suspend?.reason ?? "",
-              active.suspend?.state,
-              active.suspend?.metadata
-            );
-          }
-        }
-        job.cost =
-          (active.providerCostTotal ?? 0) > 0
-            ? (active.providerCostTotal ?? null)
-            : null;
-        await job.save();
-      }
-    } catch (error) {
-      this.logError("job persistence (final status) failed", error);
-    }
-
-    // Close the app's ledger row at what the run actually cost. Until this
-    // lands the run keeps counting against the budget at its estimate, which is
-    // the conservative direction: a crash cannot free spend it may have incurred.
-    // Only two node families report provider cost, so an absent total means
-    // "nothing measured this run", not "this run was free" — passing null keeps
-    // the estimate standing rather than handing the spend back.
-    if (active.applicationId) {
-      try {
-        await settleInvocation(
-          active.applicationId,
-          active.jobId,
-          active.providerCostTotal ?? null,
-          active.status === "failed"
-            ? "failed"
-            : active.status === "cancelled"
-              ? "cancelled"
-              : "completed"
-        );
-      } catch (error) {
-        this.logError("application invocation settlement failed", error);
-      }
-    }
+    await this.persistTerminalJobStatus(active);
+    await this.settleApplicationInvocation(active);
     // Slot release + queue drain happen in the streamJobMessages wrapper's
     // finally, so they run even if the drain loop above throws.
   }
@@ -3226,7 +3271,10 @@ export class UnifiedWebSocketRunner {
       return null;
     }
     const rawContent = Array.isArray(m.content)
-      ? (resolveContentForProvider(m.content as unknown[]) as MessageContent[])
+      ? (resolveContentForProvider(
+          m.content as unknown[],
+          (m.user_id as string | undefined) ?? this.userId ?? undefined
+        ) as MessageContent[])
       : (m.content as string | null);
     return {
       role,

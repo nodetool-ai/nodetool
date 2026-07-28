@@ -23,6 +23,7 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { WorkflowList, Workflow } from "../../stores/ApiTypes";
 import { useActivateOnKey } from "../../hooks/useActivateOnKey";
+import { workflowListQueryKey } from "../../serverState/workflowQueryKeys";
 
 // Show the inline search field once the list grows past this many workflows.
 const SEARCH_THRESHOLD = 8;
@@ -160,7 +161,7 @@ const WorkflowTree: React.FC = () => {
 
   const load = useWorkflowManager((state) => state.load);
   const { data, isLoading } = useQuery<WorkflowList, Error>({
-    queryKey: ["workflows"],
+    queryKey: workflowListQueryKey(200),
     queryFn: async () => load("", 200)
   });
 
