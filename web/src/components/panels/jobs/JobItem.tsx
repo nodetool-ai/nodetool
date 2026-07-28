@@ -25,6 +25,7 @@ import { useJobAssets } from "../../../serverState/useJobAssets";
 import { trpcClient } from "../../../trpc/client";
 import { useQueryClient } from "@tanstack/react-query";
 import isEqual from "../../../utils/isEqual";
+import { notifyMutationError } from "../../../utils/notifyMutationError";
 
 const formatDuration = (ms: number): string => {
   if (ms < 0) {
@@ -180,10 +181,28 @@ const AssetThumb = memo(function AssetThumb({ asset }: { asset: Asset }) {
     [asset.get_url]
   );
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key !== "Enter" && e.key !== " ") {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      if (asset.get_url) {
+        window.open(asset.get_url, "_blank", "noopener,noreferrer");
+      }
+    },
+    [asset.get_url]
+  );
+
   return (
     <Tooltip title={asset.name || asset.content_type}>
       <Box
+        role="button"
+        tabIndex={0}
+        aria-label="Open job output"
         onClick={handleOpen}
+        onKeyDown={handleKeyDown}
         sx={{
           width: TILE_SIZE,
           height: TILE_SIZE,
@@ -239,7 +258,20 @@ const JobItem = ({ job }: { job: Job }) => {
     return () => clearInterval(interval);
   }, [job.started_at, job.status]);
 
-  const handleClick = () => navigate(`/editor/${job.workflow_id}`);
+  const handleClick = useCallback(
+    () => navigate(`/editor/${job.workflow_id}`),
+    [navigate, job.workflow_id]
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        handleClick();
+      }
+    },
+    [handleClick]
+  );
 
   const handleStop = useCallback(
     async (e: React.MouseEvent) => {
@@ -260,7 +292,7 @@ const JobItem = ({ job }: { job: Job }) => {
           runnerState.cancel();
         }
       } catch (err) {
-        console.error("Failed to cancel job:", err);
+        notifyMutationError("cancel the job", err);
       } finally {
         queryClient.invalidateQueries({ queryKey: ["jobs"] });
         setCancelling(false);
@@ -322,7 +354,10 @@ const JobItem = ({ job }: { job: Job }) => {
     <FlexRow
       align="center"
       gap={1}
+      role="button"
+      tabIndex={0}
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
       sx={{
         px: 1,
         py: 1,

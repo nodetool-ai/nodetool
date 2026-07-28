@@ -814,6 +814,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
                 value={lightingPreset}
                 onChange={handleLightingChange}
                 variant="outlined"
+                aria-label="Lighting preset"
                 IconComponent={LightModeIcon}
               >
                 {LIGHTING_PRESETS.map((preset) => (
@@ -829,6 +830,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
                 value={backgroundColor}
                 onChange={handleBackgroundChange}
                 variant="outlined"
+                aria-label="Background color"
               >
                 {BACKGROUND_COLORS.map((bg) => (
                   <MenuItem key={bg.value} value={bg.value}>

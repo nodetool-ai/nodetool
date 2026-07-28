@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 
 import React, { useMemo, useState, useCallback, memo } from "react";
-import { Chip, FlexRow, Tooltip, Text, Box, TextLink, SPACING, getSpacingPx } from "../../ui_primitives";
+import { Chip, FlexRow, Tooltip, Text, Box, TextLink, SPACING, getSpacingPx, activateOnKey } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { ModelComponentProps } from "../ModelUtils";
@@ -97,6 +97,10 @@ const ModelListItem: React.FC<
         model.downloaded ? "downloaded " : ""
       }${selectable ? "selectable" : ""}`}
       onClick={selectable ? handleRowClick : undefined}
+      onKeyDown={selectable ? activateOnKey(() => onSelect?.()) : undefined}
+      role={selectable ? "button" : undefined}
+      tabIndex={selectable ? 0 : undefined}
+      aria-label={selectable ? model.id : undefined}
       sx={selectable ? { cursor: "pointer" } : undefined}
     >
       <div className="model-content">

@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState } from "react";
 import {
   FlexColumn,
   FlexRow,
@@ -18,6 +18,8 @@ import {
 import type { Image } from "../../../stores/ApiTypes";
 import { useAsset } from "../../../serverState/useAsset";
 import { trpc, type RouterOutputs } from "../../../trpc/client";
+import { useNotificationStore } from "../../../stores/NotificationStore";
+import ConfirmDialog from "../../dialogs/ConfirmDialog";
 
 export const THREAD_MEMORY_SIDEBAR_WIDTH = 300;
 /** Asset thumbnail edge (px), on the 4px grid — a fixed component dimension. */
@@ -123,8 +125,11 @@ function resourceLabel(resource: Resource): string {
   return `${resource.type}: ${base}`;
 }
 
-const MemoryCard: React.FC<{ memory: Memory; onDelete: (id: string) => void }> =
-  memo(({ memory, onDelete }) => {
+const MemoryCard: React.FC<{
+  memory: Memory;
+  onDelete: (id: string) => void;
+  deleteDisabled: boolean;
+}> = memo(({ memory, onDelete, deleteDisabled }) => {
     const imageAssets = memory.resources.filter(isImageAsset);
     const otherResources = memory.resources.filter((r) => !isImageAsset(r));
     return (
@@ -142,6 +147,7 @@ const MemoryCard: React.FC<{ memory: Memory; onDelete: (id: string) => void }> =
             <DeleteButton
               tooltip="Delete memory"
               onClick={() => onDelete(memory.id)}
+              disabled={deleteDisabled}
             />
           </span>
         </FlexRow>
@@ -180,6 +186,10 @@ export const ThreadMemorySidebar: React.FC<ThreadMemorySidebarProps> = memo(
     const theme = useTheme();
     const cssStyles = useMemo(() => styles(theme), [theme]);
     const utils = trpc.useUtils();
+    const addNotification = useNotificationStore(
+      (state) => state.addNotification
+    );
+    const [memoryToDelete, setMemoryToDelete] = useState<string | null>(null);
 
     const { data } = trpc.threadMemories.list.useQuery(
       { thread_id: threadId },
@@ -191,7 +201,15 @@ export const ThreadMemorySidebar: React.FC<ThreadMemorySidebarProps> = memo(
       }
     );
     const deleteMemory = trpc.threadMemories.delete.useMutation({
-      onSuccess: () => utils.threadMemories.list.invalidate({ thread_id: threadId })
+      onSuccess: () =>
+        utils.threadMemories.list.invalidate({ thread_id: threadId }),
+      onError: (error) => {
+        addNotification({
+          type: "error",
+          alert: true,
+          content: `Could not delete memory: ${error.message}`
+        });
+      }
     });
 
     const memories = data?.memories ?? [];
@@ -226,12 +244,26 @@ export const ThreadMemorySidebar: React.FC<ThreadMemorySidebarProps> = memo(
                 <MemoryCard
                   key={memory.id}
                   memory={memory}
-                  onDelete={(id) => deleteMemory.mutate({ id })}
+                  onDelete={setMemoryToDelete}
+                  deleteDisabled={deleteMemory.isPending}
                 />
               ))}
             </FlexColumn>
           )}
         </ScrollArea>
+        <ConfirmDialog
+          open={memoryToDelete !== null}
+          onClose={() => setMemoryToDelete(null)}
+          onConfirm={() => {
+            if (memoryToDelete) {
+              deleteMemory.mutate({ id: memoryToDelete });
+            }
+          }}
+          title="Delete memory"
+          content="Delete this memory? This cannot be undone."
+          confirmText="Delete"
+          cancelText="Cancel"
+        />
       </aside>
     );
   }

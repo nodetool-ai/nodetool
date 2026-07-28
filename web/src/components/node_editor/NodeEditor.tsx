@@ -242,6 +242,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                   }
                 }}
                 closeAfterTransition
+                aria-label="Keyboard shortcuts"
               >
                 <Box
                   sx={shortcutsModalSx}

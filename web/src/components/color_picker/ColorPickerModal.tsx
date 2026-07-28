@@ -5,7 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Caption, Tooltip, FlexRow, FlexColumn, EditorButton, TabGroup, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { Text, Caption, Tooltip, FlexRow, FlexColumn, EditorButton, TabGroup, BORDER_RADIUS, SPACING, getSpacingPx, activateOnKey } from "../ui_primitives";
 import type { TabItem } from "../ui_primitives";
 import { CloseButton } from "../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
@@ -433,7 +433,11 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
                     className="preview-swatch"
                     align="center"
                     justify="center"
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Copy hex value"
                     onClick={handleCopyHex}
+                    onKeyDown={activateOnKey(handleCopyHex)}
                   >
                     <div className="preview-swatch-bg" />
                     <div

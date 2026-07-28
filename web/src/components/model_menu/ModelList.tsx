@@ -481,8 +481,13 @@ function ModelList<TModel extends ModelSelectorModel>({
                 Download a local model or add an API key for a cloud provider to get going.
                 {" "}
                 <Box
-                  component="span"
+                  component="button"
+                  type="button"
                   sx={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    font: "inherit",
                     color: "primary.main",
                     cursor: "pointer",
                     textDecoration: "underline",
@@ -506,8 +511,13 @@ function ModelList<TModel extends ModelSelectorModel>({
               <>
                 Enable a provider in the left sidebar or add an API key in{" "}
                 <Box
-                  component="span"
+                  component="button"
+                  type="button"
                   sx={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    font: "inherit",
                     color: "primary.main",
                     cursor: "pointer",
                     textDecoration: "underline",

@@ -379,8 +379,13 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
         <Box sx={{ marginTop: "1.5em", marginBottom: "1em" }}>
           <Text
             size="small"
+            component="button"
+            type="button"
             onClick={handleCopyAll}
             sx={{
+              background: "none",
+              border: "none",
+              padding: 0,
               color: "var(--palette-primary-main)",
               cursor: "pointer",
               display: "inline-flex",

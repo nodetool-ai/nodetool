@@ -44,6 +44,13 @@ import { SKETCH_FONT, SKETCH_SPACING, SKETCH_Z_INDEX, SKETCH_COLORS, SKETCH_TOOL
 const SV_SIZE = 160;
 const HUE_HEIGHT = 12;
 
+const RGB_LABELS = { r: "Red", g: "Green", b: "Blue" } as const;
+const HSL_LABELS = {
+  h: "Hue (degrees)",
+  s: "Saturation (percent)",
+  l: "Lightness (percent)"
+} as const;
+
 interface ColorPickerPopoverProps {
   anchorEl: HTMLElement | null;
   color: string;
@@ -339,7 +346,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
           size="small"
           value={fgHex6}
           onChange={(e) => handleHex(e.target.value)}
-          inputProps={{ maxLength: 7 }}
+          inputProps={{ maxLength: 7, "aria-label": "Hex color" }}
           sx={{
             "& .MuiInputBase-root": { fontSize: SKETCH_FONT.sm, height: "22px" },
             "& .MuiInputBase-input": { padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`, textAlign: "center" }
@@ -357,7 +364,11 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
                 type="number"
                 value={ch === "r" ? r : ch === "g" ? g : b}
                 onChange={(e) => handleRgb(ch, e.target.value)}
-                inputProps={{ min: 0, max: 255 }}
+                inputProps={{
+                  min: 0,
+                  max: 255,
+                  "aria-label": RGB_LABELS[ch]
+                }}
                 sx={numSx}
               />
             </FlexColumn>
@@ -377,7 +388,11 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
                 type="number"
                 value={ch === "h" ? hsl.h : ch === "s" ? hsl.s : hsl.l}
                 onChange={(e) => handleHsl(ch, e.target.value)}
-                inputProps={{ min: 0, max: ch === "h" ? 360 : 100 }}
+                inputProps={{
+                  min: 0,
+                  max: ch === "h" ? 360 : 100,
+                  "aria-label": HSL_LABELS[ch]
+                }}
                 sx={numSx}
               />
             </FlexColumn>

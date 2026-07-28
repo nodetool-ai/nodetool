@@ -4,7 +4,6 @@ import AddIcon from "@mui/icons-material/Add";
 import CollectionHeader from "./CollectionHeader";
 import EmptyCollectionState from "./EmptyCollectionState";
 import CollectionItem from "./CollectionItem";
-import type { UseMutationResult } from "@tanstack/react-query";
 import { useCollectionStore } from "../../stores/CollectionStore";
 import { useShallow } from "zustand/react/shallow";
 import {
@@ -29,6 +28,7 @@ const CollectionList = () => {
     isLoading,
     error,
     deleteTarget,
+    deletingCollection,
     showForm,
     dragOverCollection,
     indexProgress,
@@ -47,6 +47,7 @@ const CollectionList = () => {
     isLoading: state.isLoading,
     error: state.error,
     deleteTarget: state.deleteTarget,
+    deletingCollection: state.deletingCollection,
     showForm: state.showForm,
     dragOverCollection: state.dragOverCollection,
     indexProgress: state.indexProgress,
@@ -172,26 +173,7 @@ const CollectionList = () => {
                     onDrop={dropHandlers[collection.name]}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
-                    deleteMutation={
-                      {
-                        isPending: false,
-                        mutate: () => { },
-                        mutateAsync: async () => Promise.resolve(),
-                        reset: () => { },
-                        context: undefined,
-                        data: undefined,
-                        error: null,
-                        failureCount: 0,
-                        failureReason: null,
-                        isError: false,
-                        isIdle: true,
-                        isPaused: false,
-                        isSuccess: false,
-                        status: "idle",
-                        submittedAt: 0,
-                        variables: undefined
-                      } as UseMutationResult<void, Error, string>
-                    }
+                    deletingCollection={deletingCollection}
                   />
                 ))}
               </ListGroup>

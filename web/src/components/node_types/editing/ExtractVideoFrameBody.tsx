@@ -38,9 +38,10 @@ import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import DownloadIcon from "@mui/icons-material/Download";
 
 import {
+  BORDER_RADIUS,
   CheckerDropzone,
-  ToolbarIconButton,
-  BORDER_RADIUS
+  SPACING,
+  ToolbarIconButton
 } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import NumberInput from "../../inputs/NumberInput";
@@ -136,7 +137,7 @@ const styles = (theme: Theme) =>
       background: theme.vars.palette.grey[700],
       borderRadius: BORDER_RADIUS.xs,
       cursor: "pointer",
-      margin: `${theme.spacing(0.25)} 0`,
+      margin: `${theme.spacing(SPACING.micro)} 0`,
       "&::-webkit-slider-thumb": {
         appearance: "none",
         width: 12,
@@ -179,20 +180,20 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      gap: theme.spacing(0.25)
+      gap: theme.spacing(SPACING.micro)
     },
     ".transport-actions": {
       flex: "0 0 auto",
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(0.25)
+      gap: theme.spacing(SPACING.micro)
     },
     ".footer": {
       flex: "0 0 auto",
       display: "flex",
       alignItems: "center",
       gap: theme.spacing(1),
-      paddingTop: theme.spacing(0.25)
+      paddingTop: theme.spacing(SPACING.micro)
     },
     ".field": {
       display: "flex",
@@ -215,7 +216,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall,
       fontVariantNumeric: "tabular-nums",
       color: theme.vars.palette.grey[100],
-      padding: `${theme.spacing(0.25)} ${theme.spacing(0.75)}`,
+      padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.xs)}`,
       borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.grey[800]
     },

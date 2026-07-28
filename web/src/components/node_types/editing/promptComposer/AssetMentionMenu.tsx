@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { BORDER_RADIUS, Z_INDEX } from "../../../ui_primitives";
+import { BORDER_RADIUS, SPACING, Z_INDEX } from "../../../ui_primitives";
 import type { Asset } from "../../../../stores/ApiTypes";
 import type { Entity } from "@nodetool-ai/protocol";
 import { MentionAssetTile } from "./MentionAssetTile";
@@ -68,7 +68,7 @@ export const assetMentionMenuStyles = (theme: Theme) =>
       flexWrap: "wrap",
       alignItems: "center",
       gap: theme.spacing(0.5),
-      padding: theme.spacing(0.75),
+      padding: theme.spacing(SPACING.xs),
       maxHeight: 96,
       overflowY: "auto",
       borderBottom: `1px solid ${theme.vars.palette.divider}`

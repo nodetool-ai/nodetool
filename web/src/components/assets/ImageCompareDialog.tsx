@@ -95,6 +95,7 @@ const ImageCompareDialog: React.FC = () => {
       fullWidth
       open={compareAssets !== null}
       onClose={closeCompareView}
+      aria-label="Compare images"
     >
       <div className="compare-container">
         <div className="actions">

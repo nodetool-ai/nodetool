@@ -33,7 +33,7 @@
  * </Dialog>
  */
 
-import React, { forwardRef, memo, ReactNode } from "react";
+import React, { forwardRef, memo, ReactNode, useId } from "react";
 import {
   Dialog as MuiDialog,
   DialogProps as MuiDialogProps,
@@ -160,6 +160,7 @@ export const Dialog = memo(
       ref
     ) => {
       const theme = useTheme();
+      const titleId = useId();
 
       const shouldShowActions = showActions || !!onConfirm;
 
@@ -201,7 +202,7 @@ export const Dialog = memo(
           onClose={onClose}
           css={dialogStyles(theme)}
           className={`dialog ${className ?? ""}`}
-          aria-labelledby={title ? "dialog-title" : undefined}
+          aria-labelledby={title ? titleId : undefined}
           slotProps={{
             backdrop: {
               style: {
@@ -222,7 +223,7 @@ export const Dialog = memo(
           {...dialogProps}
         >
           {title && (
-            <DialogTitle className="dialog-title" id="dialog-title">
+            <DialogTitle className="dialog-title" id={titleId}>
               {titleIsString ? (
                 <PanelHeadline
                   title={title as string}

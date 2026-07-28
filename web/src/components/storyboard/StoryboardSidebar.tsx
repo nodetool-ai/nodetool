@@ -35,6 +35,7 @@ import {
 } from "../../hooks/storyboard/useStoryboards";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { tabId, useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import { notifyMutationError } from "../../utils/notifyMutationError";
 
 interface StoryboardSidebarProps {
   /** Board shown in the surface this sidebar belongs to. */
@@ -114,7 +115,7 @@ const StoryboardSidebarInner: React.FC<StoryboardSidebarProps> = ({
       });
       openBoard(created.id, created.name);
     } catch (error) {
-      console.error("Failed to create storyboard", error);
+      notifyMutationError("create the storyboard", error);
     }
   }, [createStoryboard, openBoard]);
 
@@ -156,7 +157,7 @@ const StoryboardSidebarInner: React.FC<StoryboardSidebarProps> = ({
       {isLoading ? (
         <LoadingSpinner size={20} />
       ) : (
-        <FlexColumn gap={0.5}>
+        <FlexColumn gap={0.5} role="listbox" aria-label="Storyboards">
           {(boards ?? []).map((board) => (
             <FlexRow
               key={board.id}
@@ -164,7 +165,16 @@ const StoryboardSidebarInner: React.FC<StoryboardSidebarProps> = ({
               justify="space-between"
               gap={1}
               className={`board-row${board.id === activeBoardId ? " active" : ""}`}
+              role="option"
+              aria-selected={board.id === activeBoardId}
+              tabIndex={0}
               onClick={() => openBoard(board.id, board.name)}
+              onKeyDown={(e: React.KeyboardEvent) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  openBoard(board.id, board.name);
+                }
+              }}
             >
               <FlexColumn gap={0} sx={{ minWidth: 0 }}>
                 <Text size="small" truncate>

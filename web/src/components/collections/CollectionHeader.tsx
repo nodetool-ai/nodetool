@@ -8,7 +8,8 @@ import {
   Box,
   Popover,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  activateOnKey
 } from "../ui_primitives";
 
 const CollectionHeader = () => {
@@ -26,6 +27,13 @@ const CollectionHeader = () => {
           "&:hover": { color: "primary.main" }
         }}
         onClick={(e) => setFormatInfoAnchor(e.currentTarget)}
+        onKeyDown={activateOnKey<HTMLDivElement>((e) =>
+          setFormatInfoAnchor(e.currentTarget)
+        )}
+        role="button"
+        tabIndex={0}
+        aria-haspopup="dialog"
+        aria-expanded={Boolean(formatInfoAnchor)}
       >
         <InfoIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
         <Text size="small" weight={600}>

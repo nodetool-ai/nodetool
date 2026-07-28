@@ -27,10 +27,13 @@ import type * as monaco from "monaco-editor";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 
 import {
-  FlexColumn,
+  BORDER_RADIUS,
   CopyButton,
+  FlexColumn,
   LoadingSpinner,
-  ToolbarIconButton, BORDER_RADIUS } from "../ui_primitives";
+  SPACING,
+  ToolbarIconButton
+} from "../ui_primitives";
 import { editorClassNames, cn } from "../editor_ui";
 import HandleColumn from "../node/HandleColumn";
 import { NodeInputs } from "../node/NodeInputs";
@@ -139,7 +142,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary
     },
     ".editor-placeholder": {
-      padding: theme.spacing(0.75),
+      padding: theme.spacing(SPACING.xs),
       fontFamily: "monospace",
       whiteSpace: "pre-wrap",
       overflow: "hidden",
@@ -148,7 +151,7 @@ const styles = (theme: Theme) =>
     },
     ".io-hint": {
       flex: "0 0 auto",
-      padding: `${theme.spacing(0.25)} ${theme.spacing(0.5)}`,
+      padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(0.5)}`,
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmaller,
       lineHeight: 1.4,

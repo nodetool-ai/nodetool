@@ -29,6 +29,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Job } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
+import { notifyMutationError } from "../../utils/notifyMutationError";
 
 const RUNNING = new Set(["running", "suspended", "paused"]);
 const QUEUED = new Set(["queued", "scheduled", "starting"]);
@@ -436,7 +437,7 @@ const QueueOverlay = memo(function QueueOverlay() {
       try {
         await trpcClient.jobs.cancel.mutate({ id });
       } catch (err) {
-        console.error("Failed to cancel job:", err);
+        notifyMutationError("cancel the job", err);
       } finally {
         queryClient.invalidateQueries({ queryKey: ["jobs"] });
       }

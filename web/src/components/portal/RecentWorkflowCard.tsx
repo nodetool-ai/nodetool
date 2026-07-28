@@ -44,13 +44,13 @@ const styles = (theme: Theme) =>
       left: `${theme.spacing(1)}`,
       display: "inline-flex",
       alignItems: "center",
-      gap: `${theme.spacing(0.75)}`,
+      gap: `${theme.spacing(SPACING.xs)}`,
       fontFamily: theme.fontFamily2,
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.secondary,
-      padding: `${theme.spacing(0.25)} ${theme.spacing(0.875)}`,
+      padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.xs)}`,
       background: theme.vars.palette.c_scrim,
-      borderRadius: `${theme.spacing(0.5)}`
+      borderRadius: BORDER_RADIUS.xs
     },
     ".rmeta": { padding: `0 ${getSpacingPx(SPACING.micro)}` },
     ".rname": {
@@ -64,7 +64,7 @@ const styles = (theme: Theme) =>
     ".redit": {
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.disabled,
-      marginTop: `${theme.spacing(0.25)}`
+      marginTop: `${theme.spacing(SPACING.micro)}`
     }
   });
 

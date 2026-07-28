@@ -331,9 +331,16 @@ const RowItem = memo(({
                   </pre>
                   <FlexRow justify="flex-end" sx={{ mt: 1, pt: 1, borderTop: 1, borderColor: "divider" }}>
                     <Text
-                      component="span"
+                      component="button"
+                      type="button"
                       size="small"
-                      sx={{ cursor: "pointer", color: "primary.main" }}
+                      sx={{
+                        background: "none",
+                        border: "none",
+                        padding: 0,
+                        cursor: "pointer",
+                        color: "primary.main"
+                      }}
                       onClick={handleClose}
                     >
                       Close

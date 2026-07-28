@@ -256,6 +256,7 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
       <Select
         size="small"
         displayEmpty
+        aria-label="Canvas size preset"
         value=""
         onChange={(e) => {
           const preset = CANVAS_PRESETS.find(

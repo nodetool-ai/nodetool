@@ -441,6 +441,13 @@ const RemoteSettings = () => {
           queryClient.invalidateQueries({ queryKey: [key] });
         }
       }
+    },
+    onError: (error: Error) => {
+      addNotification({
+        content: `Could not save settings: ${error.message}`,
+        type: "error",
+        alert: true
+      });
     }
   });
 
@@ -540,6 +547,7 @@ const RemoteSettings = () => {
                   onClick={handleSave}
                   className="save-button"
                   startIcon={<SaveIcon />}
+                  disabled={updateSettingsMutation.isPending}
                 >
                   SAVE SETTINGS
                 </EditorButton>

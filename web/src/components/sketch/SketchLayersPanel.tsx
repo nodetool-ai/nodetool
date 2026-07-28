@@ -1339,6 +1339,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             sx={{ px: getSpacingPx(SPACING.sm) }}
           >
             <Select
+              aria-label="Layer blend mode"
               value={coerceBlendMode(activeLayer.blendMode)}
               onChange={(e) =>
                 onLayerBlendModeChange(

@@ -2,7 +2,15 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useRef, useEffect, useCallback, useState, useMemo } from "react";
+import {
+  memo,
+  useRef,
+  useEffect,
+  useCallback,
+  useState,
+  useMemo,
+  useId
+} from "react";
 
 import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
 import isEqual from "../../utils/isEqual";
@@ -56,6 +64,7 @@ const styles = (theme: Theme) =>
 export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
   ({ id, workflowId, open, onClose }) => {
     const theme = useTheme();
+    const titleId = useId();
     const logsRef = useRef<HTMLDivElement>(null);
     // O(1) lookup via pre-keyed map instead of filtering the full logs array.
     const logs = useLogsStore(
@@ -126,6 +135,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
       <Dialog
         open={open}
         onClose={onClose}
+        aria-labelledby={titleId}
         fullWidth
         maxWidth="md"
         slotProps={{
@@ -146,7 +156,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
           }
         }}
       >
-        <DialogTitle className="dialog-title">
+        <DialogTitle className="dialog-title" id={titleId}>
           <FlexRow gap={1} align="center">
             <Text size="normal" weight={600} component="h6">
               Node Logs

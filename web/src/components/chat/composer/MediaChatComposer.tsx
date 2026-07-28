@@ -902,8 +902,13 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
             {onStop && (
               <Text
                 size="small"
+                component="button"
+                type="button"
                 sx={{
                   ml: "auto",
+                  background: "none",
+                  border: "none",
+                  padding: 0,
                   cursor: "pointer",
                   color: "primary.main"
                 }}
@@ -914,8 +919,13 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
             )}
             <Text
               size="small"
+              component="button"
+              type="button"
               sx={{
                 ml: onStop ? 0 : "auto",
+                background: "none",
+                border: "none",
+                padding: 0,
                 cursor: "pointer",
                 color: "error.main"
               }}

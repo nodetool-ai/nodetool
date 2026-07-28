@@ -27,6 +27,7 @@ import { useCreateStoryboard } from "../../hooks/storyboard/useStoryboards";
 import { useCreateApplication } from "../../hooks/useApplications";
 import { useCreateScript } from "../../hooks/script/useScripts";
 import { useAssetStore } from "../../stores/AssetStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import {
@@ -147,7 +148,12 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
   const [assetQuery, setAssetQuery] = useState("");
   const [wfFilter, setWfFilter] = useState("");
   const [chatFilter, setChatFilter] = useState("");
+  /** Label of the "New X" creator currently in flight, if any. */
+  const [creating, setCreating] = useState<string | null>(null);
 
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const createNew = useWorkflowManager((state) => state.createNew);
   const createNewThread = useGlobalChatStore((state) => state.createNewThread);
@@ -166,35 +172,63 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
     onClose();
   }, [onClose]);
 
-  const handleNew = useCallback(async () => {
-    const workflow = await createNew();
-    openTab({
-      type: "workflow",
-      ref: workflow.id,
-      mode: "edit",
-      title: workflow.name
-    });
-    close();
-  }, [createNew, openTab, close]);
+  /**
+   * Run one of the "New X" creators: block re-entry while it is in flight,
+   * close the menu on success, and surface a failure as a toast instead of a
+   * dead click.
+   */
+  const runCreate = useCallback(
+    async (label: string, create: () => Promise<void>) => {
+      setCreating(label);
+      try {
+        await create();
+        close();
+      } catch (error) {
+        addNotification({
+          type: "error",
+          alert: true,
+          content: `Could not create ${label}: ${
+            error instanceof Error ? error.message : "unknown error"
+          }`
+        });
+      } finally {
+        setCreating(null);
+      }
+    },
+    [addNotification, close]
+  );
 
-  const handleNewImage = useCallback(async () => {
-    try {
-      const asset = await createAsset(await createBlankImageFile());
-      openTab({
-        type: "image",
-        ref: asset.id,
-        mode: "edit",
-        title: asset.name || "Untitled image"
-      });
-      close();
-    } catch (error) {
-      console.error("Failed to create image", error);
-    }
-  }, [createAsset, openTab, close]);
+  const handleNew = useCallback(
+    () =>
+      runCreate("workflow", async () => {
+        const workflow = await createNew();
+        openTab({
+          type: "workflow",
+          ref: workflow.id,
+          mode: "edit",
+          title: workflow.name
+        });
+      }),
+    [runCreate, createNew, openTab]
+  );
+
+  const handleNewImage = useCallback(
+    () =>
+      runCreate("image", async () => {
+        const asset = await createAsset(await createBlankImageFile());
+        openTab({
+          type: "image",
+          ref: asset.id,
+          mode: "edit",
+          title: asset.name || "Untitled image"
+        });
+      }),
+    [runCreate, createAsset, openTab]
+  );
 
   const handleNewText = useCallback(
-    async (template: TextFileTemplate) => {
-      try {
+    (template: TextFileTemplate) =>
+      runCreate("text file", async () => {
         const asset = await createAsset(
           new File([template.content], template.filename, {
             type: template.mimeType
@@ -206,116 +240,106 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
           mode: "edit",
           title: asset.name || template.filename
         });
-        close();
-      } catch (error) {
-        console.error("Failed to create text file", error);
-      }
-    },
-    [createAsset, openTab, close]
+      }),
+    [runCreate, createAsset, openTab]
   );
 
-  const handleNewVideo = useCallback(async () => {
-    try {
-      const sequence = await createTimeline.mutateAsync({
-        name: "Untitled video",
-        projectId: "default"
-      });
-      openTab({
-        type: "timeline",
-        ref: sequence.id,
-        mode: "edit",
-        title: sequence.name || "Untitled video"
-      });
-      close();
-    } catch (error) {
-      console.error("Failed to create video", error);
-    }
-  }, [createTimeline, openTab, close]);
+  const handleNewVideo = useCallback(
+    () =>
+      runCreate("video", async () => {
+        const sequence = await createTimeline.mutateAsync({
+          name: "Untitled video",
+          projectId: "default"
+        });
+        openTab({
+          type: "timeline",
+          ref: sequence.id,
+          mode: "edit",
+          title: sequence.name || "Untitled video"
+        });
+      }),
+    [runCreate, createTimeline, openTab]
+  );
 
-  const handleNewStoryboard = useCallback(async () => {
-    try {
-      const created = await createStoryboard.mutateAsync({
-        name: "Untitled storyboard",
-        projectId: "default"
-      });
-      openTab({
-        type: "storyboard",
-        ref: created.id,
-        mode: "edit",
-        title: created.name
-      });
-      close();
-    } catch (error) {
-      console.error("Failed to create storyboard", error);
-    }
-  }, [createStoryboard, openTab, close]);
+  const handleNewStoryboard = useCallback(
+    () =>
+      runCreate("storyboard", async () => {
+        const created = await createStoryboard.mutateAsync({
+          name: "Untitled storyboard",
+          projectId: "default"
+        });
+        openTab({
+          type: "storyboard",
+          ref: created.id,
+          mode: "edit",
+          title: created.name
+        });
+      }),
+    [runCreate, createStoryboard, openTab]
+  );
 
-  const handleNewApp = useCallback(async () => {
-    try {
-      const created = await createApplication.mutateAsync({
-        name: "Untitled app",
-        description: "",
-        projectId: "default"
-      });
-      openTab({
-        type: "application",
-        ref: created.id,
-        mode: "edit",
-        title: created.name
-      });
-      close();
-    } catch (error) {
-      console.error("Failed to create app", error);
-    }
-  }, [createApplication, openTab, close]);
+  const handleNewApp = useCallback(
+    () =>
+      runCreate("app", async () => {
+        const created = await createApplication.mutateAsync({
+          name: "Untitled app",
+          description: "",
+          projectId: "default"
+        });
+        openTab({
+          type: "application",
+          ref: created.id,
+          mode: "edit",
+          title: created.name
+        });
+      }),
+    [runCreate, createApplication, openTab]
+  );
 
-  const handleNewScript = useCallback(async () => {
-    try {
-      const created = await createScript.mutateAsync({
-        name: "Untitled script",
-        projectId: "default"
-      });
-      openTab({
-        type: "script",
-        ref: created.id,
-        mode: "edit",
-        title: created.name
-      });
-      close();
-    } catch (error) {
-      console.error("Failed to create script", error);
-    }
-  }, [createScript, openTab, close]);
+  const handleNewScript = useCallback(
+    () =>
+      runCreate("script", async () => {
+        const created = await createScript.mutateAsync({
+          name: "Untitled script",
+          projectId: "default"
+        });
+        openTab({
+          type: "script",
+          ref: created.id,
+          mode: "edit",
+          title: created.name
+        });
+      }),
+    [runCreate, createScript, openTab]
+  );
 
-  const handleNewChat = useCallback(async () => {
-    try {
-      const threadId = await createNewThread();
-      openTab({
-        type: "chat",
-        ref: threadId,
-        mode: "view",
-        title: "New chat"
-      });
-      close();
-    } catch (error) {
-      console.error("Failed to create chat", error);
-    }
-  }, [createNewThread, openTab, close]);
+  const handleNewChat = useCallback(
+    () =>
+      runCreate("chat", async () => {
+        const threadId = await createNewThread();
+        openTab({
+          type: "chat",
+          ref: threadId,
+          mode: "view",
+          title: "New chat"
+        });
+      }),
+    [runCreate, createNewThread, openTab]
+  );
 
-  const handleNewModel = useCallback(async () => {
-    try {
-      const asset = await createAsset(await createBlankModelFile());
-      openTab({
-        type: "model3d",
-        ref: asset.id,
-        mode: "edit",
-        title: asset.name || "Untitled model"
-      });
-      close();
-    } catch (error) {
-      console.error("Failed to create 3D model", error);
-    }
-  }, [createAsset, openTab, close]);
+  const handleNewModel = useCallback(
+    () =>
+      runCreate("3D model", async () => {
+        const asset = await createAsset(await createBlankModelFile());
+        openTab({
+          type: "model3d",
+          ref: asset.id,
+          mode: "edit",
+          title: asset.name || "Untitled model"
+        });
+      }),
+    [runCreate, createAsset, openTab]
+  );
 
   const { data: workflowList, isLoading: workflowsLoading } =
     useQuery<WorkflowList>({
@@ -422,47 +446,56 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
               label="New workflow"
               icon={<AddRoundedIcon fontSize="small" />}
               onClick={() => void handleNew()}
+              disabled={creating !== null}
             />
             <MenuItemPrimitive
               label="New text file…"
               icon={<ArticleOutlinedIcon fontSize="small" />}
               hasSubmenu
               onClick={() => setView("texts")}
+              disabled={creating !== null}
             />
             <MenuItemPrimitive
               label="New image"
               icon={<ImageOutlinedIcon fontSize="small" />}
               onClick={() => void handleNewImage()}
+              disabled={creating !== null}
             />
             <MenuItemPrimitive
               label="New video"
               icon={<MovieOutlinedIcon fontSize="small" />}
               onClick={() => void handleNewVideo()}
+              disabled={creating !== null}
             />
             <MenuItemPrimitive
               label="New storyboard"
               icon={<DashboardOutlinedIcon fontSize="small" />}
               onClick={() => void handleNewStoryboard()}
+              disabled={creating !== null}
             />
             <MenuItemPrimitive
               label="New app"
               icon={<DashboardCustomizeOutlinedIcon fontSize="small" />}
               onClick={() => void handleNewApp()}
+              disabled={creating !== null}
             />
             <MenuItemPrimitive
               label="New script"
               icon={<RecordVoiceOverOutlinedIcon fontSize="small" />}
               onClick={() => void handleNewScript()}
+              disabled={creating !== null}
             />
             <MenuItemPrimitive
               label="New 3D model"
               icon={<ViewInArOutlinedIcon fontSize="small" />}
               onClick={() => void handleNewModel()}
+              disabled={creating !== null}
             />
             <MenuItemPrimitive
               label="New chat"
               icon={<ForumOutlinedIcon fontSize="small" />}
               onClick={() => void handleNewChat()}
+              disabled={creating !== null}
               dividerAfter
             />
             <MenuItemPrimitive
@@ -496,6 +529,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
                 key={template.filename}
                 label={template.label}
                 onClick={() => void handleNewText(template)}
+                disabled={creating !== null}
               />
             ))}
           </>

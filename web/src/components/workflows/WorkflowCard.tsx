@@ -11,7 +11,8 @@ import {
   SPACING,
   getSpacingPx,
   Fade,
-  Z_INDEX
+  Z_INDEX,
+  activateOnKey
 } from "../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
@@ -326,7 +327,11 @@ const WorkflowCard = ({
       <Box
         css={cardStyles(theme)}
         className={isLoading ? "loading" : ""}
+        role="button"
+        tabIndex={0}
+        aria-label={workflow.name}
         onClick={handleClick}
+        onKeyDown={activateOnKey(handleClick)}
       >
         {isLoading && (
           <Fade in={true}>

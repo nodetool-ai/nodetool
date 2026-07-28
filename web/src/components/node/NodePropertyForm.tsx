@@ -12,7 +12,7 @@ import {
   DialogActions
 } from "../ui_primitives";
 import Add from "@mui/icons-material/Add";
-import { useState, useCallback, memo } from "react";
+import { useState, useCallback, memo, useId } from "react";
 import { useTheme } from "@mui/material/styles";
 import isEqual from "../../utils/isEqual";
 import { useDynamicOutput } from "../../hooks/nodes/useDynamicOutput";
@@ -39,6 +39,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
 }) => {
   const theme = useTheme();
   const { handleAddOutput } = useDynamicOutput(id, dynamicOutputs);
+  const inputDialogTitleId = useId();
   const [showOutputDialog, setShowOutputDialog] = useState(false);
   const [showInputDialog, setShowInputDialog] = useState(false);
   const [newInputName, setNewInputName] = useState("");
@@ -138,6 +139,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
         onClose={handleHideInputDialog}
         maxWidth="xs"
         fullWidth
+        aria-labelledby={inputDialogTitleId}
         sx={{
           "& .MuiDialog-paper": {
             borderRadius: BORDER_RADIUS.xl,
@@ -145,7 +147,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
           }
         }}
       >
-        <DialogTitle>Add Input</DialogTitle>
+        <DialogTitle id={inputDialogTitleId}>Add Input</DialogTitle>
         <DialogContent>
           <FlexRow css={css({ gap: 8, marginTop: 8 })}>
             <TextField

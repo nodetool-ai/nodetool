@@ -52,7 +52,7 @@ const heroStyles = (theme: Theme) =>
       alignItems: "center",
       gap: `${theme.spacing(1)}`,
       height: 34,
-      padding: `0 ${theme.spacing(1.75)}`,
+      padding: `0 ${theme.spacing(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.md,
       background: "transparent",
       color: theme.vars.palette.text.primary,

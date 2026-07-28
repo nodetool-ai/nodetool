@@ -27,6 +27,7 @@ import {
 import { trpc } from "../../trpc/client";
 import { groupByDate } from "../../utils/groupByDate";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
+import { notifyMutationError } from "../../utils/notifyMutationError";
 import CategorySearchBar from "../node_menu/CategorySearchBar";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import {
@@ -239,7 +240,7 @@ export const CreateScriptButton = memo(function CreateScriptButton() {
       }
       setVisibility(false);
     } catch (error) {
-      console.error("Failed to create script", error);
+      notifyMutationError("create the script", error);
     }
   }, [createScript, location.pathname, navigate, openTab, setVisibility]);
 
@@ -375,7 +376,7 @@ const ScriptListPanel = () => {
           document: source.document
         });
       } catch (error) {
-        console.error("Failed to duplicate script", error);
+        notifyMutationError("duplicate the script", error);
       }
     },
     [utils, createScript, updateScript]

@@ -20,7 +20,8 @@ import {
   ListItemIcon,
   FlexRow,
   FlexColumn,
-  Text
+  Text,
+  activateOnKey
 } from "../ui_primitives";
 import InputOutlinedIcon from "@mui/icons-material/InputOutlined";
 import CheckIcon from "@mui/icons-material/Check";
@@ -63,7 +64,10 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
   const mappedCount = Object.keys(inputMappings).length;
 
   const handleOpenPicker = useCallback(
-    (inputName: string, event: React.MouseEvent<HTMLElement>) => {
+    (
+      inputName: string,
+      event: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>
+    ) => {
       setActiveInput(inputName);
       setAnchorEl(event.currentTarget);
     },
@@ -140,6 +144,13 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
             <Box
               key={prop.name}
               onClick={(e) => handleOpenPicker(prop.name, e)}
+              onKeyDown={activateOnKey<HTMLDivElement>((e) =>
+                handleOpenPicker(prop.name, e)
+              )}
+              role="button"
+              tabIndex={0}
+              aria-haspopup="menu"
+              aria-label={`Source for input ${prop.name}`}
               sx={{
                 display: "flex",
                 alignItems: "center",

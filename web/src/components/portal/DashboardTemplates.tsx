@@ -43,9 +43,9 @@ const styles = (theme: Theme) =>
     ".cat": {
       display: "inline-flex",
       alignItems: "center",
-      gap: `${theme.spacing(0.75)}`,
+      gap: `${theme.spacing(SPACING.xs)}`,
       height: 30,
-      padding: `0 ${theme.spacing(1.75)}`,
+      padding: `0 ${theme.spacing(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.pill,
       fontSize: "var(--fontSizeSmall)",
       background: "transparent",
