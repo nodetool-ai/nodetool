@@ -42,6 +42,21 @@ export const image3dConfig: ModuleConfig = {
     "uthana/text-to-motion-vqvae-v1": {
       className: "Text_To_Motion_Vqvae_V1",
       returnType: "str"
+    },
+    "fishwowater/trellis2": {
+      className: "Trellis2",
+      returnType: "str",
+      fieldOverrides: { image: { propType: "image" } }
+    },
+    "hyper3d/rodin": {
+      className: "Rodin",
+      returnType: "str",
+      fieldOverrides: { images: { propType: "list[image]" } }
+    },
+    "valllllex/cartoonia_3d": {
+      className: "Cartoonia_3d",
+      returnType: "str",
+      fieldOverrides: { input_image: { propType: "image" } }
     }
   }
 };

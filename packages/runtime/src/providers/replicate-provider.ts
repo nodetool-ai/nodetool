@@ -379,6 +379,50 @@ export class ReplicateProvider extends BaseProvider {
         id: "ibm-granite/granite-vision-4.1-4b",
         name: "Granite Vision 4.1 4B",
         provider: "replicate"
+      },
+      {
+        id: "anthropic/claude-3.5-haiku",
+        name: "Claude 3.5 Haiku",
+        provider: "replicate"
+      },
+      { id: "openai/gpt-5.1", name: "GPT-5.1", provider: "replicate" },
+      { id: "openai/gpt-5-pro", name: "GPT-5 Pro", provider: "replicate" },
+      { id: "openai/o1-mini", name: "O1 Mini", provider: "replicate" },
+      {
+        id: "openai/gpt-oss-120b",
+        name: "GPT OSS 120B",
+        provider: "replicate"
+      },
+      { id: "openai/gpt-oss-20b", name: "GPT OSS 20B", provider: "replicate" },
+      {
+        id: "meta/llama-4-maverick-instruct",
+        name: "Llama 4 Maverick Instruct",
+        provider: "replicate"
+      },
+      {
+        id: "meta/llama-4-scout-instruct",
+        name: "Llama 4 Scout Instruct",
+        provider: "replicate"
+      },
+      {
+        id: "ibm-granite/granite-3.2-8b-instruct",
+        name: "Granite 3.2 8B Instruct",
+        provider: "replicate"
+      },
+      {
+        id: "ibm-granite/granite-3.3-8b-instruct",
+        name: "Granite 3.3 8B Instruct",
+        provider: "replicate"
+      },
+      {
+        id: "ibm-granite/granite-vision-3.3-2b",
+        name: "Granite Vision 3.3 2B",
+        provider: "replicate"
+      },
+      {
+        id: "lucataco/qwen2.5-omni-7b",
+        name: "Qwen2.5 Omni 7B",
+        provider: "replicate"
       }
     ];
   }
@@ -513,6 +557,16 @@ export class ReplicateProvider extends BaseProvider {
       {
         id: "thomasmol/whisper-diarization",
         name: "Whisper Diarization",
+        provider: "replicate"
+      },
+      {
+        id: "rafaelgalle/whisper-diarization-advanced",
+        name: "Whisper Diarization Advanced",
+        provider: "replicate"
+      },
+      {
+        id: "ibm-granite/granite-speech-3.3-8b",
+        name: "Granite Speech 3.3 8B",
         provider: "replicate"
       }
     ];

@@ -208,6 +208,78 @@ export const textGenerateConfig: ModuleConfig = {
       className: "Qwen3_7_Plus",
       returnType: "str",
       fieldOverrides: { image: { propType: "list[image]" } }
+    },
+    "anthropic/claude-3.5-haiku": {
+      className: "Claude_3_5_Haiku",
+      returnType: "str"
+    },
+    "ibm-granite/granite-3.2-8b-instruct": {
+      className: "Granite_3_2_8b_Instruct",
+      returnType: "str"
+    },
+    "ibm-granite/granite-3.3-8b-instruct": {
+      className: "Granite_3_3_8b_Instruct",
+      returnType: "str"
+    },
+    "ibm-granite/granite-speech-3.3-8b": {
+      className: "Granite_Speech_3_3_8b",
+      returnType: "str",
+      fieldOverrides: { audio: { propType: "list[audio]" } }
+    },
+    "ibm-granite/granite-vision-3.3-2b": {
+      className: "Granite_Vision_3_3_2b",
+      returnType: "str",
+      fieldOverrides: {
+        image: { propType: "image" },
+        images: { propType: "list[image]" }
+      }
+    },
+    "lucataco/qwen2.5-omni-7b": {
+      className: "Qwen2_5_Omni_7b",
+      returnType: "str",
+      fieldOverrides: {
+        audio: { propType: "audio" },
+        image: { propType: "image" },
+        video: { propType: "video" }
+      }
+    },
+    "meta/llama-4-maverick-instruct": {
+      className: "Llama_4_Maverick_Instruct",
+      returnType: "str"
+    },
+    "meta/llama-4-scout-instruct": {
+      className: "Llama_4_Scout_Instruct",
+      returnType: "str"
+    },
+    "openai/gpt-5.1": {
+      className: "Gpt_5_1",
+      returnType: "str",
+      fieldOverrides: { image_input: { propType: "list[image]" } }
+    },
+    "openai/gpt-5-pro": {
+      className: "Gpt_5_Pro",
+      returnType: "str",
+      fieldOverrides: { image_input: { propType: "list[image]" } }
+    },
+    "openai/gpt-oss-120b": {
+      className: "Gpt_Oss_120b",
+      returnType: "str"
+    },
+    "openai/gpt-oss-20b": {
+      className: "Gpt_Oss_20b",
+      returnType: "str"
+    },
+    "openai/o1-mini": {
+      className: "O1_Mini",
+      returnType: "str"
+    },
+    "rafaelgalle/whisper-diarization-advanced": {
+      className: "Whisper_Diarization_Advanced",
+      returnType: "str",
+      fieldOverrides: {
+        file_url: { propType: "audio" },
+        file_path: { propType: "audio" }
+      }
     }
   }
 };

@@ -168,6 +168,11 @@ export const imageUpscaleConfig: ModuleConfig = {
         image: { propType: "image" },
         super_resolution_references: { propType: "list[image]" }
       }
+    },
+    "qwen-edit-apps/qwen-image-edit-plus-lora-upscale": {
+      className: "Qwen_Image_Edit_Plus_Lora_Upscale",
+      returnType: "image",
+      fieldOverrides: { image: { propType: "image" } }
     }
   }
 };
