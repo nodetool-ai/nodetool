@@ -26,6 +26,39 @@ describe("messagesFrom", () => {
     ]);
   });
 
+  it("joins the chunks of one streamed reply into a single turn", () => {
+    // A streaming output accumulates one item per chunk; a bubble per token is
+    // not what the reply looked like when it was produced.
+    expect(messagesFrom(["hel", "lo", " there"])).toEqual([
+      { role: "assistant", content: "hello there" }
+    ]);
+  });
+
+  it("starts a new turn when a message interrupts the chunks", () => {
+    expect(
+      messagesFrom([
+        "thinking",
+        { role: "user", content: "wait" },
+        "resum",
+        "ed"
+      ])
+    ).toEqual([
+      { role: "assistant", content: "thinking" },
+      { role: "user", content: "wait" },
+      { role: "assistant", content: "resumed" }
+    ]);
+  });
+
+  it("keeps non-text items as their own turns", () => {
+    // Two images are two results, not one concatenated reply.
+    expect(
+      messagesFrom([{ type: "image", uri: "a.png" }, { type: "image", uri: "b.png" }])
+    ).toEqual([
+      { role: "assistant", content: { type: "image", uri: "a.png" } },
+      { role: "assistant", content: { type: "image", uri: "b.png" } }
+    ]);
+  });
+
   it("treats an empty value as no conversation", () => {
     expect(messagesFrom(undefined)).toEqual([]);
     expect(messagesFrom("")).toEqual([]);
