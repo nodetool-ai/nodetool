@@ -120,3 +120,6 @@ ds-bundle/
 
 # nodetool debug/validate bundle output
 nodetool-debug/
+
+# Dev-server / build logs
+*.log
