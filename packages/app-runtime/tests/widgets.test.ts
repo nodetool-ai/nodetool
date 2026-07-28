@@ -105,6 +105,43 @@ describe("widget catalog", () => {
       expect(widgetMode(type)).toBe("read");
     }
   });
+
+  it("declares a display widget for every result shape a run can emit", () => {
+    // A 3D result, a plotted series, a PDF and a batch of images each used to
+    // land in Json or Output, which render them as an opaque ref.
+    for (const type of ["Model3D", "Chart", "PDF", "Gallery"]) {
+      expect(widgetMode(type)).toBe("read");
+      expect(WIDGET_CATALOG[type].trigger).toBeUndefined();
+      // None renders formattable text, so a template would replace the preview.
+      expect(WIDGET_CATALOG[type].format).toBeUndefined();
+      expect(widgetFields(type)).toHaveProperty("placeholder", "text");
+    }
+  });
+
+  it("declares an input widget for every input node kind an app can bind", () => {
+    for (const type of [
+      "DataFrameInput",
+      "FilePathInput",
+      "FolderPathInput",
+      "Model3DInput",
+      "ImageSizeInput",
+      "MediaListInput"
+    ]) {
+      expect(widgetMode(type)).toBe("write");
+      expect(WIDGET_CATALOG[type].trigger).toBe("change");
+      expect(widgetFields(type)).toHaveProperty("events", "array");
+    }
+    // The typed fields settle on blur; the pickers write a whole value at once.
+    expect(WIDGET_CATALOG.FilePathInput.commits).toBe(true);
+    expect(WIDGET_CATALOG.FolderPathInput.commits).toBe(true);
+    expect(WIDGET_CATALOG.DataFrameInput.commits).toBe(true);
+    expect(WIDGET_CATALOG.Model3DInput.commits).toBe(false);
+    expect(WIDGET_CATALOG.MediaListInput.commits).toBe(false);
+  });
+
+  it("puts the list kind on one widget rather than four palette entries", () => {
+    expect(widgetFields("MediaListInput").listKind).toBe("select");
+  });
 });
 
 describe("Table", () => {
