@@ -109,7 +109,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: 2,
+        padding: getSpacingPx(SPACING.micro),
         border: "none",
         background: "transparent",
         borderRadius: BORDER_RADIUS.sm,

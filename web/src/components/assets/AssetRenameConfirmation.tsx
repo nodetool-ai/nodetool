@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Text, Dialog, AlertBanner, EditorButton, FlexColumn, FlexRow, TextInput } from "../ui_primitives";
+import { Text, Dialog, AlertBanner, EditorButton, FlexColumn, FlexRow, TextInput, SPACING } from "../ui_primitives";
 import { getMousePosition } from "../../utils/MousePosition";
 import dialogStyles from "../../styles/DialogStyles";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
@@ -159,7 +159,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
               </span>
             }
             content={
-              <FlexColumn gap={2}>
+              <FlexColumn gap={SPACING.md}>
                 {showAlert && (
                   <AlertBanner
                     className="asset-rename-error-alert"
@@ -183,7 +183,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
                   autoCorrect="off"
                   spellCheck="false"
                 />
-                <FlexRow justify="flex-end" gap={1} fullWidth>
+                <FlexRow justify="flex-end" gap={SPACING.xs} fullWidth>
                   <EditorButton
                     className="asset-rename-cancel-button button-cancel"
                     onClick={handleClose}
@@ -198,7 +198,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
                   </EditorButton>
                 </FlexRow>
                 {assets && assets.length > 1 && (
-                  <FlexColumn className="asset-rename-notice-container" gap={0}>
+                  <FlexColumn className="asset-rename-notice-container" gap={SPACING.none}>
                     <Text className="asset-rename-notice notice" size="small">
                       <span>Multiple assets selected:</span> <br />
                       Names will be appended with a number.

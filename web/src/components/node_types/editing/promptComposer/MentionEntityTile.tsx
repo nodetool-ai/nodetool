@@ -40,7 +40,7 @@ const styles = (theme: Theme) =>
       flex: "0 0 auto",
       width: 28,
       height: 28,
-      borderRadius: "50%",
+      borderRadius: BORDER_RADIUS.circle,
       objectFit: "cover",
       display: "block",
       background: theme.vars.palette.background.default
@@ -49,7 +49,7 @@ const styles = (theme: Theme) =>
       flex: "0 0 auto",
       width: 28,
       height: 28,
-      borderRadius: "50%",
+      borderRadius: BORDER_RADIUS.circle,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",

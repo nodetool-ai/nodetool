@@ -51,6 +51,7 @@ const ImageTile = memo<ImageTileProps>(({
     <div
       role="button"
       tabIndex={0}
+      aria-label={`Image ${idx + 1}`}
       className={`tile ${isSelected ? "selected" : ""}`}
       onDoubleClick={() => {
         if (selectionMode) return;

@@ -1380,6 +1380,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
             <div
               className="sketch-preview-wrap"
               role="button"
+              aria-label="Open sketch editor"
               tabIndex={0}
               onClick={handleOpenEditor}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleOpenEditor(); } }}
@@ -1393,7 +1394,12 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                       alt="Image editor preview"
                     />
                     <div className="edit-overlay">
-                      <EditIcon sx={{ fontSize: 32, color: "white" }} />
+                      <EditIcon
+                        sx={{
+                          fontSize: 32,
+                          color: theme.vars.palette.common.white
+                        }}
+                      />
                       <span className="edit-overlay-label">Edit Sketch</span>
                     </div>
                   </>

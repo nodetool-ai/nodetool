@@ -15,6 +15,7 @@ import {
   MOTION,
   BORDER_RADIUS,
   SPACING,
+  SPACING_PX,
   getSpacingPx
 } from "../ui_primitives";
 import { useFolderTree } from "../../serverState/useFolderTree";
@@ -45,7 +46,7 @@ const styles = (theme: Theme) =>
     ".folder-menu-item": {
       display: "flex",
       alignItems: "center",
-      gap: 8,
+      gap: getSpacingPx(SPACING.md),
       paddingTop: getSpacingPx(SPACING.sm),
       paddingBottom: getSpacingPx(SPACING.sm),
       paddingRight: getSpacingPx(SPACING.xl),
@@ -68,7 +69,7 @@ const styles = (theme: Theme) =>
     ".folder-menu-new-input": {
       display: "flex",
       alignItems: "center",
-      gap: 8,
+      gap: getSpacingPx(SPACING.md),
       padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`
     }
   });
@@ -145,7 +146,7 @@ const SaveToFolderMenu: React.FC<SaveToFolderMenuProps> = ({
         className="folder-menu-item"
         role="menuitem"
         tabIndex={0}
-        style={{ paddingLeft: 12 + depth * 16 }}
+        style={{ paddingLeft: SPACING_PX.lg + depth * SPACING_PX.xl }}
         onClick={() => select(id)}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
@@ -243,7 +244,7 @@ const SaveToFolderMenu: React.FC<SaveToFolderMenuProps> = ({
               className="folder-menu-item"
               role="menuitem"
               tabIndex={0}
-              style={{ paddingLeft: 12 }}
+              style={{ paddingLeft: SPACING_PX.lg }}
               onClick={() => setCreating(true)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {

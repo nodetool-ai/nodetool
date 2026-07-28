@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 
 import { useCallback, useEffect, useState } from "react";
-import { Dialog, AlertBanner, EditorButton, FlexRow, FlexColumn } from "../ui_primitives";
+import { Dialog, AlertBanner, EditorButton, FlexRow, FlexColumn, SPACING } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import { getMousePosition } from "../../utils/MousePosition";
 import dialogStyles from "../../styles/DialogStyles";
@@ -75,7 +75,7 @@ const AssetMoveToFolderConfirmation: React.FC<
         </>
       }
       content={
-        <FlexColumn gap={2}>
+        <FlexColumn gap={SPACING.md}>
           {showAlert && (
             <AlertBanner severity="success" onClose={() => setShowAlert(null)}>
               {showAlert}

@@ -204,13 +204,13 @@ function ModelList<TModel extends ModelSelectorModel>({
     ...badgeStyle,
     display: "inline-flex",
     alignItems: "center",
-    gap: 2
+    gap: getSpacingPx(SPACING.micro)
   }), [badgeStyle]);
 
   const secondaryTextStyle = useMemo<React.CSSProperties>(() => ({
     display: "flex",
     alignItems: "center",
-    gap: 4,
+    gap: getSpacingPx(SPACING.xs),
     fontSize: theme.vars.fontSizeSmaller,
     color: theme.vars.palette.text.secondary,
     overflow: "hidden",

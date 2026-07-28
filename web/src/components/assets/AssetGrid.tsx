@@ -116,7 +116,7 @@ const SelectedItemsInfo: React.FC<{
           tooltipPlacement="top"
           onClick={onClear}
           size="small"
-          sx={{ ml: 0.5, "& .MuiSvgIcon-root": { fontSize: 14 } }}
+          sx={{ ml: SPACING.micro, "& .MuiSvgIcon-root": { fontSize: 14 } }}
         />
       </div>
     </div>

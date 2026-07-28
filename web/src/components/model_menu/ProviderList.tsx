@@ -15,6 +15,8 @@ import {
   Tooltip,
   Box,
   BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
   List,
   ListItemButton,
   ListItemText
@@ -500,7 +502,7 @@ const horizontalListStyles = css({
   display: "flex",
   flexDirection: "row",
   alignItems: "stretch",
-  gap: 4,
+  gap: getSpacingPx(SPACING.xs),
   overflowX: "auto",
   overflowY: "hidden",
   paddingTop: 0,

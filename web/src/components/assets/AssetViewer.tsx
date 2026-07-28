@@ -24,6 +24,7 @@ import {
   MOTION,
   reducedMotion,
   BORDER_RADIUS,
+  SPACING,
   Z_INDEX
 } from "../ui_primitives";
 //icons
@@ -653,8 +654,8 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
             />
           </>
         )}
-        <FlexRow className="asset-navigation" align="flex-end" justify="center" gap={1}>
-          <FlexRow className="prev-next-items left" align="center" justify="flex-end" gap={0.5}>
+        <FlexRow className="asset-navigation" align="flex-end" justify="center" gap={SPACING.xs}>
+          <FlexRow className="prev-next-items left" align="center" justify="flex-end" gap={SPACING.micro}>
             {displayPrevAssets?.map((asset, idx) => {
               const assetIndex = Math.max(
                 0,
@@ -701,7 +702,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               showFiletype={true}
             />
           </FlexRow>
-          <FlexRow className="prev-next-items right" align="center" justify="flex-start" gap={0.5}>
+          <FlexRow className="prev-next-items right" align="center" justify="flex-start" gap={SPACING.micro}>
             {displayNextAssets?.map((asset, idx) => {
               const assetIndex = currentIndex + 1 + idx;
               const isCompareSelected = compareAssetA?.id === asset.id;
@@ -781,7 +782,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       >
         {/* Compare mode instruction bar */}
         {compareMode && !compareAssetB && (
-          <FlexRow className="compare-mode-bar" gap={1} align="center">
+          <FlexRow className="compare-mode-bar" gap={SPACING.xs} align="center">
             <Text size="small">
               Select another image from the thumbnails below to compare
             </Text>
@@ -822,7 +823,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         */}
         <FlexRow
           className="actions"
-          gap={1.5}
+          gap={SPACING.sm}
           align="center"
           sx={{ zIndex: Z_INDEX.tooltip }}
         >

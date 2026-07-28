@@ -370,6 +370,7 @@ const ScriptLineRow = ({
           <span>
             <ToolbarIconButton
               tooltip=""
+              ariaLabel="Voice line"
               disabled={readOnly || !voice}
               onClick={() => void onVoice()}
               icon={<GraphicEqIcon fontSize="small" />}

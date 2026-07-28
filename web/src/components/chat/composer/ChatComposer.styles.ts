@@ -41,8 +41,8 @@ export const createStyles = (theme: Theme) =>
         display: "flex",
         alignItems: "center",
         width: "100%",
-        paddingTop: "0px",
-        gap: theme.spacing(1),
+        paddingTop: 0,
+        gap: theme.spacing(SPACING.xs),
 
         ".chat-action-buttons": {
           marginLeft: "auto"

@@ -12,7 +12,7 @@ const styles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",
-    gap: 8,
+    gap: getSpacingPx(SPACING.md),
     textAlign: "left",
     background: "transparent",
     border: "none",

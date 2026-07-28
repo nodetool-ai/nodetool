@@ -98,8 +98,8 @@ const NodeItem = memo(
                       textTransform: "uppercase",
                       bgcolor: "grey.700",
                       color: "grey.300",
-                      px: 1,
-                      py: 0.5,
+                      px: SPACING.xs,
+                      py: SPACING.micro,
                       borderRadius: BORDER_RADIUS.sm
                     }}
                   >
@@ -347,8 +347,8 @@ const NodeItem = memo(
                     textTransform: "uppercase",
                     bgcolor: `color-mix(in srgb, ${theme.vars.palette.warning.main} 20%, transparent)`,
                     color: theme.vars.palette.warning.main,
-                    px: 0.5,
-                    py: 0.5,
+                    px: SPACING.micro,
+                    py: SPACING.micro,
                     borderRadius: BORDER_RADIUS.sm,
                     whiteSpace: "nowrap",
                     flexShrink: 0
@@ -368,8 +368,8 @@ const NodeItem = memo(
                   letterSpacing: "0.03em",
                   bgcolor: `color-mix(in srgb, ${theme.vars.palette.info.main} 18%, transparent)`,
                   color: theme.vars.palette.info.main,
-                  px: 0.5,
-                  py: 0.5,
+                  px: SPACING.micro,
+                  py: SPACING.micro,
                   borderRadius: BORDER_RADIUS.sm,
                   whiteSpace: "nowrap",
                   flexShrink: 0
