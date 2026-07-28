@@ -12,7 +12,6 @@
  *
  * Usage:
  *   const board = useBoard(boardId);           // reactive board view
- *   const shot = useShot(boardId, shotId);     // reactive single shot
  *   useStoryboardStore.getState().selectKeyframeVersion(boardId, shotId, 0);
  */
 
@@ -719,12 +718,3 @@ export const useStoryboardCanUndo = (boardId: string): boolean =>
 /** Reactive "a redo step is available" flag for a board. */
 export const useStoryboardCanRedo = (boardId: string): boolean =>
   useStoryboardStore((state) => canRedo(state.history, boardId));
-
-/** Reactive single shot, or undefined when absent. */
-export const useShot = (
-  boardId: string,
-  shotId: string
-): Shot | undefined =>
-  useStoryboardStore((state) =>
-    state.boards[boardId]?.shots.find((s) => s.id === shotId)
-  );

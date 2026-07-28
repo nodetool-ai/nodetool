@@ -53,7 +53,7 @@ export const TRACK_HEADER_WIDTH_PX = 192;
  * types ("asset" / "selectedAssetIds") so the lane/empty-area asset-drop
  * handlers never react to a track being reordered.
  */
-export const TRACK_DRAG_MIME = "application/x-nodetool-timeline-track";
+const TRACK_DRAG_MIME = "application/x-nodetool-timeline-track";
 const MIN_TRACK_HEIGHT_PX = 48;
 const MAX_TRACK_HEIGHT_PX = 300;
 const DEFAULT_TRACK_HEIGHT_PX = SHARED_DEFAULT_TRACK_HEIGHT_PX;

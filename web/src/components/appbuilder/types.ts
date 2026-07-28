@@ -13,6 +13,3 @@ export type {
   EventPace
 } from "@nodetool-ai/app-runtime";
 export { eventToAction } from "@nodetool-ai/app-runtime";
-
-/** JSON-scalar prop values stored in Puck component props. */
-export type WidgetPropValue = string | number | boolean | null | string[];

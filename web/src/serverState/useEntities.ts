@@ -26,7 +26,7 @@ export interface EntityMarker {
   palette?: Entity["palette"];
 }
 
-export const ENTITY_METADATA_KEY = "nodetool_entity";
+const ENTITY_METADATA_KEY = "nodetool_entity";
 const ENTITIES_QUERY_KEY = ["entities"] as const;
 const VALID_KINDS: ReadonlySet<string> = new Set([
   "character",

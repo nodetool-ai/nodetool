@@ -2,39 +2,15 @@
  * Node-property bindings let a write widget (slider, switch, text input…)
  * drive any property of any graph node — not just dedicated Input nodes.
  *
- * The binding is encoded into the widget's `binding` string as
- * `node:<nodeId>#<property>` so it travels through the Puck document, the
- * runtime store and event dispatch exactly like an input-name binding.
+ * `@nodetool-ai/app-runtime` owns the binding-string encoding, so a node
+ * property travels through the Puck document, the runtime store and event
+ * dispatch exactly like an input name. These helpers overlay the resulting
+ * live values onto the graph before a run.
  */
 import { Node as RFNode } from "@xyflow/react";
 import { parseInputStateKey } from "@nodetool-ai/app-runtime";
 
 import { NodeData } from "../../stores/NodeData";
-
-export const NODE_BINDING_PREFIX = "node:";
-
-export interface NodePropertyBinding {
-  nodeId: string;
-  property: string;
-}
-
-export const makeNodePropertyBinding = (
-  nodeId: string,
-  property: string
-): string => `${NODE_BINDING_PREFIX}${nodeId}#${property}`;
-
-export const isNodePropertyBinding = (binding?: string | null): boolean =>
-  typeof binding === "string" && binding.startsWith(NODE_BINDING_PREFIX);
-
-export const parseNodePropertyBinding = (
-  binding?: string | null
-): NodePropertyBinding | null => {
-  if (!binding || !binding.startsWith(NODE_BINDING_PREFIX)) return null;
-  const rest = binding.slice(NODE_BINDING_PREFIX.length);
-  const sep = rest.lastIndexOf("#");
-  if (sep <= 0 || sep === rest.length - 1) return null;
-  return { nodeId: rest.slice(0, sep), property: rest.slice(sep + 1) };
-};
 
 /**
  * Group the live values of node-property bindings by node id, from the input

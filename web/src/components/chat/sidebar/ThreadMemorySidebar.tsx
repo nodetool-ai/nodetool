@@ -19,7 +19,7 @@ import type { Image } from "../../../stores/ApiTypes";
 import { useAsset } from "../../../serverState/useAsset";
 import { trpc, type RouterOutputs } from "../../../trpc/client";
 
-export const THREAD_MEMORY_SIDEBAR_WIDTH = 300;
+const THREAD_MEMORY_SIDEBAR_WIDTH = 300;
 /** Asset thumbnail edge (px), on the 4px grid — a fixed component dimension. */
 const THUMB_SIZE = 48;
 

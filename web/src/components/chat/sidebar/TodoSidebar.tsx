@@ -9,7 +9,7 @@ import AutorenewIcon from "@mui/icons-material/Autorenew";
 import { FlexColumn, FlexRow, Text, ScrollArea, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, reducedMotion } from "../../ui_primitives";
 import type { TodoItem } from "../../../stores/ApiTypes";
 
-export const TODO_SIDEBAR_WIDTH = 280;
+const TODO_SIDEBAR_WIDTH = 280;
 
 interface TodoSidebarProps {
   todos: TodoItem[];

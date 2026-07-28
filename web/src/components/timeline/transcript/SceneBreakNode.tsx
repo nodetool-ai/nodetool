@@ -14,7 +14,6 @@ import { styled } from "@mui/material/styles";
 import {
   DecoratorNode,
   $getNodeByKey,
-  type LexicalNode,
   type NodeKey,
   type SerializedLexicalNode,
   type Spread
@@ -167,7 +166,3 @@ export const $createSceneBreakNode = (
   markerId: string,
   label: string
 ): SceneBreakNode => new SceneBreakNode(markerId, label);
-
-export const $isSceneBreakNode = (
-  node: LexicalNode | null | undefined
-): node is SceneBreakNode => node instanceof SceneBreakNode;

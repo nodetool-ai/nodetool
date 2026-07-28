@@ -16,7 +16,6 @@ import { styled } from "@mui/material/styles";
 import {
   DecoratorNode,
   $getNodeByKey,
-  type LexicalNode,
   type NodeKey,
   type SerializedLexicalNode
 } from "lexical";
@@ -274,7 +273,3 @@ export class SlashCommandNode extends DecoratorNode<React.ReactElement> {
 
 export const $createSlashCommandNode = (): SlashCommandNode =>
   new SlashCommandNode();
-
-export const $isSlashCommandNode = (
-  node: LexicalNode | null | undefined
-): node is SlashCommandNode => node instanceof SlashCommandNode;

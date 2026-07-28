@@ -6,7 +6,7 @@ function number(value: number | undefined, fallback: number): number {
   return value ?? fallback;
 }
 
-export function shapeStyleSignature(
+function shapeStyleSignature(
   style: ClipShapeStyle,
   width: number,
   height: number

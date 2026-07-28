@@ -7,8 +7,7 @@
  *
  * These uploads are ordinary assets (there is no server-side TTL); "temporary"
  * means the caller owns their lifetime and should delete them once consumed,
- * mirroring the inpaint / direct-gen source-image uploads. Use
- * {@link deleteRenderedAsset} for best-effort cleanup.
+ * mirroring the inpaint / direct-gen source-image uploads.
  *
  * The composite prefers the live canvas (`flattenToDataUrl`, so unsaved strokes
  * are included) and falls back to re-flattening the serialized document. A
@@ -178,13 +177,4 @@ export async function renderLayersMerged(
     layerId: null,
     layerName: null
   };
-}
-
-/** Best-effort delete of a temporary render asset. Never throws. */
-export async function deleteRenderedAsset(assetId: string): Promise<void> {
-  try {
-    await useAssetStore.getState().delete(assetId);
-  } catch {
-    // Ignore — cleanup is best-effort.
-  }
 }
