@@ -133975,13 +133975,37 @@
     ],
     "inputFields": [
       {
-        "name": "end_user_id",
+        "name": "bitrate_mode",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "standard",
+        "description": "Output bitrate mode. 'high' requests a higher-quality, larger-file encode from the model; 'standard' uses the default bitrate.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "BitrateMode",
+        "enumValues": [
+          "standard",
+          "high"
+        ]
+      },
+      {
+        "name": "prompt",
         "tsType": "string",
         "propType": "str",
         "default": "",
-        "description": "The unique user ID of the end user.",
+        "description": "The text prompt describing the desired motion and action for the video.",
         "fieldType": "input",
-        "required": false
+        "required": true
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "The URL of the starting frame image to animate. Supported formats: JPEG, PNG, WebP. Max 30 MB.",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "image_url"
       },
       {
         "name": "generate_audio",
@@ -133993,6 +134017,22 @@
         "required": false
       },
       {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "Video resolution - 480p for faster generation, 720p for balance, 1080p for high quality, 4k for highest quality.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480p",
+          "720p",
+          "1080p",
+          "4k"
+        ]
+      },
+      {
         "name": "end_image",
         "tsType": "image",
         "propType": "image",
@@ -134001,6 +134041,15 @@
         "fieldType": "input",
         "required": false,
         "apiParamName": "end_image_url"
+      },
+      {
+        "name": "end_user_id",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The unique user ID of the end user.",
+        "fieldType": "input",
+        "required": false
       },
       {
         "name": "aspect_ratio",
@@ -134020,25 +134069,6 @@
           "3:4",
           "9:16"
         ]
-      },
-      {
-        "name": "image",
-        "tsType": "image",
-        "propType": "image",
-        "default": null,
-        "description": "The URL of the starting frame image to animate. Supported formats: JPEG, PNG, WebP. Max 30 MB.",
-        "fieldType": "input",
-        "required": true,
-        "apiParamName": "image_url"
-      },
-      {
-        "name": "prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
-        "description": "The text prompt describing the desired motion and action for the video.",
-        "fieldType": "input",
-        "required": true
       },
       {
         "name": "duration",
@@ -134064,49 +134094,10 @@
           "14",
           "15"
         ]
-      },
-      {
-        "name": "resolution",
-        "tsType": "enum",
-        "propType": "enum",
-        "default": "720p",
-        "description": "Video resolution - 480p for faster generation, 720p for balance, 1080p for high quality, 4k for highest quality.",
-        "fieldType": "input",
-        "required": false,
-        "enumRef": "Resolution",
-        "enumValues": [
-          "480p",
-          "720p",
-          "1080p",
-          "4k"
-        ]
-      },
-      {
-        "name": "bitrate_mode",
-        "tsType": "enum",
-        "propType": "enum",
-        "default": "standard",
-        "description": "Output bitrate mode. 'high' requests a higher-quality, larger-file encode from the model; 'standard' uses the default bitrate.",
-        "fieldType": "input",
-        "required": false,
-        "enumRef": "BitrateMode",
-        "enumValues": [
-          "standard",
-          "high"
-        ]
       }
     ],
     "outputType": "video",
     "outputFields": [
-      {
-        "name": "seed",
-        "tsType": "number",
-        "propType": "int",
-        "default": -1,
-        "description": "The seed used for generation.",
-        "fieldType": "output",
-        "required": true
-      },
       {
         "name": "video",
         "tsType": "video",
@@ -134115,9 +134106,54 @@
         "description": "The generated video file.",
         "fieldType": "output",
         "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "The seed used for generation.",
+        "fieldType": "output",
+        "required": true
       }
     ],
     "enums": [
+      {
+        "name": "BitrateMode",
+        "values": [
+          [
+            "STANDARD",
+            "standard"
+          ],
+          [
+            "HIGH",
+            "high"
+          ]
+        ],
+        "description": "Output bitrate mode. 'high' requests a higher-quality, larger-file encode from the model; 'standard' uses the default bitrate."
+      },
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_480P",
+            "480p"
+          ],
+          [
+            "VALUE_720P",
+            "720p"
+          ],
+          [
+            "VALUE_1080P",
+            "1080p"
+          ],
+          [
+            "VALUE_4K",
+            "4k"
+          ]
+        ],
+        "description": "Video resolution - 480p for faster generation, 720p for balance, 1080p for high quality, 4k for highest quality."
+      },
       {
         "name": "AspectRatio",
         "values": [
@@ -134209,42 +134245,6 @@
           ]
         ],
         "description": "Duration of the video in seconds. Supports 4 to 15 seconds, or auto to let the model decide based on the prompt."
-      },
-      {
-        "name": "Resolution",
-        "values": [
-          [
-            "VALUE_480P",
-            "480p"
-          ],
-          [
-            "VALUE_720P",
-            "720p"
-          ],
-          [
-            "VALUE_1080P",
-            "1080p"
-          ],
-          [
-            "VALUE_4K",
-            "4k"
-          ]
-        ],
-        "description": "Video resolution - 480p for faster generation, 720p for balance, 1080p for high quality, 4k for highest quality."
-      },
-      {
-        "name": "BitrateMode",
-        "values": [
-          [
-            "STANDARD",
-            "standard"
-          ],
-          [
-            "HIGH",
-            "high"
-          ]
-        ],
-        "description": "Output bitrate mode. 'high' requests a higher-quality, larger-file encode from the model; 'standard' uses the default bitrate."
       }
     ],
     "moduleName": "image_to_video"
@@ -134270,22 +134270,52 @@
     ],
     "inputFields": [
       {
-        "name": "end_user_id",
+        "name": "bitrate_mode",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "standard",
+        "description": "Output bitrate mode. 'high' requests a higher-quality, larger-file encode from the model; 'standard' uses the default bitrate.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "BitrateMode",
+        "enumValues": [
+          "standard",
+          "high"
+        ]
+      },
+      {
+        "name": "prompt",
         "tsType": "string",
         "propType": "str",
         "default": "",
-        "description": "The unique user ID of the end user.",
+        "description": "The text prompt used to generate the video.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "video_urls",
+        "tsType": "video[]",
+        "propType": "list[video]",
+        "default": [],
+        "description": "Reference videos to guide video generation. Refer to them in the prompt as @Video1, @Video2, etc. Supported formats: MP4, MOV. Up to 3 videos, combined duration must be between 2 and 15 seconds, total size under 50 MB. Each video must be between ~480p (640x640) and ~720p (834x1112) in resolution.",
         "fieldType": "input",
         "required": false
       },
       {
-        "name": "audio_urls",
-        "tsType": "audio[]",
-        "propType": "list[audio]",
-        "default": [],
-        "description": "Reference audio to guide video generation. Refer to them in the prompt as @Audio1, @Audio2, etc. Supported formats: MP3, WAV. Up to 3 files, combined duration must not exceed 15 seconds. Max 15 MB per file.If audio is provided, at least one reference image or video is required.",
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "Video resolution - 480p for faster generation, 720p for balance, 1080p for high quality, 4k for highest quality.",
         "fieldType": "input",
-        "required": false
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480p",
+          "720p",
+          "1080p",
+          "4k"
+        ]
       },
       {
         "name": "generate_audio",
@@ -134297,11 +134327,11 @@
         "required": false
       },
       {
-        "name": "video_urls",
-        "tsType": "video[]",
-        "propType": "list[video]",
-        "default": [],
-        "description": "Reference videos to guide video generation. Refer to them in the prompt as @Video1, @Video2, etc. Supported formats: MP4, MOV. Up to 3 videos, combined duration must be between 2 and 15 seconds, total size under 50 MB. Each video must be between ~480p (640x640) and ~720p (834x1112) in resolution.",
+        "name": "end_user_id",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The unique user ID of the end user.",
         "fieldType": "input",
         "required": false
       },
@@ -134314,6 +134344,15 @@
         "fieldType": "input",
         "required": false,
         "apiParamName": "image_urls"
+      },
+      {
+        "name": "audio_urls",
+        "tsType": "audio[]",
+        "propType": "list[audio]",
+        "default": [],
+        "description": "Reference audio to guide video generation. Refer to them in the prompt as @Audio1, @Audio2, etc. Supported formats: MP3, WAV. Up to 3 files, combined duration must not exceed 15 seconds. Max 15 MB per file.If audio is provided, at least one reference image or video is required.",
+        "fieldType": "input",
+        "required": false
       },
       {
         "name": "aspect_ratio",
@@ -134333,15 +134372,6 @@
           "3:4",
           "9:16"
         ]
-      },
-      {
-        "name": "prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
-        "description": "The text prompt used to generate the video.",
-        "fieldType": "input",
-        "required": true
       },
       {
         "name": "duration",
@@ -134367,49 +134397,10 @@
           "14",
           "15"
         ]
-      },
-      {
-        "name": "resolution",
-        "tsType": "enum",
-        "propType": "enum",
-        "default": "720p",
-        "description": "Video resolution - 480p for faster generation, 720p for balance, 1080p for high quality, 4k for highest quality.",
-        "fieldType": "input",
-        "required": false,
-        "enumRef": "Resolution",
-        "enumValues": [
-          "480p",
-          "720p",
-          "1080p",
-          "4k"
-        ]
-      },
-      {
-        "name": "bitrate_mode",
-        "tsType": "enum",
-        "propType": "enum",
-        "default": "standard",
-        "description": "Output bitrate mode. 'high' requests a higher-quality, larger-file encode from the model; 'standard' uses the default bitrate.",
-        "fieldType": "input",
-        "required": false,
-        "enumRef": "BitrateMode",
-        "enumValues": [
-          "standard",
-          "high"
-        ]
       }
     ],
     "outputType": "video",
     "outputFields": [
-      {
-        "name": "seed",
-        "tsType": "number",
-        "propType": "int",
-        "default": -1,
-        "description": "The seed used for generation.",
-        "fieldType": "output",
-        "required": true
-      },
       {
         "name": "video",
         "tsType": "video",
@@ -134418,9 +134409,54 @@
         "description": "The generated video file.",
         "fieldType": "output",
         "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "The seed used for generation.",
+        "fieldType": "output",
+        "required": true
       }
     ],
     "enums": [
+      {
+        "name": "BitrateMode",
+        "values": [
+          [
+            "STANDARD",
+            "standard"
+          ],
+          [
+            "HIGH",
+            "high"
+          ]
+        ],
+        "description": "Output bitrate mode. 'high' requests a higher-quality, larger-file encode from the model; 'standard' uses the default bitrate."
+      },
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_480P",
+            "480p"
+          ],
+          [
+            "VALUE_720P",
+            "720p"
+          ],
+          [
+            "VALUE_1080P",
+            "1080p"
+          ],
+          [
+            "VALUE_4K",
+            "4k"
+          ]
+        ],
+        "description": "Video resolution - 480p for faster generation, 720p for balance, 1080p for high quality, 4k for highest quality."
+      },
       {
         "name": "AspectRatio",
         "values": [
@@ -134512,42 +134548,6 @@
           ]
         ],
         "description": "Duration of the video in seconds. Supports 4 to 15 seconds, or auto to let the model decide based on the prompt."
-      },
-      {
-        "name": "Resolution",
-        "values": [
-          [
-            "VALUE_480P",
-            "480p"
-          ],
-          [
-            "VALUE_720P",
-            "720p"
-          ],
-          [
-            "VALUE_1080P",
-            "1080p"
-          ],
-          [
-            "VALUE_4K",
-            "4k"
-          ]
-        ],
-        "description": "Video resolution - 480p for faster generation, 720p for balance, 1080p for high quality, 4k for highest quality."
-      },
-      {
-        "name": "BitrateMode",
-        "values": [
-          [
-            "STANDARD",
-            "standard"
-          ],
-          [
-            "HIGH",
-            "high"
-          ]
-        ],
-        "description": "Output bitrate mode. 'high' requests a higher-quality, larger-file encode from the model; 'standard' uses the default bitrate."
       }
     ],
     "moduleName": "image_to_video"
@@ -134573,13 +134573,37 @@
     ],
     "inputFields": [
       {
-        "name": "end_user_id",
+        "name": "bitrate_mode",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "standard",
+        "description": "Output bitrate mode. 'high' requests a higher-quality, larger-file encode from the model; 'standard' uses the default bitrate.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "BitrateMode",
+        "enumValues": [
+          "standard",
+          "high"
+        ]
+      },
+      {
+        "name": "prompt",
         "tsType": "string",
         "propType": "str",
         "default": "",
-        "description": "The unique user ID of the end user.",
+        "description": "The text prompt describing the desired motion and action for the video.",
         "fieldType": "input",
-        "required": false
+        "required": true
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "The URL of the starting frame image to animate. Supported formats: JPEG, PNG, WebP. Max 30 MB.",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "image_url"
       },
       {
         "name": "generate_audio",
@@ -134591,6 +134615,20 @@
         "required": false
       },
       {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "Video resolution - 480p for faster generation, 720p for balance.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480p",
+          "720p"
+        ]
+      },
+      {
         "name": "end_image",
         "tsType": "image",
         "propType": "image",
@@ -134599,6 +134637,15 @@
         "fieldType": "input",
         "required": false,
         "apiParamName": "end_image_url"
+      },
+      {
+        "name": "end_user_id",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The unique user ID of the end user.",
+        "fieldType": "input",
+        "required": false
       },
       {
         "name": "aspect_ratio",
@@ -134618,25 +134665,6 @@
           "3:4",
           "9:16"
         ]
-      },
-      {
-        "name": "image",
-        "tsType": "image",
-        "propType": "image",
-        "default": null,
-        "description": "The URL of the starting frame image to animate. Supported formats: JPEG, PNG, WebP. Max 30 MB.",
-        "fieldType": "input",
-        "required": true,
-        "apiParamName": "image_url"
-      },
-      {
-        "name": "prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
-        "description": "The text prompt describing the desired motion and action for the video.",
-        "fieldType": "input",
-        "required": true
       },
       {
         "name": "duration",
@@ -134662,47 +134690,10 @@
           "14",
           "15"
         ]
-      },
-      {
-        "name": "resolution",
-        "tsType": "enum",
-        "propType": "enum",
-        "default": "720p",
-        "description": "Video resolution - 480p for faster generation, 720p for balance.",
-        "fieldType": "input",
-        "required": false,
-        "enumRef": "Resolution",
-        "enumValues": [
-          "480p",
-          "720p"
-        ]
-      },
-      {
-        "name": "bitrate_mode",
-        "tsType": "enum",
-        "propType": "enum",
-        "default": "standard",
-        "description": "Output bitrate mode. 'high' requests a higher-quality, larger-file encode from the model; 'standard' uses the default bitrate.",
-        "fieldType": "input",
-        "required": false,
-        "enumRef": "BitrateMode",
-        "enumValues": [
-          "standard",
-          "high"
-        ]
       }
     ],
     "outputType": "video",
     "outputFields": [
-      {
-        "name": "seed",
-        "tsType": "number",
-        "propType": "int",
-        "default": -1,
-        "description": "The seed used for generation.",
-        "fieldType": "output",
-        "required": true
-      },
       {
         "name": "video",
         "tsType": "video",
@@ -134711,9 +134702,46 @@
         "description": "The generated video file.",
         "fieldType": "output",
         "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "The seed used for generation.",
+        "fieldType": "output",
+        "required": true
       }
     ],
     "enums": [
+      {
+        "name": "BitrateMode",
+        "values": [
+          [
+            "STANDARD",
+            "standard"
+          ],
+          [
+            "HIGH",
+            "high"
+          ]
+        ],
+        "description": "Output bitrate mode. 'high' requests a higher-quality, larger-file encode from the model; 'standard' uses the default bitrate."
+      },
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_480P",
+            "480p"
+          ],
+          [
+            "VALUE_720P",
+            "720p"
+          ]
+        ],
+        "description": "Video resolution - 480p for faster generation, 720p for balance."
+      },
       {
         "name": "AspectRatio",
         "values": [
@@ -134805,34 +134833,6 @@
           ]
         ],
         "description": "Duration of the video in seconds. Supports 4 to 15 seconds, or auto to let the model decide based on the prompt."
-      },
-      {
-        "name": "Resolution",
-        "values": [
-          [
-            "VALUE_480P",
-            "480p"
-          ],
-          [
-            "VALUE_720P",
-            "720p"
-          ]
-        ],
-        "description": "Video resolution - 480p for faster generation, 720p for balance."
-      },
-      {
-        "name": "BitrateMode",
-        "values": [
-          [
-            "STANDARD",
-            "standard"
-          ],
-          [
-            "HIGH",
-            "high"
-          ]
-        ],
-        "description": "Output bitrate mode. 'high' requests a higher-quality, larger-file encode from the model; 'standard' uses the default bitrate."
       }
     ],
     "moduleName": "image_to_video"
@@ -134859,22 +134859,50 @@
     ],
     "inputFields": [
       {
-        "name": "end_user_id",
+        "name": "bitrate_mode",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "standard",
+        "description": "Output bitrate mode. 'high' requests a higher-quality, larger-file encode from the model; 'standard' uses the default bitrate.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "BitrateMode",
+        "enumValues": [
+          "standard",
+          "high"
+        ]
+      },
+      {
+        "name": "prompt",
         "tsType": "string",
         "propType": "str",
         "default": "",
-        "description": "The unique user ID of the end user.",
+        "description": "The text prompt used to generate the video.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "video_urls",
+        "tsType": "video[]",
+        "propType": "list[video]",
+        "default": [],
+        "description": "Reference videos to guide video generation. Refer to them in the prompt as @Video1, @Video2, etc. Supported formats: MP4, MOV. Up to 3 videos, combined duration must be between 2 and 15 seconds, total size under 50 MB. Each video must be between ~480p (640x640) and ~720p (834x1112) in resolution.",
         "fieldType": "input",
         "required": false
       },
       {
-        "name": "audio_urls",
-        "tsType": "audio[]",
-        "propType": "list[audio]",
-        "default": [],
-        "description": "Reference audio to guide video generation. Refer to them in the prompt as @Audio1, @Audio2, etc. Supported formats: MP3, WAV. Up to 3 files, combined duration must not exceed 15 seconds. Max 15 MB per file.If audio is provided, at least one reference image or video is required.",
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "Video resolution - 480p for faster generation, 720p for balance.",
         "fieldType": "input",
-        "required": false
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480p",
+          "720p"
+        ]
       },
       {
         "name": "generate_audio",
@@ -134886,11 +134914,11 @@
         "required": false
       },
       {
-        "name": "video_urls",
-        "tsType": "video[]",
-        "propType": "list[video]",
-        "default": [],
-        "description": "Reference videos to guide video generation. Refer to them in the prompt as @Video1, @Video2, etc. Supported formats: MP4, MOV. Up to 3 videos, combined duration must be between 2 and 15 seconds, total size under 50 MB. Each video must be between ~480p (640x640) and ~720p (834x1112) in resolution.",
+        "name": "end_user_id",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The unique user ID of the end user.",
         "fieldType": "input",
         "required": false
       },
@@ -134903,6 +134931,15 @@
         "fieldType": "input",
         "required": false,
         "apiParamName": "image_urls"
+      },
+      {
+        "name": "audio_urls",
+        "tsType": "audio[]",
+        "propType": "list[audio]",
+        "default": [],
+        "description": "Reference audio to guide video generation. Refer to them in the prompt as @Audio1, @Audio2, etc. Supported formats: MP3, WAV. Up to 3 files, combined duration must not exceed 15 seconds. Max 15 MB per file.If audio is provided, at least one reference image or video is required.",
+        "fieldType": "input",
+        "required": false
       },
       {
         "name": "aspect_ratio",
@@ -134922,15 +134959,6 @@
           "3:4",
           "9:16"
         ]
-      },
-      {
-        "name": "prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
-        "description": "The text prompt used to generate the video.",
-        "fieldType": "input",
-        "required": true
       },
       {
         "name": "duration",
@@ -134956,47 +134984,10 @@
           "14",
           "15"
         ]
-      },
-      {
-        "name": "resolution",
-        "tsType": "enum",
-        "propType": "enum",
-        "default": "720p",
-        "description": "Video resolution - 480p for faster generation, 720p for balance.",
-        "fieldType": "input",
-        "required": false,
-        "enumRef": "Resolution",
-        "enumValues": [
-          "480p",
-          "720p"
-        ]
-      },
-      {
-        "name": "bitrate_mode",
-        "tsType": "enum",
-        "propType": "enum",
-        "default": "standard",
-        "description": "Output bitrate mode. 'high' requests a higher-quality, larger-file encode from the model; 'standard' uses the default bitrate.",
-        "fieldType": "input",
-        "required": false,
-        "enumRef": "BitrateMode",
-        "enumValues": [
-          "standard",
-          "high"
-        ]
       }
     ],
     "outputType": "video",
     "outputFields": [
-      {
-        "name": "seed",
-        "tsType": "number",
-        "propType": "int",
-        "default": -1,
-        "description": "The seed used for generation.",
-        "fieldType": "output",
-        "required": true
-      },
       {
         "name": "video",
         "tsType": "video",
@@ -135005,9 +134996,46 @@
         "description": "The generated video file.",
         "fieldType": "output",
         "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "The seed used for generation.",
+        "fieldType": "output",
+        "required": true
       }
     ],
     "enums": [
+      {
+        "name": "BitrateMode",
+        "values": [
+          [
+            "STANDARD",
+            "standard"
+          ],
+          [
+            "HIGH",
+            "high"
+          ]
+        ],
+        "description": "Output bitrate mode. 'high' requests a higher-quality, larger-file encode from the model; 'standard' uses the default bitrate."
+      },
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_480P",
+            "480p"
+          ],
+          [
+            "VALUE_720P",
+            "720p"
+          ]
+        ],
+        "description": "Video resolution - 480p for faster generation, 720p for balance."
+      },
       {
         "name": "AspectRatio",
         "values": [
@@ -135099,34 +135127,6 @@
           ]
         ],
         "description": "Duration of the video in seconds. Supports 4 to 15 seconds, or auto to let the model decide based on the prompt."
-      },
-      {
-        "name": "Resolution",
-        "values": [
-          [
-            "VALUE_480P",
-            "480p"
-          ],
-          [
-            "VALUE_720P",
-            "720p"
-          ]
-        ],
-        "description": "Video resolution - 480p for faster generation, 720p for balance."
-      },
-      {
-        "name": "BitrateMode",
-        "values": [
-          [
-            "STANDARD",
-            "standard"
-          ],
-          [
-            "HIGH",
-            "high"
-          ]
-        ],
-        "description": "Output bitrate mode. 'high' requests a higher-quality, larger-file encode from the model; 'standard' uses the default bitrate."
       }
     ],
     "moduleName": "image_to_video"
@@ -137711,13 +137711,23 @@
     ],
     "inputFields": [
       {
-        "name": "end_user_id",
+        "name": "prompt",
         "tsType": "string",
         "propType": "str",
         "default": "",
-        "description": "The unique user ID of the end user.",
+        "description": "The text prompt describing the desired motion and action for the video.",
         "fieldType": "input",
-        "required": false
+        "required": true
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "The URL of the starting frame image to animate. Supported formats: JPEG, PNG, WebP. Max 30 MB.",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "image_url"
       },
       {
         "name": "generate_audio",
@@ -137729,6 +137739,20 @@
         "required": false
       },
       {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "Video resolution - 480p for faster generation, 720p for balance.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480p",
+          "720p"
+        ]
+      },
+      {
         "name": "end_image",
         "tsType": "image",
         "propType": "image",
@@ -137737,6 +137761,15 @@
         "fieldType": "input",
         "required": false,
         "apiParamName": "end_image_url"
+      },
+      {
+        "name": "end_user_id",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The unique user ID of the end user.",
+        "fieldType": "input",
+        "required": false
       },
       {
         "name": "aspect_ratio",
@@ -137756,25 +137789,6 @@
           "3:4",
           "9:16"
         ]
-      },
-      {
-        "name": "image",
-        "tsType": "image",
-        "propType": "image",
-        "default": null,
-        "description": "The URL of the starting frame image to animate. Supported formats: JPEG, PNG, WebP. Max 30 MB.",
-        "fieldType": "input",
-        "required": true,
-        "apiParamName": "image_url"
-      },
-      {
-        "name": "prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
-        "description": "The text prompt describing the desired motion and action for the video.",
-        "fieldType": "input",
-        "required": true
       },
       {
         "name": "duration",
@@ -137800,33 +137814,10 @@
           "14",
           "15"
         ]
-      },
-      {
-        "name": "resolution",
-        "tsType": "enum",
-        "propType": "enum",
-        "default": "720p",
-        "description": "Video resolution - 480p for faster generation, 720p for balance.",
-        "fieldType": "input",
-        "required": false,
-        "enumRef": "Resolution",
-        "enumValues": [
-          "480p",
-          "720p"
-        ]
       }
     ],
     "outputType": "video",
     "outputFields": [
-      {
-        "name": "seed",
-        "tsType": "number",
-        "propType": "int",
-        "default": -1,
-        "description": "The seed used for generation.",
-        "fieldType": "output",
-        "required": true
-      },
       {
         "name": "video",
         "tsType": "video",
@@ -137835,9 +137826,32 @@
         "description": "The generated video file.",
         "fieldType": "output",
         "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "The seed used for generation.",
+        "fieldType": "output",
+        "required": true
       }
     ],
     "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_480P",
+            "480p"
+          ],
+          [
+            "VALUE_720P",
+            "720p"
+          ]
+        ],
+        "description": "Video resolution - 480p for faster generation, 720p for balance."
+      },
       {
         "name": "AspectRatio",
         "values": [
@@ -137929,20 +137943,6 @@
           ]
         ],
         "description": "Duration of the video in seconds. Supports 4 to 15 seconds, or auto to let the model decide based on the prompt."
-      },
-      {
-        "name": "Resolution",
-        "values": [
-          [
-            "VALUE_480P",
-            "480p"
-          ],
-          [
-            "VALUE_720P",
-            "720p"
-          ]
-        ],
-        "description": "Video resolution - 480p for faster generation, 720p for balance."
       }
     ],
     "moduleName": "image_to_video"
@@ -137969,22 +137969,36 @@
     ],
     "inputFields": [
       {
-        "name": "end_user_id",
+        "name": "prompt",
         "tsType": "string",
         "propType": "str",
         "default": "",
-        "description": "The unique user ID of the end user.",
+        "description": "The text prompt used to generate the video.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "video_urls",
+        "tsType": "video[]",
+        "propType": "list[video]",
+        "default": [],
+        "description": "Reference videos to guide video generation. Refer to them in the prompt as @Video1, @Video2, etc. Supported formats: MP4, MOV. Up to 3 videos, combined duration must be between 2 and 15 seconds, total size under 50 MB. Each video must be between ~480p (640x640) and ~720p (834x1112) in resolution.",
         "fieldType": "input",
         "required": false
       },
       {
-        "name": "audio_urls",
-        "tsType": "audio[]",
-        "propType": "list[audio]",
-        "default": [],
-        "description": "Reference audio to guide video generation. Refer to them in the prompt as @Audio1, @Audio2, etc. Supported formats: MP3, WAV. Up to 3 files, combined duration must not exceed 15 seconds. Max 15 MB per file.If audio is provided, at least one reference image or video is required.",
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "Video resolution - 480p for faster generation, 720p for balance.",
         "fieldType": "input",
-        "required": false
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480p",
+          "720p"
+        ]
       },
       {
         "name": "generate_audio",
@@ -137996,11 +138010,11 @@
         "required": false
       },
       {
-        "name": "video_urls",
-        "tsType": "video[]",
-        "propType": "list[video]",
-        "default": [],
-        "description": "Reference videos to guide video generation. Refer to them in the prompt as @Video1, @Video2, etc. Supported formats: MP4, MOV. Up to 3 videos, combined duration must be between 2 and 15 seconds, total size under 50 MB. Each video must be between ~480p (640x640) and ~720p (834x1112) in resolution.",
+        "name": "end_user_id",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The unique user ID of the end user.",
         "fieldType": "input",
         "required": false
       },
@@ -138013,6 +138027,15 @@
         "fieldType": "input",
         "required": false,
         "apiParamName": "image_urls"
+      },
+      {
+        "name": "audio_urls",
+        "tsType": "audio[]",
+        "propType": "list[audio]",
+        "default": [],
+        "description": "Reference audio to guide video generation. Refer to them in the prompt as @Audio1, @Audio2, etc. Supported formats: MP3, WAV. Up to 3 files, combined duration must not exceed 15 seconds. Max 15 MB per file.If audio is provided, at least one reference image or video is required.",
+        "fieldType": "input",
+        "required": false
       },
       {
         "name": "aspect_ratio",
@@ -138032,15 +138055,6 @@
           "3:4",
           "9:16"
         ]
-      },
-      {
-        "name": "prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
-        "description": "The text prompt used to generate the video.",
-        "fieldType": "input",
-        "required": true
       },
       {
         "name": "duration",
@@ -138066,33 +138080,10 @@
           "14",
           "15"
         ]
-      },
-      {
-        "name": "resolution",
-        "tsType": "enum",
-        "propType": "enum",
-        "default": "720p",
-        "description": "Video resolution - 480p for faster generation, 720p for balance.",
-        "fieldType": "input",
-        "required": false,
-        "enumRef": "Resolution",
-        "enumValues": [
-          "480p",
-          "720p"
-        ]
       }
     ],
     "outputType": "video",
     "outputFields": [
-      {
-        "name": "seed",
-        "tsType": "number",
-        "propType": "int",
-        "default": -1,
-        "description": "The seed used for generation.",
-        "fieldType": "output",
-        "required": true
-      },
       {
         "name": "video",
         "tsType": "video",
@@ -138101,9 +138092,32 @@
         "description": "The generated video file.",
         "fieldType": "output",
         "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "The seed used for generation.",
+        "fieldType": "output",
+        "required": true
       }
     ],
     "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_480P",
+            "480p"
+          ],
+          [
+            "VALUE_720P",
+            "720p"
+          ]
+        ],
+        "description": "Video resolution - 480p for faster generation, 720p for balance."
+      },
       {
         "name": "AspectRatio",
         "values": [
@@ -138195,20 +138209,6 @@
           ]
         ],
         "description": "Duration of the video in seconds. Supports 4 to 15 seconds, or auto to let the model decide based on the prompt."
-      },
-      {
-        "name": "Resolution",
-        "values": [
-          [
-            "VALUE_480P",
-            "480p"
-          ],
-          [
-            "VALUE_720P",
-            "720p"
-          ]
-        ],
-        "description": "Video resolution - 480p for faster generation, 720p for balance."
       }
     ],
     "moduleName": "image_to_video"
@@ -241637,6 +241637,36 @@
     ],
     "inputFields": [
       {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "Video resolution - 480p for faster generation, 720p for balance, 1080p for high quality, 4k for highest quality.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480p",
+          "720p",
+          "1080p",
+          "4k"
+        ]
+      },
+      {
+        "name": "bitrate_mode",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "standard",
+        "description": "Output bitrate mode. 'high' requests a higher-quality, larger-file encode from the model; 'standard' uses the default bitrate.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "BitrateMode",
+        "enumValues": [
+          "standard",
+          "high"
+        ]
+      },
+      {
         "name": "end_user_id",
         "tsType": "string",
         "propType": "str",
@@ -241674,6 +241704,15 @@
         ]
       },
       {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The text prompt used to generate the video",
+        "fieldType": "input",
+        "required": true
+      },
+      {
         "name": "duration",
         "tsType": "enum",
         "propType": "enum",
@@ -241697,58 +241736,10 @@
           "14",
           "15"
         ]
-      },
-      {
-        "name": "prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
-        "description": "The text prompt used to generate the video",
-        "fieldType": "input",
-        "required": true
-      },
-      {
-        "name": "resolution",
-        "tsType": "enum",
-        "propType": "enum",
-        "default": "720p",
-        "description": "Video resolution - 480p for faster generation, 720p for balance, 1080p for high quality, 4k for highest quality.",
-        "fieldType": "input",
-        "required": false,
-        "enumRef": "Resolution",
-        "enumValues": [
-          "480p",
-          "720p",
-          "1080p",
-          "4k"
-        ]
-      },
-      {
-        "name": "bitrate_mode",
-        "tsType": "enum",
-        "propType": "enum",
-        "default": "standard",
-        "description": "Output bitrate mode. 'high' requests a higher-quality, larger-file encode from the model; 'standard' uses the default bitrate.",
-        "fieldType": "input",
-        "required": false,
-        "enumRef": "BitrateMode",
-        "enumValues": [
-          "standard",
-          "high"
-        ]
       }
     ],
     "outputType": "video",
     "outputFields": [
-      {
-        "name": "seed",
-        "tsType": "number",
-        "propType": "int",
-        "default": -1,
-        "description": "The seed used for generation.",
-        "fieldType": "output",
-        "required": true
-      },
       {
         "name": "video",
         "tsType": "video",
@@ -241757,101 +241748,18 @@
         "description": "The generated video file.",
         "fieldType": "output",
         "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "The seed used for generation.",
+        "fieldType": "output",
+        "required": true
       }
     ],
     "enums": [
-      {
-        "name": "AspectRatio",
-        "values": [
-          [
-            "AUTO",
-            "auto"
-          ],
-          [
-            "RATIO_21_9",
-            "21:9"
-          ],
-          [
-            "RATIO_16_9",
-            "16:9"
-          ],
-          [
-            "RATIO_4_3",
-            "4:3"
-          ],
-          [
-            "RATIO_1_1",
-            "1:1"
-          ],
-          [
-            "RATIO_3_4",
-            "3:4"
-          ],
-          [
-            "RATIO_9_16",
-            "9:16"
-          ]
-        ],
-        "description": "The aspect ratio of the generated video. Use 16:9 for landscape, 9:16 for portrait/vertical, 1:1 for square, 21:9 for ultrawide cinematic, or auto to let the model decide."
-      },
-      {
-        "name": "Duration",
-        "values": [
-          [
-            "AUTO",
-            "auto"
-          ],
-          [
-            "VALUE_4",
-            "4"
-          ],
-          [
-            "VALUE_5",
-            "5"
-          ],
-          [
-            "VALUE_6",
-            "6"
-          ],
-          [
-            "VALUE_7",
-            "7"
-          ],
-          [
-            "VALUE_8",
-            "8"
-          ],
-          [
-            "VALUE_9",
-            "9"
-          ],
-          [
-            "VALUE_10",
-            "10"
-          ],
-          [
-            "VALUE_11",
-            "11"
-          ],
-          [
-            "VALUE_12",
-            "12"
-          ],
-          [
-            "VALUE_13",
-            "13"
-          ],
-          [
-            "VALUE_14",
-            "14"
-          ],
-          [
-            "VALUE_15",
-            "15"
-          ]
-        ],
-        "description": "Duration of the video in seconds. Supports 4 to 15 seconds, or auto to let the model decide based on the prompt."
-      },
       {
         "name": "Resolution",
         "values": [
@@ -241887,152 +241795,7 @@
           ]
         ],
         "description": "Output bitrate mode. 'high' requests a higher-quality, larger-file encode from the model; 'standard' uses the default bitrate."
-      }
-    ],
-    "moduleName": "text_to_video"
-  },
-  {
-    "endpointId": "bytedance/seedance-2.0/fast/text-to-video",
-    "className": "BytedanceSeedance20FastTextToVideo",
-    "docstring": "Fast text-to-video with ByteDance Seedance 2.0.",
-    "tags": [
-      "generation",
-      "text-to-video",
-      "txt2vid",
-      "seedance",
-      "bytedance",
-      "fast"
-    ],
-    "useCases": [
-      "Automated content generation",
-      "Creative workflows",
-      "Batch processing",
-      "Professional applications",
-      "Rapid prototyping"
-    ],
-    "inputFields": [
-      {
-        "name": "end_user_id",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
-        "description": "The unique user ID of the end user.",
-        "fieldType": "input",
-        "required": false
       },
-      {
-        "name": "generate_audio",
-        "tsType": "boolean",
-        "propType": "bool",
-        "default": true,
-        "description": "Whether to generate synchronized audio for the video, including sound effects, ambient sounds, and lip-synced speech. The cost of video generation is the same regardless of whether audio is generated or not.",
-        "fieldType": "input",
-        "required": false
-      },
-      {
-        "name": "aspect_ratio",
-        "tsType": "enum",
-        "propType": "enum",
-        "default": "auto",
-        "description": "The aspect ratio of the generated video. Use 16:9 for landscape, 9:16 for portrait/vertical, 1:1 for square, 21:9 for ultrawide cinematic, or auto to let the model decide.",
-        "fieldType": "input",
-        "required": false,
-        "enumRef": "AspectRatio",
-        "enumValues": [
-          "auto",
-          "21:9",
-          "16:9",
-          "4:3",
-          "1:1",
-          "3:4",
-          "9:16"
-        ]
-      },
-      {
-        "name": "duration",
-        "tsType": "enum",
-        "propType": "enum",
-        "default": "auto",
-        "description": "Duration of the video in seconds. Supports 4 to 15 seconds, or auto to let the model decide based on the prompt.",
-        "fieldType": "input",
-        "required": false,
-        "enumRef": "Duration",
-        "enumValues": [
-          "auto",
-          "4",
-          "5",
-          "6",
-          "7",
-          "8",
-          "9",
-          "10",
-          "11",
-          "12",
-          "13",
-          "14",
-          "15"
-        ]
-      },
-      {
-        "name": "prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
-        "description": "The text prompt used to generate the video",
-        "fieldType": "input",
-        "required": true
-      },
-      {
-        "name": "resolution",
-        "tsType": "enum",
-        "propType": "enum",
-        "default": "720p",
-        "description": "Video resolution - 480p for faster generation, 720p for balance.",
-        "fieldType": "input",
-        "required": false,
-        "enumRef": "Resolution",
-        "enumValues": [
-          "480p",
-          "720p"
-        ]
-      },
-      {
-        "name": "bitrate_mode",
-        "tsType": "enum",
-        "propType": "enum",
-        "default": "standard",
-        "description": "Output bitrate mode. 'high' requests a higher-quality, larger-file encode from the model; 'standard' uses the default bitrate.",
-        "fieldType": "input",
-        "required": false,
-        "enumRef": "BitrateMode",
-        "enumValues": [
-          "standard",
-          "high"
-        ]
-      }
-    ],
-    "outputType": "video",
-    "outputFields": [
-      {
-        "name": "seed",
-        "tsType": "number",
-        "propType": "int",
-        "default": -1,
-        "description": "The seed used for generation.",
-        "fieldType": "output",
-        "required": true
-      },
-      {
-        "name": "video",
-        "tsType": "video",
-        "propType": "video",
-        "default": null,
-        "description": "The generated video file.",
-        "fieldType": "output",
-        "required": true
-      }
-    ],
-    "enums": [
       {
         "name": "AspectRatio",
         "values": [
@@ -242124,7 +241887,152 @@
           ]
         ],
         "description": "Duration of the video in seconds. Supports 4 to 15 seconds, or auto to let the model decide based on the prompt."
+      }
+    ],
+    "moduleName": "text_to_video"
+  },
+  {
+    "endpointId": "bytedance/seedance-2.0/fast/text-to-video",
+    "className": "BytedanceSeedance20FastTextToVideo",
+    "docstring": "Fast text-to-video with ByteDance Seedance 2.0.",
+    "tags": [
+      "generation",
+      "text-to-video",
+      "txt2vid",
+      "seedance",
+      "bytedance",
+      "fast"
+    ],
+    "useCases": [
+      "Automated content generation",
+      "Creative workflows",
+      "Batch processing",
+      "Professional applications",
+      "Rapid prototyping"
+    ],
+    "inputFields": [
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "Video resolution - 480p for faster generation, 720p for balance.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480p",
+          "720p"
+        ]
       },
+      {
+        "name": "bitrate_mode",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "standard",
+        "description": "Output bitrate mode. 'high' requests a higher-quality, larger-file encode from the model; 'standard' uses the default bitrate.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "BitrateMode",
+        "enumValues": [
+          "standard",
+          "high"
+        ]
+      },
+      {
+        "name": "end_user_id",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The unique user ID of the end user.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "generate_audio",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Whether to generate synchronized audio for the video, including sound effects, ambient sounds, and lip-synced speech. The cost of video generation is the same regardless of whether audio is generated or not.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "The aspect ratio of the generated video. Use 16:9 for landscape, 9:16 for portrait/vertical, 1:1 for square, 21:9 for ultrawide cinematic, or auto to let the model decide.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "auto",
+          "21:9",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The text prompt used to generate the video",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "duration",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Duration of the video in seconds. Supports 4 to 15 seconds, or auto to let the model decide based on the prompt.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Duration",
+        "enumValues": [
+          "auto",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "11",
+          "12",
+          "13",
+          "14",
+          "15"
+        ]
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video file.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "The seed used for generation.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
       {
         "name": "Resolution",
         "values": [
@@ -242152,6 +242060,98 @@
           ]
         ],
         "description": "Output bitrate mode. 'high' requests a higher-quality, larger-file encode from the model; 'standard' uses the default bitrate."
+      },
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "RATIO_21_9",
+            "21:9"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "The aspect ratio of the generated video. Use 16:9 for landscape, 9:16 for portrait/vertical, 1:1 for square, 21:9 for ultrawide cinematic, or auto to let the model decide."
+      },
+      {
+        "name": "Duration",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "VALUE_4",
+            "4"
+          ],
+          [
+            "VALUE_5",
+            "5"
+          ],
+          [
+            "VALUE_6",
+            "6"
+          ],
+          [
+            "VALUE_7",
+            "7"
+          ],
+          [
+            "VALUE_8",
+            "8"
+          ],
+          [
+            "VALUE_9",
+            "9"
+          ],
+          [
+            "VALUE_10",
+            "10"
+          ],
+          [
+            "VALUE_11",
+            "11"
+          ],
+          [
+            "VALUE_12",
+            "12"
+          ],
+          [
+            "VALUE_13",
+            "13"
+          ],
+          [
+            "VALUE_14",
+            "14"
+          ],
+          [
+            "VALUE_15",
+            "15"
+          ]
+        ],
+        "description": "Duration of the video in seconds. Supports 4 to 15 seconds, or auto to let the model decide based on the prompt."
       }
     ],
     "moduleName": "text_to_video"
@@ -250179,6 +250179,29 @@
     ],
     "inputFields": [
       {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "Video resolution - 480p for faster generation, 720p for balance.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480p",
+          "720p"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Whether to generate synchronized audio for the video, including sound effects, ambient sounds, and lip-synced speech. The cost of video generation is the same regardless of whether audio is generated or not.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
         "name": "end_user_id",
         "tsType": "string",
         "propType": "str",
@@ -250207,6 +250230,15 @@
         ]
       },
       {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The text prompt used to generate the video",
+        "fieldType": "input",
+        "required": true
+      },
+      {
         "name": "duration",
         "tsType": "enum",
         "propType": "enum",
@@ -250230,51 +250262,10 @@
           "14",
           "15"
         ]
-      },
-      {
-        "name": "prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
-        "description": "The text prompt used to generate the video",
-        "fieldType": "input",
-        "required": true
-      },
-      {
-        "name": "resolution",
-        "tsType": "enum",
-        "propType": "enum",
-        "default": "720p",
-        "description": "Video resolution - 480p for faster generation, 720p for balance.",
-        "fieldType": "input",
-        "required": false,
-        "enumRef": "Resolution",
-        "enumValues": [
-          "480p",
-          "720p"
-        ]
-      },
-      {
-        "name": "generate_audio",
-        "tsType": "boolean",
-        "propType": "bool",
-        "default": true,
-        "description": "Whether to generate synchronized audio for the video, including sound effects, ambient sounds, and lip-synced speech. The cost of video generation is the same regardless of whether audio is generated or not.",
-        "fieldType": "input",
-        "required": false
       }
     ],
     "outputType": "video",
     "outputFields": [
-      {
-        "name": "seed",
-        "tsType": "number",
-        "propType": "int",
-        "default": -1,
-        "description": "The seed used for generation.",
-        "fieldType": "output",
-        "required": true
-      },
       {
         "name": "video",
         "tsType": "video",
@@ -250283,9 +250274,32 @@
         "description": "The generated video file.",
         "fieldType": "output",
         "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "The seed used for generation.",
+        "fieldType": "output",
+        "required": true
       }
     ],
     "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_480P",
+            "480p"
+          ],
+          [
+            "VALUE_720P",
+            "720p"
+          ]
+        ],
+        "description": "Video resolution - 480p for faster generation, 720p for balance."
+      },
       {
         "name": "AspectRatio",
         "values": [
@@ -250377,20 +250391,6 @@
           ]
         ],
         "description": "Duration of the video in seconds. Supports 4 to 15 seconds, or auto to let the model decide based on the prompt."
-      },
-      {
-        "name": "Resolution",
-        "values": [
-          [
-            "VALUE_480P",
-            "480p"
-          ],
-          [
-            "VALUE_720P",
-            "720p"
-          ]
-        ],
-        "description": "Video resolution - 480p for faster generation, 720p for balance."
       }
     ],
     "moduleName": "text_to_video"

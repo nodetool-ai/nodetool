@@ -154,6 +154,60 @@ export const textGenerateConfig: ModuleConfig = {
       className: "Granite_Speech_4_1_2B",
       returnType: "str",
       fieldOverrides: { audio: { propType: "audio" } }
+    },
+    "anthropic/claude-fable-5": {
+      className: "Claude_Fable_5",
+      returnType: "str",
+      fieldOverrides: { image: { propType: "image" } }
+    },
+    "anthropic/claude-sonnet-4.6": {
+      className: "Claude_Sonnet_4_6",
+      returnType: "str",
+      fieldOverrides: { image: { propType: "image" } }
+    },
+    "anthropic/claude-sonnet-5": {
+      className: "Claude_Sonnet_5",
+      returnType: "str",
+      fieldOverrides: { image: { propType: "image" } }
+    },
+    "google/gemini-3.5-flash": {
+      className: "Gemini_3_5_Flash",
+      returnType: "str",
+      fieldOverrides: {
+        audio: { propType: "audio" },
+        images: { propType: "list[image]" },
+        videos: { propType: "list[video]" }
+      }
+    },
+    "ibm-granite/granite-vision-4.1-4b": {
+      className: "Granite_Vision_4_1_4b",
+      returnType: "str",
+      fieldOverrides: { images: { propType: "list[image]" } }
+    },
+    "openai/gpt-5.4": {
+      className: "Gpt_5_4",
+      returnType: "str",
+      fieldOverrides: { image_input: { propType: "list[image]" } }
+    },
+    "openai/gpt-5.6-luna": {
+      className: "Gpt_5_6_Luna",
+      returnType: "str",
+      fieldOverrides: { image_input: { propType: "list[image]" } }
+    },
+    "openai/gpt-5.6-sol": {
+      className: "Gpt_5_6_Sol",
+      returnType: "str",
+      fieldOverrides: { image_input: { propType: "list[image]" } }
+    },
+    "openai/gpt-5.6-terra": {
+      className: "Gpt_5_6_Terra",
+      returnType: "str",
+      fieldOverrides: { image_input: { propType: "list[image]" } }
+    },
+    "qwen/qwen3-7-plus": {
+      className: "Qwen3_7_Plus",
+      returnType: "str",
+      fieldOverrides: { image: { propType: "list[image]" } }
     }
   }
 };

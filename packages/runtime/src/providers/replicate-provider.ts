@@ -333,6 +333,52 @@ export class ReplicateProvider extends BaseProvider {
         id: "snowflake/snowflake-arctic-instruct",
         name: "Snowflake Arctic Instruct",
         provider: "replicate"
+      },
+      {
+        id: "anthropic/claude-sonnet-5",
+        name: "Claude Sonnet 5",
+        provider: "replicate"
+      },
+      {
+        id: "anthropic/claude-sonnet-4.6",
+        name: "Claude Sonnet 4.6",
+        provider: "replicate"
+      },
+      {
+        id: "anthropic/claude-fable-5",
+        name: "Claude Fable 5",
+        provider: "replicate"
+      },
+      { id: "openai/gpt-5.4", name: "GPT-5.4", provider: "replicate" },
+      {
+        id: "openai/gpt-5.6-sol",
+        name: "GPT-5.6 Sol",
+        provider: "replicate"
+      },
+      {
+        id: "openai/gpt-5.6-terra",
+        name: "GPT-5.6 Terra",
+        provider: "replicate"
+      },
+      {
+        id: "openai/gpt-5.6-luna",
+        name: "GPT-5.6 Luna",
+        provider: "replicate"
+      },
+      {
+        id: "google/gemini-3.5-flash",
+        name: "Gemini 3.5 Flash",
+        provider: "replicate"
+      },
+      {
+        id: "qwen/qwen3-7-plus",
+        name: "Qwen3.7 Plus",
+        provider: "replicate"
+      },
+      {
+        id: "ibm-granite/granite-vision-4.1-4b",
+        name: "Granite Vision 4.1 4B",
+        provider: "replicate"
       }
     ];
   }
@@ -408,7 +454,17 @@ export class ReplicateProvider extends BaseProvider {
         name: "Chatterbox Multilingual",
         provider: "replicate"
       },
-      { id: "x-lance/f5-tts", name: "F5 TTS", provider: "replicate" }
+      { id: "x-lance/f5-tts", name: "F5 TTS", provider: "replicate" },
+      {
+        id: "inworld/realtime-tts-1.5-max",
+        name: "Inworld Realtime TTS 1.5 Max",
+        provider: "replicate"
+      },
+      {
+        id: "inworld/realtime-tts-1.5-mini",
+        name: "Inworld Realtime TTS 1.5 Mini",
+        provider: "replicate"
+      }
     ];
   }
 

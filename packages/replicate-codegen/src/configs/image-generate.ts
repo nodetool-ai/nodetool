@@ -594,6 +594,157 @@ export const imageGenerateConfig: ModuleConfig = {
     "xai/grok-imagine-image-quality": {
       className: "Grok_Imagine_Image_Quality",
       returnType: "image"
+    },
+    "black-forest-labs/flux-2-klein-4b-base": {
+      className: "Flux_2_Klein_4b_Base",
+      returnType: "image",
+      fieldOverrides: { images: { propType: "list[image]" } }
+    },
+    "black-forest-labs/flux-2-klein-4b-base-lora": {
+      className: "Flux_2_Klein_4b_Base_Lora",
+      returnType: "image",
+      fieldOverrides: { images: { propType: "list[image]" } }
+    },
+    "black-forest-labs/flux-2-klein-9b": {
+      className: "Flux_2_Klein_9b",
+      returnType: "image",
+      fieldOverrides: { images: { propType: "list[image]" } }
+    },
+    "black-forest-labs/flux-2-klein-9b-base": {
+      className: "Flux_2_Klein_9b_Base",
+      returnType: "image",
+      fieldOverrides: { images: { propType: "list[image]" } }
+    },
+    "black-forest-labs/flux-2-klein-9b-base-lora": {
+      className: "Flux_2_Klein_9b_Base_Lora",
+      returnType: "image",
+      fieldOverrides: { images: { propType: "list[image]" } }
+    },
+    "bytedance/seedream-5-pro": {
+      className: "Seedream_5_Pro",
+      returnType: "image",
+      fieldOverrides: { image_input: { propType: "list[image]" } }
+    },
+    "google/nano-banana-2-lite": {
+      className: "Nano_Banana_2_Lite",
+      returnType: "image",
+      fieldOverrides: { image_input: { propType: "list[image]" } }
+    },
+    "ideogram-ai/ideogram-v4-balanced": {
+      className: "Ideogram_V4_Balanced",
+      returnType: "image"
+    },
+    "ideogram-ai/ideogram-v4-quality": {
+      className: "Ideogram_V4_Quality",
+      returnType: "image"
+    },
+    "ideogram-ai/layerize": {
+      className: "Layerize",
+      returnType: "image",
+      fieldOverrides: { flat_graphic_image: { propType: "image" } }
+    },
+    "krea/krea-2-large": {
+      className: "Krea_2_Large",
+      returnType: "image",
+      fieldOverrides: { style_reference_images: { propType: "list[image]" } }
+    },
+    "krea/krea-2-medium": {
+      className: "Krea_2_Medium",
+      returnType: "image",
+      fieldOverrides: { style_reference_images: { propType: "list[image]" } }
+    },
+    "prunaai/p-image-edit-lora": {
+      className: "P_Image_Edit_Lora",
+      returnType: "image",
+      fieldOverrides: { images: { propType: "list[image]" } }
+    },
+    "prunaai/p-image-lora": {
+      className: "P_Image_Lora",
+      returnType: "image"
+    },
+    "prunaai/p-image-try-on": {
+      className: "P_Image_Try_On",
+      returnType: "image",
+      fieldOverrides: {
+        person_image: { propType: "image" },
+        garment_images: { propType: "list[image]" },
+        reference_pose: { propType: "image" }
+      }
+    },
+    "qwen/qwen-image-2": {
+      className: "Qwen_Image_2",
+      returnType: "image",
+      fieldOverrides: { image: { propType: "image" } }
+    },
+    "qwen/qwen-image-2-pro": {
+      className: "Qwen_Image_2_Pro",
+      returnType: "image",
+      fieldOverrides: { image: { propType: "image" } }
+    },
+    "recraft-ai/recraft-v4.1": {
+      className: "Recraft_V4_1",
+      returnType: "image"
+    },
+    "recraft-ai/recraft-v4.1-pro": {
+      className: "Recraft_V4_1_Pro",
+      returnType: "image"
+    },
+    "recraft-ai/recraft-v4.1-pro-svg": {
+      className: "Recraft_V4_1_Pro_Svg",
+      returnType: "image"
+    },
+    "recraft-ai/recraft-v4.1-svg": {
+      className: "Recraft_V4_1_Svg",
+      returnType: "image"
+    },
+    "recraft-ai/recraft-v4.1-utility": {
+      className: "Recraft_V4_1_Utility",
+      returnType: "image"
+    },
+    "recraft-ai/recraft-v4.1-utility-pro": {
+      className: "Recraft_V4_1_Utility_Pro",
+      returnType: "image"
+    },
+    "reve/reve-2.1": {
+      className: "Reve_2_1",
+      returnType: "image",
+      fieldOverrides: { reference_images: { propType: "list[image]" } }
+    },
+    "sourceful/riverflow-2.0-fast": {
+      className: "Riverflow_2_0_Fast",
+      returnType: "image",
+      fieldOverrides: {
+        init_images: { propType: "list[image]" },
+        super_resolution_refs: { propType: "list[image]" }
+      }
+    },
+    "sourceful/riverflow-2.0-pro": {
+      className: "Riverflow_2_0_Pro",
+      returnType: "image",
+      fieldOverrides: {
+        init_images: { propType: "list[image]" },
+        super_resolution_refs: { propType: "list[image]" }
+      }
+    },
+    "sourceful/riverflow-v2.5-fast": {
+      className: "Riverflow_V2_5_Fast",
+      returnType: "image",
+      fieldOverrides: { init_images: { propType: "list[image]" } }
+    },
+    "sourceful/riverflow-v2.5-pro": {
+      className: "Riverflow_V2_5_Pro",
+      returnType: "image",
+      fieldOverrides: { init_images: { propType: "list[image]" } }
+    },
+    "wan-video/wan-2.7-image": {
+      className: "Wan_2_7_Image",
+      returnType: "image",
+      fieldOverrides: { images: { propType: "list[image]" } }
+    },
+    "wan-video/wan-2.7-image-pro": {
+      className: "Wan_2_7_Image_Pro",
+      returnType: "image",
+      fieldOverrides: { images: { propType: "list[image]" } }
     }
   }
 };

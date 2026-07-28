@@ -155,6 +155,19 @@ export const imageUpscaleConfig: ModuleConfig = {
       className: "Clarity_Pro_Upscaler",
       returnType: "image",
       fieldOverrides: { image: { propType: "image" } }
+    },
+    "prunaai/p-image-upscale": {
+      className: "P_Image_Upscale",
+      returnType: "image",
+      fieldOverrides: { image: { propType: "image" } }
+    },
+    "sourceful/riverflow-2.0-refsr": {
+      className: "Riverflow_2_0_Refsr",
+      returnType: "image",
+      fieldOverrides: {
+        image: { propType: "image" },
+        super_resolution_references: { propType: "list[image]" }
+      }
     }
   }
 };

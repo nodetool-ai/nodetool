@@ -258,6 +258,213 @@ export const videoGenerateConfig: ModuleConfig = {
     "xai/grok-imagine-video": {
       className: "Grok_Imagine_Video",
       returnType: "video"
+    },
+    "alibaba/happyhorse-1.1": {
+      className: "Happyhorse_1_1",
+      returnType: "video",
+      fieldOverrides: { images: { propType: "list[image]" } }
+    },
+    "bytedance/seedance-2.0-fast": {
+      className: "Seedance_2_0_Fast",
+      returnType: "video",
+      fieldOverrides: {
+        image: { propType: "image" },
+        last_frame_image: { propType: "image" },
+        reference_audios: { propType: "list[audio]" },
+        reference_images: { propType: "list[image]" },
+        reference_videos: { propType: "list[video]" }
+      }
+    },
+    "bytedance/seedance-2.0-mini": {
+      className: "Seedance_2_0_Mini",
+      returnType: "video",
+      fieldOverrides: {
+        image: { propType: "image" },
+        last_frame_image: { propType: "image" },
+        reference_audios: { propType: "list[audio]" },
+        reference_images: { propType: "list[image]" },
+        reference_videos: { propType: "list[video]" }
+      }
+    },
+    "decart/lucy-edit-2": {
+      className: "Lucy_Edit_2",
+      returnType: "video",
+      fieldOverrides: {
+        video: { propType: "video" },
+        reference_image: { propType: "image" }
+      }
+    },
+    "heygen/avatar-iv": {
+      className: "Avatar_Iv",
+      returnType: "video"
+    },
+    "heygen/avatar-v": {
+      className: "Avatar_V",
+      returnType: "video"
+    },
+    "heygen/video-agent": {
+      className: "Video_Agent",
+      returnType: "video"
+    },
+    "kwaivgi/kling-o1": {
+      className: "Kling_O1",
+      returnType: "video",
+      fieldOverrides: {
+        end_image: { propType: "image" },
+        start_image: { propType: "image" },
+        reference_video: { propType: "video" },
+        reference_images: { propType: "list[image]" }
+      }
+    },
+    "kwaivgi/kling-v3-motion-control": {
+      className: "Kling_V3_Motion_Control",
+      returnType: "video",
+      fieldOverrides: {
+        image: { propType: "image" },
+        video: { propType: "video" }
+      }
+    },
+    "lightricks/audio-to-video": {
+      className: "Audio_To_Video",
+      returnType: "video",
+      fieldOverrides: {
+        audio: { propType: "audio" },
+        image: { propType: "image" }
+      }
+    },
+    "lightricks/ltx-2.3-fast": {
+      className: "Ltx_2_3_Fast",
+      returnType: "video",
+      fieldOverrides: {
+        image: { propType: "image" },
+        last_frame_image: { propType: "image" }
+      }
+    },
+    "lightricks/ltx-2.3-pro": {
+      className: "Ltx_2_3_Pro",
+      returnType: "video",
+      fieldOverrides: {
+        audio: { propType: "audio" },
+        image: { propType: "image" },
+        video: { propType: "video" },
+        last_frame_image: { propType: "image" }
+      }
+    },
+    "lightricks/ltx-2-distilled": {
+      className: "Ltx_2_Distilled",
+      returnType: "video",
+      fieldOverrides: { image: { propType: "image" } }
+    },
+    "luma/ray-3.2": {
+      className: "Ray_3_2",
+      returnType: "video",
+      fieldOverrides: {
+        end_image: { propType: "image" },
+        start_image: { propType: "image" }
+      }
+    },
+    "prunaai/p-video": {
+      className: "P_Video",
+      returnType: "video",
+      fieldOverrides: {
+        audio: { propType: "audio" },
+        image: { propType: "image" },
+        last_frame_image: { propType: "image" }
+      }
+    },
+    "prunaai/p-video-animate": {
+      className: "P_Video_Animate",
+      returnType: "video",
+      fieldOverrides: {
+        image: { propType: "image" },
+        video: { propType: "video" }
+      }
+    },
+    "prunaai/p-video-replace": {
+      className: "P_Video_Replace",
+      returnType: "video",
+      fieldOverrides: {
+        video: { propType: "video" },
+        images: { propType: "list[image]" }
+      }
+    },
+    "runwayml/aleph-2": {
+      className: "Aleph_2",
+      returnType: "video",
+      fieldOverrides: {
+        video: { propType: "video" },
+        keyframe_images: { propType: "list[image]" }
+      }
+    },
+    "vidu/q3-pro": {
+      className: "Q3_Pro",
+      returnType: "video",
+      fieldOverrides: {
+        end_image: { propType: "image" },
+        start_image: { propType: "image" }
+      }
+    },
+    "vidu/q3-turbo": {
+      className: "Q3_Turbo",
+      returnType: "video",
+      fieldOverrides: {
+        end_image: { propType: "image" },
+        start_image: { propType: "image" }
+      }
+    },
+    "wan-video/wan2.6-i2v-flash": {
+      className: "Wan2_6_I2v_Flash",
+      returnType: "video",
+      fieldOverrides: {
+        audio: { propType: "audio" },
+        image: { propType: "image" }
+      }
+    },
+    "wan-video/wan-2.7-i2v": {
+      className: "Wan_2_7_I2v",
+      returnType: "video",
+      fieldOverrides: {
+        audio: { propType: "audio" },
+        first_clip: { propType: "video" },
+        last_frame: { propType: "image" },
+        first_frame: { propType: "image" }
+      }
+    },
+    "wan-video/wan-2.7-r2v": {
+      className: "Wan_2_7_R2v",
+      returnType: "video",
+      fieldOverrides: {
+        reference_images: { propType: "list[image]" },
+        reference_videos: { propType: "list[video]" }
+      }
+    },
+    "wan-video/wan-2.7-t2v": {
+      className: "Wan_2_7_T2v",
+      returnType: "video",
+      fieldOverrides: { audio: { propType: "audio" } }
+    },
+    "wan-video/wan-2.7-videoedit": {
+      className: "Wan_2_7_Videoedit",
+      returnType: "video",
+      fieldOverrides: {
+        video: { propType: "video" },
+        reference_image: { propType: "image" }
+      }
+    },
+    "xai/grok-imagine-r2v": {
+      className: "Grok_Imagine_R2v",
+      returnType: "video",
+      fieldOverrides: { reference_images: { propType: "list[image]" } }
+    },
+    "xai/grok-imagine-video-1.5": {
+      className: "Grok_Imagine_Video_1_5",
+      returnType: "video",
+      fieldOverrides: { image: { propType: "image" } }
+    },
+    "xai/grok-imagine-video-extension": {
+      className: "Grok_Imagine_Video_Extension",
+      returnType: "video",
+      fieldOverrides: { video: { propType: "video" } }
     }
   }
 };

@@ -24,6 +24,24 @@ export const image3dConfig: ModuleConfig = {
       className: "SeedVR2",
       returnType: "str",
       fieldOverrides: { image: { propType: "image" } }
+    },
+    "tencent/hunyuan-3d-3.1": {
+      className: "Hunyuan_3d_3_1",
+      returnType: "str",
+      fieldOverrides: { image: { propType: "image" } }
+    },
+    "uthana/create-character-v1": {
+      className: "Create_Character_V1",
+      returnType: "str",
+      fieldOverrides: { character_file: { propType: "image" } }
+    },
+    "uthana/text-to-motion-diffusion-v2": {
+      className: "Text_To_Motion_Diffusion_V2",
+      returnType: "str"
+    },
+    "uthana/text-to-motion-vqvae-v1": {
+      className: "Text_To_Motion_Vqvae_V1",
+      returnType: "str"
     }
   }
 };

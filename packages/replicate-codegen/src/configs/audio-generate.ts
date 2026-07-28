@@ -54,6 +54,20 @@ export const audioGenerateConfig: ModuleConfig = {
       className: "Music_Cover",
       returnType: "audio",
       fieldOverrides: { audio: { propType: "audio" } }
+    },
+    "google/lyria-3": {
+      className: "Lyria_3",
+      returnType: "audio",
+      fieldOverrides: { images: { propType: "list[image]" } }
+    },
+    "google/lyria-3-pro": {
+      className: "Lyria_3_Pro",
+      returnType: "audio",
+      fieldOverrides: { images: { propType: "list[image]" } }
+    },
+    "minimax/music-2.5": {
+      className: "Music_2_5",
+      returnType: "audio"
     }
   }
 };
