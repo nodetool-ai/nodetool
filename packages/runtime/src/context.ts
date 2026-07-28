@@ -1479,7 +1479,13 @@ export class ProcessingContext {
    */
   async resolveTempUrl(uri: string): Promise<string> {
     if (!this._tempUrlResolver) return uri;
-    return this._tempUrlResolver(uri);
+    const resolvedUri = await this._tempUrlResolver(uri);
+    if (ProcessingContext.isClientFetchableResolvedAssetUri(uri, resolvedUri)) {
+      return resolvedUri;
+    }
+    throw new Error(
+      `Temp URL resolver returned an unsafe URL for '${uri}': '${resolvedUri}'`
+    );
   }
 
   async getSecret(key: string): Promise<string | null> {
@@ -3160,6 +3166,19 @@ export class ProcessingContext {
     return null;
   }
 
+  private static isClientFetchableResolvedAssetUri(
+    sourceUri: string,
+    resolvedUri: string
+  ): boolean {
+    return (
+      resolvedUri.startsWith("/api/storage/") ||
+      resolvedUri.startsWith("api/storage/") ||
+      (/^(memory|file|s3|supabase):\/\//.test(sourceUri) &&
+        resolvedUri !== sourceUri &&
+        /^https?:\/\//.test(resolvedUri))
+    );
+  }
+
   private async getAssetBytes(
     asset: Record<string, unknown>
   ): Promise<Uint8Array | null> {
@@ -3217,11 +3236,7 @@ export class ProcessingContext {
           ? await this._tempUrlResolver(uri)
           : uri;
         if (
-          resolvedUri.startsWith("/api/storage/") ||
-          resolvedUri.startsWith("api/storage/") ||
-          (isAdapterUri &&
-            resolvedUri !== uri &&
-            /^https?:\/\//.test(resolvedUri))
+          ProcessingContext.isClientFetchableResolvedAssetUri(uri, resolvedUri)
         ) {
           return {
             ...rawAsset,
@@ -3267,12 +3282,9 @@ export class ProcessingContext {
       if (!this.storage) return asset;
       const key = `temp/${randomUUID()}.${ProcessingContext.extForMime(mime)}`;
       const storedUri = await this.storage.store(key, bytes, mime);
-      const resolvedUri = this._tempUrlResolver
-        ? await this._tempUrlResolver(storedUri)
-        : storedUri;
       return {
         ...asset,
-        uri: resolvedUri,
+        uri: await this.resolveTempUrl(storedUri),
         data: undefined
       };
     }

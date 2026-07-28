@@ -795,6 +795,27 @@ describe("output normalization", () => {
     expect(normalized.image.data).toBeUndefined();
   });
 
+  it("rejects unsafe temp URL resolver results during asset materialization", async () => {
+    const storage = new InMemoryStorageAdapter();
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      assetOutputMode: "temp_url",
+      storage,
+      tempUrlResolver: () => "javascript:alert(1)"
+    });
+    const value = {
+      image: {
+        type: "ImageRef",
+        uri: "memory://img",
+        data: Buffer.from("hello").toString("base64")
+      }
+    };
+
+    await expect(ctx.normalizeOutputValue(value)).rejects.toThrow(
+      "Temp URL resolver returned an unsafe URL"
+    );
+  });
+
   it("materializes asset refs into workspace files", async () => {
     const root = await mkdtemp(join(tmpdir(), "nodetool-ts-workspace-"));
     try {
@@ -1580,6 +1601,14 @@ describe("ProcessingContext – setTempUrlResolver", () => {
     )) as Record<string, unknown>;
     expect((result.uri as string).startsWith("https://cdn.example.com/")).toBe(
       true
+    );
+  });
+
+  it("rejects unsafe resolved temp URLs", async () => {
+    const ctx = new ProcessingContext({ jobId: "j1" });
+    ctx.setTempUrlResolver(() => "javascript:alert(1)");
+    await expect(ctx.resolveTempUrl("file:///tmp/output.png")).rejects.toThrow(
+      "Temp URL resolver returned an unsafe URL"
     );
   });
 });
