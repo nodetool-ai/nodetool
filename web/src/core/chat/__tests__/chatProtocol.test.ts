@@ -99,6 +99,99 @@ describe("chatProtocol", () => {
     });
   });
 
+  // Server-side planners (plan_workflow_graph, plan_orchestration_script)
+  // forward progress as bare events, not agent_execution messages. Without a
+  // dispatch branch they were dropped and the user saw a silent "Thinking…"
+  // for the whole plan.
+  describe("planner progress events", () => {
+    const makeState = () => ({
+      status: "streaming",
+      currentThreadId: "thread-1",
+      threads: {
+        "thread-1": {
+          id: "thread-1",
+          title: "T",
+          updated_at: new Date().toISOString()
+        }
+      },
+      threadRuntime: {
+        "thread-1": {
+          status: "streaming",
+          statusMessage: null,
+          progress: { current: 0, total: 0 },
+          error: null,
+          planningUpdate: null,
+          taskUpdate: null,
+          logUpdate: null,
+          runningToolCallId: null,
+          toolMessage: null,
+          sendMessageTimeoutId: null
+        }
+      },
+      lastTaskUpdatesByThread: {},
+      messageCache: { "thread-1": [] },
+      selectedModel: { provider: "", id: "" },
+      summarizeThread: jest.fn(),
+      updateThreadTitle: jest.fn()
+    });
+
+    const dispatch = async (payload: any) => {
+      let capturedState: any = makeState();
+      const set = jest.fn((updater) => {
+        capturedState = {
+          ...capturedState,
+          ...(typeof updater === "function" ? updater(capturedState) : updater)
+        };
+      });
+      await handleChatWebSocketMessage(payload, set, () => capturedState);
+      return capturedState;
+    };
+
+    it("routes planning_update to the thread runtime", async () => {
+      const state = await dispatch({
+        type: "planning_update",
+        thread_id: "thread-1",
+        phase: "generation",
+        status: "running",
+        content: "Writing orchestration script..."
+      });
+
+      expect(state.threadRuntime["thread-1"].planningUpdate).toMatchObject({
+        phase: "generation",
+        content: "Writing orchestration script..."
+      });
+    });
+
+    it("routes log_update to the thread runtime", async () => {
+      const state = await dispatch({
+        type: "log_update",
+        thread_id: "thread-1",
+        content: "Executing orchestration script...",
+        severity: "info"
+      });
+
+      expect(state.threadRuntime["thread-1"].logUpdate).toMatchObject({
+        content: "Executing orchestration script..."
+      });
+    });
+
+    it("routes task_update to the thread runtime and the last-update map", async () => {
+      const state = await dispatch({
+        type: "task_update",
+        thread_id: "thread-1",
+        event: "task_created",
+        task: { id: "t1", title: "Research", steps: [] }
+      });
+
+      expect(state.threadRuntime["thread-1"].taskUpdate).toMatchObject({
+        event: "task_created"
+      });
+      expect(state.lastTaskUpdatesByThread["thread-1"]).toMatchObject({
+        event: "task_created"
+      });
+    });
+  });
+
   describe("title generation", () => {
     it("generates title from first user message when first assistant chunk completes", async () => {
       let capturedState: any = {
