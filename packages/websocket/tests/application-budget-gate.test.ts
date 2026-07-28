@@ -16,6 +16,7 @@ import { unpack } from "msgpackr";
 import falUnitPricingCatalog from "@nodetool-ai/fal-nodes/unit-pricing-catalog";
 import kieUnitPricingCatalog from "@nodetool-ai/kie-nodes/unit-pricing-catalog";
 import {
+  DEFAULT_RUN_JOB_EXECUTION_OPTIONS,
   UnifiedWebSocketRunner,
   type WebSocketConnection,
   type WebSocketReceiveFrame
@@ -289,11 +290,23 @@ describe("application invocation settlement", () => {
   /** A finished run carrying an app id and a recorded provider charge. */
   const activeJob = (status: "completed" | "failed", cost: number) => {
     const queue: Array<Record<string, unknown>> = [];
+    const now = performance.now();
     return {
       jobId: "job-settle",
       workflowId: "wf1",
       applicationId: APP,
       providerCostTotal: cost,
+      requireTerminalResult: false,
+      executionOptions: { ...DEFAULT_RUN_JOB_EXECUTION_OPTIONS },
+      timings: {
+        acceptedAt: now,
+        queueMs: 0,
+        graphLoadedMs: 0,
+        graphHydratedMs: 0,
+        preRunMs: 0,
+        persistenceMs: 0,
+        kernelStartedAt: now
+      },
       context: {
         hasMessages: () => queue.length > 0,
         popMessage: () => queue.shift(),
