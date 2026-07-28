@@ -135,7 +135,7 @@ export const imageConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -227,7 +227,7 @@ export const imageConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -298,7 +298,7 @@ export const imageConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -380,7 +380,7 @@ export const imageConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -450,11 +450,24 @@ export const imageConfig: ModuleConfig = {
           "type": "enum",
           "default": "basic",
           "title": "Quality",
-          "description": "Basic outputs 2K images, while High outputs 4K images.",
+          "description": "Basic outputs 2K images, while High outputs 3K images, and Ultra outputs 4K images.",
           "required": true,
           "values": [
             "basic",
-            "high"
+            "high",
+            "ultra"
+          ]
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "png",
+          "title": "Output Format",
+          "description": "Format of the output image",
+          "required": false,
+          "values": [
+            "png",
+            "jpeg"
           ]
         },
         {
@@ -462,7 +475,7 @@ export const imageConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -533,11 +546,24 @@ export const imageConfig: ModuleConfig = {
           "type": "enum",
           "default": "basic",
           "title": "Quality",
-          "description": "Basic outputs 2K images, while High outputs 4K images.",
+          "description": "Basic outputs 2K images, while High outputs 3K images, and Ultra outputs 4K images.",
           "required": true,
           "values": [
             "basic",
-            "high"
+            "high",
+            "ultra"
+          ]
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "png",
+          "title": "Output Format",
+          "description": "Format of the output image",
+          "required": false,
+          "values": [
+            "png",
+            "jpeg"
           ]
         },
         {
@@ -545,7 +571,196 @@ export const imageConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "image_urls"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "aspect_ratio",
+          "rule": "not_empty",
+          "message": "Aspect Ratio is required"
+        },
+        {
+          "field": "quality",
+          "rule": "not_empty",
+          "message": "Quality is required"
+        }
+      ]
+    },
+    {
+      "className": "Seedream5ProTextToImage",
+      "modelId": "seedream/5-pro-text-to-image",
+      "title": "Seedream5.0 Pro - Text to Image",
+      "description": "Seedream5.0 Pro - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    High-quality photorealistic image generation powered by Seedream's advanced AI model",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "A text description of the image you want to generate (Max length: 3-5000 characters)",
+          "required": true,
+          "min": 3,
+          "max": 5000
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "1:1",
+          "title": "Aspect Ratio",
+          "description": "Width-height ratio of the image, determining its visual form.",
+          "required": true,
+          "values": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "2:3",
+            "3:2",
+            "21:9"
+          ]
+        },
+        {
+          "name": "quality",
+          "type": "enum",
+          "default": "basic",
+          "title": "Quality",
+          "description": "Basic outputs 1K images, while High outputs 2K images.",
+          "required": true,
+          "values": [
+            "basic",
+            "high"
+          ]
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "png",
+          "title": "Output Format",
+          "description": "Format of the output image",
+          "required": false,
+          "values": [
+            "png",
+            "jpeg"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "aspect_ratio",
+          "rule": "not_empty",
+          "message": "Aspect Ratio is required"
+        },
+        {
+          "field": "quality",
+          "rule": "not_empty",
+          "message": "Quality is required"
+        }
+      ]
+    },
+    {
+      "className": "Seedream5ProImageToImage",
+      "modelId": "seedream/5-pro-image-to-image",
+      "title": "Seedream5.0 Pro - Image to Image",
+      "description": "Seedream5.0 Pro - Image to Image via Kie.ai.\n\n    kie, image, ai\n\n    High-quality photorealistic image generation powered by Seedream's advanced AI model",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "A text description of the image you want to generate (Max length: 3-5000 characters)",
+          "required": true,
+          "min": 3,
+          "max": 5000
+        },
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "Upload an image file to use as input for the API (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true,
+          "max": 10
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "1:1",
+          "title": "Aspect Ratio",
+          "description": "Width-height ratio of the image, determining its visual form.",
+          "required": true,
+          "values": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "2:3",
+            "3:2",
+            "21:9"
+          ]
+        },
+        {
+          "name": "quality",
+          "type": "enum",
+          "default": "basic",
+          "title": "Quality",
+          "description": "Basic outputs 1K images, while High outputs 2K images.",
+          "required": true,
+          "values": [
+            "basic",
+            "high"
+          ]
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "png",
+          "title": "Output Format",
+          "description": "Format of the output image",
+          "required": false,
+          "values": [
+            "png",
+            "jpeg"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -611,7 +826,7 @@ export const imageConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -625,98 +840,6 @@ export const imageConfig: ModuleConfig = {
           "field": "aspect_ratio",
           "rule": "not_empty",
           "message": "Aspect Ratio is required"
-        }
-      ]
-    },
-    {
-      "className": "GoogleNanoBanana2",
-      "modelId": "nano-banana-2",
-      "title": "Google - Nano Banana 2",
-      "description": "Google - Nano Banana 2 via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by Nano Banana 2",
-      "outputType": "image",
-      "fields": [
-        {
-          "name": "prompt",
-          "type": "str",
-          "default": "",
-          "title": "Prompt",
-          "description": "A text description of the image you want to generate (Max length: 20000 characters)",
-          "required": true,
-          "max": 20000
-        },
-        {
-          "name": "image_input",
-          "type": "list[image]",
-          "default": [],
-          "title": "Image Input",
-          "description": "Input images to transform or use as reference (supports up to 14 images) (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 30.0MB)",
-          "required": false,
-          "max": 14
-        },
-        {
-          "name": "aspect_ratio",
-          "type": "enum",
-          "default": "auto",
-          "title": "Aspect Ratio",
-          "description": "Aspect ratio of the generated image",
-          "required": false,
-          "values": [
-            "1:1",
-            "1:4",
-            "1:8",
-            "2:3",
-            "3:2",
-            "3:4",
-            "4:1",
-            "4:3",
-            "4:5",
-            "5:4",
-            "8:1",
-            "9:16",
-            "16:9",
-            "21:9",
-            "auto"
-          ]
-        },
-        {
-          "name": "resolution",
-          "type": "enum",
-          "default": "1K",
-          "title": "Resolution",
-          "description": "Resolution of the generated image",
-          "required": false,
-          "values": [
-            "1K",
-            "2K",
-            "4K"
-          ]
-        },
-        {
-          "name": "output_format",
-          "type": "enum",
-          "default": "jpg",
-          "title": "Output Format",
-          "description": "Format of the output image",
-          "required": false,
-          "values": [
-            "png",
-            "jpg"
-          ]
-        }
-      ],
-      "uploads": [
-        {
-          "field": "image_input",
-          "kind": "image",
-          "isList": true,
-          "paramName": "image_input"
-        }
-      ],
-      "validation": [
-        {
-          "field": "prompt",
-          "rule": "not_empty",
-          "message": "Prompt is required"
         }
       ]
     },
@@ -757,21 +880,8 @@ export const imageConfig: ModuleConfig = {
             "16:9",
             "9:16",
             "3:4",
-            "4:3"
-          ]
-        },
-        {
-          "name": "num_images",
-          "type": "enum",
-          "default": "1",
-          "title": "Num Images",
-          "description": "Select description",
-          "required": false,
-          "values": [
-            "1",
-            "2",
-            "3",
-            "4"
+            "4:3",
+            "auto"
           ]
         },
         {
@@ -828,7 +938,8 @@ export const imageConfig: ModuleConfig = {
             "16:9",
             "9:16",
             "3:4",
-            "4:3"
+            "4:3",
+            "auto"
           ]
         },
         {
@@ -886,7 +997,8 @@ export const imageConfig: ModuleConfig = {
             "16:9",
             "9:16",
             "3:4",
-            "4:3"
+            "4:3",
+            "auto"
           ]
         },
         {
@@ -945,10 +1057,10 @@ export const imageConfig: ModuleConfig = {
           ]
         },
         {
-          "name": "image_size",
+          "name": "aspect_ratio",
           "type": "enum",
           "default": "1:1",
-          "title": "Image Size",
+          "title": "Aspect Ratio",
           "description": "Radio description",
           "required": false,
           "values": [
@@ -1011,10 +1123,10 @@ export const imageConfig: ModuleConfig = {
           ]
         },
         {
-          "name": "image_size",
+          "name": "aspect_ratio",
           "type": "enum",
           "default": "1:1",
-          "title": "Image Size",
+          "title": "Aspect Ratio",
           "description": "Radio description",
           "required": false,
           "values": [
@@ -1030,6 +1142,14 @@ export const imageConfig: ModuleConfig = {
             "21:9",
             "auto"
           ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
+          "required": false
         }
       ],
       "validation": [
@@ -1129,6 +1249,170 @@ export const imageConfig: ModuleConfig = {
       ]
     },
     {
+      "className": "GoogleNanoBanana2",
+      "modelId": "nano-banana-2",
+      "title": "Google - Nano Banana 2",
+      "description": "Google - Nano Banana 2 via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by Nano Banana 2",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "A text description of the image you want to generate (Max length: 20000 characters)",
+          "required": true,
+          "max": 20000
+        },
+        {
+          "name": "image_input",
+          "type": "list[image]",
+          "default": [],
+          "title": "Image Input",
+          "description": "Input images to transform or use as reference (supports up to 14 images) (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 30.0MB)",
+          "required": false,
+          "max": 14
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "auto",
+          "title": "Aspect Ratio",
+          "description": "Aspect ratio of the generated image",
+          "required": false,
+          "values": [
+            "1:1",
+            "1:4",
+            "1:8",
+            "2:3",
+            "3:2",
+            "3:4",
+            "4:1",
+            "4:3",
+            "4:5",
+            "5:4",
+            "8:1",
+            "9:16",
+            "16:9",
+            "21:9",
+            "auto"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1K",
+          "title": "Resolution",
+          "description": "Resolution of the generated image",
+          "required": false,
+          "values": [
+            "1K",
+            "2K",
+            "4K"
+          ]
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "jpg",
+          "title": "Output Format",
+          "description": "Format of the output image",
+          "required": false,
+          "values": [
+            "png",
+            "jpg"
+          ]
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image_input",
+          "kind": "image",
+          "isList": true,
+          "paramName": "image_input"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "NanoBanana2Lite",
+      "modelId": "nano-banana-2-lite",
+      "title": "Google - Nano Banana 2 Lite",
+      "description": "Google - Nano Banana 2 Lite via Kie.ai.\n\n    kie, image, ai\n\n    ## Create Task",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "Input image URL array. Optional parameter. Set to an empty array or omit it for pure text-to-image generation. Supports up to 10 images. - Please provide uploaded file URLs, not raw file content - Accepted types: `image/jpeg`, `image/png`, `image/webp` - Max size: 30.0MB",
+          "required": false,
+          "max": 10
+        },
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt used to generate the image. Required. Maximum length: 20000 characters.",
+          "required": true,
+          "max": 20000
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "auto",
+          "title": "Aspect Ratio",
+          "description": "Generated image aspect ratio. Default value: `auto`. Use `auto` to let the system choose the aspect ratio automatically.",
+          "required": true,
+          "values": [
+            "1:1",
+            "1:4",
+            "1:8",
+            "2:3",
+            "3:2",
+            "3:4",
+            "4:1",
+            "4:3",
+            "4:5",
+            "5:4",
+            "8:1",
+            "9:16",
+            "16:9",
+            "21:9",
+            "auto"
+          ]
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "image_urls"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "aspect_ratio",
+          "rule": "not_empty",
+          "message": "Aspect Ratio is required"
+        }
+      ]
+    },
+    {
       "className": "Flux2ProImageToImage",
       "modelId": "flux-2/pro-image-to-image",
       "title": "Flux-2 - Pro Image to Image",
@@ -1188,7 +1472,7 @@ export const imageConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -1268,7 +1552,7 @@ export const imageConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -1350,7 +1634,7 @@ export const imageConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -1431,7 +1715,7 @@ export const imageConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -1488,7 +1772,7 @@ export const imageConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         },
         {
@@ -1538,7 +1822,7 @@ export const imageConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -1708,15 +1992,25 @@ export const imageConfig: ModuleConfig = {
           "type": "enum",
           "default": "",
           "title": "Aspect Ratio",
-          "description": "The aspect ratio of the generated image is set to auto by default.",
+          "description": "The aspect ratio of the generated image is set to auto by default. Note: for 2K and 4K resolution, the following aspect ratios are not supported: 5:4, 4:5, 3:1, 1:3, and 9:21.",
           "required": false,
           "values": [
             "auto",
             "1:1",
-            "9:16",
-            "16:9",
+            "3:2",
+            "2:3",
             "4:3",
-            "3:4"
+            "3:4",
+            "5:4",
+            "4:5",
+            "16:9",
+            "9:16",
+            "2:1",
+            "1:2",
+            "3:1",
+            "1:3",
+            "21:9",
+            "9:21"
           ]
         },
         {
@@ -1770,15 +2064,25 @@ export const imageConfig: ModuleConfig = {
           "type": "enum",
           "default": "",
           "title": "Aspect Ratio",
-          "description": "The aspect ratio of the generated image is set to auto by default.",
+          "description": "The aspect ratio of the generated image is set to auto by default. Note: 5:4 and 4:5 aspect ratios only support 1K images.",
           "required": false,
           "values": [
             "auto",
             "1:1",
-            "9:16",
-            "16:9",
+            "3:2",
+            "2:3",
             "4:3",
-            "3:4"
+            "3:4",
+            "5:4",
+            "4:5",
+            "16:9",
+            "9:16",
+            "2:1",
+            "1:2",
+            "3:1",
+            "1:3",
+            "21:9",
+            "9:21"
           ]
         },
         {
@@ -2772,7 +3076,7 @@ export const imageConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -2899,7 +3203,7 @@ export const imageConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -3055,14 +3359,6 @@ export const imageConfig: ModuleConfig = {
           "description": "The negative prompt for the generation Default value: \" \" (Max length: 500 characters)",
           "required": false,
           "max": 500
-        },
-        {
-          "name": "nsfw_checker",
-          "type": "bool",
-          "default": false,
-          "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
-          "required": false
         }
       ],
       "uploads": [
@@ -3147,14 +3443,6 @@ export const imageConfig: ModuleConfig = {
             "jpeg",
             "png"
           ]
-        },
-        {
-          "name": "nsfw_checker",
-          "type": "bool",
-          "default": false,
-          "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
-          "required": false
         }
       ],
       "uploads": [
@@ -3228,7 +3516,7 @@ export const imageConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -3363,7 +3651,7 @@ export const imageConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -3506,7 +3794,7 @@ export const imageConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],

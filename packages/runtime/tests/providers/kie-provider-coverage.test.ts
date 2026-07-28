@@ -195,10 +195,12 @@ describe("KieProvider — metadata", () => {
   it("lists all chat models as kie language models", async () => {
     const p = new KieProvider({ KIE_API_KEY: "k" });
     const models = await p.getAvailableLanguageModels();
-    expect(models.length).toBe(6);
+    expect(models.length).toBeGreaterThan(10);
     expect(models.every((m) => m.provider === "kie")).toBe(true);
     expect(models.map((m) => m.id)).toContain("gpt-5-5");
-    expect(models.map((m) => m.id)).toContain("claude-opus-4-6");
+    expect(models.map((m) => m.id)).toContain("claude-opus-5");
+    expect(models.map((m) => m.id)).toContain("grok-4-5");
+    expect(models.map((m) => m.id)).toContain("gemini-3-6-flash");
   });
 
   it("reports tool support only for known chat models", async () => {

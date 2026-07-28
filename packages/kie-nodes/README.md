@@ -12,7 +12,7 @@ npm install @nodetool-ai/kie-nodes
 
 ## Nodes
 
-Over 120 nodes, one per Kie.ai model, named `kie.<category>.<Model>`.
+Over 140 nodes, one per Kie.ai model, named `kie.<category>.<Model>`.
 
 | Category | Node type prefix | Example |
 | --- | --- | --- |

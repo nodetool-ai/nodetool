@@ -297,7 +297,8 @@ describe("manifest-models Kie `fields` schema support", () => {
       "16:9",
       "9:16",
       "3:4",
-      "4:3"
+      "4:3",
+      "auto"
     ]);
   });
 });

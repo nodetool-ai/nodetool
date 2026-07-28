@@ -75,7 +75,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -185,7 +185,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -249,23 +249,20 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "extend_at",
-          "type": "str",
-          "default": "",
+          "type": "float",
+          "default": 2,
           "title": "Extend At",
           "description": "The starting position of the video extension. Optional field.",
-          "required": true
+          "required": true,
+          "min": 2
         },
         {
           "name": "extend_times",
-          "type": "enum",
-          "default": "6",
+          "type": "float",
+          "default": 0,
           "title": "Extend Times",
           "description": "Duration of video extension (in seconds). Required field. - `6`: Expand 6 seconds of video content - `10`: Expand 10 seconds of video content - The longer the extension duration, the longer the time required for generation - Select the appropriate duration based on the complexity of the scene",
-          "required": true,
-          "values": [
-            "6",
-            "10"
-          ]
+          "required": true
         }
       ],
       "validation": [
@@ -278,16 +275,87 @@ export const videoConfig: ModuleConfig = {
           "field": "prompt",
           "rule": "not_empty",
           "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "GrokImagineVideo15PreviewCreateTask",
+      "modelId": "grok-imagine-video-1-5-preview",
+      "title": "Grok Imagine Video 1.5 Preview",
+      "description": "Grok Imagine Video 1.5 Preview via Kie.ai.\n\n    kie, video, ai\n\n    ## Create Task",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Prompt for video generation. Maximum length: 4096 characters.",
+          "required": false,
+          "max": 4096
         },
         {
-          "field": "extend_at",
-          "rule": "not_empty",
-          "message": "Extend At is required"
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "Upload image files to be used as API input. Supported file types: image/jpeg, image/png, image/webp, image/jpg. Maximum file size: 20MB. Supports multi-file upload, up to 7 file.",
+          "required": false,
+          "max": 7
         },
         {
-          "field": "extend_times",
-          "rule": "not_empty",
-          "message": "Extend Times is required"
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "auto",
+          "title": "Aspect Ratio",
+          "description": "The aspect ratio of the video. This parameter is invalid if it is a single image.",
+          "required": false,
+          "values": [
+            "1:1",
+            "16:9",
+            "9:16",
+            "3:2",
+            "2:3",
+            "auto"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "480p",
+          "title": "Resolution",
+          "description": "Resolution for video generation.",
+          "required": false,
+          "values": [
+            "480p",
+            "720p"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 8,
+          "title": "Duration",
+          "description": "Video duration in seconds. Range: [1, 15]. Default: 8. Minimum: 1. Maximum: 15. Step: 1.",
+          "required": false,
+          "min": 1,
+          "max": 15
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "image_urls"
         }
       ]
     },
@@ -486,6 +554,20 @@ export const videoConfig: ModuleConfig = {
           "required": false,
           "min": 0,
           "max": 1
+        },
+        {
+          "name": "tail_image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Tail Image",
+          "description": "Tail frame image of video (File URL after upload, not file content; Accepted types: image/jpeg, image/png; Max size: 10.0MB)",
+          "required": false
         }
       ],
       "uploads": [
@@ -493,6 +575,11 @@ export const videoConfig: ModuleConfig = {
           "field": "image",
           "kind": "image",
           "paramName": "image_url"
+        },
+        {
+          "field": "tail_image",
+          "kind": "image",
+          "paramName": "tail_image_url"
         }
       ],
       "validation": [
@@ -1180,6 +1267,150 @@ export const videoConfig: ModuleConfig = {
       ]
     },
     {
+      "className": "KlingV3TurboTextToVideo",
+      "modelId": "kling/v3-turbo-text-to-video",
+      "title": "Kling - V3 Turbo Text to Video",
+      "description": "Kling - V3 Turbo Text to Video via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text description of the video you want to generate (Max length: 2500 characters)",
+          "required": true,
+          "max": 2500
+        },
+        {
+          "name": "duration",
+          "type": "str",
+          "default": "5",
+          "title": "Duration",
+          "description": "The duration of the generated video in seconds Optional duration: 3s - 15s",
+          "required": true
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "description": "The aspect ratio of the generated video frame",
+          "required": true,
+          "values": [
+            "1:1",
+            "9:16",
+            "16:9"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "720p",
+          "title": "Resolution",
+          "description": "Resolution of the generated video (720p or 1080p)",
+          "required": true,
+          "values": [
+            "720p",
+            "1080p"
+          ]
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "duration",
+          "rule": "not_empty",
+          "message": "Duration is required"
+        },
+        {
+          "field": "aspect_ratio",
+          "rule": "not_empty",
+          "message": "Aspect Ratio is required"
+        },
+        {
+          "field": "resolution",
+          "rule": "not_empty",
+          "message": "Resolution is required"
+        }
+      ]
+    },
+    {
+      "className": "KlingV3TurboImageToVideo",
+      "modelId": "kling/v3-turbo-image-to-video",
+      "title": "Kling - V3 Turbo Image to Video",
+      "description": "Kling - V3 Turbo Image to Video via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt describing the video to generate (Max length: 2500 characters)",
+          "required": true,
+          "max": 2500
+        },
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "URL of the image to be used for the video (File URL after upload, not file content; Accepted types: image/jpeg, image/png; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "duration",
+          "type": "str",
+          "default": "5",
+          "title": "Duration",
+          "description": "The duration of the generated video in seconds Optional duration: 3s - 15s",
+          "required": true
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "720p",
+          "title": "Resolution",
+          "description": "Resolution of the generated video (720p or 1080p)",
+          "required": true,
+          "values": [
+            "720p",
+            "1080p"
+          ]
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "image_urls"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "duration",
+          "rule": "not_empty",
+          "message": "Duration is required"
+        },
+        {
+          "field": "resolution",
+          "rule": "not_empty",
+          "message": "Resolution is required"
+        }
+      ]
+    },
+    {
       "className": "BytedanceSeedance2",
       "modelId": "bytedance/seedance-2",
       "title": "bytedance-seedance-2",
@@ -1258,7 +1489,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": true,
           "title": "Generate Audio",
-          "description": "Whether to generate audio for the video. - **true**: Generate with audio (higher cost) - **false**: Generate without audio Note: Enabling audio will increase the generation cost",
+          "description": "Whether to generate audio for the video. - **true**: Generate with audio - **false**: Generate without audio",
           "required": false
         },
         {
@@ -1266,12 +1497,13 @@ export const videoConfig: ModuleConfig = {
           "type": "enum",
           "default": "720p",
           "title": "Resolution",
-          "description": "Video resolution - 480p for faster generation, 720p for balance, 1080p for High-quality video",
+          "description": "Video resolution - 480p for faster generation, 720p for balance, 1080p for High-quality video, 4K Ultra-High Definition, delivering perfect visual details.",
           "required": false,
           "values": [
             "480p",
             "720p",
-            "1080p"
+            "1080p",
+            "4k"
           ]
         },
         {
@@ -1314,7 +1546,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -1428,7 +1660,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": true,
           "title": "Generate Audio",
-          "description": "Whether to generate audio for the video. - **true**: Generate with audio - **false**: Generate without audio Note: Enabling audio will increase the generation cost",
+          "description": "Whether to generate audio for the video. - **true**: Generate with audio - **false**: Generate without audio",
           "required": false
         },
         {
@@ -1475,7 +1707,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Web Search",
-          "description": "Use online search",
+          "description": "Use online search. (Web search only can be used in the scene of t2v)",
           "required": false
         },
         {
@@ -1483,7 +1715,176 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "first_frame",
+          "kind": "image",
+          "paramName": "first_frame_url"
+        },
+        {
+          "field": "last_frame",
+          "kind": "image",
+          "paramName": "last_frame_url"
+        },
+        {
+          "field": "reference_images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "reference_image_urls"
+        },
+        {
+          "field": "reference_videos",
+          "kind": "video",
+          "isList": true,
+          "paramName": "reference_video_urls"
+        },
+        {
+          "field": "reference_audios",
+          "kind": "audio",
+          "isList": true,
+          "paramName": "reference_audio_urls"
+        }
+      ]
+    },
+    {
+      "className": "BytedanceSeedance2Mini",
+      "modelId": "bytedance/seedance-2-mini",
+      "title": "Bytedance Seedance 2.0 Mini",
+      "description": "Bytedance Seedance 2.0 Mini via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt used to generate the video. Required field. (Min length: 3, Max length: 20000 characters)",
+          "required": false,
+          "min": 3,
+          "max": 20000
+        },
+        {
+          "name": "first_frame",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "First Frame",
+          "description": "First frame image url or asset://{assetId} (for example: asset://asset-20260404242101-76djj)",
+          "required": false
+        },
+        {
+          "name": "last_frame",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Last Frame",
+          "description": "End frame image url or asset://{assetId} (for example: asset://asset-20260404242101-76djj)",
+          "required": false
+        },
+        {
+          "name": "reference_images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Reference Images",
+          "description": "Enter a list of image URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj). Single image requirements: Format: jpeg, png, webp, bmp, tiff, gif. Aspect ratio (width/height): (0.4, 2.5) Width and height (px): (300, 6000) Size: Single image less than 30 MB. Maximum number of files: The sum of the number of frames at the beginning and end must not exceed 9..",
+          "required": false,
+          "max": 9
+        },
+        {
+          "name": "reference_videos",
+          "type": "list[video]",
+          "default": [],
+          "title": "Reference Videos",
+          "description": "Enter a list of video URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj). Single video requirements: Video format: mp4, mov. Resolution: 480p, 720p Duration: Single video duration [2, 15] s, maximum 3 reference videos, total duration of all videos not exceeding 15 seconds. Dimensions: Aspect ratio (width/height): [0.4, 2.5] Width/height (px): [300, 6000] Total pixels: [640×640=409600, 834×1112=927408], i.e., the product of width and height must meet the range requirement of [409600, 927408]. Size: Single video not exceeding 50 MB. Frame rate (FPS): [24, 60]",
+          "required": false,
+          "min": 2,
+          "max": 3
+        },
+        {
+          "name": "reference_audios",
+          "type": "list[audio]",
+          "default": [],
+          "title": "Reference Audios",
+          "description": "Enter a list of audio URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj). Single audio requirements: Format: wav, mp3 Duration: Single audio duration [2, 15] s, maximum 3 reference audios, total duration of all audios not exceeding 15 s. Size: Single audio file size not exceeding 15 MB.",
+          "required": false,
+          "min": 2,
+          "max": 3
+        },
+        {
+          "name": "generate_audio",
+          "type": "bool",
+          "default": true,
+          "title": "Generate Audio",
+          "description": "Whether to generate audio for the video. - **true**: Generate with audio - **false**: Generate without audio",
+          "required": false
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "720p",
+          "title": "Resolution",
+          "description": "Video resolution - 480p for faster generation, 720p for balance",
+          "required": false,
+          "values": [
+            "480p",
+            "720p"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "description": "Video aspect ratio configuration. Required field.",
+          "required": false,
+          "values": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "21:9",
+            "adaptive"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 5,
+          "title": "Duration",
+          "description": "Video duration in 4-15 seconds.",
+          "required": false,
+          "min": 4,
+          "max": 15
+        },
+        {
+          "name": "web_search",
+          "type": "bool",
+          "default": false,
+          "title": "Web Search",
+          "description": "Use online search. (Web search only can be used in the scene of t2v)",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -1530,10 +1931,10 @@ export const videoConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Prompt",
-          "description": "The text prompt used to generate the video. Required field. (Min length: 3, Max length: 2500 characters)",
+          "description": "The text prompt used to generate the video. Required field. (Min length: 3, Max length: 20000 characters)",
           "required": true,
           "min": 3,
-          "max": 2500
+          "max": 20000
         },
         {
           "name": "videos",
@@ -1575,16 +1976,13 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "duration",
-          "type": "enum",
-          "default": "",
+          "type": "float",
+          "default": 0,
           "title": "Duration",
-          "description": "Duration of the video in seconds",
+          "description": "Duration of the video in seconds,Optional range 4-12 s",
           "required": true,
-          "values": [
-            "4",
-            "8",
-            "12"
-          ]
+          "min": 4,
+          "max": 12
         },
         {
           "name": "fixed_lens",
@@ -1607,7 +2005,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -1629,11 +2027,6 @@ export const videoConfig: ModuleConfig = {
           "field": "aspect_ratio",
           "rule": "not_empty",
           "message": "Aspect Ratio is required"
-        },
-        {
-          "field": "duration",
-          "rule": "not_empty",
-          "message": "Duration is required"
         }
       ]
     },
@@ -1696,7 +2089,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -1801,7 +2194,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -1901,14 +2294,6 @@ export const videoConfig: ModuleConfig = {
           "default": false,
           "title": "Enable Safety Checker",
           "description": "The safety checker is always enabled in Playground. It can only be disabled by setting false through the API. (Boolean value (true/false))",
-          "required": false
-        },
-        {
-          "name": "nsfw_checker",
-          "type": "bool",
-          "default": false,
-          "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
           "required": false
         }
       ],
@@ -2020,7 +2405,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -2130,7 +2515,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -2201,7 +2586,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -2279,7 +2664,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -2327,7 +2712,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -2396,7 +2781,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -2461,7 +2846,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -2554,7 +2939,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -2655,7 +3040,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -2803,7 +3188,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -2902,7 +3287,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -2969,7 +3354,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -3041,7 +3426,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -3113,7 +3498,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -3179,7 +3564,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Enabled by default in Playground. For API calls, you can turn it on or off based on your needs.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -3245,7 +3630,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -3336,7 +3721,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -3426,7 +3811,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -3530,7 +3915,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Enabled by default in Playground. For API calls, you can turn it on or off based on your needs.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -3637,7 +4022,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -3762,7 +4147,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -3917,7 +4302,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -3993,6 +4378,22 @@ export const videoConfig: ModuleConfig = {
           "required": true,
           "min": 240,
           "max": 4096
+        },
+        {
+          "name": "reference_image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Reference Image",
+          "description": "Optional reference image URL for character, clothing, or style guidance. - Formats: `JPEG`, `JPG`, `PNG` (no alpha channel), `BMP`, `WEBP` - Resolution: width and height range `[240,8000]` pixels - Aspect ratio: `1:8` to `8:1` - Supports public `http/https` URLs or temporary `oss` URLs",
+          "required": false,
+          "min": 240,
+          "max": 8000
         },
         {
           "name": "resolution",
@@ -4074,24 +4475,8 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
-        },
-        {
-          "name": "reference_image",
-          "type": "image",
-          "default": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          },
-          "title": "Reference Image",
-          "description": "Optional reference image URL for character, clothing, or style guidance. - Formats: `JPEG`, `JPG`, `PNG` (no alpha channel), `BMP`, `WEBP` - Resolution: width and height range `[240,8000]` pixels - Aspect ratio: `1:8` to `8:1` - Supports public `http/https` URLs or temporary `oss` URLs",
-          "required": false,
-          "min": 240,
-          "max": 8000
         }
       ],
       "uploads": [
@@ -4246,7 +4631,7 @@ export const videoConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
         }
       ],
@@ -4415,6 +4800,595 @@ export const videoConfig: ModuleConfig = {
       ]
     },
     {
+      "className": "PixverseV6TextToVideo",
+      "modelId": "pixverse-v6/text-to-video",
+      "title": "PixVerse V6 Text-to-Video",
+      "description": "PixVerse V6 Text-to-Video via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Generate prompt, cannot be empty, length is limited to 3-5000 characters.",
+          "required": true,
+          "min": 3,
+          "max": 5000
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "description": "Output video aspect ratio. This parameter is supported in text-to-video and Fusion multi-reference image-to-video modes.",
+          "required": true,
+          "values": [
+            "16:9",
+            "4:3",
+            "1:1",
+            "3:4",
+            "9:16",
+            "2:3",
+            "3:2",
+            "21:9"
+          ]
+        },
+        {
+          "name": "quality",
+          "type": "enum",
+          "default": "720p",
+          "title": "Quality",
+          "description": "Output video resolution. Supports 360p, 540p, 720p, and 1080p.",
+          "required": true,
+          "values": [
+            "360p",
+            "540p",
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 5,
+          "title": "Duration",
+          "description": "Output video duration in seconds. PixVerse V6 supports 1–15 seconds.",
+          "required": true,
+          "min": 1,
+          "max": 15
+        },
+        {
+          "name": "generate_audio_switch",
+          "type": "bool",
+          "default": false,
+          "title": "Generate Audio Switch",
+          "description": "Whether to generate audio synchronized with the video content.",
+          "required": false
+        },
+        {
+          "name": "generate_multi_clip_switch",
+          "type": "bool",
+          "default": false,
+          "title": "Generate Multi Clip Switch",
+          "description": "Whether to generate a multi-clip video.",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed, value range is 0–2147483647. Using the same parameters and seed helps improve result reproducibility.",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "aspect_ratio",
+          "rule": "not_empty",
+          "message": "Aspect Ratio is required"
+        },
+        {
+          "field": "quality",
+          "rule": "not_empty",
+          "message": "Quality is required"
+        }
+      ]
+    },
+    {
+      "className": "PixverseV6ImageToVideo",
+      "modelId": "pixverse-v6/image-to-video",
+      "title": "PixVerse V6 Image-to-Video",
+      "description": "PixVerse V6 Image-to-Video via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Generate prompt, cannot be empty, length is limited to 3-5000 characters.",
+          "required": true,
+          "min": 3,
+          "max": 5000
+        },
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "Image URLs, supports up to 2 images, single image size not exceeding 20 MB. Supports HTTP, HTTPS, and OSS addresses. Supported image formats include JPG, JPEG, PNG, and WebP.",
+          "required": true
+        },
+        {
+          "name": "quality",
+          "type": "enum",
+          "default": "720p",
+          "title": "Quality",
+          "description": "Output video resolution. Supports 360p, 540p, 720p, and 1080p.",
+          "required": true,
+          "values": [
+            "360p",
+            "540p",
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 5,
+          "title": "Duration",
+          "description": "Generated video duration in seconds, ranging from 1 to 15. Required when template_id is not passed; if template_id is passed, the video duration is fixed by the selected template, please do not pass this parameter at the same time.",
+          "required": true,
+          "min": 1,
+          "max": 15
+        },
+        {
+          "name": "generate_audio_switch",
+          "type": "bool",
+          "default": false,
+          "title": "Generate Audio Switch",
+          "description": "Whether to generate audio synchronized with the video content.",
+          "required": false
+        },
+        {
+          "name": "generate_multi_clip_switch",
+          "type": "bool",
+          "default": false,
+          "title": "Generate Multi Clip Switch",
+          "description": "Whether to generate a multi-clip video.",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed, value range is 0-2147483647. Using the same parameters and seed helps improve result reproducibility.",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        },
+        {
+          "name": "template_id",
+          "type": "enum",
+          "default": "",
+          "title": "Template Id",
+          "description": "Used to select a PixVerse video effect template. Please pass in the corresponding template_id. Once a template_id is provided, the video duration is fixed by the selected template, so duration cannot be set at the same time. effect_type indicates the number of images required by the selected template. Please upload the specified number of images accordingly. To preview the template effect, open https://static.aiquickdraw.com/tools/example/<template_id>.mp4 in a browser and replace <template_id> with the actual template ID. For example:https://static.aiquickdraw.com/tools/example/412736208886848.mp4. Available template list: 412736208886848 - Dive into the deep blue of love - Let every kiss turn into a dream. - effect_type: 2 411563216524736 - Skyline Track Flag - Unwavering. Next is the city-level entrance effect. - effect_type: 1 411316927927040 - Vibe Copines - Capture this vibe with tungtung. - effect_type: 1 411174903569216 - Crowd Focus - First person: The camera caught you - upload a selfie or group photo to become the focus of the audience - effect_type: 1 410999246341952 - Poke my little cutie - Pinch this little guy and watch it get cutely angry. - effect_type: 1 408891141511104 - Today is my birthday - Yes, I know you don't know me, but today is my birthday - effect_type: 1 410317363057408 - Mini Football Hero - Turn any photo into a mini chibi football hero and compete with giant players in a cinematic hyper-realistic stadium. - effect_type: 1 410285445698304 - Magma Rise - Rise from the ashes. Fight fire with fire. - effect_type: 1 410133101388544 - Cyber Armor: Reborn in the Rain 🌧️⚡ - Shatter the storm. Awaken the body of steel within. - effect_type: 1 409899296377728 - Product Landmark - Upload your product and turn it into a building! - effect_type: 1 408897485909952 - Mini Football Pitch - Upload your product and create a mini football pitch inside it! - effect_type: 1 408869061406656 - A kick through the world - Upload your product and let it shine on the night of the grand annual global competition! - effect_type: 1 408661207662528 - Small Town Footballer - Upload your product and enjoy the moment of victory! - effect_type: 1 409767750265728 - Crowned God in One Battle - You unexpectedly became the MVP of the game. - effect_type: 1 409766559675264 - Thriller Dance Steps - Upload a photo and watch it turn into an iconic viral dance trend! - effect_type: 1 409589071559552 - Dai Dai Dance - Vibe cheering dance template. A front-facing photo to easily join the dance floor clip. - effect_type: 1 407804339389760 - Fluffy Chef - Upload your product and cook in the fluffy kitchen - effect_type: 1 407658863287616 - Summer Postcard - Upload your product and join the summer special! - effect_type: 1 407474361215744 - Inhaled into Product Universe - Upload your product and enter the product universe! - effect_type: 1 407473438360320 - Fluffy Factory - Upload your product to make it in the fluffy factory - effect_type: 1 407467702283008 - Surfing Summer - Upload your product photo and start surfing! - effect_type: 1 385844572217469 - Love Launcher - A Valentine's Day moment in one shot. - effect_type: 1 406428904874432 - Kitty Shop - Upload your product image and let the cute cat transform into your street vendor! - effect_type: 1 406423682060736 - Courtyard Makeover Party - Upload your courtyard and give it a magical makeover! - effect_type: 1 406411724685760 - Ski Joy - Upload a photo of your pet, toy or product and let it embark on a fun skiing adventure. - effect_type: 1 406372274350528 - Nail Lab - Upload your nail photos and let our exclusive manicurists create exquisite nails for you. - effect_type: 1 406218913317312 - Rhythm Dash - Hit the beat, take off the crown. Welcome to the perfect score frenzy. - effect_type: 1 406218479198656 - Screen Killer King - The court needs a hero. So, you break through the screen. - effect_type: 1 406064763308480 - Dynamic Football Poster - From selfie to jersey photo (single and multiplayer) - effect_type: 1 406413607395776 - Football Live King! - The moment you score a wonderful goal, super sports car gifts pour down. - effect_type: 1 405662117814720 - Trophy Breakthrough - Upload your photo, transform into a champion football player, break through the screen and win the trophy! - effect_type: 1 406014934000064 - Post-match Sharp Comment - If the microphone is handed to you after the game, what would you say? - effect_type: 1 405658369331648 - Stadium Legend - Run, celebrate, create a legendary football moment. - effect_type: 1 405321470423488 - Step by Step - Step by step, shining with confidence - effect_type: 1 405175211454656 - Superstar Lobby - Welcome to your championship season. - effect_type: 1 404955806201792 - Post-match Sharp Comment 2 - If it's your turn for a post-match interview, what would you say about this game? - effect_type: 1 404820147974080 - Top of the World - Hold the trophy high and become the well-deserved hero of the football feast. - effect_type: 2 398980393937856 - The Last Hug - The last hug before the tsunami comes. - effect_type: 2 403916646846400 - My Future has Infinite Possibilities - Embrace your infinite potential and shine your future. - effect_type: 1 403739217192896 - Apex Dance - Flat rhythm, decadent chaotic dance steps - effect_type: 1 403560060358144 - Idol Ending Shot - One look up is a million direct shots. - effect_type: 1 403556618212098 - MotoGP Live - Live an unchoreographed moment. - effect_type: 1 398965022284579 - Knee Slide - Celebrate the victory with an iconic and energetic knee slide goal. - effect_type: 1 402201060373270 - Tunnel to Captain - Transform from an ordinary girl to a legendary football captain in a cinematic stadium journey. - effect_type: 1 403085292466285 - Golden Field Breaker - He is not on the list, but he still controls the scene. - effect_type: 1 402061828030966 - Trophy Celebration - Have you always wanted a huge trophy? Here, you can at least get it digitally. - effect_type: 1 402888569901524 - Jump into the Crowd 2 - Jump into the crowd - effect_type: 1 402155676592228 - World Champion Lift - You are the captain, lifting the trophy of victory. Mountains of people, golden ribbons, pure victory. - effect_type: 1 402047865383360 - Sideline Ball Boy - Experience the game from a unique perspective on the sidelines. Feel the excitement of the game as a young talent ready to participate. - effect_type: 1 402046136040202 - Epic Save - Become a legendary goalkeeper. Catch the ball in a stunning flying save. - effect_type: 1",
+          "required": false,
+          "values": [
+            "412736208886848",
+            "411563216524736",
+            "411316927927040",
+            "411174903569216",
+            "410999246341952",
+            "408891141511104",
+            "410317363057408",
+            "410285445698304",
+            "410133101388544",
+            "409899296377728",
+            "408897485909952",
+            "408869061406656",
+            "408661207662528",
+            "409767750265728",
+            "409766559675264",
+            "409589071559552",
+            "407804339389760",
+            "407658863287616",
+            "407474361215744",
+            "407473438360320",
+            "407467702283008",
+            "385844572217469",
+            "406428904874432",
+            "406423682060736",
+            "406411724685760",
+            "406372274350528",
+            "406218913317312",
+            "406218479198656",
+            "406064763308480",
+            "406413607395776",
+            "405662117814720",
+            "406014934000064",
+            "405658369331648",
+            "405321470423488",
+            "405175211454656",
+            "404955806201792",
+            "404820147974080",
+            "398980393937856",
+            "403916646846400",
+            "403739217192896",
+            "403560060358144",
+            "403556618212098",
+            "398965022284579",
+            "402201060373270",
+            "403085292466285",
+            "402061828030966",
+            "402888569901524",
+            "402155676592228",
+            "402047865383360",
+            "402046136040202"
+          ]
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "image_urls"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "quality",
+          "rule": "not_empty",
+          "message": "Quality is required"
+        }
+      ]
+    },
+    {
+      "className": "PixverseV6FirstLastFrameTransition",
+      "modelId": "pixverse-v6/transition",
+      "title": "PixVerse V6 First & Last Frame Transition",
+      "description": "PixVerse V6 First & Last Frame Transition via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Generate prompt, cannot be empty, length is limited to 3-5000 characters.",
+          "required": true,
+          "min": 3,
+          "max": 5000
+        },
+        {
+          "name": "first_frame_image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "First Frame Image",
+          "description": "First frame image URL. Supports HTTP, HTTPS, and OSS addresses; supported image formats include JPG, JPEG, PNG, and WebP; the size of a single image file must not exceed 20 MB",
+          "required": true
+        },
+        {
+          "name": "last_frame_image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Last Frame Image",
+          "description": "Last frame image URL. Supports HTTP, HTTPS, and OSS addresses; supported image formats include JPG, JPEG, PNG, and WebP; the size of a single image file must not exceed 20 MB",
+          "required": true
+        },
+        {
+          "name": "quality",
+          "type": "enum",
+          "default": "720p",
+          "title": "Quality",
+          "description": "Output video resolution. Supports 360p, 540p, 720p, and 1080p.",
+          "required": true,
+          "values": [
+            "360p",
+            "540p",
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 5,
+          "title": "Duration",
+          "description": "Output video duration in seconds. PixVerse V6 supports 1–15 seconds.",
+          "required": true,
+          "min": 1,
+          "max": 15
+        },
+        {
+          "name": "generate_audio_switch",
+          "type": "bool",
+          "default": false,
+          "title": "Generate Audio Switch",
+          "description": "Whether to generate audio synchronized with the video content.",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed, value range is 0–2147483647. Using the same parameters and seed helps improve result reproducibility.",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        }
+      ],
+      "uploads": [
+        {
+          "field": "first_frame_image",
+          "kind": "image",
+          "paramName": "first_frame_image_url"
+        },
+        {
+          "field": "last_frame_image",
+          "kind": "image",
+          "paramName": "last_frame_image_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "quality",
+          "rule": "not_empty",
+          "message": "Quality is required"
+        }
+      ]
+    },
+    {
+      "className": "PixverseV6VideoExtension",
+      "modelId": "pixverse-v6/extend",
+      "title": "PixVerse V6 Video Extension",
+      "description": "PixVerse V6 Video Extension via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Generate prompt, cannot be empty, length is limited to 3-5000 characters.",
+          "required": true,
+          "min": 3,
+          "max": 5000
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 0,
+          "title": "Duration",
+          "description": "Generated video duration in seconds. Current validation range is 1-15.",
+          "required": true,
+          "min": 1,
+          "max": 15
+        },
+        {
+          "name": "quality",
+          "type": "enum",
+          "default": "",
+          "title": "Quality",
+          "description": "Resolution.",
+          "required": true,
+          "values": [
+            "360p",
+            "540p",
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "generate_audio_switch",
+          "type": "bool",
+          "default": false,
+          "title": "Generate Audio Switch",
+          "description": "Whether to generate audio.",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed, optional. Range 0-2147483647.",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        },
+        {
+          "name": "taskId",
+          "type": "str",
+          "default": "",
+          "title": "Task Id",
+          "description": "The taskId of the parent video task to be extended. The parent task must belong to the current user, be undeleted, and have a status of success. KIE does not accept official source_video_id/video_id. Please be aware that video_url and taskId are mutually exclusive — only one parameter may be submitted.",
+          "required": true
+        },
+        {
+          "name": "video",
+          "type": "video",
+          "default": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null,
+            "duration": null,
+            "format": null
+          },
+          "title": "Video",
+          "description": "To extend the video, please supply the URL. Please be aware that video_url and taskId are mutually exclusive — only one parameter may be submitted.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "video",
+          "kind": "video",
+          "paramName": "video_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "quality",
+          "rule": "not_empty",
+          "message": "Quality is required"
+        },
+        {
+          "field": "taskId",
+          "rule": "not_empty",
+          "message": "Task Id is required"
+        }
+      ]
+    },
+    {
+      "className": "PixverseV6FusionReferenceToVideo",
+      "modelId": "pixverse-v6/reference-to-video",
+      "title": "PixVerse V6 Fusion / Reference-to-Video",
+      "description": "PixVerse V6 Fusion / Reference-to-Video via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Generate prompt, cannot be empty, length is limited to 3-5000 characters.",
+          "required": true,
+          "min": 3,
+          "max": 5000
+        },
+        {
+          "name": "image_references",
+          "type": "list[image]",
+          "default": [],
+          "title": "Image References",
+          "description": "Fusion multi-reference image list. `ref_name` must be unique within the same list. You can reference the reference object in the prompt via `@ref_name`.",
+          "required": true,
+          "min": 1,
+          "max": 7
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "description": "Output video aspect ratio. Supported in text-to-video and Fusion multi-reference image to video modes.",
+          "required": true,
+          "values": [
+            "16:9",
+            "4:3",
+            "1:1",
+            "3:4",
+            "9:16",
+            "2:3",
+            "3:2",
+            "21:9"
+          ]
+        },
+        {
+          "name": "quality",
+          "type": "enum",
+          "default": "720p",
+          "title": "Quality",
+          "description": "Output video resolution. Supports 360p, 540p, 720p, and 1080p.",
+          "required": true,
+          "values": [
+            "360p",
+            "540p",
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 5,
+          "title": "Duration",
+          "description": "Output video duration, in seconds.",
+          "required": true,
+          "min": 1,
+          "max": 15
+        },
+        {
+          "name": "generate_audio_switch",
+          "type": "bool",
+          "default": false,
+          "title": "Generate Audio Switch",
+          "description": "Whether to generate audio synchronized with the video content.",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed, value range is 0-2147483647. Using the same parameters and seed helps improve the reproducibility of the results.",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "aspect_ratio",
+          "rule": "not_empty",
+          "message": "Aspect Ratio is required"
+        },
+        {
+          "field": "quality",
+          "rule": "not_empty",
+          "message": "Quality is required"
+        }
+      ]
+    },
+    {
       "className": "HappyhorseTextToVideo",
       "modelId": "happyhorse/text-to-video",
       "title": "happyhorse-text-to-video",
@@ -4561,25 +5535,6 @@ export const videoConfig: ModuleConfig = {
       "outputType": "video",
       "fields": [
         {
-          "name": "prompt",
-          "type": "str",
-          "default": "",
-          "title": "Prompt",
-          "description": "Text prompt describing the video to generate (any language). Max 5,000 non‑Chinese characters or 2,500 Chinese characters; extra content is truncated.",
-          "required": true,
-          "max": 5000
-        },
-        {
-          "name": "reference_image",
-          "type": "list[image]",
-          "default": [],
-          "title": "Reference Image",
-          "description": "Reference image URL list. Provide 1–9 images. The order defines which image is character1, character2, etc. Image limits: Format: JPEG, JPG, PNG, and WEBP. Resolution: shortest side at least 400 px. 720P or higher recommended. Avoid small, blurry, or heavily compressed images, as they degrade output quality. File size: 10 MB maximum.",
-          "required": true,
-          "min": 1,
-          "max": 9
-        },
-        {
           "name": "resolution",
           "type": "enum",
           "default": "1080p",
@@ -4590,6 +5545,35 @@ export const videoConfig: ModuleConfig = {
             "720p",
             "1080p"
           ]
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 5,
+          "title": "Duration",
+          "description": "Output duration in seconds (integer). Must be between 3 and 15. Defaults to 5.",
+          "required": false,
+          "min": 3,
+          "max": 15
+        },
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt describing the video to generate (any language). Max 5,000 non‑Chinese characters or 2,500 Chinese characters; extra content is truncated.",
+          "required": true,
+          "max": 5000
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed for reproducibility (if supported).",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
         },
         {
           "name": "aspect_ratio",
@@ -4607,24 +5591,14 @@ export const videoConfig: ModuleConfig = {
           ]
         },
         {
-          "name": "duration",
-          "type": "int",
-          "default": 5,
-          "title": "Duration",
-          "description": "Output duration in seconds (integer). Must be between 3 and 15. Defaults to 5.",
-          "required": false,
-          "min": 3,
-          "max": 15
-        },
-        {
-          "name": "seed",
-          "type": "int",
-          "default": 0,
-          "title": "Seed",
-          "description": "Random seed for reproducibility (if supported).",
-          "required": false,
-          "min": 0,
-          "max": 2147483647
+          "name": "reference_image",
+          "type": "list[image]",
+          "default": [],
+          "title": "Reference Image",
+          "description": "Reference image URL list. Provide 1–9 images. The order defines which image is character1, character2, etc. Image limits: Format: JPEG, JPG, PNG, and WEBP. Resolution: shortest side at least 400 px. 720P or higher recommended. Avoid small, blurry, or heavily compressed images, as they degrade output quality. File size: 10 MB maximum.",
+          "required": true,
+          "min": 1,
+          "max": 9
         }
       ],
       "validation": [
@@ -4717,6 +5691,213 @@ export const videoConfig: ModuleConfig = {
           "field": "video",
           "kind": "video",
           "paramName": "video_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Happyhorse11ImageToVideo",
+      "modelId": "happyhorse-1-1/image-to-video",
+      "title": "HappyHorse-1-1 image-to-video",
+      "description": "HappyHorse-1-1 image-to-video via Kie.ai.\n\n    kie, video, ai\n\n    HappyHorse-1-1 image-to-video",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Describes the video content to generate. Supports any language. Maximum: 5,000 non-Chinese characters or 2,500 Chinese",
+          "required": false,
+          "max": 5000
+        },
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "The URL of the first frame image. Image constraints: 1. Formats: JPEG, JPG, PNG, WEBP. 2. Resolution: Width and height must both be at least 300 pixels. 3. Aspect ratio: Between 1:2.5 and 2.5:1. 4. File size: Up to 20 MB.",
+          "required": true,
+          "max": 1
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1080p",
+          "title": "Resolution",
+          "description": "The resolution of the generated video. Options: 720p; 1080p",
+          "required": false,
+          "values": [
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "default": 5,
+          "title": "Duration",
+          "description": "The duration of the generated video, in seconds. The value must be an integer in the range [3, 15]. Default: 5",
+          "required": false,
+          "min": 3,
+          "max": 15
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "image_urls"
+        }
+      ]
+    },
+    {
+      "className": "Happyhorse11TextToVideo",
+      "modelId": "happyhorse-1-1/text-to-video",
+      "title": "HappyHorse-1-1 text-to-video",
+      "description": "HappyHorse-1-1 text-to-video via Kie.ai.\n\n    kie, video, ai\n\n    HappyHorse-1-1 text-to-video",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text description of the video to generate. Supports any language. Maximum 5,000 non-Chinese characters or 2,500 Chinese",
+          "required": true,
+          "max": 4999
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1080p",
+          "title": "Resolution",
+          "description": "Output video resolution. Options: 720p; 1080p",
+          "required": false,
+          "values": [
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "description": "Output video aspect ratio. Options: 16:9; 9:16; 1:1; 4:3; 3:4; 4:5; 5:4; 9:21; 21:9",
+          "required": false,
+          "values": [
+            "16:9",
+            "9:16",
+            "1:1",
+            "4:3",
+            "3:4",
+            "4:5",
+            "5:4",
+            "9:21",
+            "21:9"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "default": 5,
+          "title": "Duration",
+          "description": "Output video duration in seconds.",
+          "required": false,
+          "min": 3,
+          "max": 15
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Happyhorse11ReferenceToVideo",
+      "modelId": "happyhorse-1-1/reference-to-video",
+      "title": "HappyHorse-1-1 reference-to-video",
+      "description": "HappyHorse-1-1 reference-to-video via Kie.ai.\n\n    kie, video, ai\n\n    HappyHorse-1-1 reference-to-video",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "A description of the desired elements and visual style for the generated video. Input in any language is supported. The length is limited to 5,000 non-Chinese characters or 2,500 Chinese characters. Content exceeding this limit is automatically truncated. Image referencing: In the prompt, use \"[Image 1]\" and \"[Image 2]\" to refer to the corresponding reference image in the media array. The order must be consistent with the order in the media array. When using a reference, specify the object in the image, such as \"the woman in a red qipao in [Image 1]\".",
+          "required": true,
+          "min": 5,
+          "max": 5000
+        },
+        {
+          "name": "reference_image",
+          "type": "list[image]",
+          "default": [],
+          "title": "Reference Image",
+          "description": "The URL of a reference image. Image requirements: 1. Formats: JPEG, JPG, PNG, WEBP. 2. Resolution: The shortest side must be at least 400 pixels. A clear image with a resolution of 720P or higher is recommended. Avoid using images that are too small, blurry, or overly compressed, as this can degrade the output quality. 3. Maximum file size: 20 MB.",
+          "required": true,
+          "max": 9
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1080p",
+          "title": "Resolution",
+          "description": "The resolution tier of the generated video. Options: 720p; 1080p",
+          "required": false,
+          "values": [
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "description": "The aspect ratio of the generated video. Options: 16:9; 9:16; 3:4; 4:3; 4:5; 5:4; 1:1; 9:21; 21:9",
+          "required": false,
+          "values": [
+            "16:9",
+            "9:16",
+            "3:4",
+            "4:3",
+            "4:5",
+            "5:4",
+            "1:1",
+            "9:21",
+            "21:9"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "default": 5,
+          "title": "Duration",
+          "description": "The duration of the generated video, in seconds. Value range: An integer from 3 to 15.",
+          "required": false,
+          "min": 3,
+          "max": 15
+        }
+      ],
+      "uploads": [
+        {
+          "field": "reference_image",
+          "kind": "image",
+          "isList": true,
+          "paramName": "reference_image"
         }
       ],
       "validation": [
@@ -4969,6 +6150,277 @@ export const videoConfig: ModuleConfig = {
           "field": "descriptions",
           "rule": "not_empty",
           "message": "Descriptions is required"
+        }
+      ]
+    },
+    {
+      "className": "Omnihuman15",
+      "modelId": "omnihuman-1-5",
+      "title": "Omnihuman 1.5",
+      "description": "Omnihuman 1.5 via Kie.ai.\n\n    kie, video, ai\n\n    ## Create Task",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Image",
+          "description": "Portrait image URL. Supports any aspect ratio with subjects including people, pets, anime, etc. Accepted file types: image/jpeg, image/png, image/webp. Max file size: 10MB.",
+          "required": true
+        },
+        {
+          "name": "mask_url",
+          "type": "list[image]",
+          "default": [],
+          "title": "Mask Url",
+          "description": "Optional mask image URL(s). To have a specific subject in the image speak, use 'Subject Detection' to get the corresponding mask image and pass it as input. Accepted file types: image/jpeg, image/png, image/webp. Max file size: 10MB. Multiple file upload is supported, up to 5 files.",
+          "required": false,
+          "max": 5
+        },
+        {
+          "name": "audio",
+          "type": "audio",
+          "default": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Audio",
+          "description": "Audio URL. Duration must be less than 60 seconds (recommended 15 seconds or less; exceeding this will cause quality degradation). Accepted file types: audio/mpeg, audio/wav, audio/x-wav, audio/aac, audio/ogg, audio/mp4. Max file size: 10MB.",
+          "required": true
+        },
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Optional prompt text. Limited to Chinese, English, Japanese, Korean, Spanish, and Indonesian. Recommended 300 characters or less. Maximum length: 1000 characters.",
+          "required": false,
+          "max": 1000
+        },
+        {
+          "name": "output_resolution",
+          "type": "enum",
+          "default": "1080",
+          "title": "Output Resolution",
+          "description": "Output video resolution. - `720`: 720P - `1080`: 1080P (default)",
+          "required": false,
+          "values": [
+            "720",
+            "1080"
+          ]
+        },
+        {
+          "name": "pe_fast_mode",
+          "type": "bool",
+          "default": false,
+          "title": "Pe Fast Mode",
+          "description": "Fast mode. Sacrifices some quality to speed up generation. Default value: `false`.",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": -1,
+          "title": "Seed",
+          "description": "Random seed. Default is `-1` (random). When using the same positive integer and keeping all other parameters identical, the result will be highly consistent.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
+        },
+        {
+          "field": "mask_url",
+          "kind": "image",
+          "isList": true,
+          "paramName": "mask_url"
+        },
+        {
+          "field": "audio",
+          "kind": "audio",
+          "paramName": "audio_url"
+        }
+      ]
+    },
+    {
+      "className": "Omnihuman15HumanIdentification",
+      "modelId": "omnihuman-1-5/human-identification",
+      "title": "Omnihuman 1.5 Human Identification",
+      "description": "Omnihuman 1.5 Human Identification via Kie.ai.\n\n    kie, video, ai\n\n    ## Create Task",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Image",
+          "description": "Portrait image URL. Requirements: JPG/PNG/JPEG format, less than 5MB, resolution under 4096x4096. Recommended: single person facing forward, with the face occupying a large proportion of the image. Accepted file types: image/jpeg, image/png, image/jpg. Max file size: 5MB.",
+          "required": true
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
+        }
+      ]
+    },
+    {
+      "className": "Omnihuman15SubjectDetection",
+      "modelId": "omnihuman-1-5/subject-detection",
+      "title": "OmniHuman 1.5 Subject Detection",
+      "description": "OmniHuman 1.5 Subject Detection via Kie.ai.\n\n    kie, video, ai\n\n    ## Create Task",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Image",
+          "description": "Portrait image URL. Supports detection of up to 5 subjects in the image. Accepted file types: image/jpeg, image/png, image/jpg. Max file size: 5MB.",
+          "required": true
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
+        }
+      ]
+    },
+    {
+      "className": "VolcengineVideoToVideoLipSync",
+      "modelId": "volcengine/video-to-video-lip-sync",
+      "title": "Volcengine video to video lip sync",
+      "description": "Volcengine video to video lip sync via Kie.ai.\n\n    kie, video, ai\n\n    ## Create Task",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "mode",
+          "type": "enum",
+          "default": "",
+          "title": "Mode",
+          "description": "Service mode for lip-sync generation. - `lite`: For single-person frontal videos. Faster processing. - `basic`: For single-person complex scenes. Supports scene segmentation and speaker identification.",
+          "required": true,
+          "values": [
+            "lite",
+            "basic"
+          ]
+        },
+        {
+          "name": "video",
+          "type": "video",
+          "default": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null,
+            "duration": null,
+            "format": null
+          },
+          "title": "Video",
+          "description": "Video URL. Supported resolution: 360p–1080p. Videos above 1080p will be compressed to 1080p, while videos below 360p are not supported. Supported formats: MOV, MP4, HDR. Recommended codec: H.264. Other formats/codecs may be transcoded. Max file size: 500 MB. Bitrate: 1–30 Mbps. Frame rate: 24–60 fps.",
+          "required": true
+        },
+        {
+          "name": "audio",
+          "type": "audio",
+          "default": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Audio",
+          "description": "Target pure vocal audio URL; used to drive video lip movements. Accepted file types: audio/mpeg, audio/wav, audio/x-wav, audio/aac, audio/mp4, audio/ogg. Max file size: 10MB.",
+          "required": true
+        },
+        {
+          "name": "separate_vocal",
+          "type": "bool",
+          "default": false,
+          "title": "Separate Vocal",
+          "description": "Enable vocal separation to suppress background noise. Default value: `false`.",
+          "required": false
+        },
+        {
+          "name": "open_scenedet",
+          "type": "bool",
+          "default": false,
+          "title": "Open Scenedet",
+          "description": "Whether to enable scene segmentation and speaker identification. Supported only in Basic mode. Default value: `false`.",
+          "required": false
+        },
+        {
+          "name": "align_audio",
+          "type": "bool",
+          "default": true,
+          "title": "Align Audio",
+          "description": "Supported in Lite mode. Whether to loop the video when the audio is longer than the video. Default value: `true`.",
+          "required": false
+        },
+        {
+          "name": "align_audio_reverse",
+          "type": "bool",
+          "default": false,
+          "title": "Align Audio Reverse",
+          "description": "Supported in Lite mode. Whether to loop the video in reverse (backward). Requires `align_audio` to be set to `true`. Default value: `false`.",
+          "required": false
+        },
+        {
+          "name": "templ_start_seconds",
+          "type": "float",
+          "default": 0,
+          "title": "Templ Start Seconds",
+          "description": "Supported in Lite mode. Start time of the template video, in seconds. Default value: `0`.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "video",
+          "kind": "video",
+          "paramName": "video_url"
+        },
+        {
+          "field": "audio",
+          "kind": "audio",
+          "paramName": "audio_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "mode",
+          "rule": "not_empty",
+          "message": "Mode is required"
         }
       ]
     }

@@ -25,6 +25,7 @@ export async function generateKieConfigs(
     : entries;
   const nodes: NodeConfig[] = [];
   const seenClassNames = new Map<string, number>();
+  const seenSignatures = new Set<string>();
   const failures: string[] = [];
 
   for (const entry of selectedEntries) {
@@ -35,6 +36,15 @@ export async function generateKieConfigs(
       if (!node) {
         continue;
       }
+
+      // Some models are documented twice (an English page and a page with a
+      // Chinese title under the same /en/ URL space). Same model, same inputs —
+      // keep the first and skip the copy.
+      const signature = `${node.modelId}|${node.fields.map((f) => f.name).join(",")}`;
+      if (seenSignatures.has(signature)) {
+        continue;
+      }
+      seenSignatures.add(signature);
 
       const count = seenClassNames.get(node.className) ?? 0;
       seenClassNames.set(node.className, count + 1);

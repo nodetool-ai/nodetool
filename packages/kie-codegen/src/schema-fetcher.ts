@@ -4,6 +4,11 @@ import { join } from "node:path";
 
 const DEFAULT_LLMS_URL = "https://docs.kie.ai/llms.txt";
 
+/** docs.kie.ai occasionally serves the SPA shell in place of the `.md` source. */
+function isHtmlShell(text: string): boolean {
+  return /^\s*<!DOCTYPE html>/i.test(text);
+}
+
 export interface KieDocsEntry {
   category: string;
   title: string;
@@ -35,21 +40,39 @@ export class KieSchemaFetcher {
       }
     }
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30_000);
-    let response: Response;
-    try {
-      response = await fetch(url, { signal: controller.signal });
-    } finally {
-      clearTimeout(timeout);
-    }
-    if (!response.ok) {
-      throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
-    }
-    const text = await response.text();
+    const text = await this.fetchMarkdown(url);
     await mkdir(this.cacheDir, { recursive: true });
     await writeFile(path, text, "utf8");
     return text;
+  }
+
+  /**
+   * Fetch a docs page, retrying while the CDN answers with the docs-site HTML
+   * shell instead of the Markdown source. A shell response caches as a page
+   * with no OpenAPI block, which silently drops that model from the configs.
+   */
+  private async fetchMarkdown(url: string, attempts = 3): Promise<string> {
+    for (let attempt = 0; attempt < attempts; attempt++) {
+      if (attempt > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+      }
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30_000);
+      let response: Response;
+      try {
+        response = await fetch(url, { signal: controller.signal });
+      } finally {
+        clearTimeout(timeout);
+      }
+      if (!response.ok) {
+        throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
+      }
+      const text = await response.text();
+      if (!isHtmlShell(text)) {
+        return text;
+      }
+    }
+    throw new Error(`Failed to fetch ${url}: got the docs-site HTML shell, not Markdown`);
   }
 
   async fetchLlms(useCache = true): Promise<string> {
