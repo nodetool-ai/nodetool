@@ -54,6 +54,34 @@ export const audioGenerateConfig: ModuleConfig = {
       className: "Music_Cover",
       returnType: "audio",
       fieldOverrides: { audio: { propType: "audio" } }
+    },
+    "google/lyria-3": {
+      className: "Lyria_3",
+      returnType: "audio",
+      fieldOverrides: { images: { propType: "list[image]" } }
+    },
+    "google/lyria-3-pro": {
+      className: "Lyria_3_Pro",
+      returnType: "audio",
+      fieldOverrides: { images: { propType: "list[image]" } }
+    },
+    "minimax/music-2.5": {
+      className: "Music_2_5",
+      returnType: "audio"
+    },
+    "mirelo/video-to-sfx-v1": {
+      className: "Video_To_Sfx_V1",
+      returnType: "audio",
+      fieldOverrides: { video_path: { propType: "video" } }
+    },
+    "mirelo/video-to-sfx-v1.5": {
+      className: "Video_To_Sfx_V1_5",
+      returnType: "audio",
+      fieldOverrides: { video_path: { propType: "video" } }
+    },
+    "playht/play-dialog": {
+      className: "Play_Dialog",
+      returnType: "audio"
     }
   }
 };

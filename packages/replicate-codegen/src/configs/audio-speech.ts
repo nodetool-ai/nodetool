@@ -112,6 +112,14 @@ export const audioSpeechConfig: ModuleConfig = {
     "google/gemini-3.1-flash-tts": {
       className: "Gemini_3_1_Flash_TTS",
       returnType: "audio"
+    },
+    "inworld/realtime-tts-1.5-max": {
+      className: "Realtime_Tts_1_5_Max",
+      returnType: "audio"
+    },
+    "inworld/realtime-tts-1.5-mini": {
+      className: "Realtime_Tts_1_5_Mini",
+      returnType: "audio"
     }
   }
 };
