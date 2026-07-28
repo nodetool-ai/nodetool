@@ -43,6 +43,7 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [Mini Apps]({{ site.url }}/mini-apps): What Mini Apps solve, where they live, and how the document, bindings, and runtime work.
 - [Building Mini Apps]({{ site.url }}/mini-apps-guide): Recipes for generators, streaming apps, galleries, live tuning, and review flows.
 - [Mini App Reference]({{ site.url }}/mini-apps-reference): Widgets, binding grammar, actions, conditions, and the document schema.
+- [Mini Apps on Mobile]({{ site.url }}/mini-apps-mobile): Opening and running an app from the phone, and what the native runtime does differently.
 
 ## Chat & Agents
 

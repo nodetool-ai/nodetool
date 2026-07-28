@@ -18,6 +18,8 @@ box where the caption appears. Same workflow underneath, nothing to break.
 - **[Mini App Reference](mini-apps-reference.md)** — every widget, setting, and
   field, in tables.
 - **[App Builder](app-builder.md)** — the editor you build the screen in.
+- **[Mini Apps on Mobile](mini-apps-mobile.md)** — opening and running the same
+  app from a phone.
 
 ## The words
 
