@@ -172,6 +172,12 @@ ApplicationAppView   # renders the document's widget tree
   at phone width), there is no reactive-subgraph path (no browser worker, so
   every run is a full server run), and `ResourcePicker`/`ResourceGallery`
   collapse into one list of rows — a grid of tiles buys nothing at phone width.
+- **Sketch widget**: a bound sketch draws rather than being summarised.
+  `components/sketch/SketchRenderer` composites it — the same compositor the
+  sketch viewer screen uses — for a document bound inline and for a bare
+  `SketchRef`, which is read through the sketch document backend. The widget's
+  `height` caps the preview: the composite shrinks to fit instead of cropping.
+  Timelines still summarise, because mobile has no preview compositor.
 - **Resource widgets** (`resourceWidgets.tsx`) render a bound document as a card
   — name, kind icon, and a summary read off the body ("6 shots") — that opens
   the screen its kind already has. The route comes from `documents/kinds.ts`, so
@@ -278,6 +284,18 @@ animations by role, rebases clip-local caption words, and clears the fades and
 transition the halves must not inherit; hand-rolling that would get it wrong.
 Its id factory calls `crypto.randomUUID`, which Hermes lacks, so
 `src/polyfills/randomUuid.ts` supplies one from `uuid` in `index.ts`.
+
+**Sketches composite, they do not summarize.** `components/sketch/SketchRenderer`
+stacks the layers the way `web/.../canvas2d/composite.ts` does: bottom-first,
+groups as containers rather than pixels, a layer drawn only when it and every
+ancestor group is visible, alpha multiplied down the chain. Pixels come from the
+layer's generated asset, a stable `imageReference.uri`, or the raster serialized
+into the document, in that order; a layer with none of those renders a labelled
+placeholder in its own footprint. Blend modes and rotation are deliberately not
+reproduced — React Native has no compositing operator, and approximating them
+quietly would lie. `SketchViewerScreen` wraps the renderer with the layer list
+and its generation statuses; the app-runtime `Sketch` widget draws the same
+composite inside an app.
 
 Kinds with no dedicated screen fall back to `DocumentViewerScreen`, so every
 document can at least be opened.
