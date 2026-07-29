@@ -16,6 +16,7 @@ import ShieldIcon from "@mui/icons-material/Shield";
 import useSecretsStore from "../../stores/SecretsStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useOAuthConnection } from "../../hooks/useOAuthConnection";
+import { isElectron, isLocalhost } from "../../lib/env";
 import type { SecretResponse } from "../../stores/ApiTypes";
 import {
   FlexColumn,
@@ -90,9 +91,19 @@ interface ProviderMeta {
    * secret NodeTool persists.
    */
   oauthOnly?: boolean;
+  /**
+   * Connecting only works when the browser and the server share a machine —
+   * the flow finishes on the server's loopback listener and writes credentials
+   * to its filesystem. Hidden on hosted deployments, where it can't complete.
+   */
+  localOnly?: boolean;
   /** Multi-field credentials (e.g. login + password). Single-field providers omit this. */
   fields?: Array<{ key: string; label: string; secret?: boolean }>;
 }
+
+/** Hosted deployments can't finish a same-machine sign-in — hide those cards. */
+const isProviderAvailable = (meta: ProviderMeta): boolean =>
+  !meta.localOnly || isLocalhost || isElectron;
 
 const PROVIDER_META: ProviderMeta[] = [
   {
@@ -116,7 +127,8 @@ const PROVIDER_META: ProviderMeta[] = [
     mono: true,
     note: "Signs in through Claude Code and shares its credentials.",
     oauth: "claude",
-    oauthOnly: true
+    oauthOnly: true,
+    localOnly: true
   },
   {
     key: "ANTHROPIC_API_KEY",
@@ -1037,7 +1049,9 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     for (const secret of safeSecrets) {
       // For multi-field providers, only process the parent
       const meta = getParentProviderMeta(secret.key);
-      if (!meta || processed.has(meta.key)) continue;
+      if (!meta || processed.has(meta.key) || !isProviderAvailable(meta)) {
+        continue;
+      }
 
       // If it's a multi-field provider, create a synthetic secret that represents all fields
       if (meta.fields) {
@@ -1078,6 +1092,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
   const unconfiguredMeta = useMemo(() => {
     return PROVIDER_META.filter(
       (p) =>
+        isProviderAvailable(p) &&
         !areAllFieldsConfigured(p, configuredKeys) &&
         (!lowerSearch ||
           p.name.toLowerCase().includes(lowerSearch) ||
