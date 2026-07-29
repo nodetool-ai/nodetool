@@ -83,7 +83,12 @@ interface GeminiRequest {
     | { codeExecution: Record<string, never> }
   >;
   toolConfig?: {
-    functionCallingConfig: { mode: "ANY"; allowedFunctionNames?: string[] };
+    functionCallingConfig?: { mode: "ANY"; allowedFunctionNames?: string[] };
+    /**
+     * Required by Gemini when a built-in tool (googleSearch, codeExecution) is
+     * sent alongside functionDeclarations — the API 400s without it.
+     */
+    includeServerSideToolInvocations?: boolean;
   };
   generationConfig?: Record<string, unknown>;
 }
@@ -696,6 +701,61 @@ export class GeminiProvider extends BaseProvider {
     };
   }
 
+  /**
+   * Fill in `tools` and `toolConfig` on a request body.
+   *
+   * Built-in tools (googleSearch, codeExecution) run server side. When they are
+   * combined with functionDeclarations, Gemini rejects the request unless
+   * `toolConfig.includeServerSideToolInvocations` is set — the built-in calls
+   * and their results have to be echoed back into the conversation for the
+   * function-calling loop to stay coherent.
+   */
+  private applyTools(
+    body: GeminiRequest,
+    tools: ProviderTool[],
+    geminiTools: Array<{ functionDeclarations: Array<Record<string, unknown>> }>,
+    nameMap: Map<string, string>,
+    toolChoice?: string | "any"
+  ): void {
+    if (geminiTools.length > 0) {
+      body.tools = geminiTools;
+    }
+
+    let hasBuiltIn = false;
+    if (tools.some((tool) => tool.name === WEB_SEARCH_TOOL_NAME)) {
+      body.tools = [...(body.tools ?? []), { googleSearch: {} }];
+      hasBuiltIn = true;
+    }
+    if (tools.some((tool) => tool.type === "code_interpreter")) {
+      body.tools = [...(body.tools ?? []), { codeExecution: {} }];
+      hasBuiltIn = true;
+    }
+
+    const toolConfig: NonNullable<GeminiRequest["toolConfig"]> = {};
+
+    if (hasBuiltIn && geminiTools.length > 0) {
+      toolConfig.includeServerSideToolInvocations = true;
+    }
+
+    if (
+      toolChoice &&
+      (toolChoice === "any" ? geminiTools.length > 0 : nameMap.has(toolChoice))
+    ) {
+      const selected =
+        toolChoice === "any"
+          ? undefined
+          : (nameMap.get(toolChoice) ?? sanitizeToolName(toolChoice));
+      toolConfig.functionCallingConfig = {
+        mode: "ANY",
+        ...(selected ? { allowedFunctionNames: [selected] } : {})
+      };
+    }
+
+    if (Object.keys(toolConfig).length > 0) {
+      body.toolConfig = toolConfig;
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Non-streaming generation
   // ---------------------------------------------------------------------------
@@ -734,32 +794,7 @@ export class GeminiProvider extends BaseProvider {
       body.systemInstruction = { parts: [{ text: systemInstruction }] };
     }
 
-    if (geminiTools.length > 0) {
-      body.tools = geminiTools;
-    }
-    if (tools.some((tool) => tool.name === WEB_SEARCH_TOOL_NAME)) {
-      body.tools = [...(body.tools ?? []), { googleSearch: {} }];
-    }
-    if (tools.some((tool) => tool.type === "code_interpreter")) {
-      body.tools = [...(body.tools ?? []), { codeExecution: {} }];
-    }
-    if (
-      args.toolChoice &&
-      (args.toolChoice === "any"
-        ? geminiTools.length > 0
-        : nameMap.has(args.toolChoice))
-    ) {
-      const selected =
-        args.toolChoice === "any"
-          ? undefined
-          : (nameMap.get(args.toolChoice) ?? sanitizeToolName(args.toolChoice));
-      body.toolConfig = {
-        functionCallingConfig: {
-          mode: "ANY",
-          ...(selected ? { allowedFunctionNames: [selected] } : {})
-        }
-      };
-    }
+    this.applyTools(body, tools, geminiTools, nameMap, args.toolChoice);
 
     const generationConfig: Record<string, unknown> = {
       maxOutputTokens: maxTokens
@@ -860,32 +895,7 @@ export class GeminiProvider extends BaseProvider {
       body.systemInstruction = { parts: [{ text: systemInstruction }] };
     }
 
-    if (geminiTools.length > 0) {
-      body.tools = geminiTools;
-    }
-    if (tools.some((tool) => tool.name === WEB_SEARCH_TOOL_NAME)) {
-      body.tools = [...(body.tools ?? []), { googleSearch: {} }];
-    }
-    if (tools.some((tool) => tool.type === "code_interpreter")) {
-      body.tools = [...(body.tools ?? []), { codeExecution: {} }];
-    }
-    if (
-      args.toolChoice &&
-      (args.toolChoice === "any"
-        ? geminiTools.length > 0
-        : nameMap.has(args.toolChoice))
-    ) {
-      const selected =
-        args.toolChoice === "any"
-          ? undefined
-          : (nameMap.get(args.toolChoice) ?? sanitizeToolName(args.toolChoice));
-      body.toolConfig = {
-        functionCallingConfig: {
-          mode: "ANY",
-          ...(selected ? { allowedFunctionNames: [selected] } : {})
-        }
-      };
-    }
+    this.applyTools(body, tools, geminiTools, nameMap, args.toolChoice);
 
     const generationConfig: Record<string, unknown> = {
       maxOutputTokens: maxTokens
