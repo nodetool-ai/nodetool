@@ -70,3 +70,6 @@
 ## 2026-05-25 - O(N*M) lookup optimization in TableActions
 **Learning:** Found an O(N*M) performance bottleneck in `web/src/components/node/DataTable/TableActions.tsx` where `selectedRows.some()` was called inside `data.filter()` during row deletion. For large tables with many selected rows, this nested loop blocks the UI thread.
 **Action:** Replaced `.some()` with a pre-initialized `Set` of selected row indices and used `.has()` for O(1) lookups, reducing time complexity from O(N*M) to O(N+M) and improving deletion speed for large selections.
+## 2026-05-25 - O(N*E) Bottleneck in Correlation Analysis Outgoing Edges
+**Learning:** Found an O(N*E) bottleneck in `packages/kernel/src/correlation-analysis.ts` inside `analyzeCorrelation` where `graphData.edges.filter(e => isDataEdge(e) && e.source === node.id)` was called inside a loop over nodes. For large graphs with many edges and nodes, this nested iteration causes severe CPU stalling and memory overhead due to repeated full-array scans.
+**Action:** Replaced the `.filter()` call inside the loop with an O(1) `Map` lookup (`outgoingEdgesMap.get(node.id)`). The map is pre-computed once outside the loop in a single O(E) pass, bringing the overall algorithm complexity for this step down from O(N*E) to O(N + E).

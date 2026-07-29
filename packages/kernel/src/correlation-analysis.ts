@@ -311,6 +311,15 @@ export function analyzeCorrelation(
   const nodeFacts = new Map<string, NodeAnalysis>();
 
   const dataEdges = graphData.edges.filter(isDataEdge);
+  const outgoingEdgesMap = new Map<string, typeof dataEdges>();
+  for (const edge of dataEdges) {
+    let list = outgoingEdgesMap.get(edge.source);
+    if (!list) {
+      list = [];
+      outgoingEdgesMap.set(edge.source, list);
+    }
+    list.push(edge);
+  }
   const { order, cycle } = topoSort(graphData.nodes, graphData.edges);
   // Stryker disable next-line ConditionalExpression,EqualityOperator: equivalent — topoSort returns either null or a non-empty cycle, so `> 0` vs `>= 0`/true do not differ
   if (cycle && cycle.length > 0) {
@@ -685,9 +694,7 @@ export function analyzeCorrelation(
     });
 
     // Write outgoing edge facts.
-    const outgoing = graphData.edges.filter(
-      (e) => isDataEdge(e) && e.source === node.id
-    );
+    const outgoing = outgoingEdgesMap.get(node.id) || [];
     for (const edge of outgoing) {
       const outInfo = outputs.get(edge.sourceHandle);
       if (!outInfo) {
