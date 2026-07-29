@@ -59,6 +59,7 @@ const ROUTES = [
   { name: 'asset-viewer', path: (v) => `asset/${v}`, needs: 'assetId' },
   { name: 'jobs', path: 'jobs' },
   { name: 'job-detail', path: (v) => `job/${v}`, needs: 'jobId' },
+  { name: 'job-detail-failed', path: (v) => `job/${v}`, needs: 'failedJobId' },
   { name: 'triggers', path: 'triggers' },
   { name: 'collections', path: 'collections' },
   { name: 'settings', path: 'settings' },
