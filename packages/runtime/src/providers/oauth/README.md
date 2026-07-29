@@ -1,4 +1,11 @@
-# OpenAI OAuth authentication
+# Provider OAuth authentication
+
+Two independent flows live here: the OpenAI/Codex login (below) and the
+[Claude Code login](#claude-code-login-claude-subscription), which share the
+protocol primitives (PKCE, loopback listener, typed errors, redaction) but
+persist to different stores.
+
+## OpenAI OAuth authentication
 
 Browser-based OAuth 2.0 (Authorization Code + PKCE) for the OpenAI provider, as
 an alternative to pasting a static API key. Every request is served by a
@@ -31,7 +38,10 @@ packages/runtime/src/providers/oauth/
 ├── browser-launcher.ts          BrowserLauncher — opens the system browser
 ├── secure-credential-store.ts   SecureCredentialStore — opaque secrets (OS keychain)
 ├── token-store.ts               TokenStore — token persistence over a credential store
-└── openai-oauth-provider.ts     OpenAIOAuthProvider — orchestration + OpenAI capabilities
+├── openai-oauth-provider.ts     OpenAIOAuthProvider — orchestration + OpenAI capabilities
+├── claude-code-oauth-client.ts  ClaudeCodeOAuthClient — Anthropic's JSON token endpoint
+├── claude-code-credentials.ts   ClaudeCodeCredentialsStore — ~/.claude/.credentials.json
+└── claude-code-login.ts         ClaudeCodeLogin — orchestration (loopback + manual paste)
 
 packages/runtime/tests/providers/oauth/
 ├── pkce-helper.test.ts              unit
@@ -40,7 +50,8 @@ packages/runtime/tests/providers/oauth/
 ├── redaction.test.ts                unit
 ├── local-callback-server.test.ts    unit (real loopback sockets)
 ├── openai-oauth-provider.test.ts    unit (orchestration with injected fakes)
-└── oauth-flow.integration.test.ts   integration (full flow over real sockets)
+├── oauth-flow.integration.test.ts   integration (full flow over real sockets)
+└── claude-code-oauth.test.ts        unit + loopback integration (Claude Code flow)
 ```
 
 ### Layering
@@ -241,3 +252,92 @@ server route — the API process binds the Codex loopback listener itself:
   "OpenAI Authentication" section with **Connect with OpenAI** / **Disconnect**
   buttons that open the auth URL and poll `/api/oauth/openai/tokens` for
   completion.
+
+## Claude Code login (Claude subscription)
+
+`ClaudeCodeLogin` signs in with a Claude Pro/Max subscription using the same
+public OAuth client the `claude` CLI uses, and writes the result to the file the
+Claude Agent SDK authenticates from. A NodeTool login and a `claude login` are
+therefore interchangeable: `ClaudeAgentProvider` needs no token plumbing, because
+the SDK's bundled binary reads the credentials itself.
+
+```
+ClaudeCodeLogin                       orchestration (begin → complete → persist)
+  ├─ ClaudeCodeOAuthClient            protocol: authorize URL, exchange, refresh, profile
+  ├─ PKCEHelper                       PKCE + CSRF state       (shared)
+  ├─ LocalCallbackServer              loopback receiver       (shared)
+  ├─ BrowserLauncher                  opens the browser       (shared)
+  └─ ClaudeCodeCredentialsStore       ~/.claude/.credentials.json
+```
+
+### Three deviations from RFC 6749
+
+Anthropic's server is not a stock OAuth 2.0 provider, which is why
+`ClaudeCodeOAuthClient` is a sibling of `OAuthClient` rather than a
+configuration of it:
+
+1. The token endpoint takes a **JSON** body, not `application/x-www-form-urlencoded`.
+2. The code exchange **echoes the CSRF `state`** in that body; without it the
+   exchange is rejected.
+3. The authorization URL carries an extra **`code=true`** flag, which asks the
+   server to also display a paste-able code.
+
+Refresh also narrows the scope set: `org:create_api_key` is requested at login
+(it lets the console mint an API key) but dropped on every refresh.
+
+### Two ways to finish one authorization request
+
+`begin()` mints one PKCE pair and state, then hands back both URLs:
+
+- **Loopback** (`authUrl`) — the browser is redirected to an ephemeral
+  `127.0.0.1` listener; the registered redirect uses the `localhost` spelling,
+  matching the CLI. Only works when the browser runs on this machine.
+- **Manual** (`manualAuthUrl`) — the console shows `<code>#<state>` to paste
+  back. The only option on a headless or remote host.
+
+They differ only in `redirect_uri`, which must match between the authorization
+request and the exchange — hence `waitForRedirect()` and
+`completeWithPastedCode()` are separate completions of the same pending login.
+
+### Credential file
+
+`$CLAUDE_CONFIG_DIR/.credentials.json` (default `~/.claude/.credentials.json`),
+mode `0600`, written through a same-directory temp file so a concurrent `claude`
+process never reads a half-written file. Keys the CLI owns are preserved; only
+`claudeAiOauth` is replaced:
+
+```json
+{
+  "claudeAiOauth": {
+    "accessToken": "…",
+    "refreshToken": "…",
+    "expiresAt": 1799999999000,
+    "scopes": ["user:profile", "user:inference", "…"],
+    "subscriptionType": "max",
+    "rateLimitTier": null
+  }
+}
+```
+
+Because that file is per-machine-user rather than per-NodeTool-user, the login is
+process-wide: it is the credential the server's own `claude` subprocess will use.
+
+`refresh()` exists for callers that need a live token *outside* the SDK (status
+display, `CLAUDE_CODE_OAUTH_TOKEN`). Running the provider does not require it —
+the CLI refreshes on its own.
+
+### Entry points
+
+```bash
+nodetool auth claude login      # --console, --manual, --no-browser, --json
+nodetool auth claude status
+nodetool auth claude refresh    # --force
+nodetool auth claude logout
+```
+
+Over HTTP, `packages/websocket/src/oauth-api.ts` exposes
+`/api/oauth/claude/{start,complete,tokens,disconnect}`. `start` binds the
+loopback listener and returns both URLs plus the state; `complete` takes a pasted
+code; `tokens` reports connection status in the shape the shared
+`useOAuthConnection` hook expects. The **Models & Providers** settings page
+renders a sign-in card for it.

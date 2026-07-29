@@ -67,6 +67,30 @@ export {
   type OpenAIOAuthProviderOptions,
   type LoginOptions
 } from "./openai-oauth-provider.js";
+export {
+  ClaudeCodeOAuthClient,
+  type AuthorizationUrlOptions,
+  type ClaudeCodeLoginMethod,
+  type ClaudeCodeProfile,
+  type ClaudeCodeTokenAccount,
+  type ClaudeCodeTokens,
+  type JsonFetchLike
+} from "./claude-code-oauth-client.js";
+export {
+  ClaudeCodeCredentialsStore,
+  claudeConfigDir,
+  isExpired as areClaudeCredentialsExpired,
+  type ClaudeAiOAuthCredentials
+} from "./claude-code-credentials.js";
+export {
+  ClaudeCodeLogin,
+  parsePastedCode,
+  CLAUDE_LOGIN_TIMEOUT_MS,
+  type ClaudeCodeAuthStatus,
+  type ClaudeCodeLoginDeps,
+  type ClaudeCodeLoginOptions,
+  type PendingClaudeCodeLogin
+} from "./claude-code-login.js";
 
 /**
  * Default OAuth endpoints for OpenAI. These are configuration, not contracts —

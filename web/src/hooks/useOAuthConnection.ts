@@ -5,7 +5,7 @@ import { restFetch } from "../lib/rest-fetch";
 import { isElectron } from "../lib/env";
 import { useNotificationStore } from "../stores/NotificationStore";
 
-export type OAuthProvider = "openai" | "hf";
+export type OAuthProvider = "openai" | "hf" | "claude";
 
 interface OAuthProviderConfig {
   label: string;
@@ -15,7 +15,8 @@ interface OAuthProviderConfig {
 
 const PROVIDER_CONFIG: Record<OAuthProvider, OAuthProviderConfig> = {
   openai: { label: "OpenAI", canDisconnect: true },
-  hf: { label: "HuggingFace", canDisconnect: false }
+  hf: { label: "HuggingFace", canDisconnect: false },
+  claude: { label: "Claude", canDisconnect: true }
 };
 
 interface TokensResponse {

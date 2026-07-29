@@ -74,6 +74,7 @@ import { registerEvalCommand } from "./commands/eval.js";
 import { registerAffectedCommand } from "./commands/affected.js";
 import { registerCollectionCommands } from "./commands/collections.js";
 import { registerCostsCommands } from "./commands/costs.js";
+import { registerAuthCommands } from "./commands/auth.js";
 import {
   listAllModels,
   listConfiguredProviderInfo,
@@ -2184,6 +2185,7 @@ registerEvalCommand(program);
 registerAffectedCommand(program);
 registerCollectionCommands(program);
 registerCostsCommands(program);
+registerAuthCommands(program);
 
 // ---------------------------------------------------------------------------
 
