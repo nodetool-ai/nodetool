@@ -51,7 +51,6 @@ interface GlobalWebSocketEvents {
 
 type GlobalWebSocketEvent = keyof GlobalWebSocketEvents;
 
-const MAX_RECONNECT_ATTEMPTS = 10;
 const RECONNECT_INTERVAL_MS = 1000;
 
 /**
@@ -59,9 +58,10 @@ const RECONNECT_INTERVAL_MS = 1000;
  *
  * Establishes a single shared WebSocket to the unified backend and
  * multiplexes messages by job_id or thread_id. Consumers subscribe with a
- * routing key and receive only their messages. Built-in reconnect with up to
- * 5 attempts/1s backoff; `ensureConnection` blocks until connected and reuses
- * Supabase auth when available.
+ * routing key and receive only their messages. Reconnects indefinitely with
+ * backoff, and cuts the backoff short when the network or the tab comes back;
+ * `ensureConnection` blocks until connected and reuses Supabase auth when
+ * available.
  */
 class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
   private static instance: GlobalWebSocketManager | null = null;
@@ -149,8 +149,7 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
         url: wsUrl,
         binaryType: "arraybuffer",
         reconnect: true,
-        reconnectInterval: RECONNECT_INTERVAL_MS,
-        reconnectAttempts: MAX_RECONNECT_ATTEMPTS
+        reconnectInterval: RECONNECT_INTERVAL_MS
       });
 
       this.wsManager.on("open", () => {
@@ -440,6 +439,13 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
   private recoverConnection(trigger: string): void {
     if (this.isConnected && this.wsManager) {
       this.wsManager.checkLiveness();
+      return;
+    }
+    // Already retrying: the manager owns the socket, so let it keep it — but
+    // cut short whatever backoff it is sitting in, since the thing it was
+    // waiting for (network, wake) has just happened.
+    if (this.wsManager && this.isManagerBusy()) {
+      this.wsManager.retryNow();
       return;
     }
     if (this.isConnecting) {
