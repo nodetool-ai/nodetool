@@ -54,6 +54,7 @@ import {
   type LlmUsage
 } from "../tracing-helpers.js";
 import { logProviderRequestFailure } from "./provider-request-log.js";
+import { annotateProviderError } from "./provider-error.js";
 import { applyEntityReferences } from "./entity-references.js";
 import type { Span } from "@opentelemetry/api";
 import { SpanStatusCode } from "@opentelemetry/api";
@@ -322,6 +323,10 @@ export abstract class BaseProvider {
           try {
             return await original.apply(this, args);
           } catch (err) {
+            annotateProviderError(err, {
+              provider: this.provider,
+              model: extractModelId(args)
+            });
             if (!alreadyActive) {
               logProviderRequestFailure({
                 provider: this.provider,
@@ -632,6 +637,10 @@ export abstract class BaseProvider {
       });
       return result;
     } catch (err) {
+      annotateProviderError(err, {
+        provider: this.provider,
+        model: args.model
+      });
       error = String(err);
       logProviderRequestFailure({
         provider: this.provider,
@@ -761,6 +770,10 @@ export abstract class BaseProvider {
         model: args.model
       });
     } catch (err) {
+      annotateProviderError(err, {
+        provider: this.provider,
+        model: args.model
+      });
       error = String(err);
       logProviderRequestFailure({
         provider: this.provider,
@@ -1554,6 +1567,10 @@ async function* wrapModalityGenerator(
       yield result.value;
     }
   } catch (err) {
+    annotateProviderError(err, {
+      provider: provider.provider,
+      model: extractModelId(args)
+    });
     logProviderRequestFailure({
       provider: provider.provider,
       model: extractModelId(args),
