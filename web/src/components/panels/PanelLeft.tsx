@@ -563,8 +563,9 @@ const mobileLauncherChrome = (theme: Theme) => ({
   }
 });
 
-// The floating cluster in the top-left corner: the app menu (logo) and the
-// panel toggle, so the app menu is reachable without opening the sheet first.
+// The floating panel toggle in the top-left corner, used on the mobile routes
+// that have no top row of their own. In the workspace shell the toggle sits in
+// the tab bar instead (MobileRailLauncher).
 const mobileLauncherBarStyles = (theme: Theme, hasHeader: boolean) =>
   css({
     position: "fixed",
@@ -573,14 +574,7 @@ const mobileLauncherBarStyles = (theme: Theme, hasHeader: boolean) =>
     zIndex: theme.zIndex.appBar,
     display: "flex",
     alignItems: "center",
-    gap: getSpacingPx(SPACING.xs),
-    "& .rail-app-logo": {
-      ...mobileLauncherChrome(theme),
-      width: "auto",
-      height: "auto",
-      margin: 0,
-      opacity: 1
-    }
+    gap: getSpacingPx(SPACING.xs)
   });
 
 const mobileLauncherStyles = (theme: Theme) =>
@@ -629,7 +623,11 @@ const MobilePanelLeft: React.FC<{
   onClose: () => void;
   onViewChange: (view: LeftPanelView) => void;
   handlePanelToggle: (view: LeftPanelView) => void;
-  showAppMenu?: boolean;
+  /**
+   * In the workspace shell the top row carries the launcher buttons
+   * (MobileRailLauncher), so this variant renders only the sheet.
+   */
+  hideLauncher?: boolean;
 }> = ({
   activeView,
   activeNodeCategory,
@@ -640,7 +638,7 @@ const MobilePanelLeft: React.FC<{
   onClose,
   onViewChange,
   handlePanelToggle,
-  showAppMenu = false
+  hideLauncher = false
 }) => {
   const theme = useTheme();
 
@@ -656,21 +654,19 @@ const MobilePanelLeft: React.FC<{
 
   return (
     <>
-      <div css={mobileLauncherBarStyles(theme, hasHeader)}>
-        {/* Settings, Help, Models, Downloads, … — on mobile the vertical
-          toolbar that carries the app menu on desktop isn't rendered, so the
-          logo sits in the floating launcher instead. */}
-        {showAppMenu && <RailAppMenu onAction={onClose} />}
-        <ToolbarIconButton
-          className={`panel-left-mobile-launcher ${isVisible ? "active" : ""}`}
-          css={mobileLauncherStyles(theme)}
-          onClick={isVisible ? onClose : onOpen}
-          ariaLabel={isVisible ? "Close panel" : "Open left panel"}
-          aria-expanded={isVisible}
-          tabIndex={-1}
-          icon={<MenuIcon />}
-        />
-      </div>
+      {!hideLauncher && (
+        <div css={mobileLauncherBarStyles(theme, hasHeader)}>
+          <ToolbarIconButton
+            className={`panel-left-mobile-launcher ${isVisible ? "active" : ""}`}
+            css={mobileLauncherStyles(theme)}
+            onClick={isVisible ? onClose : onOpen}
+            ariaLabel={isVisible ? "Close panel" : "Open left panel"}
+            aria-expanded={isVisible}
+            tabIndex={-1}
+            icon={<MenuIcon />}
+          />
+        </div>
+      )}
 
       <MobileBottomSheet
         open={isVisible}
@@ -877,7 +873,7 @@ const PanelLeft: React.FC = () => {
         onClose={handleMobileClose}
         onViewChange={onViewChange}
         handlePanelToggle={handlePanelToggle}
-        showAppMenu={isWorkspace}
+        hideLauncher={isWorkspace}
       />
     );
   }
