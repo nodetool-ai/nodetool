@@ -640,16 +640,24 @@ describe('WebSocketManager', () => {
       // Set reconnectAttempt to 1 (first actual attempt)
       (manager as any).reconnectAttempt = 1;
       
-      // Access private method to test delay calculation
-      // Formula: reconnectInterval * decay^(attempt-1)
+      // Access private method to test delay calculation. The result carries
+      // half-to-full jitter, so it lands in (delay/2, delay].
+      // Formula: reconnectInterval * decay^attempt
       const delay1 = (manager as any).getReconnectDelay();
-      expect(delay1).toBe(1500); // 1000 * 1.5^1 = 1500
+      expect(delay1).toBeGreaterThan(750); // 1000 * 1.5^1 = 1500, halved
+      expect(delay1).toBeLessThanOrEqual(1500);
 
       // Simulate subsequent reconnect attempts
       (manager as any).reconnectAttempt = 3;
-      const delay3 = (manager as any).getReconnectDelay();
-      expect(delay3).toBe(3375); // 1000 * 1.5^3 = 3375
-      expect(delay3).toBeGreaterThan(delay1);
+      const delays3 = Array.from({ length: 20 }, () =>
+        (manager as any).getReconnectDelay()
+      );
+      for (const delay3 of delays3) {
+        expect(delay3).toBeGreaterThan(1687.5); // 1000 * 1.5^3 = 3375, halved
+        expect(delay3).toBeLessThanOrEqual(3375);
+      }
+      // Jitter must actually spread the attempts out.
+      expect(new Set(delays3).size).toBeGreaterThan(1);
     });
 
     it('shouldReconnect returns false for no-reconnect codes', () => {

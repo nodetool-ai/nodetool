@@ -430,6 +430,30 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
   }
 
   /**
+   * Re-establish the connection after an event that may have killed it.
+   *
+   * Waking from sleep or switching networks usually leaves the socket
+   * half-open: the browser still reports it as connected and `close` never
+   * fires, so checking `isConnected` alone would conclude there is nothing to
+   * do. Probe the socket instead, and only rebuild when it is genuinely gone.
+   */
+  private recoverConnection(trigger: string): void {
+    if (this.isConnected && this.wsManager) {
+      this.wsManager.checkLiveness();
+      return;
+    }
+    if (this.isConnecting) {
+      return;
+    }
+    this.ensureConnection().catch((err) => {
+      console.error(
+        `GlobalWebSocketManager: Failed to reconnect after ${trigger}:`,
+        err
+      );
+    });
+  }
+
+  /**
    * Set up network status monitoring to auto-reconnect on network changes
    */
   private setupNetworkListeners(): void {
@@ -441,21 +465,13 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
 
     const handleOnline = () => {
       console.info("GlobalWebSocketManager: Network came online, attempting reconnection");
-      if (!this.isConnected && !this.isConnecting) {
-        this.ensureConnection().catch((err) => {
-          console.error("GlobalWebSocketManager: Failed to reconnect after network online:", err);
-        });
-      }
+      this.recoverConnection("network online");
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         console.info("GlobalWebSocketManager: Tab became visible, checking connection");
-        if (!this.isConnected && !this.isConnecting) {
-          this.ensureConnection().catch((err) => {
-            console.error("GlobalWebSocketManager: Failed to reconnect after visibility change:", err);
-          });
-        }
+        this.recoverConnection("tab visible");
       }
     };
 
