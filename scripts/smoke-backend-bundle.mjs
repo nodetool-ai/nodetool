@@ -15,8 +15,23 @@
  * _modules to that name), against a throwaway data dir, on a free port — then
  * polled on /health.
  *
+ * Two kinds of bundle can be passed, and the interpreter follows the bundle:
+ *
+ *   - The *staged* bundle (electron/backend-bundle), before packaging. No
+ *     bundled Node yet, so it runs on the current interpreter. This is what
+ *     the Quality Gate checks.
+ *   - The *packed* backend (…/resources/backend), after electron-builder. It
+ *     ships its own Node at runtime/node — the binary the app actually
+ *     launches the backend with (electron/src/server.ts) and the one afterPack
+ *     rebuilds better-sqlite3 against. Booting it with anything else is a
+ *     NODE_MODULE_VERSION mismatch: electron-builder's npmRebuild leaves the
+ *     workspace's native modules on Electron's ABI, which is neither the
+ *     runner's Node nor the bundled one.
+ *
  * Usage: node scripts/smoke-backend-bundle.mjs [bundleDir] [--timeout <ms>]
- *        Defaults: electron/backend-bundle, 120000 ms.
+ *                                              [--node <path>]
+ *        Defaults: electron/backend-bundle, 120000 ms, bundled Node when
+ *        present and the current interpreter otherwise.
  *        Exits 1 with the captured server output if the backend dies or never
  *        answers /health.
  */
@@ -44,6 +59,8 @@ function parseArgs(argv) {
       if (!Number.isFinite(opts.timeoutMs) || opts.timeoutMs <= 0) {
         throw new Error(`--timeout must be a positive number of ms`);
       }
+    } else if (rest[i] === "--node") {
+      opts.nodePath = path.resolve(rest[++i]);
     } else if (rest[i].startsWith("--")) {
       throw new Error(`Unknown argument: ${rest[i]}`);
     } else {
@@ -91,12 +108,26 @@ async function withPackagedModuleLayout(bundleDir) {
   };
 }
 
-async function bootAndProbe(bundleDir, timeoutMs) {
+/**
+ * The Node the packaged app launches the backend with, when the bundle carries
+ * one. Falls back to the current interpreter for a staged (unpacked) bundle.
+ */
+function resolveNodeBinary(bundleDir, override) {
+  if (override) return override;
+  const bundled = path.join(
+    bundleDir,
+    "runtime",
+    process.platform === "win32" ? "node.exe" : "node"
+  );
+  return fs.existsSync(bundled) ? bundled : process.execPath;
+}
+
+async function bootAndProbe(bundleDir, timeoutMs, nodeBinary) {
   const port = await freePort();
   const dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "nodetool-smoke-"));
   const output = [];
 
-  const child = spawn(process.execPath, ["server.mjs"], {
+  const child = spawn(nodeBinary, ["server.mjs"], {
     cwd: bundleDir,
     env: {
       ...process.env,
@@ -152,14 +183,19 @@ async function bootAndProbe(bundleDir, timeoutMs) {
   return { healthy, exit, output: output.join(""), port, lastProbeError };
 }
 
-export async function smokeBackendBundle(bundleDir, { timeoutMs = 120_000 } = {}) {
+export async function smokeBackendBundle(
+  bundleDir,
+  { timeoutMs = 120_000, nodePath } = {}
+) {
+  const nodeBinary = resolveNodeBinary(bundleDir, nodePath);
   const restore = await withPackagedModuleLayout(bundleDir);
   let result;
   try {
-    result = await bootAndProbe(bundleDir, timeoutMs);
+    result = await bootAndProbe(bundleDir, timeoutMs, nodeBinary);
   } finally {
     await restore();
   }
+  result.nodeBinary = nodeBinary;
 
   if (result.healthy) return result;
 
@@ -171,6 +207,7 @@ export async function smokeBackendBundle(bundleDir, { timeoutMs = 120_000 } = {}
         `(last probe: ${result.lastProbeError || "no response"})`;
   throw new Error(
     `backend bundle smoke test failed: ${why}\n` +
+      `  bundle: ${bundleDir}\n  node:   ${nodeBinary}\n` +
       `--- server output ---\n${result.output.trimEnd() || "(no output)"}`
   );
 }
@@ -180,11 +217,16 @@ const isCli =
   path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 if (isCli) {
-  const { bundleDir, timeoutMs } = parseArgs(process.argv);
+  const { bundleDir, timeoutMs, nodePath } = parseArgs(process.argv);
   console.log(`Smoke-testing backend bundle: ${bundleDir}`);
   try {
-    const { port } = await smokeBackendBundle(bundleDir, { timeoutMs });
-    console.log(`  OK: server.mjs booted and answered /health on :${port}`);
+    const { port, nodeBinary } = await smokeBackendBundle(bundleDir, {
+      timeoutMs,
+      nodePath,
+    });
+    console.log(
+      `  OK: server.mjs booted on ${nodeBinary} and answered /health on :${port}`
+    );
   } catch (e) {
     console.error(e.message);
     process.exit(1);
