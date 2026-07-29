@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
@@ -8,7 +8,6 @@ import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
-import { useTimelinePlaybackStoreApi } from "../../../stores/timeline/TimelineInstance";
 import { findClipById } from "../../../stores/timeline/clipLookup";
 import { usePersistedFold } from "./usePersistedFold";
 import {
@@ -19,7 +18,6 @@ import {
   Text,
   SPACING,
   getSpacingPx,
-  Z_INDEX,
   TextInput
 } from "../../ui_primitives";
 import { trackTypeAccent } from "../Tracks/trackVisuals";
@@ -70,24 +68,6 @@ const inspectorPanelSx = {
   overflow: "auto",
   boxSizing: "border-box"
 };
-
-// Identity + clip action toolbar, pinned to the top of the scrolling panel so
-// actions stay reachable (matching the generated-clip panels). Full-bleed via
-// negative margins that cancel the panel's padding.
-const stickyTopStyles = (theme: Theme) =>
-  css({
-    position: "sticky",
-    top: 0,
-    zIndex: Z_INDEX.sticky,
-    backgroundColor: theme.vars.palette.background.default,
-    marginTop: `-${getSpacingPx(SPACING.md)}`,
-    marginLeft: `-${getSpacingPx(SPACING.lg)}`,
-    marginRight: `-${getSpacingPx(SPACING.lg)}`,
-    paddingTop: getSpacingPx(SPACING.md),
-    paddingLeft: getSpacingPx(SPACING.lg),
-    paddingRight: getSpacingPx(SPACING.lg),
-    borderBottom: `1px solid ${theme.vars.palette.divider}`
-  });
 
 const TEXT_ALIGNMENTS = [
   { value: "left", label: "Left" },

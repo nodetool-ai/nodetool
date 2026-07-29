@@ -482,7 +482,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
       },
 
       // Thread state - ensure default values
-      threads: {} as Record<string, Thread>,
+      threads: {},
       currentThreadId: null as string | null,
       lastUsedThreadId: null as string | null,
       isLoadingThreads: false,
@@ -902,7 +902,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           thread_id: threadId,
           memory_enabled: memoryEnabled,
           ...(mediaGeneration ? { media_generation: mediaGeneration } : {})
-        } as Message;
+        };
 
         // Build the chat_message command data. Media-generation messages
         // use the provider/model chosen in the media composer instead of the
@@ -915,7 +915,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // mode is sent instead and governs how the agent's gated tool calls
         // are handled server-side.
         const { tools: _tools, collections: _collections, ...messageWithoutTools } =
-          message as Message;
+          message;
         const chatMessageData = {
           ...messageWithoutTools,
           workflow_id: message.workflow_id ?? boundWorkflowId,
@@ -1226,7 +1226,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
                       ...state,
                       threadRuntime: remainingRuntime,
                       currentThreadId: newCurrentThreadId
-                    } as GlobalChatState,
+                    },
                     newCurrentThreadId
                   )
                 );
@@ -1259,7 +1259,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
                       ...state,
                       threadRuntime: {},
                       currentThreadId: null
-                    } as GlobalChatState,
+                    },
                     "__no_thread__"
                   )
                 );
@@ -1273,7 +1273,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
                 : null;
             }
 
-            return newState as GlobalChatState;
+            return newState;
           });
 
           // If no threads remain, create a new one immediately
@@ -1386,7 +1386,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
                   updated_at: new Date().toISOString()
                 }
               }
-            } as Partial<GlobalChatState>;
+            };
           }
           return state;
         });

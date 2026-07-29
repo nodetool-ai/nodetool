@@ -526,7 +526,7 @@ async function initializeBackendServer(): Promise<void> {
             return;
           }
         }
-      } catch (fetchError) {
+      } catch {
         logMessage(`Existing server process exists but is not responsive, will start new server`);
         // Server process exists but is not responsive, we can kill it and start fresh
         try {

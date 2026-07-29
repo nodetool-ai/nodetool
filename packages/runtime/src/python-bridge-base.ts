@@ -1072,14 +1072,17 @@ export abstract class PythonBridgeBase
    * would hang and the pending maps would leak.
    */
   comfyExecute(
-    prompt: Record<string, unknown>,
+    workflow: Record<string, unknown>,
     options: ComfyExecuteOptions = {},
     onEvent?: (event: ComfyEvent) => void,
     requestId: string = randomUUID()
   ): Promise<ComfyExecuteResult> {
-    const data: Record<string, unknown> = { prompt };
+    // The worker's field is `workflow`, not `prompt` — see the comfy.execute
+    // request schema in nodetool-core's docs/comfy-proxy.md.
+    const data: Record<string, unknown> = { workflow };
     if (options.blobs) data.blobs = options.blobs;
     if (options.previews) data.previews = true;
+    if (options.includeTemp) data.include_temp = true;
     if (typeof options.timeout === "number") data.timeout = options.timeout;
 
     return new Promise<ComfyExecuteResult>((resolve, reject) => {
@@ -1150,9 +1153,10 @@ export abstract class PythonBridgeBase
     bytes: Uint8Array,
     options: Record<string, unknown> = {}
   ): Promise<Record<string, unknown>> {
+    // The worker reads the payload from `data`, not `blob`.
     return this._providerCall("comfy.upload", {
       filename,
-      blob: bytes,
+      data: bytes,
       ...options
     });
   }
@@ -1165,7 +1169,12 @@ export abstract class PythonBridgeBase
   }
 
   async comfyObjectInfo(): Promise<Record<string, unknown>> {
-    return this._providerCall("comfy.object_info", {});
+    // The worker wraps the catalog as `{object_info: {...}}`; unwrap so callers
+    // get the catalog itself, as this method's contract promises.
+    const result = await this._providerCall("comfy.object_info", {});
+    return (
+      (result.object_info as Record<string, unknown> | undefined) ?? result
+    );
   }
 
   async comfySystemStats(): Promise<Record<string, unknown>> {
@@ -1182,11 +1191,11 @@ export abstract class PythonBridgeBase
   }
 
   async comfyModelsList(folder?: string): Promise<ComfyModelInfo[]> {
-    const result = await this._providerCall(
-      "comfy.models.list",
-      folder ? { folder } : {}
-    );
-    return (result as { models?: ComfyModelInfo[] }).models ?? [];
+    const result = await this._providerCall("comfy.models.list", {});
+    const models = (result as { models?: ComfyModelInfo[] }).models ?? [];
+    // The worker always returns the whole volume — there is no `folder` filter
+    // in the comfy.models.list request schema — so narrow it here.
+    return folder ? models.filter((m) => m.folder === folder) : models;
   }
 
   async comfyModelsDownload(

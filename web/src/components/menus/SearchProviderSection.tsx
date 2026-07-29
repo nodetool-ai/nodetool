@@ -17,7 +17,6 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
 import { TextInput, Text } from "../ui_primitives";
 import ExternalLink from "../common/ExternalLink";
-import type { SettingWithValue } from "../../stores/RemoteSettingStore";
 import { useTheme } from "@mui/material/styles";
 import {
   SEARCH_PROVIDER_CONFIGS as PROVIDER_CONFIGS,
@@ -26,13 +25,11 @@ import {
 } from "../../utils/searchProviders";
 
 interface SearchProviderSectionProps {
-  allSettings: SettingWithValue[];
   settingValues: Record<string, string>;
   onChange: (envVar: string, value: string) => void;
 }
 
 const SearchProviderSection = memo(function SearchProviderSection({
-  allSettings,
   settingValues,
   onChange
 }: SearchProviderSectionProps) {
@@ -40,19 +37,6 @@ const SearchProviderSection = memo(function SearchProviderSection({
   const selectedProvider = (settingValues["SERP_PROVIDER"] ||
     DEFAULT_SERP_PROVIDER) as SerpProviderId;
   const config = PROVIDER_CONFIGS[selectedProvider];
-
-  const credentialSettings = useMemo(() => {
-    const result: Record<string, SettingWithValue> = {};
-    allSettings.forEach((setting) => {
-      const allCredentialFields = Object.values(PROVIDER_CONFIGS).flatMap(
-        (p) => p.credentialFields
-      );
-      if (allCredentialFields.includes(setting.env_var)) {
-        result[setting.env_var] = setting;
-      }
-    });
-    return result;
-  }, [allSettings]);
 
   const hasAllCredentials = useMemo(() => {
     if (!config) return false;
@@ -151,7 +135,6 @@ const SearchProviderSection = memo(function SearchProviderSection({
         >
           <Stack spacing={1.5}>
             {config.credentialFields.map((field) => {
-              const setting = credentialSettings[field];
               const value = settingValues[field] || "";
               const isFilled = value.trim().length > 0;
 

@@ -28,7 +28,7 @@ import { NodeData } from "./stores/NodeData";
 import { graphNodeToReactFlowNode } from "./stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "./stores/graphEdgeToReactFlowEdge";
 import { autoLayout } from "./core/graph";
-import type { Workflow, NodeMetadata, Property, PropertyTypeMetadata, OutputSlot, Node as GraphNode, Edge as GraphEdge } from "./stores/ApiTypes";
+import type { Workflow, NodeMetadata, Property, PropertyTypeMetadata, OutputSlot } from "./stores/ApiTypes";
 
 // Real node components — imported so they are registered
 import BaseNode from "./components/node/BaseNode";
@@ -165,8 +165,8 @@ function parseWorkflow(raw: unknown): Workflow {
       nodes: rawNodes.map((n, i) => ({
         id: str(n.id, `node_${i}`),
         type: str(n.type, "default"),
-        data: (n.properties ?? n.data ?? {}) as GraphNode["data"],
-        ui_properties: (n.ui_properties ?? {}) as GraphNode["ui_properties"],
+        data: n.properties ?? n.data ?? {},
+        ui_properties: n.ui_properties ?? {},
         dynamic_properties: {},
         dynamic_outputs: {}
       })),
@@ -178,7 +178,7 @@ function parseWorkflow(raw: unknown): Workflow {
         targetHandle: str(e.targetHandle, "input")
       }))
     }
-  } as unknown as Workflow;
+  };
 }
 
 // ─── Minimal NodeStore ───────────────────────────────────────────
@@ -364,10 +364,10 @@ export default function App() {
 
         // 2. Convert to ReactFlow format
         const rfNodes = (workflow.graph?.nodes || []).map((n) =>
-          graphNodeToReactFlowNode(workflow, n as GraphNode)
+          graphNodeToReactFlowNode(workflow, n)
         );
         const rfEdges = (workflow.graph?.edges || []).map((e) =>
-          graphEdgeToReactFlowEdge(e as GraphEdge)
+          graphEdgeToReactFlowEdge(e)
         );
 
         // 3. Auto-layout — set estimated sizes so ELK spaces them properly

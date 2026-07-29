@@ -849,7 +849,7 @@ describe("PythonBridgeBase — models & comfy proxy RPCs", () => {
     );
     const frame = bridge.sent.find((f) => f.type === "comfy.execute")!;
     expect(frame.data).toEqual({
-      prompt: { "1": { class_type: "X" } },
+      workflow: { "1": { class_type: "X" } },
       previews: true,
       timeout: 30
     });
@@ -919,13 +919,14 @@ describe("PythonBridgeBase — models & comfy proxy RPCs", () => {
     await pCancel;
   });
 
-  it("comfyUpload sends filename + blob and merges options", async () => {
+  it("comfyUpload sends filename + data and merges options", async () => {
     const bytes = new Uint8Array([7]);
     const p = bridge.comfyUpload("f.png", bytes, { subfolder: "in" });
     const frame = bridge.sent.find((f) => f.type === "comfy.upload")!;
+    // The worker's field is `data`, not `blob`.
     expect(frame.data).toEqual({
       filename: "f.png",
-      blob: bytes,
+      data: bytes,
       subfolder: "in"
     });
     reply("comfy.upload", { name: "f.png" });
@@ -935,17 +936,35 @@ describe("PythonBridgeBase — models & comfy proxy RPCs", () => {
   it("comfyModelsList returns [] when the worker omits models", async () => {
     const p = bridge.comfyModelsList("checkpoints");
     const frame = bridge.sent.find((f) => f.type === "comfy.models.list")!;
-    expect(frame.data).toEqual({ folder: "checkpoints" });
+    // No folder filter exists on the wire — the request is always empty.
+    expect(frame.data).toEqual({});
     reply("comfy.models.list", {});
     await expect(p).resolves.toEqual([]);
   });
 
-  it("comfyModelsList sends empty data when no folder is given", async () => {
+  it("comfyModelsList narrows the worker's full listing by folder", async () => {
+    const p = bridge.comfyModelsList("checkpoints");
+    reply("comfy.models.list", {
+      models: [
+        { folder: "checkpoints", filename: "a" },
+        { folder: "loras", filename: "b" }
+      ]
+    });
+    await expect(p).resolves.toEqual([{ folder: "checkpoints", filename: "a" }]);
+  });
+
+  it("comfyModelsList returns everything when no folder is given", async () => {
     const p = bridge.comfyModelsList();
     const frame = bridge.sent.find((f) => f.type === "comfy.models.list")!;
     expect(frame.data).toEqual({});
     reply("comfy.models.list", { models: [{ name: "a" }] });
     await expect(p).resolves.toEqual([{ name: "a" }]);
+  });
+
+  it("comfyObjectInfo unwraps the worker's object_info envelope", async () => {
+    const p = bridge.comfyObjectInfo();
+    reply("comfy.object_info", { object_info: { KSampler: { input: {} } } });
+    await expect(p).resolves.toEqual({ KSampler: { input: {} } });
   });
 
   it("comfyModelsDelete coerces the deleted flag", async () => {
@@ -968,7 +987,11 @@ describe("PythonBridgeBase — models & comfy proxy RPCs", () => {
   it("comfyModelsDownload streams via the shared download engine", async () => {
     const updates: unknown[] = [];
     const p = bridge.comfyModelsDownload(
-      { folder: "checkpoints", url: "http://x", filename: "a" } as never,
+      {
+        folder: "checkpoints",
+        source: { type: "url", url: "http://x" },
+        filename: "a"
+      },
       (u) => updates.push(u),
       "cd-1"
     );

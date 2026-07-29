@@ -15,10 +15,7 @@ import {
   useSketchIsMobile,
   useToolChromeActions
 } from "../hooks";
-import {
-  useTransformAdapter,
-  type UseTransformAdapterParams
-} from "../hooks/useTransformAdapter";
+import { useTransformAdapter } from "../hooks/useTransformAdapter";
 import type { useSegmentation } from "../hooks/useSegmentation";
 
 export interface ConnectedToolTopBarProps {

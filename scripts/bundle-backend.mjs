@@ -122,7 +122,14 @@ const COMMON_EXTERNAL_PACKAGES = [
   "better-sqlite3",
   "sqlite-vec",
   "sharp",
-  "@img/sharp-*",
+  // @img/sharp-* is deliberately NOT seeded here. Other packages in the tree
+  // depend on older sharp majors, so npm hoists their @img/sharp-<platform>
+  // prebuilds to the root node_modules while sharp's own (matching) copies sit
+  // nested under sharp/node_modules. Seeding the wildcard staged the hoisted
+  // ones first, and the flat _modules layout then skipped sharp's own as
+  // "already copied" — shipping a native binary from a different sharp major.
+  // Letting sharp's optionalDependencies drive staging resolves them from
+  // sharp's own directory, so JS and binary always match.
   // node-web-audio-api is a prod dependency of @nodetool-ai/audio-nodes,
   // which is in the websocket closure via base-nodes — every profile needs it.
   "node-web-audio-api",
@@ -235,6 +242,14 @@ const MULTIPLATFORM_BINARY_PACKAGES = [
 
 async function readJson(filePath) {
   return JSON.parse(await fsp.readFile(filePath, "utf8"));
+}
+
+async function packageVersion(pkgDir) {
+  try {
+    return (await readJson(path.join(pkgDir, "package.json"))).version;
+  } catch {
+    return "unknown";
+  }
 }
 
 async function copyDir(src, dest) {
@@ -441,8 +456,10 @@ async function copyExternalPackages() {
   const bundleNodeModules = path.join(BUNDLE_DIR, "_modules");
   await fsp.mkdir(bundleNodeModules, { recursive: true });
 
-  // Track copied packages by their destination path to handle version conflicts
-  const copiedDests = new Set();
+  // Track copied packages by their destination path to handle version
+  // conflicts, and remember which source each destination came from so a
+  // later, differing candidate can be reported instead of silently dropped.
+  const copiedDests = new Map();
   // Track package names we've already queued to avoid infinite loops
   const queued = new Set();
   // Queue items: { name, resolveFrom } where resolveFrom is the parent dir
@@ -464,7 +481,7 @@ async function copyExternalPackages() {
   let copiedCount = 0;
 
   while (queue.length > 0) {
-    const { name: pkgName, resolveFrom } = queue.shift();
+    const { name: pkgName, resolveFrom, optional } = queue.shift();
 
     // Resolve from the parent's directory
     let sourceRoot = resolveDepFrom(resolveFrom, pkgName);
@@ -475,7 +492,13 @@ async function copyExternalPackages() {
     }
 
     if (!sourceRoot) {
-      console.warn(`  Warning: external package ${pkgName} not found, skipping`);
+      // npm prunes optionalDependencies to the host platform, so a missing
+      // one is the normal case (e.g. sharp lists every OS/arch prebuild).
+      if (!optional) {
+        console.warn(
+          `  Warning: external package ${pkgName} not found, skipping`
+        );
+      }
       continue;
     }
 
@@ -483,12 +506,29 @@ async function copyExternalPackages() {
 
     const destRoot = path.join(bundleNodeModules, pkgName);
 
-    // Skip if already copied to this destination
-    if (copiedDests.has(destRoot)) continue;
+    // _modules/ is flat, so one version per package name wins. Report when a
+    // second, different source wants the same slot — that skew is invisible at
+    // build time but breaks the packaged app (a sharp/@img major mismatch
+    // crashed the backend on startup).
+    const already = copiedDests.get(destRoot);
+    if (already) {
+      if (already !== sourceRoot) {
+        const stagedVersion = await packageVersion(already);
+        const skippedVersion = await packageVersion(sourceRoot);
+        if (stagedVersion !== skippedVersion) {
+          console.warn(
+            `  Warning: ${pkgName}@${stagedVersion} staged from ` +
+              `${path.relative(ROOT_DIR, already)}, ignoring ` +
+              `${skippedVersion} from ${path.relative(ROOT_DIR, sourceRoot)}`
+          );
+        }
+      }
+      continue;
+    }
 
     await fsp.mkdir(path.dirname(destRoot), { recursive: true });
     await copyDir(sourceRoot, destRoot);
-    copiedDests.add(destRoot);
+    copiedDests.set(destRoot, sourceRoot);
     copiedCount++;
     console.log(`  Copied ${pkgName}`);
 
@@ -496,10 +536,8 @@ async function copyExternalPackages() {
     const pkgJsonPath = path.join(sourceRoot, "package.json");
     try {
       const pkgJson = await readJson(pkgJsonPath);
-      const deps = {
-        ...(pkgJson.dependencies ?? {}),
-        ...(pkgJson.optionalDependencies ?? {}),
-      };
+      const optionalDeps = pkgJson.optionalDependencies ?? {};
+      const deps = { ...(pkgJson.dependencies ?? {}), ...optionalDeps };
       for (const depName of Object.keys(deps)) {
         // Skip packages that are external for esbuild but must NOT be staged.
         // These are loaded via runtime try/catch with a fallback (e.g. linkedom
@@ -508,7 +546,11 @@ async function copyExternalPackages() {
         // Use a composite key to allow re-queuing from different resolve contexts
         const queueKey = `${depName}@${sourceRoot}`;
         if (!queued.has(queueKey)) {
-          queue.push({ name: depName, resolveFrom: sourceRoot });
+          queue.push({
+            name: depName,
+            resolveFrom: sourceRoot,
+            optional: depName in optionalDeps,
+          });
           queued.add(queueKey);
         }
       }

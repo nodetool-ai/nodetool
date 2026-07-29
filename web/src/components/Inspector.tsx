@@ -654,7 +654,7 @@ const Inspector: React.FC = () => {
     if (!color) return undefined;
     return {
       ["--inspector-icon-tint" as string]: `${color}40`
-    } as React.CSSProperties;
+    };
   }, [metadata, iconType]);
 
   const [activeTab, setActiveTab] = useState<InspectorTab>("params");
@@ -731,7 +731,7 @@ const Inspector: React.FC = () => {
       io:
         (metadata.properties?.length ?? 0) +
         (metadata.outputs?.length ?? 0)
-    } as Partial<Record<InspectorTab, number>>;
+    };
   }, [metadata, visibleProperties.length]);
 
   if (selectedNodes.length === 0) {
@@ -1021,7 +1021,7 @@ const Inspector: React.FC = () => {
                     const property: Property = {
                       ...(dynamicInputMeta || {}),
                       name,
-                      type: resolvedType as Property["type"],
+                      type: resolvedType,
                       required: false
                     };
 
@@ -1061,7 +1061,7 @@ const Inspector: React.FC = () => {
                     metadata.properties.map((property) => (
                       <div key={`io-in-${property.name}`} className="io-row">
                         <span className="io-row-name">{property.name}</span>
-                        <TypeLabel type={property.type as TypeMetadata} />
+                        <TypeLabel type={property.type} />
                       </div>
                     ))
                   )}
@@ -1078,7 +1078,7 @@ const Inspector: React.FC = () => {
                     metadata.outputs.map((output) => (
                       <div key={`io-out-${output.name}`} className="io-row">
                         <span className="io-row-name">{output.name}</span>
-                        <TypeLabel type={output.type as TypeMetadata} />
+                        <TypeLabel type={output.type} />
                       </div>
                     ))
                   )}

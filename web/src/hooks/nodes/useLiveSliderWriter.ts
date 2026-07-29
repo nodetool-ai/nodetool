@@ -20,8 +20,9 @@
  * back to the existing auto-run, which still respects the `instantUpdate`
  * setting (it no-ops when off) to avoid hammering the server.
  */
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
+import { useConnectedEdgesSelector } from "./useConnectedEdges";
 import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode";
 import { reactFlowEdgeToGraphEdge } from "../../stores/reactFlowEdgeToGraphEdge";
 import {
@@ -177,12 +178,20 @@ export const useLiveSliderWriter = ({
   // onEdgeUpdate reconnections, where the count stays flat. On initial mount
   // the baseline is recorded without triggering, and pure disconnects are
   // skipped — only a genuinely new inbound edge previews.
-  const incomingEdgeSignature = useNodes((state) =>
-    state.edges
-      .filter((e) => e.target === nodeId)
-      .map((e) => `${e.source}/${e.sourceHandle ?? ""}>${e.targetHandle ?? ""}`)
-      .sort()
-      .join("|")
+  //
+  // A node drag pushes a fresh `nodes` array ~60x/s and re-runs every NodeStore
+  // selector, so scanning all edges inline here cost O(E) per frame per mounted
+  // slider body. The cached selector returns the same array reference until this
+  // node's inbound edges actually change.
+  const connectedEdgesSelector = useConnectedEdgesSelector(nodeId);
+  const incomingEdges = useNodes(connectedEdgesSelector);
+  const incomingEdgeSignature = useMemo(
+    () =>
+      incomingEdges
+        .map((e) => `${e.source}/${e.sourceHandle ?? ""}>${e.targetHandle ?? ""}`)
+        .sort()
+        .join("|"),
+    [incomingEdges]
   );
   const prevIncomingSignatureRef = useRef<string | null>(null);
   useEffect(() => {

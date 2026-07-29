@@ -27,7 +27,8 @@ import type { Generation, RunGroup } from "../../utils/nodeGenerations";
 import type { Asset } from "../../stores/ApiTypes";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useNodes } from "../../contexts/NodeContext";
-import { useShallow } from "zustand/react/shallow";
+import type { NodeStoreState } from "../../stores/NodeStore";
+import type { Edge } from "@xyflow/react";
 import { serializeDragData } from "../../lib/dragdrop/serialization";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import {
@@ -315,9 +316,23 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
   // synthetic ForEach replay yields the N values, iteration-correlated), which is
   // valid live behavior for any consumer, so no list-type gating: any outgoing
   // edge enables it.
-  const hasDownstream = useNodes(
-    useShallow((s) => s.edges.some((e) => e.source === nodeId))
-  );
+  //
+  // Cached on the `edges` array identity: a node drag pushes a fresh `nodes`
+  // array ~60x/s and re-runs every NodeStore selector, so scanning inline cost
+  // O(E) per frame for every content-card node on the canvas.
+  const hasDownstreamSelector = useMemo(() => {
+    let lastEdges: Edge[] | null = null;
+    let lastResult = false;
+    return (state: NodeStoreState) => {
+      if (state.edges === lastEdges) {
+        return lastResult;
+      }
+      lastEdges = state.edges;
+      lastResult = state.edges.some((e) => e.source === nodeId);
+      return lastResult;
+    };
+  }, [nodeId]);
+  const hasDownstream = useNodes(hasDownstreamSelector);
 
   // Pick-order lookup: generation id -> 1-based position in the export set.
   const pickOrder = useMemo(() => {

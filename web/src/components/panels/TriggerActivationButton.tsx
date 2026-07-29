@@ -37,7 +37,7 @@ import BoltIcon from "@mui/icons-material/Bolt";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { useNodes } from "../../contexts/NodeContext";
-import isEqual from "../../utils/isEqual";
+import type { NodeStoreState } from "../../stores/NodeStore";
 import {
   useWorkflowTriggers,
   useSetTriggerEnabled,
@@ -175,16 +175,36 @@ const WebhookDeliveryDetails: React.FC<WebhookDeliveryDetailsProps> = ({
 
 const TriggerActivationButton: React.FC = () => {
   const workflowId = useNodes((state) => state.workflow?.id || null);
-  const triggerNodes = useNodes(
-    (state): TriggerNodeSummary[] =>
-      state.nodes
-        .filter((n) => isTriggerNodeType(n.type))
-        .map((n) => ({
-          nodeId: n.id,
-          kind: TRIGGER_KIND_BY_NODE_TYPE[n.type as string] ?? "manual"
-        })),
-    isEqual
-  );
+  // This button sits in the always-mounted floating toolbar, and a node drag
+  // pushes a fresh `nodes` array ~60x/s. Collect in one pass rather than
+  // filter-then-map, and hand back the previous array whenever the trigger set
+  // is unchanged — the common case, since most workflows have none at all. The
+  // stable reference also replaces the per-frame deep `isEqual` with identity.
+  const triggerNodesSelector = useMemo(() => {
+    let lastResult: TriggerNodeSummary[] = [];
+    return (state: NodeStoreState) => {
+      const next: TriggerNodeSummary[] = [];
+      for (const node of state.nodes) {
+        if (!isTriggerNodeType(node.type)) continue;
+        next.push({
+          nodeId: node.id,
+          kind: TRIGGER_KIND_BY_NODE_TYPE[node.type as string] ?? "manual"
+        });
+      }
+      if (
+        next.length === lastResult.length &&
+        next.every(
+          (t, i) =>
+            t.nodeId === lastResult[i].nodeId && t.kind === lastResult[i].kind
+        )
+      ) {
+        return lastResult;
+      }
+      lastResult = next;
+      return next;
+    };
+  }, []);
+  const triggerNodes = useNodes(triggerNodesSelector);
   const hasTriggerNodes = triggerNodes.length > 0;
 
   const {

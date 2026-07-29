@@ -37,10 +37,7 @@ import {
   type TrackDropPosition
 } from "./trackReorder";
 import { Tooltip, MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT, SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
-import {
-  DEFAULT_TRACK_HEIGHT_PX as SHARED_DEFAULT_TRACK_HEIGHT_PX,
-  FX_PANEL_HEIGHT_PX
-} from "./trackHeight";
+import { DEFAULT_TRACK_HEIGHT_PX as SHARED_DEFAULT_TRACK_HEIGHT_PX } from "./trackHeight";
 import {
   trackTypeMeta,
   trackTypeAccent

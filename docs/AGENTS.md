@@ -469,6 +469,22 @@ profile since it needs a local executable. Token usage is attributed to the
 concrete dated model the CLI resolves an alias to (captured from the
 `message_start` event) so cost maps onto Anthropic pricing.
 
+### Signing in
+
+`nodetool auth claude login` runs the same OAuth flow the `claude` CLI does
+(public client, PKCE, JSON token endpoint) and writes the tokens to
+`$CLAUDE_CONFIG_DIR/.credentials.json` — the file the SDK reads — so a NodeTool
+login and a `claude login` are interchangeable. On a headless or remote host,
+`--manual` skips the loopback listener and takes the `code#state` shown in the
+browser instead. The same flow is served at
+`/api/oauth/claude/{start,complete,tokens,disconnect}` and rendered as a sign-in
+card on the Models & Providers settings page. Implementation and protocol notes:
+[packages/runtime/src/providers/oauth/README.md](../packages/runtime/src/providers/oauth/README.md).
+
+`CLAUDE_CODE_OAUTH_TOKEN` remains the alternative on hosts with no interactive
+login; it is explicitly allowlisted through the nested-session env stripping
+below.
+
 **Soft dependency.** `@anthropic-ai/claude-agent-sdk` is an *optional peer
 dependency* of `@nodetool-ai/runtime` — it is not installed by default and must
 be added with the package manager (`npm install @anthropic-ai/claude-agent-sdk`)

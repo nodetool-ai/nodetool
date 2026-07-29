@@ -153,6 +153,7 @@ npm run typecheck   # Must pass before committing
 - **Deploy = the GHCR image, self-contained**. The prod server runs on **Fly.io** (`fly.toml`, app `nodetool`, https://nodetool.fly.dev / https://api.nodetool.ai). The deploy unit is the GHCR image built by `.github/workflows/docker.yml`; `web/dist` and workflow examples are baked into it (no host bind-mount). A push to `main` builds the image (`docker.yml`) and then auto-deploys it to Fly (`fly-deploy.yml`), so both backend and frontend changes ship in a new image. Migrations run once per release via Fly's `release_command` (see `fly.toml`).
 - **Self-hosting** (outside Fly) uses `docker-compose.yml` (reference compose) or the `packages/deploy` tooling. The old self-hosted `deploy.sh`/`npm run redeploy` box was decommissioned once Fly took over.
 - **Packaged Electron backend flattens file paths**. esbuild bundles the backend into one `server.mjs`, so anything resolved relative to `import.meta.url` (provider `*-manifest.json`, examples, `package://` assets) lives elsewhere in the packaged app than in dev. Data files a package loads at runtime must be declared in `PACKAGE_RUNTIME_ASSETS` (`packages/config/src/package-asset-registry.ts`) and loaded via `loadPackageAssetJson` from `@nodetool-ai/config` — the registry drives staging (`scripts/bundle-backend.mjs`) and artifact verification (`scripts/verify-backend-bundle.mjs`), and unregistered loads throw in dev. See [electron/src/AGENTS.md § Packaged file layout](electron/src/AGENTS.md).
+- **The packaged backend only resolves what `bundle-backend.mjs` stages, in a flat `_modules/`**. One version per package name wins, so a dependency npm hoisted for an older major can take the slot a newer one needs — invisible in dev, fatal in the artifact. `npm run backend:smoke` stages the bundle and boots `server.mjs` against `/health`; run it after touching `scripts/bundle-backend.mjs`, a native dependency, or anything the backend loads lazily. CI runs it as the Quality Gate `bundle` leg and again per-OS in `release.yaml`.
 - **WebSocket messages use MsgPack**, not JSON. Use the existing serialization helpers.
 - **Don't create new WebSocket instances** — use `GlobalWebSocketManager` singleton.
 - **Mobile typecheck** requires building protocol first: `cd packages/protocol && npm run build`. The one shared package mobile compiles from **source** (no build) is `@nodetool-ai/app-runtime`, wired in `mobile/metro.config.js`, `tsconfig.json` and `jest.config.js` — all three must agree.
@@ -582,6 +583,29 @@ npm run dev:nodetool -- storage migrate-keys --dry-run     # Report, write nothi
 npm run dev:nodetool -- storage migrate-keys               # Move them
 npm run dev:nodetool -- storage migrate-keys --user-id <id> --json
 ```
+
+### nodetool auth
+
+Signs in to providers that use an account instead of an API key. `auth claude`
+runs the same OAuth flow the `claude` CLI does and writes the tokens to the
+Claude Agent SDK's credential file (`$CLAUDE_CONFIG_DIR/.credentials.json`,
+default `~/.claude/.credentials.json`), so a NodeTool login and a `claude login`
+are interchangeable — the Claude Agent provider picks it up with no extra
+configuration.
+
+```bash
+npm run dev:nodetool -- auth claude login          # browser + loopback callback
+npm run dev:nodetool -- auth claude login --manual # paste the code (headless/remote)
+npm run dev:nodetool -- auth claude login --console # Console (API-billed) account
+npm run dev:nodetool -- auth claude status
+npm run dev:nodetool -- auth claude refresh --force
+npm run dev:nodetool -- auth claude logout
+```
+
+The same flow is exposed over HTTP at
+`/api/oauth/claude/{start,complete,tokens,disconnect}` and as a sign-in card on
+the **Models & Providers** settings page. Details:
+[packages/runtime/src/providers/oauth/README.md](packages/runtime/src/providers/oauth/README.md).
 
 ### nodetool secrets
 

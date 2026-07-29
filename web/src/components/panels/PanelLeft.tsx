@@ -547,30 +547,51 @@ const PanelContent = memo(function PanelContent({
 const MOBILE_LAUNCHER_TOP = 56;
 const MOBILE_LAUNCHER_TOP_STANDALONE = 8;
 
-const mobileLauncherStyles = (theme: Theme, hasHeader: boolean) =>
+// Chrome shared by every button in the floating mobile launcher cluster.
+const mobileLauncherChrome = (theme: Theme) => ({
+  backgroundColor: theme.vars.palette.background.paper,
+  color: theme.vars.palette.text.primary,
+  border: `1px solid ${theme.vars.palette.divider}`,
+  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+  padding: getSpacingPx(SPACING.md),
+  borderRadius: BORDER_RADIUS.lg,
+  "&:hover": {
+    backgroundColor: theme.vars.palette.action.hover
+  },
+  "& svg": {
+    fontSize: "var(--fontSizeBig)"
+  }
+});
+
+// The floating cluster in the top-left corner: the app menu (logo) and the
+// panel toggle, so the app menu is reachable without opening the sheet first.
+const mobileLauncherBarStyles = (theme: Theme, hasHeader: boolean) =>
   css({
     position: "fixed",
     top: `${hasHeader ? MOBILE_LAUNCHER_TOP : MOBILE_LAUNCHER_TOP_STANDALONE}px`,
     left: 8,
     zIndex: theme.zIndex.appBar,
-    backgroundColor: theme.vars.palette.background.paper,
-    color: theme.vars.palette.text.primary,
-    border: `1px solid ${theme.vars.palette.divider}`,
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-    padding: getSpacingPx(SPACING.md),
-    borderRadius: BORDER_RADIUS.lg,
-    "&:hover": {
-      backgroundColor: theme.vars.palette.action.hover
-    },
+    display: "flex",
+    alignItems: "center",
+    gap: getSpacingPx(SPACING.xs),
+    "& .rail-app-logo": {
+      ...mobileLauncherChrome(theme),
+      width: "auto",
+      height: "auto",
+      margin: 0,
+      opacity: 1
+    }
+  });
+
+const mobileLauncherStyles = (theme: Theme) =>
+  css({
+    ...mobileLauncherChrome(theme),
     "&.active": {
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.primary.contrastText,
       "&:hover": {
         backgroundColor: theme.vars.palette.primary.dark
       }
-    },
-    "& svg": {
-      fontSize: "var(--fontSizeBig)"
     }
   });
 
@@ -635,15 +656,21 @@ const MobilePanelLeft: React.FC<{
 
   return (
     <>
-      <ToolbarIconButton
-        className={`panel-left-mobile-launcher ${isVisible ? "active" : ""}`}
-        css={mobileLauncherStyles(theme, hasHeader)}
-        onClick={isVisible ? onClose : onOpen}
-        ariaLabel={isVisible ? "Close panel" : "Open left panel"}
-        aria-expanded={isVisible}
-        tabIndex={-1}
-        icon={<MenuIcon />}
-      />
+      <div css={mobileLauncherBarStyles(theme, hasHeader)}>
+        {/* Settings, Help, Models, Downloads, … — on mobile the vertical
+          toolbar that carries the app menu on desktop isn't rendered, so the
+          logo sits in the floating launcher instead. */}
+        {showAppMenu && <RailAppMenu onAction={onClose} />}
+        <ToolbarIconButton
+          className={`panel-left-mobile-launcher ${isVisible ? "active" : ""}`}
+          css={mobileLauncherStyles(theme)}
+          onClick={isVisible ? onClose : onOpen}
+          ariaLabel={isVisible ? "Close panel" : "Open left panel"}
+          aria-expanded={isVisible}
+          tabIndex={-1}
+          icon={<MenuIcon />}
+        />
+      </div>
 
       <MobileBottomSheet
         open={isVisible}
@@ -652,10 +679,6 @@ const MobilePanelLeft: React.FC<{
         ariaLabel="Workflows, sketches, timelines, and assets panel"
         headerExtras={
           <div css={mobileHeaderExtrasStyles(theme)}>
-            {/* The rail's app menu (Settings, Help, Models, Downloads, …) has
-              no other entry point on mobile — the vertical toolbar that carries
-              it on desktop isn't rendered here. */}
-            {showAppMenu && <RailAppMenu onAction={onClose} />}
             <Tooltip title="Workflows" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
               <ToolbarIconButton
                 className={`tab-button ${activeView === "workflows" ? "active" : ""}`}

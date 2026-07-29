@@ -17,11 +17,13 @@ import {
 import {
   OAuthClient,
   LocalCallbackServer,
+  ClaudeCodeLogin,
   extractChatGptAccountId,
   CODEX_OAUTH_CLIENT_ID,
   CODEX_CALLBACK_PORT,
   CODEX_CALLBACK_PATH,
-  DEFAULT_CODEX_OAUTH_CONFIG
+  DEFAULT_CODEX_OAUTH_CONFIG,
+  type PendingClaudeCodeLogin
 } from "@nodetool-ai/runtime/oauth";
 
 const logger = createLogger("nodetool.websocket.oauth");
@@ -1024,6 +1026,148 @@ async function handleOpenAIDisconnect(
   return jsonResponse({ success: true, removed: credentials.length });
 }
 
+// ── Claude (subscription) Endpoints ──────────────────────────────────
+//
+// Signs in with a Claude subscription using the same public OAuth client the
+// `claude` CLI uses, and writes the tokens to the Claude Agent SDK's credential
+// file (`~/.claude/.credentials.json`). That file — not the database — is the
+// store, because the SDK spawns the `claude` binary as this process's user and
+// reads it directly; a per-user DB row would be invisible to it.
+//
+// Two ways to finish, both from the one authorization request `start` creates:
+// the browser redirects to a loopback listener this process binds (same-machine
+// hosts), or the user pastes the `code#state` the console displays (headless and
+// remote hosts). The UI reflects success by polling `/api/oauth/claude/tokens`.
+
+/** The single in-flight login, so a re-click supersedes a stale listener. */
+let activeClaudeLogin: {
+  pending: PendingClaudeCodeLogin;
+  abort: AbortController;
+} | null = null;
+
+/** Abort and tear down any in-flight Claude login. Idempotent. */
+export async function closeActiveClaudeLogin(): Promise<void> {
+  const active = activeClaudeLogin;
+  if (!active) return;
+  activeClaudeLogin = null;
+  active.abort.abort();
+  await active.pending.cancel().catch(() => {});
+}
+
+async function handleClaudeStart(request: Request): Promise<Response> {
+  if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+
+  const url = new URL(request.url);
+  const loginMethod =
+    url.searchParams.get("login_method") === "console" ? "console" : "claude-ai";
+  // A remote browser can't reach this process's loopback listener; the caller
+  // says so and only the paste flow is offered.
+  const manualOnly = url.searchParams.get("manual") === "true";
+
+  await closeActiveClaudeLogin();
+
+  const login = new ClaudeCodeLogin();
+  let pending: PendingClaudeCodeLogin;
+  try {
+    pending = await login.begin({ loginMethod, manualOnly });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return errorResponse(500, `Could not start the Claude login: ${message}`);
+  }
+
+  const abort = new AbortController();
+  activeClaudeLogin = { pending, abort };
+
+  if (pending.authUrl) {
+    // Finish off the request path; the UI polls /tokens for success.
+    void pending
+      .waitForRedirect(abort.signal)
+      .then(() => logger.info("Claude OAuth login completed"))
+      .catch((err: unknown) => {
+        logger.warn("Claude OAuth login did not complete", {
+          error: err instanceof Error ? err.message : String(err)
+        });
+      })
+      .finally(() => {
+        if (activeClaudeLogin?.pending === pending) activeClaudeLogin = null;
+      });
+  }
+
+  return jsonResponse({
+    auth_url: pending.authUrl ?? pending.manualAuthUrl,
+    manual_auth_url: pending.manualAuthUrl,
+    state: pending.state
+  });
+}
+
+/** Complete a started login from the `code#state` the console displayed. */
+async function handleClaudeComplete(request: Request): Promise<Response> {
+  if (request.method !== "POST")
+    return errorResponse(405, "Method not allowed");
+
+  const active = activeClaudeLogin;
+  if (!active) {
+    return errorResponse(
+      400,
+      "No Claude login in progress. Start one and try again."
+    );
+  }
+
+  let body: { code?: unknown };
+  try {
+    body = (await request.json()) as { code?: unknown };
+  } catch {
+    return errorResponse(400, "Invalid JSON body");
+  }
+  const code = typeof body.code === "string" ? body.code : "";
+  if (!code) return errorResponse(400, "code is required");
+
+  try {
+    await active.pending.completeWithPastedCode(code);
+    logger.info("Claude OAuth login completed from a pasted code");
+    return jsonResponse({ success: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return errorResponse(400, message);
+  } finally {
+    if (activeClaudeLogin === active) activeClaudeLogin = null;
+  }
+}
+
+/**
+ * Connection status, shaped like the other providers' `tokens` responses so the
+ * shared `useOAuthConnection` hook works unchanged. There is at most one login.
+ */
+async function handleClaudeTokens(): Promise<Response> {
+  const status = await new ClaudeCodeLogin().status();
+  return jsonResponse({
+    tokens: status.connected
+      ? [
+          {
+            provider: "claude",
+            scope: status.scopes.join(" "),
+            expires_at:
+              status.expiresAt != null
+                ? new Date(status.expiresAt).toISOString()
+                : null,
+            expired: status.expired,
+            subscription_type: status.subscriptionType,
+            rate_limit_tier: status.rateLimitTier,
+            credentials_path: status.credentialsPath
+          }
+        ]
+      : []
+  });
+}
+
+async function handleClaudeDisconnect(request: Request): Promise<Response> {
+  if (request.method !== "POST")
+    return errorResponse(405, "Method not allowed");
+  await closeActiveClaudeLogin();
+  const removed = await new ClaudeCodeLogin().logout();
+  return jsonResponse({ success: true, removed: removed ? 1 : 0 });
+}
+
 // ── Google Workspace Endpoints ───────────────────────────────────────
 //
 // Unlike the flows above, there is no authorization round-trip here. The user
@@ -1188,6 +1332,16 @@ export async function handleOAuthRequest(
       return handleOpenAITokens(getUserId);
     case "/api/oauth/openai/disconnect":
       return handleOpenAIDisconnect(request, getUserId);
+
+    // Claude subscription (Claude Agent SDK credentials)
+    case "/api/oauth/claude/start":
+      return handleClaudeStart(request);
+    case "/api/oauth/claude/complete":
+      return handleClaudeComplete(request);
+    case "/api/oauth/claude/tokens":
+      return handleClaudeTokens();
+    case "/api/oauth/claude/disconnect":
+      return handleClaudeDisconnect(request);
 
     // Google Workspace (token comes from the Supabase Google login)
     case "/api/oauth/google/session":

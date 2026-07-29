@@ -348,7 +348,6 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
 
     const addGeneratedClip = useTimelineStore((s) => s.addGeneratedClip);
     const addDirectGenClip = useTimelineStore((s) => s.addDirectGenClip);
-    const addClip = useTimelineStore((s) => s.addClip);
     const selectClip = useTimelineUIStore((s) => s.selectClip);
     const directGen = useTimelineDirectGenJob();
 

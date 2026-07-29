@@ -178,14 +178,12 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   const { generateKeyframe, generateClip, generateRevisedClip } =
     useGenerateShot();
 
-  const { boardEntities, appliedEntities, appliedIds } = useMemo(() => {
+  const { boardEntities, appliedIds } = useMemo(() => {
     const idSet = new Set(boardEntityIds);
     const board = (allEntities ?? []).filter((e) => idSet.has(e.id));
-    const applied = entitiesForShot(shot, board);
     return {
       boardEntities: board,
-      appliedEntities: applied,
-      appliedIds: applied.map((e) => e.id)
+      appliedIds: entitiesForShot(shot, board).map((e) => e.id)
     };
   }, [allEntities, boardEntityIds, shot]);
 

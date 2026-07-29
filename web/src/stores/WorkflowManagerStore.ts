@@ -296,14 +296,14 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
               id: workflow.id,
               name: workflow.name,
               access: workflow.access ?? "private",
-              graph: graph as Parameters<typeof trpcClient.workflows.update.mutate>[0]["graph"],
+              graph,
               tool_name: workflow.tool_name,
               description: workflow.description,
               tags: workflow.tags,
               package_name: workflow.package_name,
               thumbnail: workflow.thumbnail,
               thumbnail_url: workflow.thumbnail_url,
-              settings: workflow.settings as Record<string, unknown> | null | undefined,
+              settings: workflow.settings,
               run_mode: workflow.run_mode,
               workspace_id: workflow.workspace_id,
               html_app: workflow.html_app
@@ -409,14 +409,14 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           data = (await trpcClient.workflows.create.mutate({
             name: workflow.name,
             access: workflow.access ?? "private",
-            graph: graph as Parameters<typeof trpcClient.workflows.create.mutate>[0]["graph"],
+            graph,
             tool_name: workflow.tool_name,
             description: workflow.description,
             tags: workflow.tags,
             package_name: workflow.package_name,
             thumbnail: workflow.thumbnail,
             thumbnail_url: workflow.thumbnail_url,
-            settings: workflow.settings as Record<string, unknown> | null | undefined,
+            settings: workflow.settings,
             run_mode: workflow.run_mode,
             workspace_id: workflow.workspace_id,
             html_app: workflow.html_app,
@@ -573,7 +573,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           package_name: packageName,
           path: workflow.path,
           access: "public",
-          graph: workflow.graph as never
+          graph: workflow.graph
         });
 
         get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
