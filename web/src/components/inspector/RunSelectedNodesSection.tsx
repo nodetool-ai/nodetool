@@ -12,6 +12,7 @@ import {
   FlexRow,
   ShortcutHint,
   Text,
+  Tooltip,
   MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
 import {
@@ -66,6 +67,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       justifyContent: "center",
       gap: theme.spacing(1),
+      overflow: "hidden",
       padding: `${theme.spacing(1)} ${theme.spacing(1.5)}`,
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.primary.contrastText,
@@ -82,11 +84,15 @@ const styles = (theme: Theme) =>
       }
     },
     ".run-button .play-icon": {
-      fontSize: "var(--fontSizeBig)"
+      fontSize: "var(--fontSizeBig)",
+      flexShrink: 0
     },
-    ".run-button .run-shortcut": {
-      marginLeft: "auto",
-      opacity: 0.85
+    ".run-button .run-label": {
+      minWidth: 0,
+      flex: "0 1 auto",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
     }
   });
 
@@ -144,17 +150,26 @@ const RunSelectedNodesSectionInternal: React.FC = () => {
         </FlexRow>
       </FlexRow>
       <FlexColumn gap={0.5}>
-        <EditorButton
-          className="run-button"
-          density="normal"
-          onClick={handleRun}
-          disabled={buttonDisabled}
-          aria-label="Run selected nodes"
+        <Tooltip
+          placement="top"
+          title={
+            <FlexRow gap={1} align="center">
+              <span>Run selected nodes</span>
+              <ShortcutHint shortcut={["⌘", "Enter"]} />
+            </FlexRow>
+          }
         >
-          <PlayArrowIcon className="play-icon" />
-          <span>Run selected nodes</span>
-          <ShortcutHint className="run-shortcut" shortcut={["⌘", "Enter"]} />
-        </EditorButton>
+          <EditorButton
+            className="run-button"
+            density="normal"
+            onClick={handleRun}
+            disabled={buttonDisabled}
+            aria-label="Run selected nodes"
+          >
+            <PlayArrowIcon className="play-icon" />
+            <span className="run-label">Run selected nodes</span>
+          </EditorButton>
+        </Tooltip>
         {inSequence && runProgress !== null ? (
           <Caption size="smaller" color="muted">
             {`Run ${runProgress.current}/${runProgress.total}`}
