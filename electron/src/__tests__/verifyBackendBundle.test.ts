@@ -36,6 +36,25 @@ function writeValidBundle(dir: string): void {
     path.join(dir, "_modules", "webgpu", "dist", "linux-x86-64.dawn.node"),
     "x"
   );
+  writeStagedPackage(dir, "sharp", { version: "0.35.3" });
+  writeStagedPackage(dir, "@img/sharp-linux-x64", {
+    version: "0.35.3",
+    optionalDependencies: { "@img/sharp-libvips-linux-x64": "1.3.2" },
+  });
+  writeStagedPackage(dir, "@img/sharp-libvips-linux-x64", { version: "1.3.2" });
+}
+
+function writeStagedPackage(
+  dir: string,
+  name: string,
+  pkgJson: Record<string, unknown>
+): void {
+  const pkgDir = path.join(dir, "_modules", ...name.split("/"));
+  fs.mkdirSync(pkgDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(pkgDir, "package.json"),
+    JSON.stringify({ name, ...pkgJson })
+  );
 }
 
 function runVerify(dir: string) {
@@ -109,6 +128,32 @@ describe("verify-backend-bundle", () => {
     const { status, output } = runVerify(tempDir);
     expect(status).toBe(1);
     expect(output).toContain("dawn.node");
+  });
+
+  it("fails when the staged @img prebuild is from another sharp major", () => {
+    writeStagedPackage(tempDir, "@img/sharp-linux-x64", {
+      version: "0.34.5",
+      optionalDependencies: { "@img/sharp-libvips-linux-x64": "1.2.4" },
+    });
+    const { status, output } = runVerify(tempDir);
+    expect(status).toBe(1);
+    expect(output).toContain("@img/sharp-linux-x64 is 0.34.5");
+  });
+
+  it("fails when no @img prebuild is staged at all", () => {
+    fs.rmSync(path.join(tempDir, "_modules", "@img"), { recursive: true });
+    const { status, output } = runVerify(tempDir);
+    expect(status).toBe(1);
+    expect(output).toContain("@img/sharp-<platform> prebuild");
+  });
+
+  it("fails when the staged libvips does not match what the prebuild pins", () => {
+    writeStagedPackage(tempDir, "@img/sharp-libvips-linux-x64", {
+      version: "1.2.4",
+    });
+    const { status, output } = runVerify(tempDir);
+    expect(status).toBe(1);
+    expect(output).toContain("mismatched libvips");
   });
 
   it("fails when server.mjs itself is missing", () => {

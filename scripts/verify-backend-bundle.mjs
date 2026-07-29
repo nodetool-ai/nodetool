@@ -41,6 +41,18 @@ export function extractManifestReferences(serverSource) {
   return [...names].sort();
 }
 
+function readPackageJson(pkgDir) {
+  try {
+    return JSON.parse(readFileSync(path.join(pkgDir, "package.json"), "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function readPackageVersion(pkgDir) {
+  return readPackageJson(pkgDir)?.version ?? null;
+}
+
 function listFiles(dir) {
   try {
     return readdirSync(dir);
@@ -141,6 +153,58 @@ export function verifyBackendBundle(bundleDir, { requireWebgpu = true } = {}) {
     } else {
       summary.push(
         `webgpu staged with ${dawnFiles.length} dawn.node binary(ies)`
+      );
+    }
+  }
+
+  // 4. sharp and its native prebuilds must be the same release. _modules/ is
+  //    flat, so a hoisted @img/sharp-<platform> from an older sharp major can
+  //    take the slot sharp's own prebuild needs. The mismatch is silent until
+  //    the packaged app starts, where sharp's JS reads a format table the older
+  //    binary doesn't expose and the backend dies on import.
+  const modulesDir = path.join(bundleDir, "_modules");
+  const sharpVersion = readPackageVersion(path.join(modulesDir, "sharp"));
+  if (!sharpVersion) {
+    errors.push("_modules/sharp is missing or has no readable package.json");
+  } else {
+    const imgDir = path.join(modulesDir, "@img");
+    const imgPackages = (listFiles(imgDir) ?? []).filter((n) =>
+      n.startsWith("sharp-")
+    );
+    const prebuilts = imgPackages.filter((n) => !n.startsWith("sharp-libvips-"));
+    if (prebuilts.length === 0) {
+      errors.push(
+        "no @img/sharp-<platform> prebuild staged under _modules/@img — sharp " +
+          "would fail to load its native binary in the packaged app."
+      );
+    }
+    for (const name of prebuilts) {
+      const version = readPackageVersion(path.join(imgDir, name));
+      if (version !== sharpVersion) {
+        errors.push(
+          `_modules/@img/${name} is ${version}, but _modules/sharp is ` +
+            `${sharpVersion}. Stage the prebuild that sharp itself resolves ` +
+            `(sharp/node_modules/@img/…), not a hoisted copy from another ` +
+            `sharp major.`
+        );
+      }
+      // The prebuild pins its libvips exactly; a skewed libvips fails to load.
+      const deps = readPackageJson(path.join(imgDir, name))?.optionalDependencies ?? {};
+      for (const [libvipsName, wanted] of Object.entries(deps)) {
+        const staged = readPackageVersion(
+          path.join(modulesDir, ...libvipsName.split("/"))
+        );
+        if (staged && staged !== wanted) {
+          errors.push(
+            `_modules/${libvipsName} is ${staged}, but @img/${name} pins ` +
+              `${wanted}. sharp would load a mismatched libvips.`
+          );
+        }
+      }
+    }
+    if (errors.length === 0) {
+      summary.push(
+        `sharp ${sharpVersion} staged with matching prebuild(s): ${prebuilts.join(", ")}`
       );
     }
   }

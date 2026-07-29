@@ -171,6 +171,19 @@ jobs:
             extra-apt: ""
             is-test: "false"
             fetch-depth: "1"
+          # Stage the packaged backend and boot it. Nothing outside the release
+          # workflow used to build the bundle, so a packaging regression only
+          # surfaced once a release was cut — and the release's smoke-launch
+          # spawns the Electron main process, which survives its backend child
+          # dying. v0.7.1-nightly.20260728.713 shipped a sharp/@img major skew
+          # that killed server.mjs on import with every other check green.
+          # is-test:false — this is a release gate, not a unit suite.
+          - check: bundle
+            command: npm run backend:smoke
+            mobile-deps: "false"
+            extra-apt: ""
+            is-test: "false"
+            fetch-depth: "1"
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
