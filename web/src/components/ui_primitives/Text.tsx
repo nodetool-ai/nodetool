@@ -85,7 +85,7 @@ export const Text = forwardRef<HTMLElement, TextProps>(({
   // Font sizes are driven by the theme CSS variables (single source of truth
   // in ThemeNodetool). Five names, five real values — no aliases.
   const getFontSize = () => {
-    const sizeMap = {
+    const sizeMap: Record<NonNullable<TextProps["size"]>, string> = {
       giant: "var(--fontSizeGiant)",
       big: "var(--fontSizeBig)",
       normal: "var(--fontSizeNormal)",
@@ -135,7 +135,7 @@ export const Text = forwardRef<HTMLElement, TextProps>(({
         WebkitBoxOrient: "vertical" as const,
         overflow: "hidden",
         textOverflow: "ellipsis"
-      } as React.CSSProperties;
+      };
     }
     if (truncate) {
       return {
@@ -151,10 +151,10 @@ export const Text = forwardRef<HTMLElement, TextProps>(({
     <Typography
       ref={ref}
       sx={{
-        fontSize: getFontSize() as string,
-        color: getColor() as string,
+        fontSize: getFontSize(),
+        color: getColor(),
         fontWeight: resolvedWeight,
-        fontFamily: getFontFamily() as string,
+        fontFamily: getFontFamily(),
         ...getTruncateStyles(),
         ...sx
       }}
