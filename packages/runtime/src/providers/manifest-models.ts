@@ -340,6 +340,35 @@ export interface ModelImageInput {
  * `uploads` (which carry the real API param name) take precedence; otherwise
  * the FAL/Replicate `inputFields` image/list[image] entries are used.
  */
+/**
+ * Input parameter names a model declares, from the generated manifest.
+ *
+ * Providers assemble a generic input bag from `*Params` (prompt,
+ * negative_prompt, strength, seed…), but each endpoint accepts only a subset.
+ * Replicate rejects the whole prediction with a validation error when it sees
+ * an undeclared field rather than ignoring it, so sending the superset fails
+ * outright — `decart/lucy-edit-2` takes neither `negative_prompt` nor
+ * `strength`.
+ *
+ * Returns an empty set when the model is missing from the manifest or declares
+ * no fields. Callers must read that as "unknown, send everything" rather than
+ * "accepts nothing", so a model absent from the manifest keeps working.
+ */
+export function getModelInputNames(
+  packageName: string,
+  exportPath: string,
+  modelId: string
+): Set<string> {
+  const entry = loadManifest(packageName, exportPath).find(
+    (n) => nodeId(n) === modelId
+  );
+  return new Set(
+    (entry?.inputFields ?? [])
+      .map((f) => f.name)
+      .filter((n): n is string => typeof n === "string" && n.length > 0)
+  );
+}
+
 export function getModelImageInputs(
   packageName: string,
   exportPath: string,
