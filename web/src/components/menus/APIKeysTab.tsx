@@ -83,7 +83,13 @@ interface ProviderMeta {
   /** Extra hint rendered under the description (e.g. required key scope). */
   note?: string;
   /** Provider supports OAuth sign-in in place of (or alongside) an API key. */
-  oauth?: "openai" | "hf";
+  oauth?: "openai" | "hf" | "claude";
+  /**
+   * Authentication is OAuth-only — there is no API key to store, so the card
+   * shows sign-in/sign-out and nothing else. `key` is a display id, not a
+   * secret NodeTool persists.
+   */
+  oauthOnly?: boolean;
   /** Multi-field credentials (e.g. login + password). Single-field providers omit this. */
   fields?: Array<{ key: string; label: string; secret?: boolean }>;
 }
@@ -99,6 +105,18 @@ const PROVIDER_META: ProviderMeta[] = [
     icon: openaiIcon,
     mono: true,
     oauth: "openai"
+  },
+  {
+    key: "CLAUDE_SUBSCRIPTION",
+    name: "Claude",
+    description: "Use a Claude Pro or Max subscription instead of API credits.",
+    section: "popular",
+    docsUrl: "https://code.claude.com/docs/en/overview",
+    icon: anthropicIcon,
+    mono: true,
+    note: "Signs in through Claude Code and shares its credentials.",
+    oauth: "claude",
+    oauthOnly: true
   },
   {
     key: "ANTHROPIC_API_KEY",
@@ -484,7 +502,9 @@ export const ProviderCard = memo(function ProviderCard({
 }: ProviderCardProps) {
   const theme = useTheme();
   const oauth = useOAuthConnection(meta.oauth ?? null);
-  const isConnected = secret.is_configured;
+  // OAuth-only providers have no stored secret — the sign-in itself is the
+  // connection.
+  const isConnected = meta.oauthOnly ? oauth.isConnected : secret.is_configured;
 
   const handleConnect = useCallback(() => {
     onConnect(secret);
@@ -645,7 +665,7 @@ export const ProviderCard = memo(function ProviderCard({
               {isConnected ? "Connected" : "Not connected"}
             </Caption>
           </FlexRow>
-          {oauth.isConnected && (
+          {oauth.isConnected && !meta.oauthOnly && (
             <FlexRow
               align="center"
               gap={1}
@@ -676,7 +696,9 @@ export const ProviderCard = memo(function ProviderCard({
           )}
           {!isConnected && (
             <Caption size="smaller" sx={{ opacity: 0.45, whiteSpace: "nowrap" }}>
-              Add your API key to get started.
+              {meta.oauthOnly
+                ? "Sign in to get started."
+                : "Add your API key to get started."}
             </Caption>
           )}
         </FlexColumn>
@@ -720,7 +742,7 @@ export const ProviderCard = memo(function ProviderCard({
                   </EditorButton>
                 ))}
 
-          {isConnected ? (
+          {meta.oauthOnly ? null : isConnected ? (
             <>
               <EditorButton
                 density="compact"

@@ -584,6 +584,29 @@ npm run dev:nodetool -- storage migrate-keys               # Move them
 npm run dev:nodetool -- storage migrate-keys --user-id <id> --json
 ```
 
+### nodetool auth
+
+Signs in to providers that use an account instead of an API key. `auth claude`
+runs the same OAuth flow the `claude` CLI does and writes the tokens to the
+Claude Agent SDK's credential file (`$CLAUDE_CONFIG_DIR/.credentials.json`,
+default `~/.claude/.credentials.json`), so a NodeTool login and a `claude login`
+are interchangeable — the Claude Agent provider picks it up with no extra
+configuration.
+
+```bash
+npm run dev:nodetool -- auth claude login          # browser + loopback callback
+npm run dev:nodetool -- auth claude login --manual # paste the code (headless/remote)
+npm run dev:nodetool -- auth claude login --console # Console (API-billed) account
+npm run dev:nodetool -- auth claude status
+npm run dev:nodetool -- auth claude refresh --force
+npm run dev:nodetool -- auth claude logout
+```
+
+The same flow is exposed over HTTP at
+`/api/oauth/claude/{start,complete,tokens,disconnect}` and as a sign-in card on
+the **Models & Providers** settings page. Details:
+[packages/runtime/src/providers/oauth/README.md](packages/runtime/src/providers/oauth/README.md).
+
 ### nodetool secrets
 
 ```bash

@@ -1060,6 +1060,57 @@ export const CODEX_CALLBACK_PORT = 1455;
 export const CODEX_CALLBACK_PATH = "/auth/callback";
 
 /**
+ * Claude Code OAuth constants — the same public client and endpoints the
+ * `claude` CLI uses to sign in with a Claude subscription. Shared across
+ * packages so the login flow (`websocket`, `cli`) and the credential store
+ * (`runtime`) agree. The client is public: there is no client secret.
+ *
+ * The resulting tokens are written to the Claude Agent SDK's own credential
+ * file, so a NodeTool login and a `claude login` are interchangeable.
+ */
+export const CLAUDE_CODE_OAUTH_CLIENT_ID =
+  "9d1c250a-e61b-44d9-88ed-5944d1962f5e";
+/** Consumer sign-in page (claude.ai subscription accounts). */
+export const CLAUDE_CODE_OAUTH_AUTHORIZATION_URL =
+  "https://claude.com/cai/oauth/authorize";
+/** Console sign-in page (API-billed org accounts). */
+export const CLAUDE_CODE_OAUTH_CONSOLE_AUTHORIZATION_URL =
+  "https://platform.claude.com/oauth/authorize";
+export const CLAUDE_CODE_OAUTH_TOKEN_URL =
+  "https://platform.claude.com/v1/oauth/token";
+/**
+ * Redirect used when no loopback listener is reachable from the browser. The
+ * console shows the user a `<code>#<state>` string to paste back.
+ */
+export const CLAUDE_CODE_OAUTH_MANUAL_REDIRECT_URL =
+  "https://platform.claude.com/oauth/code/callback";
+/** Path the loopback listener serves; the port is ephemeral. */
+export const CLAUDE_CODE_CALLBACK_PATH = "/callback";
+/** Scopes requested at login. */
+export const CLAUDE_CODE_OAUTH_SCOPES = [
+  "org:create_api_key",
+  "user:profile",
+  "user:inference",
+  "user:sessions:claude_code",
+  "user:mcp_servers",
+  "user:file_upload"
+] as const;
+/**
+ * Scopes sent on refresh. Narrower than the login set — the CLI drops
+ * `org:create_api_key`, which is only needed to mint an API key at login.
+ */
+export const CLAUDE_CODE_OAUTH_REFRESH_SCOPES = [
+  "user:profile",
+  "user:inference",
+  "user:sessions:claude_code",
+  "user:mcp_servers",
+  "user:file_upload"
+] as const;
+/** Profile endpoint used to label the account (plan tier, email). */
+export const CLAUDE_CODE_OAUTH_PROFILE_URL =
+  "https://api.anthropic.com/api/oauth/profile";
+
+/**
  * Provider identifier. Resolves to a known {@link PROVIDER_IDS} value with
  * editor autocompletion, but still accepts arbitrary strings — dynamic
  * sub-providers (OpenRouter, HuggingFace inference) and Python-bridged
