@@ -120,6 +120,13 @@ export interface WebSocketConfig {
   reconnectAttempts?: number;
   timeoutInterval?: number;
   /**
+   * Inbound silence (ms) after which the connection is probed with a ping.
+   * Must stay above the server's 25s heartbeat. 0 disables the watchdog.
+   */
+  heartbeatInterval?: number;
+  /** Grace period (ms) for traffic to arrive after a probe. */
+  heartbeatTimeout?: number;
+  /**
    * Extra headers for the connection handshake (React Native native only).
    * Used to send `Authorization: Bearer <token>` so the auth token stays out
    * of the URL.
