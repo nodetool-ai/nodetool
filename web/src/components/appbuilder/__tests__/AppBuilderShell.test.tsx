@@ -1,9 +1,11 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { ThemeProvider } from "@mui/material/styles";
 import type { Data } from "@puckeditor/core";
 import type { AppDocMeta } from "@nodetool-ai/app-runtime";
 
+import mockTheme from "../../../__mocks__/themeMock";
 import type { Workflow } from "../../../stores/ApiTypes";
 import type { AppDocument } from "../appData";
 
@@ -137,18 +139,47 @@ const document: AppDocument = {
 
 const renderShell = (onSave = jest.fn()) => {
   render(
-    <AppBuilderShell
-      applicationId="app-1"
-      document={document}
-      workflow={workflow}
-      agentWorkflowId="wf-1"
-      onSave={onSave}
-    />
+    <ThemeProvider theme={mockTheme}>
+      <AppBuilderShell
+        applicationId="app-1"
+        document={document}
+        workflow={workflow}
+        agentWorkflowId="wf-1"
+        onSave={onSave}
+      />
+    </ThemeProvider>
   );
   return onSave;
 };
 
-beforeEach(() => jest.clearAllMocks());
+/** The toggle Puck draws in its header — hidden behind a menu on narrow screens. */
+const headerAgentToggle = () =>
+  screen.getAllByRole("button", { name: "Ask Agent" })[0];
+
+const originalMatchMedia = window.matchMedia;
+
+/** Reports every query as matching (or not), standing in for the viewport width. */
+const setNarrowViewport = (narrow: boolean) => {
+  window.matchMedia = jest.fn().mockImplementation((query: string) => ({
+    matches: narrow,
+    media: query,
+    onchange: null,
+    addListener: jest.fn(),
+    removeListener: jest.fn(),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn()
+  })) as unknown as typeof window.matchMedia;
+};
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  setNarrowViewport(false);
+});
+
+afterEach(() => {
+  window.matchMedia = originalMatchMedia;
+});
 
 describe("AppBuilderShell", () => {
   it("saves the whole document, not just the layout", async () => {
@@ -189,19 +220,45 @@ describe("AppBuilderShell", () => {
     const user = userEvent.setup();
     renderShell();
 
-    await user.click(screen.getByRole("button", { name: "Ask Agent" }));
+    await user.click(headerAgentToggle());
 
     expect(screen.getByTestId("agent-panel")).toHaveTextContent("wf-1");
   });
 
+  it("opens the agent from its own toggle on a narrow viewport", async () => {
+    // Puck folds its header actions into a chevron menu below 638px, so the
+    // shell renders a floating toggle that stays reachable there.
+    setNarrowViewport(true);
+    const user = userEvent.setup();
+    renderShell();
+
+    const toggles = screen.getAllByRole("button", { name: "Ask Agent" });
+    expect(toggles).toHaveLength(2);
+
+    await user.click(toggles[1]);
+
+    expect(screen.getByTestId("agent-panel")).toHaveTextContent("wf-1");
+    expect(
+      screen.getByRole("button", { name: "Close agent" })
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the floating toggle off wide viewports, where Puck shows its own", () => {
+    renderShell();
+
+    expect(screen.getAllByRole("button", { name: "Ask Agent" })).toHaveLength(1);
+  });
+
   it("hides the agent when no workflow is bound", () => {
     render(
-      <AppBuilderShell
-        applicationId="app-1"
-        document={document}
-        workflow={workflow}
-        onSave={jest.fn()}
-      />
+      <ThemeProvider theme={mockTheme}>
+        <AppBuilderShell
+          applicationId="app-1"
+          document={document}
+          workflow={workflow}
+          onSave={jest.fn()}
+        />
+      </ThemeProvider>
     );
 
     expect(
