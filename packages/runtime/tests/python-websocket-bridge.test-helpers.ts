@@ -102,6 +102,69 @@ export interface FakeWorkerHandle {
 }
 
 /**
+ * Validate a request against the worker's wire contract, mirroring the
+ * argument checks in nodetool-core's `worker/comfy_handler.py`. Returns the
+ * error string the real worker would answer with, or null when the request is
+ * well-formed.
+ *
+ * Without this the fake worker answers any payload, so a bridge that sends the
+ * wrong field name (`prompt` for `workflow`, `blob` for `data`, a flat model
+ * source instead of the nested `source` object) still passes every test while
+ * failing against a real worker.
+ */
+function checkWorkerContract(
+  type: string,
+  data: Record<string, unknown>
+): string | null {
+  switch (type) {
+    case "comfy.execute": {
+      const workflow = data.workflow;
+      if (
+        typeof workflow !== "object" ||
+        workflow === null ||
+        Array.isArray(workflow) ||
+        Object.keys(workflow).length === 0
+      ) {
+        return "comfy.execute requires a non-empty 'workflow' (API-format prompt JSON)";
+      }
+      return null;
+    }
+    case "comfy.upload":
+      return data.data instanceof Uint8Array
+        ? null
+        : "comfy.upload requires binary 'data'";
+    case "comfy.view":
+      return data.filename ? null : "comfy.view requires 'filename'";
+    case "comfy.cancel":
+      return data.prompt_id ? null : "comfy.cancel requires 'prompt_id'";
+    case "comfy.models.download": {
+      if (!data.folder) {
+        return "comfy.models.download requires 'folder'";
+      }
+      const source = (data.source ?? {}) as Record<string, unknown>;
+      if (source.type === "huggingface") {
+        return source.repo_id && source.path
+          ? null
+          : "huggingface source requires 'repo_id' and 'path'";
+      }
+      if (source.type === "url") {
+        return typeof source.url === "string" &&
+          /^https?:\/\//.test(source.url)
+          ? null
+          : "url source requires an http(s) 'url'";
+      }
+      return `Unknown model source type: ${JSON.stringify(source.type)} (expected 'huggingface' or 'url')`;
+    }
+    case "comfy.models.delete":
+      return data.folder && data.filename
+        ? null
+        : "comfy.models.delete requires 'folder' and 'filename'";
+    default:
+      return null;
+  }
+}
+
+/**
  * Start a fake worker on a specific port (or ephemeral when port === 0).
  * Returns once the server is listening.
  */
@@ -162,6 +225,22 @@ export function startFakeWorker(
       const send = (m: Record<string, unknown>) => {
         ws.send(pack(m));
       };
+
+      // Reject malformed requests the way the real worker does, so a bridge
+      // that sends the wrong field name fails the test instead of being
+      // silently answered. See nodetool-core docs/comfy-proxy.md.
+      const contractError = checkWorkerContract(
+        type,
+        (msg.data as Record<string, unknown>) ?? {}
+      );
+      if (contractError) {
+        send({
+          type: "error",
+          request_id: requestId,
+          data: { error: contractError }
+        });
+        return;
+      }
 
       switch (type) {
         case "discover":
@@ -361,7 +440,7 @@ export function startFakeWorker(
             event: "node_output",
             prompt_id: "p1",
             node: "9",
-            output: { images: [{ filename: "out.png" }] }
+            outputs: { images: [{ filename: "out.png" }] }
           });
           if (opts.comfyExecuteMode === "error") {
             send({
@@ -412,7 +491,12 @@ export function startFakeWorker(
             request_id: requestId,
             data: {
               models: [
-                { folder: "checkpoints", filename: "sd_xl_base.safetensors", size: 42 }
+                {
+                  folder: "checkpoints",
+                  filename: "sd_xl_base.safetensors",
+                  size_bytes: 42
+                },
+                { folder: "loras", filename: "detail.safetensors", size_bytes: 7 }
               ]
             }
           });

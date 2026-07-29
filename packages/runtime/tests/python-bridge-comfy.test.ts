@@ -92,7 +92,7 @@ describe("comfy.* bridge methods", () => {
     const frames = worker!.received("comfy.execute");
     expect(frames).toHaveLength(1);
     expect(frames[0]!.data).toEqual({
-      prompt: { "3": { class_type: "KSampler", inputs: {} } }
+      workflow: { "3": { class_type: "KSampler", inputs: {} } }
     });
 
     // No leaked pending state on either map after settle.
@@ -111,7 +111,7 @@ describe("comfy.* bridge methods", () => {
     await b.comfyExecute({ "3": {} }, { previews: true, timeout: 30 }, () => {});
     const frames = worker!.received("comfy.execute");
     expect(frames[0]!.data).toEqual({
-      prompt: { "3": {} },
+      workflow: { "3": {} },
       previews: true,
       timeout: 30
     });
@@ -203,13 +203,20 @@ describe("comfy.* bridge methods", () => {
       reachable: true
     });
 
+    // The worker has no folder filter on comfy.models.list — it always returns
+    // the whole volume, so the bridge sends an empty payload and narrows the
+    // result itself.
     const models = await b.comfyModelsList("checkpoints");
     expect(models).toEqual([
-      { folder: "checkpoints", filename: "sd_xl_base.safetensors", size: 42 }
+      {
+        folder: "checkpoints",
+        filename: "sd_xl_base.safetensors",
+        size_bytes: 42
+      }
     ]);
-    expect(worker!.received("comfy.models.list")[0]!.data).toEqual({
-      folder: "checkpoints"
-    });
+    expect(worker!.received("comfy.models.list")[0]!.data).toEqual({});
+
+    expect(await b.comfyModelsList()).toHaveLength(2);
 
     expect(await b.comfyModelsDelete("checkpoints", "sd_xl_base.safetensors")).toBe(
       true
