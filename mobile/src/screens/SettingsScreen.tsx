@@ -360,7 +360,7 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.aboutRow}
+          style={[styles.aboutRow, styles.aboutRowLast]}
           onPress={() => navigation.navigate('Triggers')}
           accessibilityRole="button"
           accessibilityLabel="View triggers"
@@ -383,7 +383,7 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
             <Text style={[styles.cardTitle, { color: colors.text }]}>Account</Text>
           </View>
 
-          <View style={[styles.aboutRow, { borderBottomColor: colors.borderLight }]}>
+          <View style={[styles.aboutRow, styles.aboutRowLast]}>
             <Text style={[styles.aboutLabel, { color: colors.textSecondary }]}>Signed in as</Text>
             <Text
               style={[styles.aboutValue, { color: colors.text, flexShrink: 1, marginLeft: 12 }]}
@@ -443,7 +443,7 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
           </View>
         </View>
         <TouchableOpacity
-          style={styles.aboutRow}
+          style={[styles.aboutRow, styles.aboutRowLast]}
           onPress={() => Linking.openURL('https://github.com/nodetool-ai/nodetool')}
           accessibilityRole="link"
           accessibilityLabel="Open NodeTool on GitHub"
@@ -556,6 +556,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  // Rows carry a hairline separator; the last row in a card must not, or the
+  // divider floats above the card's bottom padding.
+  aboutRowLast: {
+    borderBottomWidth: 0,
   },
   manageRowLeft: {
     flexDirection: 'row',
