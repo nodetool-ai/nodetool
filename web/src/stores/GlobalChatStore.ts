@@ -664,7 +664,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
             "reconnecting",
             (attempt: number, maxAttempts: number) => {
               set({
-                statusMessage: `Reconnecting... (attempt ${attempt}/${maxAttempts})`
+                statusMessage: Number.isFinite(maxAttempts)
+                  ? `Reconnecting... (attempt ${attempt}/${maxAttempts})`
+                  : `Reconnecting... (attempt ${attempt})`
               });
             }
           )
