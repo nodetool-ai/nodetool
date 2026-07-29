@@ -1090,6 +1090,16 @@ export class ProcessingContext {
   /** Message listeners (for real-time streaming). */
   private _messageListeners = new Set<(msg: ProcessingMessage) => void>();
 
+  /**
+   * One media object can appear in both a live output_update and the
+   * authoritative terminal result. Reuse its materialization within this
+   * execution instead of encoding/storing the same large payload twice.
+   */
+  private readonly _normalizedOutputAssets = new WeakMap<
+    object,
+    Map<AssetOutputMode, Promise<Record<string, unknown>>>
+  >();
+
   /** Cache adapter. */
   readonly cache: CacheAdapter;
 
@@ -3344,7 +3354,23 @@ export class ProcessingContext {
     }
 
     if (ProcessingContext.isAssetLike(value)) {
-      return this.materializeAsset(value, mode);
+      let byMode = this._normalizedOutputAssets.get(value);
+      if (!byMode) {
+        byMode = new Map();
+        this._normalizedOutputAssets.set(value, byMode);
+      }
+      let normalized = byMode.get(mode);
+      if (!normalized) {
+        normalized = this.materializeAsset(value, mode);
+        byMode.set(mode, normalized);
+      }
+      try {
+        return await normalized;
+      } catch (error) {
+        // A transient storage failure must remain retryable.
+        if (byMode.get(mode) === normalized) byMode.delete(mode);
+        throw error;
+      }
     }
 
     if (typeof value === "object") {

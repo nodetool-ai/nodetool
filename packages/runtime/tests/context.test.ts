@@ -795,6 +795,30 @@ describe("output normalization", () => {
     expect(normalized.image.data).toBeUndefined();
   });
 
+  it("materializes the same output asset only once per execution", async () => {
+    const storage = new InMemoryStorageAdapter();
+    const store = vi.spyOn(storage, "store");
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      assetOutputMode: "temp_url",
+      storage,
+      tempUrlResolver: (uri) => `https://temp.local/${encodeURIComponent(uri)}`
+    });
+    const image = {
+      type: "ImageRef",
+      uri: "memory://img",
+      data: Buffer.from("hello").toString("base64")
+    };
+
+    const [live, terminal] = await Promise.all([
+      ctx.normalizeOutputValue(image),
+      ctx.normalizeOutputValue(image)
+    ]);
+
+    expect(terminal).toBe(live);
+    expect(store).toHaveBeenCalledTimes(1);
+  });
+
   it("rejects unsafe temp URL resolver results during asset materialization", async () => {
     const storage = new InMemoryStorageAdapter();
     const ctx = new ProcessingContext({
