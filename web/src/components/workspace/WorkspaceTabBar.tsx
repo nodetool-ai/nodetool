@@ -27,6 +27,7 @@ import NotificationButton from "../panels/NotificationButton";
 import OpenMenu from "./OpenMenu";
 import WorkspaceTabItem from "./WorkspaceTabItem";
 import MobileDocumentSelector from "./MobileDocumentSelector";
+import MobileRailLauncher from "../panels/MobileRailLauncher";
 
 /** Whether a document type supports both View and Edit (vs view-only). */
 const SUPPORTS_BOTH_MODES: Record<WorkspaceTabType, boolean> = {
@@ -507,6 +508,9 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
 
   return (
     <div css={tabBarStyles} className="workspace-tabbar">
+      {/* Mobile has no vertical rail, so the app menu and panel toggle ride
+        along in the top row instead of floating over the content. */}
+      {isMobile && <MobileRailLauncher showAppMenu />}
       <button
         ref={newTabButtonRef}
         type="button"
