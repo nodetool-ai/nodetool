@@ -290,6 +290,7 @@ describe("application invocation settlement", () => {
   /** A finished run carrying an app id and a recorded provider charge. */
   const activeJob = (status: "completed" | "failed", cost: number) => {
     const queue: Array<Record<string, unknown>> = [];
+    const listeners = new Set<() => void>();
     const now = performance.now();
     return {
       jobId: "job-settle",
@@ -310,6 +311,10 @@ describe("application invocation settlement", () => {
       context: {
         hasMessages: () => queue.length > 0,
         popMessage: () => queue.shift(),
+        addMessageListener: (listener: () => void) => {
+          listeners.add(listener);
+          return () => listeners.delete(listener);
+        },
         normalizeOutputValue: vi.fn(async (v: unknown) => v),
         getNodeStatuses: () => ({}),
         getEdgeStatuses: () => ({})
