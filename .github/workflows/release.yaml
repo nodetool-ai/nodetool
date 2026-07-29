@@ -295,6 +295,17 @@ jobs:
           npm run prepare-mcpb
           npx electron-builder --config electron-builder.json --win --x64 --dir --publish never
 
+      # Boot the staged backend before anything is signed or uploaded. The
+      # Quality Gate runs the same check, but only on Linux — the native
+      # prebuilds staged into the bundle are per-OS, so a Windows- or
+      # macOS-only staging fault is invisible until here. Smoke-launch below
+      # can't cover it: it spawns the Electron main process, which outlives a
+      # backend child that dies on import.
+      - name: Smoke-boot packaged backend (Windows)
+        if: matrix.os == 'windows-2022'
+        shell: bash -l {0}
+        run: node scripts/smoke-backend-bundle.mjs electron/backend-bundle
+
       - name: Resolve Windows artifacts (paths)
         if: matrix.os == 'windows-2022'
         shell: bash -l {0}
@@ -556,6 +567,13 @@ jobs:
           npm run prepare-backend
           npm run prepare-mcpb
           npx electron-builder --config electron-builder.json --publish never
+
+      # See the Windows step above: per-OS native prebuilds mean the Linux
+      # Quality Gate run doesn't cover the macOS bundle.
+      - name: Smoke-boot packaged backend (macOS/Linux)
+        if: matrix.os != 'windows-2022'
+        shell: bash
+        run: node scripts/smoke-backend-bundle.mjs electron/backend-bundle
 
       - name: Smoke-launch macOS .app
         if: matrix.os == 'macos-latest'
