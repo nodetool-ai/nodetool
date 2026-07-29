@@ -27,7 +27,6 @@ import {
   liveInvocations,
   mergeVariables,
   messageToEvents,
-  outputVariableTargets,
   resolveBinding,
   resolveOperationParams,
   stateKey,
