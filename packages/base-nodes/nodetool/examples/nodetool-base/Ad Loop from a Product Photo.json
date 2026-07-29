@@ -3,16 +3,16 @@
   "access": "private",
   "created_at": "2026-06-21T16:03:52.969Z",
   "updated_at": "2026-06-21T16:55:51.256Z",
-  "name": "AI Spokesperson",
+  "name": "Ad Loop from a Product Photo",
   "tool_name": null,
-  "description": "Give a presenter clip a new script. Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Useful for localising a take, fixing a fluffed line, or spinning one recording into many variants. Both the speech and lip-sync steps are paid per run.",
+  "description": "Turn a single product photo into a short looping ad. A prompt node writes the motion brief, Kling 2.6 on Kie animates the still, and a speed pass slows it into a hero loop. Needs a KIE_API_KEY; the video step is billed per generation.",
   "tags": [
+    "image",
     "video",
-    "audio",
     "marketing",
     "example"
   ],
-  "thumbnail": "AI Spokesperson.jpg",
+  "thumbnail": "Ad Loop from a Product Photo.jpg",
   "thumbnail_url": null,
   "graph": {
     "nodes": [
@@ -20,13 +20,11 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "headline": "AI Spokesperson",
+          "headline": "Ad Loop from a Product Photo",
           "comment": [
-            "Re-voice an existing presenter clip without a reshoot.\n\n",
-            "1. Drop in footage of a person talking to camera.\n",
-            "2. Write the new script.\n",
-            "3. TTS voices it, then lip-sync redrives the mouth to match.\n\n",
-            "Keep the script close to the original length — lip-sync follows the audio, and a much longer script will run past the footage."
+            "One product photo in, a looping hero shot out.\n\n",
+            "Kling 2.6 animates the still, then the speed pass halves playback so the loop reads as a slow, premium reveal.\n\n",
+            "The motion brief forbids redesigning the product — the model may move the camera and the light, nothing else."
           ]
         },
         "ui_properties": {
@@ -43,12 +41,12 @@
         "dynamic_outputs": {}
       },
       {
-        "id": "in-clip",
-        "type": "nodetool.input.VideoInput",
+        "id": "in-photo",
+        "type": "nodetool.input.ImageInput",
         "data": {
-          "name": "presenter_clip",
+          "name": "product_photo",
           "value": null,
-          "description": "Footage of a person speaking to camera"
+          "description": "A clean photo of the product"
         },
         "ui_properties": {
           "position": {
@@ -58,18 +56,18 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "1  Presenter clip"
+          "title": "1  Product photo"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
-        "id": "in-script",
+        "id": "in-motion",
         "type": "nodetool.input.StringInput",
         "data": {
-          "name": "script",
-          "value": "Our spring release ships today. Faster renders, sharper output, and a price that did not move.",
-          "description": "The new words the presenter should say"
+          "name": "motion",
+          "value": "Slow orbit around the product as a soft highlight travels across its surface",
+          "description": "How the shot should move"
         },
         "ui_properties": {
           "position": {
@@ -79,24 +77,16 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "2  New script"
+          "title": "2  Motion"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
-        "id": "speech",
-        "type": "nodetool.audio.TextToSpeech",
+        "id": "brief",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "model": {
-            "type": "tts_model",
-            "provider": "replicate",
-            "id": "inworld/realtime-tts-1.5-max",
-            "name": "Inworld Realtime TTS 1.5 Max",
-            "path": null,
-            "voices": []
-          },
-          "speed": 1.0
+          "prompt": "Animate this product photo into a looping hero shot.\n\nMotion: {{ motion }}\n\nKeep the product's shape, colour, materials and label exactly as photographed. Move only the camera and the lighting. Keep the first and last frame close so the clip loops cleanly. No text, no logos, no hands."
         },
         "ui_properties": {
           "position": {
@@ -104,25 +94,30 @@
             "y": 380
           },
           "zIndex": 0,
-          "width": 280,
+          "width": 320,
           "selectable": true,
-          "title": "3  Voice the script"
+          "title": "Motion brief"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
-        "id": "sync",
-        "type": "nodetool.video.LipSync",
+        "id": "animate",
+        "type": "nodetool.video.ImageToVideo",
         "data": {
           "model": {
             "type": "video_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/sync-lipsync/v2/pro",
-            "name": "Sync Lipsync v2 Pro",
+            "provider": "kie",
+            "id": "kling-2.6/image-to-video",
+            "name": "Kling 2.6 Image to Video",
             "path": null,
             "supported_tasks": []
-          }
+          },
+          "negative_prompt": "warping, melting edges, label distortion, extra objects",
+          "aspect_ratio": "16:9",
+          "resolution": "1080p",
+          "duration": 5,
+          "timeout_seconds": 0
         },
         "ui_properties": {
           "position": {
@@ -132,26 +127,45 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "4  Lip-sync to the new audio"
+          "title": "3  Animate (Kie)"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
-        "id": "output-clip",
-        "type": "nodetool.output.Output",
+        "id": "slow",
+        "type": "nodetool.video.SetSpeed",
         "data": {
-          "name": "revoiced_clip"
+          "speed_factor": 0.5
         },
         "ui_properties": {
           "position": {
-            "x": 1120,
-            "y": 320
+            "x": 1100,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Half speed"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "output-loop",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "ad_loop"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1440,
+            "y": 360
           },
           "zIndex": 0,
           "width": 240,
           "selectable": true,
-          "title": "5  Re-voiced clip"
+          "title": "5  Ad loop"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -160,30 +174,37 @@
     "edges": [
       {
         "id": "e1",
-        "source": "in-script",
+        "source": "in-motion",
         "sourceHandle": "output",
-        "target": "speech",
-        "targetHandle": "text"
+        "target": "brief",
+        "targetHandle": "motion"
       },
       {
         "id": "e2",
-        "source": "in-clip",
+        "source": "in-photo",
         "sourceHandle": "output",
-        "target": "sync",
-        "targetHandle": "video"
+        "target": "animate",
+        "targetHandle": "image"
       },
       {
         "id": "e3",
-        "source": "speech",
-        "sourceHandle": "audio",
-        "target": "sync",
-        "targetHandle": "audio"
+        "source": "brief",
+        "sourceHandle": "output",
+        "target": "animate",
+        "targetHandle": "prompt"
       },
       {
         "id": "e4",
-        "source": "sync",
+        "source": "animate",
         "sourceHandle": "output",
-        "target": "output-clip",
+        "target": "slow",
+        "targetHandle": "video"
+      },
+      {
+        "id": "e5",
+        "source": "slow",
+        "sourceHandle": "output",
+        "target": "output-loop",
         "targetHandle": "value"
       }
     ]
@@ -191,7 +212,7 @@
   "input_schema": {
     "type": "object",
     "properties": {
-      "presenter_clip": {
+      "product_photo": {
         "type": "object",
         "properties": {
           "uri": {
@@ -200,7 +221,7 @@
           },
           "type": {
             "type": "string",
-            "const": "video"
+            "const": "image"
           }
         },
         "required": [
@@ -209,21 +230,21 @@
         ],
         "label": ""
       },
-      "script": {
+      "motion": {
         "type": "string",
-        "default": "Our spring release ships today. Faster renders, sharper output, and a price that did not move.",
+        "default": "Slow orbit around the product as a soft highlight travels across its surface",
         "label": ""
       }
     },
     "required": [
-      "presenter_clip",
-      "script"
+      "product_photo",
+      "motion"
     ]
   },
   "output_schema": {
     "type": "object",
     "properties": {
-      "revoiced_clip": {
+      "ad_loop": {
         "type": "object",
         "properties": {
           "uri": {
@@ -243,7 +264,7 @@
       }
     },
     "required": [
-      "revoiced_clip"
+      "ad_loop"
     ]
   },
   "settings": {},
