@@ -530,7 +530,6 @@ const RemoteSettings = () => {
                   )}
                   {section.key === "local-model-servers" && data && (
                     <SearchProviderSection
-                      allSettings={data}
                       settingValues={settingValues}
                       onChange={handleChange}
                     />

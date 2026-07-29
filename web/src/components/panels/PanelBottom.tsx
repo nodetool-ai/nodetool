@@ -37,10 +37,7 @@ import { isProduction } from "../../lib/env";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import ContextMenus from "../context_menus/ContextMenus";
-import {
-  Workflow,
-  WorkflowVersion,
-} from "../../stores/ApiTypes";
+import { WorkflowVersion } from "../../stores/ApiTypes";
 import { useRunningJobs } from "../../hooks/useRunningJobs";
 import { useSystemStatsStore } from "../../stores/systemStatsHandler";
 import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";

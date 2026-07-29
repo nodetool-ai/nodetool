@@ -37,25 +37,6 @@ export const Slugify = (input: string): string => {
 };
 
 /**
- * Checks if two types are equal. This is the case if they have the same type
- * and the same type arguments.
- */
-const equalType = (a: TypeMetadata, b: TypeMetadata): boolean => {
-  if (a.type !== b.type) {
-    return false;
-  }
-  if ((a.type_args && !b.type_args) || (!a.type_args && b.type_args)) {
-    return false;
-  }
-  if (a.type_args) {
-    return a.type_args.every(
-      (t, i) => b.type_args && equalType(t, b.type_args[i])
-    );
-  }
-  return true;
-};
-
-/**
  * Checks if two enum types are connectable by matching their type_name.
  * Enum-to-enum connections are only allowed when both enums have the same type_name.
  *
