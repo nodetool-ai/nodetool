@@ -6,36 +6,39 @@
  *
  * Keyed `<provider_id>:<model_id>`, where `provider_id` is a NodeTool
  * `PROVIDER_IDS` value and `model_id` is the provider-native id that lands on a
- * node's provider-model property.
+ * node's provider-model property. Every provider NodeTool can run and GenSpend
+ * tracks is in here.
  *
  * Prices via genspend.io.
  */
 
 import catalog from "./generated/genspend-pricing.json" with { type: "json" };
 
-export interface GenspendVariant {
-  spec: string;
-  unit_class: string;
-  unit_price: number;
-}
+/** GenSpend prices are USD list prices; the sync never converts a currency. */
+export const GENSPEND_CURRENCY = "USD";
+
+/**
+ * How a price was tied to a NodeTool model id:
+ * - `receipt` — read from the provider's own model page URL. Exact.
+ * - `alias` — pinned by hand in `scripts/genspend/aliases.json`.
+ * - `catalog` — the model's normalized name matched a model the provider
+ *   enumerates in NodeTool. It prices the model, not one endpoint variant, so
+ *   sibling task endpoints share the number.
+ */
+export type GenspendMatch = "receipt" | "alias" | "catalog";
 
 export interface GenspendPrice {
   unit_price: number;
+  /** "images", "seconds", "generations", … — the FAL catalog's vocabulary. */
   billing_unit: string;
-  currency: string;
-  /** The provider's own human-readable billing basis, e.g. "per second of video". */
-  unit: string;
-  /** Machine key; prices are only comparable within one unit class. */
+  /** GenSpend's machine key; prices only compare inside one unit class. */
   unit_class: string;
   model_slug: string;
-  model_name: string;
-  provider_name: string;
+  match: GenspendMatch;
   /** Auto-synced from the provider (~6h) rather than hand-verified weekly. */
   live: boolean;
   /** The receipt page the price was read from. */
   source_url: string;
-  /** Published per-spec rows (e.g. "1080p · 8s"), when the provider has them. */
-  variants?: GenspendVariant[];
 }
 
 export interface GenspendPricingCatalog {
@@ -46,6 +49,8 @@ export interface GenspendPricingCatalog {
   updatedAt: string;
   catalogModels: number;
   catalogOfferings: number;
+  /** NodeTool provider ids the catalog carries prices for. */
+  providers: string[];
   pricedModels: number;
   prices: Record<string, GenspendPrice>;
 }

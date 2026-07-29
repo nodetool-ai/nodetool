@@ -6,11 +6,12 @@
  * bundle-sourced price, or null when the model isn't in either catalog.
  *
  * Models in neither catalog fall back to the GenSpend catalog
- * (`genspend-catalog.ts`), refreshed nightly from genspend.io — that is what
- * prices Replicate models and any FAL endpoint the codegen catalog predates.
- * FAL and kie stay ahead of it because those catalogs come from the provider
- * itself, so a NodeTool run is gated on the provider's own number wherever one
- * exists.
+ * (`genspend-catalog.ts`), refreshed nightly from genspend.io. That covers
+ * every provider NodeTool can run and GenSpend tracks — Replicate, AtlasCloud,
+ * Together, Gemini, OpenAI, MiniMax, ElevenLabs, and any FAL or kie model their
+ * own catalogs predate. FAL and kie stay ahead of it because those catalogs
+ * come from the provider itself, so a run is gated on the provider's own number
+ * wherever one exists.
  *
  * Shared on purpose: the web cost preview and the server-side pre-run budget
  * estimate (`estimateRunCost`) both call this, so a run is gated on the same
@@ -25,7 +26,7 @@ import type {
 } from "@nodetool-ai/node-sdk/cost-estimate";
 import falUnitPricingCatalog from "@nodetool-ai/fal-nodes/unit-pricing-catalog";
 import kieUnitPricingCatalog from "@nodetool-ai/kie-nodes/unit-pricing-catalog";
-import { getGenspendPrice } from "./genspend-catalog.js";
+import { getGenspendPrice, GENSPEND_CURRENCY } from "./genspend-catalog.js";
 
 interface CatalogPrice {
   unit_price?: unknown;
@@ -77,7 +78,7 @@ function genspendPrice(model: SelectedModel): ModelUnitPricingLike | null {
   return {
     unit_price: entry.unit_price,
     billing_unit: entry.billing_unit,
-    currency: entry.currency,
+    currency: GENSPEND_CURRENCY,
     source: "bundle"
   };
 }

@@ -9,7 +9,10 @@ name: GenSpend Pricing Sync
 # this opens a PR and never pushes to main. When nothing moved the script
 # rewrites nothing and no PR is opened.
 #
-# No secrets: the GenSpend API is public and read-only.
+# The sync matches GenSpend models against the models each provider enumerates
+# in NodeTool, so it needs the backend packages built. No provider API keys: the
+# listings it reads are static or manifest-backed, and the GenSpend API is
+# public and read-only.
 
 on:
   workflow_dispatch: {}
@@ -38,10 +41,25 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Build backend packages
+        # The sync reads each provider's model listing from the built runtime.
+        run: npm run build:packages
 
       - name: Sync prices
-        # The script needs nothing but Node's fetch — no install, no build.
-        run: node scripts/sync-genspend-pricing.mjs
+        run: npm run sync:genspend -- --report genspend-coverage.json
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: genspend-coverage
+          path: genspend-coverage.json
+          if-no-files-found: warn
 
       - name: Detect changes
         id: diff
@@ -55,7 +73,14 @@ jobs:
               echo "summary<<EOF"
               node -e "
                 const c = require('./packages/model-pricing/src/generated/genspend-pricing.json');
-                console.log(\`\${c.pricedModels} priced models from \${c.catalogOfferings} offerings across \${c.catalogModels} tracked models (updated \${c.updatedAt}).\`);
+                const report = require('./genspend-coverage.json');
+                console.log(\`\${c.pricedModels} priced model ids across \${c.providers.length} providers, from \${c.catalogOfferings} offerings over \${c.catalogModels} tracked models (prices last moved \${c.updatedAt}).\`);
+                console.log('');
+                console.log('| Provider | Offerings priced | Model ids | Unresolved |');
+                console.log('| --- | --- | --- | --- |');
+                for (const [provider, s] of Object.entries(report.coverage).sort()) {
+                  console.log(\`| \${provider} | \${s.priced}/\${s.offerings} | \${s.ids} | \${s.unresolved} |\`);
+                }
               "
               echo "EOF"
             } >> "$GITHUB_OUTPUT"
@@ -84,4 +109,9 @@ jobs:
                   >3× swings, but a unit change would slip through)
             - [ ] `unit_class` values still match the `billing_unit` they map to
             - [ ] No model lost its price because the provider's receipt page moved
+            - [ ] New `match: "catalog"` entries name the model they claim to price
+
+            Unresolved offerings are listed in the run log and the
+            `genspend-coverage` artifact — pin any that should be priced in
+            `scripts/genspend/aliases.json`.
           delete-branch: true

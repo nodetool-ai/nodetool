@@ -23,8 +23,9 @@ Looked up in order, first hit wins:
    `<provider_id>:<model_id>`.
 
 FAL and kie come from the providers themselves, so they stay ahead of GenSpend.
-GenSpend is what prices Replicate models and any FAL endpoint the codegen
-catalog predates.
+GenSpend covers every other provider NodeTool can run and GenSpend tracks —
+Replicate, AtlasCloud, Together, Gemini, OpenAI, MiniMax, ElevenLabs, xAI — plus
+any FAL or kie model their own catalogs predate.
 
 All three are imported as modules, not read off disk, so the estimate works
 identically in the browser bundle and inside the packaged Electron backend (no
@@ -40,6 +41,7 @@ synced from providers every ~6 h or hand-verified weekly.
 JSON:
 
 ```bash
+npm run build:packages         # the sync reads the built providers
 npm run sync:genspend          # rewrite the catalog
 npm run sync:genspend:check    # exit 1 if it is stale
 ```
@@ -47,19 +49,49 @@ npm run sync:genspend:check    # exit 1 if it is stale
 The `GenSpend Pricing Sync` workflow runs it nightly and opens a PR when a price
 moved. Never hand-edit the generated file.
 
-Two things the normalizer will not do, because both would put a wrong number in
-front of a spend decision:
+### Matching GenSpend models to NodeTool model ids
 
-- **Guess a model id.** GenSpend keys models by its own slug (`seedance-2`).
-  What NodeTool can match is the provider-native id in an offering's `sourceUrl`
-  receipt — `fal.ai/models/fal-ai/flux/schnell` → `fal-ai/flux/schnell`,
-  `replicate.com/black-forest-labs/flux-dev` → `black-forest-labs/flux-dev`.
-  Providers whose receipt is a generic pricing table yield no id and are dropped.
-- **Convert units.** `priceUsd` is in the provider's own unit, and prices are
-  only comparable inside one `unitClass`. Each entry keeps `unit`/`unit_class`
-  verbatim and maps the class to a `billing_unit` label ("images", "seconds", …).
+GenSpend keys models by its own slug (`seedance-2`); a run is priced by the
+provider-native id on the node (`bytedance/seedance-2.0/text-to-video`). Each
+entry records which of three routes bridged them, in descending order of trust:
 
-Offerings that aren't `available` or carry no price are dropped too. When two
-offerings collapse to one key, the cheaper one wins.
+- **`receipt`** — the offering's `sourceUrl` is a model page carrying the native
+  id: `fal.ai/models/fal-ai/flux/schnell`, `replicate.com/black-forest-labs/flux-dev`.
+  Exact, nothing interpreted.
+- **`alias`** — pinned by hand in `scripts/genspend/aliases.json`. An array of
+  ids pins a match the name comparison cannot see; `null` blocks a model for
+  that provider.
+- **`catalog`** — the model's normalized name exactly equals that of a model the
+  provider itself enumerates in NodeTool (`getAvailableImageModels` and
+  friends). That listing is the model picker's own source, so the sync can only
+  ever emit ids NodeTool actually ships.
+
+A catalog match prices the **model**, not one endpoint variant, so sibling task
+endpoints (text-to-video, image-to-video, edit) share the number — which is what
+GenSpend publishes: one price per model per provider.
+
+Four guards keep a wrong number out of a budget decision:
+
+- **Same modality only.** "Gemini 3.1 Flash Image" and "Gemini 3.1 Flash TTS"
+  normalize alike once the task word is stripped; the modality guard is what
+  keeps an image price off a TTS model.
+- **Exact key equality**, never prefix or fuzzy — so `seedance-2` cannot price
+  `seedance-2-mini`, and `kling-3-pro` cannot price `kling-3-turbo`.
+- **Generation endpoints only.** Upscalers, lip-sync and voice-clone endpoints
+  bill on their own basis and never inherit a model's generation price.
+- **Ambiguity is dropped, not resolved.** A name hitting more than eight ids is
+  a family name, not a model; it is reported instead of priced.
+
+Anything left unresolved is printed by the sync and written to its `--report`
+file, so the gap is visible rather than silently absent.
+
+### What the numbers mean
+
+`unit_price` is in the provider's own unit; prices are only comparable inside
+one `unitClass`. Each entry keeps `unit_class` verbatim and maps it to a
+`billing_unit` label ("images", "seconds", …) matching the FAL catalog's
+vocabulary. Offerings that aren't `available` or carry no price are dropped.
+When two offerings land on one key, a receipt match outranks a name match, and
+otherwise the cheaper price wins.
 
 Prices via [genspend.io](https://genspend.io).
