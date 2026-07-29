@@ -1168,7 +1168,9 @@ const styles = StyleSheet.create({
   },
   inputMulti: { minHeight: MULTILINE_MIN_HEIGHT, textAlignVertical: 'top' },
   castRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  castInput: { flex: 1, marginBottom: 0 },
+  // `minWidth: 0` is what lets the field give way to the buttons beside it: a
+  // web text input will not shrink past its default intrinsic width otherwise.
+  castInput: { flex: 1, minWidth: 0, marginBottom: 0 },
   colorChip: { width: 14, height: 14, borderRadius: 7 },
   addButton: {
     flexDirection: 'row',
@@ -1183,7 +1185,7 @@ const styles = StyleSheet.create({
   primaryButtonText: { fontSize: 15, fontWeight: '600' },
   sectionBlock: { marginTop: 14 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  sectionInput: { flex: 1, marginBottom: 0, fontWeight: '600' },
+  sectionInput: { flex: 1, minWidth: 0, marginBottom: 0, fontWeight: '600' },
   card: { borderRadius: 14, borderWidth: 1, padding: 12, marginTop: 10 },
   cardHeader: {
     flexDirection: 'row',
