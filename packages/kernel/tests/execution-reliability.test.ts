@@ -330,15 +330,6 @@ describe("runner: initialize() failure", () => {
 
 describe("runner: sendControlEvent completion race", () => {
   it("rejects when the target completes while the event is in flight", async () => {
-    const nodes: NodeDescriptor[] = [
-      {
-        id: "worker",
-        type: "test.Worker",
-        is_controlled: true,
-        outputs: { result: "int" }
-      }
-    ];
-
     const runner = new WorkflowRunner("job-race", {
       resolveExecutor: () => ({ process: async () => ({ result: 1 }) })
     });
