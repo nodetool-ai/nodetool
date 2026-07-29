@@ -1,6 +1,6 @@
 /**
- * Supabase implementation of the VectorProvider interface, on top of
- * `@supabase/supabase-js`.
+ * Supabase implementation of the VectorProvider interface, on top of the
+ * in-house fetch-backed PostgREST client (see postgrest.ts).
  *
  * Storage layout (must be installed once via `sql/supabase-migration.sql`):
  *
@@ -14,7 +14,7 @@
  * Supabase's own AI guides (https://supabase.com/docs/guides/ai).
  */
 
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { PostgrestClient, type PostgrestClientApi } from "./postgrest.js";
 import {
   CollectionNotFoundError,
   ProviderConfigError,
@@ -44,8 +44,8 @@ export interface SupabaseProviderOptions {
   apiKey?: string;
   /** Postgres schema housing the registry and records tables. Defaults to "public". */
   schema?: string;
-  /** Pre-built Supabase client. Used by tests; if set, url/apiKey are ignored. */
-  client?: SupabaseClient;
+  /** Pre-built PostgREST client. Used by tests; if set, url/apiKey are ignored. */
+  client?: PostgrestClientApi;
   /** Default embedding function applied when records/queries are text-only. */
   defaultEmbeddingFunction?: EmbeddingFunction;
   /** Override registry table name. Defaults to "nodetool_vec_collections". */
@@ -505,7 +505,7 @@ export class SupabaseProvider implements VectorProvider {
   private readonly url: string | undefined;
   private readonly apiKey: string | undefined;
   private readonly defaultEf?: EmbeddingFunction;
-  private client: SupabaseClient | null;
+  private client: PostgrestClientApi | null;
 
   constructor(opts: SupabaseProviderOptions = {}) {
     if (!opts.client && (!opts.url || !opts.apiKey)) {
@@ -524,14 +524,12 @@ export class SupabaseProvider implements VectorProvider {
   }
 
   /** Returns the underlying client, instantiating one on first use. */
-  getClient(): SupabaseClient {
+  getClient(): PostgrestClientApi {
     if (!this.client) {
-      // Use the default-schema client; per-query schema scoping happens at
-      // the call site via `client.schema(this.schema)` if needed. Passing
-      // `db.schema` to createClient narrows the generic to a literal string
-      // type and breaks assignment, which doesn't add value for our use.
-      this.client = createClient(this.url!, this.apiKey!, {
-        auth: { persistSession: false }
+      this.client = new PostgrestClient({
+        url: this.url!,
+        apiKey: this.apiKey!,
+        schema: this.schema
       });
     }
     return this.client;
@@ -616,7 +614,7 @@ export class SupabaseProvider implements VectorProvider {
   }
 
   close(): void {
-    // supabase-js does not hold a persistent connection; nothing to close.
+    // The PostgREST client is stateless HTTP; nothing to close.
   }
 
   // ----- internal helpers -------------------------------------------------

@@ -1,6 +1,6 @@
 import React from "react";
-import { motion } from "framer-motion";
 import { Download, Play, Code2, KeyRound, Layers } from "lucide-react";
+import CanvasScreenshot from "./CanvasScreenshot";
 import { SmartDownloadButton } from "../app/SmartDownloadButton";
 import { track } from "../lib/analytics";
 
@@ -16,12 +16,7 @@ export default function NodeToolHero() {
 
       <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-12">
         {/* Left: copy */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="lg:col-span-5"
-        >
+        <div className="hero-rise lg:col-span-5">
           <span className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-300">
             <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
             Free &amp; Open Source
@@ -39,10 +34,9 @@ export default function NodeToolHero() {
           </h1>
 
           <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-300 md:text-lg">
-            One canvas. Every major model from every major provider, called
-            with your own keys. Pay providers what they charge — no credits, no
-            markup, no curated roster. When the next model ships, swap one node
-            and you&apos;re on it the same day.
+            Films, posters, product videos, and music, made start to finish on
+            one canvas. Every major model, your own keys, and no credits or
+            markups in between.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -63,7 +57,7 @@ export default function NodeToolHero() {
           <ul className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-slate-300">
             <li className="flex items-center gap-1.5">
               <Layers className="h-3.5 w-3.5 text-fuchsia-400" />
-              Every model. Your keys. Your canvas.
+              Image, video, audio, and text
             </li>
             <li className="text-slate-700">•</li>
             <li className="flex items-center gap-1.5">
@@ -76,15 +70,10 @@ export default function NodeToolHero() {
               Open source, runs anywhere
             </li>
           </ul>
-        </motion.div>
+        </div>
 
         {/* Right: product screenshot */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.15, ease: "easeOut" }}
-          className="relative lg:col-span-7"
-        >
+        <div className="hero-rise-delayed relative lg:col-span-7">
           <div
             aria-hidden
             className="absolute -inset-6 -z-10 rounded-[2rem] opacity-70 blur-3xl"
@@ -94,18 +83,9 @@ export default function NodeToolHero() {
             }}
           />
           <div className="rounded-2xl border border-slate-700/60 bg-slate-900/80 p-1.5 shadow-2xl shadow-black/60 ring-1 ring-white/5 backdrop-blur">
-            <img
-              src="/screen_canvas.png"
-              alt="NodeTool canvas: nodes for image, video, and text models wired together"
-              width={2000}
-              height={1320}
-              className="block h-auto w-full rounded-xl"
-              loading="eager"
-              decoding="async"
-              fetchPriority="high"
-            />
+            <CanvasScreenshot alt="NodeTool canvas: nodes for image, video, and text models wired together" />
           </div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

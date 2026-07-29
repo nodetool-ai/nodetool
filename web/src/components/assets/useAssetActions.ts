@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { Asset } from "../../stores/ApiTypes";
-import useContextMenu from "../../stores/ContextMenuStore";
+import { useContextMenuActions } from "../../stores/ContextMenuStore";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 import {
   useAssetGridStore,
@@ -17,7 +17,7 @@ import { useDragDropStore } from "../../lib/dragdrop/store";
 export const useAssetActions = (asset: Asset) => {
   const [isDragHovered, setIsDragHovered] = useState(false);
 
-  const { openContextMenu } = useContextMenu();
+  const { openContextMenu } = useContextMenuActions();
   const gridStore = useAssetGridStoreApi();
   const {
     selectedAssetIds,
@@ -76,7 +76,6 @@ export const useAssetActions = (asset: Asset) => {
         setSelectedAssetIds(assetIds);
       }
 
-      // Use unified drag serialization
       if (assetIds.length === 1) {
         serializeDragData(
           {
@@ -113,8 +112,6 @@ export const useAssetActions = (asset: Asset) => {
       // Note: serializeDragData sets "selectedAssetIds" but some code may only check "asset"
       e.dataTransfer.setData("asset", JSON.stringify(asset));
 
-      // Create and set drag image using the unified utility
-      // Try to get other selected assets from store for preview
       const allSelectedAssets = gridStore.getState().selectedAssets || [];
       const dragImage = createAssetDragImage(
         asset,
@@ -126,7 +123,6 @@ export const useAssetActions = (asset: Asset) => {
       e.dataTransfer.setDragImage(dragImage, 10, 10);
       setTimeout(() => document.body.removeChild(dragImage), 0);
 
-      // Update global drag state
       setActiveDrag({
         type: "assets-multiple",
         payload: assetIds,
@@ -170,7 +166,6 @@ export const useAssetActions = (asset: Asset) => {
       event.preventDefault();
       setIsDragHovered(false);
 
-      // Use unified deserialization
       const dragData = deserializeDragData(event.dataTransfer);
       if (!dragData) {
         console.error("Failed to deserialize drag data");
@@ -213,10 +208,7 @@ export const useAssetActions = (asset: Asset) => {
       event.preventDefault();
       event.stopPropagation();
       if (enableContextMenu) {
-        if (
-          // asset.content_type !== "folder" &&
-          !selectedAssetIds.includes(asset.id)
-        ) {
+        if (!selectedAssetIds.includes(asset.id)) {
           setSelectedAssetIds([asset.id]);
           setSelectedAssets([asset]);
         }

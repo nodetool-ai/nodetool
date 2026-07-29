@@ -9,7 +9,7 @@ export const createStyles = (theme: Theme) => ({
     position: "relative",
     display: "flex",
     flexDirection: "column",
-    padding: "2em 0",
+    padding: "1.5em 0 0.75em",
     minHeight: 0,
   }),
   messageWrapper: css({
@@ -73,7 +73,7 @@ export const createStyles = (theme: Theme) => ({
       width: "fit-content",
       maxWidth: "75%",
       minWidth: "2em",
-      margin: "1.25em 0 0.6em auto",
+      margin: "1em 0 0.5em auto",
       padding: "0",
       border: "none",
       background: "transparent",
@@ -81,23 +81,34 @@ export const createStyles = (theme: Theme) => ({
       fontWeight: 500
     },
 
-    // User message content gets the colored background
+    // User message content gets the colored background. A soft primary tint
+    // separates the user's voice from the surface — `background.paper` was
+    // nearly invisible against the default background.
     ".user .message-content": {
-      background: theme.vars.palette.background.paper,
+      background: `rgb(${theme.vars.palette.primary.mainChannel} / 0.14)`,
       color: theme.vars.palette.text.primary,
-      borderRadius: ".75em",
+      borderRadius: BORDER_RADIUS.xl,
       padding: "0.2em",
-      textAlign: "right",
+      textAlign: "left",
       border: "1px solid transparent",
       transition: `border-color ${MOTION.fast}`
     },
 
     ".user:hover .message-content": {
-      borderColor: theme.vars.palette.divider
+      borderColor: `rgb(${theme.vars.palette.primary.mainChannel} / 0.35)`
     },
 
     ".chat-message.user .markdown": {
       padding: ".5em 1em"
+    },
+
+    // A user's own referenced/attached image renders as a thumbnail, not a
+    // full-width preview. ImageView fills its container (width: 100%), so a
+    // max cap on the `.image-output` root is what constrains it — the inline
+    // width leaves maxWidth/maxHeight free for the stylesheet to set.
+    ".chat-message.user .message-content .image-output": {
+      maxWidth: "220px",
+      maxHeight: "220px"
     },
 
     ".assistant": {
@@ -209,7 +220,7 @@ export const createStyles = (theme: Theme) => ({
       display: "flex",
       alignItems: "center",
       gap: theme.spacing(0.5),
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       lineHeight: 1
     },
 
@@ -391,9 +402,9 @@ export const createStyles = (theme: Theme) => ({
     },
 
     ".tool-call-card": {
-      border: `1px solid ${theme.vars.palette.divider}`,
+      width: "100%",
       borderRadius: BORDER_RADIUS.md,
-      background: "transparent",
+      background: theme.vars.palette.action.hover,
       overflow: "hidden",
       marginBottom: 0
     },
@@ -447,15 +458,6 @@ export const createStyles = (theme: Theme) => ({
       color: theme.vars.palette.text.secondary,
       fontVariantNumeric: "tabular-nums",
       whiteSpace: "nowrap"
-    },
-
-    ".tool-status-icon": {
-      fontSize: 15,
-      flexShrink: 0
-    },
-
-    ".tool-status-icon.done": {
-      color: theme.vars.palette.success.main
     },
 
     ".tool-call-details": {
@@ -557,7 +559,7 @@ export const createStyles = (theme: Theme) => ({
       alignItems: "center",
       gap: theme.spacing(1),
       lineHeight: 1.25,
-      padding: theme.spacing(1.25, 1.5)
+      padding: theme.spacing(1, 1.5)
     },
 
     ".tool-call-header.expandable": {
@@ -565,7 +567,7 @@ export const createStyles = (theme: Theme) => ({
       userSelect: "none",
       transition: MOTION.background,
       "&:hover": {
-        background: theme.vars.palette.action.hover
+        background: theme.vars.palette.action.selected
       },
       "&:focus-visible": {
         outline: `2px solid ${theme.vars.palette.primary.main}`,

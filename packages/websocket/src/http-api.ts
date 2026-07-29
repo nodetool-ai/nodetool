@@ -5,7 +5,13 @@ import {
   type ServerResponse
 } from "node:http";
 import { gzipSync } from "node:zlib";
-import { readFileSync, readdirSync, existsSync, promises as fsp } from "node:fs";
+import { once } from "node:events";
+import {
+  readFileSync,
+  readdirSync,
+  existsSync,
+  promises as fsp
+} from "node:fs";
 import nodePath from "node:path";
 import os from "node:os";
 import { GZIP_THRESHOLD } from "./lib/compression.js";
@@ -18,16 +24,13 @@ import {
 import {
   createLogger,
   loadAssetStorageConfig,
+  isGoogleWorkspaceEnabled,
+  GOOGLE_WORKSPACE_NAMESPACE,
   type StorageConfig
 } from "@nodetool-ai/config";
 import { createAssetUrlBuilder } from "@nodetool-ai/storage";
 import { workflowToDsl } from "@nodetool-ai/dsl";
-import {
-  Workflow,
-  WorkflowVersion,
-  Job,
-  Asset
-} from "@nodetool-ai/models";
+import { Workflow, WorkflowVersion, Job, Asset } from "@nodetool-ai/models";
 import {
   hydrateGraphNodeFlags,
   loadPythonPackageMetadata,
@@ -35,11 +38,20 @@ import {
   NodeRegistry
 } from "@nodetool-ai/node-sdk";
 import type { GraphData } from "@nodetool-ai/protocol";
+import {
+  sdkWorkflowSummariesInput,
+  sdkWorkflowSummariesOutput,
+  workflowInterfaceV1,
+  workflowInterfacesInput,
+  workflowInterfacesOutput
+} from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import { sdkNodeTypeInventoryInput } from "@nodetool-ai/protocol/api-schemas/nodes.js";
 import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
   PythonNodeExecutor,
   createPythonBridge,
   logPythonWorkerStderr,
+  safeFetch,
   type NodeExecutor,
   type PythonBridge
 } from "@nodetool-ai/runtime";
@@ -67,6 +79,23 @@ import {
   importWorkflowBundle,
   type BundledWorkflow
 } from "./lib/workflow-bundle.js";
+import {
+  getWorkflowInterfaceV1,
+  getWorkflowInterfacesV1,
+  listWorkflowSummariesV1,
+  WorkflowInterfaceServiceError
+} from "./workflow-interface-service.js";
+import {
+  getSdkNodeTypeInventory,
+  SdkNodeTypeInventoryServiceError
+} from "./sdk/sdk-node-type-inventory-service.js";
+import { isSdkWorkflowInterfaceV1Enabled } from "./sdk/sdk-feature-flags.js";
+import type { SdkV1Capabilities } from "@nodetool-ai/protocol/api-schemas/sdk-lifecycle-v1.js";
+import { handleSdkV1Capabilities } from "./sdk/sdk-capabilities-http-handler.js";
+import {
+  handleSdkV1Preflight,
+  type SdkV1PreflightHttpService
+} from "./sdk/sdk-preflight-http-handler.js";
 
 const log = createLogger("nodetool.websocket.http");
 
@@ -76,8 +105,10 @@ const log = createLogger("nodetool.websocket.http");
 // graph. Re-exported here for any remaining REST callers.
 import {
   getAssetFileName,
-  getAssetStoragePath
+  getAssetStoragePath,
+  retrieveAssetBytes
 } from "./lib/asset-paths.js";
+import { assetObjectKey } from "@nodetool-ai/storage";
 export { getAssetFileName, getAssetStoragePath };
 
 type JsonObject = Record<string, unknown>;
@@ -91,6 +122,12 @@ export interface HttpApiOptions {
   storage?: StorageHandlerOptions;
   /** NodeRegistry to use for unified metadata. If not provided, Python metadata is used. */
   registry?: NodeRegistry;
+  /** Current Python bridge readiness for SDK discovery diagnostics. */
+  getPythonBridgeReady?: () => boolean;
+  /** Live SDK lifecycle capability snapshot. Route remains feature-flagged. */
+  getSdkCapabilities?: () => Promise<SdkV1Capabilities> | SdkV1Capabilities;
+  /** Side-effect-free SDK workflow preflight service. Route remains feature-flagged. */
+  sdkPreflightService?: SdkV1PreflightHttpService;
   /**
    * Path to a directory of example workflow JSON files (e.g.
    * `packages/base-nodes/nodetool/examples/nodetool-base`).
@@ -108,6 +145,13 @@ export interface HttpApiOptions {
   examplesDir?: string;
   examplesAssetsFallbackDir?: string;
   /**
+   * Path to the directory of shipped example app bundles (e.g.
+   * `packages/base-nodes/nodetool/examples/apps`). Defaults to the `apps`
+   * sibling of {@link examplesDir}, which is where both the monorepo and the
+   * packaged backend put them.
+   */
+  exampleAppsDir?: string;
+  /**
    * Root directories that hold per-package constant assets, laid out as
    * `<root>/<package-name>/<file>`. Served (read-only, public) at
    * `/api/assets/packages/<package-name>/<file>` and referenced from workflows
@@ -120,11 +164,58 @@ export interface HttpApiOptions {
   packageAssetsRoots?: string[];
 }
 
+export async function handleSdkCapabilities(
+  request: Request,
+  options: HttpApiOptions
+): Promise<Response> {
+  return handleSdkV1Capabilities(request, {
+    environment: process.env,
+    getCapabilities:
+      options.getSdkCapabilities ??
+      (() => {
+        throw new Error("SDK capability provider is unavailable");
+      }),
+    onInternalError: (error) => {
+      log.error(
+        "SDK capability provider failed",
+        error instanceof Error ? error : new Error(String(error))
+      );
+    }
+  });
+}
+
+export async function handleSdkPreflight(
+  request: Request,
+  options: HttpApiOptions
+): Promise<Response> {
+  return handleSdkV1Preflight(request, {
+    environment: process.env,
+    service:
+      options.sdkPreflightService ??
+      ({
+        preflight: () => {
+          throw new Error("SDK preflight service is unavailable");
+        }
+      } satisfies SdkV1PreflightHttpService),
+    getPrincipal: (authenticatedRequest) => {
+      const userId = authenticatedRequest.headers.get(
+        options.userIdHeader ?? "x-user-id"
+      );
+      return userId ? { userId } : null;
+    },
+    onInternalError: (error) => {
+      log.error(
+        "SDK preflight failed",
+        error instanceof Error ? error : new Error(String(error))
+      );
+    }
+  });
+}
+
 // Lazily created storage handler — recreated if options change
 let _storageHandler: ((request: Request) => Promise<Response>) | null = null;
 let _storageOpts: StorageHandlerOptions | undefined;
 let workflowRuntimePromise: Promise<WorkflowRuntimeEnvironment> | null = null;
-
 
 function getStorageHandler(
   opts?: StorageHandlerOptions
@@ -169,17 +260,20 @@ async function getWorkflowRuntimeEnvironment(
       });
 
       const logPythonBridgeDiagnostics = (context: string): void => {
-        const loadErrors = (
-          pythonBridge as {
-            getLoadErrors?: () => Array<{
-              module: string;
-              phase: string;
-              error: string;
-            }>;
-          }
-        ).getLoadErrors?.() ?? [];
+        const loadErrors =
+          (
+            pythonBridge as {
+              getLoadErrors?: () => Array<{
+                module: string;
+                phase: string;
+                error: string;
+              }>;
+            }
+          ).getLoadErrors?.() ?? [];
         if (loadErrors.length === 0) return;
-        log.warn(`HTTP API Python bridge ${context} with ${loadErrors.length} load error(s)`);
+        log.warn(
+          `HTTP API Python bridge ${context} with ${loadErrors.length} load error(s)`
+        );
         for (const entry of loadErrors.slice(0, 10)) {
           log.warn(
             `[python-worker][load-error] ${entry.module} (${entry.phase}): ${entry.error}`
@@ -216,7 +310,9 @@ async function getWorkflowRuntimeEnvironment(
         pythonBridgeReady = true;
         log.info("HTTP API Python bridge lazy start completed");
         const meta = pythonBridge.getNodeMetadata();
-        log.info(`HTTP API Python bridge connected — ${meta.length} Python nodes`);
+        log.info(
+          `HTTP API Python bridge connected — ${meta.length} Python nodes`
+        );
         (
           pythonBridge as {
             getWorkerStatus?: () => Promise<{
@@ -279,14 +375,16 @@ async function getWorkflowRuntimeEnvironment(
           );
         }
         if (registry.getMetadata(node.type) && !registry.has(node.type)) {
-          const stderrSummary = (
-            pythonBridge as { getRecentStderrSummary?: () => string | null }
-          ).getRecentStderrSummary?.() ?? null;
-          const loadErrors = (
-            pythonBridge as {
-              getLoadErrors?: () => Array<{ module: string; error: string }>;
-            }
-          ).getLoadErrors?.() ?? [];
+          const stderrSummary =
+            (
+              pythonBridge as { getRecentStderrSummary?: () => string | null }
+            ).getRecentStderrSummary?.() ?? null;
+          const loadErrors =
+            (
+              pythonBridge as {
+                getLoadErrors?: () => Array<{ module: string; error: string }>;
+              }
+            ).getLoadErrors?.() ?? [];
           const matchingLoadError = loadErrors.find(
             (entry) =>
               entry.module.includes(node.type) ||
@@ -326,6 +424,7 @@ export interface WorkflowRequestBody {
   run_mode?: string | null;
   workspace_id?: string | null;
   html_app?: string | null;
+  app_doc?: Record<string, unknown> | null;
 }
 
 // Rate-limit tracking for autosave: maps workflow_id -> last autosave timestamp (ms)
@@ -347,6 +446,29 @@ function jsonResponse(data: unknown, init?: ResponseInit): Response {
       ...(init?.headers ?? {})
     }
   });
+}
+
+function sdkErrorResponse(
+  status: number,
+  code: string,
+  message: string,
+  retryable = false
+): Response {
+  return jsonResponse(
+    {
+      code,
+      message,
+      retryable,
+      // Retained additively while current SDK clients migrate to `message`.
+      detail: message
+    },
+    { status }
+  );
+}
+
+function internalSdkErrorResponse(error: unknown): Response {
+  log.error("SDK discovery request failed", error);
+  return sdkErrorResponse(500, "INTERNAL_ERROR", "Internal server error", true);
 }
 
 function errorResponse(status: number, detail: string): Response {
@@ -394,6 +516,7 @@ export function toWorkflowResponse(workflow: Workflow): JsonObject {
     required_providers: null,
     required_models: null,
     html_app: workflow.html_app,
+    app_doc: workflow.app_doc ?? null,
     etag: workflow.getEtag()
   };
 }
@@ -423,6 +546,15 @@ export async function handleNodeMetadata(
     nodes = [...loaded.nodesByType.values()];
   }
   nodes.sort((a, b) => a.node_type.localeCompare(b.node_type));
+
+  // Google Workspace nodes authenticate with the token from the user's Google
+  // sign-in. A server with no login can never produce one, so they stay out of
+  // the palette there rather than failing at run time.
+  if (!isGoogleWorkspaceEnabled()) {
+    nodes = nodes.filter(
+      (n) => !n.node_type.startsWith(`${GOOGLE_WORKSPACE_NAMESPACE}.`)
+    );
+  }
 
   // Exact node_type lookup returns the full metadata for that one node.
   if (nodeType) {
@@ -515,7 +647,8 @@ async function createWorkflow(
     settings: body.settings ?? null,
     run_mode: body.run_mode ?? "workflow",
     workspace_id: body.workspace_id ?? null,
-    html_app: body.html_app ?? null
+    html_app: body.html_app ?? null,
+    app_doc: body.app_doc ?? null
   })) as Workflow;
 }
 
@@ -551,11 +684,16 @@ async function updateWorkflow(
     if (body.thumbnail !== undefined) existing.thumbnail = body.thumbnail;
     existing.access = body.access === "public" ? "public" : "private";
     existing.graph = graph;
-    existing.settings = body.settings ?? null;
+    // Only touch optional columns when the caller sends them, so partial saves
+    // (e.g. graph autosave) don't wipe stored values. A deliberate clear still
+    // sends an explicit null.
+    if (body.settings !== undefined) existing.settings = body.settings ?? null;
     if (body.run_mode !== undefined && body.run_mode !== null)
       existing.run_mode = body.run_mode;
-    existing.workspace_id = body.workspace_id ?? null;
-    existing.html_app = body.html_app ?? null;
+    if (body.workspace_id !== undefined)
+      existing.workspace_id = body.workspace_id ?? null;
+    if (body.html_app !== undefined) existing.html_app = body.html_app ?? null;
+    if (body.app_doc !== undefined) existing.app_doc = body.app_doc;
     await existing.save();
     return existing;
   }
@@ -577,7 +715,8 @@ async function updateWorkflow(
     settings: body.settings ?? null,
     run_mode: body.run_mode ?? "workflow",
     workspace_id: body.workspace_id ?? null,
-    html_app: body.html_app ?? null
+    html_app: body.html_app ?? null,
+    app_doc: body.app_doc ?? null
   })) as Workflow;
 }
 
@@ -677,26 +816,44 @@ export async function handleWorkflowRun(
     graph: runnableGraph
   });
 
-  const workspaceDir = await resolveWorkflowWorkspace(workflowId, userId);
-  const runner = new WorkflowRunner(job.id, {
-    resolveExecutor: (node) =>
-      runtime.resolveExecutor(
-        node as { id: string; type: string; [key: string]: unknown }
-      ),
-    executionContext: buildWorkspaceExecutionContext({
-      jobId: job.id,
-      workflowId,
-      userId,
-      workspaceDir
-    })
-  });
-  const result = await runner.run(
-    { job_id: job.id, workflow_id: workflowId, params },
-    hydrateGraphNodeFlags(
-      runnableGraph as unknown as GraphData,
-      runtime.registry
-    )
-  );
+  // Everything after the row exists must finalize it. Workspace resolution,
+  // node-flag hydration and the run itself can all throw (fs, registry) — a
+  // bare throw here returned a 500 and stranded the row at "running" forever.
+  let result: Awaited<ReturnType<WorkflowRunner["run"]>>;
+  try {
+    const workspaceDir = await resolveWorkflowWorkspace(workflowId, userId);
+    const runner = new WorkflowRunner(job.id, {
+      resolveExecutor: (node) =>
+        runtime.resolveExecutor(
+          node as { id: string; type: string; [key: string]: unknown }
+        ),
+      executionContext: buildWorkspaceExecutionContext({
+        jobId: job.id,
+        workflowId,
+        userId,
+        workspaceDir
+      })
+    });
+    result = await runner.run(
+      { job_id: job.id, workflow_id: workflowId, params },
+      hydrateGraphNodeFlags(
+        runnableGraph as unknown as GraphData,
+        runtime.registry
+      )
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    try {
+      job.markFailed(message);
+      await job.save();
+    } catch (saveError) {
+      log.warn("failed to persist failed job status", {
+        jobId: job.id,
+        error: String(saveError)
+      });
+    }
+    throw error instanceof Error ? error : new Error(message);
+  }
 
   if (result.status === "completed") {
     job.markCompleted();
@@ -920,6 +1077,10 @@ function buildExamplesFromDir(
         required_providers: null,
         required_models: null,
         html_app: null,
+        app_doc:
+          parsed.app_doc && typeof parsed.app_doc === "object"
+            ? (parsed.app_doc as Record<string, unknown>)
+            : null,
         etag: null
       });
     } catch (err) {
@@ -969,6 +1130,7 @@ function buildExampleWorkflows(options: HttpApiOptions): unknown[] {
         required_providers: null,
         required_models: null,
         html_app: null,
+        app_doc: null,
         etag: null
       });
     }
@@ -1198,24 +1360,32 @@ async function resolveAssetBytesForExport(
   try {
     if (ref.startsWith("asset://")) {
       const rest = ref.slice("asset://".length).split("?")[0].split("#")[0];
-      let key = rest;
+      const adapter = getAssetAdapter();
       if (!nodePath.extname(rest)) {
         const asset = (await Asset.get(rest)) as Asset | null;
         if (!asset) return null;
-        key = getAssetFileName(asset.id, asset.content_type);
+        return await retrieveAssetBytes(
+          adapter,
+          asset.user_id,
+          asset.id,
+          asset.content_type
+        );
       }
-      const adapter = getAssetAdapter();
-      return await adapter.retrieve(adapter.uriForKey(key));
+      // Already a key — owner-prefixed for anything written since the
+      // per-owner layout, flat for older `asset://` refs stored in graphs.
+      return await adapter.retrieve(adapter.uriForKey(rest));
     }
     if (ref.includes("/api/storage/")) {
       const key = decodeURIComponent(
-        ref.slice(ref.indexOf("/api/storage/") + "/api/storage/".length).split("?")[0]
+        ref
+          .slice(ref.indexOf("/api/storage/") + "/api/storage/".length)
+          .split("?")[0]
       );
       const adapter = getAssetAdapter();
       return await adapter.retrieve(adapter.uriForKey(key));
     }
     if (/^https?:\/\//.test(ref)) {
-      const res = await fetch(ref);
+      const res = await safeFetch(ref);
       if (!res.ok) return null;
       return new Uint8Array(await res.arrayBuffer());
     }
@@ -1315,7 +1485,9 @@ export async function handleWorkflowsExportBundle(
     fetchAssetBytes: resolveAssetBytesForExport
   });
   const name =
-    workflows.length === 1 ? workflows[0].name : `${workflows.length}-workflows`;
+    workflows.length === 1
+      ? workflows[0].name
+      : `${workflows.length}-workflows`;
   return bundleResponse(bytes, name);
 }
 
@@ -1363,7 +1535,13 @@ export async function handleWorkflowImportBundle(
           size: bytes.byteLength
         })) as Asset;
         const storedName = getAssetFileName(asset.id, asset.content_type);
-        await storeAssetWithThumbnail(asset.id, storedName, bytes, asset.content_type);
+        await storeAssetWithThumbnail(
+          asset.user_id,
+          asset.id,
+          storedName,
+          bytes,
+          asset.content_type
+        );
         return { uri: `asset://${storedName}`, assetId: asset.id };
       }
     });
@@ -1375,20 +1553,31 @@ export async function handleWorkflowImportBundle(
   }
 
   const created: JsonObject[] = [];
-  for (const wf of result.workflows) {
-    const workflow = await createWorkflow(
-      {
-        name: wf.name,
-        description: wf.description ?? "",
-        tags: wf.tags ?? [],
-        access: "private",
-        graph: wf.graph as unknown as WorkflowRequestBody["graph"],
-        settings: wf.settings ?? null,
-        run_mode: wf.run_mode ?? "workflow"
-      },
-      userId
+  try {
+    for (const wf of result.workflows) {
+      const workflow = await createWorkflow(
+        {
+          name: wf.name,
+          description: wf.description ?? "",
+          tags: wf.tags ?? [],
+          access: "private",
+          graph: wf.graph as unknown as WorkflowRequestBody["graph"],
+          settings: wf.settings ?? null,
+          run_mode: wf.run_mode ?? "workflow"
+        },
+        userId
+      );
+      created.push(toWorkflowResponse(workflow));
+    }
+  } catch (error) {
+    // createWorkflow throws on a malformed graph (e.g. missing edges array),
+    // which unpackWorkflowBundle does not validate. Surface it as a 400 rather
+    // than an unhandled 500. (Earlier-created workflows in the loop remain —
+    // the import is not transactional; reported as a bad-bundle error.)
+    return errorResponse(
+      400,
+      `Invalid bundle: ${error instanceof Error ? error.message : String(error)}`
     );
-    created.push(toWorkflowResponse(workflow));
   }
 
   return jsonResponse({
@@ -1448,6 +1637,14 @@ export async function handleWorkflowVersions(
   }
 
   if (request.method === "GET") {
+    // Version history (and its full graphs) is private to the owner. Enforce
+    // ownership before listing, mirroring the POST branch — otherwise any
+    // authenticated user could read another user's workflows by id (IDOR).
+    const workflow = (await Workflow.get(workflowId)) as Workflow | null;
+    if (!workflow) return errorResponse(404, "Workflow not found");
+    if (workflow.user_id !== userId && workflow.access !== "public")
+      return errorResponse(404, "Workflow not found");
+
     const url = new URL(request.url);
     const limit = parseLimit(url, 100);
     const versions = await WorkflowVersion.listForWorkflow(workflowId, {
@@ -1529,11 +1726,12 @@ export async function handleWorkflowsRoot(
   if (request.method === "GET") {
     const limit = parseLimit(url, 100);
     const runMode = url.searchParams.get("run_mode")?.trim() ?? undefined;
-    // cursor and columns params accepted for Python parity (cursor ignored in memory adapter)
-    // columns param is Python-specific (column selection) — ignored here
+    const startKey = url.searchParams.get("cursor")?.trim() || undefined;
+    // columns is Python-specific (column selection) and is ignored here.
     const [workflows, cursor] = await Workflow.paginate(userId, {
       limit,
-      runMode
+      runMode,
+      startKey
     });
     return jsonResponse({
       workflows: workflows.map((w) => toWorkflowResponse(w)),
@@ -1551,9 +1749,7 @@ export async function handleWorkflowsRoot(
         url.searchParams.get("from_example_name")?.trim() ?? undefined;
       if (fromName && (!body.graph || body.graph.nodes?.length === 0)) {
         const packageName =
-          fromPkg ??
-          defaultExamplePackageName(options) ??
-          "nodetool-base";
+          fromPkg ?? defaultExamplePackageName(options) ?? "nodetool-base";
         const example = loadExampleGraph(packageName, fromName, options);
         if (example?.graph) {
           body.graph = example.graph as WorkflowRequestBody["graph"];
@@ -1569,6 +1765,197 @@ export async function handleWorkflowsRoot(
   }
 
   return errorResponse(405, "Method not allowed");
+}
+
+export async function handleSdkNodeTypeInventory(
+  request: Request,
+  options: HttpApiOptions
+): Promise<Response> {
+  if (request.method !== "GET") {
+    return errorResponse(405, "Method not allowed");
+  }
+  const url = new URL(request.url);
+  const parsed = sdkNodeTypeInventoryInput.safeParse({
+    ...(url.searchParams.has("cursor")
+      ? { cursor: Number(url.searchParams.get("cursor")) }
+      : {}),
+    ...(url.searchParams.has("limit")
+      ? { limit: Number(url.searchParams.get("limit")) }
+      : {})
+  });
+  if (!parsed.success) {
+    return sdkErrorResponse(
+      400,
+      "INVALID_INPUT",
+      "cursor must be >= 0 and limit 1..100"
+    );
+  }
+
+  try {
+    const registry =
+      options.registry ??
+      (await getWorkflowRuntimeEnvironment(options)).registry;
+    return jsonResponse(
+      getSdkNodeTypeInventory({
+        registry,
+        pythonBridgeReady: options.getPythonBridgeReady?.() ?? false,
+        input: parsed.data
+      })
+    );
+  } catch (error) {
+    if (error instanceof SdkNodeTypeInventoryServiceError) {
+      return sdkErrorResponse(
+        503,
+        "SDK_NODE_TYPE_INVENTORY_DISABLED",
+        error.message
+      );
+    }
+    return internalSdkErrorResponse(error);
+  }
+}
+
+function workflowInterfaceErrorResponse(error: unknown): Response {
+  if (!(error instanceof WorkflowInterfaceServiceError)) {
+    return internalSdkErrorResponse(error);
+  }
+  if (error.code === "feature_disabled") {
+    return sdkErrorResponse(
+      503,
+      "SDK_WORKFLOW_INTERFACE_DISABLED",
+      error.message
+    );
+  }
+  if (error.code === "workflow_not_found") {
+    return sdkErrorResponse(404, "WORKFLOW_NOT_FOUND", error.message);
+  }
+  return sdkErrorResponse(422, "INVALID_WORKFLOW_GRAPH", error.message);
+}
+
+export async function handleSdkWorkflowSummaries(
+  request: Request,
+  options: HttpApiOptions
+): Promise<Response> {
+  if (request.method !== "GET") {
+    return errorResponse(405, "Method not allowed");
+  }
+  const url = new URL(request.url);
+  const parsed = sdkWorkflowSummariesInput.safeParse({
+    ...(url.searchParams.has("limit")
+      ? { limit: Number(url.searchParams.get("limit")) }
+      : {}),
+    ...(url.searchParams.get("cursor")
+      ? { cursor: url.searchParams.get("cursor") }
+      : {})
+  });
+  if (!parsed.success) {
+    return sdkErrorResponse(
+      400,
+      "INVALID_INPUT",
+      "Invalid workflow summary query"
+    );
+  }
+  try {
+    const result = await listWorkflowSummariesV1({
+      userId: getUserId(request, options.userIdHeader ?? "x-user-id"),
+      limit: parsed.data.limit,
+      ...(parsed.data.cursor ? { cursor: parsed.data.cursor } : {})
+    });
+    return jsonResponse(
+      sdkWorkflowSummariesOutput.parse({
+        workflows: result.workflows.map((workflow) => ({
+          id: workflow.id,
+          name: workflow.name,
+          description: workflow.description,
+          revision: workflow.updated_at,
+          registry_revision: Number.isSafeInteger(options.registry?.revision)
+            ? options.registry!.revision
+            : null,
+          run_mode: workflow.run_mode
+        })),
+        next: result.next
+      })
+    );
+  } catch (error) {
+    return workflowInterfaceErrorResponse(error);
+  }
+}
+
+export async function handleWorkflowInterface(
+  request: Request,
+  workflowId: string,
+  options: HttpApiOptions
+): Promise<Response> {
+  if (request.method !== "GET") {
+    return errorResponse(405, "Method not allowed");
+  }
+  const url = new URL(request.url);
+  if (url.searchParams.get("version") !== "1") {
+    return sdkErrorResponse(
+      400,
+      "UNSUPPORTED_WORKFLOW_INTERFACE_VERSION",
+      "Workflow interface version 1 is required"
+    );
+  }
+  if (!isSdkWorkflowInterfaceV1Enabled()) {
+    return workflowInterfaceErrorResponse(
+      new WorkflowInterfaceServiceError(
+        "feature_disabled",
+        "SDK workflow interface v1 is disabled"
+      )
+    );
+  }
+  try {
+    const registry =
+      options.registry ??
+      (await getWorkflowRuntimeEnvironment(options)).registry;
+    const result = await getWorkflowInterfaceV1({
+      workflowId,
+      userId: getUserId(request, options.userIdHeader ?? "x-user-id"),
+      registry
+    });
+    return jsonResponse(workflowInterfaceV1.parse(result));
+  } catch (error) {
+    return workflowInterfaceErrorResponse(error);
+  }
+}
+
+export async function handleWorkflowInterfaces(
+  request: Request,
+  options: HttpApiOptions
+): Promise<Response> {
+  if (request.method !== "POST") {
+    return errorResponse(405, "Method not allowed");
+  }
+  const body = await parseJsonBody<unknown>(request);
+  const parsed = workflowInterfacesInput.safeParse(body);
+  if (!parsed.success) {
+    return sdkErrorResponse(
+      400,
+      "INVALID_INPUT",
+      "Expected 1 to 100 unique workflow ids"
+    );
+  }
+  if (!isSdkWorkflowInterfaceV1Enabled()) {
+    return workflowInterfaceErrorResponse(
+      new WorkflowInterfaceServiceError(
+        "feature_disabled",
+        "SDK workflow interface v1 is disabled"
+      )
+    );
+  }
+  try {
+    const registry =
+      options.registry ??
+      (await getWorkflowRuntimeEnvironment(options)).registry;
+    const result = await getWorkflowInterfacesV1({
+      workflowIds: parsed.data.ids,
+      userId: getUserId(request, options.userIdHeader ?? "x-user-id"),
+      registry
+    });
+    return jsonResponse(workflowInterfacesOutput.parse(result));
+  } catch (error) {
+    return workflowInterfaceErrorResponse(error);
+  }
 }
 
 export async function handlePublicWorkflows(
@@ -1662,43 +2049,6 @@ export function toJobResponse(job: Job): JsonObject {
   };
 }
 
-// ── Trigger job stubs ─────────────────────────────────────────────
-
-export async function handleTriggersRunning(
-  request: Request
-): Promise<Response> {
-  if (request.method !== "GET") {
-    return errorResponse(405, "Method not allowed");
-  }
-  return jsonResponse({ workflows: [] });
-}
-
-export async function handleTriggerStart(
-  request: Request,
-  _workflowId: string
-): Promise<Response> {
-  if (request.method !== "POST") {
-    return errorResponse(405, "Method not allowed");
-  }
-  return errorResponse(
-    501,
-    "Trigger workflows not available in standalone mode"
-  );
-}
-
-export async function handleTriggerStop(
-  request: Request,
-  _workflowId: string
-): Promise<Response> {
-  if (request.method !== "POST") {
-    return errorResponse(405, "Method not allowed");
-  }
-  return errorResponse(
-    501,
-    "Trigger workflows not available in standalone mode"
-  );
-}
-
 // ── Nodes dummy ───────────────────────────────────────────────────
 
 export async function handleNodesDummy(request: Request): Promise<Response> {
@@ -1746,7 +2096,9 @@ export async function toAssetResponse(asset: Asset): Promise<JsonObject> {
     ? null
     : getAssetFileName(asset.id, asset.content_type);
   const getUrl = fileName
-    ? await getHttpUrlBuilder()(fileName).catch(() => null)
+    ? await getHttpUrlBuilder()(
+        assetObjectKey(asset.user_id, fileName)
+      ).catch(() => null)
     : null;
 
   const hasThumbnail =
@@ -1755,7 +2107,9 @@ export async function toAssetResponse(asset: Asset): Promise<JsonObject> {
     asset.content_type.startsWith("audio/") ||
     asset.content_type === "application/pdf";
   const thumbUrl = hasThumbnail
-    ? await getHttpUrlBuilder()(thumbnailKey(asset.id)).catch(() => null)
+    ? await getHttpUrlBuilder()(
+        assetObjectKey(asset.user_id, thumbnailKey(asset.id))
+      ).catch(() => null)
     : null;
 
   return {
@@ -1863,12 +2217,28 @@ export async function handleAssetsRoot(
         contentType: asset.content_type,
         bytes: fileBuffer.byteLength
       });
-      await storeAssetWithThumbnail(
-        asset.id,
-        fileName,
-        new Uint8Array(fileBuffer),
-        asset.content_type
-      );
+      try {
+        await storeAssetWithThumbnail(
+          asset.user_id,
+          asset.id,
+          fileName,
+          new Uint8Array(fileBuffer),
+          asset.content_type
+        );
+      } catch (error) {
+        // The row was created before the bytes were written. If the store
+        // rejects (over the upload cap, or any S3/Supabase failure) drop the
+        // row rather than leave it pointing at bytes that never landed.
+        try {
+          await asset.delete();
+        } catch (deleteError) {
+          log.warn("failed to delete asset row after upload failure", {
+            assetId: asset.id,
+            error: String(deleteError)
+          });
+        }
+        throw error instanceof Error ? error : new Error(String(error));
+      }
     }
 
     return jsonResponse(await toAssetResponse(asset));
@@ -1904,16 +2274,21 @@ export async function handleExtractAudio(
     return errorResponse(400, "Asset is not a video");
   }
 
-  const adapter = getAssetAdapter();
-  const sourceKey = getAssetFileName(source.id, source.content_type);
-  const videoBytes = await adapter.retrieve(adapter.uriForKey(sourceKey));
+  const videoBytes = await retrieveAssetBytes(
+    getAssetAdapter(),
+    source.user_id,
+    source.id,
+    source.content_type
+  );
   if (!videoBytes) {
     return errorResponse(404, "Asset bytes not found");
   }
 
   // Write the video bytes to a single temp input file, then probe + extract
   // against that path (ffmpeg/ffprobe need a path).
-  const dir = await fsp.mkdtemp(nodePath.join(os.tmpdir(), "nodetool-extract-"));
+  const dir = await fsp.mkdtemp(
+    nodePath.join(os.tmpdir(), "nodetool-extract-")
+  );
   const inputPath = nodePath.join(dir, "input");
   let wavBytes: Uint8Array;
   let durationMs: number | null;
@@ -1950,6 +2325,7 @@ export async function handleExtractAudio(
 
   const audioKey = getAssetFileName(audioAsset.id, audioAsset.content_type);
   await storeAssetWithThumbnail(
+    audioAsset.user_id,
     audioAsset.id,
     audioKey,
     wavBytes,
@@ -1961,7 +2337,6 @@ export async function handleExtractAudio(
     asset: await toAssetResponse(audioAsset)
   });
 }
-
 
 export async function handleApiRequest(
   request: Request,
@@ -2008,8 +2383,28 @@ export async function handleApiRequest(
     return handleNodeMetadata(request, options);
   }
 
+  if (pathname === "/api/sdk/v1/node-types") {
+    return handleSdkNodeTypeInventory(request, options);
+  }
+
+  if (pathname === "/api/sdk/v1/capabilities") {
+    return handleSdkCapabilities(request, options);
+  }
+
+  if (pathname === "/api/sdk/v1/preflight") {
+    return handleSdkPreflight(request, options);
+  }
+
   if (pathname === "/api/workflows") {
     return handleWorkflowsRoot(request, options);
+  }
+
+  if (pathname === "/api/sdk/v1/workflows") {
+    return handleSdkWorkflowSummaries(request, options);
+  }
+
+  if (pathname === "/api/sdk/v1/workflow-interfaces") {
+    return handleWorkflowInterfaces(request, options);
   }
 
   if (pathname === "/api/workflows/names") {
@@ -2087,6 +2482,9 @@ export async function handleApiRequest(
       }
       if (subPath === "dsl-export") {
         return handleWorkflowDslExport(request, workflowId, options);
+      }
+      if (subPath === "interface") {
+        return handleWorkflowInterface(request, workflowId, options);
       }
       if (subPath === "export-bundle") {
         return handleWorkflowExportBundle(request, workflowId, options);
@@ -2217,20 +2615,38 @@ export async function handleNodeHttpRequest(
     return;
   }
 
-  const bodyBuffer = Buffer.from(await response.arrayBuffer());
-
-  // Gzip-compress large JSON responses for performance (e.g. /api/nodes/metadata
-  // is ~5 MB uncompressed, ~550 KB compressed).
   const acceptEncoding = req.headers["accept-encoding"] ?? "";
-  if (bodyBuffer.length > GZIP_THRESHOLD && acceptEncoding.includes("gzip")) {
-    const compressed = gzipSync(bodyBuffer);
-    res.setHeader("content-encoding", "gzip");
-    res.setHeader("content-length", compressed.length);
-    res.end(compressed);
+  const contentType = response.headers.get("content-type") ?? "";
+  const mayCompress =
+    response.status !== 206 &&
+    !response.headers.has("content-range") &&
+    (contentType.includes("json") || contentType.startsWith("text/")) &&
+    acceptEncoding.includes("gzip");
+
+  if (mayCompress) {
+    const bodyBuffer = Buffer.from(await response.arrayBuffer());
+    if (bodyBuffer.length > GZIP_THRESHOLD) {
+      const compressed = gzipSync(bodyBuffer);
+      res.setHeader("content-encoding", "gzip");
+      res.setHeader("content-length", compressed.length);
+      res.end(compressed);
+    } else {
+      res.end(bodyBuffer);
+    }
     return;
   }
 
-  res.end(bodyBuffer);
+  const reader = response.body.getReader();
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+    if (!res.write(value)) {
+      await once(res, "drain");
+    }
+  }
+  res.end();
 }
 
 export function createHttpApiServer(options: HttpApiOptions = {}): Server {

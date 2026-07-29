@@ -29,8 +29,10 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests",
 
-  /* The E2E workflow runner has its own config + backend (e2e-server). */
-  testIgnore: "**/e2e-runner/**",
+  /* The E2E workflow runner and the visual-regression suite each have their
+     own config + project selection; exclude them from this (documentation
+     screenshot) config so `npx playwright test` doesn't pick them up. */
+  testIgnore: ["**/e2e-runner/**", "**/visual/**", "**/journeys/**"],
 
   /* Maximum time one test can run */
   timeout: 60_000,
@@ -73,6 +75,12 @@ export default defineConfig({
         // no physical GPU.  SwiftShader is bundled with Chromium so no extra
         // system packages are required.
         launchOptions: {
+          // Allow pointing at a pre-installed Chromium when the environment
+          // ships one that doesn't match Playwright's bundled build (e.g. CI
+          // images with a system Chromium). Ignored when unset.
+          ...(process.env.PLAYWRIGHT_CHROMIUM_PATH
+            ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH }
+            : {}),
           args: [
             "--enable-features=Vulkan,UseSkiaRenderer",
             "--use-gl=angle",

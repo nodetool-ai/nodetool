@@ -92,12 +92,11 @@ const ExecutionRows: React.FC<{ rows: Execution[] }> = ({ rows }) => {
           }}
         >
           {/* node */}
-          <FlexRow gap={1.25} align="center" sx={{ minWidth: 0 }}>
-            <Box
+          <FlexRow gap={SPACING.sm} align="center" sx={{ minWidth: 0 }}>
+            <FlexRow
+              align="center"
+              justify="center"
               sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
                 width: 30,
                 height: 30,
                 borderRadius: BORDER_RADIUS.lg,
@@ -107,7 +106,7 @@ const ExecutionRows: React.FC<{ rows: Execution[] }> = ({ rows }) => {
               }}
             >
               <CostNodeIcon category={e.category} sx={{ fontSize: 16 }} />
-            </Box>
+            </FlexRow>
             <FlexColumn sx={{ minWidth: 0 }}>
               <Text
                 size="small"
@@ -345,14 +344,7 @@ const CostsTableInternal: React.FC<CostsTableProps> = ({
             <HeaderText align="right">Tokens (in/out)</HeaderText>
             <HeaderText align="right">Runtime</HeaderText>
             <HeaderText>Status</HeaderText>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "flex-end",
-                gap: getSpacingPx(SPACING.micro)
-              }}
-            >
+            <FlexRow align="center" justify="flex-end" gap={SPACING.micro}>
               <HeaderText align="right">When</HeaderText>
               <ArrowDropDownIcon
                 sx={{
@@ -360,7 +352,7 @@ const CostsTableInternal: React.FC<CostsTableProps> = ({
                   color: theme.vars.palette.text.secondary
                 }}
               />
-            </Box>
+            </FlexRow>
             <HeaderText align="right">Cost</HeaderText>
           </>
         ) : (

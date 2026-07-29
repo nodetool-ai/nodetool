@@ -10,6 +10,7 @@ export interface YtDlpDownloadInputs {
   format_selector?: Connectable<string>;
   container?: Connectable<string>;
   subtitles?: Connectable<boolean>;
+  sub_langs?: Connectable<string>;
   thumbnail?: Connectable<boolean>;
   overwrite?: Connectable<boolean>;
   rate_limit_kbps?: Connectable<number>;

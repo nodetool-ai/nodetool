@@ -8,6 +8,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import DataObjectIcon from "@mui/icons-material/DataObject";
 import { CopyButton } from "../ui_primitives";
+import { formatTimeOfDay } from "../../utils/formatUtils";
 
 export type Severity = "info" | "warning" | "error";
 
@@ -186,22 +187,14 @@ const tableStyles = (theme: Theme) =>
     ".list-container": {
       flex: 1,
       minHeight: 0
+    },
+
+    // Hover-revealed row details are unreachable on touch — show them.
+    "@media (hover: none)": {
+      ".row .copy-btn": { opacity: 1 },
+      ".timestamp": { opacity: 1 }
     }
   });
-
-const formatTime = (ts: number) => {
-  try {
-    const d = new Date(ts);
-    return d.toLocaleTimeString(undefined, { 
-      hour: "2-digit", 
-      minute: "2-digit", 
-      second: "2-digit" 
-    });
-  } catch {
-    // Date formatting failed, return timestamp as string
-    return "" + ts;
-  }
-};
 
 type RowItemProps = {
   row: LogRow;
@@ -227,7 +220,7 @@ const RowItem = memo(({
   const theme = useTheme();
   const colors = SEVERITY_COLORS(theme)[row.severity];
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
-  const timeTooltip = showTimestampColumn ? "" : formatTime(row.timestamp);
+  const timeTooltip = showTimestampColumn ? "" : formatTimeOfDay(row.timestamp);
 
   const wrapperStyle = useMemo<React.CSSProperties>(
     () => ({
@@ -305,7 +298,7 @@ const RowItem = memo(({
           </div>
         </Tooltip>
         {showTimestampColumn && (
-          <div className="cell timestamp">{formatTime(row.timestamp)}</div>
+          <div className="cell timestamp">{formatTimeOfDay(row.timestamp)}</div>
         )}
         <div className="cell actions" onClick={handleActionsClick}>
           <CopyButton
@@ -338,9 +331,16 @@ const RowItem = memo(({
                   </pre>
                   <FlexRow justify="flex-end" sx={{ mt: 1, pt: 1, borderTop: 1, borderColor: "divider" }}>
                     <Text
-                      component="span"
+                      component="button"
+                      type="button"
                       size="small"
-                      sx={{ cursor: "pointer", color: "primary.main" }}
+                      sx={{
+                        background: "none",
+                        border: "none",
+                        padding: 0,
+                        cursor: "pointer",
+                        color: "primary.main"
+                      }}
                       onClick={handleClose}
                     >
                       Close
@@ -376,7 +376,6 @@ export const LogsTable: React.FC<LogsTableProps> = ({
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const columns = showTimestampColumn ? "1fr 80px 60px" : "1fr 60px";
 
-  // Optimization: Memoize filteredRows to prevent recalculation on every render
   const filteredRows = useMemo(() => {
     return Array.isArray(severities) && severities.length > 0
       ? rows.filter((r) => severities.includes(r.severity))

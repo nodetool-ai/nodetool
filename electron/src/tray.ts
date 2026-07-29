@@ -1,6 +1,5 @@
 import { Tray, Menu, app, shell } from "electron";
 import path from "path";
-import { promises as fs } from "fs";
 import { logMessage, LOG_FILE } from "./logger";
 import { getMainWindow } from "./state";
 import { createWindow, createLogViewerWindow, openSettingsInMainWindow, handleActivation } from "./window";
@@ -10,23 +9,12 @@ import {
   initializeBackendServer,
   isServerRunning,
   getServerState,
-  isLlamaServerRunning,
-  startLlamaCppService,
-  stopLlamaCppService,
-  isLlamaServerResponsive,
 } from "./server";
 import { fetchWorkflows } from "./api";
-import {
-  readSettingsAsync,
-  updateSetting,
-  getModelServiceStartupSettings,
-  updateModelServiceStartupSettings,
-} from "./settings";
+import { readSettingsAsync, updateSetting } from "./settings";
 import { createMiniAppWindow, createChatWindow } from "./workflowWindow";
 import type { Workflow } from "./types";
 import { EventEmitter } from "events";
-import { getLlamaServerPath, getCondaEnvPath } from "./config";
-import { ensureLlamaCppInstalled } from "./installer";
 
 let trayInstance: Electron.Tray | null = null;
 
@@ -34,48 +22,6 @@ function formatNodeToolStatus(connected: boolean, port?: number): string {
   return connected
     ? `NodeTool: Running${port ? ` on ${port}` : ""}`
     : "NodeTool: Stopped";
-}
-
-function formatModelServiceStatus(
-  name: string,
-  running: boolean,
-  externalManaged: boolean | undefined,
-  port?: number
-): string {
-  if (running) {
-    return `${name}: Running${port ? ` on ${port}` : ""} (managed)`;
-  }
-  if (externalManaged) {
-    return `${name}: Running externally${port ? ` on ${port}` : ""}`;
-  }
-  return `${name}: Stopped`;
-}
-
-async function detectLlamaStatus(
-  preferredPort?: number,
-): Promise<{ running: boolean; external: boolean; port?: number }> {
-  const candidatePorts = Array.from(
-    new Set([preferredPort, 8080].filter((value): value is number => typeof value === "number"))
-  );
-  for (const port of candidatePorts) {
-    if (await isLlamaServerResponsive(port)) {
-      return {
-        running: true,
-        external: true,
-        port,
-      };
-    }
-  }
-  return { running: false, external: false, port: preferredPort };
-}
-
-async function isLlamaCppInstalled(): Promise<boolean> {
-  try {
-    await fs.access(getLlamaServerPath());
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 /**
@@ -340,25 +286,8 @@ async function updateTrayMenu(): Promise<void> {
 
   const settings = await readSettingsAsync();
   const connected = await isServerRunning();
-  const llamaServerRunning = isLlamaServerRunning();
   const state = getServerState();
-  const startupSettings = getModelServiceStartupSettings(settings);
-  const llamaDetected = await detectLlamaStatus(state.llamaPort);
-  const llamaCppInstalledInEnv = await isLlamaCppInstalled();
-  const llamaManagedRunning = llamaServerRunning;
-  const llamaRunningResolved = llamaManagedRunning || llamaDetected.running;
-  const llamaExternalResolved = !llamaManagedRunning && llamaDetected.running;
-  if (llamaDetected.port && state.llamaPort !== llamaDetected.port) {
-    state.llamaPort = llamaDetected.port;
-  }
-  state.llamaExternalManaged = llamaExternalResolved;
   const nodeToolLabel = formatNodeToolStatus(connected, state.serverPort);
-  const llamaLabel = formatModelServiceStatus(
-    "Llama.cpp",
-    llamaRunningResolved,
-    llamaExternalResolved,
-    llamaDetected.port ?? state.llamaPort
-  );
 
   // Fetch workflows if connected
   let workflows: Workflow[] = [];
@@ -376,91 +305,6 @@ async function updateTrayMenu(): Promise<void> {
     {
       label: nodeToolLabel,
       enabled: false,
-    },
-    {
-      label: llamaLabel,
-      enabled: false,
-    },
-    {
-      label: "Managed Model Services",
-      submenu: [
-        {
-          label: "Llama.cpp",
-          submenu: [
-            {
-              label: llamaLabel,
-              enabled: false,
-            },
-            ...(llamaCppInstalledInEnv
-              ? [
-                  {
-                    label: "Start Llama.cpp",
-                    enabled: !llamaRunningResolved,
-                    click: async () => {
-                      try {
-                        await startLlamaCppService();
-                      } catch (error) {
-                        if (error instanceof Error) {
-                          logMessage(`Failed to start Llama.cpp from tray: ${error.message}`, "error");
-                        }
-                      } finally {
-                        void updateTrayMenu();
-                      }
-                    },
-                  },
-                  {
-                    label: "Stop Llama.cpp",
-                    enabled: llamaRunningResolved,
-                    click: async () => {
-                      try {
-                        await stopLlamaCppService();
-                      } catch (error) {
-                        if (error instanceof Error) {
-                          logMessage(`Failed to stop Llama.cpp from tray: ${error.message}`, "error");
-                        }
-                      } finally {
-                        void updateTrayMenu();
-                      }
-                    },
-                  },
-                ]
-              : [
-                  {
-                    label: "Install Llama.cpp",
-                    click: async () => {
-                      try {
-                        logMessage("Installing Llama.cpp from tray...", "info");
-                        await ensureLlamaCppInstalled(getCondaEnvPath());
-                        logMessage("Llama.cpp installation complete", "info");
-                      } catch (error) {
-                        if (error instanceof Error) {
-                          logMessage(`Failed to install Llama.cpp from tray: ${error.message}`, "error");
-                        }
-                      } finally {
-                        void updateTrayMenu();
-                      }
-                    },
-                  },
-                ]),
-          ],
-        },
-        { type: "separator" },
-        {
-          label: "Start Llama.cpp on App Startup",
-          type: "checkbox",
-          checked: startupSettings.startLlamaCppOnStartup,
-          click: () => {
-            updateModelServiceStartupSettings({
-              startLlamaCppOnStartup: !startupSettings.startLlamaCppOnStartup,
-            });
-            logMessage(
-              `Tray updated startup setting: startLlamaCppOnStartup=${!startupSettings.startLlamaCppOnStartup}`,
-              "info"
-            );
-            void updateTrayMenu();
-          },
-        },
-      ],
     },
     {
       label: "Start Service",

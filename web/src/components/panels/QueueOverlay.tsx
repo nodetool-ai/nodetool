@@ -2,7 +2,18 @@
 import { css, keyframes } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Box, FlexColumn, FlexRow, Text, Tooltip, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import {
+  Box,
+  FlexColumn,
+  FlexRow,
+  Text,
+  Tooltip,
+  MOTION,
+  reducedMotion,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
+} from "../ui_primitives";
 import type { SxProps } from "@mui/material/styles";
 import LayersIcon from "@mui/icons-material/Layers";
 import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
@@ -18,6 +29,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Job } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
+import { notifyMutationError } from "../../utils/notifyMutationError";
 
 const RUNNING = new Set(["running", "suspended", "paused"]);
 const QUEUED = new Set(["queued", "scheduled", "starting"]);
@@ -64,11 +76,11 @@ const progressStyles = (theme: Theme) =>
       width: "35%",
       borderRadius: "inherit",
       background: `linear-gradient(90deg, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main})`,
-      animation: `${sweep} 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite`
+      animation: `${sweep} ${MOTION.pulse} infinite`
     },
-    "@media (prefers-reduced-motion: reduce)": {
+    ...reducedMotion({
       "&::after": { animation: "none", width: "100%", opacity: 0.5 }
-    }
+    })
   });
 
 /** Indeterminate gradient progress bar shown under a running job. */
@@ -192,15 +204,13 @@ const RunningCard = memo(function RunningCard({
             sx={{ flex: "0 0 auto", color: "primary.main" }}
           >
             <VisibilityIcon sx={{ fontSize: 12 }} />
-            <Text size="tiny" sx={{ color: "primary.main" }}>
+            <Text size="smaller" sx={{ color: "primary.main" }}>
               On canvas
             </Text>
           </FlexRow>
         )}
         {elapsed && !isFocused && (
-          <Text size="tiny" color="secondary" family="secondary">
-            {elapsed}
-          </Text>
+          <Text size="smaller" color="secondary" family="secondary">{elapsed}</Text>
         )}
         <Box
           component="span"
@@ -268,14 +278,10 @@ const EnqueuedCard = memo(function EnqueuedCard({
   return (
     <Box sx={cardSx}>
       <FlexRow align="center" gap={1} sx={{ minWidth: 0 }}>
-        <Text
-          size="tiny"
-          color="secondary"
-          family="secondary"
-          sx={{ flex: "0 0 auto" }}
-        >
-          #{index + 1}
-        </Text>
+        <Text size="smaller" color="secondary"
+        family="secondary"
+        sx={{ flex: "0 0 auto" }}>
+          #{index + 1}</Text>
         <Text size="small" truncate sx={{ flex: 1, minWidth: 0 }}>
           {name}
         </Text>
@@ -299,7 +305,7 @@ const CancelledCard = memo(function CancelledCard({ job }: { job: Job }) {
         <Text size="small" truncate sx={{ flex: 1, minWidth: 0 }}>
           {name}
         </Text>
-        <Text size="tiny" color="secondary" family="secondary">
+        <Text size="smaller" color="secondary" family="secondary">
           Cancelled
         </Text>
       </FlexRow>
@@ -308,21 +314,16 @@ const CancelledCard = memo(function CancelledCard({ job }: { job: Job }) {
 });
 
 const SectionLabel = ({ children }: { children: string }) => (
-  <Text
-    size="tinyer"
-    color="secondary"
-    weight={600}
-    sx={{
-      display: "block",
-      px: 0.5,
-      pt: 2,
-      pb: 1,
-      textTransform: "uppercase",
-      letterSpacing: "0.07em"
-    }}
-  >
-    {children}
-  </Text>
+  <Text size="smaller" color="secondary"
+  weight={600}
+  sx={{
+    display: "block",
+    px: 0.5,
+    pt: 2,
+    pb: 1,
+    textTransform: "uppercase",
+    letterSpacing: "0.07em"
+  }}>{children}</Text>
 );
 
 const HeaderCount = ({
@@ -334,19 +335,30 @@ const HeaderCount = ({
 }) => (
   <FlexRow align="center" gap={0.4} sx={{ color: "text.secondary" }}>
     {icon}
-    <Text size="tiny" color="secondary" family="secondary">
-      {count}
-    </Text>
+    <Text size="smaller" color="secondary" family="secondary">{count}</Text>
   </FlexRow>
 );
+
+// The 92px left inset clears the desktop rail, but 92 + 304 is wider than a
+// phone viewport, so the overlay used to hang off the right edge with its
+// expand and cancel controls out of reach. On mobile the rail is a floating
+// hamburger at left 8, so the overlay starts past it and runs to the margin.
+const mobileOverlayStyles = (theme: Theme) =>
+  css({
+    [theme.breakpoints.down("sm")]: {
+      left: "56px",
+      right: getSpacingPx(SPACING.md),
+      width: "auto"
+    }
+  });
 
 const overlayStyles = (theme: Theme) =>
   css({
     position: "fixed",
-    top: "104px",
+    top: "56px",
     left: "92px",
     width: "304px",
-    maxHeight: "calc(100vh - 160px)",
+    maxHeight: "calc(100vh - 112px)",
     display: "flex",
     flexDirection: "column",
     zIndex: theme.zIndex.drawer,
@@ -362,11 +374,11 @@ const overlayStyles = (theme: Theme) =>
     '&[data-state="closed"]': {
       animation: `${panelExit} ${MOTION.normal} both`
     },
-    "@media (prefers-reduced-motion: reduce)": {
+    ...reducedMotion({
       animation: "none",
       opacity: 1,
       transform: "none"
-    }
+    })
   });
 
 const SingleName = memo(function SingleName({ job }: { job: Job }) {
@@ -395,12 +407,16 @@ const QueueOverlay = memo(function QueueOverlay() {
     queued: liveQueued,
     cancelled: liveCancelled
   } = useMemo(() => {
-    const all = jobs ?? [];
-    return {
-      running: all.filter((j) => RUNNING.has(j.status ?? "")),
-      queued: all.filter((j) => QUEUED.has(j.status ?? "")),
-      cancelled: all.filter((j) => j.status === "cancelled")
-    };
+    const running: typeof jobs = [];
+    const queued: typeof jobs = [];
+    const cancelled: typeof jobs = [];
+    for (const j of jobs ?? []) {
+      const s = j.status ?? "";
+      if (RUNNING.has(s)) running.push(j);
+      else if (QUEUED.has(s)) queued.push(j);
+      else if (s === "cancelled") cancelled.push(j);
+    }
+    return { running, queued, cancelled };
   }, [jobs]);
 
   // Visibility tracks active work only — cancelled jobs are shown as
@@ -421,7 +437,7 @@ const QueueOverlay = memo(function QueueOverlay() {
       try {
         await trpcClient.jobs.cancel.mutate({ id });
       } catch (err) {
-        console.error("Failed to cancel job:", err);
+        notifyMutationError("cancel the job", err);
       } finally {
         queryClient.invalidateQueries({ queryKey: ["jobs"] });
       }
@@ -474,7 +490,7 @@ const QueueOverlay = memo(function QueueOverlay() {
   if (!expanded) {
     const single = running.length === 1 ? running[0] : null;
     return (
-      <Box css={overlayStyles(theme)} data-state={hasJobs ? "open" : "closed"}>
+      <Box css={[overlayStyles(theme), mobileOverlayStyles(theme)]} data-state={hasJobs ? "open" : "closed"}>
         <FlexColumn gap={1} sx={{ p: 1.5 }}>
           <FlexRow align="center" gap={1} sx={{ minWidth: 0 }}>
             <Dot color={running.length ? "primary.main" : "grey.600"} />
@@ -493,9 +509,7 @@ const QueueOverlay = memo(function QueueOverlay() {
               )}
             </Text>
             {single && (
-              <Text size="tiny" color="secondary" family="secondary">
-                {formatClock(single.started_at, now)}
-              </Text>
+              <Text size="smaller" color="secondary" family="secondary">{formatClock(single.started_at, now)}</Text>
             )}
             <IconButton
               icon={<KeyboardArrowDownIcon sx={{ fontSize: 18 }} />}
@@ -507,9 +521,8 @@ const QueueOverlay = memo(function QueueOverlay() {
           {queued.length > 0 && (
             <FlexRow align="center" gap={0.5} sx={{ color: "text.secondary" }}>
               <ScheduleIcon sx={{ fontSize: 13 }} />
-              <Text size="tiny" color="secondary">
-                {queued.length} queued
-              </Text>
+              <Text size="smaller" color="secondary">{queued.length} queued
+                            </Text>
             </FlexRow>
           )}
         </FlexColumn>
@@ -518,7 +531,7 @@ const QueueOverlay = memo(function QueueOverlay() {
   }
 
   return (
-    <Box css={overlayStyles(theme)} data-state={hasJobs ? "open" : "closed"}>
+    <Box css={[overlayStyles(theme), mobileOverlayStyles(theme)]} data-state={hasJobs ? "open" : "closed"}>
       <FlexRow align="center" gap={1} sx={{ px: 2, py: 1.5, flex: "0 0 auto" }}>
         <LayersIcon sx={{ fontSize: 17, color: "text.secondary" }} />
         <Text size="normal" weight={600} sx={{ flex: 1 }}>

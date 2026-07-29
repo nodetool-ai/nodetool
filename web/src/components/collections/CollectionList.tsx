@@ -4,17 +4,18 @@ import AddIcon from "@mui/icons-material/Add";
 import CollectionHeader from "./CollectionHeader";
 import EmptyCollectionState from "./EmptyCollectionState";
 import CollectionItem from "./CollectionItem";
-import type { UseMutationResult } from "@tanstack/react-query";
 import { useCollectionStore } from "../../stores/CollectionStore";
 import { useShallow } from "zustand/react/shallow";
 import {
   CreateFab,
   Dialog,
   EditorButton,
+  EmptyState,
   FlexColumn,
   FlexRow,
   ListGroup,
   ListItemRow,
+  LoadingSpinner,
   Surface,
   Text,
   BORDER_RADIUS
@@ -22,12 +23,12 @@ import {
 import { CollectionResponse } from "../../stores/ApiTypes";
 
 const CollectionList = () => {
-  // Group related state to reduce selector calls
   const {
     collections,
     isLoading,
     error,
     deleteTarget,
+    deletingCollection,
     showForm,
     dragOverCollection,
     indexProgress,
@@ -46,6 +47,7 @@ const CollectionList = () => {
     isLoading: state.isLoading,
     error: state.error,
     deleteTarget: state.deleteTarget,
+    deletingCollection: state.deletingCollection,
     showForm: state.showForm,
     dragOverCollection: state.dragOverCollection,
     indexProgress: state.indexProgress,
@@ -81,7 +83,6 @@ const CollectionList = () => {
     setIndexErrors([]);
   }, [setIndexErrors]);
 
-  // Memoize drag event handlers to prevent recreating functions on every render
   const handleDragOver = useCallback(
     (e: React.DragEvent<HTMLDivElement>, collectionName: string) => {
       storeHandleDragOver(e, collectionName);
@@ -96,7 +97,6 @@ const CollectionList = () => {
     [storeHandleDragLeave]
   );
 
-  // Create a stable map of drop handlers for each collection
   const dropHandlers = useMemo(() => {
     const handlers: Record<string, (e: React.DragEvent<HTMLDivElement>) => void> = {};
     if (collections?.collections) {
@@ -135,13 +135,20 @@ const CollectionList = () => {
           </FlexRow>
 
           {collections?.collections.length ? <CollectionHeader /> : null}
-          {error && (
-            <Text color="error" sx={{ mt: 2 }}>
-              Error loading collections
-            </Text>
-          )}
           {isLoading ? (
-            <Text sx={{ mt: 2 }}>Loading collections…</Text>
+            <FlexColumn gap={2} justify="center" align="center" sx={{ mt: 4 }}>
+              <LoadingSpinner size="large" text="Loading collections" />
+            </FlexColumn>
+          ) : error ? (
+            <FlexColumn gap={2} justify="center" align="center" sx={{ mt: 4, px: 2 }}>
+              <EmptyState
+                variant="error"
+                title="Couldn't load collections"
+                description="Try again later."
+                actionText="Retry"
+                onAction={() => fetchCollections()}
+              />
+            </FlexColumn>
           ) : !collections?.collections.length ? (
             <EmptyCollectionState />
           ) : (
@@ -166,26 +173,7 @@ const CollectionList = () => {
                     onDrop={dropHandlers[collection.name]}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
-                    deleteMutation={
-                      {
-                        isPending: false,
-                        mutate: () => { },
-                        mutateAsync: async () => Promise.resolve(),
-                        reset: () => { },
-                        context: undefined,
-                        data: undefined,
-                        error: null,
-                        failureCount: 0,
-                        failureReason: null,
-                        isError: false,
-                        isIdle: true,
-                        isPaused: false,
-                        isSuccess: false,
-                        status: "idle",
-                        submittedAt: 0,
-                        variables: undefined
-                      } as UseMutationResult<void, Error, string>
-                    }
+                    deletingCollection={deletingCollection}
                   />
                 ))}
               </ListGroup>
@@ -198,18 +186,18 @@ const CollectionList = () => {
       <Dialog
         open={Boolean(deleteTarget)}
         onClose={cancelDelete}
-        title="Confirm Deletion"
+        title="Delete this collection?"
         onConfirm={confirmDelete}
         confirmText="Delete"
         cancelText="Cancel"
         destructive
       >
-        Are you sure you want to delete the collection &quot;{deleteTarget}
-        &quot;?
+        This will permanently delete the collection &quot;{deleteTarget}
+        &quot;.
       </Dialog>
 
       {indexErrors.length > 0 && (
-        <Dialog open={true} onClose={handleClearIndexErrors} title="Indexing Report">
+        <Dialog open={true} onClose={handleClearIndexErrors} title="Indexing report">
           <FlexColumn gap={2}>
             <Text>
               The following files encountered errors during indexing:

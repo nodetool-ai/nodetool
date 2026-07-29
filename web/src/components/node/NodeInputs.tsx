@@ -4,11 +4,12 @@ import { css } from "@emotion/react";
 import PropertyField from "./PropertyField";
 import { Property, NodeMetadata, TypeMetadata } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { useNodes } from "../../contexts/NodeContext";
 import { useConnectedEdgesSelector } from "../../hooks/nodes/useConnectedEdges";
 import useMetadataStore from "../../stores/MetadataStore";
 import { findOutputHandle } from "../../utils/handleUtils";
+import { normalizeDynamicSlot } from "../../utils/dynamicSlots";
 import { isFieldRelevantDataEqual } from "./propertyFieldEquality";
 
 
@@ -221,23 +222,21 @@ const NodeInputsImpl: React.FC<NodeInputsProps> = ({
   const dynamicInputElements = useMemo(() => Object.entries(dynamicProperties).map(
     ([name], index) => {
       const incoming = connectedEdgeByHandle.get(name);
-      const inputMeta = dynamicInputs[name];
+      const inputMeta = dynamicInputs[name]
+        ? normalizeDynamicSlot(dynamicInputs[name])
+        : undefined;
 
       let resolvedType: TypeMetadata;
       let description: string | undefined;
       if (inputMeta) {
-          type DynMeta = typeof inputMeta & { enum?: (string | number)[] };
-          type DynTypeArg = TypeMetadata & { enum?: (string | number)[] };
-          const meta = inputMeta as DynMeta;
-          const arg0 = inputMeta.type_args?.[0] as DynTypeArg | undefined;
-          resolvedType = {
-            ...inputMeta,
-            type: inputMeta.type,
-            type_args: inputMeta.type_args ?? [],
-            optional: inputMeta.optional ?? false,
-            values: inputMeta.values || meta.enum || arg0?.values || arg0?.enum,
-          } as TypeMetadata;
-          description = inputMeta.description;
+        // A declared slot picks the same PropertyInput a static property of
+        // that type gets (number editor, image drop, enum select…).
+        const arg0 = inputMeta.type.type_args?.[0];
+        resolvedType = {
+          ...inputMeta.type,
+          values: inputMeta.type.values ?? arg0?.values ?? null
+        };
+        description = inputMeta.description;
       } else {
         // Unconnected, untyped dynamic input: fall back to the node's
         // declared default type (so a Concat input is an editable `str`,

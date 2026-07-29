@@ -138,7 +138,7 @@ export function parseWithTypeCoercion(
     throw parsed.error;
   }
 
-  const coercedArgs = cloneForMutation(args);
+  let coercedArgs = cloneForMutation(args);
   let changed = false;
   for (const { issue, expected } of coercibleIssues) {
     const path = issue.path.filter(
@@ -147,10 +147,16 @@ export function parseWithTypeCoercion(
     );
     const currentValue = getValueAtPath(coercedArgs, path);
     const nextValue = coerceStringValueForExpectedType(currentValue, expected);
-    if (
-      nextValue !== currentValue &&
-      setValueAtPath(coercedArgs, path, nextValue)
-    ) {
+    if (nextValue === currentValue) {
+      continue;
+    }
+    if (path.length === 0) {
+      // A scalar-root schema (z.number()/z.boolean()) surfaces its issue with an
+      // empty path; setValueAtPath can't write the root, so replace the whole
+      // value directly. Without this, top-level scalar coercion always threw.
+      coercedArgs = nextValue;
+      changed = true;
+    } else if (setValueAtPath(coercedArgs, path, nextValue)) {
       changed = true;
     }
   }

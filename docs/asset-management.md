@@ -8,6 +8,14 @@ NodeTool lets you store and organize files used in your workflows. Assets can be
 
 ---
 
+## Where this fits
+
+Assets are the shared material between NodeTool's surfaces. **Workflows** read assets and write new ones; **sketches** open an asset and render an edited one back; **timelines** import assets as clips and export a finished video asset. The Asset Explorer is the one store all of them read from and write to, so a file produced in any surface is immediately usable in the others.
+
+See [Key Concepts → How everything fits together](key-concepts.md#how-everything-fits-together) for the full loop.
+
+---
+
 ## Asset Explorer
 
 The **Asset Explorer** is the central hub for managing your files. Open it from the left sidebar.

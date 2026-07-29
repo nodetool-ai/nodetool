@@ -15,7 +15,7 @@ function makeParams(): UseEditorKeyboardShortcutsParams {
     handleRedo: jest.fn(),
     handleZoomIn: jest.fn(),
     handleZoomOut: jest.fn(),
-    handleZoomReset: jest.fn(),
+    handleZoomFit: jest.fn(),
     handleExportPng: jest.fn(),
     handleClearLayer: jest.fn(),
     handleFillLayerWithColor: jest.fn(),
@@ -47,6 +47,7 @@ function makeParams(): UseEditorKeyboardShortcutsParams {
     handleTransformRedo: jest.fn(),
     handleLayerViaCopy: jest.fn(),
     handleLayerViaCut: jest.fn(),
+    handleMoveActiveLayer: jest.fn(),
     handleFreeTransform: jest.fn(),
     handleRepeatLastTransform: jest.fn(),
     handleRepeatLastTransformOnCopy: jest.fn()

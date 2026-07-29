@@ -24,7 +24,7 @@ import type {
 import { registerProvider } from "../src/providers/provider-registry.js";
 import { FakeProvider } from "../src/providers/fake-provider.js";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 
@@ -77,6 +77,18 @@ describe("ProcessingContext – message queue", () => {
       "job_update",
       "job_update"
     ]);
+  });
+
+  it("continues notifying listeners when one throws", () => {
+    const received: ProcessingMessage[] = [];
+    const ctx = new ProcessingContext({ jobId: "j1" });
+    ctx.addMessageListener(() => {
+      throw new Error("listener failed");
+    });
+    ctx.addMessageListener((msg) => received.push(msg));
+
+    expect(() => ctx.emit({ type: "job_update", status: "running" })).not.toThrow();
+    expect(received).toHaveLength(1);
   });
 
   it("clearMessages empties the queue", () => {
@@ -308,6 +320,100 @@ describe("MemoryCache", () => {
   });
 });
 
+describe("ProcessingContext.generateNodeCacheKey", () => {
+  it("distinguishes nodes that differ only in a nested prop value", () => {
+    // Regression: the old replacer-array form dropped all nested values, so
+    // {model:{id:'a'}} and {model:{id:'b'}} produced the same key and returned
+    // each other's cached result.
+    const ctx = new ProcessingContext({ jobId: "j1", userId: "u1" });
+    const keyA = ctx.generateNodeCacheKey("T", { model: { id: "gpt-a" } });
+    const keyB = ctx.generateNodeCacheKey("T", { model: { id: "gpt-b" } });
+    expect(keyA).not.toBe(keyB);
+  });
+
+  it("is stable regardless of key insertion order", () => {
+    const ctx = new ProcessingContext({ jobId: "j1", userId: "u1" });
+    const k1 = ctx.generateNodeCacheKey("T", { a: 1, b: { x: 1, y: 2 } });
+    const k2 = ctx.generateNodeCacheKey("T", { b: { y: 2, x: 1 }, a: 1 });
+    expect(k1).toBe(k2);
+  });
+});
+
+describe("ProcessingContext.httpRequestWithRetries", () => {
+  it("cancels an error response body before throwing", async () => {
+    const cancel = vi.fn().mockResolvedValue(undefined);
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      statusText: "Not Found",
+      headers: new Headers(),
+      body: { cancel }
+    } as unknown as Response);
+    const ctx = new ProcessingContext({ jobId: "j1", fetchFn });
+
+    await expect(ctx.httpGet("https://example.test/missing")).rejects.toThrow("HTTP 404");
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+
+  it("interrupts Retry-After waits when the request is aborted", async () => {
+    const controller = new AbortController();
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      fetchFn: async () =>
+        new Response("retry", {
+          status: 429,
+          headers: { "Retry-After": "86400" }
+        })
+    });
+
+    const request = ctx.httpGet("https://example.test/rate-limited", {
+      signal: controller.signal,
+      retry: { maxRetries: 2 }
+    });
+    controller.abort(new Error("cancelled"));
+
+    await expect(request).rejects.toThrow("cancelled");
+  });
+  it("does not retry a non-retryable HTTP status", async () => {
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: "Unauthorized",
+      headers: { get: () => null }
+    } as unknown as Response);
+    const ctx = new ProcessingContext({ jobId: "j1", fetchFn: fetchFn as any });
+    await expect(ctx.httpGet("https://example.test/x")).rejects.toThrow(
+      /401/
+    );
+    // Exactly one attempt — a 401 is not in retryStatuses.
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries a retryable status", async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        statusText: "Unavailable",
+        headers: { get: () => null }
+      } as unknown as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        headers: { get: () => null }
+      } as unknown as Response);
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      fetchFn: fetchFn as any
+    });
+    const res = await ctx.httpGet("https://example.test/x", { backoffMs: 1 });
+    expect(res.status).toBe(200);
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("ProcessingContext.sanitizeForClient", () => {
   it("does not rewrite plain memory:// strings", () => {
     expect(ProcessingContext.sanitizeForClient("memory://abc")).toBe(
@@ -387,6 +493,34 @@ describe("Storage adapters", () => {
     expect(await storage.retrieve(uri)).toEqual(new Uint8Array([1, 2, 3]));
   });
 
+  it("normalizes Windows separators in URI storage keys", async () => {
+    const memory = new InMemoryStorageAdapter();
+    expect(
+      await memory.store("assets\\nested\\test.txt", new Uint8Array([1]))
+    ).toBe("memory://assets/nested/test.txt");
+
+    let storedKey = "";
+    const s3 = new S3StorageAdapter({
+      bucket: "test-bucket",
+      prefix: "runs\\r1",
+      client: {
+        async putObject(input) {
+          storedKey = input.key;
+        },
+        async getObject() {
+          return null;
+        },
+        async headObject() {
+          return false;
+        }
+      }
+    });
+    expect(
+      await s3.store("assets\\out.bin", new Uint8Array([2]))
+    ).toBe("s3://test-bucket/runs/r1/assets/out.bin");
+    expect(storedKey).toBe("runs/r1/assets/out.bin");
+  });
+
   it("InMemoryStorageAdapter returns null/false for unknown URIs", async () => {
     const storage = new InMemoryStorageAdapter();
     expect(await storage.retrieve("memory://missing.bin")).toBeNull();
@@ -420,6 +554,24 @@ describe("Storage adapters", () => {
       await expect(
         storage.store("../escape.txt", new Uint8Array([1]))
       ).rejects.toThrow("Invalid storage key");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("exists/retrieve return false/null (not throw) for an invalid /api/storage key", async () => {
+    // Regression: the /api/storage/ branch of resolvePathFromUri called
+    // resolvePathFromKey outside a try/catch, so a traversal key threw out of
+    // exists()/retrieve() instead of resolving to the documented false/null.
+    const root = await mkdtemp(join(tmpdir(), "nodetool-ts-runtime-"));
+    try {
+      const storage = new FileStorageAdapter(root);
+      await expect(
+        storage.exists("/api/storage/../secret")
+      ).resolves.toBe(false);
+      await expect(
+        storage.retrieve("/api/storage/../secret")
+      ).resolves.toBeNull();
     } finally {
       await rm(root, { recursive: true, force: true });
     }
@@ -478,14 +630,14 @@ describe("workspace path resolution", () => {
   it("resolves /workspace/ prefix", () => {
     const root = "/tmp/nodetool-workspace";
     expect(resolveWorkspacePath(root, "/workspace/out/a.txt")).toBe(
-      "/tmp/nodetool-workspace/out/a.txt"
+      resolve(root, "out/a.txt")
     );
   });
 
   it("resolves relative path", () => {
     const root = "/tmp/nodetool-workspace";
     expect(resolveWorkspacePath(root, "out/a.txt")).toBe(
-      "/tmp/nodetool-workspace/out/a.txt"
+      resolve(root, "out/a.txt")
     );
   });
 
@@ -502,12 +654,28 @@ describe("workspace path resolution", () => {
       workspaceDir: "/tmp/nodetool-workspace"
     });
     expect(ctx.resolveWorkspacePath("workspace/out.json")).toBe(
-      "/tmp/nodetool-workspace/out.json"
+      resolve("/tmp/nodetool-workspace", "out.json")
     );
   });
 });
 
 describe("output normalization", () => {
+  it("materializes asset URIs found through storage prefix lookup", async () => {
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("asset-1.png", new TextEncoder().encode("pixels"));
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      assetOutputMode: "data_uri",
+      storage
+    });
+
+    const normalized = (await ctx.normalizeOutputValue({
+      type: "ImageRef",
+      uri: "asset://asset-1"
+    })) as { uri: string };
+
+    expect(normalized.uri).toBe("data:image/png;base64,cGl4ZWxz");
+  });
   it("materializes asset refs as data URIs", async () => {
     const ctx = new ProcessingContext({
       jobId: "j1",
@@ -627,6 +795,27 @@ describe("output normalization", () => {
     expect(normalized.image.data).toBeUndefined();
   });
 
+  it("rejects unsafe temp URL resolver results during asset materialization", async () => {
+    const storage = new InMemoryStorageAdapter();
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      assetOutputMode: "temp_url",
+      storage,
+      tempUrlResolver: () => "javascript:alert(1)"
+    });
+    const value = {
+      image: {
+        type: "ImageRef",
+        uri: "memory://img",
+        data: Buffer.from("hello").toString("base64")
+      }
+    };
+
+    await expect(ctx.normalizeOutputValue(value)).rejects.toThrow(
+      "Temp URL resolver returned an unsafe URL"
+    );
+  });
+
   it("materializes asset refs into workspace files", async () => {
     const root = await mkdtemp(join(tmpdir(), "nodetool-ts-workspace-"));
     try {
@@ -653,6 +842,27 @@ describe("output normalization", () => {
     } finally {
       await rm(root, { recursive: true, force: true });
     }
+  });
+
+  it("materializes an asset whose uri is a slash-less `api/storage/<key>`", async () => {
+    // Regression: getAssetBytes must route the slash-less `api/storage/` form
+    // through resolveAssetBytes (InMemory/S3 reject the raw route), else the
+    // ref never materializes to a data URI.
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("pic.png", new Uint8Array([1, 2, 3]), "image/png");
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      assetOutputMode: "data_uri",
+      storage
+    });
+
+    const normalized = (await ctx.normalizeOutputValue({
+      image: { type: "image", uri: "api/storage/pic.png" }
+    })) as { image: { uri: string } };
+    expect(normalized.image.uri.startsWith("data:image/png;base64,")).toBe(true);
+    expect(normalized.image.uri).toContain(
+      Buffer.from([1, 2, 3]).toString("base64")
+    );
   });
 });
 
@@ -735,6 +945,95 @@ describe("ProcessingContext.resolveAssetBytes", () => {
     // URN extension mismatches the stored file, forcing the prefix listing.
     const { bytes } = await ctx.resolveAssetBytes("asset://ghi789.png");
     expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([4, 5, 6]));
+  });
+
+  it("resolves the owner-prefixed key by exact lookup, without listing", async () => {
+    // Regression: assets are written under `<userId>/<id>.<ext>`, but only the
+    // flat and `assets/` candidates were probed. Every reference missed all
+    // exact lookups and fell through to the prefix listing, which degrades to
+    // `list("")` — a full recursive walk / whole-bucket scan across tenants.
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("user-7/abc.png", new Uint8Array([7, 8, 9]), "image/png");
+    const listSpy = vi.spyOn(storage, "list");
+    const ctx = new ProcessingContext({ jobId: "j1", userId: "user-7", storage });
+
+    const { bytes } = await ctx.resolveAssetBytes("asset://abc.png");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([7, 8, 9]));
+    expect(listSpy).not.toHaveBeenCalled();
+  });
+
+  it("still resolves a flat legacy key for the same user", async () => {
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("abc.png", new Uint8Array([1, 2]), "image/png");
+    const ctx = new ProcessingContext({ jobId: "j1", userId: "user-7", storage });
+
+    const { bytes } = await ctx.resolveAssetBytes("asset://abc.png");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([1, 2]));
+  });
+
+  it("does not double-prefix an id that already carries the owner", async () => {
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("user-7/abc.png", new Uint8Array([3, 4]), "image/png");
+    const ctx = new ProcessingContext({ jobId: "j1", userId: "user-7", storage });
+
+    const { bytes } = await ctx.resolveAssetBytes("asset://user-7/abc.png");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([3, 4]));
+  });
+
+  it("resolves a bare `/api/storage/<key>` path against the storage adapter", async () => {
+    // Regression: parseAssetIdCandidates treated the whole `/api/storage/...`
+    // path as the id, probing a bogus key and building a double-prefixed url.
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("abc.png", new Uint8Array([7, 8, 9]), "image/png");
+    const ctx = new ProcessingContext({ jobId: "j1", storage });
+
+    const { bytes } = await ctx.resolveAssetBytes("/api/storage/abc.png");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([7, 8, 9]));
+  });
+
+  it("resolves the slash-less `api/storage/<key>` form too", async () => {
+    // Regression: the slash-less route (handled elsewhere) must strip to the
+    // bare key like the leading-slash form, not be treated as the whole id.
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("abc.png", new Uint8Array([7, 8, 9]), "image/png");
+    const ctx = new ProcessingContext({ jobId: "j1", storage });
+
+    const { bytes } = await ctx.resolveAssetBytes("api/storage/abc.png");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([7, 8, 9]));
+  });
+
+  it("strips the extension from the last segment only (dotted sub-path id)", async () => {
+    // Regression: `folder.v2/img` produced a bogus `folder` candidate that could
+    // resolve wrong bytes. Store a decoy at `folder.png` to prove it isn't hit.
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("folder.v2/img.webp", new Uint8Array([1, 2, 3]), "image/webp");
+    await storage.store("folder.png", new Uint8Array([9, 9]), "image/png");
+    const ctx = new ProcessingContext({ jobId: "j1", storage });
+
+    // Extension mismatch (.png vs stored .webp) forces the prefix listing.
+    const { bytes } = await ctx.resolveAssetBytes("asset://folder.v2/img.png");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([1, 2, 3]));
+  });
+
+  it("matches a hierarchical (sub-path) id in the listing fallback", async () => {
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("user-1/image.webp", new Uint8Array([4, 5, 6]), "image/webp");
+    const ctx = new ProcessingContext({ jobId: "j1", storage });
+
+    const { bytes } = await ctx.resolveAssetBytes("asset://user-1/image.png");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([4, 5, 6]));
+  });
+
+  it("resolves a legit `_thumb` id instead of filtering it out", async () => {
+    // Regression: the blanket `_thumb` substring filter dropped a genuine id
+    // like `banner_thumb`.
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("banner_thumb.png", new Uint8Array([1, 1]), "image/png");
+    const ctx = new ProcessingContext({ jobId: "j1", storage });
+
+    // Extension mismatch (.jpg vs stored .png) forces the prefix listing.
+    const { bytes } = await ctx.resolveAssetBytes("asset://banner_thumb.jpg");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([1, 1]));
   });
 
   it("falls back to the /api/storage route when no adapter is configured", async () => {
@@ -1171,6 +1470,25 @@ describe("ProcessingContext – HTTP helpers", () => {
 });
 
 describe("ProcessingContext – provider prediction pipeline", () => {
+  it("emits a terminal update when a stream consumer stops early", async () => {
+    const ctx = new ProcessingContext({ jobId: "j1" });
+    ctx.registerProvider("mock", new MockProvider());
+
+    for await (const _item of ctx.streamProviderPrediction({
+      provider: "mock",
+      capability: "generate_messages",
+      model: "m1",
+      params: { messages: [] }
+    })) {
+      break;
+    }
+
+    const statuses = ctx
+      .getMessages()
+      .filter((message) => message.type === "prediction")
+      .map((message) => (message as { status: string }).status);
+    expect(statuses).toEqual(["running", "completed"]);
+  });
   it("runs non-stream and emits prediction lifecycle updates", async () => {
     const ctx = new ProcessingContext({ jobId: "j1" });
     ctx.registerProvider("mock", new MockProvider());
@@ -1316,6 +1634,14 @@ describe("ProcessingContext – setTempUrlResolver", () => {
     )) as Record<string, unknown>;
     expect((result.uri as string).startsWith("https://cdn.example.com/")).toBe(
       true
+    );
+  });
+
+  it("rejects unsafe resolved temp URLs", async () => {
+    const ctx = new ProcessingContext({ jobId: "j1" });
+    ctx.setTempUrlResolver(() => "javascript:alert(1)");
+    await expect(ctx.resolveTempUrl("file:///tmp/output.png")).rejects.toThrow(
+      "Temp URL resolver returned an unsafe URL"
     );
   });
 });
@@ -1691,13 +2017,13 @@ describe("ProcessingContext – workspace path errors", () => {
 
   it("handles workspace/ prefix (no leading slash)", () => {
     expect(resolveWorkspacePath("/tmp/ws", "workspace/foo.txt")).toBe(
-      "/tmp/ws/foo.txt"
+      resolve("/tmp/ws", "foo.txt")
     );
   });
 
   it("handles absolute paths as workspace-relative", () => {
     const result = resolveWorkspacePath("/tmp/ws", "/some/path.txt");
-    expect(result).toBe("/tmp/ws/some/path.txt");
+    expect(result).toBe(resolve("/tmp/ws", "some/path.txt"));
   });
 });
 
@@ -2044,6 +2370,25 @@ describe("ProcessingContext – assetsToWorkspaceFiles", () => {
 });
 
 describe("ProcessingContext – getProvider edge cases", () => {
+  it("shares an in-flight provider resolution", async () => {
+    const ctx = new ProcessingContext({ jobId: "j1" });
+    let resolveProvider: ((provider: BaseProvider) => void) | undefined;
+    const resolver = vi.fn(
+      () =>
+        new Promise<BaseProvider>((resolve) => {
+          resolveProvider = resolve;
+        })
+    );
+    ctx.setProviderResolver(resolver);
+
+    const first = ctx.getProvider("mock");
+    const second = ctx.getProvider("mock");
+    const provider = new MockProvider();
+    resolveProvider?.(provider);
+
+    await expect(Promise.all([first, second])).resolves.toEqual([provider, provider]);
+    expect(resolver).toHaveBeenCalledOnce();
+  });
   it("throws for empty providerId", async () => {
     const ctx = new ProcessingContext({ jobId: "j1" });
     await expect(ctx.getProvider("")).rejects.toThrow("providerId is required");
@@ -2289,5 +2634,45 @@ describe("ProcessingContext – memory helpers", () => {
 
     ctx.clearMemory();
     expect(ctx.getMemoryStats()).toEqual({ total: 0, byPrefix: {} });
+  });
+});
+
+describe("ProcessingContext – injected tools", () => {
+  const tool = (name: string) => ({
+    name,
+    process: async () => ({ ok: name })
+  });
+
+  it("returns null before the caller supplies any tools", () => {
+    const ctx = new ProcessingContext({ jobId: "j1" });
+    expect(ctx.getInjectedTool("read_file")).toBeNull();
+  });
+
+  it("looks up a supplied tool by name and misses on unknown names", () => {
+    const ctx = new ProcessingContext({ jobId: "j1" });
+    const readFile = tool("read_file");
+    ctx.setInjectedTools([readFile, tool("write_file")]);
+
+    expect(ctx.getInjectedTool("read_file")).toBe(readFile);
+    expect(ctx.getInjectedTool("nope")).toBeNull();
+  });
+
+  it("replaces the whole set on a second call", () => {
+    const ctx = new ProcessingContext({ jobId: "j1" });
+    ctx.setInjectedTools([tool("a")]);
+    ctx.setInjectedTools([tool("b")]);
+
+    expect(ctx.getInjectedTool("a")).toBeNull();
+    expect(ctx.getInjectedTool("b")).not.toBeNull();
+  });
+
+  // The kernel copies the context per node, so a node executing in a copy
+  // must still see the tools the run's owner injected.
+  it("carries injected tools into a copied context", () => {
+    const ctx = new ProcessingContext({ jobId: "j1" });
+    const readFile = tool("read_file");
+    ctx.setInjectedTools([readFile]);
+
+    expect(ctx.copy().getInjectedTool("read_file")).toBe(readFile);
   });
 });

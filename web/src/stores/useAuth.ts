@@ -2,7 +2,12 @@ import { create } from "zustand";
 import { createErrorMessage } from "../utils/errorHandling";
 import { supabase } from "../lib/supabaseClient"; // Import Supabase client
 import type { Session, User, Provider } from "@supabase/supabase-js"; // Import Supabase types
-import { getRuntimeConfig, isAuthRequired } from "../lib/runtimeConfig";
+import {
+  getRuntimeConfig,
+  isAuthRequired,
+  isGoogleWorkspaceEnabled
+} from "../lib/runtimeConfig";
+import { syncGoogleProviderToken } from "../lib/googleSession";
 
 type OAuthProviderSupabase = Extract<Provider, "google" | "facebook">;
 
@@ -53,14 +58,10 @@ export const getAuthRedirectUrl = (): string => {
   return "/";
 };
 
-// Supabase subscription type from @supabase/supabase-js
 type SupabaseSubscription = {
   unsubscribe: () => void;
 };
 
-/**
- * Interface defining the structure of the authentication Zustand store.
- */
 interface LoginStore {
   /** The current Supabase session object, or null if not logged in. */
   session: Session | null;
@@ -162,6 +163,7 @@ export const useAuth = create<LoginStore>((set, get) => ({
         "Auth: Initial session checked.",
         session ? "Found" : "Not found"
       );
+      void syncGoogleProviderToken(session);
 
       // Subscribe to auth state changes and store the subscription for cleanup
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -177,6 +179,11 @@ export const useAuth = create<LoginStore>((set, get) => ({
           state: session ? "logged_in" : "logged_out",
           error: null
         });
+        // A fresh sign-in is the only moment Supabase exposes the Google
+        // provider token; forward it before it drops out of the session.
+        if (event === "SIGNED_IN") {
+          void syncGoogleProviderToken(session);
+        }
       });
 
       // Store subscription reference for cleanup
@@ -203,9 +210,23 @@ export const useAuth = create<LoginStore>((set, get) => ({
   signInWithProvider: async (provider: OAuthProviderSupabase) => {
     set({ state: "loading", error: null });
     try {
+      // Ask Google for the Workspace scopes up front so one consent screen
+      // covers login and the Drive/Gmail/Docs/Sheets/Calendar tools.
+      // `access_type=offline` is what yields a refresh token, and Google only
+      // re-issues one when consent is shown again.
+      const googleScopes =
+        provider === "google" && isGoogleWorkspaceEnabled()
+          ? getRuntimeConfig().googleScopes
+          : [];
       const { error } = await supabase.auth.signInWithOAuth({
         provider: provider,
         options: {
+          ...(googleScopes.length > 0
+            ? {
+                scopes: googleScopes.join(" "),
+                queryParams: { access_type: "offline", prompt: "consent" }
+              }
+            : {}),
           // URL to redirect to after successful authentication.
           // Must be added to your Supabase project's redirect allow list,
           // otherwise Supabase falls back to the project's Site URL

@@ -1,7 +1,7 @@
 /** NodeStore manages workflow graph state for a single editor tab. */
 
-import { temporal } from "zundo";
-import type { TemporalState } from "zundo";
+import { temporal } from "./temporal";
+import type { TemporalState } from "./temporal";
 import { create, StoreApi, UseBoundStore } from "zustand";
 import { NodeMetadata, Workflow } from "./ApiTypes";
 import { NodeData } from "./NodeData";
@@ -23,13 +23,14 @@ import {
   Viewport
 } from "@xyflow/react";
 import { customEquality } from "./customEquality";
-import isEqual from "fast-deep-equal";
+import isEqual from "../utils/isEqual";
 
 import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
 import { migrateGraphNodeTypes } from "@nodetool-ai/protocol";
 import { autoLayout } from "../core/graph";
 import { isConnectable, isCollectType } from "../utils/TypeHandler";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
+import { isTypedSlot, normalizeDynamicSlots } from "../utils/dynamicSlots";
 import { addExposedInput } from "../utils/exposedInputs";
 import { WorkflowAttributes } from "./ApiTypes";
 import { wouldCreateCycle } from "../utils/graphCycle";
@@ -117,16 +118,12 @@ const generateInputNodeName = (
   return `${baseName}_${existingCount + 1}`;
 };
 
-/**
- * Generates a UUID v4 string
- * Falls back to a simple implementation if crypto.randomUUID is not available
- */
+/** UUID v4, falling back to a manual implementation when crypto.randomUUID is absent. */
 const generateUUID = (): string => {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
   }
 
-  // Fallback implementation for environments without crypto.randomUUID
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
     /[xy]/g,
     function (char) {
@@ -660,11 +657,18 @@ export const createNodeStore = (
             const isDynamicProperty =
               targetNode?.data.dynamic_properties[connection.targetHandle] !==
               undefined;
+            // A *typed* dynamic slot is gated like a static handle; only
+            // undeclared (legacy) slots keep the promiscuous bypass.
+            const targetSlot = targetNode?.data.dynamic_inputs?.[
+              connection.targetHandle
+            ];
+            const isUntypedDynamicProperty =
+              isDynamicProperty && !isTypedSlot(targetSlot);
             if (
               !srcNode ||
               !targetNode ||
               !(
-                isDynamicProperty ||
+                isUntypedDynamicProperty ||
                 isControlEdge ||
                 get().validateConnection(connection, srcNode, targetNode)
               )
@@ -747,6 +751,30 @@ export const createNodeStore = (
             // (those have their own surfaces) and for properties already
             // declared as a handle by metadata (`input_fields` / inline rows
             // render their own handle).
+            // Connect-time type inference: an undeclared dynamic slot adopts
+            // the source output's type, so most slots end up typed with no
+            // user effort. Slots that already carry a declaration are left be.
+            if (
+              isUntypedDynamicProperty &&
+              !isControlEdge &&
+              connection.sourceHandle
+            ) {
+              const srcMetadata = useMetadataStore
+                .getState()
+                .getMetadata(srcNode.type || "");
+              const srcHandle = srcMetadata
+                ? findOutputHandle(srcNode, connection.sourceHandle, srcMetadata)
+                : undefined;
+              if (srcHandle && srcHandle.type.type !== "any") {
+                get().updateNodeData(targetNode.id, {
+                  dynamic_inputs: {
+                    ...normalizeDynamicSlots(targetNode.data.dynamic_inputs),
+                    [connection.targetHandle]: { type: srcHandle.type }
+                  }
+                });
+              }
+            }
+
             if (!isDynamicProperty && !isControlEdge) {
               const targetMetadata = useMetadataStore
                 .getState()
@@ -936,12 +964,25 @@ export const createNodeStore = (
             // editable element is focused), so programmatic callers (ui tools,
             // context menus, grouping) always work here.
             const foundIdSet = new Set(foundIds);
+            const deletedById = new Map(
+              existingNodes
+                .filter((n) => foundIdSet.has(n.id))
+                .map((n) => [n.id, n] as const)
+            );
             const nodes: Node<NodeData>[] = [];
 
             for (const node of existingNodes) {
               if (!foundIdSet.has(node.id)) {
                 if (node.parentId && foundIdSet.has(node.parentId)) {
-                  nodes.push({ ...node, parentId: undefined });
+                  const parent = deletedById.get(node.parentId);
+                  nodes.push({
+                    ...node,
+                    parentId: undefined,
+                    position: {
+                      x: (parent?.position?.x ?? 0) + (node.position?.x ?? 0),
+                      y: (parent?.position?.y ?? 0) + (node.position?.y ?? 0)
+                    }
+                  });
                 } else {
                   nodes.push(node);
                 }
@@ -1394,6 +1435,7 @@ export const createNodeStore = (
                 selectable: true,
                 workflow_id: get().workflow.id,
                 dynamic_properties: {},
+                dynamic_inputs: {},
                 title: defaultTitle
               },
               targetPosition: Position.Left,

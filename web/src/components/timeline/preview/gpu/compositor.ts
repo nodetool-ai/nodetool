@@ -15,6 +15,28 @@ import type {
   CompositorInitResult,
   TimelineCompositor
 } from "./types";
+import type { AnimationSampleMask, WipeDirection } from "@nodetool-ai/timeline";
+
+/** Shader edge codes (see `BLEND_COMPOSITE_FRAGMENT` params2). */
+const WIPE_EDGE: Record<WipeDirection, 1 | 2 | 3 | 4> = {
+  left: 1,
+  right: 2,
+  up: 3, // reveal from the layer's top edge
+  down: 4 // reveal from the layer's bottom edge
+};
+
+function wipeParams(
+  mask: AnimationSampleMask | undefined
+):
+  | { edge: 1 | 2 | 3 | 4; progress: number; softness: number }
+  | undefined {
+  if (!mask) return undefined;
+  return {
+    edge: WIPE_EDGE[mask.direction],
+    progress: mask.progress,
+    softness: mask.softness
+  };
+}
 import { isSourceReady, shouldPresentFrame, sourceDimensions } from "./source";
 
 interface SourceTexture {
@@ -277,7 +299,8 @@ export class WebGPUCompositor implements TimelineCompositor {
         canvasW: this.canvasWidth,
         canvasH: this.canvasHeight,
         invAffine,
-        borderRadius: radiusNormalized
+        borderRadius: radiusNormalized,
+        wipe: wipeParams(layer.mask)
       });
 
       const tmp = readTex;

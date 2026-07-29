@@ -23,8 +23,8 @@ import { DownloadProgress } from "./DownloadProgress";
 import { useTheme } from "@mui/material/styles";
 import { type Theme } from "@mui/material/styles";
 
-import isEqual from "fast-deep-equal";
-import { FolderOutlined } from "@mui/icons-material";
+import isEqual from "../../utils/isEqual";
+import FolderOutlined from "@mui/icons-material/FolderOutlined";
 import DownloadingIcon from "@mui/icons-material/Downloading";
 import {
   isFileExplorerAvailable,
@@ -69,7 +69,6 @@ const DownloadManagerDialog: React.FC = () => {
     }))
   );
 
-  // Memoize download names to avoid recomputing Object.keys on every render
   const downloadNames = useMemo(() => Object.keys(downloads), [downloads]);
   const hasActiveDownloads = downloadNames.length > 0;
 

@@ -21,10 +21,9 @@ import {
   useReactFlow
 } from "@xyflow/react";
 
-// store
 import { NodeData } from "../../stores/NodeData";
 import { debounce } from "../../utils/lodashAlternatives";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import {
   parse,
   alpha,
@@ -41,13 +40,13 @@ import ColorPicker from "../inputs/ColorPicker";
 import NodeResizer from "./NodeResizer";
 import NodeResizeHandle from "./NodeResizeHandle";
 import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
+import type { NodeStoreState } from "../../stores/NodeStore";
 import { useKeyPressed } from "../../stores/KeyPressedStore";
 import RunGroupButton from "./RunGroupButton";
 import BypassGroupButton from "./BypassGroupButton";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import { Tooltip, ToolbarIconButton, Popover, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, Popover, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
 
-// constants
 const MIN_WIDTH = 200;
 const MIN_HEIGHT = 200;
 const GROUP_BG_OPACITY = 0.35;
@@ -108,7 +107,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
       left: 0,
       right: 0,
       pointerEvents: "auto",
-      zIndex: 10
+      zIndex: Z_INDEX.dropdown
     },
     // Header label — flush at the top-left edge, not rounded, uses darkened group color.
     // Scales inversely with zoom so it appears the same size on screen.
@@ -132,7 +131,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
         letterSpacing: "0.02em"
       },
       transformOrigin: "bottom left",
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       cursor: "move",
       userSelect: "none",
       pointerEvents: "auto",
@@ -167,12 +166,12 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
       gap: getSpacingPx(SPACING.sm),
       padding: `0 ${getSpacingPx(SPACING.sm)}`,
       transformOrigin: "bottom right",
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       pointerEvents: "auto",
       ".bypass-button, .menu-button": {
         border: "none !important",
         backgroundColor: `${theme.vars.palette.c_overlay} !important`,
-        borderRadius: "var(--rounded-circle) !important",
+        borderRadius: `${BORDER_RADIUS.circle} !important`,
         color: `${theme.vars.palette.c_white} !important`,
         width: "28px !important",
         height: "28px !important",
@@ -208,10 +207,10 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
       borderRadius: BORDER_RADIUS.sm,
       fontSize: theme.fontSizeSmall,
       whiteSpace: "nowrap",
-      zIndex: 100,
+      zIndex: Z_INDEX.overlay,
       opacity: 0,
       visibility: "hidden",
-      transition: `opacity ${MOTION.normal} 2s, visibility ${MOTION.normal} 2s`
+      transition: `opacity ${MOTION.normal} ${2000}ms, visibility ${MOTION.normal} ${2000}ms`
     },
     ".help-text ul": {
       listStyleType: "square",
@@ -338,7 +337,6 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     childrenStatusSelector
   );
 
-  // RUN WORKFLOW
   const state = useWebsocketRunner((state) => state.state);
   const isWorkflowRunning = useWebsocketRunner(
     (state) => state.state === "running"
@@ -350,12 +348,10 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     const state = store.getState();
     const { nodes, edges, workflow } = state;
 
-    // Filter nodes that belong to this group
     const groupNodes = nodes.filter(
       (node) => node.id === props.id || node.parentId === props.id
     );
 
-    // Filter edges that connect nodes within this group
     const groupNodeIds = new Set(groupNodes.map((n) => n.id));
     const groupEdges = edges.filter(
       (edge) =>
@@ -366,12 +362,10 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     run({}, workflow, groupNodes, groupEdges);
   }, [run, props.id, store]);
 
-  // Toggle bypass on all child nodes
   const toggleBypassChildren = useCallback(() => {
     const state = store.getState();
     const childNodes = state.nodes.filter((node) => node.parentId === props.id);
 
-    // Check if some child nodes are bypassed (imperatively)
     const isBypassed = childNodes.some((n) => n.data.bypassed);
     const shouldBypass = !isBypassed;
 
@@ -380,9 +374,19 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     });
   }, [props.id, setBypass, store]);
 
-  const nodeHovered = useNodes((state) =>
-    state.hoveredNodes.includes(props.id)
-  );
+  const nodeHoveredSelector = useMemo(() => {
+    let lastHoveredNodes: string[] | null = null;
+    let lastResult = false;
+    return (state: NodeStoreState) => {
+      if (state.hoveredNodes === lastHoveredNodes) {
+        return lastResult;
+      }
+      lastHoveredNodes = state.hoveredNodes;
+      lastResult = state.hoveredNodes.includes(props.id);
+      return lastResult;
+    };
+  }, [props.id]);
+  const nodeHovered = useNodes(nodeHoveredSelector);
 
   const [headline, setHeadline] = useState(
     (props.data.properties.headline as string | undefined) || "Group"
@@ -445,6 +449,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       setColor(newColor);
       updateNodeData(props.id, {
         properties: {
+          ...propsDataRef.current.properties,
           group_color: newColor
         }
       });
@@ -492,50 +497,79 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
   const labelMaxCssWidth = Math.max(24, availableLabelWorldWidth / labelScale);
 
-  const effectiveColor = resolveGroupHex(color);
-  // Body tint: only a light touch of darkening before applying the overlay
-  // alpha — heavy desaturation made pastels collapse to indistinguishable
-  // grays once mixed with the dark canvas. Preserve the original hue/chroma
-  // so picker colors still read as themselves on the group.
-  const bodyTintHex = toHex(darken(desaturate(parse(effectiveColor), 1.4), 0.3));
-  const bodyBg = hexToRgba(bodyTintHex, GROUP_BG_OPACITY);
-  const subtleBorder = `1px solid ${hexToRgba(bodyTintHex, GROUP_BORDER_OPACITY)}`;
-  // Label: same hue family as the body tint, with a small saturation +
-  // brightness lift so the header reads as a subtle, related variant rather
-  // than a contrasting pill.
-  const labelBg = toHex(brighten(desaturate(parse(bodyTintHex), 0.4), 0.25));
-  // Pick black or white text based on label background luminance so the title
-  // stays legible whether the group color is dark or near-white.
-  const labelTextColor = luminance(labelBg) > 0.55 ? "#000000" : "#ffffff";
+  const colorTokens = useMemo(() => {
+    const effectiveColor = resolveGroupHex(color);
+    const bodyTintHex = toHex(darken(desaturate(parse(effectiveColor), 1.4), 0.3));
+    const bodyBg = hexToRgba(bodyTintHex, GROUP_BG_OPACITY);
+    const subtleBorder = `1px solid ${hexToRgba(bodyTintHex, GROUP_BORDER_OPACITY)}`;
+    const labelBg = toHex(brighten(desaturate(parse(bodyTintHex), 0.4), 0.25));
+    const labelTextColor = luminance(labelBg) > 0.55 ? "#000000" : "#ffffff";
+    return { bodyBg, subtleBorder, labelBg, labelTextColor };
+  }, [color]);
+  const { bodyBg, subtleBorder, labelBg, labelTextColor } = colorTokens;
+
+  const rootStyle = useMemo<React.CSSProperties>(() => ({
+    ...(props.selected
+      ? {
+          border: `2px solid ${theme.vars.palette.primary.main}`,
+          boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}40, inset 0 0 20px ${theme.vars.palette.primary.main}10`
+        }
+      : nodeHovered
+        ? { border: `2px solid ${theme.vars.palette.primary.main}` }
+        : { border: subtleBorder }),
+    opacity: modifierActive ? 0.5 : nodeHovered ? 0.8 : 1,
+    pointerEvents: modifierActive ? "all" : "none",
+    backgroundColor: bodyBg
+  }), [props.selected, nodeHovered, theme.vars.palette.primary.main, subtleBorder, modifierActive, bodyBg]);
+
+  const headerStyle = useMemo<React.CSSProperties>(() => ({
+    bottom: `calc(100% + ${screenGapPx}px)`,
+    height: `${HEADER_HEIGHT * Math.max(labelScale, actionsScale)}px`
+  }), [screenGapPx, labelScale, actionsScale]);
+
+  const labelDivStyle = useMemo<React.CSSProperties>(() => ({
+    backgroundColor: labelBg,
+    color: labelTextColor,
+    bottom: 0,
+    transform: `scale(${labelScale})`,
+    maxWidth: `${labelMaxCssWidth}px`,
+    overflow: "hidden",
+    transition: `max-width ${MOTION.fast}`
+  }), [labelBg, labelTextColor, labelScale, labelMaxCssWidth]);
+
+  const inputStyle = useMemo<React.CSSProperties>(() => ({
+    width: `${Math.max(headlineTextWidth + 2, 12)}px`,
+    color: labelTextColor,
+    maxWidth: "unset",
+    textShadow: labelTextColor === "#000000" ? "none" : undefined
+  }), [headlineTextWidth, labelTextColor]);
+
+  const actionsStyle = useMemo<React.CSSProperties>(() => ({
+    bottom: 0,
+    transform: `scale(${actionsScale})`,
+    opacity: actionsVisible ? 1 : 0,
+    pointerEvents: actionsVisible ? ("auto" as const) : ("none" as const),
+    transition: `opacity ${MOTION.fast}`
+  }), [actionsScale, actionsVisible]);
+
+  const menuTextStyle = useMemo<React.CSSProperties>(() => ({
+    fontFamily: theme.fontFamily1,
+    fontSize: theme.fontSizeSmall,
+    color: theme.vars.palette.grey[200]
+  }), [theme.fontFamily1, theme.fontSizeSmall, theme.vars.palette.grey]);
 
   return (
     <div
       css={cssStyles}
       ref={nodeRef}
       className={`group-node ${nodeHovered ? "hovered" : ""} ${props.selected ? "selected" : ""}`}
-      style={{
-        ...(props.selected
-          ? {
-              border: `2px solid ${theme.vars.palette.primary.main}`,
-              boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}40, inset 0 0 20px ${theme.vars.palette.primary.main}10`
-            }
-          : nodeHovered
-            ? { border: `2px solid ${theme.vars.palette.primary.main}` }
-            : { border: subtleBorder }),
-        opacity:
-          modifierActive ? 0.5 : nodeHovered ? 0.8 : 1,
-        pointerEvents: modifierActive ? "all" : "none",
-        backgroundColor: bodyBg
-      }}
+      style={rootStyle}
     >
       <div
         className="group-header"
         onPointerEnter={onHeaderEnter}
         onPointerLeave={onHeaderLeave}
-        style={{
-          bottom: `calc(100% + ${screenGapPx}px)`,
-          height: `${HEADER_HEIGHT * Math.max(labelScale, actionsScale)}px`
-        }}
+        style={headerStyle}
       >
       <Tooltip
         placement="top"
@@ -554,15 +588,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         <div
           className="group-label node-drag-handle"
           onDoubleClick={handlePillDoubleClick}
-          style={{
-            backgroundColor: labelBg,
-            color: labelTextColor,
-            bottom: 0,
-            transform: `scale(${labelScale})`,
-            maxWidth: `${labelMaxCssWidth}px`,
-            overflow: "hidden",
-            transition: `max-width ${MOTION.fast}`
-          }}
+          style={labelDivStyle}
         >
           <input
             ref={headerInputRef}
@@ -573,12 +599,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             value={headline}
             onChange={handleHeadlineChange}
             placeholder="Group"
-            style={{
-              width: `${Math.max(headlineTextWidth + 2, 12)}px`,
-              color: labelTextColor,
-              maxWidth: "unset",
-              textShadow: labelTextColor === "#000000" ? "none" : undefined
-            }}
+            style={inputStyle}
           />
           <span
             ref={headerSizerRef}
@@ -592,13 +613,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
       <div
         className="group-actions nodrag"
-        style={{
-          bottom: 0,
-          transform: `scale(${actionsScale})`,
-          opacity: headerHovered || props.selected || menuOpen ? 1 : 0,
-          pointerEvents: headerHovered || props.selected || menuOpen ? "auto" : "none",
-          transition: `opacity ${MOTION.fast}`
-        }}
+        style={actionsStyle}
       >
         <Tooltip title="Group options" delay={TOOLTIP_ENTER_DELAY}>
           <ToolbarIconButton
@@ -628,13 +643,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         <div style={POPOVER_COLUMN_STYLE}>
           {hasChildren && (
             <div style={POPOVER_ROW_STYLE}>
-              <span
-                style={{
-                  fontFamily: theme.fontFamily1,
-                  fontSize: theme.fontSizeSmall,
-                  color: theme.vars.palette.grey[200]
-                }}
-              >
+              <span style={menuTextStyle}>
                 {someChildrenBypassed ? "Enable all nodes" : "Bypass all nodes"}
               </span>
               <BypassGroupButton
@@ -644,13 +653,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             </div>
           )}
           <div style={POPOVER_ROW_STYLE}>
-            <span
-              style={{
-                fontFamily: theme.fontFamily1,
-                fontSize: theme.fontSizeSmall,
-                color: theme.vars.palette.grey[200]
-              }}
-            >
+            <span style={menuTextStyle}>
               Group color
             </span>
             <ColorPicker

@@ -1,6 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { useNodes } from "../contexts/NodeContext";
-import { shallow } from "zustand/shallow";
+import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
 
 type Direction = "upstream" | "downstream" | "both";
 
@@ -15,38 +14,19 @@ interface SelectConnectedResult {
 }
 
 /**
- * Custom hook for selecting connected nodes in the workflow graph.
- * 
- * Traverses the workflow graph from selected nodes to find connected
- * upstream (inputs) and/or downstream (outputs) nodes. Useful for
- * selecting entire subgraphs connected to a starting point.
- * 
- * @param options - Configuration options including traversal direction
- * @returns Object containing selection functions and connected node count
- * 
- * @example
- * ```typescript
- * const { selectConnected, getConnectedNodeIds, connectedNodeCount } = useSelectConnected({
- *   direction: "downstream"
- * });
- * 
- * // Select all nodes downstream from currently selected nodes
- * selectConnected();
- * ```
+ * Traverses the workflow graph from selected nodes to find connected upstream
+ * and/or downstream nodes, for selecting entire connected subgraphs.
  */
 export const useSelectConnected = (
   options: UseSelectConnectedOptions = {}
 ): SelectConnectedResult => {
   const { direction = "both" } = options;
-  const { nodes, edges, getSelectedNodes, setSelectedNodes } = useNodes(
-    (state) => ({
-      nodes: state.nodes,
-      edges: state.edges,
-      getSelectedNodes: state.getSelectedNodes,
-      setSelectedNodes: state.setSelectedNodes
-    }),
-    shallow
-  );
+  // `edges` stays subscribed because the traversal derives from it. `nodes` is
+  // only needed inside `selectConnected`, so it is read lazily instead.
+  const edges = useNodes((state) => state.edges);
+  const getSelectedNodes = useNodes((state) => state.getSelectedNodes);
+  const setSelectedNodes = useNodes((state) => state.setSelectedNodes);
+  const nodeStore = useNodeStoreRef();
 
   const getConnectedNodeIds = useCallback((): string[] => {
     const selectedNodes = getSelectedNodes();
@@ -114,9 +94,11 @@ export const useSelectConnected = (
       ...connectedIds
     ]);
 
-    const nodesToSelect = nodes.filter((node) => allNodeIds.has(node.id));
+    const nodesToSelect = nodeStore
+      .getState()
+      .nodes.filter((node) => allNodeIds.has(node.id));
     setSelectedNodes(nodesToSelect);
-  }, [getSelectedNodes, getConnectedNodeIds, nodes, setSelectedNodes]);
+  }, [getSelectedNodes, getConnectedNodeIds, nodeStore, setSelectedNodes]);
 
   return {
     selectConnected,

@@ -7,6 +7,7 @@ export * from "./transforms.js";
 export * from "./cleanup.js";
 export * from "./ops.js";
 export * from "./generation.js";
+export * from "./render.js";
 
 import { LoadModel3DFileNode } from "./io.js";
 import { SaveModel3DFileNode } from "./io.js";
@@ -17,6 +18,7 @@ import { Transform3DNode, CenterMeshNode, NormalizeModel3DNode } from "./transfo
 import { DecimateNode, Boolean3DNode, MergeMeshesNode } from "./ops.js";
 import { RecalculateNormalsNode, FlipNormalsNode, ExtractLargestComponentNode, RepairMeshNode } from "./cleanup.js";
 import { TextTo3DNode, ImageTo3DNode } from "./generation.js";
+import { RenderToImageNode } from "./render.js";
 
 export const MODEL3D_NODES = [
   LoadModel3DFileNode,
@@ -35,5 +37,6 @@ export const MODEL3D_NODES = [
   RepairMeshNode,
   MergeMeshesNode,
   TextTo3DNode,
-  ImageTo3DNode
+  ImageTo3DNode,
+  RenderToImageNode
 ] as const;

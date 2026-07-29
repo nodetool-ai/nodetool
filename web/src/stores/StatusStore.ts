@@ -1,13 +1,5 @@
 /**
- * StatusStore tracks execution status values for nodes.
- *
- * Responsibilities:
- * - Store arbitrary status values for workflow nodes
- * - Provide thread-safe status updates and retrieval
- * - Clear all statuses when a workflow completes
- *
- * Status values can be strings, objects, or null/undefined.
- * Used to track node state during workflow execution.
+ * StatusStore tracks execution status values for nodes during a workflow run.
  *
  * Keys are scoped by job: `${workflowId}:${jobId}:${nodeId}`. This lets
  * concurrent same-workflow runs keep independent per-node status while the
@@ -40,12 +32,9 @@ const useStatusStore = create<StatusStore>((set, get) => ({
   statuses: {},
 
   /**
-   * Clear the statuses for a workflow.
-   * If nodeIds is provided, only clears statuses for those specific nodes
-   * (matching on the node being the final colon-segment, across all jobs).
-   *
-   * @param workflowId The id of the workflow.
-   * @param nodeIds Optional set of node IDs to clear. If omitted, clears all nodes in the workflow.
+   * Clear the statuses for a workflow. If nodeIds is provided, only clears
+   * statuses for those specific nodes (matching on the node being the final
+   * colon-segment, across all jobs); otherwise clears every node in the workflow.
    */
   clearStatuses: (workflowId: string, nodeIds?: Set<string>) => {
     const statuses = get().statuses;
@@ -54,14 +43,16 @@ const useStatusStore = create<StatusStore>((set, get) => ({
     const prefix = `${workflowId}:`;
 
     if (nodeIds) {
-      const suffixes = Array.from(nodeIds).map((id) => `:${id}`);
       for (const key in newStatuses) {
-        if (
-          key.startsWith(prefix) &&
-          suffixes.some((suffix) => key.endsWith(suffix))
-        ) {
-          delete newStatuses[key as NodeKey];
-          changed = true;
+        if (key.startsWith(prefix)) {
+          const lastColonIndex = key.lastIndexOf(':');
+          if (lastColonIndex !== -1) {
+            const id = key.substring(lastColonIndex + 1);
+            if (nodeIds.has(id)) {
+              delete newStatuses[key as NodeKey];
+              changed = true;
+            }
+          }
         }
       }
     } else {
@@ -82,9 +73,6 @@ const useStatusStore = create<StatusStore>((set, get) => ({
    * Clear all node statuses belonging to one run. Job-scoped, so a
    * concurrently running sibling job of the same workflow is untouched —
    * used when a run is cancelled and its "running" borders must stop.
-   *
-   * @param workflowId The id of the workflow.
-   * @param jobId The id of the run/job whose statuses to drop.
    */
   clearJobStatuses: (workflowId: string, jobId: string) => {
     const statuses = get().statuses;
@@ -102,14 +90,6 @@ const useStatusStore = create<StatusStore>((set, get) => ({
     }
   },
 
-  /**
-   * Set the status for a node within a specific job.
-   *
-   * @param workflowId The id of the workflow.
-   * @param jobId The id of the run/job.
-   * @param nodeId The id of the node.
-   * @param status The status to set.
-   */
   setStatus: (
     workflowId: string,
     jobId: string,
@@ -121,14 +101,6 @@ const useStatusStore = create<StatusStore>((set, get) => ({
     set({ statuses: { ...get().statuses, [key]: status } });
   },
 
-  /**
-   * Get the status for a node within a specific job.
-   *
-   * @param workflowId The id of the workflow.
-   * @param jobId The id of the run/job.
-   * @param nodeId The id of the node.
-   * @returns The status for the node.
-   */
   getStatus: (
     workflowId: string,
     jobId: string,

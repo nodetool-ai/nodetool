@@ -95,18 +95,35 @@ export class TriggerState extends SuspendableState {
 
     // Wait for an event with timeout
     return new Promise<Record<string, unknown>>((resolve, reject) => {
+      // Node clamps any setTimeout delay > 2^31-1 ms (~24.85 days) to 1 ms and
+      // fires almost immediately, which for a long-interval trigger would reject
+      // instantly and suspend before any real event could arrive. Track an
+      // absolute deadline and re-arm in <=TIMEOUT_MAX chunks instead.
+      const TIMEOUT_MAX = 2_147_483_647;
+      const deadline = Date.now() + timeout * 1000;
+      let timer: ReturnType<typeof setTimeout>;
       const waiter = (event: Record<string, unknown>) => {
         clearTimeout(timer);
         this._updateActivityTime();
         resolve(event);
       };
-      const timer = setTimeout(() => {
-        // Remove this waiter so a later event is queued, not lost on a dead promise.
-        this._eventWaiters = this._eventWaiters.filter((w) => w !== waiter);
-        reject(new TriggerInactivityTimeout(timeout));
-      }, timeout * 1000);
+      const arm = () => {
+        const remaining = deadline - Date.now();
+        if (remaining <= 0) {
+          // Remove this waiter so a later event is queued, not lost on a dead promise.
+          this._eventWaiters = this._eventWaiters.filter((w) => w !== waiter);
+          reject(new TriggerInactivityTimeout(timeout));
+          return;
+        }
+        timer = setTimeout(arm, Math.min(remaining, TIMEOUT_MAX));
+      };
 
+      // Register the waiter BEFORE arming. For a non-positive timeout the first
+      // arm() rejects synchronously and its filter must find the waiter to
+      // remove it — otherwise a dead (already-rejected) waiter is left in the
+      // array and silently swallows the next sendTriggerEvent.
       this._eventWaiters.push(waiter);
+      arm();
     });
   }
 

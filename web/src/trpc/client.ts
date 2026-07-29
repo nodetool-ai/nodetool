@@ -5,10 +5,13 @@ import {
   loggerLink,
   type TRPCClient
 } from "@trpc/client";
+import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import { BASE_URL } from "../stores/BASE_URL";
 import { isAuthRequired } from "../lib/runtimeConfig";
 import { supabase } from "../lib/supabaseClient";
+
+export type RouterOutputs = inferRouterOutputs<AppRouter>;
 
 export const trpc = createTRPCReact<AppRouter>();
 
@@ -25,9 +28,7 @@ export function createTRPCHttpClient(): Readonly<TRPCClient<AppRouter>> {
     links: [
       loggerLink({
         enabled: (opts) =>
-          (typeof window !== "undefined" &&
-            import.meta.env.DEV &&
-            typeof window !== "undefined") ||
+          (typeof window !== "undefined" && import.meta.env.DEV) ||
           (opts.direction === "down" && opts.result instanceof Error)
       }),
       httpBatchLink({

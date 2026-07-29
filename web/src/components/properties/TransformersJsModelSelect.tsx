@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import TransformersJsModelMenuDialog from "../model_menu/TransformersJsModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type {
@@ -67,7 +67,7 @@ const TransformersJsModelSelect: React.FC<TransformersJsModelSelectProps> = ({
       onChange({
         type: modelType,
         repo_id: repoId,
-        path: model.path || undefined
+        path: model.path || null
       });
       addRecent({
         provider: "transformers_js",

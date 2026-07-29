@@ -187,16 +187,18 @@ export class RodinProvider extends BaseProvider {
     if (!this.apiKey) throw new Error("Rodin API key is not configured");
 
     const maxAttempts = this.computeMaxAttempts(params.timeoutSeconds);
+    const signal = this.timeoutSignal(params.timeoutSeconds);
     const format = rodinOutputFormat(params.outputFormat);
 
     const payload = buildRodinTextPayload(params.prompt, format, params.seed);
 
-    const submit = await this.submitTask(payload);
+    const submit = await this.submitTask(payload, signal);
     // Stryker disable next-line StringLiteral: diagnostic log message.
     log.debug(`Rodin text-to-3D task submitted: ${submit.uuid}`);
 
-    await this.pollTaskStatus(submit.subscriptionKey, maxAttempts);
-    return this.downloadResult(submit.uuid);
+    await this.pollTaskStatus(submit.subscriptionKey, maxAttempts, signal);
+    this.trackUsage(params.model.id, { taskCount: 1 });
+    return this.downloadResult(submit.uuid, signal);
   }
 
   override async imageTo3D(
@@ -208,6 +210,7 @@ export class RodinProvider extends BaseProvider {
     if (!this.apiKey) throw new Error("Rodin API key is not configured");
 
     const maxAttempts = this.computeMaxAttempts(params.timeoutSeconds);
+    const signal = this.timeoutSignal(params.timeoutSeconds);
     const format = rodinOutputFormat(params.outputFormat);
     const encoded = encodeImageForRodin(image);
 
@@ -218,12 +221,13 @@ export class RodinProvider extends BaseProvider {
       params.seed
     );
 
-    const submit = await this.submitTask(payload);
+    const submit = await this.submitTask(payload, signal);
     // Stryker disable next-line StringLiteral: diagnostic log message.
     log.debug(`Rodin image-to-3D task submitted: ${submit.uuid}`);
 
-    await this.pollTaskStatus(submit.subscriptionKey, maxAttempts);
-    return this.downloadResult(submit.uuid);
+    await this.pollTaskStatus(submit.subscriptionKey, maxAttempts, signal);
+    this.trackUsage(params.model.id, { taskCount: 1 });
+    return this.downloadResult(submit.uuid, signal);
   }
 
   // --- internals ---
@@ -235,22 +239,43 @@ export class RodinProvider extends BaseProvider {
     };
   }
 
-  private computeMaxAttempts(timeoutSeconds: number | null | undefined): number {
+  private computeMaxAttempts(
+    timeoutSeconds: number | null | undefined
+  ): number {
     // Stryker disable next-line EqualityOperator: `<= 0` vs `< 0` is equivalent — 0 is already caught by the falsy `!timeoutSeconds` check.
     if (!timeoutSeconds || timeoutSeconds <= 0) {
       return this.maxPollAttempts;
     }
-    return Math.max(1, Math.floor((timeoutSeconds * 1000) / this.pollIntervalMs));
+    return Math.max(
+      1,
+      Math.floor((timeoutSeconds * 1000) / this.pollIntervalMs)
+    );
+  }
+
+  /**
+   * Per-call timeout signal (mirrors the gemini provider): threaded into the
+   * submit / poll / download fetches so an expired budget aborts the in-flight
+   * request instead of leaking it. The inter-poll sleep is left on the loop's
+   * own attempt cap, which surfaces the friendly "timed out" message.
+   */
+  private timeoutSignal(
+    timeoutSeconds: number | null | undefined
+  ): AbortSignal | undefined {
+    return timeoutSeconds && timeoutSeconds > 0
+      ? AbortSignal.timeout(timeoutSeconds * 1000)
+      : undefined;
   }
 
   private async submitTask(
-    payload: Record<string, unknown>
+    payload: Record<string, unknown>,
+    signal?: AbortSignal
   ): Promise<RodinSubmitResponse> {
     const url = `${RODIN_API_BASE_URL}/v2/rodin`;
     const res = await fetch(url, {
       method: "POST",
       headers: this.headers(),
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal
     });
     if (res.status !== 200 && res.status !== 202) {
       const errText = await res.text();
@@ -275,14 +300,16 @@ export class RodinProvider extends BaseProvider {
 
   private async pollTaskStatus(
     subscriptionKey: string,
-    maxAttempts: number
+    maxAttempts: number,
+    signal?: AbortSignal
   ): Promise<Record<string, unknown>> {
     const url = `${RODIN_API_BASE_URL}/v2/status`;
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const res = await fetch(url, {
         method: "POST",
         headers: this.headers(),
-        body: JSON.stringify({ subscription_key: subscriptionKey })
+        body: JSON.stringify({ subscription_key: subscriptionKey }),
+        signal
       });
       if (res.status !== 200) {
         const errText = await res.text();
@@ -294,23 +321,23 @@ export class RodinProvider extends BaseProvider {
       const job = jobs[0];
       if (!job) {
         // Stryker disable next-line StringLiteral,ArithmeticOperator: diagnostic log message.
-        log.debug(`Rodin task: no jobs yet (attempt ${attempt + 1}/${maxAttempts})`);
+        log.debug(
+          `Rodin task: no jobs yet (attempt ${attempt + 1}/${maxAttempts})`
+        );
         await new Promise((r) => setTimeout(r, this.pollIntervalMs));
         continue;
       }
       // Stryker disable next-line StringLiteral: empty fallback only applies when status is absent; any non-status string is equivalent (still not DONE/FAILED/ERROR/CANCELLED).
       const status = String(job.status ?? "").toUpperCase();
       if (status === "DONE") return job;
-      if (
-        status === "FAILED" ||
-        status === "ERROR" ||
-        status === "CANCELLED"
-      ) {
+      if (status === "FAILED" || status === "ERROR" || status === "CANCELLED") {
         const errMsg = (job.error as string | undefined) ?? "Unknown error";
         throw new Error(`Rodin task failed: ${errMsg}`);
       }
       // Stryker disable next-line StringLiteral,ArithmeticOperator: diagnostic log message.
-      log.debug(`Rodin task status: ${status} (attempt ${attempt + 1}/${maxAttempts})`);
+      log.debug(
+        `Rodin task status: ${status} (attempt ${attempt + 1}/${maxAttempts})`
+      );
       await new Promise((r) => setTimeout(r, this.pollIntervalMs));
     }
     throw new Error(
@@ -318,11 +345,15 @@ export class RodinProvider extends BaseProvider {
     );
   }
 
-  private async downloadResult(taskUuid: string): Promise<Uint8Array> {
+  private async downloadResult(
+    taskUuid: string,
+    signal?: AbortSignal
+  ): Promise<Uint8Array> {
     const downloadInfoRes = await fetch(`${RODIN_API_BASE_URL}/v2/download`, {
       method: "POST",
       headers: this.headers(),
-      body: JSON.stringify({ task_uuid: taskUuid })
+      body: JSON.stringify({ task_uuid: taskUuid }),
+      signal
     });
     if (downloadInfoRes.status !== 200) {
       const errText = await downloadInfoRes.text();
@@ -332,13 +363,14 @@ export class RodinProvider extends BaseProvider {
     }
     const info = (await downloadInfoRes.json()) as Record<string, unknown>;
     const downloadUrl =
-      (info.model_url as string | undefined) ?? (info.url as string | undefined);
+      (info.model_url as string | undefined) ??
+      (info.url as string | undefined);
     if (!downloadUrl) {
       throw new Error(
         `No download URL in Rodin response: ${JSON.stringify(info)}`
       );
     }
-    const dlRes = await safeFetch(downloadUrl);
+    const dlRes = await safeFetch(downloadUrl, { signal });
     if (!dlRes.ok) {
       const errText = await dlRes.text().catch(() => "");
       throw new Error(

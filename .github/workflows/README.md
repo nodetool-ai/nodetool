@@ -12,6 +12,9 @@
 | **performance-optimization.yaml** | Daily 3am + manual | Fixes React performance issues: missing memo, useMemo/useCallback, inefficient selectors |
 | **dependency-cleanup.yaml** | Daily 3am + manual | Removes unused dependencies, aligns versions, updates minor/patch versions |
 | **test-coverage.yaml** | Daily 3am + manual | Adds tests for uncovered utility functions, store actions, hooks, and components |
+| **ui-primitives-compliance.yaml** | Weekly (Tue 3am) + manual | Migrates raw `@mui/material` imports to `ui_primitives/` and replaces hardcoded design tokens (radii, transitions, font sizes, off-grid spacing) with the named constants — a small verified batch per run |
+| **workflow-example-validation.yaml** | Weekly (Thu 3am) + manual | Runs `nodetool validate` over every shipped example workflow and repairs graphs broken by registry drift (unknown node types, missing required props, unselected models, dangling edges) |
+| **issue-triage.yml** | Issue opened | Labels new issues, flags likely duplicates, and requests missing reproduction details for bug reports (comment/label only — read-only on code) |
 
 ## Standard CI Workflows
 
@@ -20,7 +23,10 @@
 | **test.yml** | Push/PR to main | Run full test suite (typecheck, lint, tests) across all packages |
 | **e2e.yml** | Push/PR to main | Integration tests for websocket and backend packages |
 | **autofix.yml** | PRs to main | Auto-fix ESLint issues and commit |
+| **chromatic.yml** | PR + push to main (web/Storybook paths) | Component visual regression — builds Storybook, publishes to Chromatic with TurboSnap (`onlyChanged`), surfaces per-story diffs on the PR. Non-blocking (`exitZeroOnChanges`). Needs `CHROMATIC_PROJECT_TOKEN`. |
+| **visual-regression.yml** | PR + push to main (visual suite/web paths) | E2E/page visual regression — Playwright screenshot assertions; uploads HTML report + diffs. Non-blocking while baselines mature. |
 | **release.yaml** | Git tags `v*` + manual | Build and sign cross-platform release artifacts |
+| **eas-build.yml** | Manual + git tags `mobile-v*` (+ config check on mobile config PRs) | Cloud-build the Expo app in `mobile/` on EAS (profile/platform selectable; tags build and submit `production`). Needs `EAS_TOKEN`. |
 | **flatpak-ci.yml** | Push to main + manual | Build Flatpak desktop package |
 | **jekyll.yml** | Push to main + manual | Build and deploy docs site to GitHub Pages |
 | **marketing-ci.yml** | Push/PR touching `marketing/**` | Typecheck, lint, build & Playwright smoke tests for the marketing site; on push to main, deploys it to Cloudflare Workers (OpenNext) after the gates pass |
@@ -44,4 +50,6 @@ gh workflow run type-safety.yaml
 gh workflow run performance-optimization.yaml
 gh workflow run dependency-cleanup.yaml
 gh workflow run test-coverage.yaml
+gh workflow run ui-primitives-compliance.yaml
+gh workflow run workflow-example-validation.yaml
 ```

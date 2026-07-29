@@ -9,7 +9,7 @@ import {
   RuntimeCategory,
 } from "./types";
 
-export interface ElectronRuntimePackageOptions {
+interface ElectronRuntimePackageOptions {
   id: string;
   name: string;
   description: string;

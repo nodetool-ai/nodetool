@@ -1,8 +1,4 @@
-/**
- * MemoryUriCache — T-ST-9.
- *
- * Simple in-memory TTL cache for signed URLs and other URI strings.
- */
+/** In-memory TTL cache for signed URLs and other URI strings. */
 
 interface CacheEntry {
   url: string;

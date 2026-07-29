@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Check } from "@mui/icons-material";
+import Check from "@mui/icons-material/Check";
 import DownloadIcon from "@mui/icons-material/Download";
 import {
   Box,
@@ -9,7 +9,7 @@ import {
   Text,
   Tooltip,
   EditorButton,
-  LoadingSpinner, BORDER_RADIUS } from "../../ui_primitives";
+  LoadingSpinner, BORDER_RADIUS, activateOnKey } from "../../ui_primitives";
 import type { UnifiedModel } from "../../../stores/ApiTypes";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../../hugging_face/DownloadProgress";
@@ -81,6 +81,10 @@ const RecommendedDownloadRow: React.FC<RecommendedDownloadRowProps> = ({
         align="center"
         gap={1.5}
         onClick={downloaded ? onSelect : undefined}
+        onKeyDown={downloaded ? activateOnKey(onSelect) : undefined}
+        role={downloaded ? "button" : undefined}
+        tabIndex={downloaded ? 0 : undefined}
+        aria-label={downloaded ? `Use ${model.id}` : undefined}
         sx={{
           px: 1.5,
           height: "100%",
@@ -97,7 +101,7 @@ const RecommendedDownloadRow: React.FC<RecommendedDownloadRowProps> = ({
             <Text
               component="div"
               sx={{
-                fontSize: theme.vars.fontSizeTiny,
+                fontSize: theme.vars.fontSizeSmaller,
                 color: theme.vars.palette.text.secondary,
                 lineHeight: 1.2,
                 overflow: "hidden",

@@ -5,6 +5,7 @@
 
 import { Message, MessageContent, LanguageModel, Thread, Chunk, JobUpdate, NodeUpdate, NodeProgress, OutputUpdate } from './ApiTypes';
 import type { MediaGenerationRequest } from '../stores/MediaGenerationStore';
+import type { UiContextPayload } from '../documents/uiContext';
 
 // Re-export types we use directly
 export type { Message, LanguageModel, Thread, Chunk };
@@ -104,27 +105,8 @@ export interface ChatMessageRequest {
   agent_mode?: boolean;
   help_mode?: boolean;
   media_generation?: MediaGenerationRequest;
-}
-
-/**
- * State for the chat store
- */
-export interface ChatState {
-  // Connection state
-  status: ChatStatus;
-  statusMessage: string | null;
-  error: string | null;
-
-  // Thread management
-  threads: Record<string, Thread>;
-  currentThreadId: string | null;
-
-  // Messages for current thread
-  messageCache: Record<string, Message[]>;
-  isLoadingMessages: boolean;
-
-  // Model selection (for future)
-  selectedModel: LanguageModel | null;
+  /** Open/focused document ids the agent's `ui_*` tools may address. */
+  ui_context?: UiContextPayload;
 }
 
 /**
@@ -137,6 +119,13 @@ export interface WebSocketConfig {
   reconnectDecay?: number;
   reconnectAttempts?: number;
   timeoutInterval?: number;
+  /**
+   * Inbound silence (ms) after which the connection is probed with a ping.
+   * Must stay above the server's 25s heartbeat. 0 disables the watchdog.
+   */
+  heartbeatInterval?: number;
+  /** Grace period (ms) for traffic to arrive after a probe. */
+  heartbeatTimeout?: number;
   /**
    * Extra headers for the connection handshake (React Native native only).
    * Used to send `Authorization: Bearer <token>` so the auth token stays out

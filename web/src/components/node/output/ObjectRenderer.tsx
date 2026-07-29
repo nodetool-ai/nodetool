@@ -1,10 +1,10 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Text, Box, BORDER_RADIUS } from "../../ui_primitives";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../../utils/isEqual";
 
 const objectStyles = (theme: Theme) =>
   css({
@@ -42,16 +42,12 @@ interface ObjectRendererProps {
   renderValue: (value: unknown, key: string) => React.ReactNode;
 }
 
-/**
- * ObjectRenderer displays a multi-key object with each value
- * rendered using the provided render function.
- * Provides a clean, organized display of object properties.
- */
 const ObjectRenderer: React.FC<ObjectRendererProps> = ({
   value,
   renderValue
 }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => objectStyles(theme), [theme]);
   const entries = Object.entries(value);
 
   if (entries.length === 0) {
@@ -65,7 +61,7 @@ const ObjectRenderer: React.FC<ObjectRendererProps> = ({
   }
 
   return (
-    <Box css={objectStyles(theme)} className="object-renderer nodrag">
+    <Box css={cssStyles} className="object-renderer nodrag">
       {entries.map(([key, val]) => (
         <Box key={key} className="object-entry">
           <Text className="object-key" component="span">

@@ -173,6 +173,12 @@ export type ImageDocumentListItem = z.infer<typeof imageDocumentListItem>;
 // ── create ─────────────────────────────────────────────────────────────────
 
 export const createImageDocumentInput = z.object({
+  /**
+   * Client-supplied id. The caller mints it so the document is addressable
+   * (agent tools, tab refs) before the create round-trip returns, and so a
+   * retried create is idempotent rather than duplicating the document.
+   */
+  id: z.string().optional(),
   name: z.string().min(1),
   projectId: z.string().min(1),
   width: z.number().int().min(1).optional().default(1024),

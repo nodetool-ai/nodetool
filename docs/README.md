@@ -62,6 +62,11 @@ npm run generate:node-docs    # regenerate node pages + rebuild nodes/index.md
 npm run generate:node-index   # rebuild nodes/index.md only (fast, reads from disk)
 ```
 
+The same generator writes `nodes/catalog.json`, the machine-readable catalog
+used by agents to discover node types, inputs, outputs, and documentation URLs.
+Jekyll also publishes each public page as a standalone `.md` representation
+with front matter, for example `/cli.md` and `/nodes/index.md`.
+
 `scripts/build-node-index.mjs` rebuilds `nodes/index.md` straight from the pages
 on disk, so totals and namespaces always match what's actually published.
 

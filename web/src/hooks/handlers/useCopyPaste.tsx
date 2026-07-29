@@ -70,10 +70,11 @@ export const useCopyPaste = (): UseCopyPasteResult => {
         return { nodesToCopy: [], connectedEdges: [] };
       }
       const nodesToCopyIds = nodesToCopy.map((node) => node.id);
+      const nodesToCopyIdsSet = new Set(nodesToCopyIds);
       const connectedEdges = edges.filter(
         (edge) =>
-          nodesToCopyIds.includes(edge.source) ||
-          nodesToCopyIds.includes(edge.target)
+          nodesToCopyIdsSet.has(edge.source) ||
+          nodesToCopyIdsSet.has(edge.target)
       );
       const serializedData = JSON.stringify({
         nodes: nodesToCopy,
@@ -102,28 +103,19 @@ export const useCopyPaste = (): UseCopyPasteResult => {
 
   const handleCut = useCallback(
     async (nodeId?: string) => {
-      const { nodesToCopy, connectedEdges } = await handleCopy(nodeId);
+      const { nodesToCopy } = await handleCopy(nodeId);
 
       if (nodesToCopy.length === 0) {
         return;
       }
 
-      // Optimization: Use Set for O(n) filtering instead of O(n*m) with nested some()
-      const nodesToCopyIds = new Set(nodesToCopy.map((n) => n.id));
-      const connectedEdgeIds = new Set(connectedEdges.map((e) => e.id));
-
+      // Go through deleteNodes rather than filtering the arrays directly: it
+      // re-parents children of a cut group back to the canvas (converting their
+      // parent-relative position to absolute) and clears errors/results. A raw
+      // setNodes would leave orphans pointing at a deleted parentId.
       // Read fresh state so we don't lose nodes added after the cut callback was created.
-      const { nodes, edges, setNodes, setEdges } = nodeStore.getState();
-
-      const filteredNodes = nodes.filter(
-        (node) => !nodesToCopyIds.has(node.id)
-      );
-      setNodes(filteredNodes);
-
-      const filteredEdges = edges.filter(
-        (edge) => !connectedEdgeIds.has(edge.id)
-      );
-      setEdges(filteredEdges);
+      const { deleteNodes } = nodeStore.getState();
+      deleteNodes(nodesToCopy.map((n) => n.id));
     },
     [handleCopy, nodeStore]
   );

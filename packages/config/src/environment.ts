@@ -8,10 +8,13 @@
  * on non-Node runtimes (browser, Edge). `loadEnvironment()` is a no-op
  * outside Node.
  */
-import { config as dotenvConfig } from "dotenv";
+import { loadEnvFile } from "./env-file.js";
 import { IS_NODE, importNodeBuiltin } from "./node-import.js";
 
-type FsApi = { existsSync: (path: string) => boolean };
+type FsApi = {
+  existsSync: (path: string) => boolean;
+  readFileSync: (path: string, encoding: "utf8") => string;
+};
 type PathApi = { resolve: (...parts: string[]) => string };
 const fsSync = await importNodeBuiltin<FsApi>("node:fs");
 const pathSync = await importNodeBuiltin<PathApi>("node:path");
@@ -34,27 +37,20 @@ export function loadEnvironment(rootDir?: string): void {
   const root = rootDir ?? process.cwd();
   const nodeEnv = process.env.NODE_ENV ?? "development";
 
-  // Load files in order: .env, .env.{NODE_ENV}, .env.{NODE_ENV}.local
   const files = [
     pathSync.resolve(root, ".env"),
     pathSync.resolve(root, `.env.${nodeEnv}`),
     pathSync.resolve(root, `.env.${nodeEnv}.local`)
   ];
 
-  // Start fresh
   envStore.clear();
 
-  // Snapshot system env before loading files
   const systemEnv = { ...process.env };
 
   for (const file of files) {
-    if (fsSync.existsSync(file)) {
-      const result = dotenvConfig({ path: file, override: true });
-      if (result.parsed) {
-        for (const [key, value] of Object.entries(result.parsed)) {
-          envStore.set(key, value);
-        }
-      }
+    const parsed = loadEnvFile(fsSync, file);
+    for (const [key, value] of Object.entries(parsed)) {
+      envStore.set(key, value);
     }
   }
 

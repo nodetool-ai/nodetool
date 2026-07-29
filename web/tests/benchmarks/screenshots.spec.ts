@@ -70,6 +70,35 @@ async function saveElementScreenshot(
   }
 }
 
+/**
+ * Open the chat composer's control-chip popovers by index. The chat-mode
+ * footer renders its chips in a stable order inside `.media-chip-main`:
+ *   0 → mode (Chat / Generate Images / …)
+ *   1 → language model
+ *   2 → permission mode (Plan / Default / Auto)
+ * Returns false if the requested chip never appears (composer not mounted).
+ */
+async function openComposerChip(
+  page: Page,
+  which: "mode" | "model" | "permission"
+): Promise<boolean> {
+  const selector =
+    which === "permission"
+      ? ".permission-selector-trigger"
+      : ".media-chip-main .media-control-chip";
+  const index = which === "mode" ? 0 : which === "model" ? 1 : 0;
+  const chip = page.locator(selector).nth(index);
+  try {
+    await chip.waitFor({ state: "visible", timeout: 15000 });
+    await chip.click();
+    await waitForAnimation(page, 500);
+    return true;
+  } catch {
+    console.warn(`  ⚠ Composer chip not found: ${which}`);
+    return false;
+  }
+}
+
 /** Skip a test if the screenshot already exists and FORCE_SCREENSHOTS is not set */
 function shouldSkip(filename: string): boolean {
   if (process.env.FORCE_SCREENSHOTS === "true") return false;
@@ -101,6 +130,7 @@ type LeftPanelView =
   | "history"
   | "favorites"
   | "assets"
+  | "apps"
   | "nodes";
 type RightPanelView = "inspector";
 type BottomPanelView =
@@ -209,6 +239,48 @@ async function seedLocalStorage(
       /* ignore — localStorage may be unavailable in some browser contexts */
     }
   }, panelsArg);
+}
+
+/**
+ * Pre-open workspace tabs (the tabbed-document shell at /workspace) by seeding
+ * the WorkspaceTabsStore persist slot. `active` must be one of the seeded
+ * tabs' ids (`${type}:${ref}`). Must run before navigation.
+ */
+async function seedWorkspaceTabs(
+  page: Page,
+  tabs: Array<{ type: string; ref: string; title: string }>,
+  active: string
+): Promise<void> {
+  await page.addInitScript(
+    (args: {
+      tabs: Array<{ type: string; ref: string; title: string }>;
+      active: string;
+    }) => {
+      try {
+        window.localStorage.setItem(
+          "workspace-tabs-storage",
+          JSON.stringify({
+            state: {
+              tabs: args.tabs.map((t) => ({
+                id: `${t.type}:${t.ref}`,
+                type: t.type,
+                ref: t.ref,
+                mode: "edit",
+                title: t.title
+              })),
+              activeTabId: args.active
+            },
+            // Must match WorkspaceTabsStore's persist `version` or zustand
+            // discards the seeded state on rehydrate.
+            version: 1
+          })
+        );
+      } catch {
+        /* ignore — localStorage may be unavailable */
+      }
+    },
+    { tabs, active }
+  );
 }
 
 /**
@@ -478,6 +550,53 @@ if (process.env.JEST_WORKER_ID) {
       await saveScreenshot(page, "chat-mobile.png");
     });
 
+    // The model picker opened from the composer's model chip.
+    test("Chat – model selector", async ({ page }) => {
+      test.skip(shouldSkip("chat-model-selector.png"), "Already captured");
+      await gotoPage(page, "/chat/thread-story");
+      await waitForScreenshotReady(page, "global-chat-interface.png");
+      if (await openComposerChip(page, "model")) {
+        await page
+          .getByText(/select language model/i)
+          .first()
+          .waitFor({ state: "visible", timeout: 8000 })
+          .catch(() => {});
+      }
+      await saveScreenshot(page, "chat-model-selector.png");
+    });
+
+    // The composer mode menu — chat, image, video, and speech generation all
+    // run from the same box.
+    test("Chat – composer modes", async ({ page }) => {
+      test.skip(shouldSkip("chat-composer-modes.png"), "Already captured");
+      await gotoPage(page, "/chat/thread-story");
+      await waitForScreenshotReady(page, "global-chat-interface.png");
+      if (await openComposerChip(page, "mode")) {
+        await page
+          .getByRole("menu", { name: /generation mode/i })
+          .first()
+          .waitFor({ state: "visible", timeout: 8000 })
+          .catch(() => {});
+      }
+      await saveScreenshot(page, "chat-composer-modes.png");
+    });
+
+    // The permission menu — Plan / Default / Auto controls how much the agent
+    // may do on its own.
+    test("Chat – permission modes", async ({ page }) => {
+      test.skip(shouldSkip("chat-permission-modes.png"), "Already captured");
+      await gotoPage(page, "/chat/thread-story");
+      await waitForScreenshotReady(page, "global-chat-interface.png");
+      if (await openComposerChip(page, "permission")) {
+        await page
+          .getByRole("menu", { name: /permission mode/i })
+          .first()
+          .waitFor({ state: "visible", timeout: 8000 })
+          .catch(() => {});
+      }
+      await saveScreenshot(page, "chat-permission-modes.png");
+    });
+
     test("Login", async ({ page }) => {
       test.skip(shouldSkip("login-screen.png"), "Already captured");
       await gotoPage(page, "/login");
@@ -546,6 +665,147 @@ if (process.env.JEST_WORKER_ID) {
       await saveScreenshot(page, "models-list.png");
     });
 
+    // ── Packages ────────────────────────────────────────────────────────────
+    test("Package manager", async ({ page }) => {
+      test.skip(shouldSkip("packages-manager.png"), "Already captured");
+      await gotoPage(page, "/packages");
+      await page
+        .getByText("Included packs")
+        .first()
+        .waitFor({ state: "visible", timeout: 15000 })
+        .catch(() => {});
+      await ensureNoVisibleProgress(page);
+      await waitForAnimation(page, 600);
+      await saveScreenshot(page, "packages-manager.png");
+    });
+
+    // ── Examples / templates ────────────────────────────────────────────────
+    test("Examples page", async ({ page }) => {
+      test.skip(shouldSkip("examples-page.png"), "Already captured");
+      await gotoPage(page, "/examples");
+      await page
+        .getByText("Start from a template")
+        .first()
+        .waitFor({ state: "visible", timeout: 15000 })
+        .catch(() => {});
+      await ensureNoVisibleProgress(page);
+      await waitForAnimation(page, 800);
+      await saveScreenshot(page, "examples-page.png");
+    });
+
+    // ── Workspaces ──────────────────────────────────────────────────────────
+    test("Workspaces page", async ({ page }) => {
+      test.skip(shouldSkip("workspaces-page.png"), "Already captured");
+      await gotoPage(page, "/workspaces");
+      await waitForScreenshotReady(page, "workspaces-page.png");
+      await saveScreenshot(page, "workspaces-page.png");
+    });
+
+    // ── Mini app surfaces ───────────────────────────────────────────────────
+    // An app is its own resource opened as a workspace tab. "app-mini-app" is
+    // the seeded application; Design is where it is built, Run is what the
+    // person using it sees.
+    async function openMiniApp(page: Page): Promise<void> {
+      await seedWorkspaceTabs(
+        page,
+        [
+          {
+            type: "application",
+            ref: "app-mini-app",
+            title: "Echo Mini App"
+          }
+        ],
+        "application:app-mini-app"
+      );
+      await gotoPage(page, "/workspace");
+      await ensureNoVisibleProgress(page);
+    }
+
+    test("Mini app – design surface", async ({ page }) => {
+      test.skip(shouldSkip("mini-app-design.png"), "Already captured");
+      await openMiniApp(page);
+      await page
+        .getByRole("button", { name: "Design", exact: true })
+        .first()
+        .waitFor({ state: "visible", timeout: 20000 })
+        .catch(() => {});
+      await waitForAnimation(page, 800);
+      await saveScreenshot(page, "mini-app-design.png");
+    });
+
+    test("Mini app – run surface", async ({ page }) => {
+      test.skip(shouldSkip("mini-app-run.png"), "Already captured");
+      await openMiniApp(page);
+      const runMode = page
+        .getByRole("button", { name: "Run", exact: true })
+        .first();
+      await runMode.waitFor({ state: "visible", timeout: 20000 }).catch(() => {});
+      await runMode.click().catch(() => {});
+      await page
+        .getByRole("button", { name: /^run echo$/i })
+        .first()
+        .waitFor({ state: "visible", timeout: 20000 })
+        .catch(() => {});
+      await waitForAnimation(page, 800);
+      await saveScreenshot(page, "mini-app-run.png");
+    });
+
+    /**
+     * Select a widget on the Design canvas by the text it renders, so the
+     * right-hand inspector shows that widget's fields. Puck's own class names
+     * are content-hashed, so the canvas is addressed by text and the inspector
+     * by the stable `_Sidebar--right` prefix.
+     */
+    async function selectWidget(page: Page, text: string): Promise<void> {
+      await openMiniApp(page);
+      await page
+        .getByRole("button", { name: "Design", exact: true })
+        .first()
+        .waitFor({ state: "visible", timeout: 20000 })
+        .catch(() => {});
+      await waitForAnimation(page, 2000);
+      await page
+        .getByText(text, { exact: true })
+        .first()
+        .click({ force: true })
+        .catch(() => {});
+      await waitForAnimation(page, 1000);
+    }
+
+    const RIGHT_SIDEBAR = '[class*="_Sidebar--right"]';
+
+    // The binding picker, open. It lists what the bound workflow actually
+    // offers — its Input nodes, the settings of each node, its Output nodes —
+    // which is the step people get stuck on when wiring their first app.
+    test("Mini app – binding picker", async ({ page }) => {
+      test.skip(shouldSkip("mini-app-binding-picker.png"), "Already captured");
+      await selectWidget(page, "Prompt");
+      await page
+        .locator(RIGHT_SIDEBAR)
+        .first()
+        .getByRole("combobox")
+        .first()
+        .click({ force: true })
+        .catch(() => {});
+      await waitForAnimation(page, 800);
+      await saveScreenshot(page, "mini-app-binding-picker.png");
+    });
+
+    // A Button's On click event expanded to its Run workflow action.
+    test("Mini app – button action", async ({ page }) => {
+      test.skip(shouldSkip("mini-app-button-action.png"), "Already captured");
+      await selectWidget(page, "Run echo");
+      await page
+        .locator(RIGHT_SIDEBAR)
+        .first()
+        .getByText("run", { exact: true })
+        .first()
+        .click({ force: true })
+        .catch(() => {});
+      await waitForAnimation(page, 1000);
+      await saveScreenshot(page, "mini-app-button-action.png");
+    });
+
     // ── Sketch / Image editor ─────────────────────────────────────────────────
     // Backed by the seeded ImageDocument "sk-demo-portrait" (screenshot-server).
     test("Sketch editor", async ({ page }) => {
@@ -591,21 +851,6 @@ if (process.env.JEST_WORKER_ID) {
     });
 
     // ── Isolated components ─────────────────────────────────────────────────
-    test("App header strip", async ({ page }) => {
-      test.skip(shouldSkip("app-header.png"), "Already captured");
-      await page.setViewportSize({ width: DESKTOP_VIEWPORT.width, height: 80 });
-      await gotoPage(page, "/preview/app-header");
-      // The /preview routes lazy-load each component; wait for the actual
-      // header markup to appear before capturing.
-      await page
-        .locator('[data-preview="app-header"], header, [role="banner"]')
-        .first()
-        .waitFor({ state: "visible", timeout: 15000 })
-        .catch(() => {});
-      await waitForAnimation(page, 800);
-      await saveScreenshot(page, "app-header.png");
-    });
-
     test("Models – isolated component", async ({ page }) => {
       test.skip(shouldSkip("component-models.png"), "Already captured");
       await gotoPage(page, "/preview/models");
@@ -663,7 +908,8 @@ if (process.env.JEST_WORKER_ID) {
       { view: "settings", filename: "editor-left-panel-settings.png" },
       { view: "history", filename: "editor-left-panel-history.png" },
       { view: "favorites", filename: "editor-left-panel-favorites.png" },
-      { view: "assets", filename: "editor-left-panel-assets.png" }
+      { view: "assets", filename: "editor-left-panel-assets.png" },
+      { view: "apps", filename: "editor-left-panel-apps.png" }
     ];
 
     for (const { view, filename } of LEFT_PANEL_VIEWS) {
@@ -962,6 +1208,86 @@ if (process.env.JEST_WORKER_ID) {
       await saveScreenshot(page, "editor-workflow-assistant.png");
     });
 
+    // ── Entities (ingredients library) ─────────────────────────────────────
+    //
+    // Entities are image assets tagged as characters / locations / styles /
+    // props (seeded in screenshot-server.ts). They surface in three places,
+    // each with its own capture: the Entities library page, the `@`-mention
+    // picker's Entities row, and the storyboard's Entities field.
+
+    test("Entities – library page", async ({ page }) => {
+      test.skip(shouldSkip("entity-library.png"), "Already captured");
+      await seedWorkspaceTabs(
+        page,
+        [{ type: "page", ref: "entities", title: "Entities" }],
+        "page:entities"
+      );
+      await gotoPage(page, "/workspace");
+      // The seeded entity cards carry these names.
+      await page
+        .getByText("Marta")
+        .first()
+        .waitFor({ state: "visible", timeout: 15000 })
+        .catch(() => {});
+      await ensureNoVisibleProgress(page);
+      await waitForAnimation(page, 600);
+      await saveScreenshot(page, "entity-library.png");
+    });
+
+    test("Chat – entity mentions (@)", async ({ page }) => {
+      test.skip(shouldSkip("chat-mention-entities.png"), "Already captured");
+      await gotoPage(page, "/chat/thread-story");
+      await waitForScreenshotReady(page, "global-chat-interface.png");
+      const composer = page
+        .locator('textarea, [contenteditable="true"]')
+        .first();
+      await composer.click();
+      await composer.type("A rainy chase scene with @", { delay: 30 });
+      // The shared mention menu opens with the Entities row on top.
+      await page
+        .locator(".asset-mention-menu")
+        .first()
+        .waitFor({ state: "visible", timeout: 10000 })
+        .catch(() => {});
+      await page
+        .locator(".mention-entity-tile")
+        .first()
+        .waitFor({ state: "visible", timeout: 10000 })
+        .catch(() => {});
+      await waitForAnimation(page, 500);
+      await saveScreenshot(page, "chat-mention-entities.png");
+    });
+
+    // ── Storyboard ─────────────────────────────────────────────────────────
+    // Backed by the seeded Storyboard "sb-demo-noir" (screenshot-server),
+    // whose board carries the four seeded entities and shots that mention
+    // them by name — so the Entities field and per-shot entity chips are
+    // both populated.
+    test("Storyboard – board with entities", async ({ page }) => {
+      test.skip(shouldSkip("storyboard-board.png"), "Already captured");
+      await seedWorkspaceTabs(
+        page,
+        [{ type: "storyboard", ref: "sb-demo-noir", title: "Harbor Noir" }],
+        "storyboard:sb-demo-noir"
+      );
+      await gotoPage(page, "/workspace");
+      // The board header's Direct button and the seeded entity chips are the
+      // stable landmarks.
+      await page
+        .getByRole("button", { name: /^direct$/i })
+        .first()
+        .waitFor({ state: "visible", timeout: 20000 })
+        .catch(() => {});
+      await page
+        .getByText("Neon Noir")
+        .first()
+        .waitFor({ state: "visible", timeout: 15000 })
+        .catch(() => {});
+      await ensureNoVisibleProgress(page);
+      await waitForAnimation(page, 800);
+      await saveScreenshot(page, "storyboard-board.png");
+    });
+
     // ── Component-preview captures ─────────────────────────────────────────
     //
     // Each preview route renders a single dialog/modal pre-opened so we can
@@ -1100,18 +1426,6 @@ if (process.env.JEST_WORKER_ID) {
             .first()
             .waitFor({ state: "visible", timeout: 8000 })
             .catch(() => {});
-        }
-      },
-      {
-        preview: "vibecoding-modal",
-        filename: "vibecoding-modal.png",
-        ready: async (p) => {
-          await p
-            .getByText(/VibeCoding|Story Generator/i)
-            .first()
-            .waitFor({ state: "visible", timeout: 8000 })
-            .catch(() => {});
-          await waitForAnimation(p, 600);
         }
       }
     ];

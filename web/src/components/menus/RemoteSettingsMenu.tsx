@@ -1,10 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import SaveIcon from "@mui/icons-material/Save";
 
-import LoginIcon from "@mui/icons-material/Login";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import LinkOffIcon from "@mui/icons-material/LinkOff";
-import { useMemo, useState, useCallback, useEffect, memo } from "react";
+import { useMemo, useState, useCallback, useEffect, memo, Fragment } from "react";
 
 import {
   TextInput,
@@ -25,11 +22,21 @@ import {
   PROVIDER_QUERY_KEYS
 } from "../../stores/resourceChangeHandler";
 import { useTheme } from "@mui/material/styles";
-import { getSharedSettingsStyles } from "./sharedSettingsStyles";
+import { getSharedSettingsStyles } from "./settingsMenuStyles";
 import { formatSettingLabel } from "./settingsLabel";
+import ExternalLink from "../common/ExternalLink";
+import SearchProviderSection from "./SearchProviderSection";
 
-/** Groups surfaced elsewhere (General tab, Folders panel) or via SearchProviderSection. */
-const HIDDEN_SETTING_GROUPS = new Set(["Folders", "Search", "Execution"]);
+/**
+ * Groups surfaced elsewhere (General tab, Folders panel) or via
+ * SearchProviderSection, so they are not echoed by the generic list.
+ */
+const HIDDEN_SETTING_GROUPS = new Set([
+  "Folders",
+  "Search",
+  "Execution",
+  "Autosave" // already surfaced on the General tab
+]);
 /** Search-provider settings rendered by SearchProviderSection, not the generic list. */
 const SEARCH_RELATED_SETTINGS = new Set([
   "SERP_PROVIDER",
@@ -40,19 +47,112 @@ const SEARCH_RELATED_SETTINGS = new Set([
   "APIFY_API_KEY"
 ]);
 
-/** Anchor id for a settings group heading (e.g. "vLLM" → "vllm"). */
-export const settingGroupSlug = (groupName: string): string =>
-  groupName.toLowerCase().replace(/\s+/g, "-");
+/**
+ * Ordered meta-sections shown on the Integrations tab. Each maps one or more
+ * registry groups to a single, stable heading so the panel doesn't just echo
+ * raw backend group names. `groups` also defines the preferred display order
+ * within the section. The trailing "Other" section catches any future registry
+ * group that isn't mapped, so nothing silently disappears.
+ */
+const META_SECTION_GROUPS: ReadonlyArray<{
+  key: string;
+  label: string;
+  groups: ReadonlyArray<string>;
+}> = [
+  {
+    key: "local-model-servers",
+    label: "Local Model Servers",
+    groups: ["vLLM", "Ollama", "LlamaCpp", "NodeLlamaCpp", "LMStudio", "TransformersJs"]
+  },
+  {
+    key: "provider-options",
+    label: "Provider Options",
+    groups: ["ZAI", "KIE"]
+  },
+  {
+    key: "observability",
+    label: "Observability",
+    groups: ["Observability", "Traceloop"]
+  },
+  {
+    key: "data-and-storage",
+    label: "Data & Storage",
+    groups: ["NodeSupabase", "Supabase"]
+  },
+  { key: "other", label: "Other", groups: [] }
+];
+
+/** Inverted, lowercased lookup: registry group (lowercase) → meta-section key. */
+const GROUP_SECTIONS: Record<string, string> = (() => {
+  const map: Record<string, string> = {};
+  for (const section of META_SECTION_GROUPS) {
+    for (const group of section.groups) {
+      map[group.toLowerCase()] = section.key;
+    }
+  }
+  return map;
+})();
+
+export interface MetaSectionEntry {
+  group: string;
+  settings: SettingWithValue[];
+}
+
+export interface MetaSection {
+  key: string;
+  label: string;
+  entries: MetaSectionEntry[];
+}
+
+export interface DisplayedGroup {
+  id: string;
+  label: string;
+}
 
 /**
- * Ordered list of group names the generic settings list actually renders —
- * used to build the Integrations sidebar so it mirrors the visible sections.
+ * Partitions visible registry groups into the fixed meta-section order. Shared
+ * by the panel (rendering) and getDisplayedSettingGroups (sidebar) so the two
+ * stay in sync and never drift.
+ */
+const partitionByMetaSection = (
+  visibleGroups: Map<string, SettingWithValue[]>
+): MetaSection[] => {
+  const sections: MetaSection[] = [];
+  for (const section of META_SECTION_GROUPS) {
+    const entries: MetaSectionEntry[] = [];
+    if (section.key === "other") {
+      // Unmapped (future) groups, in backend order.
+      for (const [groupName, settings] of visibleGroups) {
+        if (groupName.toLowerCase() in GROUP_SECTIONS) continue;
+        entries.push({ group: groupName, settings });
+      }
+    } else {
+      // Known groups, in the section's preferred display order.
+      for (const preferred of section.groups) {
+        for (const [groupName, settings] of visibleGroups) {
+          if (groupName.toLowerCase() === preferred.toLowerCase()) {
+            entries.push({ group: groupName, settings });
+          }
+        }
+      }
+    }
+    if (entries.length > 0) {
+      sections.push({ key: section.key, label: section.label, entries });
+    }
+  }
+  return sections;
+};
+
+/**
+ * Meta-sections the Integrations panel actually renders, in order — used to
+ * build the sidebar so it mirrors the visible sections. The Web-search entry
+ * (rendered by SearchProviderSection) is inserted right after Local Model
+ * Servers, matching the panel layout.
  */
 export const getDisplayedSettingGroups = (
   settings: SettingWithValue[]
-): string[] => {
-  const groups: string[] = [];
-  const seen = new Set<string>();
+): DisplayedGroup[] => {
+  const visibleGroups = new Map<string, SettingWithValue[]>();
   for (const setting of settings) {
     if (
       HIDDEN_SETTING_GROUPS.has(setting.group) ||
@@ -61,17 +161,30 @@ export const getDisplayedSettingGroups = (
     ) {
       continue;
     }
-    if (!seen.has(setting.group)) {
-      seen.add(setting.group);
-      groups.push(setting.group);
+    if (!visibleGroups.has(setting.group)) {
+      visibleGroups.set(setting.group, []);
+    }
+    visibleGroups.get(setting.group)!.push(setting);
+  }
+  if (visibleGroups.size === 0) {
+    return [];
+  }
+  const presentKeys = new Set(
+    partitionByMetaSection(visibleGroups).map((s) => s.key)
+  );
+  const result: DisplayedGroup[] = [];
+  for (const section of META_SECTION_GROUPS) {
+    if (presentKeys.has(section.key)) {
+      result.push({ id: section.key, label: section.label });
+    }
+    // SearchProviderSection always renders alongside the registry list, so
+    // the sidebar always lists it at this slot (after Local Model Servers).
+    if (section.key === "local-model-servers") {
+      result.push({ id: "search-provider", label: "Search Provider" });
     }
   }
-  return groups;
+  return result;
 };
-import ExternalLink from "../common/ExternalLink";
-import { isElectron } from "../../lib/env";
-import { restFetch } from "../../lib/rest-fetch";
-import SearchProviderSection from "./SearchProviderSection";
 
 const SETTING_LINKS: Record<string, string> = {
   OPENAI_API_KEY: "https://platform.openai.com/api-keys",
@@ -218,112 +331,10 @@ const RemoteSettings = () => {
   const settings = useRemoteSettingsStore((state) => state.settings);
   const addNotification = useNotificationStore((state) => state.addNotification);
 
-  // HuggingFace OAuth state
-  const [hfOAuthLoading, setHfOAuthLoading] = useState(false);
-  // OpenAI OAuth state
-  const [openaiOAuthLoading, setOpenaiOAuthLoading] = useState(false);
-
   const { data, isSuccess, isLoading } = useQuery({
     queryKey: ["settings"],
     queryFn: fetchSettings
   });
-
-  // Poll for HuggingFace OAuth completion
-  interface HfTokenResponse {
-    tokens: string[];
-  }
-
-  const { data: hfTokenData, isError: isHfTokenError } = useQuery({
-    queryKey: ["hf-oauth-token"],
-    queryFn: async () => {
-      const response = await restFetch("/api/oauth/hf/tokens");
-      if (!response.ok) {
-        throw new Error("Failed to fetch HuggingFace token");
-      }
-      return (await response.json()) as HfTokenResponse;
-    },
-    refetchInterval: (query) => {
-      const data = query.state.data as HfTokenResponse | undefined;
-      if (hfOAuthLoading && !(data?.tokens && data.tokens.length > 0)) {
-        return 2000;
-      }
-      return false;
-    },
-    retry: true
-  });
-
-  const isConnected = !!(hfTokenData && hfTokenData.tokens && hfTokenData.tokens.length > 0);
-
-  // Handle OAuth completion side effects
-  useEffect(() => {
-    if (hfOAuthLoading) {
-      if (isConnected) {
-        setHfOAuthLoading(false);
-        addNotification({
-          content: "Successfully connected to HuggingFace",
-          type: "success",
-          alert: true
-        });
-      } else if (isHfTokenError) {
-        setHfOAuthLoading(false);
-        addNotification({
-          content: "Failed to check HuggingFace connection",
-          type: "error",
-          alert: true
-        });
-      }
-    }
-  }, [hfOAuthLoading, isConnected, isHfTokenError, addNotification]);
-
-  // Poll for OpenAI OAuth completion
-  interface OpenAITokenResponse {
-    tokens: unknown[];
-  }
-
-  const { data: openaiTokenData, isError: isOpenAITokenError } = useQuery({
-    queryKey: ["openai-oauth-token"],
-    queryFn: async () => {
-      const response = await restFetch("/api/oauth/openai/tokens");
-      if (!response.ok) {
-        throw new Error("Failed to fetch OpenAI token");
-      }
-      return (await response.json()) as OpenAITokenResponse;
-    },
-    refetchInterval: (query) => {
-      const data = query.state.data as OpenAITokenResponse | undefined;
-      if (openaiOAuthLoading && !(data?.tokens && data.tokens.length > 0)) {
-        return 2000;
-      }
-      return false;
-    },
-    retry: true
-  });
-
-  const isOpenAIConnected = !!(
-    openaiTokenData &&
-    openaiTokenData.tokens &&
-    openaiTokenData.tokens.length > 0
-  );
-
-  useEffect(() => {
-    if (openaiOAuthLoading) {
-      if (isOpenAIConnected) {
-        setOpenaiOAuthLoading(false);
-        addNotification({
-          content: "Successfully connected to OpenAI",
-          type: "success",
-          alert: true
-        });
-      } else if (isOpenAITokenError) {
-        setOpenaiOAuthLoading(false);
-        addNotification({
-          content: "Failed to check OpenAI connection",
-          type: "error",
-          alert: true
-        });
-      }
-    }
-  }, [openaiOAuthLoading, isOpenAIConnected, isOpenAITokenError, addNotification]);
 
   const [settingValues, setSettingValues] = useState<Record<string, string>>(
     {}
@@ -353,14 +364,10 @@ const RemoteSettings = () => {
     }
   }, [data, settings]);
 
-  // Use settingsByGroup from store or compute from data
   const settingsByGroup = useMemo<Map<string, SettingWithValue[]>>(() => {
-    // First try to use the store's grouped settings
     if (storeSettingsByGroup && storeSettingsByGroup.size > 0) {
       return storeSettingsByGroup;
     }
-
-    // Otherwise compute from data
     if (!data || !Array.isArray(data)) { return new Map<string, SettingWithValue[]>(); }
 
     const groups = new Map<string, SettingWithValue[]>();
@@ -375,31 +382,47 @@ const RemoteSettings = () => {
     return groups;
   }, [data, storeSettingsByGroup]);
 
-  const displayedSettingsByGroup = useMemo(() => {
-    if (!settingsByGroup || settingsByGroup.size === 0) {
-      return new Map<string, SettingWithValue[]>();
+  // Bucket visible registry groups into the fixed meta-sections (Local Model
+  // Servers, Provider Options, …) so the panel renders stable headings instead
+  // of echoing raw backend group names. partitionByMetaSection is shared with
+  // getDisplayedSettingGroups so the sidebar mirrors this exactly.
+  const sectionsMap = useMemo<Map<string, MetaSection>>(() => {
+    const visibleGroups = new Map<string, SettingWithValue[]>();
+    if (settingsByGroup && settingsByGroup.size > 0) {
+      settingsByGroup.forEach((groupSettings, groupName) => {
+        if (HIDDEN_SETTING_GROUPS.has(groupName)) {
+          return;
+        }
+        const allowedSettings = groupSettings.filter(
+          (setting) =>
+            !setting.is_secret && !SEARCH_RELATED_SETTINGS.has(setting.env_var)
+        );
+        if (allowedSettings.length > 0) {
+          visibleGroups.set(groupName, allowedSettings);
+        }
+      });
     }
-
-    const filteredEntries: [string, SettingWithValue[]][] = [];
-
-    settingsByGroup.forEach((groupSettings, groupName) => {
-      // Folders/Search/Execution are surfaced elsewhere — skip them here.
-      if (HIDDEN_SETTING_GROUPS.has(groupName)) {
-        return;
-      }
-
-      const allowedSettings = groupSettings.filter(
-        (setting) =>
-          !setting.is_secret && !SEARCH_RELATED_SETTINGS.has(setting.env_var)
-      );
-
-      if (allowedSettings.length > 0) {
-        filteredEntries.push([groupName, allowedSettings]);
-      }
-    });
-
-    return new Map<string, SettingWithValue[]>(filteredEntries);
+    return new Map(
+      partitionByMetaSection(visibleGroups).map((section) => [
+        section.key,
+        section
+      ])
+    );
   }, [settingsByGroup]);
+
+  const hasVisibleSettings = sectionsMap.size > 0;
+
+  // The sticky save bar only appears when the user has unsaved edits.
+  const isDirty = useMemo(() => {
+    if (!data) return false;
+    for (const setting of data) {
+      const current = settingValues[setting.env_var];
+      if (current === undefined) continue;
+      const original = setting.value != null ? String(setting.value) : "";
+      if (current !== original) return true;
+    }
+    return false;
+  }, [data, settingValues]);
 
   const updateSettingsMutation = useMutation({
     mutationFn: (args: { settings: Record<string, string>; secrets: Record<string, string> }) =>
@@ -418,109 +441,19 @@ const RemoteSettings = () => {
           queryClient.invalidateQueries({ queryKey: [key] });
         }
       }
+    },
+    onError: (error: Error) => {
+      addNotification({
+        content: `Could not save settings: ${error.message}`,
+        type: "error",
+        alert: true
+      });
     }
   });
 
   const handleChange = useCallback((envVar: string, value: string) => {
     setSettingValues((prev) => ({ ...prev, [envVar]: value }));
   }, []);
-
-  const handleHuggingFaceOAuth = useCallback(async () => {
-    setHfOAuthLoading(true);
-
-    try {
-      const response = await restFetch("/api/oauth/hf/start");
-      const data = (await response.json().catch(() => null)) as
-        | { auth_url?: string }
-        | null;
-
-      if (!response.ok || !data?.auth_url) {
-        throw new Error("Failed to start OAuth flow");
-      }
-
-      const authUrl = data.auth_url;
-
-      if (isElectron && window.api?.shell?.openExternal) {
-        // Electron environment via IPC
-        await window.api.shell.openExternal(authUrl);
-      } else {
-        // Web environment - open in new window/tab with security attributes
-        window.open(authUrl, "_blank", "noopener,noreferrer,width=600,height=700");
-      }
-    } catch (error) {
-      console.error("OAuth initiation failed:", error);
-      setHfOAuthLoading(false);
-      addNotification({
-        content: "Failed to initiate HuggingFace login",
-        type: "error",
-        alert: true
-      });
-    }
-  }, [addNotification]);
-
-  const handleOpenAIOAuth = useCallback(async () => {
-    setOpenaiOAuthLoading(true);
-
-    try {
-      const response = await restFetch("/api/oauth/openai/start");
-      const data = (await response.json().catch(() => null)) as
-        | { auth_url?: string; detail?: string }
-        | null;
-
-      if (!response.ok || !data?.auth_url) {
-        throw new Error(data?.detail || "Failed to start OAuth flow");
-      }
-
-      const authUrl = data.auth_url;
-
-      if (isElectron && window.api?.shell?.openExternal) {
-        await window.api.shell.openExternal(authUrl);
-      } else {
-        window.open(
-          authUrl,
-          "_blank",
-          "noopener,noreferrer,width=600,height=700"
-        );
-      }
-    } catch (error) {
-      console.error("OpenAI OAuth initiation failed:", error);
-      setOpenaiOAuthLoading(false);
-      addNotification({
-        content:
-          error instanceof Error
-            ? error.message
-            : "Failed to initiate OpenAI login",
-        type: "error",
-        alert: true
-      });
-    }
-  }, [addNotification]);
-
-  const handleOpenAIDisconnect = useCallback(async () => {
-    try {
-      const response = await restFetch("/api/oauth/openai/disconnect", {
-        method: "POST"
-      });
-      if (!response.ok) {
-        throw new Error("Failed to disconnect");
-      }
-      await queryClient.invalidateQueries({
-        queryKey: ["openai-oauth-token"]
-      });
-      addNotification({
-        content: "Disconnected from OpenAI",
-        type: "success",
-        alert: true
-      });
-    } catch (error) {
-      console.error("OpenAI disconnect failed:", error);
-      addNotification({
-        content: "Failed to disconnect from OpenAI",
-        type: "error",
-        alert: true
-      });
-    }
-  }, [addNotification, queryClient]);
 
   const handleSave = useCallback(() => {
     const settings: Record<string, string> = {};
@@ -562,139 +495,50 @@ const RemoteSettings = () => {
           Loading settings…
         </Text>
       )}
-      {isSuccess &&
-        displayedSettingsByGroup &&
-        displayedSettingsByGroup.size > 0 && (
-          <div
-            className="remote-settings-content"
-            css={getSharedSettingsStyles(theme)}
-          >
-            <div className="settings-main-content">
-              {/* HuggingFace OAuth Section */}
-              <div className="settings-section">
-                <Text
-                  size="big"
-                  id="huggingface-oauth"
-                  className="settings-heading"
-                >
-                  HuggingFace Authentication
-                </Text>
-                <div className="settings-item large">
-                  <Text className="description">
-                    Connect your HuggingFace account to access premium models and features
-                  </Text>
-                  <EditorButton
-                    variant="contained"
-                    color="primary"
-                    onClick={handleHuggingFaceOAuth}
-                    disabled={hfOAuthLoading}
-                    startIcon={
-                      isConnected ? (
-                        <CheckCircleIcon />
-                      ) : hfOAuthLoading ? null : (
-                        <LoginIcon />
-                      )
-                    }
-                    sx={{ marginTop: "1em", alignSelf: "flex-start" }}
-                  >
-                    {isConnected
-                      ? "Connected to HuggingFace"
-                      : hfOAuthLoading
-                        ? "Connecting..."
-                        : "Connect with HuggingFace"}
-                  </EditorButton>
-                </div>
-              </div>
-
-              {/* OpenAI OAuth Section */}
-              <div className="settings-section">
-                <Text
-                  size="big"
-                  id="openai-oauth"
-                  className="settings-heading"
-                >
-                  OpenAI Authentication
-                </Text>
-                <div className="settings-item large">
-                  <Text className="description">
-                    Connect your OpenAI account with OAuth instead of pasting an
-                    API key. Tokens are stored securely and refreshed
-                    automatically.
-                  </Text>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "0.5em",
-                      marginTop: "1em",
-                      alignSelf: "flex-start"
-                    }}
-                  >
-                    <EditorButton
-                      variant="contained"
-                      color="primary"
-                      onClick={handleOpenAIOAuth}
-                      disabled={openaiOAuthLoading}
-                      startIcon={
-                        isOpenAIConnected ? (
-                          <CheckCircleIcon />
-                        ) : openaiOAuthLoading ? null : (
-                          <LoginIcon />
-                        )
-                      }
-                    >
-                      {isOpenAIConnected
-                        ? "Connected to OpenAI"
-                        : openaiOAuthLoading
-                          ? "Connecting..."
-                          : "Connect with OpenAI"}
-                    </EditorButton>
-                    {isOpenAIConnected && (
-                      <EditorButton
-                        variant="text"
-                        onClick={handleOpenAIDisconnect}
-                        startIcon={<LinkOffIcon />}
+      {isSuccess && hasVisibleSettings && (
+        <div
+          className="remote-settings-content"
+          css={getSharedSettingsStyles(theme)}
+        >
+          <div className="settings-main-content">
+            {/* Render meta-sections in the fixed order; the Web-search picker
+                (SearchProviderSection) sits right after Local Model Servers. */}
+            {META_SECTION_GROUPS.map((section) => {
+              const sec = sectionsMap.get(section.key);
+              return (
+                <Fragment key={section.key}>
+                  {sec && (
+                    <div className="settings-section">
+                      <Text
+                        size="big"
+                        id={sec.key}
+                        className="settings-heading"
                       >
-                        Disconnect
-                      </EditorButton>
-                    )}
-                  </div>
-                </div>
-              </div>
+                        {sec.label}
+                      </Text>
+                      {sec.entries.flatMap(({ settings }) =>
+                        settings.map((setting) => (
+                          <SettingItem
+                            key={setting.env_var}
+                            setting={setting}
+                            value={settingValues[setting.env_var] || ""}
+                            onChange={handleChange}
+                          />
+                        ))
+                      )}
+                    </div>
+                  )}
+                  {section.key === "local-model-servers" && data && (
+                    <SearchProviderSection
+                      settingValues={settingValues}
+                      onChange={handleChange}
+                    />
+                  )}
+                </Fragment>
+              );
+            })}
 
-              {/* Search Provider Section */}
-              {data && (
-                <SearchProviderSection
-                  allSettings={data}
-                  settingValues={settingValues}
-                  onChange={handleChange}
-                />
-              )}
-
-              {/* Render settings grouped by their group field */}
-              {Array.from(displayedSettingsByGroup.entries()).map(
-                ([groupName, groupSettings]) => (
-                  <div key={groupName} className="settings-section">
-                    <Text
-                      size="big"
-                      id={settingGroupSlug(groupName)}
-                      className="settings-heading"
-                    >
-                      {groupName}
-                    </Text>
-                    {groupSettings
-                      .filter((setting) => !setting.is_secret)
-                      .map((setting) => (
-                        <SettingItem
-                          key={setting.env_var}
-                          setting={setting}
-                          value={settingValues[setting.env_var] || ""}
-                          onChange={handleChange}
-                        />
-                      ))}
-                  </div>
-                )
-              )}
-
+            {isDirty && (
               <div className="save-button-container">
                 <EditorButton
                   variant="contained"
@@ -702,19 +546,20 @@ const RemoteSettings = () => {
                   onClick={handleSave}
                   className="save-button"
                   startIcon={<SaveIcon />}
+                  disabled={updateSettingsMutation.isPending}
                 >
                   SAVE SETTINGS
                 </EditorButton>
               </div>
-            </div>
+            )}
           </div>
-        )}
-      {isSuccess &&
-        (!displayedSettingsByGroup || displayedSettingsByGroup.size === 0) && (
-          <Text sx={{ textAlign: "center", padding: "2em" }}>
-            No settings available
-          </Text>
-        )}
+        </div>
+      )}
+      {isSuccess && !hasVisibleSettings && (
+        <Text sx={{ textAlign: "center", padding: "2em" }}>
+          No settings available
+        </Text>
+      )}
     </>
   );
 };

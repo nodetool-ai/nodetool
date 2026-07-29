@@ -28,9 +28,8 @@ const log = createLogger("nodetool.agents.checkpoint-store");
 // Stable hashing
 // ---------------------------------------------------------------------------
 
-const _nodeCrypto = await importNodeBuiltin<typeof import("node:crypto")>(
-  "node:crypto"
-);
+const _nodeCrypto =
+  await importNodeBuiltin<typeof import("node:crypto")>("node:crypto");
 
 /**
  * Stable JSON stringify: object keys are sorted recursively so two
@@ -70,6 +69,12 @@ export interface PlanKeyInput {
   objective: string;
   tools: string[];
   model?: string;
+  /** The output schema shapes the plan (injected into the planning prompt). */
+  outputSchema?: Record<string, unknown> | null;
+  /** Input keys the plan is validated against / built for. */
+  inputKeys?: string[];
+  /** A non-default planning system prompt changes the plan. */
+  systemPrompt?: string | null;
 }
 
 /**
@@ -82,12 +87,62 @@ export function hashPlanKey(input: PlanKeyInput): string {
   const canonical = stableStringify({
     objective: input.objective,
     tools: [...input.tools].sort(),
-    model: input.model ?? null
+    model: input.model ?? null,
+    // Fold in everything else that shapes the produced plan, so structurally
+    // different planning requests (different output schema, inputs, or system
+    // prompt) never collide on the same cache key.
+    outputSchema: input.outputSchema ?? null,
+    inputKeys: input.inputKeys ? [...input.inputKeys].sort() : null,
+    systemPrompt: input.systemPrompt ?? null
   });
   if (_nodeCrypto?.createHash) {
     return _nodeCrypto.createHash("sha256").update(canonical).digest("hex");
   }
   return fnv1aHex(canonical);
+}
+
+// ---------------------------------------------------------------------------
+// Shared file persistence helpers (read-merge-write, atomic write)
+// ---------------------------------------------------------------------------
+
+/**
+ * Tolerant read of a `{ [key]: T }` JSON object from disk. A missing or
+ * corrupt file yields an empty map rather than throwing — callers treat a
+ * cache/store file as best-effort.
+ */
+async function readDiskEntries<T>(
+  fs: typeof import("node:fs/promises"),
+  filePath: string
+): Promise<Map<string, T>> {
+  const disk = new Map<string, T>();
+  try {
+    const raw = await fs.readFile(filePath, "utf-8");
+    const parsed = JSON.parse(raw) as Record<string, T>;
+    for (const [k, v] of Object.entries(parsed)) {
+      disk.set(k, v);
+    }
+  } catch {
+    // Missing or corrupt file — treat as empty.
+  }
+  return disk;
+}
+
+/**
+ * Write `contents` to `filePath` atomically: write to a uniquely-named temp
+ * file in the same directory, then `rename` over the target. A reader never
+ * observes a half-written file, and a crash mid-write leaves the previous
+ * contents intact.
+ */
+async function writeAtomic(
+  fs: typeof import("node:fs/promises"),
+  filePath: string,
+  contents: string
+): Promise<void> {
+  const tmpPath = `${filePath}.${process.pid}.${Date.now()}.${Math.random()
+    .toString(36)
+    .slice(2)}.tmp`;
+  await fs.writeFile(tmpPath, contents, "utf-8");
+  await fs.rename(tmpPath, filePath);
 }
 
 // ---------------------------------------------------------------------------
@@ -117,10 +172,19 @@ export class InMemoryPlanCache implements PlanCache {
  * `{ [key]: TaskPlan }` loaded lazily on first access and written on every
  * `set`. All I/O degrades gracefully: a missing/corrupt file starts empty and a
  * failed write is logged, never thrown.
+ *
+ * Persistence is read-merge-write and serialized through {@link persistQueue}:
+ * every `set()` schedules a step that re-reads the current file, layers the
+ * in-memory map on top (so a `set()` from an instance that never loaded prior
+ * entries — or entries written by another process in the meantime — doesn't
+ * wipe them), and writes the result atomically (temp file + rename). Steps run
+ * strictly one after another, so concurrent `set()` calls never interleave
+ * writes or let an out-of-order completion persist a stale snapshot last.
  */
 export class FilePlanCache implements PlanCache {
   private readonly filePath: string;
   private cache: Map<string, TaskPlan> | null = null;
+  private persistQueue: Promise<void> = Promise.resolve();
 
   constructor(filePath: string) {
     this.filePath = filePath;
@@ -129,30 +193,50 @@ export class FilePlanCache implements PlanCache {
   private async ensureLoaded(): Promise<Map<string, TaskPlan>> {
     if (this.cache) return this.cache;
     this.cache = new Map();
-    const fs = await importNodeBuiltin<typeof import("node:fs/promises")>(
-      "node:fs/promises"
-    );
+    const fs =
+      await importNodeBuiltin<typeof import("node:fs/promises")>(
+        "node:fs/promises"
+      );
     if (!fs) return this.cache;
-    try {
-      const raw = await fs.readFile(this.filePath, "utf-8");
-      const parsed = JSON.parse(raw) as Record<string, TaskPlan>;
-      for (const [k, v] of Object.entries(parsed)) {
-        this.cache.set(k, v);
-      }
-    } catch {
-      // Missing or corrupt cache file — start empty.
+    for (const [k, v] of await readDiskEntries<TaskPlan>(fs, this.filePath)) {
+      this.cache.set(k, v);
     }
     return this.cache;
   }
 
-  private async persist(): Promise<void> {
-    const fs = await importNodeBuiltin<typeof import("node:fs/promises")>(
-      "node:fs/promises"
-    );
+  /**
+   * Queue a read-merge-write persist step behind any already-scheduled ones.
+   * Never throws — write failures are logged and the queue continues.
+   */
+  private schedulePersist(): void {
+    this.persistQueue = this.persistQueue.then(() => this.persistOnce());
+  }
+
+  private async persistOnce(): Promise<void> {
+    const fs =
+      await importNodeBuiltin<typeof import("node:fs/promises")>(
+        "node:fs/promises"
+      );
     if (!fs || !this.cache) return;
     try {
-      const obj = Object.fromEntries(this.cache.entries());
-      await fs.writeFile(this.filePath, JSON.stringify(obj), "utf-8");
+      const disk = await readDiskEntries<TaskPlan>(fs, this.filePath);
+      // In-memory entries win over disk on conflicting keys; disk-only keys
+      // (from another instance/process, or entries this instance never
+      // loaded) are preserved instead of being wiped by the write.
+      const merged = new Map(disk);
+      for (const [k, v] of this.cache) {
+        merged.set(k, v);
+      }
+      await writeAtomic(
+        fs,
+        this.filePath,
+        JSON.stringify(Object.fromEntries(merged))
+      );
+      // Absorb disk-only keys into the in-memory mirror so a subsequent sync
+      // `get()` can observe entries persisted elsewhere.
+      for (const [k, v] of merged) {
+        if (!this.cache.has(k)) this.cache.set(k, v);
+      }
     } catch (err) {
       log.warn("FilePlanCache persist failed", {
         filePath: this.filePath,
@@ -169,16 +253,25 @@ export class FilePlanCache implements PlanCache {
     return this.cache?.get(key);
   }
 
-  /** Mutates the in-memory mirror and persists asynchronously (fire-and-forget). */
+  /** Mutates the in-memory mirror and queues an async read-merge-write persist. */
   set(key: string, plan: TaskPlan): void {
     if (!this.cache) this.cache = new Map();
     this.cache.set(key, plan);
-    void this.persist();
+    this.schedulePersist();
   }
 
   /** Eagerly load the file into memory so `get` returns persisted entries. */
   async load(): Promise<void> {
     await this.ensureLoaded();
+  }
+
+  /**
+   * Resolve once every persist scheduled so far has flushed to disk. `set()` is
+   * fire-and-forget, so callers that need the file written (e.g. another
+   * instance about to read it) await this instead of guessing a delay.
+   */
+  async flush(): Promise<void> {
+    await this.persistQueue;
   }
 }
 
@@ -217,10 +310,14 @@ export class InMemoryCheckpointStore implements CheckpointStore {
  * File-backed checkpoint store. The whole store is a single JSON object
  * `{ [runId]: Checkpoint }`. Same graceful-degradation contract as
  * {@link FilePlanCache}: read failures start empty, write failures are logged.
+ *
+ * Persistence follows the same read-merge-write, atomic-write, serialized-queue
+ * scheme as {@link FilePlanCache} — see its class doc for the rationale.
  */
 export class FileCheckpointStore implements CheckpointStore {
   private readonly filePath: string;
   private store: Map<string, Checkpoint> | null = null;
+  private persistQueue: Promise<void> = Promise.resolve();
 
   constructor(filePath: string) {
     this.filePath = filePath;
@@ -229,30 +326,50 @@ export class FileCheckpointStore implements CheckpointStore {
   private async ensureLoaded(): Promise<Map<string, Checkpoint>> {
     if (this.store) return this.store;
     this.store = new Map();
-    const fs = await importNodeBuiltin<typeof import("node:fs/promises")>(
-      "node:fs/promises"
-    );
+    const fs =
+      await importNodeBuiltin<typeof import("node:fs/promises")>(
+        "node:fs/promises"
+      );
     if (!fs) return this.store;
-    try {
-      const raw = await fs.readFile(this.filePath, "utf-8");
-      const parsed = JSON.parse(raw) as Record<string, Checkpoint>;
-      for (const [k, v] of Object.entries(parsed)) {
-        this.store.set(k, v);
-      }
-    } catch {
-      // Missing or corrupt checkpoint file — start empty.
+    for (const [k, v] of await readDiskEntries<Checkpoint>(fs, this.filePath)) {
+      this.store.set(k, v);
     }
     return this.store;
   }
 
-  private async persist(): Promise<void> {
-    const fs = await importNodeBuiltin<typeof import("node:fs/promises")>(
-      "node:fs/promises"
-    );
+  /**
+   * Queue a read-merge-write persist step behind any already-scheduled ones.
+   * Never throws — write failures are logged and the queue continues.
+   */
+  private schedulePersist(): void {
+    this.persistQueue = this.persistQueue.then(() => this.persistOnce());
+  }
+
+  private async persistOnce(): Promise<void> {
+    const fs =
+      await importNodeBuiltin<typeof import("node:fs/promises")>(
+        "node:fs/promises"
+      );
     if (!fs || !this.store) return;
     try {
-      const obj = Object.fromEntries(this.store.entries());
-      await fs.writeFile(this.filePath, JSON.stringify(obj), "utf-8");
+      const disk = await readDiskEntries<Checkpoint>(fs, this.filePath);
+      // In-memory entries win over disk on conflicting keys; disk-only keys
+      // (from another instance/process, or entries this instance never
+      // loaded) are preserved instead of being wiped by the write.
+      const merged = new Map(disk);
+      for (const [k, v] of this.store) {
+        merged.set(k, v);
+      }
+      await writeAtomic(
+        fs,
+        this.filePath,
+        JSON.stringify(Object.fromEntries(merged))
+      );
+      // Absorb disk-only keys into the in-memory mirror so a subsequent sync
+      // `load()` can observe entries persisted elsewhere.
+      for (const [k, v] of merged) {
+        if (!this.store.has(k)) this.store.set(k, v);
+      }
     } catch (err) {
       log.warn("FileCheckpointStore persist failed", {
         filePath: this.filePath,
@@ -268,7 +385,7 @@ export class FileCheckpointStore implements CheckpointStore {
   save(runId: string, checkpoint: Checkpoint): void {
     if (!this.store) this.store = new Map();
     this.store.set(runId, checkpoint);
-    void this.persist();
+    this.schedulePersist();
   }
 
   /** Eagerly load the file into memory so `load` returns persisted entries. */

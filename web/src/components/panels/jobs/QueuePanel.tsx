@@ -56,23 +56,14 @@ const JobColumn = memo(function JobColumn({
           borderColor: "divider"
         }}
       >
-        <Text
-          size="tiny"
-          weight={600}
-          sx={{ textTransform: "uppercase", letterSpacing: "0.05em" }}
-        >
-          {title}
-        </Text>
-        <Text size="tiny" color="secondary" family="secondary">
-          {jobs.length}
-        </Text>
+        <Text size="smaller" weight={600}
+        sx={{ textTransform: "uppercase", letterSpacing: "0.05em" }}>{title}</Text>
+        <Text size="smaller" color="secondary" family="secondary">{jobs.length}</Text>
       </FlexRow>
       <Box sx={{ flex: 1, minHeight: 0, overflow: "auto", p: 0.5 }}>
         {jobs.length === 0 ? (
           <Box sx={{ p: 2 }}>
-            <Text size="tiny" color="secondary">
-              {emptyText}
-            </Text>
+            <Text size="smaller" color="secondary">{emptyText}</Text>
           </Box>
         ) : (
           jobs.map((job) => <JobItem key={job.id} job={job} />)

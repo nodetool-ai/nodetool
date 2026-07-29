@@ -11,8 +11,8 @@ namespace: "nodetool.agents"
 
 ## Description
 
-Prompt-driven Git skill for repository inspection and change management.
-    skills, git, repository, version-control
+Inspect a Git repository and manage changes from a prompt.
+    agent, git, repository, version-control
 
 ## Properties
 

@@ -73,6 +73,11 @@ export interface LayerWorkflowBinding {
   maskAssetId?: string | null;
   width?: number;
   height?: number;
+  /** Requested aspect ratio (e.g. "16:9"). Providers whose endpoints shape
+   * output via a size enum honor this rather than raw width/height. */
+  aspectRatio?: string;
+  /** Requested named resolution (e.g. "1K"). */
+  resolution?: string;
   strength?: number;
   numInferenceSteps?: number;
   // Common fields ─────────────────────────────────────────────────────────

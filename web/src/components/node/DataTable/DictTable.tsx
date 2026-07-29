@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 
 import { useState, useMemo, useRef, useCallback, useEffect, memo } from "react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../../utils/isEqual";
 import {
   TabulatorFull as Tabulator,
   CellComponent,
@@ -181,8 +181,9 @@ const DictTable: React.FC<DictTableProps> = ({
   }, [tableData, columns, onCellEdited]);
 
   const theme = useTheme();
+  const cssStyles = useMemo(() => tableStyles(theme), [theme]);
   return (
-    <div className="dicttable nowheel nodrag" css={tableStyles(theme)}>
+    <div className="dicttable nowheel nodrag" css={cssStyles}>
       <TableActions
         tabulator={tabulator}
         data={data}

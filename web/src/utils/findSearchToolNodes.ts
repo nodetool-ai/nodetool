@@ -13,7 +13,7 @@ export interface SearchToolNode {
  * needs a configured search provider. Tool values are stored as
  * `{ type: "tool_name", name }` objects.
  */
-export const nodeUsesSearchTool = (node: Node<NodeData>): boolean => {
+const nodeUsesSearchTool = (node: Node<NodeData>): boolean => {
   const properties = node.data?.properties ?? {};
   for (const value of Object.values(properties)) {
     if (!Array.isArray(value)) continue;

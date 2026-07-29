@@ -34,7 +34,6 @@ const parseThinkSections = (input: string): Section[] => {
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
-  // Extract alternating text and think blocks
   while ((match = regex.exec(input)) !== null) {
     const start = match.index;
     const end = regex.lastIndex;
@@ -72,7 +71,6 @@ const ThinkBlock: React.FC<{ content: string }> = memo(({ content }) => {
     setOpen((v) => !v);
   }, []);
 
-  // Memoize sx props to prevent recreation on every render
   const containerBoxStyle = useMemo(() => ({
     my: 1,
     borderRadius: BORDER_RADIUS.xs,
@@ -108,11 +106,12 @@ const ThinkBlock: React.FC<{ content: string }> = memo(({ content }) => {
 export const TextRenderer: React.FC<Props> = memo(({ text, showActions = true }) => {
   const theme = useTheme();
   const sections = useMemo(() => parseThinkSections(text), [text]);
+  const memoizedStyles = useMemo(() => outputStyles(theme, showActions), [theme, showActions]);
   if (!text) {
     return null;
   }
   return (
-    <div className="output value noscroll" css={outputStyles(theme, showActions)}>
+    <div className="output value noscroll" css={memoizedStyles}>
       {showActions && <Actions copyValue={text} />}
       {sections.map((s) =>
         s.type === "think" ? (

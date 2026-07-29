@@ -18,7 +18,11 @@ import type { BaseProvider } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { memoryKeys } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
-import type { ProcessingMessage, Chunk, StepResult } from "@nodetool-ai/protocol";
+import type {
+  ProcessingMessage,
+  Chunk,
+  StepResult
+} from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.agents.task-executor");
 import { StepExecutor } from "./step-executor.js";
@@ -38,6 +42,8 @@ export interface TaskExecutorOptions {
   inputs?: Record<string, unknown>;
   maxSteps?: number;
   maxStepIterations?: number;
+  /** Cap on output tokens per step turn. Forwarded to each StepExecutor. */
+  maxTokens?: number;
   /** ID of the final aggregation step (will use useFinishTask=true). */
   finalStepId?: string;
   /** Execute independent steps in parallel (default: false). */
@@ -48,6 +54,8 @@ export interface TaskExecutorOptions {
    * upstream context. Forwarded to {@link StepExecutor.upstreamMemoryKeys}.
    */
   upstreamMemoryKeys?: string[];
+  /** External cancellation, forwarded to every step executor. */
+  signal?: AbortSignal;
 }
 
 export class TaskExecutor {
@@ -60,9 +68,11 @@ export class TaskExecutor {
   private systemPrompt: string | undefined;
   private maxSteps: number;
   private maxStepIterations: number;
+  private maxTokens?: number;
   private finalStepId: string | undefined;
   private parallelExecution: boolean;
   private upstreamMemoryKeys: string[];
+  private signal?: AbortSignal;
   private _finishStepId: string | undefined;
 
   constructor(opts: TaskExecutorOptions) {
@@ -76,9 +86,11 @@ export class TaskExecutor {
     this.maxSteps = opts.maxSteps ?? DEFAULT_MAX_STEPS;
     this.maxStepIterations =
       opts.maxStepIterations ?? DEFAULT_MAX_STEP_ITERATIONS;
+    this.maxTokens = opts.maxTokens;
     this.finalStepId = opts.finalStepId;
     this.parallelExecution = opts.parallelExecution ?? false;
     this.upstreamMemoryKeys = opts.upstreamMemoryKeys ?? [];
+    this.signal = opts.signal;
   }
 
   /**
@@ -136,16 +148,13 @@ export class TaskExecutor {
         stepIds: executableSteps.map((s) => s.id)
       });
 
-      // Separate process-mode steps from normal steps
       const processSteps = executableSteps.filter((s) => s.mode === "process");
       const normalSteps = executableSteps.filter((s) => s.mode !== "process");
 
-      // Handle process-mode steps with fan-out
       for (const pStep of processSteps) {
         yield* this.handleProcessStep(pStep);
       }
 
-      // Create step executors for normal steps
       const stepGenerators = normalSteps.map((step) => {
         const executor = new StepExecutor({
           task: this.task,
@@ -156,17 +165,17 @@ export class TaskExecutor {
           tools: [...this.tools],
           systemPrompt: this.systemPrompt,
           maxIterations: this.maxStepIterations,
+          maxTokens: this.maxTokens,
           useFinishTask: this.isFinishStep(step),
-          upstreamMemoryKeys: this.upstreamMemoryKeys
+          upstreamMemoryKeys: this.upstreamMemoryKeys,
+          signal: this.signal
         });
         return executor.execute();
       });
 
       if (this.parallelExecution && stepGenerators.length > 1) {
-        // Execute all steps concurrently, merging yielded messages
         yield* mergeAsyncGenerators(stepGenerators);
       } else {
-        // Execute steps sequentially
         for (const generator of stepGenerators) {
           for await (const message of generator) {
             yield message;
@@ -207,6 +216,14 @@ export class TaskExecutor {
         stepId: step.id
       });
       step.completed = true;
+      this.context.memory.set({
+        key: memoryKeys.step(step.id),
+        kind: "step_result",
+        value: [],
+        source: step.id,
+        title: step.instructions.slice(0, 60)
+      });
+      step.endTime = Date.now();
       return;
     }
 
@@ -248,28 +265,38 @@ export class TaskExecutor {
       itemCount: items.length
     });
 
-    // Create ephemeral steps for each item
-    const ephemeralSteps: Step[] = items.map((item) => {
+    const ephemeralSteps: Step[] = items.map((item, index) => {
       let instructions = template;
       if (typeof item === "object" && item !== null) {
         for (const [key, value] of Object.entries(
           item as Record<string, unknown>
         )) {
           const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-          const strValue = String(value);
+          const strValue =
+            typeof value === "object" && value !== null
+              ? JSON.stringify(value)
+              : String(value);
           instructions = instructions.replace(
             new RegExp(`\\{${escapedKey}\\}`, "g"),
             () => strValue
           );
         }
+        instructions = instructions.replace(/\{item\}/g, () =>
+          JSON.stringify(item)
+        );
       } else {
         const strItem = String(item);
         instructions = instructions.replace(/\{item\}/g, () => strItem);
       }
 
+      // Include the item index so duplicate/deep-equal items get DISTINCT
+      // ephemeral IDs. A content-hash-only id collides for repeated items
+      // (common in LLM discover lists), collapsing the id->index map and
+      // clobbering their shared step:<id> memory key — dropping results and
+      // leaving holes in the aggregated array.
       const hash = this.shortHash(item);
       return {
-        id: `${step.id}_item_${hash}`,
+        id: `${step.id}_item_${index}_${hash}`,
         instructions,
         completed: false,
         dependsOn: [],
@@ -278,7 +305,6 @@ export class TaskExecutor {
       } as Step;
     });
 
-    // Create step executors for each ephemeral step
     const generators = ephemeralSteps.map((ephStep) => {
       const executor = new StepExecutor({
         task: this.task,
@@ -289,34 +315,44 @@ export class TaskExecutor {
         tools: [...this.tools],
         systemPrompt: this.systemPrompt,
         maxIterations: this.maxStepIterations,
+        maxTokens: this.maxTokens,
         useFinishTask: false,
-        upstreamMemoryKeys: this.upstreamMemoryKeys
+        upstreamMemoryKeys: this.upstreamMemoryKeys,
+        signal: this.signal
       });
       return executor.execute();
     });
 
-    // Execute and collect results
-    const results: unknown[] = [];
+    const indexByStepId = new Map(
+      ephemeralSteps.map((ephStep, index) => [ephStep.id, index])
+    );
+    const results: unknown[] = new Array(ephemeralSteps.length);
+
+    const collect = (msg: unknown): void => {
+      const stepResult = msg as StepResult;
+      if (stepResult.type !== "step_result") return;
+      const stepId = stepResult.step?.id;
+      if (stepId === undefined) return;
+      const index = indexByStepId.get(stepId);
+      if (index !== undefined) {
+        results[index] = stepResult.result;
+      }
+    };
 
     if (this.parallelExecution && generators.length > 1) {
       for await (const msg of mergeAsyncGenerators(generators)) {
-        if ((msg as StepResult).type === "step_result") {
-          results.push((msg as StepResult).result);
-        }
+        collect(msg);
         yield msg;
       }
     } else {
       for (const gen of generators) {
         for await (const msg of gen) {
-          if ((msg as StepResult).type === "step_result") {
-            results.push((msg as StepResult).result);
-          }
+          collect(msg);
           yield msg;
         }
       }
     }
 
-    // Store aggregated results and mark complete.
     this.context.memory.set({
       key: memoryKeys.step(step.id),
       kind: "step_result",
@@ -398,7 +434,26 @@ export class TaskExecutor {
     );
     if (!otherPending) return executableSteps;
 
-    return executableSteps.filter((s) => s.id !== this._finishStepId);
+    const withoutFinish = executableSteps.filter(
+      (s) => s.id !== this._finishStepId
+    );
+    if (withoutFinish.length === 0) return executableSteps;
+
+    const dependsOnFinish = (step: Step, seen = new Set<string>()): boolean => {
+      if (seen.has(step.id)) return false;
+      seen.add(step.id);
+      return step.dependsOn.some((dependencyId) => {
+        if (dependencyId === this._finishStepId) return true;
+        const dependency = this.task.steps.find((s) => s.id === dependencyId);
+        return dependency ? dependsOnFinish(dependency, new Set(seen)) : false;
+      });
+    };
+    if (
+      this.task.steps.some((step) => !step.completed && dependsOnFinish(step))
+    ) {
+      return executableSteps;
+    }
+    return withoutFinish;
   }
 }
 
@@ -442,28 +497,37 @@ async function* mergeAsyncGenerators<T>(
     }
   });
 
-  // Yield items as they arrive
-  while (activeCount > 0 || queue.length > 0) {
-    if (queue.length > 0) {
-      yield queue.shift()!;
-    } else if (activeCount > 0) {
-      // Set resolve BEFORE checking queue again to avoid race condition
-      // where an item is pushed between the check and the await.
-      const waitPromise = new Promise<void>((r) => {
-        resolve = r;
-      });
-      // Re-check after setting resolve — item may have arrived between
-      // the outer check and setting resolve.
+  // Yield items as they arrive. The try/finally guarantees that if the
+  // downstream consumer stops early (its `for await` breaks or throws, which
+  // injects `.return()` into this merge generator), we terminate the child
+  // generators instead of leaving the producer tasks driving them to
+  // completion in the background (e.g. LLM calls firing after cancellation).
+  try {
+    while (activeCount > 0 || queue.length > 0) {
       if (queue.length > 0) {
-        resolve = null;
-        continue;
+        yield queue.shift()!;
+      } else if (activeCount > 0) {
+        // Set resolve BEFORE checking queue again to avoid race condition
+        // where an item is pushed between the check and the await.
+        const waitPromise = new Promise<void>((r) => {
+          resolve = r;
+        });
+        // Re-check after setting resolve — item may have arrived between
+        // the outer check and setting resolve.
+        if (queue.length > 0) {
+          resolve = null;
+          continue;
+        }
+        await waitPromise;
       }
-      await waitPromise;
     }
+  } finally {
+    // Stop every child generator so its producer `for await` loop terminates
+    // (a generator may already be done — allSettled swallows those). Then wait
+    // for all producer promises to settle before returning.
+    await Promise.allSettled(generators.map((gen) => gen.return(undefined)));
+    await Promise.allSettled(tasks);
   }
-
-  // Wait for all producer promises to settle
-  await Promise.allSettled(tasks);
 
   if (hasError) {
     throw firstError instanceof Error

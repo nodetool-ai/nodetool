@@ -45,7 +45,7 @@ export default function AgentBuildRunDeploy() {
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-3 relative z-10">
                     <Card
                         title="Write the brief"
-                        subtitle="Set the look, the mood, the deliverable. Wire in the image, video, and audio models you want the agent to direct — Flux, Seedance, Veo, Suno, ElevenLabs."
+                        subtitle="Set the look, the mood, and what you need delivered. Choose the image, video, and audio models the agent should direct: Flux, Seedance, Veo, Suno, ElevenLabs."
                         step={1}
                         accentColor="blue"
                     >
@@ -54,7 +54,7 @@ export default function AgentBuildRunDeploy() {
 
                     <Card
                         title="Watch it direct"
-                        subtitle="See the agent reason about the shot, choose the model, generate variants, and self-correct when a render misses the brief. Every decision is on screen."
+                        subtitle="See the agent think through the shot, choose a model, produce variations, and try again when a render misses the brief. Every decision is on screen."
                         step={2}
                         accentColor="purple"
                     >
@@ -63,7 +63,7 @@ export default function AgentBuildRunDeploy() {
 
                     <Card
                         title="Iterate the cut"
-                        subtitle="Tweak the prompt, swap a model, re-run a branch — or save the whole agent as a node and reuse it on the next campaign. Your taste, multiplied."
+                        subtitle="Adjust the prompt, swap a model, or re-run one part. You can also save the whole agent and use it again on the next campaign."
                         step={3}
                         accentColor="emerald"
                     >
@@ -357,7 +357,7 @@ function DeployGraphic() {
             {/* Success Toast */}
             <div className="absolute -bottom-2 bg-emerald-900/80 border border-emerald-500/30 text-emerald-200 text-xs px-3 py-1 rounded-full flex items-center gap-1.5 shadow-lg backdrop-blur-md animate-[bounce_3s_infinite]">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                Saved as reusable node
+                Saved for reuse
             </div>
         </div>
     );

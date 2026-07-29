@@ -333,10 +333,12 @@ export function NodeChip({ children }: { children: ReactNode }) {
 export function NodePreview({
   src,
   video = false,
+  poster,
   ratio = "16 / 9",
 }: {
   src: string;
   video?: boolean;
+  poster?: string;
   ratio?: string;
 }) {
   return (
@@ -353,10 +355,9 @@ export function NodePreview({
         // eslint-disable-next-line jsx-a11y/media-has-caption
         <video
           src={src}
-          autoPlay
-          loop
-          muted
+          poster={poster}
           playsInline
+          preload="none"
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
       ) : (
@@ -364,6 +365,8 @@ export function NodePreview({
         <img
           src={src}
           alt=""
+          loading="lazy"
+          decoding="async"
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
       )}

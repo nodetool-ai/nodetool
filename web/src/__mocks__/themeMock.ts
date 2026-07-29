@@ -14,6 +14,17 @@ const mockTheme = createTheme({
     text: {
       primary: "#fff"
     },
+    // MUI derives these track colors when a real palette is built; the mock
+    // declares them so LinearProgress-based primitives render under Jest.
+    LinearProgress: {
+      primaryBg: "#3a5a72",
+      secondaryBg: "#3a3a3a",
+      errorBg: "#5a3a3a",
+      infoBg: "#3a4a5a",
+      successBg: "#3a5a3a",
+      warningBg: "#5a4a3a",
+      inheritBg: "#444444"
+    },
     // Add the custom palette properties
     c_hl1: "#77b4e6",
     c_white: "#FCFCFC",
@@ -24,14 +35,11 @@ const mockTheme = createTheme({
     c_gray5: "#BDBDBD",
     c_gray6: "#D9D9D9"
   } as any, // Use 'as any' to bypass TypeScript checking for custom properties
-  fontSizeGiant: "2rem",
-  fontSizeBigger: "1.25rem",
-  fontSizeBig: "1.125rem",
-  fontSizeNormal: "16px",
-  fontSizeSmall: "0.875rem",
-  fontSizeSmaller: "0.75rem",
-  fontSizeTiny: "0.65rem",
-  fontSizeTinyer: "0.55rem",
+  fontSizeGiant: "22px",
+  fontSizeBig: "18px",
+  fontSizeNormal: "15px",
+  fontSizeSmall: "13px",
+  fontSizeSmaller: "11px",
   fontFamily1: "'Inter', Arial, sans-serif",
   fontFamily2: "'JetBrains Mono', 'Inter', Arial, sans-serif",
   // TanStack Virtual overscan — mirrors ThemeNodetool so virtualized
@@ -184,8 +192,9 @@ const mockTheme = createTheme({
 (mockTheme as any).tooltip = {};
 (mockTheme as any).vars.tooltip = {};
 
-// Add zIndex for MUI components
-(mockTheme as any).zIndex = {
+// Add zIndex for MUI components plus Nodetool's custom scale
+const zIndexScale = {
+  // MUI
   mobileStepper: 1000,
   fab: 1050,
   speedDial: 1050,
@@ -193,18 +202,19 @@ const mockTheme = createTheme({
   drawer: 1200,
   modal: 1300,
   snackbar: 1400,
-  tooltip: 1500
+  tooltip: 1500,
+  // Nodetool
+  behind: -1,
+  base: 0,
+  commandMenu: 9999,
+  popover: 10001,
+  popover2: 99990,
+  autocomplete: 10002,
+  floating: 10003,
+  highest: 100000
 };
-(mockTheme as any).vars.zIndex = {
-  mobileStepper: 1000,
-  fab: 1050,
-  speedDial: 1050,
-  appBar: 1100,
-  drawer: 1200,
-  modal: 1300,
-  snackbar: 1400,
-  tooltip: 1500
-};
+(mockTheme as any).zIndex = { ...zIndexScale };
+(mockTheme as any).vars.zIndex = { ...zIndexScale };
 
 // Add avatar properties for MUI Chip component
 (mockTheme as any).vars.avatar = {
@@ -230,6 +240,18 @@ const mockTheme = createTheme({
 };
 (mockTheme as any).Switch = {
   defaultColor: "#9e9e9e"
+};
+(mockTheme as any).vars.palette.Switch = {
+  defaultColor: "#9e9e9e"
+};
+(mockTheme as any).palette.Switch = {
+  defaultColor: "#9e9e9e"
+};
+
+// LinearProgress track colors, which MUI reads off `vars.palette` in CSS
+// variables mode.
+(mockTheme as any).vars.palette.LinearProgress = {
+  ...(mockTheme as any).palette.LinearProgress
 };
 
 // Add theme.alpha() method for MUI v7 CSS variables mode

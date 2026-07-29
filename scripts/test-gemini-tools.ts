@@ -72,7 +72,7 @@ async function main() {
 
   for await (const item of provider.generateMessages({
     messages: [...messages],
-    model: "gemini-3.1-flash-lite-preview",
+    model: "gemini-3.1-flash-lite",
     tools,
     maxTokens: 1024
   })) {
@@ -154,7 +154,7 @@ async function main() {
   try {
     for await (const item of provider.generateMessages({
       messages: [...messages],
-      model: "gemini-3.1-flash-lite-preview",
+      model: "gemini-3.1-flash-lite",
       tools,
       maxTokens: 1024
     })) {

@@ -1,14 +1,10 @@
-import OpenAI from "openai";
-import { OpenAIProvider } from "./openai-provider.js";
+import {
+  OpenAICompatProvider,
+  type OpenAICompatProviderOptions
+} from "./openai-compat-provider.js";
 import type { LanguageModel } from "./types.js";
 
-interface GroqProviderOptions {
-  client?: OpenAI;
-  clientFactory?: (apiKey: string) => OpenAI;
-  fetchFn?: typeof fetch;
-}
-
-export class GroqProvider extends OpenAIProvider {
+export class GroqProvider extends OpenAICompatProvider {
   static override requiredSecrets(): string[] {
     return ["GROQ_API_KEY"];
   }
@@ -17,7 +13,7 @@ export class GroqProvider extends OpenAIProvider {
 
   constructor(
     secrets: { GROQ_API_KEY?: string },
-    options: GroqProviderOptions = {}
+    options: OpenAICompatProviderOptions = {}
   ) {
     const apiKey = secrets.GROQ_API_KEY;
     if (!apiKey) {
@@ -27,21 +23,14 @@ export class GroqProvider extends OpenAIProvider {
     const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
 
     super(
-      { OPENAI_API_KEY: apiKey },
       {
-        client: options.client,
-        clientFactory:
-          options.clientFactory ??
-          ((key) =>
-            new OpenAI({
-              apiKey: key,
-              baseURL: "https://api.groq.com/openai/v1"
-            })),
-        fetchFn
-      }
+        providerId: "groq",
+        apiKey,
+        baseURL: "https://api.groq.com/openai/v1"
+      },
+      { ...options, fetchFn }
     );
 
-    (this as { provider: string }).provider = "groq";
     this._groqFetch = fetchFn;
   }
 

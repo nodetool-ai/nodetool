@@ -413,7 +413,6 @@ const ImageWidget: React.FC<{
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => {
   const uri = extractUri(value);
-  const [uploading, setUploading] = useState(false);
 
   const pickImage = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -424,7 +423,6 @@ const ImageWidget: React.FC<{
       const picked = result.assets[0];
       const fileName = picked.fileName ?? `image_${Date.now()}.jpg`;
       const mimeType = picked.mimeType ?? "image/jpeg";
-      setUploading(true);
       try {
         const asset = await apiService.uploadAsset({
           uri: picked.uri,
@@ -441,8 +439,6 @@ const ImageWidget: React.FC<{
         console.error("Failed to upload image:", err);
         // Fall back to local URI so the preview still works
         onChange({ type: "image", uri: picked.uri });
-      } finally {
-        setUploading(false);
       }
     }
   }, [onChange]);
@@ -501,7 +497,6 @@ const AudioWidget: React.FC<{
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => {
   const uri = extractUri(value);
-  const [uploading, setUploading] = useState(false);
 
   const pickAudio = useCallback(async () => {
     const result = await DocumentPicker.getDocumentAsync({
@@ -512,7 +507,6 @@ const AudioWidget: React.FC<{
       const picked = result.assets[0];
       const fileName = picked.name ?? `audio_${Date.now()}.wav`;
       const mimeType = picked.mimeType ?? "audio/wav";
-      setUploading(true);
       try {
         const asset = await apiService.uploadAsset({
           uri: picked.uri,
@@ -528,8 +522,6 @@ const AudioWidget: React.FC<{
       } catch (err) {
         console.error("Failed to upload audio:", err);
         onChange({ type: "audio", uri: picked.uri });
-      } finally {
-        setUploading(false);
       }
     }
   }, [onChange]);
@@ -575,7 +567,6 @@ const VideoWidget: React.FC<{
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => {
   const uri = extractUri(value);
-  const [uploading, setUploading] = useState(false);
 
   const pickVideo = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -586,7 +577,6 @@ const VideoWidget: React.FC<{
       const picked = result.assets[0];
       const fileName = picked.fileName ?? `video_${Date.now()}.mp4`;
       const mimeType = picked.mimeType ?? "video/mp4";
-      setUploading(true);
       try {
         const asset = await apiService.uploadAsset({
           uri: picked.uri,
@@ -602,8 +592,6 @@ const VideoWidget: React.FC<{
       } catch (err) {
         console.error("Failed to upload video:", err);
         onChange({ type: "video", uri: picked.uri });
-      } finally {
-        setUploading(false);
       }
     }
   }, [onChange]);
@@ -643,13 +631,17 @@ const VideoWidget: React.FC<{
 };
 
 /** Extract URI from value — handles {uri: ...}, {id: ...}, or raw string */
+/**
+ * The URI a media widget can actually load. Property values carry `asset://`
+ * URNs, which no native loader understands, so resolve before rendering.
+ */
 function extractUri(value: unknown): string | null {
   if (!value) {return null;}
-  if (typeof value === "string") {return value;}
+  if (typeof value === "string") {return apiService.resolveUrl(value);}
   if (typeof value === "object") {
     const v = value as Record<string, unknown>;
-    if (typeof v.uri === "string") {return v.uri;}
-    if (typeof v.id === "string") {return v.id;}
+    if (typeof v.uri === "string") {return apiService.resolveUrl(v.uri);}
+    if (typeof v.id === "string") {return apiService.resolveUrl(v.id);}
   }
   return null;
 }

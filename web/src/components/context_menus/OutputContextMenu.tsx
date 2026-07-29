@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, memo, useRef, useState } from "react";
 import { shallow } from "zustand/shallow";
-//mui
 
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
@@ -17,7 +16,6 @@ import {
 } from "../ui_primitives";
 import { PREVIEW_NODE_TYPE, REROUTE_NODE_TYPE } from "../../constants/nodeTypes";
 import { useTheme } from "@mui/material/styles";
-//icons
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DataObjectIcon from "@mui/icons-material/DataObject";
 import AltRouteIcon from "@mui/icons-material/AltRoute";
@@ -25,7 +23,6 @@ import SaveAltIcon from "@mui/icons-material/SaveAlt";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-//store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useDynamicOutput } from "../../hooks/nodes/useDynamicOutput";
 import { useReactFlow } from "@xyflow/react";
@@ -38,6 +35,7 @@ import { filterTypesByInputType } from "../node_menu/typeFilterUtils";
 import { rankSearchNodes } from "../../utils/nodeSearch";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import NodeItem from "../node_menu/NodeItem";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 
 const NODE_ROW_HEIGHT = 28;
 
@@ -113,6 +111,7 @@ const OutputContextMenu: React.FC = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const autoFocusEnabled = useAutoFocusEnabled();
   const scrollRef = useRef<HTMLDivElement>(null);
   const recentNodes = useRecentNodesStore((state) => state.recentNodes);
   const recentNodeTypes = useMemo(
@@ -434,8 +433,9 @@ const OutputContextMenu: React.FC = () => {
     ]
   );
 
+  // Skipped on touch, where the virtual keyboard would cover the menu.
   useEffect(() => {
-    if (!menuPosition) {
+    if (!menuPosition || !autoFocusEnabled) {
       return;
     }
     const timeout = window.setTimeout(() => {
@@ -443,7 +443,7 @@ const OutputContextMenu: React.FC = () => {
       searchInputRef.current?.select();
     }, 0);
     return () => window.clearTimeout(timeout);
-  }, [menuPosition]);
+  }, [menuPosition, autoFocusEnabled]);
 
   const saveLabel = `Save${
     sourceType?.type === "string"
@@ -467,7 +467,7 @@ const OutputContextMenu: React.FC = () => {
     gap: "0.5em",
     margin: 0,
     minHeight: "28px",
-    padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`, // was 1px 6px
+    padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
     textAlign: "left",
     width: "100%",
     "&:hover": { backgroundColor: theme.vars.palette.action.hover },
@@ -480,7 +480,7 @@ const OutputContextMenu: React.FC = () => {
       flexShrink: 0,
       height: "18px",
       justifyContent: "center",
-      padding: getSpacingPx(SPACING.micro), // was 1px
+      padding: getSpacingPx(SPACING.micro),
       width: "18px"
     },
     ".icon-bg svg": {

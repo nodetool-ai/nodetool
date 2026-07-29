@@ -49,6 +49,5 @@ graph TD
 
 ## Related Workflows
 
-- [Story to Video Generator](story-to-video-generator.md) - Turn stories into videos
 - [Movie Posters](movie-posters.md) - Create visual content
 - [Creative Story Ideas](creative-story-ideas.md) - Generate story concepts

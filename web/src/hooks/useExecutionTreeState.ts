@@ -21,10 +21,6 @@ const visibleArgs = (
   args: Record<string, unknown> | null | undefined
 ): Record<string, unknown> => visibleToolArgs(args) ?? {};
 
-// ---------------------------------------------------------------------------
-// State types
-// ---------------------------------------------------------------------------
-
 type StepStatus = "waiting" | "running" | "completed" | "failed";
 type TaskStatus = "waiting" | "running" | "completed" | "failed";
 
@@ -87,10 +83,7 @@ export interface ExecutionTreeState {
   tasks: TaskState[];
 }
 
-// ---------------------------------------------------------------------------
 // Message normalization (same as AgentExecutionView)
-// ---------------------------------------------------------------------------
-
 function normalizeContent(msg: Message): {
   content: unknown;
   eventType: string | null | undefined;
@@ -119,10 +112,6 @@ function normalizeContent(msg: Message): {
 
   return { content, eventType };
 }
-
-// ---------------------------------------------------------------------------
-// Build tree state from messages
-// ---------------------------------------------------------------------------
 
 export function buildExecutionTreeState(
   messages: Message[],
@@ -285,10 +274,10 @@ export function buildExecutionTreeState(
             };
           }
         }
-      } else if (event === "task_completed") {
+      } else if (event === "task_completed" || event === "task_failed") {
         const task = taskMap.get(taskId);
         if (task) {
-          task.status = "completed";
+          task.status = event === "task_failed" ? "failed" : "completed";
           task.expanded = false;
           task.duration = task.startedAt
             ? (Date.now() - task.startedAt) / 1000
@@ -440,10 +429,6 @@ export function buildExecutionTreeState(
   state.tasks = tasks;
   return state;
 }
-
-// ---------------------------------------------------------------------------
-// Hook
-// ---------------------------------------------------------------------------
 
 export function useExecutionTreeState(
   messages: Message[],

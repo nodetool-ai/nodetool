@@ -58,23 +58,76 @@ const emitUploadProgress = (
   });
 };
 
+/**
+ * Upload the bytes straight to the storage backend (Supabase/S3) using a
+ * server-minted, key-scoped target, then have the server confirm what landed.
+ * The file never passes through the API.
+ *
+ * Returns null when the backend has no direct-upload path (the local file
+ * store), which is the signal to fall back to the multipart POST below.
+ */
+const uploadAssetDirect = async (
+  payload: AssetCreatePayload,
+  file: File,
+  onUploadProgress?: (progressEvent: UploadProgressEvent) => void
+): Promise<Asset | null> => {
+  const created = await trpcClient.assets.createUpload.mutate({
+    name: payload.name ?? file.name,
+    content_type: payload.content_type || file.type || "application/octet-stream",
+    parent_id: payload.parent_id ?? "",
+    size: file.size,
+    ...(payload.workflow_id ? { workflow_id: payload.workflow_id } : {})
+  });
+
+  if (!created.upload) {
+    return null;
+  }
+
+  const response = await fetch(created.upload.url, {
+    method: created.upload.method,
+    headers: created.upload.headers,
+    body: file
+  });
+  if (!response.ok) {
+    throw new Error(
+      `Upload to storage failed with status ${response.status}`
+    );
+  }
+
+  emitUploadProgress(onUploadProgress, file.size, file.size);
+  return normalizeAssetUrls(
+    (await trpcClient.assets.finalizeUpload.mutate({
+      asset_id: created.asset_id
+    })) as Asset
+  );
+};
+
 const uploadAsset = async (
   payload: AssetCreatePayload,
   file?: File,
   onUploadProgress?: (progressEvent: UploadProgressEvent) => void,
   errorMessage = "Failed to create asset"
 ): Promise<Asset> => {
+  // Provide basic progress feedback even though fetch-based uploads
+  // don't stream progress events.
+  const total = file?.size ?? 1;
+  emitUploadProgress(onUploadProgress, 0, total);
+
+  if (file) {
+    try {
+      const direct = await uploadAssetDirect(payload, file, onUploadProgress);
+      if (direct) return direct;
+    } catch (error) {
+      normalizeAssetError(error, errorMessage);
+    }
+  }
+
   const formData = new FormData();
   formData.append("json", JSON.stringify(payload));
 
   if (file) {
     formData.append("file", file);
   }
-
-  // Provide basic progress feedback even though fetch-based uploads
-  // don't stream progress events.
-  const total = file?.size ?? 1;
-  emitUploadProgress(onUploadProgress, 0, total);
 
   try {
     const response = await restFetch("/api/assets/", {
@@ -130,6 +183,7 @@ export type AssetUpdate = {
   content_type?: string;
   metadata?: Record<string, unknown>;
   sketch_document_id?: string | null;
+  timeline_id?: string | null;
   data?: string;
   data_encoding?: "base64";
 };
@@ -219,33 +273,18 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
   currentFolder: null,
   parentFolder: null,
 
-  /**
-   * Set the react query client to allow clearing the cache.
-   */
   setQueryClient: (queryClient: QueryClient) => {
     set({ queryClient });
   },
 
-  /**
-   * Clear the cache for a given query.
-   */
   invalidateQueries: (queryKey: QueryKey) => {
     get().queryClient?.invalidateQueries({ queryKey: queryKey });
   },
 
-  /**
-   * Add an asset to the cache.
-   */
   add: (asset: Asset) => {
     get().queryClient?.setQueryData(["assets", asset.id], asset);
   },
 
-  /**
-   * Get an asset by ID from the server.
-   *
-   * @param id The ID of the asset to get.
-   * @returns A promise that resolves to the asset.
-   */
   get: async (id: string) => {
     const raw = await trpcClient.assets.get.query({
       id
@@ -293,10 +332,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     return { ...data, assets: normalized };
   },
 
-  /**
-   * Load all folders as a tree
-   */
-
   loadFolderTree: async (sortBy?: string) => {
     // Fallback implementation: fetch all folders via tRPC and build tree locally
     const data = await trpcClient.assets.list.query({
@@ -341,12 +376,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     return get().load({ parent_id: requestedFolderId });
   },
 
-  /**
-   * Search assets globally with folder path information.
-   *
-   * @param query The search query parameters.
-   * @returns A promise that resolves to the search results.
-   */
   search: async (query: AssetSearchQuery): Promise<AssetSearchResult> => {
     try {
       const data = await trpcClient.assets.search.query({
@@ -398,12 +427,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       throw normalizeAssetError(error, "Failed to create folder");
     }
   },
-  /**
-   * Get all assets in a folder, including subfolders.
-   *
-   * @param folderId The ID of the folder to get assets from.
-   * @returns A promise that resolves to the assets in the folder.
-   */
   getAllAssetsInFolder: async (folderId: string): Promise<Asset[]> => {
     const tree = await get().getAssetsRecursive(folderId);
 
@@ -423,12 +446,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
 
     return flatten(tree);
   },
-  /**
-   * Delete an asset from the store and the server.
-   *
-   * @param id The ID of the asset to delete.
-   * @returns A promise that resolves when the asset is deleted.
-   */
   delete: async (id: string): Promise<string[]> => {
     // Capture parent before delete so we can invalidate the listing the
     // asset was visible in (its parent's children), not its own children.
@@ -456,13 +473,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     return deleted_asset_ids;
   },
 
-  /**
-   * Download assets from the server.
-   *
-   * @param ids An array of asset IDs to download.
-   * @returns A promise that resolves when the download is complete.
-   */
-
   download: async (ids: string[]): Promise<boolean> => {
     console.info(`[AssetStore] Attempting to download assets: ${ids.join(", ")}`);
     try {
@@ -473,7 +483,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       const response = await fetch(url, {
         method: "POST",
         headers: {
-          ...(headers as Record<string, string>),
+          ...headers,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({ asset_ids: ids })
@@ -532,7 +542,9 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         document.body.appendChild(anchorElement);
         anchorElement.click();
         anchorElement.remove();
-        window.URL.revokeObjectURL(downloadUrl);
+        // Defer the revoke: releasing the blob synchronously cancels the
+        // download in Firefox and for large files (e.g. asset ZIP exports).
+        setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 1000);
       }
 
       get().invalidateQueries(["assets"]);
@@ -546,10 +558,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     }
   },
 
-  /**
-   * Update an asset on the server.
-   *
-   */
   update: async (req: AssetUpdate) => {
     const prev = await get().get(req.id);
     if (req.id === req.parent_id) {
@@ -573,6 +581,9 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       ...(req.sketch_document_id !== undefined
         ? { sketch_document_id: req.sketch_document_id }
         : {}),
+      ...(req.timeline_id !== undefined
+        ? { timeline_id: req.timeline_id }
+        : {}),
       ...(req.data !== undefined ? { data: req.data } : {}),
       ...(req.data_encoding !== undefined
         ? { data_encoding: req.data_encoding }
@@ -590,12 +601,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     return normalized;
   },
 
-  /**
-   * Create an asset on the server.
-   *
-   * @param file The file to create an asset from.
-   * @returns A promise that resolves to the created asset.
-   */
   createAsset: async (
     file: File,
     workflow_id?: string,

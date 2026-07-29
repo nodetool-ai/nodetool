@@ -12,7 +12,7 @@ import { getAssetCategory } from "./assetGridUtils";
 import FolderIcon from "@mui/icons-material/Folder";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { ExpandCollapseButton, EmptyState, Text, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { ExpandCollapseButton, EmptyState, Text, Box, MOTION, BORDER_RADIUS, Z_INDEX } from "../ui_primitives";
 import { useSettingsStore } from "../../stores/SettingsStore";
 
 interface AssetListViewProps {
@@ -25,7 +25,6 @@ interface AssetListViewProps {
 const ROW_HEIGHT = 40;
 const TYPE_SECTION_HEIGHT = 36;
 
-// Type for virtual list item data
 type VirtualListItemData =
   | { type: 'header'; key: string; data: { type: string; count: number; isExpanded: boolean } }
   | { type: 'asset'; key: string; data: { asset: Asset } };
@@ -63,7 +62,7 @@ const styles = (theme: Theme) =>
       textTransform: "uppercase",
       position: "sticky",
       top: 0,
-      zIndex: 1
+      zIndex: Z_INDEX.sticky
     },
     ".asset-header-icon-space": {
       width: "32px",
@@ -276,15 +275,13 @@ const AssetListView: React.FC<AssetListViewProps> = ({
     
     Object.entries(assetsByType).forEach(([type, typeAssets]) => {
       const isExpanded = expandedTypes.has(type);
-      
-      // Add type header
+
       items.push({
         type: 'header',
         key: `header-${type}`,
         data: { type, count: typeAssets.length, isExpanded }
       });
-      
-      // Add assets if expanded
+
       if (isExpanded) {
         typeAssets.forEach((asset) => {
           items.push({
@@ -357,12 +354,10 @@ const AssetListView: React.FC<AssetListViewProps> = ({
     getItemKey: (index) => virtualListItems[index]?.key ?? index,
   });
 
-  // Recompute sizes when data changes
   useEffect(() => {
     virtualizer.measure();
   }, [virtualListItems.length, expandedTypes, virtualizer]);
 
-  // Render a single row in the virtualized list
   const renderRow = useCallback((index: number, key: React.Key, style: React.CSSProperties) => {
     const item = virtualListItems[index];
 
@@ -377,6 +372,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
           key={key}
           role="button"
           tabIndex={0}
+          aria-expanded={isExpanded}
           style={style}
           className="asset-content-type-header"
           onClick={(e) => {
@@ -413,7 +409,6 @@ const AssetListView: React.FC<AssetListViewProps> = ({
       );
     }
 
-    // Render asset item
     const { asset } = item.data;
     // Use ref to avoid recreating renderRow when selection changes
     const isSelected = selectedAssetIdsRef.current.includes(asset.id);
@@ -429,9 +424,18 @@ const AssetListView: React.FC<AssetListViewProps> = ({
         key={key}
         className={`asset-list-item ${isSelected ? "selected" : ""}`}
         style={style}
+        role="button"
+        tabIndex={0}
+        aria-label={asset.name}
         onClick={(e) => {
           e.stopPropagation();
           handleSelectAsset(asset.id);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleSelectAsset(asset.id);
+          }
         }}
         onDoubleClick={() => onDoubleClick?.(asset)}
         onContextMenu={(e) => handleContextMenu(e, asset.id)}

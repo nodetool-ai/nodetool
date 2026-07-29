@@ -18,13 +18,6 @@ export interface HuggingFaceModelMenuDialogProps {
   modelPacks?: ModelPack[];
 }
 
-type RecommendedTask = "text_to_image" | "image_to_image" | null;
-
-// Map task to the tRPC procedure key for recommended models
-const mapTaskToTrpcKey = (
-  task?: "text_to_image" | "image_to_image"
-): RecommendedTask => task ?? null;
-
 function HuggingFaceModelMenuDialog({
   open,
   onClose,
@@ -38,10 +31,8 @@ function HuggingFaceModelMenuDialog({
   const modelData = useHuggingFaceImageModelsByProvider({ task, modelType });
   const workerCachedIds = useWorkerCachedModelIds();
 
-  // Map to tRPC procedure key for recommended models
-  const recommendedTask = useMemo(() => mapTaskToTrpcKey(task), [task]);
+  const recommendedTask = useMemo(() => task ?? null, [task]);
 
-  // Fall back to fetching recommended models via tRPC when not provided by the caller
   const { data: recommendedModelsFallback = [] } = useQuery<UnifiedModel[]>({
     queryKey: ["recommended-task-models", recommendedTask],
     enabled: !recommendedModelsFromProps && !!recommendedTask,
@@ -59,7 +50,6 @@ function HuggingFaceModelMenuDialog({
 
   const recommendedModels = recommendedModelsFromProps ?? recommendedModelsFallback;
 
-  // Create a set of recommended model IDs for quick lookup
   const recommendedModelIds = useMemo(() => {
     return new Set(recommendedModels.map((m) => m.id));
   }, [recommendedModels]);
@@ -71,7 +61,6 @@ function HuggingFaceModelMenuDialog({
       return modelData;
     }
 
-    // Deduplicate first using provider:id as key
     const uniqueModelsMap = new Map<string, typeof modelData.models[0]>();
     modelData.models.forEach((model) => {
       const key = `${model.provider}:${model.id}`;
@@ -80,7 +69,6 @@ function HuggingFaceModelMenuDialog({
       }
     });
 
-    // Convert back to array, sort, and merge worker downloaded state
     const sortedModels = Array.from(uniqueModelsMap.values())
       .sort((a, b) => {
         const aIsRecommended = recommendedModelIds.has(a.id || "");

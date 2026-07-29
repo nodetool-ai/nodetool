@@ -1,11 +1,11 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useCallback, useEffect, useState, type FC } from "react";
+import { memo, useCallback, useEffect, useMemo, useState, type FC } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { getIsElectronDetails } from "../../utils/browser";
 import { useOpenPackageManager } from "../../hooks/useOpenPackageManager";
 import {
@@ -38,14 +38,14 @@ const warningStyles = (theme: Theme) =>
 
     ".warning-text": {
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.warning.dark,
       lineHeight: "1.3em",
     },
 
     ".install-link": {
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.primary.main,
       cursor: "pointer",
       textDecoration: "underline",
@@ -59,7 +59,7 @@ const warningStyles = (theme: Theme) =>
 
     ".install-btn": {
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.common.white,
       backgroundColor: theme.vars.palette.primary.main,
       border: "none",
@@ -85,6 +85,7 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
   requiredRuntimes,
 }) => {
   const theme = useTheme();
+  const memoizedWarningStyles = useMemo(() => warningStyles(theme), [theme]);
   const [missingRuntimes, setMissingRuntimes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [installing, setInstalling] = useState(false);
@@ -158,7 +159,7 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
 
   return (
     <div
-      css={warningStyles(theme)}
+      css={memoizedWarningStyles}
       className="node-dependency-warning nodrag nowheel"
     >
       <div className="warning-title">

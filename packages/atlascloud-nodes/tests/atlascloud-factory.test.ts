@@ -82,6 +82,87 @@ describe("resolveAssetForAtlas", () => {
     );
   });
 
+  // A wired media ref often carries only an asset_id — its uri is empty or an
+  // internal storage path the active adapter doesn't recognize. Fall back to
+  // resolving asset://<asset_id> via the canonical helper instead of throwing
+  // "no usable uri or inline data".
+  it("resolves a ref carrying only asset_id via asset://<id>", async () => {
+    const resolveAssetBytes = vi
+      .fn()
+      .mockResolvedValue({ bytes: Uint8Array.from([1, 2, 3]) });
+    const out = await resolveAssetForAtlas(
+      { type: "video", uri: "", asset_id: "vid-42" },
+      { resolveAssetBytes } as unknown as never,
+      "video"
+    );
+    expect(resolveAssetBytes).toHaveBeenCalledWith("asset://vid-42");
+    expect(out).toBe("data:video/mp4;base64,AQID");
+  });
+
+  // The self-hosted file backend hands back a relative /api/storage/<key> path;
+  // memory:// keys are the ephemeral equivalent. Neither is a public URL, and
+  // storage.retrieve doesn't recognize them across every adapter — route them
+  // through the canonical resolver. The /api/storage/ HTTP-route prefix is
+  // stripped to the bare storage key, since resolveAssetBytes keys off the
+  // storage key / asset id (the full path would build a broken nested URL).
+  it("resolves an internal /api/storage path via its bare storage key", async () => {
+    const resolveAssetBytes = vi
+      .fn()
+      .mockResolvedValue({ bytes: Uint8Array.from([4, 5, 6]) });
+    const out = await resolveAssetForAtlas(
+      { type: "video", uri: "/api/storage/clip.mp4", asset_id: "vid-9" },
+      { resolveAssetBytes } as unknown as never,
+      "video"
+    );
+    expect(resolveAssetBytes).toHaveBeenCalledWith("clip.mp4");
+    expect(out).toBe("data:video/mp4;base64,BAUG");
+  });
+
+  // Thumb / cache-busted refs carry a query segment; the bare storage key must
+  // still be handed to resolveAssetBytes, not `clip.mp4?thumb=1`.
+  it("strips a query segment from an /api/storage path", async () => {
+    const resolveAssetBytes = vi
+      .fn()
+      .mockResolvedValue({ bytes: Uint8Array.from([4, 5, 6]) });
+    await resolveAssetForAtlas(
+      { type: "image", uri: "/api/storage/pic.png?thumb=1" },
+      { resolveAssetBytes } as unknown as never,
+      "image"
+    );
+    expect(resolveAssetBytes).toHaveBeenCalledWith("pic.png");
+  });
+
+  it("resolves a memory:// ref via resolveAssetBytes", async () => {
+    const resolveAssetBytes = vi
+      .fn()
+      .mockResolvedValue({ bytes: Uint8Array.from([7, 8]) });
+    const out = await resolveAssetForAtlas(
+      { type: "image", uri: "memory://cache/pic.png" },
+      { resolveAssetBytes } as unknown as never,
+      "image"
+    );
+    expect(resolveAssetBytes).toHaveBeenCalledWith("memory://cache/pic.png");
+    expect(out).toBe("data:image/png;base64,Bwg=");
+  });
+
+  // Arbitrary http(s) URIs must NOT be routed through resolveAssetBytes (it
+  // performs unguarded downloads) — a private/metadata host still has to be
+  // blocked by the isSafeHttpUrl fetch guard, never resolved.
+  it("does not route a private-host http uri through resolveAssetBytes", async () => {
+    const resolveAssetBytes = vi.fn();
+    const fetchSpy = vi.fn();
+    global.fetch = fetchSpy as unknown as typeof fetch;
+    await expect(
+      resolveAssetForAtlas(
+        { type: "video", uri: "http://169.254.169.254/api/storage/x.mp4" },
+        { resolveAssetBytes } as unknown as never,
+        "video"
+      )
+    ).rejects.toThrow("Cannot resolve");
+    expect(resolveAssetBytes).not.toHaveBeenCalled();
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   // SSRF defense: refs whose URIs point at the runtime's own host, RFC1918
   // private space, or cloud-metadata endpoints are never fetched. With no
   // alternative resolution path, resolveAssetForAtlas throws.
@@ -138,6 +219,84 @@ describe("resolveAssetForAtlas", () => {
     );
     // Public CDN → pass-through, not fetched.
     expect(out).toBe("https://cdn.example.org/secret.png");
+  });
+
+  // An asset input the user left empty still arrives as a fully-shaped ref
+  // with every slot blank. That's an absent optional input — resolving it must
+  // yield null (field omitted) instead of failing the node with
+  // "Cannot resolve image asset for AtlasCloud — no usable uri or inline data".
+  it("returns null for a blank-but-shaped ref (unset optional input)", async () => {
+    const resolveAssetBytes = vi.fn();
+    const retrieve = vi.fn();
+    for (const blank of [
+      { type: "image", uri: "", asset_id: null, data: null, metadata: null },
+      { type: "image", uri: "   " },
+      { type: "video", uri: "", asset_id: "", data: "" },
+      { type: "image", data: new Uint8Array(0) }
+    ]) {
+      expect(
+        await resolveAssetForAtlas(
+          blank,
+          { storage: { retrieve }, resolveAssetBytes } as unknown as never,
+          "image"
+        )
+      ).toBeNull();
+    }
+    expect(resolveAssetBytes).not.toHaveBeenCalled();
+    expect(retrieve).not.toHaveBeenCalled();
+  });
+
+  it("passes a data: URI through unchanged", async () => {
+    const uri = "data:image/png;base64,AQID";
+    expect(await resolveAssetForAtlas({ uri }, undefined, "image")).toBe(uri);
+    expect(await resolveAssetForAtlas(uri, undefined, "image")).toBe(uri);
+    expect(
+      await resolveAssetForAtlas({ data: uri }, undefined, "image")
+    ).toBe(uri);
+  });
+
+  // Refs produced by local file nodes carry a file:// URI or an absolute path;
+  // neither is a public URL nor a storage key, so only the canonical resolver
+  // can materialize them.
+  it("resolves a file:// ref via the canonical resolver", async () => {
+    const { mkdtemp, writeFile } = await import("node:fs/promises");
+    const { tmpdir } = await import("node:os");
+    const { pathToFileURL } = await import("node:url");
+    const dir = await mkdtemp(join(tmpdir(), "atlas-"));
+    const file = join(dir, "pic.png");
+    await writeFile(file, Buffer.from([1, 2, 3]));
+
+    expect(
+      await resolveAssetForAtlas(
+        { type: "image", uri: pathToFileURL(file).href },
+        undefined,
+        "image"
+      )
+    ).toBe("data:image/png;base64,AQID");
+    expect(
+      await resolveAssetForAtlas({ type: "image", uri: file }, undefined, "image")
+    ).toBe("data:image/png;base64,AQID");
+  });
+
+  // Raw-RGBA in-flight images hold straight-alpha pixels, not an encoded file.
+  // Base64-ing them as-is would ship garbage labeled image/x-raw-rgba; they
+  // must be PNG-encoded and labeled image/png.
+  it("PNG-encodes a raw-RGBA in-flight image", async () => {
+    const out = await resolveAssetForAtlas(
+      {
+        type: "image",
+        mimeType: "image/x-raw-rgba",
+        width: 1,
+        height: 1,
+        data: Uint8Array.from([255, 0, 0, 255])
+      },
+      undefined,
+      "image"
+    );
+    expect(out).toMatch(/^data:image\/png;base64,/);
+    const bytes = Buffer.from(out!.split(",")[1], "base64");
+    // PNG magic — proof it went through the encoder, not a raw passthrough.
+    expect([...bytes.subarray(0, 4)]).toEqual([0x89, 0x50, 0x4e, 0x47]);
   });
 
   it("returns null for an empty/null ref", async () => {
@@ -549,6 +708,88 @@ describe("createAtlasNodeClass.process", () => {
       prompt: "restyle now",
       video: "https://input/wired.mp4"
     });
+  });
+
+  // An empty optional image (Seedance's `last_image`) must not fail the node —
+  // it is simply omitted — while an empty *required* image fails locally with
+  // a message naming the input instead of a resolver-internal one.
+  it("omits an empty optional asset input and names an empty required one", async () => {
+    const submitted: { body: unknown } = { body: null };
+    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const u = String(url);
+      if (u.endsWith("/generateVideo")) {
+        submitted.body = JSON.parse(init!.body as string);
+        return {
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({ data: { id: "v" } })
+        } as Response;
+      }
+      if (u.includes("/prediction/v")) {
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers(),
+          text: async () =>
+            JSON.stringify({
+              data: { status: "completed", outputs: ["https://cdn/out.mp4"] }
+            })
+        } as Response;
+      }
+      if (u === "https://cdn/out.mp4") {
+        return {
+          ok: true,
+          arrayBuffer: async () => Uint8Array.from([1]).buffer
+        } as Response;
+      }
+      throw new Error(`unexpected: ${u}`);
+    }) as unknown as typeof fetch;
+
+    const spec = makeSpec({
+      title: "Seedance 2.0 — Image to Video",
+      modality: "video",
+      outputType: "video",
+      fields: [
+        { name: "prompt", type: "str", default: "" },
+        { name: "image", type: "image", default: null, required: true },
+        { name: "last_image", type: "image", default: null }
+      ]
+    });
+    const Cls = createAtlasNodeClass(spec) as unknown as new () => {
+      prompt: string;
+      image: unknown;
+      last_image: unknown;
+      process: (ctx: unknown) => Promise<Record<string, unknown>>;
+      setDynamic: (k: string, v: unknown) => void;
+    };
+
+    const node = new Cls();
+    node.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
+    node.prompt = "animate";
+    node.image = { type: "image", uri: "https://input/first.png" };
+    // The UI sends this shape for an image input the user never filled in.
+    node.last_image = {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    };
+
+    await node.process({ storage: null });
+    expect(submitted.body).toEqual({
+      model: "test/model/t2i",
+      prompt: "animate",
+      image: "https://input/first.png"
+    });
+
+    const missing = new Cls();
+    missing.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
+    missing.prompt = "animate";
+    missing.image = { type: "image", uri: "", asset_id: null, data: null };
+    await expect(missing.process({ storage: null })).rejects.toThrow(
+      'Seedance 2.0 — Image to Video: the image input "image" is empty'
+    );
   });
 
   it("propagates structured AtlasCloud job failures", async () => {

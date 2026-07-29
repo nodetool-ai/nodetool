@@ -30,8 +30,8 @@ const layout = tgpu.bindGroupLayout({
 export const chromaKeyV1 = defineModule({
   id: "keyer.chromaKey",
   version: 1,
-  // Promoted in Phase 3: param schema (keyColor, tolerance, softness, spill)
-  // is stable since Phase 2; the canonical green/blue-screen keyer.
+  // Stable param schema (keyColor, tolerance, softness, spill); the canonical
+  // green/blue-screen keyer.
   surface: "published",
   category: "keyer",
   linearity: "nonlinear-in-rgb",

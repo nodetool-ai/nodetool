@@ -4,9 +4,8 @@ import ManagerPageLayout from "../panels/ManagerPageLayout";
 import PackageManager from "./PackageManager";
 
 /**
- * Full-screen Package Manager page. Reachable from the logo menu; wraps the
- * unified installer (runtimes and node packs) in the shared manager chrome
- * (header + back button). Replaced the old Settings → Package Manager tab.
+ * Full-screen Package Manager page: the unified installer (runtimes and node
+ * packs) wrapped in the shared manager chrome (header + back button).
  */
 const PackagesPage: React.FC = () => (
   <ManagerPageLayout

@@ -22,6 +22,14 @@ export interface ImageModel {
   name: string;
   provider: ProviderId;
   supportedTasks?: string[];
+  /**
+   * Per-model output-size constraints derived from the provider manifest's
+   * enum fields (e.g. FAL's image_size / aspect_ratio). When present the
+   * picker offers only these values so users can't request a ratio the
+   * endpoint will silently ignore.
+   */
+  aspectRatios?: string[];
+  resolutions?: string[];
 }
 
 export interface VideoModel {
@@ -84,12 +92,71 @@ export interface ToolCall {
   thought_signature?: string;
   /** Raw Gemini parts to echo back (preserves thought content). */
   _rawGeminiParts?: unknown[];
+  _anthropicThinkingBlocks?: AnthropicThinkingBlock[];
 }
+
+export type AnthropicThinkingBlock =
+  | { type: "thinking"; thinking: string; signature: string }
+  | { type: "redacted_thinking"; data: string };
+
+export type ProviderThinkingDisplay = "summarized" | "omitted";
+
+export type ProviderThinkingConfig =
+  | {
+      type: "adaptive";
+      display?: ProviderThinkingDisplay;
+    }
+  | {
+      type: "manual";
+      budgetTokens: number;
+      display?: ProviderThinkingDisplay;
+    }
+  | {
+      type: "disabled";
+    };
+
+export type ProviderEffort = "low" | "medium" | "high" | "xhigh" | "max";
+
+export interface ProviderCacheControl {
+  type: "ephemeral";
+  ttl?: "5m" | "1h";
+}
+
+export type ProviderToolCaller =
+  | "direct"
+  | "code_execution_20250825"
+  | "code_execution_20260120"
+  | "code_execution_20260521";
+
+/**
+ * Canonical name for the web-search tool. Providers with a built-in web search
+ * (`supportsNativeWebSearch`) render a tool with this name as their native
+ * server-side search instead of a function call; everyone else falls back to
+ * the SerpAPI-backed `WebSearchTool`.
+ */
+export const WEB_SEARCH_TOOL_NAME = "web_search";
+
+/**
+ * Canonical name for the image-generation tool. Providers with a built-in,
+ * server-side image generator (`supportsNativeImageGeneration`, e.g. the
+ * OpenAI Responses `image_generation` tool) render a tool with this name as
+ * their native tool: the generated image arrives inside the model turn as an
+ * `image_generation_call` output item — there is no function-call round-trip —
+ * and the provider surfaces it as image content on the assistant message.
+ * Providers without native support fall back to a function tool that calls
+ * `textToImage`/`imageToImage`.
+ */
+export const IMAGE_GENERATION_TOOL_NAME = "image_generation";
 
 export interface ProviderTool {
   name: string;
   description?: string;
   inputSchema?: Record<string, unknown>;
+  inputExamples?: Record<string, unknown>[];
+  cacheControl?: ProviderCacheControl;
+  strict?: boolean;
+  deferLoading?: boolean;
+  allowedCallers?: ProviderToolCaller[];
   type?: "function" | "code_interpreter";
   /**
    * Optional self-contained executor for this tool. When present,
@@ -115,6 +182,7 @@ export interface ProviderTool {
 export interface MessageTextContent {
   type: "text";
   text: string;
+  citations?: MessageCitation[];
 }
 
 export interface MessageImageContent {
@@ -135,24 +203,128 @@ export interface MessageAudioContent {
   };
 }
 
+export interface MessageDocumentContent {
+  type: "document";
+  document: {
+    uri?: string;
+    data?: Uint8Array | string;
+    mimeType?: string;
+    title?: string;
+  };
+  citations?: boolean;
+  context?: string;
+}
+
+interface MessageDocumentCitationBase {
+  citedText: string;
+  documentIndex: number;
+  documentTitle?: string | null;
+  fileId?: string | null;
+}
+
+export interface MessageCharCitation extends MessageDocumentCitationBase {
+  type: "char_location";
+  startCharIndex: number;
+  endCharIndex: number;
+}
+
+export interface MessagePageCitation extends MessageDocumentCitationBase {
+  type: "page_location";
+  startPageNumber: number;
+  endPageNumber: number;
+}
+
+export interface MessageContentBlockCitation extends MessageDocumentCitationBase {
+  type: "content_block_location";
+  startBlockIndex: number;
+  endBlockIndex: number;
+}
+
+export interface MessageWebSearchCitation {
+  type: "web_search_result_location";
+  citedText: string;
+  encryptedIndex: string;
+  url: string;
+  title?: string | null;
+}
+
+export interface MessageSearchResultCitation {
+  type: "search_result_location";
+  citedText: string;
+  searchResultIndex: number;
+  source: string;
+  title?: string | null;
+  startBlockIndex: number;
+  endBlockIndex: number;
+}
+
+export type MessageCitation =
+  | MessageCharCitation
+  | MessagePageCitation
+  | MessageContentBlockCitation
+  | MessageWebSearchCitation
+  | MessageSearchResultCitation;
+
 export type MessageContent =
   | MessageTextContent
   | MessageImageContent
-  | MessageAudioContent;
+  | MessageAudioContent
+  | MessageDocumentContent;
+
+export interface ProviderToolErrorResult {
+  content: string | MessageContent[];
+  isError: true;
+}
+
+export type ProviderToolResult =
+  | string
+  | MessageContent[]
+  | ProviderToolErrorResult;
+
+export function isProviderToolErrorResult(
+  result: ProviderToolResult
+): result is ProviderToolErrorResult {
+  return (
+    typeof result === "object" &&
+    !Array.isArray(result) &&
+    result.isError === true
+  );
+}
 
 export interface Message {
   role: "system" | "user" | "assistant" | "tool";
   content?: string | MessageContent[] | null;
   toolCalls?: ToolCall[] | null;
   toolCallId?: string | null;
+  isError?: boolean;
   threadId?: string | null;
   /** Provider-specific raw parts to echo back (e.g., Gemini thought parts). */
   _rawGeminiParts?: unknown[];
+  _anthropicThinkingBlocks?: AnthropicThinkingBlock[];
+}
+
+/**
+ * A reusable entity (character, prop, location, style) riding along with a
+ * generation call for cross-shot consistency. Any provider consumer — nodes,
+ * the chat WebSocket, CLI — can attach these to the params; {@link BaseProvider}
+ * expands them centrally before the concrete provider runs: the descriptor
+ * joins the prompt as a `Consistency references:` block, and on image-editing
+ * tasks the reference image bytes are appended to the source-image list.
+ */
+export interface EntityReference {
+  /** Display name, referenced from the prompt text. */
+  name: string;
+  /** Canonical visual descriptor injected into the prompt. */
+  descriptor?: string | null;
+  /** Encoded reference image bytes (routed to image inputs on editing tasks). */
+  image?: Uint8Array | null;
 }
 
 export interface TextToImageParams {
   model: ImageModel;
   prompt: string;
+  /** Consistency entities; descriptors join the prompt (t2i takes no images). */
+  entities?: EntityReference[] | null;
   negativePrompt?: string | null;
   width?: number;
   height?: number;
@@ -164,11 +336,22 @@ export interface TextToImageParams {
   seed?: number | null;
   scheduler?: string | null;
   safetyCheck?: boolean | null;
+  /**
+   * Cancellation for the upstream request. Providers that can abort their
+   * transport honor it; the rest ignore it (the caller still discards the
+   * result). Optional so provider implementations opt in individually.
+   */
+  signal?: AbortSignal;
 }
 
 export interface ImageToImageParams {
   model: ImageModel;
   prompt: string;
+  /**
+   * Consistency entities; descriptors join the prompt and reference images are
+   * appended to the source-image list (after the caller's own images).
+   */
+  entities?: EntityReference[] | null;
   negativePrompt?: string | null;
   targetWidth?: number | null;
   targetHeight?: number | null;
@@ -180,6 +363,12 @@ export interface ImageToImageParams {
   strength?: number | null;
   seed?: number | null;
   scheduler?: string | null;
+  /**
+   * Cancellation for the upstream request. Providers that can abort their
+   * transport honor it; the rest ignore it (the caller still discards the
+   * result). Optional so provider implementations opt in individually.
+   */
+  signal?: AbortSignal;
 }
 
 /**
@@ -252,6 +441,8 @@ export interface TextToMusicParams {
 export interface TextToVideoParams {
   model: VideoModel;
   prompt: string;
+  /** Consistency entities; descriptors join the prompt (text-only for video). */
+  entities?: EntityReference[] | null;
   negativePrompt?: string | null;
   numFrames?: number | null;
   /** Requested duration in seconds (provider decides fps). */
@@ -263,11 +454,23 @@ export interface TextToVideoParams {
   seed?: number | null;
   /** Per-call timeout. Providers translate this into a max polling window. */
   timeoutSeconds?: number | null;
+  /**
+   * Cancellation for the upstream request. Providers that can abort their
+   * transport honor it; the rest ignore it (the caller still discards the
+   * result). Optional so provider implementations opt in individually.
+   */
+  signal?: AbortSignal;
 }
 
 export interface ImageToVideoParams {
   model: VideoModel;
   prompt?: string | null;
+  /**
+   * Consistency entities; descriptors join the prompt. Images are NOT appended
+   * here — the image list's first frame drives the animation, so extra images
+   * would change its meaning.
+   */
+  entities?: EntityReference[] | null;
   negativePrompt?: string | null;
   numFrames?: number | null;
   /** Requested duration in seconds (provider decides fps). */
@@ -279,6 +482,12 @@ export interface ImageToVideoParams {
   seed?: number | null;
   /** Per-call timeout. Providers translate this into a max polling window. */
   timeoutSeconds?: number | null;
+  /**
+   * Cancellation for the upstream request. Providers that can abort their
+   * transport honor it; the rest ignore it (the caller still discards the
+   * result). Optional so provider implementations opt in individually.
+   */
+  signal?: AbortSignal;
 }
 
 /**
@@ -289,6 +498,8 @@ export interface ImageToVideoParams {
 export interface VideoToVideoParams {
   model: VideoModel;
   prompt?: string | null;
+  /** Consistency entities; descriptors join the prompt (text-only for video). */
+  entities?: EntityReference[] | null;
   negativePrompt?: string | null;
   strength?: number | null;
   durationSeconds?: number | null;

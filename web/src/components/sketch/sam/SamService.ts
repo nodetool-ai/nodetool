@@ -21,10 +21,7 @@ import {
   DEFAULT_SAM_MODEL_ID,
   DEFAULT_SAM_MODEL_NAME,
   FAL_SAM_CAPABILITIES,
-  LOCAL_SAM3_CAPABILITIES,
   LOCAL_SAM3_MODEL_ID,
-  LOCAL_SAM3_MODEL_NAME,
-  SAM_INLINE_IMAGE_MAX_BYTES
 } from "./SamConstants";
 export {
   DEFAULT_SAM_MODEL_ID,
@@ -220,10 +217,7 @@ export interface SamService {
 }
 
 // ─── Stub Implementation ──────────────────────────────────────────────────────
-//
-// The first version returns a stub that reports the model as not-installed.
-// This will be replaced with a real backend integration when the SAM 2
-// inference endpoint is available.
+// Reports the model as not-installed; used as a fallback backend.
 
 export class SamServiceStub implements SamService {
   async checkModelAvailability(): Promise<SamModelInfo> {
@@ -254,7 +248,7 @@ export class SamServiceStub implements SamService {
   }
 }
 
-/** Singleton service instance. Replace with real implementation when available. */
+/** Singleton service instance. */
 let serviceInstance: SamService | null = null;
 let currentBackend: SegmentBackend | null = null;
 /** True when the instance was set explicitly via setSamService. */

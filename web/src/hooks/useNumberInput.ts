@@ -17,9 +17,6 @@ import {
 // Slightly higher value keeps the feel responsive without huge jumps.
 const UNBOUNDED_DRAG_SCALE = 0.25;
 
-/** Hook providing value calculation utilities for number input components. */
-
-/** Hook for handling mouse drag interactions on number input fields. */
 export const useValueCalculation = () => {
   const calculateStepCb = useCallback(calculateStep, []);
   const calculateDecimalPlacesCb = useCallback(calculateDecimalPlaces, []);

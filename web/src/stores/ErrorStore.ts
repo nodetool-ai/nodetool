@@ -71,43 +71,53 @@ export const nodeErrorToDisplayString = (
     typeof normalized === "object" &&
     "message" in normalized
   ) {
-    return String(normalized.message);
+    const message = normalized.message;
+    if (message != null && String(message).trim() !== "") {
+      return String(message);
+    }
+    // A nullish/blank `message` carries no display text — stringifying it yields
+    // the literal "null"/"undefined", which reads as a spurious error. If the
+    // object holds nothing else, it isn't a displayable error at all.
+    const otherKeys = Object.keys(normalized).filter((k) => k !== "message");
+    if (otherKeys.length === 0) {
+      return "";
+    }
   }
 
-  return JSON.stringify(normalized);
+  const json = JSON.stringify(normalized);
+  // `{}` and friends serialize to noise, not an error the user can act on.
+  return json === undefined || json === "{}" || json === "null" ? "" : json;
 };
 
 const useErrorStore = create<ErrorStore>((set, get) => ({
   errors: {},
   /**
-   * Clear the errors for a workflow.
-   * If nodeIds is provided, only clears errors for those specific nodes.
-   *
-   * @param workflowId The id of the workflow.
-   * @param nodeIds Optional set of node IDs to clear. If omitted, clears all nodes in the workflow.
+   * Clear the errors for a workflow. If nodeIds is provided, only clears
+   * errors for those specific nodes.
    */
   clearErrors: (workflowId: string, nodeIds?: Set<string>) => {
     if (nodeIds) {
       const prefix = `${workflowId}:`;
-      const suffixes = Array.from(nodeIds).map((id) => `:${id}`);
       set((state) => {
         // Keys are `${wf}:${job}:${node}`; the node is the final segment, so
         // match on the wf prefix AND the `:${node}` suffix to clear that node
         // across all of the workflow's jobs.
         const newErrors = { ...state.errors };
         for (const key in newErrors) {
-          if (
-            key.startsWith(prefix) &&
-            suffixes.some((suffix) => key.endsWith(suffix))
-          ) {
-            delete newErrors[key as NodeKey];
+          if (key.startsWith(prefix)) {
+            const lastColonIndex = key.lastIndexOf(':');
+            if (lastColonIndex !== -1) {
+              const id = key.substring(lastColonIndex + 1);
+              if (nodeIds.has(id)) {
+                delete newErrors[key as NodeKey];
+              }
+            }
           }
         }
         return { errors: newErrors };
       });
     } else {
       set((state) => {
-        // Optimization: Use for...in loop to avoid intermediate array allocation.
         // Match on the colon boundary to avoid clearing entries for workflows
         // whose IDs happen to share a prefix.
         const prefix = `${workflowId}:`;
@@ -139,15 +149,7 @@ const useErrorStore = create<ErrorStore>((set, get) => ({
       return changed ? { errors: newErrors } : state;
     });
   },
-  /**
-   * Set the error for a node within a specific job.
-   * The error is stored in the errors map.
-   *
-   * @param workflowId The id of the workflow.
-   * @param jobId The id of the run/job.
-   * @param nodeId The id of the node.
-   * @param error The error to set.
-   */
+  /** Set the error for a node within a specific job. */
   setError: (
     workflowId: string,
     jobId: string,
@@ -168,14 +170,7 @@ const useErrorStore = create<ErrorStore>((set, get) => ({
     });
   },
 
-  /**
-   * Get the error for a node within a specific job.
-   *
-   * @param workflowId The id of the workflow.
-   * @param jobId The id of the run/job.
-   * @param nodeId The id of the node.
-   * @returns The error for the node.
-   */
+  /** Get the error for a node within a specific job. */
   getError: (workflowId: string, jobId: string, nodeId: string) => {
     const errors = get().errors;
     const key = nodeKey(workflowId, jobId, nodeId);

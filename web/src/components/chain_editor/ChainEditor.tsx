@@ -9,10 +9,14 @@ import React, { useCallback, useMemo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
-import { FlexRow } from "../ui_primitives/FlexRow";
-import { FlexColumn } from "../ui_primitives/FlexColumn";
-import { EmptyState } from "../ui_primitives/EmptyState";
-import { ToolbarIconButton, Box, TextInput } from "../ui_primitives";
+import {
+  FlexRow,
+  FlexColumn,
+  EmptyState,
+  ToolbarIconButton,
+  Box,
+  TextInput
+} from "../ui_primitives";
 import { useChainEditorStore } from "./useChainEditorStore";
 import { ChainNodeCard } from "./ChainNodeCard";
 import { ChainConnector } from "./ChainConnector";
@@ -90,7 +94,6 @@ export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
 
   return (
     <FlexColumn fullHeight fullWidth sx={{ backgroundColor: theme.vars.palette.background.default }}>
-      {/* Toolbar */}
       <FlexRow
         gap={1.5}
         align="center"
@@ -121,7 +124,6 @@ export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
         />
       </FlexRow>
 
-      {/* Chain content */}
       <Box
         sx={{
           flex: 1,

@@ -1,0 +1,258 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-06-21T16:03:52.969Z",
+  "updated_at": "2026-06-21T16:55:51.256Z",
+  "name": "AI Spokesperson",
+  "tool_name": null,
+  "description": "Give a presenter clip a new script. Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Useful for localising a take, fixing a fluffed line, or spinning one recording into many variants. Both the speech and lip-sync steps are paid per run.",
+  "tags": [
+    "video",
+    "audio",
+    "marketing",
+    "example"
+  ],
+  "thumbnail": "AI Spokesperson.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "comment-1",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "AI Spokesperson",
+          "comment": [
+            "Re-voice an existing presenter clip without a reshoot.\n\n",
+            "1. Drop in footage of a person talking to camera.\n",
+            "2. Write the new script.\n",
+            "3. TTS voices it, then lip-sync redrives the mouth to match.\n\n",
+            "Keep the script close to the original length — lip-sync follows the audio, and a much longer script will run past the footage."
+          ]
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 170
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "in-clip",
+        "type": "nodetool.input.VideoInput",
+        "data": {
+          "name": "presenter_clip",
+          "value": null,
+          "description": "Footage of a person speaking to camera"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 240
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Presenter clip"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "in-script",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "script",
+          "value": "Our spring release ships today. Faster renders, sharper output, and a price that did not move.",
+          "description": "The new words the presenter should say"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  New script"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "speech",
+        "type": "nodetool.audio.TextToSpeech",
+        "data": {
+          "model": {
+            "type": "tts_model",
+            "provider": "replicate",
+            "id": "inworld/realtime-tts-1.5-max",
+            "name": "Inworld Realtime TTS 1.5 Max",
+            "path": null,
+            "voices": []
+          },
+          "speed": 1.0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 380,
+            "y": 380
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Voice the script"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "sync",
+        "type": "nodetool.video.LipSync",
+        "data": {
+          "model": {
+            "type": "video_model",
+            "provider": "fal_ai",
+            "id": "fal-ai/sync-lipsync/v2/pro",
+            "name": "Sync Lipsync v2 Pro",
+            "path": null,
+            "supported_tasks": []
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 760,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Lip-sync to the new audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "output-clip",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "revoiced_clip"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1120,
+            "y": 320
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "5  Re-voiced clip"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in-script",
+        "sourceHandle": "output",
+        "target": "speech",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e2",
+        "source": "in-clip",
+        "sourceHandle": "output",
+        "target": "sync",
+        "targetHandle": "video"
+      },
+      {
+        "id": "e3",
+        "source": "speech",
+        "sourceHandle": "audio",
+        "target": "sync",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e4",
+        "source": "sync",
+        "sourceHandle": "output",
+        "target": "output-clip",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "presenter_clip": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "const": "video"
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      },
+      "script": {
+        "type": "string",
+        "default": "Our spring release ships today. Faster renders, sharper output, and a price that did not move.",
+        "label": ""
+      }
+    },
+    "required": [
+      "presenter_clip",
+      "script"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "revoiced_clip": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "const": "video"
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      }
+    },
+    "required": [
+      "revoiced_clip"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "e31acfae86ee104dbf9df243c9ba6084"
+}

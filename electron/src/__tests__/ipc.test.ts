@@ -22,7 +22,6 @@ jest.mock('../types.d', () => ({
     SHOW_ITEM_IN_FOLDER: 'show-item-in-folder',
     START_SERVER: 'start-server',
     RESTART_SERVER: 'restart-server',
-    RESTART_LLAMA_SERVER: 'restart-llama-server',
     PACKAGE_LIST_AVAILABLE: 'package-list-available',
     PACKAGE_LIST_INSTALLED: 'package-list-installed',
     PACKAGE_INSTALL: 'package-install',
@@ -44,7 +43,6 @@ jest.mock('../server', () => ({
   showItemInFolder: jest.fn(),
   initializeBackendServer: jest.fn(),
   stopServer: jest.fn(),
-  restartLlamaServer: jest.fn(),
 }));
 
 jest.mock('../logger', () => ({
@@ -112,7 +110,7 @@ jest.mock('electron', () => {
 });
 
 import { ipcMain, BrowserWindow, clipboard, globalShortcut, shell, dialog } from 'electron';
-import { getServerState, openLogFile, runApp, showItemInFolder, initializeBackendServer, stopServer, restartLlamaServer } from '../server';
+import { getServerState, openLogFile, runApp, showItemInFolder, initializeBackendServer, stopServer } from '../server';
 import { logMessage } from '../logger';
 import { registerWorkflowShortcut, setupWorkflowShortcuts } from '../shortcuts';
 import { updateTrayMenu, emitWorkflowsChanged } from '../tray';
@@ -152,7 +150,6 @@ const Channels = {
   SHOW_ITEM_IN_FOLDER: 'show-item-in-folder',
   START_SERVER: 'start-server',
   RESTART_SERVER: 'restart-server',
-  RESTART_LLAMA_SERVER: 'restart-llama-server',
   PACKAGE_LIST_AVAILABLE: 'package-list-available',
   PACKAGE_LIST_INSTALLED: 'package-list-installed',
   PACKAGE_INSTALL: 'package-install',
@@ -178,7 +175,6 @@ const serverMock = {
   showItemInFolder: showItemInFolder as jest.MockedFunction<typeof showItemInFolder>,
   initializeBackendServer: initializeBackendServer as jest.MockedFunction<typeof initializeBackendServer>,
   stopServer: stopServer as jest.MockedFunction<typeof stopServer>,
-  restartLlamaServer: restartLlamaServer as jest.MockedFunction<typeof restartLlamaServer>,
 };
 
 const packageManagerMock = {
@@ -389,15 +385,6 @@ describe('initializeIpcHandlers', () => {
         expect.stringContaining('Error while stopping server for restart'),
         'warn'
       );
-    });
-
-    it('should handle RESTART_LLAMA_SERVER', async () => {
-      const restartLlamaServerHandler = ipcMainMock.handle.mock.calls.find(
-        ([channel]) => channel === Channels.RESTART_LLAMA_SERVER
-      )?.[1] as any;
-
-      await restartLlamaServerHandler({});
-      expect(serverMock.restartLlamaServer).toHaveBeenCalled();
     });
 
     it('should handle PACKAGE_LIST_AVAILABLE', async () => {

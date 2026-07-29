@@ -23,13 +23,9 @@ import {
   extraImageProp,
   floatProp,
   intProp,
+  num,
   runShaderNode
 } from "./lib-shader-utils.js";
-
-function num(value: unknown, fallback: number): number {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
 
 class InvertNode extends BaseNode {
   static readonly nodeType = "lib.image.color.Invert";

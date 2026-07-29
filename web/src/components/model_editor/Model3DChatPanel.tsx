@@ -95,7 +95,7 @@ const Model3DChatPanel = () => {
   }, [connect]);
 
   const chatStatus = useMemo(
-    () => (status === "stopping" ? "loading" : status),
+    () => (status === "stopping" ? "connected" : status),
     [status]
   );
 
@@ -145,6 +145,7 @@ const Model3DChatPanel = () => {
         onStop={stopGeneration}
         onNewChat={handleNewChat}
         requireToolSupport
+        hideModePicker
         noMessagesPlaceholder={welcomePlaceholder}
       />
     </div>

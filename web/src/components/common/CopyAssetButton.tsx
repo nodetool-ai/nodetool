@@ -81,7 +81,6 @@ async function copyAssetToClipboardBrowser(
   // Make URL absolute for fetch to work
   const absoluteUrl = makeAbsoluteUrl(url);
   
-  // For images, use the Clipboard API with ClipboardItem
   if (isImageType(contentType)) {
     try {
       const response = await fetch(absoluteUrl);
@@ -106,7 +105,6 @@ async function copyAssetToClipboardBrowser(
     }
   }
 
-  // For text-based content
   if (isTextType(contentType)) {
     try {
       const response = await fetch(absoluteUrl);
@@ -122,7 +120,6 @@ async function copyAssetToClipboardBrowser(
     }
   }
 
-  // For video/audio, copy URL with metadata
   if (isVideoType(contentType) || isAudioType(contentType)) {
     const mediaType = isVideoType(contentType) ? "Video" : "Audio";
     const textContent = assetName ? `${mediaType}: ${assetName}\nURL: ${absoluteUrl}` : absoluteUrl;
@@ -131,7 +128,6 @@ async function copyAssetToClipboardBrowser(
     return;
   }
 
-  // Default: copy URL as text
   await navigator.clipboard.writeText(absoluteUrl);
   console.info("URL copied to clipboard as text");
 }
@@ -300,7 +296,6 @@ export const CopyAssetButton = memo<CopyAssetButtonProps>(
         }
 
         try {
-          // Use Electron API when available, otherwise use browser fallback
           if (isElectron) {
             await copyAssetToClipboard(contentType, url, assetName);
           } else {
@@ -319,7 +314,6 @@ export const CopyAssetButton = memo<CopyAssetButtonProps>(
       [contentType, url, assetName, disabled, onCopySuccess, onCopyError]
     );
 
-    // Don't render if electronOnly and not in Electron
     if (electronOnly && !isElectron) {
       return null;
     }
@@ -329,7 +323,6 @@ export const CopyAssetButton = memo<CopyAssetButtonProps>(
       return null;
     }
 
-    // Generate tooltip based on content type
     const getDefaultTooltip = () => {
       if (isImageType(contentType)) {
         return "Copy image (paste into any image editor)";

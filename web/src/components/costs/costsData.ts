@@ -45,8 +45,6 @@ export interface Execution {
   cost: number;
 }
 
-// --- provider presentation --------------------------------------------------
-
 /**
  * Presentation (label + swatch) for known providers, plus a deterministic
  * fallback so providers the API returns that aren't preset still render with a
@@ -108,8 +106,6 @@ const MONTHS = [
   "December"
 ];
 const MONTHS_SHORT = MONTHS.map((m) => m.slice(0, 3));
-
-// --- grouping ---------------------------------------------------------------
 
 export interface GroupRow {
   key: string;
@@ -177,8 +173,6 @@ export const groupExecutions = (
   return rows.sort((a, b) => b.cost - a.cost);
 };
 
-// --- formatting -------------------------------------------------------------
-
 const moneyDp = (n: number): number => (n >= 1 ? 2 : n >= 0.01 ? 3 : 4);
 
 export const formatMoney = (n: number): string => {
@@ -216,8 +210,6 @@ export const formatRangeLabel = (start: Date, end: Date): string =>
   `${MONTHS[start.getMonth()]} ${start.getDate()} – ${
     MONTHS[end.getMonth()]
   } ${end.getDate()}, ${end.getFullYear()}`;
-
-// --- csv export -------------------------------------------------------------
 
 export const executionsToCsv = (execs: Execution[]): string => {
   const header = [

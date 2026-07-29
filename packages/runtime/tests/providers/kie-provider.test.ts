@@ -49,7 +49,8 @@ function jsonResponse(body: unknown): Response {
   return {
     ok: true,
     status: 200,
-    json: async () => body
+    json: async () => body,
+    text: async () => JSON.stringify(body)
   } as unknown as Response;
 }
 
@@ -162,7 +163,26 @@ describe("KieProvider — imageToVideo", () => {
     expect(result).toEqual(new Uint8Array([7, 7, 7]));
     expect(createdInputs[0].image_url).toBe("https://kie.cdn/frame.png");
     expect(createdInputs[0].prompt).toBe("pan left");
-    expect(createdInputs[0].duration).toBe(5);
+    // kling declares `duration` as an enum of strings — 5s snaps to "5".
+    expect(createdInputs[0].duration).toBe("5");
+  });
+
+  it("snaps a durationSeconds request to the nearest declared enum value", async () => {
+    const { createdInputs } = mockKieFlow(["https://kie.cdn/frame.png"]);
+    const provider = new KieProvider({ KIE_API_KEY: "k" });
+
+    // kling declares duration enum ["5","10"]; 7s is closer to 5.
+    await provider.imageToVideo([new Uint8Array([9])], {
+      model: {
+        id: "kling/v2-1-master-image-to-video",
+        name: "Kling",
+        provider: "kie"
+      },
+      prompt: "pan",
+      durationSeconds: 7
+    });
+
+    expect(createdInputs[0].duration).toBe("5");
   });
 });
 

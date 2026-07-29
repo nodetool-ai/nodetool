@@ -7,6 +7,7 @@
  */
 
 import {
+  applyContentCardBody,
   BaseNode,
   classifyFields,
   classNameToTitle,
@@ -328,7 +329,7 @@ async function buildArgs(
         if (isRefSet(ref)) {
           const url =
             kind === "image"
-              ? ((await imageToDataUrl(ref!)) ??
+              ? ((await imageToDataUrl(ref!, context)) ??
                 (await assetToFalUrl(apiKey, ref!, context)))
               : await assetToFalUrl(apiKey, ref!, context);
           if (url) args[apiName] = url;
@@ -560,13 +561,6 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
       value: true,
       configurable: true
     });
-    // Media generators render as a content card (image/video/audio/3D body).
-    // This is the metadata-driven equivalent of the frontend's old
-    // "fal.* namespace + media output" heuristic.
-    Object.defineProperty(FalNodeClass, "body", {
-      value: "content_card",
-      configurable: true
-    });
   }
 
   if (isImageOutput) {
@@ -621,6 +615,11 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
     });
   }
 
+  // Preview-forward body for anything the editor can display. Read off the
+  // resolved outputs, not `spec.outputType` — endpoints that declare their
+  // media through `outputFields` carry a bare "dict"/"any" there.
+  applyContentCardBody(FalNodeClass);
+
   // Compute and set field classification
   const { inlineFields, inputFields } = computeFieldClassification(spec.inputFields);
   Object.defineProperty(FalNodeClass, "inlineFields", {
@@ -638,9 +637,18 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
     if (field.parentField) continue;
     if (field.name === "num_images") continue;
 
+    // Asset inputs need a proper AssetRef default object. Some manifest entries
+    // carry `default: ""` for asset fields (notably inpaint `mask`s); an empty
+    // string must not shadow the AssetRef default, so ignore non-object
+    // manifest defaults for asset propTypes.
+    const manifestDefault =
+      assetKind(field.propType) !== "none" &&
+      typeof field.default !== "object"
+        ? undefined
+        : field.default;
     const propOptions: PropOptions = {
       type: field.propType,
-      default: field.default ?? defaultForPropType(field.propType)
+      default: manifestDefault ?? defaultForPropType(field.propType)
     };
     if (field.description) propOptions.description = field.description;
     if (field.enumValues?.length) propOptions.values = field.enumValues;

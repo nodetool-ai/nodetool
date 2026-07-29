@@ -14,6 +14,8 @@ import {
   type ExtensionSocket
 } from "../extension-cdp-bridge.js";
 import { setExtensionChannelProvider } from "@nodetool-ai/automation-nodes/lib/extension-channel-provider";
+import { packWebSocketMessage } from "../messagepack.js";
+import type { SdkLiveRunnerRegistry } from "../sdk/sdk-live-runner-registry.js";
 
 const log = createLogger("nodetool.websocket.ws");
 
@@ -29,6 +31,7 @@ export interface WebSocketPluginOptions {
   ensurePythonBridge: () => Promise<void>;
   /** Forwarded to the runner for read-only RPC commands (list_workflows, …). */
   apiOptions: HttpApiOptions;
+  sdkLiveRunnerRegistry?: SdkLiveRunnerRegistry;
   /**
    * Worker provisioning orchestrator. Present when the server is wired with a
    * worker subsystem; enables `scope: "worker"` model downloads on /ws/download.
@@ -149,6 +152,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
     getPythonBridgeReady,
     ensurePythonBridge,
     apiOptions,
+    sdkLiveRunnerRegistry,
     workerManager
   } = opts;
   const graphNodeTypeResolver = createGraphNodeTypeResolver(registry);
@@ -160,6 +164,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
     });
     const runner = new UnifiedWebSocketRunner({
       userId: req.userId ?? "1",
+      authToken: req.authToken ?? undefined,
       beforeRunJob: async (graph) => {
         if (getPythonBridgeReady()) return;
         const hasPythonNode = graph.nodes.some((n) => {
@@ -206,11 +211,13 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
               getLoadErrors?: () => Array<{ module: string; error: string }>;
             }
           ).getLoadErrors?.() ?? [];
-          const matchingLoadError = loadErrors.find(
-            (entry) =>
-              entry.module.includes(node.type) ||
-              node.type.startsWith(entry.module.split(".").slice(2).join("."))
-          );
+          const matchingLoadError = loadErrors.find((entry) => {
+            if (entry.module.includes(node.type)) return true;
+            const suffix = entry.module.split(".").slice(2).join(".");
+            // An empty suffix makes startsWith("") match every node type,
+            // blaming an unrelated import failure. Require a non-empty prefix.
+            return suffix.length > 0 && node.type.startsWith(suffix);
+          });
           throw new Error(
             getPythonBridgeReady()
               ? `Python node "${node.type}" cannot execute: it is declared in metadata but was not loaded by the Python worker.${matchingLoadError ? ` Load error: ${matchingLoadError.module}: ${matchingLoadError.error}.` : stderrSummary ? ` Recent Python worker stderr: ${stderrSummary}` : " Check Python worker status/load errors for import failures."}`
@@ -229,13 +236,36 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
       getPythonBridgeReady,
       apiOptions
     });
+    const runnerTargetId = sdkLiveRunnerRegistry?.register(
+      req.userId ?? "1",
+      runner
+    );
+    if (runnerTargetId) {
+      try {
+        socket.send(
+          packWebSocketMessage({
+            type: "sdk_execution_target",
+            runner_id: runnerTargetId
+          })
+        );
+      } catch {
+        sdkLiveRunnerRegistry?.unregister(runnerTargetId);
+        return;
+      }
+    }
     log.info("WebSocket client connected");
-    void runner.run(new WsAdapter(socket)).catch((error) => {
-      log.error(
-        "Runner crashed",
-        error instanceof Error ? error : new Error(String(error))
-      );
-    });
+    void runner
+      .run(new WsAdapter(socket))
+      .catch((error) => {
+        log.error(
+          "Runner crashed",
+          error instanceof Error ? error : new Error(String(error))
+        );
+      })
+      .finally(() => {
+        if (runnerTargetId)
+          sdkLiveRunnerRegistry?.unregister(runnerTargetId);
+      });
   });
 
   // Chrome-extension CDP side channel.
@@ -252,22 +282,38 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
   // Register the in-process channel factory so the browser action loop running
   // in this server rides the bridge instead of opening its own client WS. The
   // dependency points websocket → automation-nodes (no cycle).
-  setExtensionChannelProvider(() => extensionBridge.getChannel());
+  //
+  // This is an unauthenticated, single-connection side channel: whoever connects
+  // to /ws/extension becomes THE extension socket and can proxy CDP through this
+  // server. It is disabled in production by default; set
+  // NODETOOL_ENABLE_EXTENSION_BRIDGE=1 to opt back in for deployments that
+  // actually use the browser extension.
+  const extensionBridgeEnabled =
+    !isProduction ||
+    process.env["NODETOOL_ENABLE_EXTENSION_BRIDGE"] === "1";
 
-  app.get("/ws/extension", { websocket: true }, (socket, _req) => {
-    // The @fastify/websocket socket satisfies the ExtensionSocket surface
-    // (send(string) / close() / on("message"|"close"|"error")).
-    const extSocket = socket as unknown as ExtensionSocket;
-    socket.on("error", (error: Error) => {
-      log.error("Extension WebSocket error", error);
+  if (extensionBridgeEnabled) {
+    setExtensionChannelProvider(() => extensionBridge.getChannel());
+
+    app.get("/ws/extension", { websocket: true }, (socket, _req) => {
+      // The @fastify/websocket socket satisfies the ExtensionSocket surface
+      // (send(string) / close() / on("message"|"close"|"error")).
+      const extSocket = socket as unknown as ExtensionSocket;
+      socket.on("error", (error: Error) => {
+        log.error("Extension WebSocket error", error);
+      });
+      log.info("Extension WebSocket client connected");
+      extensionBridge.registerSocket(extSocket);
+      socket.on("close", () => {
+        extensionBridge.clear(extSocket);
+        log.info("Extension WebSocket client disconnected");
+      });
     });
-    log.info("Extension WebSocket client connected");
-    extensionBridge.registerSocket(extSocket);
-    socket.on("close", () => {
-      extensionBridge.clear(extSocket);
-      log.info("Extension WebSocket client disconnected");
-    });
-  });
+  } else {
+    log.info(
+      "Extension CDP bridge (/ws/extension) disabled in production; set NODETOOL_ENABLE_EXTENSION_BRIDGE=1 to enable"
+    );
+  }
 
   // Download WebSocket endpoint — local development only
   if (!isProduction) {

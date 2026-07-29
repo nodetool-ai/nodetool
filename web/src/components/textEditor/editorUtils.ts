@@ -4,7 +4,6 @@
 export const isMarkdownText = (text: string): boolean => {
   if (!text || typeof text !== "string") {return false;}
 
-  // Check for common markdown patterns
   return (
     /#{1,6}\s/.test(text) || // Headers
     /\*\*[^*]+\*\*/.test(text) || // Bold

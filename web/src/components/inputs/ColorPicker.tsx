@@ -134,7 +134,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
     setShowModal(false);
   }, []);
 
-  // Handle color cell click using data attribute to avoid creating new functions in map
+  // Use a data attribute so we don't create a new function per cell in the map.
   const handleColorCellButtonClick = useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
       const button = event.currentTarget;
@@ -154,6 +154,8 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
       >
         <Button
           className="open-colors-button"
+          aria-label="Choose color"
+          aria-haspopup="dialog"
           onClick={handleClick}
           style={{
             color: "white",
@@ -198,6 +200,9 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
                 border: cellColor === null ? "2px dashed gray" : "none",
                 backgroundColor: cellColor || "transparent"
               }}
+              aria-label={
+                cellColor === null ? "No color" : `Color ${cellColor}`
+              }
               onClick={handleColorCellButtonClick}
             />
           ))}
@@ -214,7 +219,6 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
         </div>
       </Popover>
 
-      {/* Professional Color Picker Modal */}
       {showModal && (
         <ColorPickerModal
           color={currentColorRef.current}

@@ -11,9 +11,11 @@ import {
 
 import { useRecentAssetsStore } from "../../../../stores/RecentAssetsStore";
 import type { Asset } from "../../../../stores/ApiTypes";
+import type { Entity } from "@nodetool-ai/protocol";
 import { $createAssetMentionNode } from "./AssetMentionNode";
+import { $createEntityMentionNode } from "./EntityMentionNode";
 import { $insertAssetMention } from "./promptEditorState";
-import { assetToUri } from "./promptTokens";
+import { assetToUri, entityToUri } from "./promptTokens";
 import { AssetMentionMenu } from "./AssetMentionMenu";
 import { useAssetMentionSearch } from "./useAssetMentionSearch";
 
@@ -25,11 +27,23 @@ class AssetTypeaheadOption extends MenuOption {
   }
 }
 
+class EntityTypeaheadOption extends MenuOption {
+  entity: Entity;
+  constructor(entity: Entity) {
+    super(`entity:${entity.id}`);
+    this.entity = entity;
+  }
+}
+
+type MentionTypeaheadOption = AssetTypeaheadOption | EntityTypeaheadOption;
+
 /**
- * `@`-triggered picker that inserts an asset-mention chip (encoded as
- * `asset://<id>.<ext>`). The Recent/Saved buckets, search, and tile grid live
- * in `useAssetMentionSearch` + `AssetMentionMenu`, shared with the media chat
- * composer; this plugin wires them to Lexical's typeahead.
+ * `@`-triggered picker that inserts a mention chip: a library entity (encoded
+ * as `entity://<id>`, expanded to its descriptor + reference image at
+ * generation time) or an asset (encoded as `asset://<id>.<ext>`). The buckets,
+ * search, and tile grid live in `useAssetMentionSearch` + `AssetMentionMenu`,
+ * shared with the media chat composer; this plugin wires them to Lexical's
+ * typeahead. Entities come first in the combined selection order.
  */
 const AssetMentionPlugin: React.FC = () => {
   const [editor] = useLexicalComposerContext();
@@ -39,6 +53,7 @@ const AssetMentionPlugin: React.FC = () => {
   const {
     activeTab,
     setActiveTab,
+    entities,
     displayedAssets,
     hasMoreSaved,
     loadMoreSaved,
@@ -50,34 +65,47 @@ const AssetMentionPlugin: React.FC = () => {
     maxLength: 64
   });
 
-  const options = useMemo(
-    () => displayedAssets.map((asset) => new AssetTypeaheadOption(asset)),
-    [displayedAssets]
+  const options = useMemo<MentionTypeaheadOption[]>(
+    () => [
+      ...entities.map((entity) => new EntityTypeaheadOption(entity)),
+      ...displayedAssets.map((asset) => new AssetTypeaheadOption(asset))
+    ],
+    [entities, displayedAssets]
   );
 
   const onSelectOption = useCallback(
     (
-      selectedOption: AssetTypeaheadOption,
+      selectedOption: MentionTypeaheadOption,
       nodeToReplace: ReturnType<typeof $createTextNode> | null,
       closeMenu: () => void
     ) => {
       editor.update(() => {
-        const { asset } = selectedOption;
-        const node = $createAssetMentionNode(
-          assetToUri(asset),
-          asset.name || asset.id,
-          asset.thumb_url || asset.get_url || undefined
-        );
+        const node =
+          selectedOption instanceof EntityTypeaheadOption
+            ? $createEntityMentionNode(
+                entityToUri(selectedOption.entity),
+                selectedOption.entity.name || selectedOption.entity.id,
+                selectedOption.entity.reference_images?.[0]?.uri
+              )
+            : $createAssetMentionNode(
+                assetToUri(selectedOption.asset),
+                selectedOption.asset.name || selectedOption.asset.id,
+                selectedOption.asset.thumb_url ||
+                  selectedOption.asset.get_url ||
+                  undefined
+              );
         $insertAssetMention(node, nodeToReplace);
         closeMenu();
       });
-      addRecentAsset(selectedOption.asset);
+      if (selectedOption instanceof AssetTypeaheadOption) {
+        addRecentAsset(selectedOption.asset);
+      }
     },
     [editor, addRecentAsset]
   );
 
   return (
-    <LexicalTypeaheadMenuPlugin<AssetTypeaheadOption>
+    <LexicalTypeaheadMenuPlugin<MentionTypeaheadOption>
       options={options}
       triggerFn={triggerFn}
       onQueryChange={setQueryString}
@@ -96,6 +124,7 @@ const AssetMentionPlugin: React.FC = () => {
               setActiveTab(tab);
               setHighlightedIndex(0);
             }}
+            entities={entities}
             assets={displayedAssets}
             selectedIndex={selectedIndex ?? 0}
             onSelect={(index) => {

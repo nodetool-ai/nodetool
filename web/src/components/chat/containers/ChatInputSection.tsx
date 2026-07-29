@@ -13,7 +13,9 @@ export type ChatComposerVariant = "media" | "simple";
 const styles = (_theme: Theme) =>
   css({
     width: "90%",
-    maxWidth: "1000px",
+    // Match the 800px message column (`chatMessagesList`) so the composer and
+    // the thread share the same left/right edges.
+    maxWidth: "800px",
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
@@ -66,6 +68,8 @@ type ChatInputSectionProps = {
   composerToolbar?: React.ReactNode;
   /** Override the composer's textarea placeholder. */
   placeholder?: string;
+  /** Pure chat panel: hide the media mode picker, force chat mode. */
+  hideModePicker?: boolean;
 };
 
 const ChatInputSection = ({
@@ -81,7 +85,8 @@ const ChatInputSection = ({
   requireToolSupport,
   variant = "media",
   composerToolbar,
-  placeholder
+  placeholder,
+  hideModePicker
 }: ChatInputSectionProps) => {
   const isLoading = status === "loading";
   const isStreaming = status === "streaming";
@@ -113,6 +118,7 @@ const ChatInputSection = ({
             allowedProviders={allowedProviders}
             requireToolSupport={requireToolSupport}
             placeholder={placeholder}
+            hideModePicker={hideModePicker}
           />
         )}
       </div>

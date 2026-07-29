@@ -27,7 +27,6 @@ const IpcChannels = {
   FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY: "file-explorer-open-system-directory",
   START_SERVER: "start-server",
   RESTART_SERVER: "restart-server",
-  RESTART_LLAMA_SERVER: "restart-llama-server",
   RUN_APP: "run-app",
   BOOT_MESSAGE: "boot-message",
   SERVER_STARTED: "server-started",
@@ -68,8 +67,6 @@ const IpcChannels = {
   SETTINGS_SET_AUTO_UPDATES: "settings-set-auto-updates",
   SETTINGS_GET_UPDATE_CHANNEL: "settings-get-update-channel",
   SETTINGS_SET_UPDATE_CHANNEL: "settings-set-update-channel",
-  SETTINGS_GET_MODEL_SERVICES_STARTUP: "settings-get-model-services-startup",
-  SETTINGS_SET_MODEL_SERVICES_STARTUP: "settings-set-model-services-startup",
   SHOW_SETTINGS: "show-settings",
   GET_SYSTEM_INFO: "get-system-info",
   DIALOG_OPEN_FILE: "dialog-open-file",
@@ -141,7 +138,6 @@ describe("preload contract", () => {
     api.server.getState();
     api.server.start();
     api.server.restart();
-    api.server.restartLlama();
 
     const channels = (electronMock.ipcRenderer.invoke as jest.Mock).mock.calls
       .map((c: unknown[]) => c[0]);
@@ -150,7 +146,6 @@ describe("preload contract", () => {
       IpcChannels.GET_SERVER_STATE,
       IpcChannels.START_SERVER,
       IpcChannels.RESTART_SERVER,
-      IpcChannels.RESTART_LLAMA_SERVER,
     ]);
   });
 

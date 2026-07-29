@@ -8,10 +8,11 @@ interface SourceToggleProps {
 }
 
 /**
- * Catalog source toggle for the ModelManager. "Installed" lists models on disk
- * (or the attached worker); "Recommended" lists the curated catalog aggregated
- * from installed nodes; "Hub" searches the live HuggingFace Hub. The latter two
- * are browsable for download.
+ * Catalog source toggle for the ModelManager. "Get Started" is the guided,
+ * hardware-aware onboarding; "Installed" lists models on disk (or the attached
+ * worker); "Recommended" lists the curated catalog aggregated from installed
+ * nodes; "Hub" searches the live HuggingFace Hub. The last three are browsable
+ * for download.
  */
 const SourceToggleInternal: React.FC<SourceToggleProps> = ({
   source,
@@ -34,6 +35,9 @@ const SourceToggleInternal: React.FC<SourceToggleProps> = ({
       onChange={handleChange}
       aria-label="model source"
     >
+      <ToggleOption value="onboarding" aria-label="get started">
+        Get Started
+      </ToggleOption>
       <ToggleOption value="installed" aria-label="installed models">
         Installed
       </ToggleOption>

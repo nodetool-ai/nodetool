@@ -6,6 +6,7 @@ import type { Theme } from "@mui/material/styles";
 import {
   Tooltip,
   Box,
+  FlexColumn,
   MOTION,
   BORDER_RADIUS,
   SPACING,
@@ -20,7 +21,7 @@ import {
 } from "../../stores/BottomPanelStore";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import TracePanel from "./TracePanel";
 import LogPanel from "./LogPanel";
 import QueuePanel from "./jobs/QueuePanel";
@@ -36,12 +37,7 @@ import { isProduction } from "../../lib/env";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import ContextMenus from "../context_menus/ContextMenus";
-import {
-  Workflow,
-  WorkflowVersion,
-  Node as GraphNode,
-  Edge as GraphEdge
-} from "../../stores/ApiTypes";
+import { WorkflowVersion } from "../../stores/ApiTypes";
 import { useRunningJobs } from "../../hooks/useRunningJobs";
 import { useSystemStatsStore } from "../../stores/systemStatsHandler";
 import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
@@ -167,6 +163,10 @@ const VIEW_SPECS: Record<BottomPanelView, ViewSpec> = {
     enabled: true
   }
 };
+
+const ENABLED_VIEWS = BOTTOM_PANEL_GROUPS.flatMap((g) =>
+  g.views.filter((v) => VIEW_SPECS[v]?.enabled)
+);
 
 const styles = (theme: Theme) =>
   css({
@@ -430,16 +430,10 @@ const PanelBodyContent = memo(function PanelBodyContent({
 
       const graph = version.graph;
       const newNodes = graph.nodes.map((n) =>
-        graphNodeToReactFlowNode(
-          {
-            ...workflow,
-            graph: graph as unknown as Workflow["graph"]
-          } as Workflow,
-          n as GraphNode
-        )
+        graphNodeToReactFlowNode({ ...workflow, graph }, n)
       );
       const newEdges = graph.edges.map((e) =>
-        graphEdgeToReactFlowEdge(e as GraphEdge)
+        graphEdgeToReactFlowEdge(e)
       );
 
       storeState.setNodes(newNodes);
@@ -456,20 +450,18 @@ const PanelBodyContent = memo(function PanelBodyContent({
       return <LogPanel />;
     case "queue":
       return (
-        <Box
+        <FlexColumn
           className="queue-panel"
+          fullWidth
+          fullHeight
           sx={{
-            display: "flex",
-            flexDirection: "column",
-            width: "100%",
-            height: "100%",
             overflow: "hidden",
             padding: "0 1em"
           }}
         >
           <PanelHeadline title="Queue" />
           <QueuePanel />
-        </Box>
+        </FlexColumn>
       );
     case "sandboxes":
       return sandboxesEnabled ? <SandboxesPanel /> : null;
@@ -525,8 +517,10 @@ const PanelBottom: React.FC = () => {
   );
 
   const { data: allJobs } = useRunningJobs();
-  const queuedCount =
-    allJobs?.filter((j) => j.status === "queued").length ?? 0;
+  const queuedCount = useMemo(
+    () => allJobs?.filter((j) => j.status === "queued").length ?? 0,
+    [allJobs]
+  );
 
   const systemStats = useSystemStatsStore((state) => state.stats);
 
@@ -547,9 +541,7 @@ const PanelBottom: React.FC = () => {
     return null;
   }
 
-  const enabledViews = BOTTOM_PANEL_GROUPS.flatMap((g) =>
-    g.views.filter((v) => VIEW_SPECS[v]?.enabled)
-  );
+  const enabledViews = ENABLED_VIEWS;
 
   const openHeight = isVisible
     ? Math.min(

@@ -380,4 +380,25 @@ describe("HttpRequestTool", () => {
       fetchSpy.mockRestore();
     }
   });
+
+  // Regression (#20): the URL is model/attacker-influenceable via prompt
+  // injection, so SSRF targets must be refused before any request is made.
+  it.each([
+    "http://169.254.169.254/latest/meta-data/",
+    "http://localhost:7777/admin",
+    "http://127.0.0.1/",
+    "http://[::1]/",
+    "http://10.0.0.5/internal",
+    "http://example.com/plain-http-downgrade"
+  ])("refuses SSRF / non-public target %s without fetching", async (url) => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const ctx = makeMockContext();
+    const result = (await tool.process(ctx, { url })) as Record<
+      string,
+      unknown
+    >;
+    expect(result.error).toBeTruthy();
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
+  });
 });

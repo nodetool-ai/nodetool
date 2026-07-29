@@ -29,6 +29,7 @@ import {
   Toast
 } from "../../ui_primitives";
 import { useCreateGeneratedLayer } from "../../../hooks/sketch/useCreateGeneratedLayer";
+import { useAutoFocusEnabled } from "../../../hooks/useAutoFocusEnabled";
 
 const IMAGE_OUTPUT_TYPES = new Set([
   "nodetool.output.ImageOutput",
@@ -52,7 +53,9 @@ const ROW_GAP_PX = 4;
 
 const dialogStyles = (theme: Theme) =>
   css({
-    minWidth: 560,
+    // Never wider than the viewport: the dialog is reachable on phones, where
+    // a hard 560px min forces the page to scroll sideways.
+    minWidth: "min(560px, 100vw - 32px)",
     maxWidth: 720
   });
 
@@ -130,6 +133,7 @@ const CreateGeneratedLayerDialogBody: React.FC<{
 }> = ({ onClose, onCreated }) => {
     const theme = useTheme();
     const [filter, setFilter] = useState("");
+    const autoFocusEnabled = useAutoFocusEnabled();
     const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(
       null
     );
@@ -244,8 +248,10 @@ const CreateGeneratedLayerDialogBody: React.FC<{
               Pick any workflow whose graph has an image output node.
             </Caption>
 
+            {/* autoFocus is skipped on touch, where the virtual keyboard
+                would cover the workflow list below. */}
             <TextInput
-              autoFocus
+              autoFocus={autoFocusEnabled}
               compact
               size="small"
               placeholder="Search workflows…"
@@ -298,14 +304,7 @@ const CreateGeneratedLayerDialogBody: React.FC<{
                     >
                       <FlexColumn gap={0.5}>
                         <FlexRow align="center" gap={1}>
-                          <Label
-                            sx={{
-                              flex: 1,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap"
-                            }}
-                          >
+                          <Label noWrap sx={{ flex: 1 }}>
                             {w.name}
                           </Label>
                           <Caption color="secondary">
@@ -314,14 +313,7 @@ const CreateGeneratedLayerDialogBody: React.FC<{
                           </Caption>
                         </FlexRow>
                         {w.description && (
-                          <Caption
-                            color="secondary"
-                            sx={{
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap"
-                            }}
-                          >
+                          <Caption color="secondary" noWrap>
                             {w.description}
                           </Caption>
                         )}

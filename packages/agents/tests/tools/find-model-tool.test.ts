@@ -64,7 +64,7 @@ describe("FindModelTool — empty providers", () => {
     })) as { total: number; results: unknown[]; note?: string };
     expect(result.total).toBe(0);
     expect(result.results).toEqual([]);
-    expect(result.note).toMatch(/AgentStep/i);
+    expect(result.note).toMatch(/nodetool\.agents\.Agent/i);
   });
 });
 

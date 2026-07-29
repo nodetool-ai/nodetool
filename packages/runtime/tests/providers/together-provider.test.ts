@@ -7,19 +7,11 @@ import type {
   TextToImageParams,
   TextToVideoParams
 } from "../../src/providers/types.js";
-
-function makeAsyncIterable(items: unknown[]) {
-  return {
-    async *[Symbol.asyncIterator]() {
-      for (const item of items) {
-        yield item;
-      }
-    },
-    async close() {
-      return;
-    }
-  };
-}
+import {
+  chatJsonResponse,
+  chatSSEResponse,
+  mockChatFetch
+} from "./helpers/compat-fetch.js";
 
 /** Build a minimal valid WAV buffer containing one zero-valued 16-bit sample at 24 kHz. */
 function buildMinimalWav(sampleRate = 24000): Uint8Array {
@@ -170,25 +162,23 @@ describe("TogetherProvider", () => {
 
   // ─── Chat completions (inherited) ───────────────────────────────────────────
 
-  it("generates non-streaming message via inherited OpenAI logic", async () => {
-    const create = vi.fn().mockResolvedValue({
-      choices: [
-        {
-          message: {
-            content: "together response",
-            tool_calls: null
+  it("generates non-streaming message via the compat chat client", async () => {
+    const fetchMock = mockChatFetch(
+      chatJsonResponse({
+        choices: [
+          {
+            message: {
+              content: "together response",
+              tool_calls: null
+            }
           }
-        }
-      ]
-    });
+        ]
+        })
+    );
 
     const provider = new TogetherProvider(
       { TOGETHER_API_KEY: "k" },
-      {
-        client: {
-          chat: { completions: { create } }
-        } as any
-      }
+      { fetchFn: fetchMock as unknown as typeof fetch }
     );
 
     const messages: Message[] = [{ role: "user", content: "hello" }];
@@ -199,10 +189,10 @@ describe("TogetherProvider", () => {
 
     expect(result.role).toBe("assistant");
     expect(result.content).toBe("together response");
-    expect(create).toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalled();
   });
 
-  it("streams messages via inherited OpenAI logic", async () => {
+  it("streams messages via the compat chat client", async () => {
     const chunks = [
       {
         choices: [{ delta: { content: "hello" }, finish_reason: null }]
@@ -212,15 +202,11 @@ describe("TogetherProvider", () => {
       }
     ];
 
-    const create = vi.fn().mockResolvedValue(makeAsyncIterable(chunks));
+    const fetchMock = mockChatFetch(() => chatSSEResponse(chunks));
 
     const provider = new TogetherProvider(
       { TOGETHER_API_KEY: "k" },
-      {
-        client: {
-          chat: { completions: { create } }
-        } as any
-      }
+      { fetchFn: fetchMock as unknown as typeof fetch }
     );
 
     const messages: Message[] = [{ role: "user", content: "hi" }];
@@ -383,8 +369,45 @@ describe("TogetherProvider", () => {
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
     expect(body.image_url).toMatch(/^data:image\/jpeg;base64,/);
+    expect(body.reference_images).toBeUndefined();
     expect(body.prompt).toBe("make it blue");
     expect(body.guidance_scale).toBe(3.5);
+  });
+
+  it("imageToImage sends reference_images array for multiple inputs", async () => {
+    const imageBytes = new Uint8Array([13, 14, 15, 16]);
+    const b64 = Buffer.from(imageBytes).toString("base64");
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [{ b64_json: b64 }] })
+    });
+
+    const provider = new TogetherProvider(
+      { TOGETHER_API_KEY: "k" },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+
+    const first = new Uint8Array([0xff, 0xd8, 0xff]); // fake JPEG header
+    const second = new Uint8Array([0x89, 0x50, 0x4e, 0x47]); // fake PNG header
+    const params: ImageToImageParams = {
+      model: {
+        id: "black-forest-labs/FLUX.2-pro",
+        name: "FLUX.2 Pro",
+        provider: "together"
+      },
+      prompt: "combine these"
+    };
+
+    const result = await provider.imageToImage([first, second], params);
+    expect(result).toEqual(imageBytes);
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(body.image_url).toBeUndefined();
+    expect(body.reference_images).toHaveLength(2);
+    expect(body.reference_images[0]).toMatch(/^data:image\/jpeg;base64,/);
+    expect(body.reference_images[1]).toMatch(/^data:image\/png;base64,/);
+    expect(body.prompt).toBe("combine these");
   });
 
   // ─── TTS ────────────────────────────────────────────────────────────────────
@@ -435,6 +458,43 @@ describe("TogetherProvider", () => {
     expect(body.input).toBe("hello world");
     expect(body.voice).toBe("tara");
     expect(body.response_format).toBe("wav");
+  });
+
+  it("does not throw on a WAV truncated inside the fmt chunk header (#3)", async () => {
+    // Regression: the fmt-chunk bounds guard was off by 4, so a buffer ending
+    // between offset+12 and offset+15 passed the guard and getUint32 threw an
+    // uncaught RangeError out of the async generator. Truncate a valid WAV to
+    // 26 bytes (fmt chunk present, sampleRate field cut off) — parsing must
+    // fall back to the default sample rate instead of crashing.
+    const truncated = buildMinimalWav(24000).slice(0, 26);
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => truncated.buffer.slice(0, 26)
+    });
+
+    const provider = new TogetherProvider(
+      { TOGETHER_API_KEY: "k" },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+
+    const chunks: import("../../src/providers/types.js").StreamingAudioChunk[] =
+      [];
+    await expect(
+      (async () => {
+        for await (const chunk of provider.textToSpeech({
+          text: "hi",
+          model: "canopylabs/orpheus-3b-0.1-ft",
+          voice: "tara"
+        })) {
+          chunks.push(chunk);
+        }
+      })()
+    ).resolves.not.toThrow();
+    // Sample rate falls back to the 24 kHz default.
+    if (chunks.length > 0) {
+      expect(chunks[0].sampleRate).toBe(24000);
+    }
   });
 
   it("textToSpeech defaults to tara voice when none supplied", async () => {

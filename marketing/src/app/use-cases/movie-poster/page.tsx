@@ -133,7 +133,7 @@ export default function MoviePosterUseCase() {
             </a>
 
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
               className="mt-8 max-w-3xl"
@@ -156,7 +156,7 @@ export default function MoviePosterUseCase() {
 
             {/* Hero triptych */}
             <motion.div
-              initial={{ opacity: 0, y: 40 }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.15 }}
               className="relative mt-12"
@@ -219,7 +219,7 @@ export default function MoviePosterUseCase() {
 
             {/* Live graph — the real workflow, rendered from the node UI components */}
             <motion.div
-              initial={{ opacity: 0, y: 24 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-80px" }}
               transition={{ duration: 0.6 }}
@@ -245,7 +245,7 @@ export default function MoviePosterUseCase() {
               {steps.map((step, i) => (
                 <motion.div
                   key={step.title}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={false}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-60px" }}
                   transition={{ duration: 0.5, delay: i * 0.05 }}
@@ -290,7 +290,7 @@ export default function MoviePosterUseCase() {
               {posters.map((p) => (
                 <motion.div
                   key={p.src}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={false}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-60px" }}
                   transition={{ duration: 0.5 }}
@@ -329,7 +329,7 @@ export default function MoviePosterUseCase() {
               {tweaks.map((tweak, i) => (
                 <motion.div
                   key={tweak.title}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={false}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-60px" }}
                   transition={{ duration: 0.5, delay: i * 0.05 }}

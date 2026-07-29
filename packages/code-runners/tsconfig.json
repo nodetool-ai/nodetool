@@ -27,6 +27,9 @@
   "references": [
     {
       "path": "../config"
+    },
+    {
+      "path": "../docker"
     }
   ]
 }

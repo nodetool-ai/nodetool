@@ -22,15 +22,15 @@ export default function FeaturesSection({
     <section
       id="features"
       aria-labelledby="features-title"
-      className="relative py-24 overflow-hidden"
+      className="relative py-24 overflow-clip-safe"
     >
       {/* Background Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-blue-900/20 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="mb-16 text-center max-w-3xl mx-auto">
+        <div className="scroll-fade mb-16 text-center max-w-3xl mx-auto">
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={false}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             className="inline-flex items-center justify-center p-3 mb-6 rounded-2xl bg-blue-500/10 border border-blue-500/20 shadow-lg shadow-blue-500/10"
@@ -40,10 +40,10 @@ export default function FeaturesSection({
 
           <motion.h2
             id="features-title"
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
             One canvas <br />
@@ -53,25 +53,25 @@ export default function FeaturesSection({
           </motion.h2>
 
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Image, video, audio, and text on a single node-based canvas — with
-            the editing tools you rely on wired in right next to the model
-            calls.
+            Image, video, audio, and text on a single visual canvas, with the
+            editing tools you already rely on sitting right next to the models.
+            You direct the whole piece instead of generating parts of it.
           </motion.p>
         </div>
 
         {/* Screenshot with Tilt */}
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
-          className="relative mx-auto max-w-5xl mb-20"
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="scroll-fade relative mx-auto max-w-5xl mb-20"
         >
           <Tilt3D>
             <div className="relative rounded-xl border border-white/10 bg-slate-900/50 backdrop-blur-xl shadow-2xl overflow-hidden group">
@@ -89,7 +89,7 @@ export default function FeaturesSection({
               </div>
 
               <Image
-                src="/screen_workflow.png"
+                src="/screen_workflow.webp"
                 alt="Node workflow turning a campaign brief and product photo into a generated product video"
                 width={1400}
                 height={892}
@@ -102,10 +102,10 @@ export default function FeaturesSection({
 
         {/* Features Grid */}
         <motion.div
-          className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4"
+          className="scroll-fade grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4"
           initial="hidden"
           whileInView="show"
-          viewport={{ once: true, margin: "-100px" }}
+          viewport={{ once: true, margin: "-40px" }}
           variants={{
             show: { transition: { staggerChildren: 0.1 } },
           }}
@@ -114,16 +114,16 @@ export default function FeaturesSection({
             {
               title: "Edit where you generate",
               description:
-                "Masks, inpaint, outpaint, relight, upscale, layers, compositing. The post tools you reach for, wired into the same canvas as the model calls.",
+                "Mask, retouch, extend, relight, upscale, layer, and composite. The editing tools you reach for live on the same canvas as the models.",
               icon: MousePointer2,
               color: "text-blue-400",
               bg: "bg-blue-500/10",
               border: "border-blue-500/20",
             },
             {
-              title: "Watch every node render",
+              title: "Watch every step render",
               description:
-                "Outputs stream in as nodes finish. Inspect any frame, swap a model, re-run from that node down.",
+                "Results appear as each step finishes. Inspect any frame, swap a model, and re-run from that point on.",
               icon: Activity,
               color: "text-purple-400",
               bg: "bg-purple-500/10",
@@ -141,7 +141,7 @@ export default function FeaturesSection({
             {
               title: "Image, video, audio, text",
               description:
-                "Flux, Seedance, Wan, ControlNet, Whisper, ElevenLabs, Suno — every modality on one canvas, under their real names. No white-label mystery models.",
+                "Flux, Seedance, Wan, ControlNet, Whisper, ElevenLabs, and Suno, all on one canvas under their real names. You always know which model you are running.",
               icon: Layers,
               color: "text-orange-400",
               bg: "bg-orange-500/10",
@@ -151,8 +151,8 @@ export default function FeaturesSection({
             <motion.div
               key={feature.title}
               variants={{
-                hidden: { opacity: 0, y: 20 },
-                show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+                hidden: { opacity: 1, y: 0 },
+                show: { opacity: 1, y: 0, transition: { duration: 0.25 } },
               }}
             >
               <Tilt3D className="h-full">

@@ -4,42 +4,36 @@
  */
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import * as os from "node:os";
 
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import {
+  localPathDenialMessage,
+  resolveLocalPath
+} from "../../lib/local-file-access.js";
+import {
   listFilesInput,
-  listFilesOutput,
-  fileInfoInput,
-  fileInfoOutput
+  listFilesOutput
 } from "@nodetool-ai/protocol/api-schemas/files.js";
 import { ApiErrorCode } from "@nodetool-ai/protocol/api-schemas/api-error-code.js";
 
 // ── Sandbox helpers ─────────────────────────────────────────────────────────
 
-function getRootDir(): string {
-  return os.homedir();
-}
-
 /**
- * Resolve a user-provided path within the sandbox root.
- * Returns the resolved absolute path, or throws FORBIDDEN if path escapes.
+ * Resolve a caller-supplied path inside the allowed roots, or throw FORBIDDEN.
+ * The policy itself lives in lib/local-file-access.ts, shared with the REST
+ * preview stream (`GET /api/files/local`) so the two can't diverge.
  */
-function resolveSandboxed(rootDir: string, userPath: string): string {
-  const resolved = path.resolve(
-    rootDir,
-    userPath.startsWith("/") ? "." + userPath : userPath
-  );
-  const normalizedRoot = path.resolve(rootDir);
-  if (
-    !resolved.startsWith(normalizedRoot + path.sep) &&
-    resolved !== normalizedRoot
-  ) {
-    throwApiError(ApiErrorCode.FORBIDDEN, "Path traversal not allowed");
+async function resolveSandboxed(userPath: string): Promise<string> {
+  const result = await resolveLocalPath(userPath);
+  if (!result.ok) {
+    throwApiError(
+      ApiErrorCode.FORBIDDEN,
+      localPathDenialMessage(result.reason)
+    );
   }
-  return resolved;
+  return result.path;
 }
 
 // ── Router ──────────────────────────────────────────────────────────────────
@@ -56,8 +50,7 @@ export const filesRouter = router({
         );
       }
 
-      const rootDir = getRootDir();
-      const resolved = resolveSandboxed(rootDir, input.path);
+      const resolved = await resolveSandboxed(input.path);
 
       try {
         const entries = await fs.readdir(resolved, { withFileTypes: true });
@@ -84,34 +77,6 @@ export const filesRouter = router({
         );
       } catch {
         throwApiError(ApiErrorCode.NOT_FOUND, "Directory not found");
-      }
-    }),
-
-  info: protectedProcedure
-    .input(fileInfoInput)
-    .output(fileInfoOutput)
-    .query(async ({ input }) => {
-      if (process.env["NODETOOL_ENV"] === "production") {
-        throwApiError(
-          ApiErrorCode.FORBIDDEN,
-          "File browser is disabled in production"
-        );
-      }
-
-      const rootDir = getRootDir();
-      const resolved = resolveSandboxed(rootDir, input.path);
-
-      try {
-        const stat = await fs.stat(resolved);
-        return {
-          name: path.basename(resolved),
-          path: resolved,
-          size: stat.size,
-          is_dir: stat.isDirectory(),
-          modified_at: stat.mtime.toISOString()
-        };
-      } catch {
-        throwApiError(ApiErrorCode.NOT_FOUND, "File not found");
       }
     })
 });

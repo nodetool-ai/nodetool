@@ -1,11 +1,76 @@
-import {
-  differenceInSeconds,
-  differenceInMinutes,
-  differenceInHours,
-  differenceInDays,
-  differenceInMonths,
-  differenceInYears
-} from "date-fns";
+const differenceInSeconds = (later: Date, earlier: Date): number =>
+  Math.trunc((later.getTime() - earlier.getTime()) / 1000);
+
+const differenceInMinutes = (later: Date, earlier: Date): number =>
+  Math.trunc((later.getTime() - earlier.getTime()) / 60000);
+
+const differenceInHours = (later: Date, earlier: Date): number =>
+  Math.trunc((later.getTime() - earlier.getTime()) / 3600000);
+
+function compareLocal(later: Date, earlier: Date): number {
+  const difference =
+    later.getFullYear() - earlier.getFullYear() ||
+    later.getMonth() - earlier.getMonth() ||
+    later.getDate() - earlier.getDate() ||
+    later.getHours() - earlier.getHours() ||
+    later.getMinutes() - earlier.getMinutes() ||
+    later.getSeconds() - earlier.getSeconds() ||
+    later.getMilliseconds() - earlier.getMilliseconds();
+  return Math.sign(difference);
+}
+
+function localCalendarTimestamp(date: Date): number {
+  const utcDate = new Date(0);
+  utcDate.setUTCHours(0, 0, 0, 0);
+  utcDate.setUTCFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+  return utcDate.getTime();
+}
+
+function differenceInDays(later: Date, earlier: Date): number {
+  const sign = compareLocal(later, earlier);
+  const calendarDays = Math.abs(
+    Math.round(
+      (localCalendarTimestamp(later) - localCalendarTimestamp(earlier)) /
+        86400000
+    )
+  );
+  const adjustedLater = new Date(later);
+  adjustedLater.setDate(adjustedLater.getDate() - sign * calendarDays);
+  const lastDayIsNotFull = Number(compareLocal(adjustedLater, earlier) === -sign);
+  const result = sign * (calendarDays - lastDayIsNotFull);
+  return result === 0 ? 0 : result;
+}
+
+/** `earlier` shifted forward by `months` calendar months, clamped so e.g.
+ * Jan 31 + 1 month lands on the last day of February, not March 3. */
+function addMonthsClamped(date: Date, months: number): Date {
+  const result = new Date(date.getTime());
+  const day = result.getDate();
+  result.setDate(1);
+  result.setMonth(result.getMonth() + months);
+  const daysInTargetMonth = new Date(
+    result.getFullYear(),
+    result.getMonth() + 1,
+    0
+  ).getDate();
+  result.setDate(Math.min(day, daysInTargetMonth));
+  return result;
+}
+
+/** Full calendar months elapsed between two dates (later >= earlier). */
+function differenceInMonths(later: Date, earlier: Date): number {
+  let months =
+    (later.getFullYear() - earlier.getFullYear()) * 12 +
+    (later.getMonth() - earlier.getMonth());
+  if (months > 0 && addMonthsClamped(earlier, months).getTime() > later.getTime()) {
+    months -= 1;
+  }
+  return Math.max(months, 0);
+}
+
+/** Full calendar years elapsed between two dates (later >= earlier). */
+const differenceInYears = (later: Date, earlier: Date): number =>
+  Math.floor(differenceInMonths(later, earlier) / 12);
 
 export function secondsToHMS(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
@@ -33,7 +98,7 @@ export function relativeTime(date: Date | string): string {
     return "just now";
   }
 
-  // Months and years are calendar-aware (date-fns) rather than fixed 30/365-day
+  // Months and years are calendar-aware rather than fixed 30/365-day
   // windows, so e.g. a date in a 31-day month is not rounded up early.
   const years = differenceInYears(now, past);
   if (years >= 1) {
@@ -66,4 +131,3 @@ export function relativeTime(date: Date | string): string {
 
   return agoLabel(seconds, "sec", "sec");
 }
-

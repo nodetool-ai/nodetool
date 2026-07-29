@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { DatetimeRenderer } from "../../../components/node/output/DatetimeRenderer";
 import { Datetime } from "../../../stores/ApiTypes";
+import { formatDateTime } from "../../../utils/formatUtils";
 import mockTheme from "../../../__mocks__/themeMock";
 
 // Mock the Actions component to avoid complex theme requirements
@@ -32,9 +33,9 @@ describe("DatetimeRenderer", () => {
   it("renders datetime correctly", () => {
     renderWithTheme(<DatetimeRenderer value={mockDatetime} />);
     
-    // Locale-independent: accept either MM/DD/YYYY or DD.MM.YYYY (with optional leading zeros)
+    // The renderer delegates to the shared formatDateTime helper
     expect(
-      screen.getByText(/(?:0?10\D+0?15|0?15\D+0?10)\D+2023/)
+      screen.getByText(formatDateTime(new Date(2023, 9, 15, 14, 30, 45)))
     ).toBeInTheDocument();
   });
 
@@ -54,7 +55,9 @@ describe("DatetimeRenderer", () => {
     
     renderWithTheme(<DatetimeRenderer value={newYear} />);
     
-    // Locale-independent: accept either MM/DD/YYYY or DD.MM.YYYY (with optional leading zeros)
-    expect(screen.getByText(/0?1\D+0?1\D+2024/)).toBeInTheDocument();
+    // The renderer delegates to the shared formatDateTime helper
+    expect(
+      screen.getByText(formatDateTime(new Date(2024, 0, 1, 0, 0, 0)))
+    ).toBeInTheDocument();
   });
 });

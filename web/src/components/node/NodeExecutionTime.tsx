@@ -1,14 +1,15 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useMemo } from "react";
+import React, { memo } from "react";
 import {
   Text,
   FlexRow,
   Box,
   BORDER_RADIUS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  Z_INDEX
 } from "../ui_primitives";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { useNodeExecutionDuration } from "../../hooks/nodes/useNodeExecState";
 
 interface NodeExecutionTimeProps {
@@ -49,7 +50,7 @@ const ROW_SX_BASE = {
   right: 4,
   padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
   borderRadius: BORDER_RADIUS.xs,
-  zIndex: 1000,
+  zIndex: Z_INDEX.toast,
   boxShadow: 1
 };
 
@@ -65,10 +66,7 @@ const NodeExecutionTime: React.FC<NodeExecutionTimeProps> = ({
 }) => {
   const duration = useNodeExecutionDuration(workflowId, nodeId);
 
-  const shouldShow = useMemo(
-    () => status === "completed" || status === "error",
-    [status]
-  );
+  const shouldShow = status === "completed" || status === "error";
 
   if (!shouldShow || duration === undefined) {
     return null;

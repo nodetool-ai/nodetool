@@ -73,6 +73,75 @@ describe("OpenAIProvider – resolveImageSize", () => {
     expect(provider.resolveImageSize(800, 800)).toBe("1024x1024");
     expect(provider.resolveImageSize(2000, 1000)).toBe("1536x1024");
   });
+
+  it("preserves GPT Image 2 dimensions that satisfy every API constraint", () => {
+    expect(provider.resolveImageSize(2048, 1152, "gpt-image-2")).toBe(
+      "2048x1152"
+    );
+    expect(
+      provider.resolveImageSize(2160, 3840, "gpt-image-2-2026-04-21")
+    ).toBe("2160x3840");
+  });
+
+  it("returns null for non-positive GPT Image 2 dimensions", () => {
+    expect(provider.resolveImageSize(-1024, -1024, "gpt-image-2")).toBeNull();
+  });
+
+  it("snaps off-grid GPT Image 2 dimensions to the 16px grid", () => {
+    expect(provider.resolveImageSize(2049, 1152, "gpt-image-2")).toBe(
+      "2048x1152"
+    );
+    // 16:9 at 1K — the size the TextToImage node actually requests.
+    expect(provider.resolveImageSize(1820, 1024, "gpt-image-2")).toBe(
+      "1824x1024"
+    );
+  });
+
+  it("scales GPT Image 2 dimensions back inside the API limits", () => {
+    // Long edge over 3840 (and over 3:1, so the short edge grows too).
+    expect(provider.resolveImageSize(3856, 1152, "gpt-image-2")).toBe(
+      "3648x1216"
+    );
+    // Area over 8.3MP.
+    expect(provider.resolveImageSize(3840, 2176, "gpt-image-2")).toBe(
+      "3824x2160"
+    );
+    // Area under 0.64MP.
+    expect(provider.resolveImageSize(800, 800, "gpt-image-2")).toBe("816x816");
+  });
+
+  it("clamps GPT Image 2 aspect ratios beyond 3:1", () => {
+    // 6:1 clamps to 3:1, keeping the requested pixel budget.
+    expect(provider.resolveImageSize(2400, 400, "gpt-image-2")).toBe(
+      "1696x576"
+    );
+  });
+
+  it("keeps every TextToImage aspect ratio non-square for GPT Image 2", () => {
+    const ratios: Array<[number, number]> = [
+      [16, 9],
+      [4, 3],
+      [21, 9],
+      [9, 16],
+      [3, 4],
+      [4, 5]
+    ];
+    for (const [aw, ah] of ratios) {
+      const [w, h] =
+        aw >= ah
+          ? [Math.round((1024 * aw) / ah), 1024]
+          : [1024, Math.round((1024 * ah) / aw)];
+      const size = provider.resolveImageSize(w, h, "gpt-image-2");
+      expect(size).not.toBeNull();
+      const [ow, oh] = size!.split("x").map(Number);
+      expect(ow % 16).toBe(0);
+      expect(oh % 16).toBe(0);
+      expect(ow * oh).toBeGreaterThanOrEqual(655_360);
+      expect(ow * oh).toBeLessThanOrEqual(8_294_400);
+      // Ratio preserved within 1%.
+      expect(Math.abs(ow / oh / (w / h) - 1)).toBeLessThan(0.01);
+    }
+  });
 });
 
 describe("OpenAIProvider – resolveVideoSize", () => {
@@ -83,7 +152,13 @@ describe("OpenAIProvider – resolveVideoSize", () => {
 
   it("uses preset for known aspect+resolution", () => {
     expect(OpenAIProvider.resolveVideoSize("9:16", "720p")).toBe("720x1280");
-    expect(OpenAIProvider.resolveVideoSize("16:9", "1080p")).toBe("1792x1024");
+    expect(OpenAIProvider.resolveVideoSize("16:9", "1080p")).toBe("1920x1080");
+    expect(OpenAIProvider.resolveVideoSize("16:9", "1080p", "sora-2")).toBe(
+      "1280x720"
+    );
+    expect(OpenAIProvider.resolveVideoSize("16:9", "1080p", "sora-2-pro")).toBe(
+      "1920x1080"
+    );
   });
 
   it("handles default 16:9 when aspectRatio is null", () => {
@@ -111,18 +186,39 @@ describe("OpenAIProvider – resolveVideoSize", () => {
 });
 
 describe("OpenAIProvider – secondsFromParams", () => {
-  it("returns null for missing/invalid numFrames", () => {
+  it("returns null for missing/invalid duration and numFrames", () => {
     expect(OpenAIProvider.secondsFromParams({})).toBeNull();
     expect(OpenAIProvider.secondsFromParams({ numFrames: 0 })).toBeNull();
     expect(OpenAIProvider.secondsFromParams({ numFrames: -5 })).toBeNull();
     expect(OpenAIProvider.secondsFromParams({ numFrames: null })).toBeNull();
+    expect(
+      OpenAIProvider.secondsFromParams({ durationSeconds: Number.NaN })
+    ).toBeNull();
+  });
+
+  it("snaps requested durations to values accepted by the API", () => {
+    expect(OpenAIProvider.secondsFromParams({ durationSeconds: 1 })).toBe(4);
+    expect(OpenAIProvider.secondsFromParams({ durationSeconds: 7 })).toBe(4);
+    expect(OpenAIProvider.secondsFromParams({ durationSeconds: 8 })).toBe(8);
+    expect(OpenAIProvider.secondsFromParams({ durationSeconds: 11 })).toBe(8);
+    expect(OpenAIProvider.secondsFromParams({ durationSeconds: 16 })).toBe(16);
+    expect(OpenAIProvider.secondsFromParams({ durationSeconds: 20 })).toBe(20);
+  });
+
+  it("prefers durationSeconds over the numFrames fallback", () => {
+    expect(
+      OpenAIProvider.secondsFromParams({
+        durationSeconds: 8,
+        numFrames: 12
+      })
+    ).toBe(8);
   });
 
   it("maps frame counts to video durations", () => {
     expect(OpenAIProvider.secondsFromParams({ numFrames: 12 })).toBe(4);
     expect(OpenAIProvider.secondsFromParams({ numFrames: 100 })).toBe(4);
     expect(OpenAIProvider.secondsFromParams({ numFrames: 200 })).toBe(8);
-    expect(OpenAIProvider.secondsFromParams({ numFrames: 500 })).toBe(12);
+    expect(OpenAIProvider.secondsFromParams({ numFrames: 500 })).toBe(20);
   });
 });
 
@@ -338,6 +434,43 @@ describe("OpenAIProvider – convertMessage edge cases", () => {
     expect((result as any).content[0].input_audio.format).toBe("mp3");
   });
 
+  it("labels WAV audio bytes with format 'wav' by sniffing magic bytes", async () => {
+    // "RIFF....WAVE" header — sniffAudioMime returns audio/wav.
+    const wav = new Uint8Array([
+      0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x41, 0x56, 0x45
+    ]);
+    const result = await provider.convertMessage({
+      role: "user",
+      content: [{ type: "audio", audio: { data: wav } }]
+    });
+    expect((result as any).content[0].input_audio.format).toBe("wav");
+  });
+
+  it("honors an explicit audio mimeType hint over sniffing", async () => {
+    const result = await provider.convertMessage({
+      role: "user",
+      content: [
+        {
+          type: "audio",
+          audio: { data: new Uint8Array([1, 2, 3]), mimeType: "audio/wav" }
+        }
+      ]
+    });
+    expect((result as any).content[0].input_audio.format).toBe("wav");
+  });
+
+  it("derives audio format from a data URI mime type", async () => {
+    const b64 = Buffer.from([1, 2, 3]).toString("base64");
+    const result = await provider.convertMessage({
+      role: "user",
+      content: [
+        { type: "audio", audio: { uri: `data:audio/wav;base64,${b64}` } }
+      ]
+    });
+    expect((result as any).content[0].input_audio.format).toBe("wav");
+    expect((result as any).content[0].input_audio.data).toBe(b64);
+  });
+
   it("converts user audio content with URI", async () => {
     const data = Buffer.from("audiodata").toString("base64");
     const fetchFn = vi.fn().mockResolvedValue({
@@ -405,9 +538,15 @@ describe("OpenAIProvider – convertSystemToUserForOModels", () => {
     ]);
     const create = vi.fn().mockResolvedValue(stream);
 
+    // The o-model system→user conversion is a Chat Completions concern. On the
+    // `openai` provider o-models route to the Responses API, so exercise the
+    // chat path via a compatible subclass provider id.
     const provider = new OpenAIProvider(
       { OPENAI_API_KEY: "k" },
-      { client: { chat: { completions: { create } } } as any }
+      {
+        client: { chat: { completions: { create } } } as any,
+        providerId: "openrouter"
+      }
     );
 
     const out: unknown[] = [];
@@ -483,7 +622,7 @@ describe("OpenAIProvider – generateMessage with options", () => {
     );
 
     await provider.generateMessage({
-      model: "gpt-4o",
+      model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: "hi" }],
       temperature: 0.5,
       topP: 0.9,
@@ -508,7 +647,7 @@ describe("OpenAIProvider – generateMessage with options", () => {
 
     await expect(
       provider.generateMessage({
-        model: "gpt-4o",
+        model: "gpt-3.5-turbo",
         messages: [{ role: "user", content: "hi" }]
       })
     ).rejects.toThrow("no choices");
@@ -531,14 +670,15 @@ describe("OpenAIProvider – textToImage", () => {
 
     const result = await provider.textToImage({
       prompt: "a cat",
-      model: { id: "gpt-image-1", name: "GPT Image 1", provider: "openai" },
-      width: 1024,
-      height: 1024
+      model: { id: "gpt-image-2", name: "GPT Image 2", provider: "openai" },
+      width: 2048,
+      height: 1152
     });
 
     expect(result).toBeInstanceOf(Uint8Array);
     expect(generate).toHaveBeenCalledTimes(1);
     expect(generate.mock.calls[0][0].prompt).toBe("a cat");
+    expect(generate.mock.calls[0][0].size).toBe("2048x1152");
   });
 
   it("generates image from URL response", async () => {
@@ -634,10 +774,13 @@ describe("OpenAIProvider – imageToImage", () => {
 
     const result = await provider.imageToImage([new Uint8Array([1, 2, 3])], {
       prompt: "make it red",
-      model: { id: "gpt-image-1", name: "GPT Image 1", provider: "openai" }
+      model: { id: "gpt-image-2", name: "GPT Image 2", provider: "openai" },
+      targetWidth: 2048,
+      targetHeight: 1152
     });
 
     expect(result).toBeInstanceOf(Uint8Array);
+    expect(edit.mock.calls[0][0].size).toBe("2048x1152");
   });
 
   it("throws on empty image", async () => {
@@ -707,6 +850,35 @@ describe("OpenAIProvider – imageToImage", () => {
 });
 
 describe("OpenAIProvider – textToSpeech", () => {
+  it("carries a split PCM sample across network chunks", async () => {
+    const iterBytes = async function* () {
+      yield new Uint8Array([1]);
+      yield new Uint8Array([2, 3, 4]);
+    };
+    const provider = new OpenAIProvider(
+      { OPENAI_API_KEY: "k" },
+      {
+        client: {
+          audio: {
+            speech: {
+              with_streaming_response: {
+                create: vi.fn().mockResolvedValue({ iterBytes })
+              }
+            }
+          }
+        } as any
+      }
+    );
+    const samples: number[] = [];
+    for await (const chunk of provider.textToSpeech({
+      text: "hi",
+      model: "tts-1"
+    })) {
+      samples.push(...chunk.samples);
+    }
+    expect(samples).toEqual([513, 1027]);
+  });
+
   it("streams PCM audio chunks via with_streaming_response", async () => {
     const pcmData = new Uint8Array([0, 1, 0, 2]);
 
@@ -828,6 +1000,51 @@ describe("OpenAIProvider – automaticSpeechRecognition", () => {
     expect(create).toHaveBeenCalledTimes(1);
   });
 
+  it("configures diarized transcription without an unsupported prompt", async () => {
+    const create = vi.fn().mockResolvedValue({
+      text: "Hello world",
+      segments: [{ start: 0, end: 1, text: "Hello world", speaker: "A" }]
+    });
+    const provider = new OpenAIProvider(
+      { OPENAI_API_KEY: "k" },
+      { client: { audio: { transcriptions: { create } } } as any }
+    );
+
+    const result = await provider.automaticSpeechRecognition({
+      audio: new Uint8Array([1, 2, 3]),
+      model: "gpt-4o-transcribe-diarize",
+      prompt: "ignored"
+    });
+
+    expect(result).toEqual({
+      text: "Hello world",
+      chunks: [{ timestamp: [0, 1], text: "Hello world" }]
+    });
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: "gpt-4o-transcribe-diarize",
+        response_format: "diarized_json",
+        chunking_strategy: "auto"
+      })
+    );
+    expect(create.mock.calls[0][0]).not.toHaveProperty("prompt");
+  });
+
+  it("rejects word timestamps for models that do not support them", async () => {
+    const provider = new OpenAIProvider(
+      { OPENAI_API_KEY: "k" },
+      { client: {} as any }
+    );
+
+    await expect(
+      provider.automaticSpeechRecognition({
+        audio: new Uint8Array([1, 2, 3]),
+        model: "gpt-4o-transcribe",
+        word_timestamps: true
+      })
+    ).rejects.toThrow("Word timestamps are only supported by whisper-1");
+  });
+
   it("throws on empty audio", async () => {
     const provider = new OpenAIProvider(
       { OPENAI_API_KEY: "k" },
@@ -915,11 +1132,11 @@ describe("OpenAIProvider – generateEmbedding", () => {
 });
 
 describe("OpenAIProvider – getAvailableLanguageModels", () => {
-  it("fetches and maps models", async () => {
+  it("keeps only the supported gpt-5 family and drops older models", async () => {
     const fetchFn = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
-        data: [{ id: "gpt-4o" }, { id: "gpt-3.5-turbo" }, {}]
+        data: [{ id: "gpt-5.4" }, { id: "gpt-4o" }, { id: "gpt-3.5-turbo" }, {}]
       })
     });
 
@@ -930,12 +1147,11 @@ describe("OpenAIProvider – getAvailableLanguageModels", () => {
 
     const models = await provider.getAvailableLanguageModels();
     expect(models).toEqual([
-      { id: "gpt-4o", name: "gpt-4o", provider: "openai" },
-      { id: "gpt-3.5-turbo", name: "gpt-3.5-turbo", provider: "openai" }
+      { id: "gpt-5.4", name: "gpt-5.4", provider: "openai" }
     ]);
   });
 
-  it("returns empty array on API failure", async () => {
+  it("falls back to the gpt-5 model list on API failure", async () => {
     const fetchFn = vi.fn().mockResolvedValue({ ok: false, status: 401 });
 
     const provider = new OpenAIProvider(
@@ -944,7 +1160,82 @@ describe("OpenAIProvider – getAvailableLanguageModels", () => {
     );
 
     const models = await provider.getAvailableLanguageModels();
-    expect(models).toEqual([]);
+    expect(models.map((m) => m.id)).toEqual([
+      "gpt-5.6",
+      "gpt-5.6-sol",
+      "gpt-5.6-terra",
+      "gpt-5.6-luna",
+      "gpt-5.5",
+      "gpt-5.5-pro",
+      "gpt-5.4",
+      "gpt-5.4-pro",
+      "gpt-5.4-mini",
+      "gpt-5.4-nano",
+      "gpt-5",
+      "gpt-5-mini",
+      "gpt-5-nano"
+    ]);
+    expect(models.every((m) => m.provider === "openai")).toBe(true);
+  });
+});
+
+describe("OpenAIProvider – audio model discovery", () => {
+  const provider = new OpenAIProvider(
+    { OPENAI_API_KEY: "k" },
+    { client: {} as any }
+  );
+
+  it("lists the current transcription models", async () => {
+    const models = await provider.getAvailableASRModels();
+    expect(models.map((model) => model.id)).toEqual([
+      "gpt-4o-transcribe",
+      "gpt-4o-mini-transcribe",
+      "gpt-4o-transcribe-diarize",
+      "whisper-1"
+    ]);
+  });
+
+  it("lists model-specific speech voices", async () => {
+    const models = await provider.getAvailableTTSModels();
+    const mini = models.find((model) => model.id === "gpt-4o-mini-tts");
+    const tts1 = models.find((model) => model.id === "tts-1");
+
+    expect(mini?.voices).toHaveLength(13);
+    expect(mini?.voices).toEqual(
+      expect.arrayContaining(["ballad", "verse", "marin", "cedar"])
+    );
+    expect(tts1?.voices).toHaveLength(9);
+    expect(tts1?.voices).not.toContain("marin");
+  });
+});
+
+describe("OpenAIProvider – video model discovery", () => {
+  it("reports the Sora duration, size, aspect, and input constraints", async () => {
+    const provider = new OpenAIProvider(
+      { OPENAI_API_KEY: "k" },
+      { client: {} as any }
+    );
+
+    await expect(provider.getAvailableVideoModels()).resolves.toEqual([
+      {
+        id: "sora-2",
+        name: "Sora 2",
+        provider: "openai",
+        supportedTasks: ["text_to_video", "image_to_video"],
+        durations: [4, 8, 12, 16, 20],
+        resolutions: ["720p"],
+        aspectRatios: ["16:9", "9:16"]
+      },
+      {
+        id: "sora-2-pro",
+        name: "Sora 2 Pro",
+        provider: "openai",
+        supportedTasks: ["text_to_video", "image_to_video"],
+        durations: [4, 8, 12, 16, 20],
+        resolutions: ["720p", "1024p", "1080p"],
+        aspectRatios: ["16:9", "9:16"]
+      }
+    ]);
   });
 });
 
@@ -1036,13 +1327,84 @@ describe("OpenAIProvider – textToVideo", () => {
     const result = await provider.textToVideo({
       prompt: "A cat",
       model: { id: "sora", name: "sora", provider: "openai" },
-      aspectRatio: "16:9",
-      resolution: "720p",
-      numFrames: 100
+      durationSeconds: 8
     });
 
     expect(result).toBeInstanceOf(Uint8Array);
-    expect(videosCreate).toHaveBeenCalled();
+    // Second arg is the SDK request-options bag carrying the abort signal.
+    expect(videosCreate).toHaveBeenCalledWith(
+      {
+        model: "sora",
+        prompt: "A cat",
+        seconds: "8",
+        size: "1280x720"
+      },
+      { signal: undefined }
+    );
+  });
+
+  it("forwards the caller's abort signal to the SDK", async () => {
+    // Regression: media Stop only discarded results after the paid request
+    // completed, because no signal reached the provider at all.
+    const videosCreate = vi
+      .fn()
+      .mockResolvedValue({ id: "v1", status: "completed" });
+    const mockClient = {
+      videos: {
+        create: videosCreate,
+        retrieve: vi.fn(),
+        downloadContent: vi.fn().mockResolvedValue({
+          arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer
+        })
+      }
+    };
+    const provider = new OpenAIProvider(
+      { OPENAI_API_KEY: "k" },
+      { client: mockClient as any }
+    );
+
+    const controller = new AbortController();
+    await provider.textToVideo({
+      prompt: "A cat",
+      model: { id: "sora", name: "sora", provider: "openai" },
+      durationSeconds: 8,
+      signal: controller.signal
+    });
+
+    expect(videosCreate).toHaveBeenCalledWith(expect.anything(), {
+      signal: controller.signal
+    });
+  });
+
+  it("honors timeoutSeconds while polling", async () => {
+    vi.useFakeTimers();
+    try {
+      const mockClient = {
+        videos: {
+          create: vi.fn().mockResolvedValue({ id: "v1", status: "queued" }),
+          retrieve: vi.fn()
+        }
+      };
+      const provider = new OpenAIProvider(
+        { OPENAI_API_KEY: "k" },
+        { client: mockClient as any }
+      );
+
+      const result = provider.textToVideo({
+        prompt: "test",
+        model: { id: "sora", name: "sora", provider: "openai" },
+        timeoutSeconds: 0.01
+      });
+      const rejection = expect(result).rejects.toThrow(
+        "Video generation timed out"
+      );
+      await vi.advanceTimersByTimeAsync(10);
+
+      await rejection;
+      expect(mockClient.videos.retrieve).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("throws on empty prompt", async () => {
@@ -1159,10 +1521,54 @@ describe("OpenAIProvider – imageToVideo", () => {
 
     const result = await provider.imageToVideo([png], {
       prompt: "make it move",
-      model: { id: "sora", name: "sora", provider: "openai" }
+      model: { id: "sora", name: "sora", provider: "openai" },
+      durationSeconds: 12
     });
 
     expect(result).toBeInstanceOf(Uint8Array);
+    expect(mockClient.videos.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: "sora",
+        seconds: "12",
+        size: "1280x720"
+      }),
+      { signal: undefined }
+    );
+  });
+
+  it("honors timeoutSeconds while polling", async () => {
+    vi.useFakeTimers();
+    try {
+      const png = new Uint8Array(24);
+      png.set([0x89, 0x50, 0x4e, 0x47]);
+      const view = new DataView(png.buffer);
+      view.setUint32(16, 1280, false);
+      view.setUint32(20, 720, false);
+      const mockClient = {
+        videos: {
+          create: vi.fn().mockResolvedValue({ id: "v1", status: "queued" }),
+          retrieve: vi.fn()
+        }
+      };
+      const provider = new OpenAIProvider(
+        { OPENAI_API_KEY: "k" },
+        { client: mockClient as any }
+      );
+
+      const result = provider.imageToVideo([png], {
+        model: { id: "sora", name: "sora", provider: "openai" },
+        timeoutSeconds: 0.01
+      });
+      const rejection = expect(result).rejects.toThrow(
+        "Image-to-video generation timed out"
+      );
+      await vi.advanceTimersByTimeAsync(10);
+
+      await rejection;
+      expect(mockClient.videos.retrieve).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("throws on empty image", async () => {
@@ -1369,7 +1775,7 @@ describe("OpenAIProvider – generateMessages with tools", () => {
 
     const out: unknown[] = [];
     for await (const item of provider.generateMessages({
-      model: "gpt-4o",
+      model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: "search" }],
       tools: [{ name: "search", description: "Search" }]
     })) {
@@ -1392,7 +1798,7 @@ describe("OpenAIProvider – generateMessages with tools", () => {
     );
 
     for await (const _ of provider.generateMessages({
-      model: "gpt-4o",
+      model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: "hi" }],
       temperature: 0.5,
       topP: 0.9,

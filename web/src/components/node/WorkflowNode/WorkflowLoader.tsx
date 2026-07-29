@@ -8,7 +8,7 @@ import {
   MuiAutocomplete as Autocomplete
 } from "../../ui_primitives";
 import { useQuery } from "@tanstack/react-query";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../../utils/isEqual";
 import { useNodes } from "../../../contexts/NodeContext";
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
 import { Workflow, WorkflowList } from "../../../stores/ApiTypes";
@@ -27,9 +27,6 @@ interface WorkflowLoaderProps {
   data: NodeData;
 }
 
-/**
- * WorkflowLoader - Lets users select a workflow and loads its IO as dynamic handles.
- */
 export const WorkflowLoader: React.FC<WorkflowLoaderProps> = memo(
   ({ nodeId, data }) => {
     const selectedWorkflowId = useMemo(

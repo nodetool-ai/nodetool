@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Text, Caption, TextInput, SelectField, AutocompleteTagInput, EditorButton, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { Caption, TextInput, SelectField, AutocompleteTagInput, EditorButton, FormField, FormSection, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { useCallback, useEffect, useRef, useState, memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -41,36 +41,13 @@ const styles = (theme: Theme) =>
       boxSizing: "border-box"
     },
     
-    // Section grouping
+    // Section chrome; the field stack and its gaps are FormSection's job.
     ".settings-section": {
-      display: "flex",
-      flexDirection: "column" as const,
-      gap: theme.spacing(1),
       marginBottom: theme.spacing(3),
       padding: theme.spacing(2),
       backgroundColor: theme.vars.palette.action.hover,
       borderRadius: BORDER_RADIUS.lg,
       border: `1px solid ${theme.vars.palette.divider}`
-    },
-
-    ".section-title": {
-      fontSize: theme.fontSizeSmall,
-      fontWeight: 600,
-      color: theme.vars.palette.text.secondary,
-      textTransform: "uppercase",
-      letterSpacing: "0.08em",
-      marginBottom: theme.spacing(2)
-    },
-    
-    // Form controls — both FormControl and TextField. Spacing only; the input
-    // and its floating label are owned by the ui_primitives (TextInput,
-    // SelectField, AutocompleteTagInput) — don't restyle the label here or it
-    // breaks the resting-label-as-placeholder morph.
-    ".MuiFormControl-root, .MuiTextField-root": {
-      marginBottom: theme.spacing(2),
-      "&:last-child": {
-        marginBottom: 0
-      }
     },
 
     ".MuiOutlinedInput-root": {
@@ -92,54 +69,12 @@ const styles = (theme: Theme) =>
     
     // Only the dark-section essentials: brand font + light text for contrast on
     // the grey[900] field. Size and vertical padding stay at the primitive /
-    // MUI defaults so the floating label centres correctly.
+    // MUI defaults.
     ".MuiOutlinedInput-input": {
       fontFamily: theme.fontFamily1,
       color: theme.vars.palette.text.primary
     },
 
-    ".MuiFormHelperText-root": {
-      fontSize: "var(--fontSizeSmaller)",
-      color: theme.vars.palette.text.secondary,
-      marginTop: theme.spacing(0.5),
-      marginLeft: 0
-    },
-    
-    // Tag input
-    ".tag-input": {
-      "& .MuiOutlinedInput-root": {
-        fontFamily: theme.fontFamily1,
-        color: theme.vars.palette.text.primary,
-        minHeight: "auto"
-      },
-      "& .MuiAutocomplete-popper": {
-        backgroundColor: theme.vars.palette.background.paper,
-        zIndex: theme.zIndex.autocomplete,
-        "& .MuiPaper-root": {
-          backgroundColor: theme.vars.palette.background.paper,
-          color: theme.vars.palette.text.primary,
-          borderRadius: BORDER_RADIUS.md,
-          border: `1px solid ${theme.vars.palette.divider}`
-        },
-        "& .MuiAutocomplete-option": {
-          fontSize: theme.fontSizeSmall,
-          "&:hover": {
-            backgroundColor: theme.vars.palette.action.hover
-          },
-          "&[aria-selected='true']": {
-            backgroundColor: theme.vars.palette.action.selected
-          }
-        }
-      },
-      "& .MuiChip-root": {
-        color: theme.vars.palette.text.primary,
-        backgroundColor: theme.vars.palette.action.selected,
-        borderColor: theme.vars.palette.divider,
-        fontSize: theme.fontSizeSmall,
-        height: "26px"
-      }
-    },
-    
     // Run mode select
     ".MuiSelect-select": {
       fontFamily: theme.fontFamily1
@@ -166,23 +101,6 @@ const styles = (theme: Theme) =>
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
         color: theme.vars.palette.text.primary
-      }
-    },
-
-    ".save-button": {
-      backgroundColor: theme.vars.palette.primary.main,
-      color: theme.vars.palette.primary.contrastText,
-      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xxxl)}`, // was 8px 28px
-      fontSize: theme.fontSizeSmall,
-      fontWeight: 600,
-      textTransform: "none",
-      borderRadius: BORDER_RADIUS.md,
-      border: "none",
-      boxShadow: "none",
-      transition: MOTION.background,
-      "&:hover": {
-        backgroundColor: theme.vars.palette.primary.dark,
-        boxShadow: "none"
       }
     }
   });
@@ -316,29 +234,30 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
 
   return (
     <div css={styles(theme)} className="workflow-form">
-      {/* Basic Information Section */}
-      <div className="settings-section">
-        <TextInput
-          label="Name"
-          name="name"
-          spellCheck={false}
-          autoComplete="off"
-          autoCorrect="off"
-          value={localWorkflow.name}
-          onChange={handleChange}
-        />
+      <FormSection className="settings-section">
+        <FormField label="Name">
+          <TextInput
+            name="name"
+            spellCheck={false}
+            autoComplete="off"
+            autoCorrect="off"
+            value={localWorkflow.name}
+            onChange={handleChange}
+          />
+        </FormField>
 
-        <TextInput
-          label="Description"
-          name="description"
-          value={localWorkflow.description}
-          onChange={handleChange}
-          multiline
-          spellCheck={false}
-          autoComplete="off"
-          autoCorrect="off"
-          minRows={2}
-        />
+        <FormField label="Description">
+          <TextInput
+            name="description"
+            value={localWorkflow.description}
+            onChange={handleChange}
+            multiline
+            spellCheck={false}
+            autoComplete="off"
+            autoCorrect="off"
+            minRows={2}
+          />
+        </FormField>
 
         <AutocompleteTagInput
           label="Tags"
@@ -351,28 +270,25 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
           placeholder="Type or select tags..."
           description="Select from suggestions or type custom tags (press Enter to add)"
         />
-      </div>
+      </FormSection>
 
-      {/* Execution Section */}
-      <div className="settings-section">
-        <Text className="section-title">Execution</Text>
-        <Caption sx={{ display: "block", mb: 2 }}>
+      <FormSection label="Execution" className="settings-section">
+        <Caption sx={{ display: "block" }}>
           Configure how this workflow runs and can be triggered
         </Caption>
 
-        <SelectField
-          label="Run Mode"
-          value={localWorkflow.run_mode || "workflow"}
-          onChange={(value) => applyChange({ run_mode: value }, true)}
-          options={RUN_MODE_OPTIONS}
-        />
+        <FormField label="Run Mode">
+          <SelectField
+            label="Run Mode"
+            value={localWorkflow.run_mode || "workflow"}
+            onChange={(value) => applyChange({ run_mode: value }, true)}
+            options={RUN_MODE_OPTIONS}
+          />
+        </FormField>
+      </FormSection>
 
-      </div>
-
-      {/* Advanced Section */}
-      <div className="settings-section">
-        <Text className="section-title">Advanced</Text>
-        <Caption sx={{ display: "block", mb: 2 }}>
+      <FormSection label="Advanced" className="settings-section">
+        <Caption sx={{ display: "block" }}>
           {workspacesEnabled
             ? "Advanced configuration for workspaces and API/tool usage"
             : "Advanced configuration for API/tool usage"}
@@ -386,18 +302,21 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
           />
         )}
 
-        <TextInput
+        <FormField
           label="Tool Name"
-          name="tool_name"
-          spellCheck={false}
-          autoComplete="off"
-          autoCorrect="off"
-          value={localWorkflow.tool_name || ""}
-          onChange={handleToolNameChange}
-          placeholder="my_workflow_tool"
           helperText="Identifier for API/tool usage. Letters, numbers, underscores only."
-        />
-      </div>
+        >
+          <TextInput
+            name="tool_name"
+            spellCheck={false}
+            autoComplete="off"
+            autoCorrect="off"
+            value={localWorkflow.tool_name || ""}
+            onChange={handleToolNameChange}
+            placeholder="my_workflow_tool"
+          />
+        </FormField>
+      </FormSection>
 
       <div className="button-container">
         <EditorButton className="cancel-button" onClick={onClose}>

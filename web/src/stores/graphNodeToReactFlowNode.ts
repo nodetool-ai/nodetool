@@ -4,6 +4,7 @@ import { NodeData } from "./NodeData";
 import { parseNodeUIProperties, DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import useMetadataStore from "./MetadataStore";
 import { applyDefaultModels } from "../utils/applyDefaultModels";
+import { normalizeDynamicSlots } from "../utils/dynamicSlots";
 import { reactFlowNodeChromeClassName } from "../utils/reactFlowNodeChromeClassName";
 import { NODE_COLLAPSED_STRIP_HEIGHT_PX } from "./collapseNodeLayout";
 import {
@@ -11,7 +12,10 @@ import {
   COMMENT_NODE_TYPE,
   PREVIEW_NODE_TYPE
 } from "../constants/nodeTypes";
-import { BESPOKE_DEFAULT_HEIGHTS } from "../components/node_types/editing/bespokeRegistry";
+import {
+  BESPOKE_DEFAULT_HEIGHTS,
+  BESPOKE_DEFAULT_WIDTHS
+} from "../components/node_types/editing/bespokeRegistry";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -26,7 +30,6 @@ export function graphNodeToReactFlowNode(
   const isPreviewNode = node.type === PREVIEW_NODE_TYPE;
   const isCompareImagesNode = node.type === "nodetool.compare.CompareImages";
 
-  // Debug: warn if node.data contains a stale workflow_id
   if (
     isRecord(node.data) &&
     "workflow_id" in node.data
@@ -39,7 +42,6 @@ export function graphNodeToReactFlowNode(
     );
   }
 
-  // Set default size for Preview and CompareImages nodes if not already set
   let defaultWidth = ui_properties?.width || DEFAULT_NODE_WIDTH;
   let defaultHeight = ui_properties?.height;
 
@@ -55,7 +57,18 @@ export function graphNodeToReactFlowNode(
   if (isCompareImagesNode && !ui_properties?.height) {
     defaultHeight = 350;
   }
-  if (!ui_properties?.height && node.type && node.type in BESPOKE_DEFAULT_HEIGHTS) {
+  if (
+    ui_properties?.width == null &&
+    node.type &&
+    Object.hasOwn(BESPOKE_DEFAULT_WIDTHS, node.type)
+  ) {
+    defaultWidth = BESPOKE_DEFAULT_WIDTHS[node.type];
+  }
+  if (
+    ui_properties?.height == null &&
+    node.type &&
+    Object.hasOwn(BESPOKE_DEFAULT_HEIGHTS, node.type)
+  ) {
     defaultHeight = BESPOKE_DEFAULT_HEIGHTS[node.type];
   }
 
@@ -101,6 +114,11 @@ export function graphNodeToReactFlowNode(
         return props;
       })(),
       dynamic_properties: node.dynamic_properties ?? {},
+      // Kept `undefined` when empty so the schema-loader / sync effects that
+      // compare against `data.dynamic_inputs` don't see a spurious change.
+      ...(node.dynamic_inputs && Object.keys(node.dynamic_inputs).length > 0
+        ? { dynamic_inputs: normalizeDynamicSlots(node.dynamic_inputs) }
+        : {}),
       dynamic_outputs: node.dynamic_outputs || {},
       selectable,
       collapsed: isCollapsed,

@@ -1,10 +1,4 @@
 /**
- * wrapGeneratorsParallel — T-AG-8.
- *
- * Merges multiple async generators into one, yielding items in arrival order.
- */
-
-/**
  * Yield items from all generators concurrently in arrival order.
  * Uses Promise.race to return whichever generator produces a value first.
  */
@@ -46,7 +40,6 @@ export async function* wrapGeneratorsParallel<T>(
       slot.done = true;
     } else {
       yield result.value;
-      // Advance this generator
       slot.promise = slot.gen.next().then((r) => ({ index, result: r }));
     }
   }

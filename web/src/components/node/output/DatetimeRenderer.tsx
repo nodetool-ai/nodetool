@@ -1,9 +1,10 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import Actions from "./Actions";
 import { outputStyles } from "./styles";
 import { Datetime } from "../../../stores/ApiTypes";
+import { formatDateTime } from "../../../utils/formatUtils";
 
 /**
  * Format a Datetime object into a human-readable string.
@@ -21,16 +22,17 @@ const formatDatetime = (dt: Datetime): string => {
     dt.minute,
     dt.second
   );
-  return date.toLocaleString();
+  return formatDateTime(date);
 };
 
 const DatetimeRendererInternal: React.FC<{
   value: Datetime;
 }> = ({ value }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => outputStyles(theme), [theme]);
   const formattedDate = formatDatetime(value);
   return (
-    <div className="output value" css={outputStyles(theme)}>
+    <div className="output value" css={cssStyles}>
       <Actions copyValue={formattedDate} />
       <p style={{ padding: "1em", color: "inherit" }}>{formattedDate}</p>
     </div>

@@ -22,7 +22,7 @@ describe("agents index exports", () => {
     expect(mod.DownloadFileTool).toBeDefined();
     expect(mod.HttpRequestTool).toBeDefined();
     expect(mod.RunCodeTool).toBeDefined();
-    expect(mod.GoogleSearchTool).toBeDefined();
+    expect(mod.WebSearchTool).toBeDefined();
     expect(mod.GoogleNewsTool).toBeDefined();
     expect(mod.GoogleImagesTool).toBeDefined();
     expect(mod.GoogleGroundedSearchTool).toBeDefined();

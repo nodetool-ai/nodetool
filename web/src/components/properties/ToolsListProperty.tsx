@@ -14,24 +14,19 @@ import {
 } from "../ui_primitives";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 
-/**
- * Interface for a tool object in the tools list property
- */
 interface Tool {
   type: string;
   name: string;
 }
-import {
-  Search,
-  Language,
-  Add,
-  Description,
-  EditNote,
-  Folder,
-  Lock
-} from "@mui/icons-material";
+import Search from "@mui/icons-material/Search";
+import Language from "@mui/icons-material/Language";
+import Add from "@mui/icons-material/Add";
+import Description from "@mui/icons-material/Description";
+import EditNote from "@mui/icons-material/EditNote";
+import Folder from "@mui/icons-material/Folder";
+import Lock from "@mui/icons-material/Lock";
 
 const BROWSER_TOOL_IDS = [
   "browser_view",
@@ -138,7 +133,6 @@ const ToolsListProperty = (props: PropertyProps) => {
     [toolNameSet]
   );
 
-  // Anchor element for the add/select menu
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const openMenu = useCallback((event: React.MouseEvent<HTMLElement>) => {
     setMenuAnchor(event.currentTarget);
@@ -177,7 +171,6 @@ const ToolsListProperty = (props: PropertyProps) => {
         id={id}
       />
 
-      {/* Selected tools row */}
       <FlexRow
         className="tools-list-items"
         gap={1}
@@ -207,7 +200,6 @@ const ToolsListProperty = (props: PropertyProps) => {
           />
         ))}
 
-        {/* Add (+) icon */}
         <ToolbarIconButton
           tooltip="Add / Remove Tools"
           tooltipPlacement="top"
@@ -228,7 +220,6 @@ const ToolsListProperty = (props: PropertyProps) => {
         />
       </FlexRow>
 
-      {/* Menu for selecting tools */}
       <EditorMenu
         anchorEl={menuAnchor}
         open={Boolean(menuAnchor)}

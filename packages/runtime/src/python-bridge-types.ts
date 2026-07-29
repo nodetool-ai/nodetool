@@ -102,6 +102,12 @@ export interface ComfyStatusInfo {
   url?: string;
   /** Whether the worker could reach ComfyUI at last check (comfy.status only). */
   reachable?: boolean;
+  /** `comfy.status` only: ComfyUI's `GET /system_stats` payload. */
+  system_stats?: Record<string, unknown>;
+  /** `comfy.status` only: queue depth from ComfyUI's `GET /prompt`. */
+  queue_remaining?: number;
+  /** `comfy.status` only: why the worker could not reach ComfyUI. */
+  error?: string;
 }
 
 /**
@@ -133,11 +139,14 @@ export interface ComfyEvent {
   queue_remaining?: number;
   /** `cached`: node ids served from cache. */
   nodes?: string[];
+  /** `queued`: the worker's position in ComfyUI's queue at submission. */
+  queue_position?: number;
   /** `node_output`: the raw ComfyUI output payload for that node. */
-  output?: Record<string, unknown>;
+  outputs?: Record<string, unknown>;
   /** `preview`: raw preview image bytes (only when `previews: true`). */
-  blob?: Uint8Array;
-  mime_type?: string;
+  image?: Uint8Array;
+  /** `preview`: the image encoding — `"jpeg"`, `"png"`, or `"unknown"`. */
+  format?: string;
   [key: string]: unknown;
 }
 
@@ -151,6 +160,11 @@ export interface ComfyExecuteOptions {
   blobs?: Record<string, Uint8Array>;
   /** Request `preview` events (extra bandwidth); off by default. */
   previews?: boolean;
+  /**
+   * Also fetch `type: "temp"` outputs (preview nodes). Off by default, in which
+   * case those entries keep their metadata but carry no `blob`.
+   */
+  includeTemp?: boolean;
   /** Max seconds to wait for the ComfyUI run before the worker gives up. */
   timeout?: number;
 }
@@ -158,26 +172,48 @@ export interface ComfyExecuteOptions {
 /** Terminal `result.data` of a {@link PythonBridge.comfyExecute} call. */
 export interface ComfyExecuteResult {
   prompt_id?: string;
+  /** `"completed"`, or `"cancelled"` when the run was cancelled worker-side. */
+  status?: string;
   outputs?: Record<string, unknown>;
   blobs?: Record<string, Uint8Array>;
   [key: string]: unknown;
 }
 
+/**
+ * Where {@link PythonBridge.comfyModelsDownload} pulls the file from. The
+ * worker discriminates on `type`; a HuggingFace source resolves the token
+ * worker-side (client-supplied tokens are ignored).
+ */
+export type ComfyModelSource =
+  | {
+      type: "huggingface";
+      repo_id: string;
+      /** Path of the file within the repo. */
+      path: string;
+      /** Git revision to resolve against. Defaults to `"main"`. */
+      revision?: string;
+    }
+  | { type: "url"; url: string };
+
 /** Request payload for {@link PythonBridge.comfyModelsDownload}. */
 export interface ComfyModelDownloadRequest {
   /** Raw ComfyUI folder ("checkpoints", "loras", …) or a nodetool type string. */
   folder: string;
-  /** Direct download URL, mutually exclusive with `repo_id`. */
-  url?: string;
-  /** HuggingFace repo id, mutually exclusive with `url`. */
-  repo_id?: string;
+  /** Where to fetch the file from. */
+  source: ComfyModelSource;
+  /** Target filename on the volume. Defaults to the source basename. */
   filename?: string;
+  /** Re-download even when the file is already present. */
+  force?: boolean;
   [key: string]: unknown;
 }
 
-/** A `progress` frame from {@link PythonBridge.comfyModelsDownload}. */
+/**
+ * A `progress` frame from {@link PythonBridge.comfyModelsDownload}. `"exists"`
+ * is the fast path: the file was already on the volume and no bytes moved.
+ */
 export interface ComfyModelDownloadUpdate {
-  status: "start" | "progress" | "completed" | "error" | "cancelled";
+  status: "start" | "progress" | "completed" | "error" | "cancelled" | "exists";
   downloaded_bytes: number;
   total_bytes: number;
   error?: string;
@@ -187,8 +223,9 @@ export interface ComfyModelDownloadUpdate {
 /** One file entry from {@link PythonBridge.comfyModelsList}. */
 export interface ComfyModelInfo {
   folder: string;
+  /** Path relative to `folder` — may contain separators for nested files. */
   filename: string;
-  size?: number;
+  size_bytes?: number;
   [key: string]: unknown;
 }
 
@@ -212,7 +249,7 @@ export interface PythonBridgeOptions {
   /**
    * Max time to wait for the initial worker.status fetch during connect()
    * (0 = no timeout). Guards against a silent worker hanging connect()
-   * forever. Default ~10000ms.
+   * forever. Default ~30000ms.
    */
   statusTimeoutMs?: number;
   /**
@@ -311,6 +348,18 @@ export interface PythonBridge extends EventEmitter {
     model: string,
     options?: Record<string, unknown>
   ): Promise<Record<string, unknown>>;
+  providerStream(
+    providerId: string,
+    messages: Record<string, unknown>[],
+    model: string,
+    options?: Record<string, unknown>
+  ): AsyncGenerator<Record<string, unknown>>;
+  providerTTS(
+    providerId: string,
+    text: string,
+    model: string,
+    options?: Record<string, unknown>
+  ): AsyncGenerator<Uint8Array>;
   providerTextToImage(
     providerId: string,
     params: Record<string, unknown>,
@@ -360,7 +409,7 @@ export interface PythonBridge extends EventEmitter {
    * returned/passed `requestId`.
    */
   comfyExecute(
-    prompt: Record<string, unknown>,
+    workflow: Record<string, unknown>,
     options?: ComfyExecuteOptions,
     onEvent?: (event: ComfyEvent) => void,
     requestId?: string

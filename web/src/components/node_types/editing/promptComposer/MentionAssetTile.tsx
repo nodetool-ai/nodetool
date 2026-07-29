@@ -60,7 +60,7 @@ const styles = (theme: Theme) =>
     width: TILE_WIDTH,
     display: "flex",
     flexDirection: "column",
-    gap: theme.spacing(0.75),
+    gap: theme.spacing(SPACING.xs),
     padding: theme.spacing(0.5),
     borderRadius: BORDER_RADIUS.md,
     border: "1px solid transparent",
@@ -78,6 +78,10 @@ const styles = (theme: Theme) =>
     },
     "&:hover .thumb img": { transform: "scale(1.06)" },
     "&:hover .rename-button, &.selected .rename-button": { opacity: 1 },
+    // Touch devices have no hover; keep the rename button reachable.
+    "@media (pointer: coarse)": {
+      ".rename-button": { opacity: 1 }
+    },
     "&.selected": {
       borderColor: theme.vars.palette.primary.main,
       background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.12)`,

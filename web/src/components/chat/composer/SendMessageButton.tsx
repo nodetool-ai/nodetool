@@ -1,4 +1,4 @@
-import React, { forwardRef } from "react";
+import type { Ref } from "react";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import { ToolbarIconButton, MOTION } from "../../ui_primitives";
 
@@ -6,12 +6,15 @@ interface SendMessageButtonProps {
   disabled?: boolean;
   onClick: () => void;
   hasContent?: boolean;
+  ref?: Ref<HTMLButtonElement>;
 }
 
-export const SendMessageButton = forwardRef<
-  HTMLButtonElement,
-  SendMessageButtonProps
->(({ disabled = false, onClick, hasContent = true }, ref) => {
+export function SendMessageButton({
+  disabled = false,
+  onClick,
+  hasContent = true,
+  ref
+}: SendMessageButtonProps) {
   const isDisabled = disabled || !hasContent;
   return (
     <ToolbarIconButton
@@ -41,6 +44,4 @@ export const SendMessageButton = forwardRef<
       })}
     />
   );
-});
-
-SendMessageButton.displayName = "SendMessageButton";
+}

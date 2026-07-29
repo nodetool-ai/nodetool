@@ -13,7 +13,7 @@ export interface UseCostsDashboardResult {
 /**
  * Fetches `costs.dashboard` for the given range and maps it to the dashboard
  * view model. Returns `view: null` while loading or on error so callers can
- * fall back to the bundled sample data.
+ * render a loading or empty state.
  */
 export function useCostsDashboard(range: DateRange): UseCostsDashboardResult {
   const tzOffsetMinutes = new Date().getTimezoneOffset();

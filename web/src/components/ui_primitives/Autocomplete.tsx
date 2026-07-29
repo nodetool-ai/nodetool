@@ -5,13 +5,15 @@
  * for common search/select patterns.
  */
 
-import React, { memo } from "react";
+import React, { memo, useId } from "react";
 import {
   Autocomplete as MuiAutocomplete,
   AutocompleteProps as MuiAutocompleteProps,
+  Box,
   TextField,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { Label } from "./Label";
 
 export interface AutocompleteOption {
   label: string;
@@ -87,9 +89,16 @@ function AutocompleteInternal<
   helperText,
   renderInput,
   sx,
+  className,
+  style,
+  id,
   ...props
 }: AutocompleteProps<T, Multiple, FreeSolo>) {
   const theme = useTheme();
+  const reactId = useId();
+  // MUI Autocomplete owns its input's id (via params.inputProps), so the
+  // label must target the Autocomplete id, not a TextField override.
+  const fieldId = id ?? reactId;
 
   const effectiveSize = compact ? "small" : size;
 
@@ -97,7 +106,6 @@ function AutocompleteInternal<
     (params) => (
       <TextField
         {...params}
-        label={label}
         placeholder={placeholder}
         size={effectiveSize}
         error={error}
@@ -109,14 +117,7 @@ function AutocompleteInternal<
           "& .MuiInputBase-input": {
             fontSize: theme.fontSizeNormal || "15px",
           },
-          // Resting label doubles as the placeholder hint — soften it (and let
-          // MUI own its sizing/centering). It returns to full strength once
-          // shrunk into the notch.
-          "& .MuiInputLabel-root:not(.MuiInputLabel-shrink)": {
-            opacity: 0.6,
-          },
-          // The native placeholder (shown when there's no label, or when focused
-          // with a label) should read as a muted hint too, not entered text.
+          // The native placeholder should read as a muted hint, not entered text.
           "& .MuiInputBase-input::placeholder": {
             opacity: 0.6,
           },
@@ -125,12 +126,27 @@ function AutocompleteInternal<
     );
 
   return (
-    <MuiAutocomplete
-      size={effectiveSize}
-      renderInput={renderInput || defaultRenderInput}
-      sx={sx}
-      {...props}
-    />
+    // Block wrapper, never a fragment: the label above and the combobox must
+    // stay one flex child at call sites. ALL root layout props — className,
+    // style, sx — land on the wrapper so flex sizing applies to the actual
+    // flex child; descendant `& .Mui*` selectors keep working from here.
+    <Box
+      className={className}
+      style={style}
+      sx={[{ display: "block" }, ...(Array.isArray(sx) ? sx : [sx])]}
+    >
+      {label && (
+        <Label htmlFor={fieldId} error={error}>
+          {label}
+        </Label>
+      )}
+      <MuiAutocomplete
+        id={fieldId}
+        size={effectiveSize}
+        renderInput={renderInput || defaultRenderInput}
+        {...props}
+      />
+    </Box>
   );
 }
 

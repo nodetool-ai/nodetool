@@ -290,6 +290,17 @@ const useMediaGenerationStore = create<MediaGenerationState>()(
   )
 );
 
+/** Parse an aspect-ratio id ("16:9") into positive width/height, or null. */
+function parseAspectRatioId(
+  aspectRatio: string
+): { width: number; height: number } | null {
+  const m = aspectRatio.match(/^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/);
+  if (!m) return null;
+  const width = Number(m[1]);
+  const height = Number(m[2]);
+  return width > 0 && height > 0 ? { width, height } : null;
+}
+
 /**
  * Compute width/height pixel pair for the named image resolution + aspect.
  * The shorter edge equals the resolution's base pixels.
@@ -300,10 +311,16 @@ export function resolveImageSize(
 ): { width: number; height: number } {
   const base = IMAGE_RESOLUTION_TO_PIXELS[resolution];
   const preset = IMAGE_ASPECT_RATIOS.find((a) => a.id === aspectRatio);
-  if (!preset) {
+  // A model may report a ratio outside the static preset list (e.g. a
+  // provider-specific "5:12"); parse "W:H" so the canvas still matches instead
+  // of falling back to a square.
+  const parsed = preset
+    ? { width: preset.width, height: preset.height }
+    : parseAspectRatioId(aspectRatio);
+  if (!parsed) {
     return { width: base, height: base };
   }
-  const { width: aw, height: ah } = preset;
+  const { width: aw, height: ah } = parsed;
   if (aw >= ah) {
     const height = base;
     const width = Math.round((height * aw) / ah);
@@ -312,6 +329,31 @@ export function resolveImageSize(
   const width = base;
   const height = Math.round((width * ah) / aw);
   return { width, height };
+}
+
+/**
+ * Nearest aspect-ratio + resolution preset for a concrete pixel size — the
+ * inverse of {@link resolveImageSize}. Used to seed the size controls from an
+ * existing canvas or binding instead of a fixed default.
+ */
+export function deriveImageSizePreset(
+  width: number,
+  height: number
+): { aspectRatio: string; resolution: ImageResolution } {
+  const ratio = width / height;
+  let aspectRatio = IMAGE_ASPECT_RATIOS[0].id;
+  let bestDiff = Infinity;
+  for (const a of IMAGE_ASPECT_RATIOS) {
+    const diff = Math.abs(a.width / a.height - ratio);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      aspectRatio = a.id;
+    }
+  }
+  const shortEdge = Math.min(width, height);
+  const resolution: ImageResolution =
+    shortEdge >= 3072 ? "4K" : shortEdge >= 1536 ? "2K" : "1K";
+  return { aspectRatio, resolution };
 }
 
 export default useMediaGenerationStore;

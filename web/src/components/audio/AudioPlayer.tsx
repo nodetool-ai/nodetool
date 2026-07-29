@@ -89,7 +89,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".tiny": {
-      fontSize: theme.fontSizeTiny
+      fontSize: theme.fontSizeSmaller
     },
     ".normal": {
       fontSize: theme.fontSizeNormal

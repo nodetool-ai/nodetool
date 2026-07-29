@@ -27,7 +27,8 @@ import type { Generation, RunGroup } from "../../utils/nodeGenerations";
 import type { Asset } from "../../stores/ApiTypes";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useNodes } from "../../contexts/NodeContext";
-import { useShallow } from "zustand/react/shallow";
+import type { NodeStoreState } from "../../stores/NodeStore";
+import type { Edge } from "@xyflow/react";
 import { serializeDragData } from "../../lib/dragdrop/serialization";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import {
@@ -106,13 +107,17 @@ const styles = (theme: Theme) =>
     },
     ".node-history-overlay": {
       position: "absolute",
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       pointerEvents: "none",
       opacity: 0,
       transition: `opacity ${MOTION.normal}`
     },
     "&:hover .node-history-overlay, &:focus-within .node-history-overlay": {
       opacity: 1
+    },
+    // Touch devices have no hover; keep the history controls reachable.
+    "@media (pointer: coarse)": {
+      ".node-history-overlay": { opacity: 1 }
     },
     ".overlay-cluster": {
       pointerEvents: "auto",
@@ -135,7 +140,7 @@ const styles = (theme: Theme) =>
     ".overlay-bottom-left": {
       bottom: 6,
       left: 6,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       fontFamily: "monospace",
       color: theme.vars.palette.common.white
     },
@@ -227,7 +232,7 @@ const styles = (theme: Theme) =>
       position: "absolute",
       bottom: 2,
       right: 4,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.common.white,
       textShadow: "0 0 2px rgba(0,0,0,0.8)"
     },
@@ -263,13 +268,13 @@ const styles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.secondary.main,
       color: theme.vars.palette.secondary.contrastText,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       fontVariantNumeric: "tabular-nums",
       lineHeight: 1
     },
     ".downstream-caption": {
       position: "absolute",
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       pointerEvents: "none",
       bottom: 6,
       right: 6,
@@ -311,9 +316,23 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
   // synthetic ForEach replay yields the N values, iteration-correlated), which is
   // valid live behavior for any consumer, so no list-type gating: any outgoing
   // edge enables it.
-  const hasDownstream = useNodes(
-    useShallow((s) => s.edges.some((e) => e.source === nodeId))
-  );
+  //
+  // Cached on the `edges` array identity: a node drag pushes a fresh `nodes`
+  // array ~60x/s and re-runs every NodeStore selector, so scanning inline cost
+  // O(E) per frame for every content-card node on the canvas.
+  const hasDownstreamSelector = useMemo(() => {
+    let lastEdges: Edge[] | null = null;
+    let lastResult = false;
+    return (state: NodeStoreState) => {
+      if (state.edges === lastEdges) {
+        return lastResult;
+      }
+      lastEdges = state.edges;
+      lastResult = state.edges.some((e) => e.source === nodeId);
+      return lastResult;
+    };
+  }, [nodeId]);
+  const hasDownstream = useNodes(hasDownstreamSelector);
 
   // Pick-order lookup: generation id -> 1-based position in the export set.
   const pickOrder = useMemo(() => {
@@ -628,9 +647,9 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
       alignItems: "center",
       justifyContent: "center",
       color: theme.vars.palette.text.secondary,
-      fontSize: theme.fontSizeTiny
+      fontSize: theme.fontSizeSmaller
     }),
-    [theme.vars.palette.text.secondary, theme.fontSizeTiny]
+    [theme.vars.palette.text.secondary, theme.fontSizeSmaller]
   );
 
   const handleDownload = useCallback(async () => {

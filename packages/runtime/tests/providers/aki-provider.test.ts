@@ -2,6 +2,11 @@ import { describe, it, expect, vi } from "vitest";
 import { encodeBinary } from "@aki-io/aki-io";
 import OpenAI from "openai";
 import { AkiProvider } from "../../src/providers/aki-provider.js";
+import {
+  chatJsonResponse,
+  mockChatFetch,
+  requestBodyOf
+} from "./helpers/compat-fetch.js";
 
 type DoApiRequest = ReturnType<typeof vi.fn>;
 type GetGenerator = (params: unknown) => AsyncGenerator<unknown>;
@@ -65,10 +70,10 @@ describe("AkiProvider", () => {
       ],
       usage: { prompt_tokens: 4, completion_tokens: 7 }
     };
-    const create = vi.fn().mockResolvedValue(mockCompletion);
+    const fetchMock = mockChatFetch(chatJsonResponse(mockCompletion));
     const provider = new AkiProvider(
       { AKI_API_KEY: "k" },
-      { client: makeOpenAIClient({ create }) }
+      { fetchFn: fetchMock as unknown as typeof fetch }
     );
 
     const result = await provider.generateMessage({
@@ -84,9 +89,14 @@ describe("AkiProvider", () => {
 
     expect(result.role).toBe("assistant");
     expect(result.content).toBe("hello from aki");
-    expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({ model: "llama3_chat", stream: false })
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://aki.io/v1/chat/completions",
+      expect.objectContaining({ method: "POST" })
     );
+    expect(requestBodyOf(fetchMock)).toMatchObject({
+      model: "llama3_chat",
+      stream: false
+    });
   });
 
   it("uses https://aki.io/v1 as the OpenAI base URL", () => {

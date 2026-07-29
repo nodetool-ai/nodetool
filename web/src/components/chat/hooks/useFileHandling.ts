@@ -3,7 +3,6 @@ import { MessageContent } from "../../../stores/ApiTypes";
 import { DroppedFile, DOC_TYPES_REGEX } from "../types/chat.types";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 
-// Generate a unique ID for each file
 const generateFileId = () => `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 /** Infer MIME type from file extension when the browser doesn't provide one */

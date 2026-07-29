@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { AnthropicProvider } from "../../src/providers/anthropic-provider.js";
+import type Anthropic from "@anthropic-ai/sdk";
 import type { Message, ProviderTool } from "../../src/providers/types.js";
 
 function makeAsyncIterable(items: unknown[]) {
@@ -22,6 +23,20 @@ describe("AnthropicProvider", () => {
     expect(AnthropicProvider.requiredSecrets()).toEqual(["ANTHROPIC_API_KEY"]);
     expect(provider.getContainerEnv()).toEqual({ ANTHROPIC_API_KEY: "k" });
     expect(await provider.hasToolSupport("claude-sonnet")).toBe(true);
+  });
+
+  it("defaults provider to anthropic and honors the providerId option", () => {
+    const base = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: {} as any }
+    );
+    expect(base.provider).toBe("anthropic");
+
+    const gateway = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: {} as any, providerId: "kie" }
+    );
+    expect(gateway.provider).toBe("kie");
   });
 
   it("formats tools with Anthropic schema preparation", () => {
@@ -55,16 +70,60 @@ describe("AnthropicProvider", () => {
           type: "object",
           additionalProperties: false,
           properties: {
-            value: { type: "string" },
+            value: { type: "string", minLength: 2 },
             nested: {
               type: "object",
               additionalProperties: false,
-              properties: { n: { type: "number" } }
+              properties: { n: { type: "number", minimum: 0 } }
             }
           }
         }
       }
     ]);
+  });
+
+  it("renders the web_search tool as Anthropic's native server tool", () => {
+    const provider = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: {} as any }
+    );
+    expect(provider.supportsNativeWebSearch).toBe(true);
+
+    const tools: ProviderTool[] = [
+      { name: "web_search", description: "Search the web", inputSchema: { type: "object", properties: {} } },
+      { name: "extract", description: "Extract", inputSchema: { type: "object", properties: {} } }
+    ];
+    const formatted = provider.formatTools(tools);
+    expect(formatted[0]).toEqual({
+      type: "web_search_20250305",
+      name: "web_search",
+      max_uses: 5
+    });
+    // Other tools are still normal function tools.
+    expect(formatted[1].name).toBe("extract");
+    expect(formatted[1].input_schema).toBeDefined();
+  });
+
+  it("renders web_search as a plain function tool for Anthropic-compatible gateways without native web search", () => {
+    // Subclasses pointed at a non-Anthropic endpoint pass their own providerId;
+    // supportsNativeWebSearch is false for them, so formatTools must not emit
+    // the web_search_20250305 server tool.
+    const provider = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: {} as unknown as Anthropic, providerId: "moonshot" }
+    );
+    expect(provider.supportsNativeWebSearch).toBe(false);
+
+    const tools: ProviderTool[] = [
+      { name: "web_search", description: "Search the web", inputSchema: { type: "object", properties: {} } }
+    ];
+    const formatted = provider.formatTools(tools);
+    expect(formatted[0]).toEqual({
+      name: "web_search",
+      description: "Search the web",
+      input_schema: { type: "object", additionalProperties: false, properties: {} }
+    });
+    expect(formatted[0].type).toBeUndefined();
   });
 
   it("converts tool and assistant messages", async () => {
@@ -138,26 +197,60 @@ describe("AnthropicProvider", () => {
       ]
     });
 
-    expect(fetchFn).toHaveBeenCalledWith("https://example.com/a.jpg");
+    expect(fetchFn).toHaveBeenCalledWith("https://example.com/a.jpg", {
+      redirect: "manual"
+    });
   });
 
   it("fetches language models through Anthropic models API", async () => {
-    const fetchFn = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        data: [{ id: "claude-sonnet-4" }, { name: "claude-haiku-4" }, {}]
+    const list = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: [{ id: "claude-sonnet-4", display_name: "Claude Sonnet 4" }],
+        has_more: true,
+        last_id: "claude-sonnet-4"
       })
-    });
+      .mockResolvedValueOnce({
+        data: [{ id: "claude-haiku-4", display_name: "Claude Haiku 4" }],
+        has_more: false,
+        last_id: "claude-haiku-4"
+      });
 
     const provider = new AnthropicProvider(
       { ANTHROPIC_API_KEY: "k" },
-      { client: {} as any, fetchFn: fetchFn as any }
+      { client: { models: { list } } as any }
     );
 
     await expect(provider.getAvailableLanguageModels()).resolves.toEqual([
-      { id: "claude-sonnet-4", name: "claude-sonnet-4", provider: "anthropic" },
-      { id: "claude-haiku-4", name: "claude-haiku-4", provider: "anthropic" }
+      { id: "claude-sonnet-4", name: "Claude Sonnet 4", provider: "anthropic" },
+      { id: "claude-haiku-4", name: "Claude Haiku 4", provider: "anthropic" }
     ]);
+    expect(list).toHaveBeenNthCalledWith(
+      2,
+      { limit: 1000, after_id: "claude-sonnet-4" },
+      { timeout: 10_000, maxRetries: 0 }
+    );
+  });
+
+  it("forwards the abort signal to messages.create (non-streaming)", async () => {
+    // Regression: the Anthropic provider dropped args.signal, so a request
+    // could not be cancelled and kept billing after an abort.
+    const create = vi.fn().mockResolvedValueOnce({
+      content: [{ type: "text", text: "ok" }]
+    });
+    const provider = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: { messages: { create } } as any }
+    );
+    const controller = new AbortController();
+    await provider.generateMessage({
+      model: "claude-sonnet",
+      messages: [{ role: "user", content: "hi" }],
+      signal: controller.signal
+    } as any);
+    expect(create.mock.calls[0][1]).toMatchObject({
+      signal: controller.signal
+    });
   });
 
   it("generates non-streaming messages with tool calls", async () => {
@@ -268,22 +361,13 @@ describe("AnthropicProvider", () => {
       vi.useRealTimers();
     });
 
-    function makeProvider(fetchFn: any) {
+    function makeProvider(list: ReturnType<typeof vi.fn>) {
       return new AnthropicProvider(
         { ANTHROPIC_API_KEY: "k" },
-        { client: {} as any, fetchFn: fetchFn as any }
+        { client: { models: { list } } as any }
       );
     }
 
-    function okResponse(data: unknown[]) {
-      return { ok: true, status: 200, json: async () => ({ data }) };
-    }
-
-    function errorResponse(status: number) {
-      return { ok: false, status, json: async () => ({}) };
-    }
-
-    /** Drive the promise forward by advancing fake timers until it resolves. */
     async function runWithTimers<T>(promise: Promise<T>): Promise<T> {
       let result: T | undefined;
       let done = false;
@@ -297,148 +381,56 @@ describe("AnthropicProvider", () => {
       return result as T;
     }
 
-    it("retries on 429 status and eventually returns empty", async () => {
-      const fetchFn = vi.fn().mockResolvedValue(errorResponse(429));
-      const provider = makeProvider(fetchFn);
-
-      const result = await runWithTimers(provider.getAvailableLanguageModels());
-
-      expect(result).toEqual([]);
-      expect(fetchFn).toHaveBeenCalledTimes(3);
-    });
-
-    it("retries on 500 status and eventually returns empty", async () => {
-      const fetchFn = vi.fn().mockResolvedValue(errorResponse(500));
-      const provider = makeProvider(fetchFn);
-
-      const result = await runWithTimers(provider.getAvailableLanguageModels());
-
-      expect(result).toEqual([]);
-      expect(fetchFn).toHaveBeenCalledTimes(3);
-    });
-
-    it("retries on 502 status and eventually returns empty", async () => {
-      const fetchFn = vi.fn().mockResolvedValue(errorResponse(502));
-      const provider = makeProvider(fetchFn);
-
-      const result = await runWithTimers(provider.getAvailableLanguageModels());
-
-      expect(result).toEqual([]);
-      expect(fetchFn).toHaveBeenCalledTimes(3);
-    });
-
-    it("retries on 503 status and eventually returns empty", async () => {
-      const fetchFn = vi.fn().mockResolvedValue(errorResponse(503));
-      const provider = makeProvider(fetchFn);
-
-      const result = await runWithTimers(provider.getAvailableLanguageModels());
-
-      expect(result).toEqual([]);
-      expect(fetchFn).toHaveBeenCalledTimes(3);
-    });
-
-    it("retries on 504 status and eventually returns empty", async () => {
-      const fetchFn = vi.fn().mockResolvedValue(errorResponse(504));
-      const provider = makeProvider(fetchFn);
-
-      const result = await runWithTimers(provider.getAvailableLanguageModels());
-
-      expect(result).toEqual([]);
-      expect(fetchFn).toHaveBeenCalledTimes(3);
-    });
-
-    it("does NOT retry on 401 auth error — returns empty immediately", async () => {
-      const fetchFn = vi.fn().mockResolvedValue(errorResponse(401));
-      const provider = makeProvider(fetchFn);
-
-      const result = await runWithTimers(provider.getAvailableLanguageModels());
-
-      expect(result).toEqual([]);
-      expect(fetchFn).toHaveBeenCalledTimes(1);
-    });
-
-    it("does NOT retry on 403 auth error — returns empty immediately", async () => {
-      const fetchFn = vi.fn().mockResolvedValue(errorResponse(403));
-      const provider = makeProvider(fetchFn);
-
-      const result = await runWithTimers(provider.getAvailableLanguageModels());
-
-      expect(result).toEqual([]);
-      expect(fetchFn).toHaveBeenCalledTimes(1);
-    });
-
-    it("retries on AbortError (timeout) and eventually returns empty", async () => {
-      const abortError = new DOMException(
-        "The operation was aborted",
-        "AbortError"
-      );
-      const fetchFn = vi.fn().mockRejectedValue(abortError);
-      const provider = makeProvider(fetchFn);
-
-      const result = await runWithTimers(provider.getAvailableLanguageModels());
-
-      expect(result).toEqual([]);
-      expect(fetchFn).toHaveBeenCalledTimes(3);
-    });
-
-    it("succeeds on retry after first request fails with 500", async () => {
-      const fetchFn = vi
+    it("retries 529 responses using Retry-After", async () => {
+      const overloaded = {
+        status: 529,
+        headers: new Headers({ "retry-after": "2" })
+      };
+      const list = vi
         .fn()
-        .mockResolvedValueOnce(errorResponse(500))
-        .mockResolvedValueOnce(okResponse([{ id: "claude-sonnet-4" }]));
-      const provider = makeProvider(fetchFn);
+        .mockRejectedValueOnce(overloaded)
+        .mockResolvedValueOnce({
+          data: [{ id: "claude-sonnet-4", display_name: "Claude Sonnet 4" }],
+          has_more: false,
+          last_id: "claude-sonnet-4"
+        });
 
-      const result = await runWithTimers(provider.getAvailableLanguageModels());
+      const result = await runWithTimers(
+        makeProvider(list).getAvailableLanguageModels()
+      );
 
-      expect(result).toEqual([
-        {
-          id: "claude-sonnet-4",
-          name: "claude-sonnet-4",
-          provider: "anthropic"
-        }
-      ]);
-      expect(fetchFn).toHaveBeenCalledTimes(2);
+      expect(result[0]?.name).toBe("Claude Sonnet 4");
+      expect(list).toHaveBeenCalledTimes(2);
     });
 
-    it("retries on network error (fetch throws) and eventually returns empty", async () => {
-      const fetchFn = vi.fn().mockRejectedValue(new Error("ECONNREFUSED"));
-      const provider = makeProvider(fetchFn);
-
-      const result = await runWithTimers(provider.getAvailableLanguageModels());
-
+    it("stops after three retryable failures", async () => {
+      const list = vi.fn().mockRejectedValue({ status: 503 });
+      const result = await runWithTimers(
+        makeProvider(list).getAvailableLanguageModels()
+      );
       expect(result).toEqual([]);
-      expect(fetchFn).toHaveBeenCalledTimes(3);
+      expect(list).toHaveBeenCalledTimes(3);
     });
 
-    it("succeeds on retry after network error", async () => {
-      const fetchFn = vi
+    it("does not retry authentication failures", async () => {
+      const list = vi.fn().mockRejectedValue({ status: 401 });
+      expect(await makeProvider(list).getAvailableLanguageModels()).toEqual([]);
+      expect(list).toHaveBeenCalledTimes(1);
+    });
+
+    it("retries network failures", async () => {
+      const list = vi
         .fn()
         .mockRejectedValueOnce(new Error("ECONNRESET"))
-        .mockResolvedValueOnce(okResponse([{ id: "claude-haiku-4" }]));
-      const provider = makeProvider(fetchFn);
-
-      const result = await runWithTimers(provider.getAvailableLanguageModels());
-
-      expect(result).toEqual([
-        { id: "claude-haiku-4", name: "claude-haiku-4", provider: "anthropic" }
-      ]);
-      expect(fetchFn).toHaveBeenCalledTimes(2);
-    });
-
-    it("returns empty on non-retryable HTTP error (e.g. 404)", async () => {
-      const fetchFn = vi.fn().mockResolvedValue(errorResponse(404));
-      const provider = makeProvider(fetchFn);
-
-      const result = await runWithTimers(provider.getAvailableLanguageModels());
-
-      expect(result).toEqual([]);
-      expect(fetchFn).toHaveBeenCalledTimes(1);
+        .mockResolvedValueOnce({ data: [], has_more: false, last_id: null });
+      await runWithTimers(makeProvider(list).getAvailableLanguageModels());
+      expect(list).toHaveBeenCalledTimes(2);
     });
   });
 
   it("throws on missing api key and invalid tool result payload", async () => {
     expect(() => new AnthropicProvider({}, { client: {} as any })).toThrow(
-      "ANTHROPIC_API_KEY is not configured"
+      "Anthropic authentication is not configured"
     );
 
     const provider = new AnthropicProvider(

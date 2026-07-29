@@ -34,19 +34,6 @@ export const config: ModuleConfig = {
         "Universal LLM chat API"
       ]
     },
-    "fal-ai/qwen-3-guard": {
-      className: "Qwen3Guard",
-      docstring:
-        "Qwen 3 Guard provides content safety and moderation using Qwen's LLM.",
-      tags: ["llm", "safety", "moderation", "qwen", "guard"],
-      useCases: [
-        "Content safety checking",
-        "Moderation of text content",
-        "Safety filtering for outputs",
-        "Content policy enforcement",
-        "Text safety analysis"
-      ]
-    },
     "openrouter/router/openai/v1/responses": {
       className: "RouterOpenaiV1Responses",
       docstring:
@@ -90,6 +77,19 @@ export const config: ModuleConfig = {
       className: "Nemotron3NanoOmni",
       docstring: "Nvidia Nemotron 3 Nano Omni multimodal LLM.",
       tags: ["llm", "language-model", "text-generation", "nvidia", "nemotron"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/bytedance/seed/v2/mini": {
+      className: "BytedanceSeedV2Mini",
+      docstring:
+        "Seed 2.0 Mini is a high-performance multimodal model optimized for low latency and high concurrency. It supports text, image, and video input with 256K context and configurable thinking/reasoning modes.",
+      tags: ["llm", "text-generation", "chat", "bytedance", "seed", "mini"],
       useCases: [
         "Automated content generation",
         "Creative workflows",

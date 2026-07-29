@@ -10,11 +10,12 @@ import DataObjectIcon from "@mui/icons-material/DataObject";
 import TableChartIcon from "@mui/icons-material/TableChart";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import { Asset } from "../../stores/ApiTypes";
-import { DeleteButton, Text, MOTION, BORDER_RADIUS, FONT_WEIGHT, SPACING, getSpacingPx } from "../ui_primitives";
+import { DeleteButton, Text, MOTION, BORDER_RADIUS, FONT_WEIGHT, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { formatFileSize } from "../../utils/formatUtils";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useAssetActions } from "./useAssetActions";
+import { useActivateOnKey } from "../../hooks/useActivateOnKey";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -68,7 +69,7 @@ const styles = (theme: Theme) =>
       backgroundSize: "70% 70%",
       backgroundPosition: "center",
       backgroundRepeat: "no-repeat",
-      zIndex: 2001,
+      zIndex: Z_INDEX.tooltip,
       boxShadow: `0 2px 6px ${theme.vars.palette.c_scrim}`
     },
     ".asset::after": {
@@ -111,13 +112,13 @@ const styles = (theme: Theme) =>
       top: "50%",
       left: "50%",
       transform: "translate(-50%, -50%)",
-      zIndex: 0,
+      zIndex: Z_INDEX.base,
       color: theme.vars.palette.grey[400],
       opacity: 0.6,
       fontSize: "2.5em"
     },
     p: {
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.grey[0],
       lineHeight: "0.95em",
       margin: `${getSpacingPx(SPACING.micro)} 0 ${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.micro)}`
@@ -125,7 +126,7 @@ const styles = (theme: Theme) =>
     ".info": {
       position: "absolute",
       pointerEvents: "none",
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       fontWeight: 600,
       letterSpacing: "0.02em",
       color: theme.vars.palette.grey[0],
@@ -166,7 +167,7 @@ const styles = (theme: Theme) =>
       padding: "0 0.25em 0.1em 0.35em",
       width: "100%",
       textAlign: "left",
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       fontFamily: theme.fontFamily2,
       lineHeight: "1.2em",
       color: theme.vars.palette.grey[400],
@@ -191,7 +192,7 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.c_scrim,
       backdropFilter: "blur(4px)",
       color: theme.vars.palette.grey[100],
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       fontWeight: FONT_WEIGHT.medium
     },
     ".duration": {
@@ -218,7 +219,7 @@ const styles = (theme: Theme) =>
       right: 0
     },
     ".asset-item-actions button": {
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       border: 0,
       minWidth: 0,
       minHeight: 0,
@@ -226,7 +227,7 @@ const styles = (theme: Theme) =>
       height: "2em",
       margin: "0.1em",
       padding: "0 0.1em",
-      borderRadius: "0em !important",
+      borderRadius: "0 !important",
       backgroundColor: "transparent"
     },
     ".asset-delete": {
@@ -259,7 +260,7 @@ const styles = (theme: Theme) =>
       left: 0,
       right: 0,
       bottom: 0,
-      zIndex: 100
+      zIndex: Z_INDEX.overlay
     },
     // FOLDER UP BUTTON
     ".folder-up-button.enabled": {
@@ -275,7 +276,7 @@ const styles = (theme: Theme) =>
     // ASSET MISSING
     ".asset-missing": {
       position: "absolute",
-      zIndex: 100,
+      zIndex: Z_INDEX.overlay,
       top: "50%",
       left: "50%",
       transform: "translate(-50%, -50%)",
@@ -299,7 +300,7 @@ const videoIconOverlayStyle: React.CSSProperties = {
   fontSize: "3em",
   opacity: 0.8,
   filter: "drop-shadow(0px 0px 4px var(--palette-c_scrim))",
-  zIndex: 10
+  zIndex: Z_INDEX.dropdown
 };
 
 export type AssetItemProps = {
@@ -326,7 +327,7 @@ const deleteButtonOverlayStyle = css({
   position: "absolute",
   top: 4,
   right: 4,
-  zIndex: 1000
+  zIndex: Z_INDEX.modal
 });
 
 const AssetItem: React.FC<AssetItemProps> = (props) => {
@@ -360,7 +361,6 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
   const {
     isDragHovered,
     handleClick,
-    // handleDoubleClick,
     handleDrag,
     handleDragEnd,
     handleDragOver,
@@ -409,6 +409,8 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     handleClick(onSelect, onClickParent, isParent);
   }, [handleClick, onSelect, onClickParent, isParent]);
 
+  const handleItemKeyDown = useActivateOnKey(handleItemClick);
+
   const handleDoubleClickWithStop = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     if (onDoubleClick) {
@@ -430,6 +432,10 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
       onDragEnd={handleDragEnd}
       onDoubleClick={handleDoubleClickWithStop}
       onClick={handleItemClick}
+      role="button"
+      tabIndex={0}
+      aria-label={asset.name}
+      onKeyDown={handleItemKeyDown}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
     >
@@ -493,7 +499,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             {!asset.thumb_url && !asset.get_url ? (
               <VideoFileIcon
                 className="placeholder"
-                style={{ color: `var(--c_${assetType})`, zIndex: 1000 }}
+                style={{ color: `var(--c_${assetType})`, zIndex: Z_INDEX.modal }}
                 titleAccess={asset.content_type || "Video file"}
               />
             ) : (
@@ -569,12 +575,12 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           {showFiletype && assetFileEnding && assetItemSize > 3 && (
             <Text
               className="filetype info"
-              size="tiny"
+              size="smaller"
               title={asset.content_type || "Unknown content type"}
               style={{
                 color: `var(--c_${assetType}, var(--palette-grey-100))`,
                 textTransform: "uppercase",
-                zIndex: 1000
+                zIndex: Z_INDEX.modal
               }}
             >
               {assetFileEnding}
@@ -600,7 +606,6 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               className={`name info ${assetItemSize > 4 ? "large" : ""}`}
             >
               {asset.name}
-              {/* {asset.parent_id} */}
             </Text>
           )}
           {assetsOrder === "date" && asset.created_at && assetItemSize > 2 && (

@@ -18,7 +18,6 @@ import {
   makeAffineTransform,
   type LayerContentBounds,
   type LayerTransform,
-  type Point,
   type PushHistoryOptions,
   type SketchDocument
 } from "../types";

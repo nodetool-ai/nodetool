@@ -1,9 +1,16 @@
-import { Text, FlexColumn, Divider, Box } from "../ui_primitives";
+import {
+  Text,
+  FlexColumn,
+  Divider,
+  Box,
+  SPACING,
+  getSpacingPx
+} from "../ui_primitives";
 
 const EmptyCollectionState = () => {
   return (
     <Box sx={{ marginTop: 2, maxWidth: 600 }}>
-      <Text size="bigger" sx={{ margin: "1em 0 .5em 0" }}>
+      <Text size="big" sx={{ margin: "1em 0 .5em 0" }}>
         Vector Collections
       </Text>
       <Text sx={{ marginBottom: 1 }}>
@@ -24,7 +31,13 @@ const EmptyCollectionState = () => {
         </Text>
 
         <Text>With a collection, you can:</Text>
-        <ul style={{ paddingLeft: 16, marginBottom: 4, listStyle: "disc" }}>
+        <ul
+          style={{
+            paddingLeft: getSpacingPx(SPACING.xl),
+            marginBottom: getSpacingPx(SPACING.xs),
+            listStyle: "disc"
+          }}
+        >
           <li>Index text and images as vector embeddings</li>
           <li>Perform semantic similarity searches</li>
           <li>Filter search results using metadata</li>

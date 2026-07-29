@@ -1,12 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
 import { useTheme } from "@mui/material/styles";
-import { Box, BORDER_RADIUS } from "../ui_primitives";
+import { Box, BORDER_RADIUS, FlexRow, FlexColumn, Text } from "../ui_primitives";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import { FlexRow } from "../ui_primitives/FlexRow";
-import { FlexColumn } from "../ui_primitives/FlexColumn";
-import { Text } from "../ui_primitives/Text";
 
 interface ChainConnectorProps {
   sourceOutput: string;
@@ -27,9 +24,9 @@ export const ChainConnector: React.FC<ChainConnectorProps> = ({
       <Box sx={{ width: 2, height: 12, backgroundColor: `${color}50` }} />
       <FlexRow gap={0.5} align="center" sx={{ mt: -0.5 }}>
         <ArrowDownwardIcon sx={{ fontSize: 12, color: theme.vars.palette.text.disabled }} />
-        <Text size="tiny" color="secondary">{sourceOutput}</Text>
+        <Text size="smaller" color="secondary">{sourceOutput}</Text>
         <ArrowForwardIcon sx={{ fontSize: 10, color: theme.vars.palette.text.disabled }} />
-        <Text size="tiny" color="secondary">{targetInput ?? "auto"}</Text>
+        <Text size="smaller" color="secondary">{targetInput ?? "auto"}</Text>
       </FlexRow>
     </FlexColumn>
   );

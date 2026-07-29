@@ -165,6 +165,20 @@ describe("FileUserManager.getUser", () => {
     expect(await manager.getUser("unknown")).toBeNull();
   });
 
+  it("returns null (not a prototype value) for reserved usernames (#5)", async () => {
+    // Regression: a bare index of `__proto__`/`constructor`/`toString` returned
+    // an inherited Object.prototype value, bypassing the not-found guard and
+    // later crashing on the non-UserRecord shape (HTTP 500).
+    for (const name of [
+      "__proto__",
+      "constructor",
+      "toString",
+      "hasOwnProperty"
+    ]) {
+      expect(await manager.getUser(name)).toBeNull();
+    }
+  });
+
   it("returns the user record for an existing user", async () => {
     const { userId } = await manager.addUser("judy");
     const record = await manager.getUser("judy");

@@ -14,10 +14,7 @@
  *     delete      (mutation) — { ok: true }
  *   layers:
  *     create      (mutation) — LayerWorkflowBinding
- *     delete      (mutation) — { ok: true }
  *     duplicate   (mutation) — LayerWorkflowBinding
- *
- * Mirrors the Timeline router, retargeted from clips→layers.
  */
 
 import { z } from "zod";
@@ -44,8 +41,6 @@ import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
-
-// ── input shapes specific to this router ────────────────────────────────────
 
 const listInput = z.object({
   projectId: z.string().optional()
@@ -87,8 +82,6 @@ const MAX_FAILED_VERSIONS = 5;
 
 const okOutput = z.object({ ok: z.literal(true) });
 const DEFAULT_SKETCH_ACTIVE_TOOL = "brush";
-
-// ── helpers ─────────────────────────────────────────────────────────────────
 
 function toListItem(doc: ImageDocument) {
   return {
@@ -150,8 +143,6 @@ async function mutateOwnedDocumentData<T>(
   }
 }
 
-// ── Node-type helpers ────────────────────────────────────────────────────────
-
 const IMAGE_OUTPUT_TYPES: Record<string, true> = {
   "nodetool.output.ImageOutput": true,
   "nodetool.output.MaskOutput": true,
@@ -181,8 +172,6 @@ function inputNodeDefault(node: Record<string, unknown>): unknown {
   const data = node.data as Record<string, unknown> | undefined;
   return data?.value ?? null;
 }
-
-// ── router ──────────────────────────────────────────────────────────────────
 
 export const sketchRouter = router({
   list: protectedProcedure
@@ -253,7 +242,24 @@ export const sketchRouter = router({
         layerBindings: []
       };
 
+      // A client-minted id makes create idempotent: a retry (or a second
+      // surface racing to create the same document) returns the existing row
+      // instead of duplicating it.
+      if (input.id) {
+        const existing = await ImageDocument.findById(input.id);
+        if (existing) {
+          if (existing.user_id !== ctx.userId) {
+            throwApiError(ApiErrorCode.NOT_FOUND, "Image document not found");
+          }
+          return existing.toResponse();
+        }
+      }
+
       const doc = new ImageDocument({
+        // Spread rather than `id: input.id` so no `id` key exists when the
+        // client didn't supply one — the model only defaults an id it doesn't
+        // already own as a property.
+        ...(input.id ? { id: input.id } : {}),
         user_id: ctx.userId,
         project_id: input.projectId,
         name: input.name,
@@ -274,6 +280,10 @@ export const sketchRouter = router({
     .mutation(async ({ ctx, input }) => {
       const doc = await loadOwned(ctx.userId, input.id);
 
+      // CAS on this value so the conflict check and the write are atomic. When
+      // the client supplies baseUpdatedAt, honor it; otherwise fall back to the
+      // just-loaded updated_at so a concurrent write still can't be clobbered.
+      const expectedUpdatedAt = input.baseUpdatedAt ?? doc.updated_at;
       if (input.baseUpdatedAt && doc.updated_at !== input.baseUpdatedAt) {
         throwApiError(
           ApiErrorCode.ALREADY_EXISTS,
@@ -281,7 +291,9 @@ export const sketchRouter = router({
         );
       }
 
-      const fields: Record<string, unknown> = {};
+      const fields: Parameters<
+        typeof ImageDocument.updateFieldsIfUnchanged
+      >[2] = {};
       if (input.name !== undefined) fields.name = input.name;
       if (input.width !== undefined) fields.width = input.width;
       if (input.height !== undefined) fields.height = input.height;
@@ -292,8 +304,19 @@ export const sketchRouter = router({
       if (input.document !== undefined)
         fields.document = JSON.stringify(input.document);
 
-      const updated = await ImageDocument.updateDoc(input.id, fields);
-      if (!updated) throwApiError(ApiErrorCode.NOT_FOUND, "Document not found");
+      const updated = await ImageDocument.updateFieldsIfUnchanged(
+        input.id,
+        expectedUpdatedAt,
+        fields
+      );
+      if (!updated) {
+        // Row changed between load and write (or was deleted): report a
+        // conflict rather than overwriting the concurrent change.
+        throwApiError(
+          ApiErrorCode.ALREADY_EXISTS,
+          "Document was modified since last read (optimistic concurrency conflict)"
+        );
+      }
       return updated.toResponse();
     }),
 
@@ -305,8 +328,6 @@ export const sketchRouter = router({
       await doc.delete();
       return { ok: true as const };
     }),
-
-  // ── versions sub-router ──────────────────────────────────────────────────
 
   versions: router({
     list: protectedProcedure
@@ -406,8 +427,6 @@ export const sketchRouter = router({
         });
       })
   }),
-
-  // ── layers sub-router ────────────────────────────────────────────────────
 
   layers: router({
     create: protectedProcedure
@@ -517,23 +536,6 @@ export const sketchRouter = router({
           latest.layerBindings.push(newBinding);
           return newBinding;
         });
-      }),
-
-    delete: protectedProcedure
-      .input(z.object({ id: z.string(), layerId: z.string() }))
-      .output(okOutput)
-      .mutation(async ({ ctx, input }) => {
-        await mutateOwnedDocumentData(ctx.userId, input.id, (data) => {
-          const bindingIndex = data.layerBindings.findIndex(
-            (b) => b.layerId === input.layerId
-          );
-          if (bindingIndex === -1) {
-            throwApiError(ApiErrorCode.NOT_FOUND, "Layer binding not found");
-          }
-          data.layerBindings.splice(bindingIndex, 1);
-          return null;
-        });
-        return { ok: true as const };
       }),
 
     duplicate: protectedProcedure

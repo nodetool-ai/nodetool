@@ -36,12 +36,26 @@ const SERVER_SCRIPT = resolve(
 const TSX_BIN = resolve(REPO_ROOT, "node_modules/.bin/tsx");
 
 const BACKEND_HOST = "127.0.0.1";
-const BACKEND_PORT = 7777;
+const BACKEND_PORT = Number(process.env.SCREENSHOT_BACKEND_PORT ?? 7777);
 const STARTUP_TIMEOUT_MS = 90_000;
 // Base64-encoded 32-byte placeholder key used only for screenshot tests.
 // Never use this value in production.
 const SCREENSHOT_TEST_MASTER_KEY_B64 =
   "U0NSRUVOU0hPVF9URVNUX0tFWV9ET19OT1RfVVNFISE=";
+
+/**
+ * Resolve true when host:port already accepts connections.
+ */
+async function isPortOpen(host: string, port: number): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    const socket = net.createConnection({ host, port });
+    socket.once("connect", () => {
+      socket.end();
+      resolve(true);
+    });
+    socket.once("error", () => resolve(false));
+  });
+}
 
 /**
  * Poll until a TCP connection to host:port succeeds or the timeout elapses.
@@ -74,13 +88,28 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
 
   // CI/headless Linux often has no keychain backend (libsecret). Provide a
   // deterministic test-only master key so screenshot-server can boot reliably.
-  if (process.env.NODE_ENV === "production" && !process.env.SECRETS_MASTER_KEY) {
+  if (
+    process.env.NODE_ENV === "production" &&
+    !process.env.SECRETS_MASTER_KEY
+  ) {
     throw new Error(
       "[globalSetup] SECRETS_MASTER_KEY must be set when NODE_ENV=production"
     );
   }
   const screenshotTestMasterKey =
     process.env.SECRETS_MASTER_KEY ?? SCREENSHOT_TEST_MASTER_KEY_B64;
+
+  // A process already on the port would make waitForPort succeed while our own
+  // server dies with EADDRINUSE — the suite then screenshots whatever that
+  // process serves and reports the mismatch as pixel diffs instead of a crash.
+  if (await isPortOpen(BACKEND_HOST, BACKEND_PORT)) {
+    throw new Error(
+      `[globalSetup] ${BACKEND_HOST}:${BACKEND_PORT} is already in use. The visual ` +
+        `suite needs its own seeded backend on that port — stop the process ` +
+        `holding it (e.g. a leftover screenshot-server or \`npm run dev\`), or ` +
+        `set SCREENSHOT_BACKEND_PORT to a free port.`
+    );
+  }
 
   const serverProcess: ChildProcess = spawn(
     TSX_BIN,
@@ -108,12 +137,36 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     console.error("[globalSetup] Failed to start backend process:", err);
   });
 
+  // Surface an early exit (bad key, port race, import failure) as itself rather
+  // than as a startup timeout 90s later.
+  let exited: { code: number | null; signal: NodeJS.Signals | null } | null =
+    null;
+  serverProcess.once("exit", (code, signal) => {
+    exited = { code, signal };
+  });
+
   // Wait for the server to accept TCP connections
   try {
-    await waitForPort(BACKEND_HOST, BACKEND_PORT, STARTUP_TIMEOUT_MS);
+    await Promise.race([
+      waitForPort(BACKEND_HOST, BACKEND_PORT, STARTUP_TIMEOUT_MS),
+      new Promise<never>((_, reject) => {
+        serverProcess.once("exit", (code, signal) =>
+          reject(
+            new Error(
+              `[globalSetup] Backend exited before becoming ready (code=${code}, signal=${signal}). See the server output above.`
+            )
+          )
+        );
+      })
+    ]);
   } catch (err) {
     serverProcess.kill("SIGKILL");
     throw err;
+  }
+  if (exited) {
+    throw new Error(
+      `[globalSetup] Backend exited during startup (code=${exited.code}).`
+    );
   }
 
   console.log(

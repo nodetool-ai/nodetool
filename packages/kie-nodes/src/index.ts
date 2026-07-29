@@ -1,9 +1,7 @@
 import type { NodeClass } from "@nodetool-ai/node-sdk";
+import { loadPackageAssetJson } from "@nodetool-ai/config";
 import { loadKieNodesFromManifest } from "./kie-factory.js";
 import type { KieManifestEntry } from "./kie-factory.js";
-import { readFileSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 
 export { loadKieNodesFromManifest, createKieNodeClass } from "./kie-factory.js";
 export type { KieManifestEntry } from "./kie-factory.js";
@@ -30,9 +28,10 @@ export {
 export type { VideoClipPayload } from "./video-clip.js";
 
 function loadManifest(): KieManifestEntry[] {
-  const dir = dirname(fileURLToPath(import.meta.url));
-  const manifestPath = join(dir, "kie-manifest.json");
-  return JSON.parse(readFileSync(manifestPath, "utf8"));
+  return loadPackageAssetJson<KieManifestEntry[]>(
+    { pkg: "@nodetool-ai/kie-nodes", path: "kie-manifest.json" },
+    import.meta.url
+  );
 }
 
 export const KIE_NODES: readonly NodeClass[] = loadKieNodesFromManifest(

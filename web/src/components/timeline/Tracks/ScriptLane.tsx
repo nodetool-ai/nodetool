@@ -31,8 +31,6 @@ export const SCRIPT_LANE_HEIGHT_PX = 46;
 /** Minimum silence (ms) between phrases that earns a visible pause chip. */
 const PAUSE_MIN_MS = 350;
 
-// ── Styles ──────────────────────────────────────────────────────────────────
-
 const LaneRoot = styled("div")(({ theme }) => ({
   position: "relative",
   height: SCRIPT_LANE_HEIGHT_PX,
@@ -116,16 +114,12 @@ const HeaderCell = styled("div")(({ theme }) => ({
   "& svg": { fontSize: 15, color: theme.vars.palette.primary.main }
 }));
 
-// ── Header cell (for the header column) ───────────────────────────────────────
-
 export const ScriptLaneHeader: React.FC = () => (
   <HeaderCell aria-label="Script lane">
     <GraphicEqIcon />
     SCRIPT
   </HeaderCell>
 );
-
-// ── Imperative active-word/segment highlight ──────────────────────────────────
 
 /** A time span with a stable identity, sorted ascending and non-overlapping. */
 interface TimedKey {
@@ -147,8 +141,6 @@ function findActiveRange<T extends TimedKey>(ranges: T[], timeMs: number): T | n
   }
   return null;
 }
-
-// ── Per-segment chip ───────────────────────────────────────────────────────────
 
 /** Precomputed per-segment render inputs (F5c: avoids recomputing `title` per render). */
 interface ScriptChipView {
@@ -230,8 +222,6 @@ const PhraseChip: React.FC<PhraseChipProps> = memo(function PhraseChip({
     </React.Fragment>
   );
 });
-
-// ── Lane (for the scrollable lanes area) ──────────────────────────────────────
 
 export const ScriptLane: React.FC = () => {
   // Only the transcript/caption-bearing subset — untouched clips (B-roll,
@@ -315,7 +305,18 @@ export const ScriptLane: React.FC = () => {
     };
 
     applyHighlight(playbackApi.getState().getTimeMs());
-    return playbackApi.getState().subscribeTime(applyHighlight);
+    const unsubscribe = playbackApi.getState().subscribeTime(applyHighlight);
+
+    return () => {
+      unsubscribe();
+      // Strip whatever this effect instance last marked active — otherwise a
+      // chip/word highlighted just before segmentRanges/wordRanges changes
+      // identity (e.g. transcript edit mid-playback) keeps its stale class,
+      // since the next effect instance starts from lastSegmentId/lastWordKey
+      // = null and has no memory of what the old instance lit up.
+      if (lastSegmentId) chipElsRef.current.get(lastSegmentId)?.classList.remove("is-active");
+      if (lastWordKey) wordElsRef.current.get(lastWordKey)?.classList.remove("w-active");
+    };
   }, [playbackApi, segmentRanges, wordRanges]);
 
   return (

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mobile Mini App - Result</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+    background: #0F0F0F;
+    color: #E8E8E8;
+    width: 390px;
+    min-height: 844px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .status-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 24px 8px; font-size: 15px; font-weight: 600;
+  }
+  .status-bar .time { font-weight: 700; }
+  .status-bar .icons { display: flex; gap: 5px; align-items: center; }
+  .status-bar .icons svg { width: 16px; height: 16px; fill: #E8E8E8; }
+
+  .nav-header {
+    display: flex; align-items: center; padding: 8px 16px 12px; gap: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.08); background: #161616;
+  }
+  .nav-back { display: flex; align-items: center; color: #6DB3F8; font-size: 16px; font-weight: 500; }
+  .nav-back svg { width: 22px; height: 22px; fill: #6DB3F8; }
+  .nav-title { flex: 1; text-align: center; font-size: 17px; font-weight: 700; margin-right: 48px; }
+
+  .app { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+  .app-title { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; }
+  .label { font-size: 15px; font-weight: 600; color: #E8E8E8; }
+  .field { display: flex; flex-direction: column; gap: 8px; }
+
+  .poster {
+    width: 100%; height: 300px; border-radius: 14px; overflow: hidden;
+    background: linear-gradient(170deg, #14384F 0%, #2C5F7A 42%, #E2A16B 42%, #F0C89A 62%, #B4553F 62%, #6E2F30 100%);
+    position: relative;
+  }
+  .poster .sun {
+    position: absolute; top: 96px; left: 50%; transform: translateX(-50%);
+    width: 88px; height: 88px; border-radius: 44px; background: #FFE0A8;
+  }
+  .poster .ridge {
+    position: absolute; bottom: 96px; left: -10%; width: 120%; height: 120px;
+    background: #2A2140;
+    clip-path: polygon(0 100%, 18% 34%, 34% 74%, 52% 12%, 72% 66%, 88% 40%, 100% 100%);
+  }
+  .poster .caption {
+    position: absolute; bottom: 20px; left: 0; right: 0; text-align: center;
+    font-size: 26px; font-weight: 800; letter-spacing: 3px; color: #FFF3E0;
+  }
+
+  .markdown { font-size: 15px; line-height: 22px; color: #E8E8E8; }
+  .markdown strong { font-weight: 700; }
+
+  .stat-row { display: flex; gap: 10px; }
+  .stat {
+    flex: 1; padding: 12px; border-radius: 12px; background: #1A1A1A;
+    border: 0.5px solid rgba(255,255,255,0.08);
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .stat-value { font-size: 20px; font-weight: 700; }
+  .stat-label { font-size: 12px; color: #A0A0A0; }
+
+  .button {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    border-radius: 12px; padding: 14px; font-size: 16px; font-weight: 700;
+  }
+  .button.primary { background: #6DB3F8; border: 1px solid #6DB3F8; color: #fff; }
+  .button.outlined { background: transparent; border: 1px solid #6DB3F8; color: #6DB3F8; }
+  .button svg { width: 20px; height: 20px; }
+  .button.outlined svg { fill: #6DB3F8; }
+
+  .home-indicator {
+    position: fixed; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 134px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.3);
+  }
+</style>
+</head>
+<body>
+  <div class="status-bar">
+    <span class="time">9:41</span>
+    <div class="icons">
+      <svg viewBox="0 0 24 24"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
+    </div>
+  </div>
+
+  <div class="nav-header">
+    <div class="nav-back">
+      <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+    </div>
+    <div class="nav-title">Poster Studio</div>
+  </div>
+
+  <div class="app">
+    <div class="app-title">Poster Studio</div>
+
+    <div class="field">
+      <div class="label">Poster</div>
+      <div class="poster">
+        <div class="sun"></div>
+        <div class="ridge"></div>
+        <div class="caption">NORTH RIDGE</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="label">Caption</div>
+      <div class="markdown">
+        <strong>North Ridge, late afternoon.</strong> Flat bands of dusk over a
+        cut-paper skyline — printed warm, so the ridge reads dark against the sun.
+      </div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat">
+        <div class="stat-value">18.4s</div>
+        <div class="stat-label">Run time</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">$0.011</div>
+        <div class="stat-label">Cost</div>
+      </div>
+    </div>
+
+    <div class="button outlined">
+      <svg viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg>
+      Save poster
+    </div>
+
+    <div class="button primary">Make another</div>
+  </div>
+
+  <div class="home-indicator"></div>
+</body>
+</html>

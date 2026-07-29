@@ -6,7 +6,7 @@
  * to allow relative URLs which will be proxied by Vite to localhost:7777.
  */
 
-const defaultLocalUrl = ""; // Empty string for relative URLs (proxied by Vite)
+const defaultLocalUrl = "";
 
 const apiEnv = import.meta.env.VITE_API_URL;
 
@@ -20,7 +20,6 @@ const getWebSocketUrl = (path: string): string => {
   if (BASE_URL) {
     return BASE_URL.replace(/^http/, "ws") + path;
   }
-  // When BASE_URL is empty, use current origin with ws protocol
   if (typeof window !== "undefined") {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     return `${protocol}//${window.location.host}${path}`;

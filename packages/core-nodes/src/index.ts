@@ -1,6 +1,7 @@
 export * from "./nodes/control.js";
 export * from "./nodes/compare.js";
 export * from "./nodes/constant.js";
+export * from "./nodes/fake-media.js";
 export * from "./nodes/list.js";
 export * from "./nodes/variable.js";
 export * from "./nodes/input.js";

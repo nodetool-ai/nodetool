@@ -3,12 +3,12 @@
  *
  * A themed chip/tag for displaying labels, categories, or status.
  * Wraps MUI Chip with consistent styling and semantic variants.
- * Used in 15+ files across the codebase.
  */
 
 import React from "react";
 import { Chip as MuiChip, ChipProps as MuiChipProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { CONTROL } from "./tokens";
 
 export interface ChipProps extends Omit<MuiChipProps, 'color'> {
   /** Semantic color variant */
@@ -62,7 +62,7 @@ export const Chip: React.FC<ChipProps> = ({
       sx={{
         fontWeight: active ? 600 : 400,
         ...(compact && {
-          height: "22px",
+          height: `${CONTROL.height.xs}px`,
           fontSize: theme.fontSizeSmaller,
           "& .MuiChip-label": {
             px: 1,

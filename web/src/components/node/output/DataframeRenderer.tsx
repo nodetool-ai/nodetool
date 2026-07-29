@@ -1,9 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useCallback, useMemo, useState } from "react";
-import { ToolbarIconButton, MOTION, BORDER_RADIUS } from "../../ui_primitives";
+import { ToolbarIconButton, MOTION, BORDER_RADIUS, Z_INDEX } from "../../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../../utils/isEqual";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -67,11 +67,15 @@ const styles = (theme: Theme) =>
       right: "1.5em",
       top: "4px",
       opacity: 0,
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       transition: `opacity ${MOTION.normal}`
     },
     "&:hover .dataframe-action-buttons": {
       opacity: 1
+    },
+    // Touch devices have no hover; keep the dataframe actions reachable.
+    "@media (pointer: coarse)": {
+      ".dataframe-action-buttons": { opacity: 1 }
     },
     ".dataframe-action-buttons .MuiIconButton-root": {
       padding: "0.25em",
@@ -106,13 +110,13 @@ const DataframeRenderer: React.FC<DataframeRendererProps> = ({ dataframe }) => {
     });
   }, []);
 
-  // Read-only onChange handler (no-op)
   const handleChange = useCallback(() => {
-    // Read-only mode - do nothing
+    // Read-only renderer: output values are never edited here.
   }, []);
 
+  const memoizedStyles = useMemo(() => styles(theme), [theme]);
   return (
-    <div css={styles(theme)} className="dataframe-renderer">
+    <div css={memoizedStyles} className="dataframe-renderer">
       <div className="dataframe-action-buttons">
         <ToolbarIconButton title="Open in Full View" size="small" onClick={toggleExpand}>
           <OpenInFullIcon />

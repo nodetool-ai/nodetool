@@ -22,12 +22,12 @@ import React, {
   useEffect
 } from "react";
 import { Handle, NodeProps, NodeToolbar, Position } from "@xyflow/react";
-import { Box, Text, MOTION, SPACING, getSpacingPx } from "../../ui_primitives";
+import { Box, Text, MOTION, SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import EditIcon from "@mui/icons-material/Edit";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../../utils/isEqual";
 import { NodeData } from "../../../stores/NodeData";
 import { NodeHeader } from "../NodeHeader";
 import EditableTitle from "../EditableTitle";
@@ -64,7 +64,8 @@ import {
   assetToGeneration,
   getCurrentGeneration,
   mergeGenerations,
-  outputOf
+  outputOf,
+  type Generation
 } from "../../../utils/nodeGenerations";
 import type { Asset } from "../../../stores/ApiTypes";
 import { useShallow } from "zustand/react/shallow";
@@ -83,7 +84,23 @@ import {
   sketchNodeOutputImageTypeMetadata
 } from "./sketchNodeIO";
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
+const SKETCH_IMAGE_OUTPUT = {
+  name: "image",
+  type: sketchNodeOutputImageTypeMetadata,
+  stream: false
+} as const;
+
+const SKETCH_MASK_OUTPUT = {
+  name: "mask",
+  type: sketchNodeOutputImageTypeMetadata,
+  stream: false
+} as const;
+
+const SKETCH_LAYERS_OUTPUT = {
+  name: SKETCH_OUTPUT_LAYERS_HANDLE,
+  type: sketchNodeOutputImageListTypeMetadata,
+  stream: false
+} as const;
 
 type SketchNodeStyleOptions = {
   selected: boolean;
@@ -159,7 +176,7 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       position: "absolute",
       left: 0,
       top: "1em",
-      zIndex: 2,
+      zIndex: Z_INDEX.raised,
       display: "flex",
       flexDirection: "column",
       alignItems: "flex-start",
@@ -169,7 +186,7 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       position: "absolute",
       right: 0,
       top: "1em",
-      zIndex: 2,
+      zIndex: Z_INDEX.raised,
       display: "flex",
       flexDirection: "column",
       alignItems: "flex-end",
@@ -234,7 +251,7 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 400,
       transform: "translate(-50%, -50%)",
-      zIndex: 1,
+      zIndex: Z_INDEX.raised,
       color: theme.vars.palette.grey[400],
       opacity: 0.8,
       pointerEvents: "none"
@@ -329,7 +346,6 @@ const Toolbar = memo(function Toolbar({
   );
 });
 
-// Type metadata for handles
 const imageTypeMetadata = {
   type: "image",
   type_args: [],
@@ -370,8 +386,6 @@ function ensureEditableActiveLayer(doc: SketchDocument): SketchDocument {
     activeLayerId: fallbackActiveLayer.id
   };
 }
-
-// ─── Constants ───────────────────────────────────────────────────────────────
 
 export { SKETCH_NODE_TYPE } from "../../../constants/nodeTypes";
 
@@ -471,8 +485,6 @@ function resolveNodePropertyValue(
   return undefined;
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
-
 interface SketchNodeProps extends NodeProps {
   data: NodeData;
   id: string;
@@ -519,19 +531,30 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
         return lastResult;
       }
       lastEdges = state.edges;
-      lastResult = state.edges.filter(
+      const newResult = state.edges.filter(
         (e) => e.target === props.id || e.source === props.id
       );
+      if (
+        lastResult.length === newResult.length &&
+        lastResult.every((edge, i) => edge === newResult[i])
+      ) {
+        return lastResult;
+      }
+      lastResult = newResult;
       return lastResult;
     };
   }, [props.id]);
   const edges = useNodes(nodeEdgesSelector);
-  const updateNodeProperties = useNodes((s) => s.updateNodeProperties);
-  const updateNodeData = useNodes((s) => s.updateNodeData);
-  const updateEdgeHandle = useNodes((s) => s.updateEdgeHandle);
-  const updateEdge = useNodes((s) => s.updateEdge);
-  const deleteEdges = useNodes((s) => s.deleteEdges);
-  const findNode = useNodes((s) => s.findNode);
+  const { updateNodeProperties, updateNodeData, updateEdgeHandle, updateEdge, deleteEdges, findNode } = useNodes(
+    useShallow((s) => ({
+      updateNodeProperties: s.updateNodeProperties,
+      updateNodeData: s.updateNodeData,
+      updateEdgeHandle: s.updateEdgeHandle,
+      updateEdge: s.updateEdge,
+      deleteEdges: s.deleteEdges,
+      findNode: s.findNode
+    }))
+  );
 
   const sketchRefId = useMemo(
     () => getSketchRefId(props.data.properties?.value),
@@ -587,7 +610,6 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     return createDefaultDocument();
   }, [props.data.properties?.sketch_data, props.data.properties?.value, loadedSketchValue]);
 
-  // ─── Compute exposed layer handles ────────────────────────────────
   const exposedInputLayers = useMemo(
     () => sketchDoc.layers.filter((l) => l.exposedAsInput),
     [sketchDoc.layers]
@@ -595,6 +617,20 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   const exposedOutputLayers = useMemo(
     () => sketchDoc.layers.filter((l) => l.exposedAsOutput),
     [sketchDoc.layers]
+  );
+
+  const exposedOutputLayerOutputs = useMemo(
+    () =>
+      exposedOutputLayers.map((layer) => ({
+        key: `output-${layer.id}`,
+        output: {
+          name: getLayerOutputHandleName(layer.name),
+          type: sketchNodeOutputImageTypeMetadata,
+          stream: false as const
+        },
+        displayName: layer.name
+      })),
+    [exposedOutputLayers]
   );
 
   // ─── Resolve source node IDs for all image inputs ─────────────────
@@ -613,16 +649,18 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   );
 
   const layerInputConnections = useMemo(() => {
+    const edgeByHandle = new Map<string, (typeof edges)[number]>();
+    for (const e of edges) {
+      if (e.target === props.id && e.targetHandle) {
+        edgeByHandle.set(e.targetHandle, e);
+      }
+    }
     const connections: Record<
       string,
       { sourceId: string; sourceHandle: string | null | undefined }
     > = {};
     for (const layer of exposedInputLayers) {
-      const edge = edges.find(
-        (e) =>
-          e.target === props.id &&
-          e.targetHandle === getLayerInputHandleName(layer.name)
-      );
+      const edge = edgeByHandle.get(getLayerInputHandleName(layer.name));
       if (edge?.source) {
         connections[layer.id] = {
           sourceId: edge.source,
@@ -642,8 +680,18 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
       (s) => s.assetsByWorkflow[props.data.workflow_id] ?? EMPTY_ASSETS
     )
   );
-  const liveGenerations = useResultsStore(
-    useShallow((s) => s.liveGenerations)
+  // Subscribe only to connected source nodes' live generations, not the
+  // whole map — avoids re-renders when unrelated nodes produce output.
+  const scopedLiveGens = useResultsStore(
+    useShallow((s) => {
+      const result: Record<string, Generation[]> = {};
+      for (const connection of Object.values(layerInputConnections)) {
+        const key = `${props.data.workflow_id}:${connection.sourceId}`;
+        const val = s.liveGenerations[key];
+        if (val) result[key] = val;
+      }
+      return result;
+    })
   );
   const layerInputResults = useMemo(() => {
     const out: Record<string, unknown> = {};
@@ -654,7 +702,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
         .filter((a) => a.node_id === connection.sourceId)
         .map(assetToGeneration);
       const live =
-        liveGenerations[
+        scopedLiveGens[
           `${props.data.workflow_id}:${connection.sourceId}`
         ] ?? [];
       const generations = mergeGenerations(persisted, live);
@@ -674,7 +722,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   }, [
     layerInputConnections,
     workflowAssets,
-    liveGenerations,
+    scopedLiveGens,
     props.data.workflow_id,
     findNode
   ]);
@@ -877,11 +925,13 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
       }
       if (nextIn[k] === undefined) {
         nextIn[k] = {
-          type: "image",
-          type_args: [],
-          optional: true,
-          values: null,
-          type_name: null
+          type: {
+            type: "image",
+            type_args: [],
+            optional: true,
+            values: null,
+            type_name: null
+          }
         };
       }
     }
@@ -1130,7 +1180,6 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           outputProps[SKETCH_OUTPUT_LAYERS_HANDLE] =
             collectExposedLayerOutputRefs(outputProps);
 
-          // Single batched update
           updateNodeProperties(props.id, outputProps);
         })
         .catch(() => {
@@ -1331,6 +1380,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
             <div
               className="sketch-preview-wrap"
               role="button"
+              aria-label="Open sketch editor"
               tabIndex={0}
               onClick={handleOpenEditor}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleOpenEditor(); } }}
@@ -1344,7 +1394,12 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                       alt="Image editor preview"
                     />
                     <div className="edit-overlay">
-                      <EditIcon sx={{ fontSize: 32, color: "white" }} />
+                      <EditIcon
+                        sx={{
+                          fontSize: 32,
+                          color: theme.vars.palette.common.white
+                        }}
+                      />
                       <span className="edit-overlay-label">Edit Sketch</span>
                     </div>
                   </>
@@ -1379,39 +1434,23 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
             <div className="sketch-output-handles">
               <NodeOutput
                 id={props.id}
-                output={{
-                  name: "image",
-                  type: sketchNodeOutputImageTypeMetadata,
-                  stream: false
-                }}
+                output={SKETCH_IMAGE_OUTPUT}
               />
               <NodeOutput
                 id={props.id}
-                output={{
-                  name: "mask",
-                  type: sketchNodeOutputImageTypeMetadata,
-                  stream: false
-                }}
+                output={SKETCH_MASK_OUTPUT}
               />
               <NodeOutput
                 id={props.id}
-                output={{
-                  name: SKETCH_OUTPUT_LAYERS_HANDLE,
-                  type: sketchNodeOutputImageListTypeMetadata,
-                  stream: false
-                }}
+                output={SKETCH_LAYERS_OUTPUT}
                 displayName="Layers"
               />
-              {exposedOutputLayers.map((layer) => (
+              {exposedOutputLayerOutputs.map((item) => (
                 <NodeOutput
-                  key={`output-${layer.id}`}
+                  key={item.key}
                   id={props.id}
-                  output={{
-                    name: getLayerOutputHandleName(layer.name),
-                    type: sketchNodeOutputImageTypeMetadata,
-                    stream: false
-                  }}
-                  displayName={layer.name}
+                  output={item.output}
+                  displayName={item.displayName}
                 />
               ))}
             </div>

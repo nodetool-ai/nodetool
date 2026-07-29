@@ -32,10 +32,6 @@ export const SUBMIT_PATH: Record<AtlasModality, string> = {
 
 export const pollPath = (id: string): string => `/api/v1/model/prediction/${id}`;
 
-// ---------------------------------------------------------------------------
-// API key
-// ---------------------------------------------------------------------------
-
 export function getApiKey(secrets: Record<string, string> | undefined): string {
   const key =
     (secrets && secrets.ATLASCLOUD_API_KEY) ||
@@ -53,10 +49,6 @@ function authHeaders(apiKey: string): Record<string, string> {
     "Content-Type": "application/json"
   };
 }
-
-// ---------------------------------------------------------------------------
-// HTTP helpers
-// ---------------------------------------------------------------------------
 
 /**
  * Resolve a `Retry-After` header to a millisecond delay. The header is allowed
@@ -107,10 +99,6 @@ export async function atlasDownload(url: string): Promise<Uint8Array> {
   }
   return new Uint8Array(await res.arrayBuffer());
 }
-
-// ---------------------------------------------------------------------------
-// Submit / poll
-// ---------------------------------------------------------------------------
 
 export async function atlasSubmit(
   apiKey: string,

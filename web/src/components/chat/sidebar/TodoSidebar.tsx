@@ -6,10 +6,10 @@ import { memo, useMemo } from "react";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
-import { FlexColumn, FlexRow, Text, ScrollArea, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
+import { FlexColumn, FlexRow, Text, ScrollArea, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, reducedMotion } from "../../ui_primitives";
 import type { TodoItem } from "../../../stores/ApiTypes";
 
-export const TODO_SIDEBAR_WIDTH = 280;
+const TODO_SIDEBAR_WIDTH = 280;
 
 interface TodoSidebarProps {
   todos: TodoItem[];
@@ -59,7 +59,8 @@ const styles = (theme: Theme) =>
     ".todo-icon.pending": { color: `rgb(${theme.vars.palette.common.whiteChannel} / 0.45)` },
     ".todo-icon.in_progress": {
       color: theme.vars.palette.primary.main,
-      animation: "spin 1.8s linear infinite"
+      animation: `spin ${MOTION.spin} infinite`,
+      ...reducedMotion({ animation: "none" })
     },
     ".todo-icon.completed": { color: theme.vars.palette.success.main },
     ".todo-text": {
@@ -91,13 +92,13 @@ const STATUS_ICONS = {
 export const TodoSidebar: React.FC<TodoSidebarProps> = memo(({ todos }) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
-  const counts = todos.reduce(
+  const counts = useMemo(() => todos.reduce(
     (acc, t) => {
       acc[t.status] += 1;
       return acc;
     },
     { pending: 0, in_progress: 0, completed: 0 }
-  );
+  ), [todos]);
 
   return (
     <aside className="todo-sidebar" css={cssStyles}>
@@ -127,7 +128,7 @@ export const TodoSidebar: React.FC<TodoSidebarProps> = memo(({ todos }) => {
             {todos.map((todo, i) => {
               const Icon = STATUS_ICONS[todo.status];
               return (
-                <div key={todo.content || i} className={`todo-item ${todo.status}`}>
+                <div key={`${i}-${todo.content}`} className={`todo-item ${todo.status}`}>
                   <Icon className={`todo-icon ${todo.status}`} />
                   <Text size="small" className={`todo-text ${todo.status}`}>
                     {todo.content}

@@ -218,8 +218,6 @@ export function useSegmentation({
     pushHistory(historyLabel);
   }, [canvasRef, pushHistory]);
 
-  // ─── Check model availability ───────────────────────────────────────────
-
   const checkModel = useCallback(async () => {
     setStatus("checking-model");
     try {
@@ -235,8 +233,6 @@ export function useSegmentation({
       setStatus("error");
     }
   }, []);
-
-  // ─── Run segmentation ──────────────────────────────────────────────────
 
   const runSegmentation = useCallback(
     async (points: SegmentPointPrompt[], box: SegmentBoxPrompt | null) => {
@@ -393,15 +389,11 @@ export function useSegmentation({
     }
   }, [applyMasksToDocument]);
 
-  // ─── Cancel ─────────────────────────────────────────────────────────────
-
   const cancelSegmentation = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
     setStatus("idle");
   }, []);
-
-  // ─── Apply result → create layer group with cutout layers ───────────────
 
   const applyResult = useCallback(async () => {
     if (!result || result.masks.length === 0) {
@@ -429,14 +421,10 @@ export function useSegmentation({
     }
   }, [applyMasksToDocument, result]);
 
-  // ─── Discard ────────────────────────────────────────────────────────────
-
   const discardResult = useCallback(() => {
     setResult(null);
     setStatus("idle");
   }, []);
-
-  // ─── Mask Preview Overlay ───────────────────────────────────────────────
 
   const drawMaskPreview = useCallback(
     (ctx: CanvasRenderingContext2D, zoom: number, _pan: Point) => {

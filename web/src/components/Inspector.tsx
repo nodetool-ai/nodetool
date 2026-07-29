@@ -1,15 +1,17 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { shallow } from "zustand/shallow";
 import PropertyField from "./node/PropertyField";
 import useMetadataStore from "../stores/MetadataStore";
 import { useNodes } from "../contexts/NodeContext";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { NodeMetadata, TypeMetadata, Property } from "../stores/ApiTypes";
+import { NodeMetadata, TypeMetadata, Property, PropertyTypeMetadata } from "../stores/ApiTypes";
 import { findOutputHandle } from "../utils/handleUtils";
+import { normalizeDynamicSlot, slotType } from "../utils/dynamicSlots";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
-import isEqual from "fast-deep-equal";
+import isEqual from "../utils/isEqual";
 import { areNodesEqualIgnoringPosition } from "../utils/nodeEquality";
 import { EditorUiProvider } from "./editor_ui";
 import {
@@ -510,14 +512,18 @@ const TypeLabel: React.FC<{ type?: TypeMetadata | null }> = ({ type }) => {
 };
 
 const Inspector: React.FC = () => {
-  // Use selector directly instead of calling getSelectedNodes() to avoid filtering on every store update
   const selectedNodes = useNodes(
-    (state) => state.nodes.filter((node) => node.selected),
+    (state) => state.getSelectedNodes(),
     areNodesEqualIgnoringPosition
   );
-  const findNode = useNodes((state) => state.findNode);
-  const updateNodeProperties = useNodes((state) => state.updateNodeProperties);
-  const setSelectedNodes = useNodes((state) => state.setSelectedNodes);
+  const { findNode, updateNodeProperties, setSelectedNodes } = useNodes(
+    (state) => ({
+      findNode: state.findNode,
+      updateNodeProperties: state.updateNodeProperties,
+      setSelectedNodes: state.setSelectedNodes
+    }),
+    shallow
+  );
   const { cycleExposedInputPlacement, getPlacement } = useExposedInputToggle();
 
   const selectedNodeIds = useMemo(
@@ -568,8 +574,8 @@ const Inspector: React.FC = () => {
       return [];
     }
     const [first, ...rest] = nodesWithMetadata;
-    const signatureCache = new Map<object, string>();
-    const typeSignatureOf = (type: object): string => {
+    const signatureCache = new Map<PropertyTypeMetadata, string>();
+    const typeSignatureOf = (type: PropertyTypeMetadata): string => {
       let sig = signatureCache.get(type);
       if (sig === undefined) {
         sig = JSON.stringify(type);
@@ -634,7 +640,6 @@ const Inspector: React.FC = () => {
     ? getMetadata(selectedNode.type)
     : null;
 
-  // --- Header identity (icon + tint) -------------------------------------
   const iconType = useMemo(() => {
     return (
       metadata?.outputs?.[0]?.type?.type ??
@@ -649,10 +654,9 @@ const Inspector: React.FC = () => {
     if (!color) return undefined;
     return {
       ["--inspector-icon-tint" as string]: `${color}40`
-    } as React.CSSProperties;
+    };
   }, [metadata, iconType]);
 
-  // --- Tabs --------------------------------------------------------------
   const [activeTab, setActiveTab] = useState<InspectorTab>("params");
 
   // Reset tab when the focused node changes so we don't strand the user
@@ -727,7 +731,7 @@ const Inspector: React.FC = () => {
       io:
         (metadata.properties?.length ?? 0) +
         (metadata.outputs?.length ?? 0)
-    } as Partial<Record<InspectorTab, number>>;
+    };
   }, [metadata, visibleProperties.length]);
 
   if (selectedNodes.length === 0) {
@@ -988,8 +992,9 @@ const Inspector: React.FC = () => {
                     const dynamicInputMeta =
                       selectedNode.data.dynamic_inputs?.[name];
 
-                    let resolvedType: TypeMetadata =
-                      (dynamicInputMeta as TypeMetadata) || DEFAULT_TYPE_METADATA;
+                    let resolvedType: TypeMetadata = dynamicInputMeta
+                      ? slotType(normalizeDynamicSlot(dynamicInputMeta))
+                      : DEFAULT_TYPE_METADATA;
 
                     if (incoming && !dynamicInputMeta) {
                       const sourceNode = findNode(incoming.source);
@@ -1016,7 +1021,7 @@ const Inspector: React.FC = () => {
                     const property: Property = {
                       ...(dynamicInputMeta || {}),
                       name,
-                      type: resolvedType as Property["type"],
+                      type: resolvedType,
                       required: false
                     };
 
@@ -1056,7 +1061,7 @@ const Inspector: React.FC = () => {
                     metadata.properties.map((property) => (
                       <div key={`io-in-${property.name}`} className="io-row">
                         <span className="io-row-name">{property.name}</span>
-                        <TypeLabel type={property.type as TypeMetadata} />
+                        <TypeLabel type={property.type} />
                       </div>
                     ))
                   )}
@@ -1073,7 +1078,7 @@ const Inspector: React.FC = () => {
                     metadata.outputs.map((output) => (
                       <div key={`io-out-${output.name}`} className="io-row">
                         <span className="io-row-name">{output.name}</span>
-                        <TypeLabel type={output.type as TypeMetadata} />
+                        <TypeLabel type={output.type} />
                       </div>
                     ))
                   )}

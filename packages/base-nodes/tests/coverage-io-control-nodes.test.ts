@@ -151,32 +151,37 @@ describe("control nodes — full coverage", () => {
     expect(d).toEqual({ condition: false, value: [] });
   });
 
-  it("IfNode process with condition=true passes value to if_true", async () => {
+  it("IfNode process with condition=true passes value to if_true only", async () => {
     const node = new IfNode();
     node.assign({ condition: true, value: "hello" });
     const result = await node.process();
-    expect(result).toEqual({ if_true: "hello", if_false: null });
+    // Only the taken branch is emitted; the untaken key is absent entirely.
+    expect(result).toEqual({ if_true: "hello" });
+    expect(result).not.toHaveProperty("if_false");
   });
 
-  it("IfNode process with condition=false passes value to if_false", async () => {
+  it("IfNode process with condition=false passes value to if_false only", async () => {
     const node = new IfNode();
     node.assign({ condition: false, value: "hello" });
     const result = await node.process();
-    expect(result).toEqual({ if_true: null, if_false: "hello" });
+    expect(result).toEqual({ if_false: "hello" });
+    expect(result).not.toHaveProperty("if_true");
   });
 
-  it("IfNode process with truthy non-boolean condition routes to if_true", async () => {
+  it("IfNode process with truthy non-boolean condition routes to if_true only", async () => {
     const node = new IfNode();
     node.assign({ condition: 1, value: 42 });
     const result = await node.process();
-    expect(result).toEqual({ if_true: 42, if_false: null });
+    expect(result).toEqual({ if_true: 42 });
+    expect(result).not.toHaveProperty("if_false");
   });
 
-  it("IfNode process with falsy non-boolean condition routes to if_false", async () => {
+  it("IfNode process with falsy non-boolean condition routes to if_false only", async () => {
     const node = new IfNode();
     node.assign({ condition: 0, value: 42 });
     const result = await node.process();
-    expect(result).toEqual({ if_true: null, if_false: 42 });
+    expect(result).toEqual({ if_false: 42 });
+    expect(result).not.toHaveProperty("if_true");
   });
 });
 
@@ -974,27 +979,11 @@ describe("trigger nodes — full coverage", () => {
     expect(result).toEqual({});
   });
 
-  it("WebhookTriggerNode emits webhook request data", async () => {
+  it("WebhookTriggerNode has no properties and process() emits nothing", async () => {
+    // The delivery URL and secret live on the trigger registration, not on the
+    // node; the payload arrives through emitTriggerEvent().
     const node = new WebhookTriggerNode();
-    node.assign({
-      path: "/api/hook"
-    });
-    // process() returns {} for streaming trigger nodes; logic is in genProcess()
-    const result = await node.process();
-    expect(result).toEqual({});
-  });
-
-  it("WebhookTriggerNode defaults and process with defaults", async () => {
-    const node = new WebhookTriggerNode();
-    const d = node.serialize();
-    expect(d).toEqual({
-      max_events: 0,
-      port: 8080,
-      path: "/webhook",
-      host: "127.0.0.1",
-      methods: ["POST"],
-      secret: ""
-    });
+    expect(node.serialize()).toEqual({});
     const result = await node.process();
     expect(result).toEqual({});
   });
@@ -1231,164 +1220,6 @@ describe("ManualTriggerNode run()", () => {
     expect(emitted).toHaveLength(4);
     expect(emitted[0]).toEqual(["data", "kept"]);
   });
-});
-
-describe("WebhookTriggerNode genProcess()", () => {
-  it("yields webhook event when HTTP request is received", async () => {
-    const http = await import("node:http");
-    const port = 30000 + Math.floor(Math.random() * 10000);
-    const node = new WebhookTriggerNode();
-    node.assign({
-      port,
-      path: "/hook",
-      host: "127.0.0.1",
-      methods: ["POST"],
-      secret: "",
-      max_events: 1
-    });
-
-    const gen = node.genProcess();
-    const p = gen.next();
-
-    // Wait for server to be ready
-    await new Promise((r) => setTimeout(r, 200));
-
-    // Send HTTP request
-    await new Promise<void>((resolve, reject) => {
-      const req = http.request(
-        {
-          hostname: "127.0.0.1",
-          port,
-          path: "/hook?foo=bar",
-          method: "POST",
-          headers: { "Content-Type": "application/json" }
-        },
-        (res) => {
-          res.on("data", () => {});
-          res.on("end", () => resolve());
-        }
-      );
-      req.on("error", reject);
-      req.write(JSON.stringify({ hello: "world" }));
-      req.end();
-    });
-
-    const result = await p;
-    expect(result.done).toBe(false);
-    const ev = result.value as Record<string, unknown>;
-
-    expect(ev.body).toEqual({ hello: "world" });
-    expect(typeof ev.headers).toBe("object");
-    expect((ev.query as Record<string, string>).foo).toBe("bar");
-    expect(ev.method).toBe("POST");
-    expect(ev.path).toBe("/hook");
-    expect(typeof ev.timestamp).toBe("string");
-    expect(typeof ev.source).toBe("string");
-    expect(ev.event_type).toBe("webhook");
-
-    // Generator should be done after max_events=1
-    const next = await gen.next();
-    expect(next.done).toBe(true);
-  }, 10_000);
-
-  it("rejects requests with wrong path (404)", async () => {
-    const http = await import("node:http");
-    const port = 30000 + Math.floor(Math.random() * 10000);
-    const node = new WebhookTriggerNode();
-    node.assign({
-      port,
-      path: "/hook",
-      host: "127.0.0.1",
-      methods: ["POST"],
-      secret: "",
-      max_events: 1
-    });
-
-    const gen = node.genProcess();
-    const p = gen.next();
-    await new Promise((r) => setTimeout(r, 200));
-
-    const statusCode = await new Promise<number>((resolve, reject) => {
-      const req = http.request(
-        { hostname: "127.0.0.1", port, path: "/wrong", method: "POST" },
-        (res) => {
-          res.on("data", () => {});
-          res.on("end", () => resolve(res.statusCode ?? 0));
-        }
-      );
-      req.on("error", reject);
-      req.end();
-    });
-    expect(statusCode).toBe(404);
-
-    // Clean up: send a valid request so the generator can finish
-    await new Promise<void>((resolve, reject) => {
-      const req = http.request(
-        { hostname: "127.0.0.1", port, path: "/hook", method: "POST" },
-        (res) => {
-          res.on("data", () => {});
-          res.on("end", () => resolve());
-        }
-      );
-      req.on("error", reject);
-      req.end();
-    });
-    await p;
-    await gen.next(); // drain
-  }, 10_000);
-
-  it("validates secret header (401)", async () => {
-    const http = await import("node:http");
-    const port = 30000 + Math.floor(Math.random() * 10000);
-    const node = new WebhookTriggerNode();
-    node.assign({
-      port,
-      path: "/hook",
-      host: "127.0.0.1",
-      methods: ["POST"],
-      secret: "mysecret",
-      max_events: 1
-    });
-
-    const gen = node.genProcess();
-    const p = gen.next();
-    await new Promise((r) => setTimeout(r, 200));
-
-    // Request without secret -> 401
-    const statusCode = await new Promise<number>((resolve, reject) => {
-      const req = http.request(
-        { hostname: "127.0.0.1", port, path: "/hook", method: "POST" },
-        (res) => {
-          res.on("data", () => {});
-          res.on("end", () => resolve(res.statusCode ?? 0));
-        }
-      );
-      req.on("error", reject);
-      req.end();
-    });
-    expect(statusCode).toBe(401);
-
-    // Request with correct secret -> 200
-    await new Promise<void>((resolve, reject) => {
-      const req = http.request(
-        {
-          hostname: "127.0.0.1",
-          port,
-          path: "/hook",
-          method: "POST",
-          headers: { "x-webhook-secret": "mysecret" }
-        },
-        (res) => {
-          res.on("data", () => {});
-          res.on("end", () => resolve());
-        }
-      );
-      req.on("error", reject);
-      req.end();
-    });
-    await p;
-    await gen.next();
-  }, 10_000);
 });
 
 describe("FileWatchTriggerNode genProcess()", () => {

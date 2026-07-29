@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 // current runAgentLoop. registerBuiltinAgentToolClasses must come from the same
 // source module so it shares the builtin-tool registry runAgentLoop hydrates from.
 import { runAgentLoop } from "../src/nodes/agents.js";
+import { classifyProviderStream } from "../src/nodes/agent-utils.js";
 import { registerBuiltinAgentToolClasses } from "../src/nodes/agent-tool-hydration.js";
 import { BaseProvider } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
@@ -410,5 +411,35 @@ describe("runAgentLoop", () => {
     expect(result.text).toBe("Tool says 7");
     // The streamed tool-result message landed in the returned conversation.
     expect(result.messages.some((m: any) => m.role === "tool")).toBe(true);
+  });
+});
+
+describe("classifyProviderStream", () => {
+  it("maps each raw stream item to its typed event, splitting message roles", async () => {
+    async function* raw() {
+      yield { id: "t1", name: "search", args: { q: "x" } }; // tool call
+      yield { type: "chunk", content: "reasoning", thinking: true }; // thinking
+      yield { type: "chunk", content: "AAA", content_type: "audio" }; // audio
+      yield { type: "chunk", content: "hi", content_type: "text" }; // text
+      yield { type: "chunk", content: "no-type" }; // normalized to text
+      yield { type: "message", message: { role: "assistant", content: "done" } };
+      yield { type: "message", message: { role: "tool", content: "result" } };
+    }
+    const events: any[] = [];
+    for await (const ev of classifyProviderStream(raw())) events.push(ev);
+    expect(events.map((e) => e.kind)).toEqual([
+      "tool_call",
+      "thinking",
+      "audio",
+      "text",
+      "text",
+      "assistant_message",
+      "tool_message"
+    ]);
+    expect(events[0].toolCall.name).toBe("search");
+    expect(events[3].delta).toBe("hi");
+    // A chunk lacking content_type is normalized to text with content_type set.
+    expect(events[4].chunk.content_type).toBe("text");
+    expect(events[5].message.role).toBe("assistant");
   });
 });

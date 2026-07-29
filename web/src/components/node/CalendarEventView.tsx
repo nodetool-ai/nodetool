@@ -1,6 +1,7 @@
 import React, { memo } from "react";
 import { Text, FlexRow, Card, Chip } from "../ui_primitives";
 import { CalendarEvent, Datetime } from "../../stores/ApiTypes";
+import { formatDateTime } from "../../utils/formatUtils";
 import EventIcon from "@mui/icons-material/Event";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import NotesIcon from "@mui/icons-material/Notes";
@@ -13,7 +14,7 @@ interface CalendarEventViewProps {
 const formatDatetime = (dt: Datetime | string | null | undefined): string => {
   if (!dt) return "";
   if (typeof dt === "string") return dt;
-  // Construct a date object. Note: Month is 1-indexed in the API but 0-indexed in JS Date
+  // Month is 1-indexed in the API but 0-indexed in JS Date
   const date = new Date(
     dt.year,
     dt.month - 1,
@@ -22,7 +23,7 @@ const formatDatetime = (dt: Datetime | string | null | undefined): string => {
     dt.minute,
     dt.second
   );
-  return date.toLocaleString();
+  return formatDateTime(date);
 };
 
 const CalendarEventView: React.FC<CalendarEventViewProps> = ({ event }) => {

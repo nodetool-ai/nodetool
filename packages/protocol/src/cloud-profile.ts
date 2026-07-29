@@ -26,25 +26,35 @@ export const CLOUD_PROFILE_ENV = "NODETOOL_NODE_PROFILE";
 /** Value of {@link CLOUD_PROFILE_ENV} that turns on the curated cloud profile. */
 export const CLOUD_PROFILE_VALUE = "cloud";
 
+/**
+ * Value of {@link CLOUD_PROFILE_ENV} that keeps the full catalog and provider
+ * list even in production. Self-hosted deployments (docker-compose) set this
+ * to opt out of the cloud curation the production default would apply.
+ */
+export const FULL_PROFILE_VALUE = "full";
+
 /** Env var + value that put the server in production mode. */
 export const NODE_ENV_VAR = "NODETOOL_ENV";
 export const PRODUCTION_ENV_VALUE = "production";
 
 /**
- * True when the cloud profile should apply. The commercial cloud product runs
- * in production mode, so production *is* the cloud profile; the explicit
- * `NODETOOL_NODE_PROFILE=cloud` flag additionally enables it outside
- * production (e.g. for local testing). Callers pass the raw env values so this
- * stays free of any runtime/env dependency and remains trivially testable.
+ * True when the cloud profile should apply. An explicit
+ * `NODETOOL_NODE_PROFILE` always wins: `cloud` turns the profile on (e.g. for
+ * local testing), any other value — canonically {@link FULL_PROFILE_VALUE} —
+ * turns it off. When unset, production defaults to the cloud profile because
+ * the commercial cloud product runs in production mode; self-hosted
+ * deployments set `NODETOOL_NODE_PROFILE=full` to keep the full catalog.
+ * Callers pass the raw env values so this stays free of any runtime/env
+ * dependency and remains trivially testable.
  */
 export function isCloudProfileActive(
   profileValue: string | undefined | null,
   nodeEnvValue: string | undefined | null
 ): boolean {
-  return (
-    profileValue === CLOUD_PROFILE_VALUE ||
-    nodeEnvValue === PRODUCTION_ENV_VALUE
-  );
+  if (profileValue != null && profileValue.trim() !== "") {
+    return profileValue === CLOUD_PROFILE_VALUE;
+  }
+  return nodeEnvValue === PRODUCTION_ENV_VALUE;
 }
 
 /**
@@ -68,8 +78,9 @@ export const CLOUD_NODE_NAMESPACES: readonly string[] = [
   "nodetool.llm", // generic Chat node (also surfaces Anthropic/Groq)
 
   // — Creative generation core —
-  // (nodetool.text and nodetool.code are NOT whole-namespace allows: only a
-  // curated subset is kept via CLOUD_NODE_ALLOWLIST below.)
+  // (nodetool.code is NOT a whole-namespace allow: only the sandboxed Code
+  // node is kept via CLOUD_NODE_ALLOWLIST below.)
+  "nodetool.text", // text toolkit + ASR; file-I/O nodes trimmed by CLOUD_NODE_DENYLIST
   "nodetool.image",
   "nodetool.sketch",
   "nodetool.audio", // covers .synth and .realtime
@@ -102,41 +113,32 @@ export const CLOUD_NODE_NAMESPACES: readonly string[] = [
  *   rest of `nodetool.code` (Python/Bash/Ruby/Lua subprocess + Docker runners)
  *   stays out: arbitrary process/Docker execution isn't appropriate for a
  *   managed multi-tenant cloud.
- * - `nodetool.text.*` — a creative-text toolkit (prompt building, formatting,
- *   templating, joining, light parsing/splitting). The low-level string/regex/
- *   token/whitespace utilities and file I/O are dropped — they're programmer
- *   plumbing, not creative tools.
  */
 export const CLOUD_NODE_ALLOWLIST: readonly string[] = [
   // Sandboxed code only.
-  "nodetool.code.Code",
-  // Curated creative-text nodes.
-  "nodetool.text.Prompt",
-  "nodetool.text.Template",
-  "nodetool.text.Concat",
-  "nodetool.text.Join",
-  "nodetool.text.Collect",
-  "nodetool.text.Replace",
-  "nodetool.text.ToString",
-  "nodetool.text.SaveText",
-  "nodetool.text.Split",
-  "nodetool.text.Slice",
-  "nodetool.text.Chunk",
-  "nodetool.text.Extract",
-  "nodetool.text.ParseJSON",
-  "nodetool.text.ExtractJSON"
+  "nodetool.code.Code"
 ];
 
 /**
- * Node types removed even though their namespace is allowed. These are the
- * developer/automation-flavored agents inside `nodetool.agents`: they wrap the
- * very integrations the cloud profile drops (shell, git, sqlite, supabase,
- * http, filesystem, browser, office docs) and don't fit a creative workspace.
+ * Node types removed even though their namespace is allowed. Two groups:
  *
- * Kept agents: Agent, Classifier, Extractor, Summarizer, CreateThread,
- * ImageAgent, MediaAgent, FfmpegAgent, DocumentAgent.
+ * - `nodetool.text.*` file I/O — `nodetool.text` is whole-listed for its
+ *   creative-text toolkit and ASR, but the folder/asset loaders and the two
+ *   filesystem writers (`SaveText`, `SaveTextFile` — both call fs.writeFile on
+ *   an unsandboxed host path) are dropped: arbitrary host-filesystem access
+ *   isn't appropriate for a managed multi-tenant cloud (same reason the
+ *   shell/Docker code runners stay out).
+ * - `nodetool.agents.*` — the developer/automation-flavored agents that wrap
+ *   the very integrations the cloud profile drops (shell, git, sqlite,
+ *   supabase, http, filesystem, browser, office docs). Kept agents: Agent,
+ *   Classifier, Extractor, Summarizer, CreateThread, ImageAgent, MediaAgent,
+ *   FfmpegAgent, DocumentAgent.
  */
 export const CLOUD_NODE_DENYLIST: readonly string[] = [
+  "nodetool.text.LoadTextFolder",
+  "nodetool.text.LoadTextAssets",
+  "nodetool.text.SaveText",
+  "nodetool.text.SaveTextFile",
   "nodetool.agents.BrowserAgent",
   "nodetool.agents.LiveBrowserAgent",
   "nodetool.agents.DocxAgent",

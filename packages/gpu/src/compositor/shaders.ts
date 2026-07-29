@@ -57,6 +57,9 @@ fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
 //   invRow1: c, d, ty, _   (inverse affine row 1)
 //   params1: borderRadius (normalized 0..0.5), smoothness, filterMode, _
 //     filterMode: 0 = nearest (textureLoad), 1 = linear (sampler)
+//   params2: wipeEdge, wipeProgress, wipeSoftness, _
+//     wipeEdge: 0 = no mask, 1 = left, 2 = right, 3 = top, 4 = bottom
+//     (edge the reveal starts from, in the layer's own quad space)
 
 export const BLEND_COMPOSITE_FRAGMENT = /* wgsl */ `
 struct BlendUniforms {
@@ -64,6 +67,7 @@ struct BlendUniforms {
   invRow0: vec4f,
   invRow1: vec4f,
   params1: vec4f,
+  params2: vec4f,
 };
 
 @group(0) @binding(0) var<uniform> u: BlendUniforms;
@@ -134,6 +138,30 @@ fn fs_blend(@location(0) uv: vec2f) -> @location(0) vec4f {
     let dist = sdRoundedRect(p, halfSize, r);
     let mask = 1.0 - smoothstep(-smoothness, smoothness, dist);
     sa = sa * mask;
+  }
+
+  // Optional directional wipe mask in the layer's normalized quad space
+  // (texel / dims), so the wipe edge rotates with the layer. c measures
+  // distance from the named edge; the reveal front sits at
+  // e = progress * (1 + softness), which clears the whole layer (including the
+  // feather band) exactly at progress 1 and hides it all at progress 0.
+  let wipeEdge = u32(u.params2.x);
+  if (wipeEdge != 0u) {
+    let progress = u.params2.y;
+    // A tiny floor keeps smoothstep well-defined; softness 0 stays visually a
+    // hard (sub-texel) edge.
+    let softness = max(u.params2.z, 1e-4);
+    let n = texel / dimsF;
+    var c = n.x; // 1u: reveal from the left edge
+    if (wipeEdge == 2u) {
+      c = 1.0 - n.x; // from the right edge
+    } else if (wipeEdge == 3u) {
+      c = n.y; // from the top edge (texel row 0)
+    } else if (wipeEdge == 4u) {
+      c = 1.0 - n.y; // from the bottom edge
+    }
+    let e = progress * (1.0 + softness);
+    sa = sa * (1.0 - smoothstep(e - softness, e, c));
   }
 
   if (sa <= 0.0) {

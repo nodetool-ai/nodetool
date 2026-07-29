@@ -7,6 +7,7 @@
 import React, { useCallback, useMemo, useState, useRef, useEffect } from "react";
 import {
   ContextMenuContext,
+  ContextMenuActionsContext,
   ContextMenuState
 } from "../stores/ContextMenuStore";
 import { TypeMetadata } from "../stores/ApiTypes";
@@ -92,7 +93,6 @@ export function ContextMenuProvider({
         return;
       }
 
-      // Otherwise, close the context menu
       closeContextMenu();
     },
     [closeContextMenu]
@@ -141,7 +141,6 @@ export function ContextMenuProvider({
           payload
         });
 
-        // Clear any existing timeout before setting a new one
         if (clickOutsideTimeoutRef.current) {
           clearTimeout(clickOutsideTimeoutRef.current);
         }
@@ -159,14 +158,20 @@ export function ContextMenuProvider({
     },
     [clickOutsideHandler, active]
   );
+  const actionsValue = useMemo(
+    () => ({ openContextMenu, closeContextMenu }),
+    [openContextMenu, closeContextMenu]
+  );
   const contextValue = useMemo(
     () => ({ ...state, openContextMenu, closeContextMenu }),
     [state, openContextMenu, closeContextMenu]
   );
 
   return (
-    <ContextMenuContext.Provider value={contextValue}>
-      {children}
-    </ContextMenuContext.Provider>
+    <ContextMenuActionsContext.Provider value={actionsValue}>
+      <ContextMenuContext.Provider value={contextValue}>
+        {children}
+      </ContextMenuContext.Provider>
+    </ContextMenuActionsContext.Provider>
   );
 }

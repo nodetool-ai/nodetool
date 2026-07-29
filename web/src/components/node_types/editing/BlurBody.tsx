@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 /**
- * BlurBody — bespoke body for `nodetool.image.Blur` (plan §9.E4, PR 12).
+ * BlurBody — bespoke body for `nodetool.image.Blur`.
  *
  * Top: preview of the server output. Bottom: type dropdown (Gaussian /
  * Box / Motion) and a 0–100 size slider. The preview reflects whatever

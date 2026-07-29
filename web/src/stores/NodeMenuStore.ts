@@ -52,10 +52,10 @@ export type NodeMenuStore = {
   setMenuUserSize: (size: { width: number; height: number } | null) => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
-  selectedInputType: string;
-  setSelectedInputType: (inputType: string) => void;
-  selectedOutputType: string;
-  setSelectedOutputType: (outputType: string) => void;
+  selectedInputType: TypeName;
+  setSelectedInputType: (inputType: TypeName) => void;
+  selectedOutputType: TypeName;
+  setSelectedOutputType: (outputType: TypeName) => void;
   selectedProviderType: ProviderFilterType;
   setSelectedProviderType: (providerType: ProviderFilterType) => void;
   selectedPath: string[];
@@ -198,7 +198,7 @@ export const createNodeMenuStore = () =>
       },
       connectDirection: null,
       setConnectDirection: (direction) => {
-        set({ connectDirection: direction as ConnectDirection });
+        set({ connectDirection: direction });
       },
       menuPosition: { x: 0, y: 0 },
       setMenuPosition: (x, y) => {
@@ -274,8 +274,8 @@ export const createNodeMenuStore = () =>
             metadata,
             searchTerm,
             newPath,
-            selectedInputType as TypeName,
-            selectedOutputType as TypeName,
+            selectedInputType,
+            selectedOutputType,
             true,
             selectedProviderType,
             recentNodeTypes
@@ -309,7 +309,7 @@ export const createNodeMenuStore = () =>
        * 1. Validates the search request against the current search ID
        * 2. Retrieves metadata
        * 3. Applies type filtering based on selected input/output types
-       * 4. Performs fuzzy search using Fuse.js when a search term is provided
+       * 4. Performs fuzzy search when a search term is provided
        * 5. Filters results based on the selected namespace path
        * 6. Sorts and groups results for display
        * 7. Updates the highlighted namespaces in the UI
@@ -340,8 +340,8 @@ export const createNodeMenuStore = () =>
             metadata,
             term,
             store.selectedPath,
-            store.selectedInputType as TypeName,
-            store.selectedOutputType as TypeName,
+            store.selectedInputType,
+            store.selectedOutputType,
             true,
             store.selectedProviderType,
             recentNodeTypes

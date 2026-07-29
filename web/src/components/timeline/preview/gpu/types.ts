@@ -1,4 +1,5 @@
 import type {
+  AnimationSampleMask,
   ClipEffect,
   ClipTransform,
   TimelineClip,
@@ -22,6 +23,11 @@ export interface CompositeLayer {
   transform?: ClipTransform;
   /** Rounded-corner radius in source pixels. Default 0. */
   borderRadius?: number;
+  /**
+   * Wipe mask (from a `wipe` animation) applied in the layer's own quad
+   * space, so the wipe edge rotates with the layer. Absent means unmasked.
+   */
+  mask?: AnimationSampleMask;
   /** Per-clip GPU effects applied as a pre-pass before this layer's draw. */
   effects?: ClipEffect[];
   /**

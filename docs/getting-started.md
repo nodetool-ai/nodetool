@@ -1,13 +1,17 @@
 ---
 layout: page
 title: "Quick Start"
-description: "Install NodeTool, run a template, ship a Mini-App."
+description: "Install NodeTool, run a ready-made example, change it, and turn it into a small app anyone can use."
 ---
 
-Install, open a template, run it, edit it, ship it.
+Install NodeTool, open a ready-made example, run it, change it, and turn it into
+a form anyone can use. About 10 minutes. No account required.
 
-Prefer to watch first? Here's a full workflow running on the canvas — see the
-[Tutorials](tutorials.md) page for all of them.
+This page assumes you have never used a tool like this. Every term is explained
+the first time it appears, and the [Glossary](glossary.md) covers the rest.
+
+Prefer to watch first? Here is a finished example running. The
+[Tutorials](tutorials.md) page has more.
 
 <video controls preload="metadata" poster="{{ '/assets/tutorials/first-workflow.jpg' | relative_url }}">
   <source src="{{ '/assets/tutorials/first-workflow.mp4' | relative_url }}" type="video/mp4">
@@ -15,96 +19,183 @@ Prefer to watch first? Here's a full workflow running on the canvas — see the
 
 ## Step 1 — Install
 
-### Requirements
+### Will it run on my computer?
 
-| Component | Minimum | Recommended |
+| | Minimum | Better |
 |-----------|---------|-------------|
-| **RAM** | 8 GB | 16 GB+ |
-| **Disk** | 10 GB free | 50 GB+ for models |
-| **GPU** | None | 8 GB+ VRAM for local inference |
-| **OS** | macOS 13+, Windows 10+, Ubuntu 22+ | Latest |
+| **Memory (RAM)** | 8 GB | 16 GB or more |
+| **Free disk space** | 10 GB | 50 GB if you download AI models |
+| **Graphics card (GPU)** | Not needed | 8 GB or more of video memory |
+| **Operating system** | macOS 13+, Windows 10+, Ubuntu 22+ | The latest version |
 
-No GPU? Use cloud providers with your keys. See [hardware notes](installation.md#what-different-tasks-need).
+A graphics card only matters if you want AI models to run on your own machine.
+Without one, NodeTool sends the work to an online AI service instead, and
+everything on this page still works. See the
+[hardware notes](installation.md#what-different-tasks-need).
 
-### Install
+### Install it
 
-1. Download from [nodetool.ai](https://nodetool.ai).
+1. Download NodeTool from [nodetool.ai](https://nodetool.ai).
 2. Run the installer.
-3. Launch. No setup wizard.
+3. Open the app. There is no setup wizard.
 
+Step-by-step instructions per operating system are on the
+[Installation](installation.md) page.
 
-Providers: open **Settings → Providers** and paste a key from [OpenAI](https://platform.openai.com), [Anthropic](https://www.anthropic.com), or [Google](https://ai.google.dev). Skip the download.
+### Connect it to an AI service
+
+NodeTool has no AI model built in. You point it at one, and the fastest way is
+an **API key**: a long password-like string you copy from an AI company's
+website. It lets NodeTool send requests on your account, and that company bills
+you for what you use.
+
+Open **Settings → Providers** and paste a key from
+[OpenAI](https://platform.openai.com),
+[Anthropic](https://www.anthropic.com), or
+[Google](https://ai.google.dev). One key is enough for the examples below.
+
+Want the AI to run on your own machine instead, with no account and no bill?
+That works too, and it needs a download of several gigabytes per model. See
+[Models & Providers](models-and-providers.md).
 
 ---
 
-## Step 2 — Run a workflow
+## Step 2 — Run a ready-made example
 
-Open a template from the Dashboard.
+Everything you build lives on a **canvas**: a large open work area where you
+place boxes and draw lines between them.
+
+- Each box is a **node**, and it does one job: write some text, make an image,
+  save a file.
+- A line carries the result of one node into the next one. Lines are also called
+  **connections**.
+- The whole picture, boxes and lines together, is a **workflow**.
+
+You don't have to build one yet. NodeTool ships with **templates**: finished
+workflows you can open and run as they are. Find them on the Dashboard, the
+screen you land on when the app opens, or on the Examples page.
+
+![Examples page](assets/screenshots/examples-page.png)
 
 ### Movie Posters
 
-1. Dashboard → Templates → **Movie Posters**.
-2. The graph opens: inputs left, agent middle, image generator right, preview last.
-3. Fill the inputs:
+1. Go to Dashboard → Templates → **Movie Posters**.
+2. The workflow opens. Read it left to right: the boxes where you type go on the
+   left, the AI in the middle, the image maker next, and the finished picture on
+   the right.
+3. Type into the boxes on the left:
    - **Title**: Ocean Depths
    - **Genre**: Sci-Fi Thriller
    - **Audience**: Adults who love mystery
-4. Press <kbd>Ctrl/⌘ + Enter</kbd>.
+4. Two nodes, Agent and List Generator, ask you to pick a model. A **model** is
+   the specific AI you want to use, such as GPT-5.6 or Claude Opus 5. Pick any one from
+   the dropdown. This is the step that needs the API key from above.
+5. Press <kbd>Ctrl/⌘ + Enter</kbd> to run it.
+
+Nodes light up one at a time as they work. Text and images appear inside the
+Preview node on the right as they are produced, so you can watch the poster
+being made instead of waiting for a finished file.
 
 ### Creative Story Ideas
 
 ![Editor](assets/screenshots/editor-empty-state.png)
 
-1. Dashboard → Templates → **Creative Story Ideas**.
-2. Set inputs:
+1. Go to Dashboard → Templates → **Creative Story Ideas**.
+2. Type into the boxes on the left:
    - **Genre**: Cyberpunk
    - **Character**: Rogue AI detective
    - **Setting**: Neon-lit underwater city
-3. Run.
+3. Pick a model for the Agent and List Generator nodes.
+4. Press <kbd>Ctrl/⌘ + Enter</kbd> to run it.
 
 ---
 
-## Step 3 — Edit
+## Step 3 — Change something
 
-1. Save with <kbd>Ctrl/⌘ + S</kbd>.
-2. Change inputs, re-run.
-3. Click a node to inspect it. Hover an edge to see the data flowing through. Press `Space`, search "Preview", drop one anywhere on the canvas.
+The template is now yours. Change it, run it again, and see what happens. Every
+run uses whatever is on the canvas at that moment, so there is nothing to
+rebuild or recompile.
 
-### Optional node packs
+1. Change one of your typed inputs, or pick a different model, then press
+   <kbd>Ctrl/⌘ + Enter</kbd> again.
+2. Press <kbd>Ctrl/⌘ + S</kbd> to save your version.
+3. Click a node to see its settings in the panel on the right. Hover over a line
+   to see the data passing through it.
+4. To watch any value anywhere in the workflow, press `Space` to open the node
+   list, search for "Preview", and drop one onto the canvas. Connect a line into
+   it and it will show whatever arrives.
 
-NodeTool ships hundreds of nodes. To keep the node menu focused, advanced and niche namespaces — file system, databases, document conversion, web scraping, code execution, and more — are grouped into **optional packs**, and provider nodes follow your API keys.
+### Finding more nodes
 
-Press `Space` to open the node menu, then click **Optional packs** at the bottom of the namespace list.
+NodeTool comes with hundreds of nodes. Showing all of them at once would make
+the list unusable, so the more specialised ones are grouped into **packs** that
+start switched off. Turning a pack on adds its nodes to the list.
+
+Press `Space` to open the node list, then click **Optional packs** at the bottom
+of the category list.
 
 ![Optional node packs](assets/screenshots/node-menu-optional-packs.png)
 
-- **Categories** — turn on a group (Documents, Image & Graphics, Web & Scraping, …) to reveal its nodes in the menu. Search always finds every node, even when its pack is off — so hiding a pack only declutters browsing, it never hides a node from search.
-- **Providers** — a provider's nodes appear once you add its API key. The key is the switch: set it in **Settings → API Keys** (or use **Add API key** right here) and the provider's pack enables automatically, no restart. Locally-run packs like Transformers.js need no key, so they keep a manual toggle.
+- **Categories** — switch on a group (Documents, Image & Graphics, Web &
+  Scraping, and others) to show its nodes while browsing. Search always finds
+  every node, even in a pack that is switched off, so nothing is ever truly
+  hidden.
+- **Providers** — nodes for an AI company appear as soon as you add that
+  company's API key, in **Settings → API Keys** or with the **Add API key**
+  button right here. No restart needed. Packs that run on your own machine, like
+  Transformers.js, need no key and have a normal on/off switch.
 
-Opening a workflow that uses a node from a disabled pack enables that pack for you, so shared workflows just work.
+Opening a workflow that someone else made switches on any pack it needs, so
+shared workflows run without setup.
 
 ---
 
-## Step 4 — Ship as a Mini-App
+## Step 4 — Turn it into an app
 
-A Mini-App hides the graph and exposes inputs and outputs only.
+A **Mini-App** is the same workflow with the boxes and lines hidden. What's left
+is a plain form: fill in the fields, press a button, get the result. Hand it to
+someone who should never have to look at a canvas.
 
 1. Open the workflow.
 2. Click **Mini-App** in the toolbar.
+3. Fill in the fields and run it. Same workflow underneath, no canvas.
 
-Custom UI? See [VibeCoding](vibecoding.md).
+![A Mini App running](assets/screenshots/mini-app-run.png)
+
+To design the form yourself, see [Mini Apps](mini-apps.md) for what they are,
+[Building Mini Apps](mini-apps-guide.md) for worked examples, and
+[App Builder](app-builder.md) for the editor.
 
 ---
 
-## Next
+## What you just learned
 
-| Goal | Page |
+The four steps above are the loop NodeTool is built around: gather your files,
+build a workflow, produce something, and share it as a Mini-App.
+
+Two other work areas plug into the same loop. The
+[Sketch Editor](sketch-editor.md) is for still images built from layers, the way
+Photoshop works. The [Video Editor](video-editor.md) is for arranging video and
+audio clips over time. Anything any of them produces is a file NodeTool calls an
+**asset**, and all four areas read and write the same set of assets, using the
+same AI services.
+
+[Key Concepts → How everything fits together](key-concepts.md#how-everything-fits-together)
+has the full picture with a diagram.
+
+---
+
+## Where to go next
+
+| If you want to | Read |
 |------|------|
-| How workflows work | [Key Concepts](key-concepts.md) |
-| Full interface | [User Interface](user-interface.md), [Workflow Editor](workflow-editor.md) |
-| More examples | [Gallery](workflows/), [Cookbook](cookbook.md) |
-| Models and providers | [Models & Providers](models-and-providers.md) |
-| Deploy | [Deployment](deployment.md) |
-| Stuck | [Troubleshooting](troubleshooting.md), [Debugging](workflow-debugging.md) |
+| Understand how workflows work | [Key Concepts](key-concepts.md) |
+| Learn the interface | [User Interface](user-interface.md), [Workflow Editor](workflow-editor.md) |
+| See more examples | [Gallery](workflows/), [Cookbook](cookbook.md) |
+| Choose AI models | [Models & Providers](models-and-providers.md) |
+| Look up a word | [Glossary](glossary.md) |
+| Put a workflow on a server | [Deployment](deployment.md) |
+| Fix something that broke | [Troubleshooting](troubleshooting.md), [Debugging](workflow-debugging.md) |
 
-[Discord](https://discord.gg/WmQTWZRcYE) · [GitHub](https://github.com/nodetool-ai/nodetool/issues) · [Glossary](glossary.md)
+Questions: [Discord](https://discord.gg/WmQTWZRcYE) ·
+[GitHub](https://github.com/nodetool-ai/nodetool/issues)

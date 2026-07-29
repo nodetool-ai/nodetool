@@ -3,7 +3,7 @@ import { useState, DragEvent, useRef, useCallback, useEffect } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS, FONT_WEIGHT } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, FONT_WEIGHT, Z_INDEX } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -14,7 +14,7 @@ const styles = (theme: Theme) =>
       right: 0,
       bottom: 0,
       backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.6)`,
-      zIndex: 1000,
+      zIndex: Z_INDEX.overlay,
       pointerEvents: "none",
       display: "flex",
       alignItems: "center",
@@ -31,7 +31,7 @@ const styles = (theme: Theme) =>
       letterSpacing: "0.05em"
     },
     ".file-upload-button": {
-      zIndex: 1,
+      zIndex: Z_INDEX.raised,
       height: "fit-content",
       display: "flex",
       justifyContent: "center",

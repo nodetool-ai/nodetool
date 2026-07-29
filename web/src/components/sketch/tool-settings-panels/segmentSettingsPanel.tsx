@@ -50,7 +50,6 @@ function promptModeHelpText(mode: SegmentPromptMode): string {
   return "Auto-detect prominent objects";
 }
 
-/** Returns a user-friendly status message for the current segmentation phase. */
 function getSegmentationStatusMessage(status: SegmentationStatus): string {
   switch (status) {
     case "checking-model":

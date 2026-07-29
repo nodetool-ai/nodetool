@@ -56,7 +56,9 @@ const MemoizedControlEdge = memo(ControlEdge, (prevProps, nextProps) => {
     prevProps.sourceX === nextProps.sourceX &&
     prevProps.sourceY === nextProps.sourceY &&
     prevProps.targetX === nextProps.targetX &&
-    prevProps.targetY === nextProps.targetY
+    prevProps.targetY === nextProps.targetY &&
+    prevProps.sourcePosition === nextProps.sourcePosition &&
+    prevProps.targetPosition === nextProps.targetPosition
   );
 });
 

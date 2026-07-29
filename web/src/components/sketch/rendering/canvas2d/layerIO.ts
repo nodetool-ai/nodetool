@@ -154,10 +154,6 @@ export function findContentRect(
 // ─── Layer data readback ─────────────────────────────────────────────────────
 
 /**
- * Read back layer raster data as a serialized string, using compact encoding
- * when the non-transparent content is significantly smaller than the full canvas.
- */
-/**
  * Tag a canvas with the data URL it was just serialized to. setLayerData
  * checks this tag to short-circuit redundant re-hydration: if the caller
  * passes back the SAME data URL we just produced, the canvas is already

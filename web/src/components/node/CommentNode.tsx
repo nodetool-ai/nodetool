@@ -3,8 +3,8 @@ import { css } from "@emotion/react";
 import { memo, useState, useCallback, useRef, useMemo } from "react";
 import { NodeProps, Node } from "@xyflow/react";
 import { debounce } from "../../utils/lodashAlternatives";
-import isEqual from "fast-deep-equal";
-import { Container, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import isEqual from "../../utils/isEqual";
+import { Container, MOTION, BORDER_RADIUS, Z_INDEX } from "../ui_primitives";
 import { NodeData } from "../../stores/NodeData";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { useTheme } from "@mui/material/styles";
@@ -28,7 +28,6 @@ import { HorizontalRuleNode } from "../textEditor/HorizontalRuleNode";
 import { $convertFromMarkdownString, TRANSFORMERS } from "@lexical/markdown";
 import { shallow } from "zustand/shallow";
 
-// Function to calculate contrast color (black or white) for a given hex background
 function getContrastTextColor(hexColor: string): string {
   if (!hexColor) {
     return "#000000";
@@ -54,7 +53,6 @@ function getContrastTextColor(hexColor: string): string {
     return "#000000";
   }
 
-  // Calculate luminance
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 
   return luminance > 0.5 ? "#000000" : "#FFFFFF";
@@ -99,16 +97,16 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.c_overlay_strong,
       borderRadius: BORDER_RADIUS.sm,
       padding: "0.25em 0.5em",
-      zIndex: 1,
+      zIndex: Z_INDEX.raised,
       opacity: 0,
-      transition: `opacity ${MOTION.normal} .2s`
+      transition: `opacity ${MOTION.normal} ${200}ms`
     },
     "&:hover .format-toolbar-container": {
       opacity: 1,
       display: "flex"
     },
     ".format-toolbar-actions": {
-      transition: `opacity ${MOTION.normal} .1s`,
+      transition: `opacity ${MOTION.normal} ${100}ms`,
       opacity: 0
     },
     "&.focused .format-toolbar-actions": {
@@ -125,6 +123,17 @@ const styles = (theme: Theme) =>
       transition: `opacity ${MOTION.normal}`,
       "&:hover": {
         opacity: 1
+      }
+    },
+    // Touch devices have no hover: the color picker would never appear, and
+    // the format toolbar only while the comment is being edited.
+    "@media (pointer: coarse)": {
+      ".color-picker-container": {
+        opacity: 1
+      },
+      "&.focused .format-toolbar-container": {
+        opacity: 1,
+        display: "flex"
       }
     },
     ".node-resize-handle": {
@@ -196,6 +205,8 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const contentOnFocusRef = useRef<EditorState | null>(null);
   const [isEditorFocused, setIsEditorFocused] = useState(false);
+  const propsDataRef = useRef(props.data);
+  propsDataRef.current = props.data;
 
   const editorConfig = useMemo((): InitialConfigType => {
     const comment = props.data.properties.comment;
@@ -234,15 +245,16 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const debouncedUpdate = useMemo(
     () =>
       debounce((newEditorState: EditorState) => {
+        const currentData = propsDataRef.current;
         updateNodeData(props.id, {
-          ...props.data,
+          ...currentData,
           properties: {
-            ...props.data.properties,
+            ...currentData.properties,
             comment: newEditorState.toJSON()
           }
         });
       }, 500),
-    [props.id, props.data, updateNodeData]
+    [props.id, updateNodeData]
   );
 
   const handleEditorChange = useCallback(
@@ -259,8 +271,8 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     if (editorRef.current && containerRef.current) {
       const editorDiv = editorRef.current.querySelector(
         ".editor-input"
-      ) as HTMLDivElement;
-      if (!editorDiv) {
+      );
+      if (!(editorDiv instanceof HTMLDivElement)) {
         return;
       }
 
@@ -338,15 +350,17 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [props.id, props.data, updateNodeData]
   );
 
+  const containerStyle = useMemo<React.CSSProperties>(() => ({
+    backgroundColor: hexToRgba(color, 0.5),
+    color: textColor,
+    paddingRight: "2em"
+  }), [color, textColor]);
+
   return (
     <LexicalComposer initialConfig={editorConfig}>
       <Container
         ref={containerRef}
-        style={{
-          backgroundColor: hexToRgba(color, 0.5),
-          color: textColor,
-          paddingRight: "2em"
-        }}
+        style={containerStyle}
         className={`node-drag-handle comment-node ${
           props.selected ? "selected" : ""
         } ${isEditorFocused ? "focused" : ""}`.trim()}

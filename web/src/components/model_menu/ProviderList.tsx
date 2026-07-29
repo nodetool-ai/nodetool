@@ -15,6 +15,8 @@ import {
   Tooltip,
   Box,
   BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
   List,
   ListItemButton,
   ListItemText
@@ -28,7 +30,7 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import { useNavigate } from "react-router-dom";
+import { openProviderOnboarding } from "../../stores/ProviderOnboardingStore";
 
 import {
   isHuggingFaceProvider,
@@ -44,117 +46,116 @@ import {
 import { useSecrets } from "../../hooks/useSecrets";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 
-// Import provider icons from @lobehub/icons-static-svg
-import openaiIcon from "@lobehub/icons-static-svg/icons/openai.svg";
-import anthropicIcon from "@lobehub/icons-static-svg/icons/anthropic.svg";
-import claudeColorIcon from "@lobehub/icons-static-svg/icons/claude-color.svg";
-import geminiColorIcon from "@lobehub/icons-static-svg/icons/gemini-color.svg";
-import googlecloudColorIcon from "@lobehub/icons-static-svg/icons/googlecloud-color.svg";
-import vertexaiColorIcon from "@lobehub/icons-static-svg/icons/vertexai-color.svg";
-import huggingfaceColorIcon from "@lobehub/icons-static-svg/icons/huggingface-color.svg";
-import ollamaIcon from "@lobehub/icons-static-svg/icons/ollama.svg";
-import lmstudioIcon from "@lobehub/icons-static-svg/icons/lmstudio.svg";
-import azureColorIcon from "@lobehub/icons-static-svg/icons/azure-color.svg";
-import azureaiColorIcon from "@lobehub/icons-static-svg/icons/azureai-color.svg";
-import awsColorIcon from "@lobehub/icons-static-svg/icons/aws-color.svg";
-import bedrockColorIcon from "@lobehub/icons-static-svg/icons/bedrock-color.svg";
-import replicateIcon from "@lobehub/icons-static-svg/icons/replicate.svg";
-import falColorIcon from "@lobehub/icons-static-svg/icons/fal-color.svg";
-import deepseekColorIcon from "@lobehub/icons-static-svg/icons/deepseek-color.svg";
-import groqIcon from "@lobehub/icons-static-svg/icons/groq.svg";
-import mistralColorIcon from "@lobehub/icons-static-svg/icons/mistral-color.svg";
-import togetherColorIcon from "@lobehub/icons-static-svg/icons/together-color.svg";
-import perplexityColorIcon from "@lobehub/icons-static-svg/icons/perplexity-color.svg";
-import ai21Icon from "@lobehub/icons-static-svg/icons/ai21.svg";
-import cloudflareColorIcon from "@lobehub/icons-static-svg/icons/cloudflare-color.svg";
-import workersaiColorIcon from "@lobehub/icons-static-svg/icons/workersai-color.svg";
-import fireworksColorIcon from "@lobehub/icons-static-svg/icons/fireworks-color.svg";
-import stabilityColorIcon from "@lobehub/icons-static-svg/icons/stability-color.svg";
-import cerebrasColorIcon from "@lobehub/icons-static-svg/icons/cerebras-color.svg";
-import moonshotIcon from "@lobehub/icons-static-svg/icons/moonshot.svg";
-import novitaColorIcon from "@lobehub/icons-static-svg/icons/novita-color.svg";
-import sambanovaColorIcon from "@lobehub/icons-static-svg/icons/sambanova-color.svg";
-import siliconcloudColorIcon from "@lobehub/icons-static-svg/icons/siliconcloud-color.svg";
-import xinferenceColorIcon from "@lobehub/icons-static-svg/icons/xinference-color.svg";
-import dalleColorIcon from "@lobehub/icons-static-svg/icons/dalle-color.svg";
-import bflIcon from "@lobehub/icons-static-svg/icons/bfl.svg";
-import fluxIcon from "@lobehub/icons-static-svg/icons/flux.svg";
-import lumaColorIcon from "@lobehub/icons-static-svg/icons/luma-color.svg";
-import recraftIcon from "@lobehub/icons-static-svg/icons/recraft.svg";
-import ideogramIcon from "@lobehub/icons-static-svg/icons/ideogram.svg";
-import tripoColorIcon from "@lobehub/icons-static-svg/icons/tripo-color.svg";
-import haiperIcon from "@lobehub/icons-static-svg/icons/haiper.svg";
-import klingColorIcon from "@lobehub/icons-static-svg/icons/kling-color.svg";
-import hunyuanColorIcon from "@lobehub/icons-static-svg/icons/hunyuan-color.svg";
-import pikaIcon from "@lobehub/icons-static-svg/icons/pika.svg";
-import runwayIcon from "@lobehub/icons-static-svg/icons/runway.svg";
-import viduColorIcon from "@lobehub/icons-static-svg/icons/vidu-color.svg";
-import viggleIcon from "@lobehub/icons-static-svg/icons/viggle.svg";
-import hailuoColorIcon from "@lobehub/icons-static-svg/icons/hailuo-color.svg";
-import kolorsColorIcon from "@lobehub/icons-static-svg/icons/kolors-color.svg";
-import kreaIcon from "@lobehub/icons-static-svg/icons/krea.svg";
-import elevenlabsIcon from "@lobehub/icons-static-svg/icons/elevenlabs.svg";
-import deepmindColorIcon from "@lobehub/icons-static-svg/icons/deepmind-color.svg";
-import xaiIcon from "@lobehub/icons-static-svg/icons/xai.svg";
-import grokIcon from "@lobehub/icons-static-svg/icons/grok.svg";
-import metaColorIcon from "@lobehub/icons-static-svg/icons/meta-color.svg";
-import metaaiColorIcon from "@lobehub/icons-static-svg/icons/metaai-color.svg";
-import llamaindexColorIcon from "@lobehub/icons-static-svg/icons/llamaindex-color.svg";
-import langchainColorIcon from "@lobehub/icons-static-svg/icons/langchain-color.svg";
-import langfuseColorIcon from "@lobehub/icons-static-svg/icons/langfuse-color.svg";
-import langsmithColorIcon from "@lobehub/icons-static-svg/icons/langsmith-color.svg";
-import langgraphColorIcon from "@lobehub/icons-static-svg/icons/langgraph-color.svg";
-import nvidiaColorIcon from "@lobehub/icons-static-svg/icons/nvidia-color.svg";
-import hyperbolicColorIcon from "@lobehub/icons-static-svg/icons/hyperbolic-color.svg";
-import deepinfraColorIcon from "@lobehub/icons-static-svg/icons/deepinfra-color.svg";
-import basetenIcon from "@lobehub/icons-static-svg/icons/baseten.svg";
-import friendliIcon from "@lobehub/icons-static-svg/icons/friendli.svg";
-import exaColorIcon from "@lobehub/icons-static-svg/icons/exa-color.svg";
-import jinaIcon from "@lobehub/icons-static-svg/icons/jina.svg";
-import upstageColorIcon from "@lobehub/icons-static-svg/icons/upstage-color.svg";
-import cohereColorIcon from "@lobehub/icons-static-svg/icons/cohere-color.svg";
-import commandaColorIcon from "@lobehub/icons-static-svg/icons/commanda-color.svg";
-import ayaColorIcon from "@lobehub/icons-static-svg/icons/aya-color.svg";
-import palmColorIcon from "@lobehub/icons-static-svg/icons/palm-color.svg";
-import copilotColorIcon from "@lobehub/icons-static-svg/icons/copilot-color.svg";
-import githubcopilotIcon from "@lobehub/icons-static-svg/icons/githubcopilot.svg";
-import githubIcon from "@lobehub/icons-static-svg/icons/github.svg";
-import vercelIcon from "@lobehub/icons-static-svg/icons/vercel.svg";
-import openrouterIcon from "@lobehub/icons-static-svg/icons/openrouter.svg";
-import lobehubColorIcon from "@lobehub/icons-static-svg/icons/lobehub-color.svg";
-import automaticColorIcon from "@lobehub/icons-static-svg/icons/automatic-color.svg";
-import glifIcon from "@lobehub/icons-static-svg/icons/glif.svg";
-import pollinationsIcon from "@lobehub/icons-static-svg/icons/pollinations.svg";
-import ppioColorIcon from "@lobehub/icons-static-svg/icons/ppio-color.svg";
-import inferenceIcon from "@lobehub/icons-static-svg/icons/inference.svg";
-import featherlessColorIcon from "@lobehub/icons-static-svg/icons/featherless-color.svg";
-import voyageColorIcon from "@lobehub/icons-static-svg/icons/voyage-color.svg";
-import zaiIcon from "@lobehub/icons-static-svg/icons/zai.svg";
+// Provider icons vendored from @lobehub/icons-static-svg (see src/icons/providers/README.md)
+import openaiIcon from "../../icons/providers/openai.svg";
+import anthropicIcon from "../../icons/providers/anthropic.svg";
+import claudeColorIcon from "../../icons/providers/claude-color.svg";
+import geminiColorIcon from "../../icons/providers/gemini-color.svg";
+import googlecloudColorIcon from "../../icons/providers/googlecloud-color.svg";
+import vertexaiColorIcon from "../../icons/providers/vertexai-color.svg";
+import huggingfaceColorIcon from "../../icons/providers/huggingface-color.svg";
+import ollamaIcon from "../../icons/providers/ollama.svg";
+import lmstudioIcon from "../../icons/providers/lmstudio.svg";
+import azureColorIcon from "../../icons/providers/azure-color.svg";
+import azureaiColorIcon from "../../icons/providers/azureai-color.svg";
+import awsColorIcon from "../../icons/providers/aws-color.svg";
+import bedrockColorIcon from "../../icons/providers/bedrock-color.svg";
+import replicateIcon from "../../icons/providers/replicate.svg";
+import falColorIcon from "../../icons/providers/fal-color.svg";
+import deepseekColorIcon from "../../icons/providers/deepseek-color.svg";
+import groqIcon from "../../icons/providers/groq.svg";
+import mistralColorIcon from "../../icons/providers/mistral-color.svg";
+import togetherColorIcon from "../../icons/providers/together-color.svg";
+import perplexityColorIcon from "../../icons/providers/perplexity-color.svg";
+import ai21Icon from "../../icons/providers/ai21.svg";
+import cloudflareColorIcon from "../../icons/providers/cloudflare-color.svg";
+import workersaiColorIcon from "../../icons/providers/workersai-color.svg";
+import fireworksColorIcon from "../../icons/providers/fireworks-color.svg";
+import stabilityColorIcon from "../../icons/providers/stability-color.svg";
+import cerebrasColorIcon from "../../icons/providers/cerebras-color.svg";
+import moonshotIcon from "../../icons/providers/moonshot.svg";
+import novitaColorIcon from "../../icons/providers/novita-color.svg";
+import sambanovaColorIcon from "../../icons/providers/sambanova-color.svg";
+import siliconcloudColorIcon from "../../icons/providers/siliconcloud-color.svg";
+import xinferenceColorIcon from "../../icons/providers/xinference-color.svg";
+import dalleColorIcon from "../../icons/providers/dalle-color.svg";
+import bflIcon from "../../icons/providers/bfl.svg";
+import fluxIcon from "../../icons/providers/flux.svg";
+import lumaColorIcon from "../../icons/providers/luma-color.svg";
+import recraftIcon from "../../icons/providers/recraft.svg";
+import ideogramIcon from "../../icons/providers/ideogram.svg";
+import tripoColorIcon from "../../icons/providers/tripo-color.svg";
+import haiperIcon from "../../icons/providers/haiper.svg";
+import klingColorIcon from "../../icons/providers/kling-color.svg";
+import hunyuanColorIcon from "../../icons/providers/hunyuan-color.svg";
+import pikaIcon from "../../icons/providers/pika.svg";
+import runwayIcon from "../../icons/providers/runway.svg";
+import viduColorIcon from "../../icons/providers/vidu-color.svg";
+import viggleIcon from "../../icons/providers/viggle.svg";
+import hailuoColorIcon from "../../icons/providers/hailuo-color.svg";
+import kolorsColorIcon from "../../icons/providers/kolors-color.svg";
+import kreaIcon from "../../icons/providers/krea.svg";
+import elevenlabsIcon from "../../icons/providers/elevenlabs.svg";
+import deepmindColorIcon from "../../icons/providers/deepmind-color.svg";
+import xaiIcon from "../../icons/providers/xai.svg";
+import grokIcon from "../../icons/providers/grok.svg";
+import metaColorIcon from "../../icons/providers/meta-color.svg";
+import metaaiColorIcon from "../../icons/providers/metaai-color.svg";
+import llamaindexColorIcon from "../../icons/providers/llamaindex-color.svg";
+import langchainColorIcon from "../../icons/providers/langchain-color.svg";
+import langfuseColorIcon from "../../icons/providers/langfuse-color.svg";
+import langsmithColorIcon from "../../icons/providers/langsmith-color.svg";
+import langgraphColorIcon from "../../icons/providers/langgraph-color.svg";
+import nvidiaColorIcon from "../../icons/providers/nvidia-color.svg";
+import hyperbolicColorIcon from "../../icons/providers/hyperbolic-color.svg";
+import deepinfraColorIcon from "../../icons/providers/deepinfra-color.svg";
+import basetenIcon from "../../icons/providers/baseten.svg";
+import friendliIcon from "../../icons/providers/friendli.svg";
+import exaColorIcon from "../../icons/providers/exa-color.svg";
+import jinaIcon from "../../icons/providers/jina.svg";
+import upstageColorIcon from "../../icons/providers/upstage-color.svg";
+import cohereColorIcon from "../../icons/providers/cohere-color.svg";
+import commandaColorIcon from "../../icons/providers/commanda-color.svg";
+import ayaColorIcon from "../../icons/providers/aya-color.svg";
+import palmColorIcon from "../../icons/providers/palm-color.svg";
+import copilotColorIcon from "../../icons/providers/copilot-color.svg";
+import githubcopilotIcon from "../../icons/providers/githubcopilot.svg";
+import githubIcon from "../../icons/providers/github.svg";
+import vercelIcon from "../../icons/providers/vercel.svg";
+import openrouterIcon from "../../icons/providers/openrouter.svg";
+import lobehubColorIcon from "../../icons/providers/lobehub-color.svg";
+import automaticColorIcon from "../../icons/providers/automatic-color.svg";
+import glifIcon from "../../icons/providers/glif.svg";
+import pollinationsIcon from "../../icons/providers/pollinations.svg";
+import ppioColorIcon from "../../icons/providers/ppio-color.svg";
+import inferenceIcon from "../../icons/providers/inference.svg";
+import featherlessColorIcon from "../../icons/providers/featherless-color.svg";
+import voyageColorIcon from "../../icons/providers/voyage-color.svg";
+import zaiIcon from "../../icons/providers/zai.svg";
 import gmiIcon from "../../icons/gmi.svg";
 
 // Chinese providers
-import alibabacloudColorIcon from "@lobehub/icons-static-svg/icons/alibabacloud-color.svg";
-import bailianColorIcon from "@lobehub/icons-static-svg/icons/bailian-color.svg";
-import qwenColorIcon from "@lobehub/icons-static-svg/icons/qwen-color.svg";
-import zhipuColorIcon from "@lobehub/icons-static-svg/icons/zhipu-color.svg";
-import chatglmColorIcon from "@lobehub/icons-static-svg/icons/chatglm-color.svg";
-import wenxinColorIcon from "@lobehub/icons-static-svg/icons/wenxin-color.svg";
-import baiduColorIcon from "@lobehub/icons-static-svg/icons/baidu-color.svg";
-import bytedanceColorIcon from "@lobehub/icons-static-svg/icons/bytedance-color.svg";
-import doubaoColorIcon from "@lobehub/icons-static-svg/icons/doubao-color.svg";
-import yiColorIcon from "@lobehub/icons-static-svg/icons/yi-color.svg";
-import stepfunColorIcon from "@lobehub/icons-static-svg/icons/stepfun-color.svg";
-import sensenovaColorIcon from "@lobehub/icons-static-svg/icons/sensenova-color.svg";
-import minimaxColorIcon from "@lobehub/icons-static-svg/icons/minimax-color.svg";
-import sparkColorIcon from "@lobehub/icons-static-svg/icons/spark-color.svg";
-import iflytekcloudColorIcon from "@lobehub/icons-static-svg/icons/iflytekcloud-color.svg";
-import internlmColorIcon from "@lobehub/icons-static-svg/icons/internlm-color.svg";
-import skyworkColorIcon from "@lobehub/icons-static-svg/icons/skywork-color.svg";
-import tencentColorIcon from "@lobehub/icons-static-svg/icons/tencent-color.svg";
-import tencentcloudColorIcon from "@lobehub/icons-static-svg/icons/tencentcloud-color.svg";
-import yuanbaoColorIcon from "@lobehub/icons-static-svg/icons/yuanbao-color.svg";
+import alibabacloudColorIcon from "../../icons/providers/alibabacloud-color.svg";
+import bailianColorIcon from "../../icons/providers/bailian-color.svg";
+import qwenColorIcon from "../../icons/providers/qwen-color.svg";
+import zhipuColorIcon from "../../icons/providers/zhipu-color.svg";
+import chatglmColorIcon from "../../icons/providers/chatglm-color.svg";
+import wenxinColorIcon from "../../icons/providers/wenxin-color.svg";
+import baiduColorIcon from "../../icons/providers/baidu-color.svg";
+import bytedanceColorIcon from "../../icons/providers/bytedance-color.svg";
+import doubaoColorIcon from "../../icons/providers/doubao-color.svg";
+import yiColorIcon from "../../icons/providers/yi-color.svg";
+import stepfunColorIcon from "../../icons/providers/stepfun-color.svg";
+import sensenovaColorIcon from "../../icons/providers/sensenova-color.svg";
+import minimaxColorIcon from "../../icons/providers/minimax-color.svg";
+import sparkColorIcon from "../../icons/providers/spark-color.svg";
+import iflytekcloudColorIcon from "../../icons/providers/iflytekcloud-color.svg";
+import internlmColorIcon from "../../icons/providers/internlm-color.svg";
+import skyworkColorIcon from "../../icons/providers/skywork-color.svg";
+import tencentColorIcon from "../../icons/providers/tencent-color.svg";
+import tencentcloudColorIcon from "../../icons/providers/tencentcloud-color.svg";
+import yuanbaoColorIcon from "../../icons/providers/yuanbao-color.svg";
 
-// Provider to SVG icon mapping
 const providerIconMap: Record<string, string> = {
   // OpenAI / GPT
   openai: openaiIcon,
@@ -324,7 +325,6 @@ const providerIconMap: Record<string, string> = {
   voyage: voyageColorIcon,
 };
 
-// Get icon URL for a provider
 const getProviderIconUrl = (provider: string): string | null => {
   if (!provider) {
     return null;
@@ -496,6 +496,20 @@ const listStyles = css({
   maxHeight: "calc(100% - 20px)"
 });
 
+// Horizontal strip used on narrow screens, where an 88px sidebar would eat a
+// quarter of the viewport.
+const horizontalListStyles = css({
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "stretch",
+  gap: getSpacingPx(SPACING.xs),
+  overflowX: "auto",
+  overflowY: "hidden",
+  paddingTop: 0,
+  paddingBottom: 0,
+  "& > *": { flexShrink: 0 }
+});
+
 type ProviderStoreHook = <Selected>(
   selector: (state: {
     selectedProvider: string | null;
@@ -511,6 +525,8 @@ export interface ProviderListProps {
   storeHook?: ProviderStoreHook;
   forceUnselect?: boolean;
   iconOnly?: boolean;
+  /** "horizontal" lays the providers out as a scrolling strip (mobile). */
+  orientation?: "vertical" | "horizontal";
 }
 
 const ProviderList: React.FC<ProviderListProps> = ({
@@ -519,7 +535,8 @@ const ProviderList: React.FC<ProviderListProps> = ({
   isError,
   storeHook = useLanguageModelMenuStore,
   forceUnselect = false,
-  iconOnly = false
+  iconOnly = false,
+  orientation = "vertical"
 }) => {
   const theme = useTheme();
   const selected = storeHook((s) => s.selectedProvider);
@@ -536,6 +553,9 @@ const ProviderList: React.FC<ProviderListProps> = ({
   const { isApiKeySet } = useSecrets();
 
   const isDarkMode = useIsDarkMode();
+  const isHorizontal = orientation === "horizontal";
+  const tooltipPlacement = isHorizontal ? "bottom" : "right";
+  const itemMinWidth = isHorizontal ? 76 : undefined;
 
   // Sort providers: enabled first (alphabetical), then disabled (alphabetical)
   const sortedProviders = React.useMemo(() => {
@@ -556,8 +576,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
       .filter((x) => !x.enabled)
       .sort((a, b) => a.label.localeCompare(b.label))
       .map((x) => x.p);
-    const result = { enabledList, disabledList };
-    return result;
+    return { enabledList, disabledList };
   }, [providers, enabledProviders]);
 
   const handleSelectNull = useCallback(() => {
@@ -610,17 +629,21 @@ const ProviderList: React.FC<ProviderListProps> = ({
     handleMenuClose();
   }, [menuProvider, isProviderEnabled, setProviderEnabled, handleMenuClose]);
 
-  const navigate = useNavigate();
-  const handleOpenSettings = useCallback(() => {
-    navigate("/settings?tab=1");
-    handleMenuClose();
-  }, [navigate, handleMenuClose]);
+  const handleAddKey = useCallback(
+    (secretKey: string | null) => {
+      handleMenuClose();
+      openProviderOnboarding(
+        secretKey ? { highlightSecretKey: secretKey } : undefined
+      );
+    },
+    [handleMenuClose]
+  );
 
   return (
     <List
       dense
-      css={listStyles}
-      className="model-menu__providers-list"
+      css={isHorizontal ? horizontalListStyles : listStyles}
+      className={`model-menu__providers-list ${isHorizontal ? "is-horizontal" : ""}`}
       sx={{ fontSize: (theme: Theme) => theme.vars.fontSizeSmall, px: iconOnly ? 0.5 : 0 }}
     >
       {isLoading && (
@@ -643,6 +666,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
           justifyContent: iconOnly ? "center" : "flex-start",
           px: iconOnly ? 0 : 2,
           minHeight: iconOnly ? 52 : "auto",
+          minWidth: itemMinWidth,
           borderRadius: iconOnly ? 1 : 0
         }}
       >
@@ -650,7 +674,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
           <Tooltip
             className="model-menu__all-providers-tooltip"
             title="All providers"
-            placement="right"
+            placement={tooltipPlacement}
           >
             <FlexColumn align="center" gap={0.5} sx={{ py: 0.5 }}>
               <FormatListBulletedIcon className="model-menu__all-providers-icon" />
@@ -660,7 +684,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                   maxWidth: 76,
                   textAlign: "center",
                   lineHeight: 1.15,
-                  fontSize: (t: Theme) => t.vars.fontSizeTiny,
+                  fontSize: (t: Theme) => t.vars.fontSizeSmaller,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap"
@@ -732,7 +756,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                         className={`model-menu__provider-badge model-menu__provider-badge--${b.label.toLowerCase()}`}
                         style={{
                           padding: theme.spacing(0.5, 1.5),
-                          fontSize: theme.vars.fontSizeTiny,
+                          fontSize: theme.vars.fontSizeSmaller,
                           lineHeight: 1.1,
                           borderRadius: BORDER_RADIUS.sm,
                           background: "transparent",
@@ -773,6 +797,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                   justifyContent: iconOnly ? "center" : "flex-start",
                   px: iconOnly ? 0 : 2,
                   minHeight: iconOnly ? 68 : "auto",
+                  minWidth: itemMinWidth,
                   borderRadius: iconOnly ? 1 : 0
                 }}
               >
@@ -780,7 +805,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                   <Tooltip
                     className="model-menu__provider-icon-tooltip"
                     title={providerLabel}
-                    placement="right"
+                    placement={tooltipPlacement}
                   >
                     <FlexColumn align="center" gap={0.5} sx={{ py: 0.5 }}>
                       <FlexRow
@@ -845,7 +870,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                           maxWidth: 76,
                           textAlign: "center",
                           lineHeight: 1.15,
-                          fontSize: (th: Theme) => th.vars.fontSizeTiny
+                          fontSize: (th: Theme) => th.vars.fontSizeSmaller
                         }}
                       >
                         {providerLabel}
@@ -930,7 +955,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                             }}
                           />
                         </Tooltip>
-                        <Tooltip className="model-menu__provider-add-key-tooltip" title="Open Settings to add API key">
+                        <Tooltip className="model-menu__provider-add-key-tooltip" title="Connect this provider">
                           <EditorButton
                             className="model-menu__provider-add-key-button"
                             density="compact"
@@ -941,7 +966,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                               fontSize: (theme: Theme) => theme.vars.fontSizeSmaller,
                               color: "warning.main"
                             }}
-                            onClick={handleOpenSettings}
+                            onClick={() => handleAddKey(env)}
                           >
                             Add key
                           </EditorButton>

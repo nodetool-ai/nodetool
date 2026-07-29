@@ -472,7 +472,7 @@ function mapOutputValues(
 }
 
 // ---------------------------------------------------------------------------
-// Task 14a: FalRawNode — simple "call any endpoint" node
+// FalRawNode — simple "call any endpoint" node
 // ---------------------------------------------------------------------------
 
 export class FalRawNode extends BaseNode {
@@ -525,7 +525,7 @@ export class FalRawNode extends BaseNode {
 }
 
 // ---------------------------------------------------------------------------
-// Task 14b: FalDynamicNode — schema-driven "call any endpoint" node
+// FalDynamicNode — schema-driven "call any endpoint" node
 // ---------------------------------------------------------------------------
 
 /**

@@ -1,12 +1,8 @@
 import React, { memo, useCallback, useMemo } from "react";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import { DeleteButton, FlexRow, FlexColumn, Text, Caption, Tooltip, LoadingSpinner, EditorButton, ProgressBar, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { DeleteButton, FlexRow, FlexColumn, Text, Caption, Tooltip, LoadingSpinner, EditorButton, ProgressBar, MOTION, BORDER_RADIUS, SPACING, Z_INDEX } from "../ui_primitives";
 import { CollectionResponse } from "../../stores/ApiTypes";
-import {
-  UseMutationResult,
-  useMutation,
-  useQueryClient
-} from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import WorkflowSelect from "./WorkflowSelect";
 import { useState } from "react";
 import { trpcClient } from "../../trpc/client";
@@ -25,7 +21,8 @@ interface CollectionItemProps {
   onDrop: (e: React.DragEvent<HTMLDivElement>) => void;
   onDragOver: (e: React.DragEvent<HTMLDivElement>, collection: string) => void;
   onDragLeave: (e: React.DragEvent<HTMLDivElement>) => void;
-  deleteMutation: UseMutationResult<void, Error, string>;
+  /** Name of the collection whose deletion is in flight, if any. */
+  deletingCollection: string | null;
 }
 
 const IndexingProgress = memo(function IndexingProgress({
@@ -83,8 +80,9 @@ const CollectionItem = ({
   onDrop,
   onDragOver,
   onDragLeave,
-  deleteMutation
+  deletingCollection
 }: CollectionItemProps) => {
+  const isDeleting = deletingCollection !== null;
   const addNotification = useNotificationStore((state) => state.addNotification);
   const queryClient = useQueryClient();
   const [isEditingWorkflow, setIsEditingWorkflow] = useState(false);
@@ -165,13 +163,6 @@ const CollectionItem = ({
     position: "relative"
   }), [dragOverCollection, collection.name]);
 
-  const containerStyle = useMemo(() => ({
-    display: "flex",
-    alignItems: "center",
-    gap: getSpacingPx(SPACING.lg),
-    width: "100%"
-  }), []);
-
   return (
     <FlexColumn
       onDrop={onDrop}
@@ -181,14 +172,13 @@ const CollectionItem = ({
       gap={2}
     >
       <FlexRow justify="flex-end" sx={{ position: "absolute", top: 8, right: 8 }}>
-        {deleteMutation.isPending &&
-          deleteMutation.variables === collection.name ? (
+        {deletingCollection === collection.name ? (
           <LoadingSpinner size={20} inline />
         ) : (
           <DeleteButton
             onClick={handleDeleteClick}
             tooltip="Delete this collection"
-            disabled={deleteMutation.isPending}
+            disabled={isDeleting}
             sx={{ mt: -10 }}
             nodrag={false}
           />
@@ -204,7 +194,7 @@ const CollectionItem = ({
             inset: 0,
             backgroundColor: "transparent",
             pointerEvents: "none",
-            zIndex: 1
+            zIndex: Z_INDEX.raised
           }}
         >
           <Text
@@ -224,7 +214,7 @@ const CollectionItem = ({
           </Text>
         </FlexRow>
       )}
-      <div style={containerStyle}>
+      <FlexRow align="center" gap={SPACING.lg} fullWidth>
         <Tooltip title={`Collection: ${collection.name}`}>
           <Text
             weight={600}
@@ -242,9 +232,9 @@ const CollectionItem = ({
         {indexProgress?.collection === collection.name && (
           <IndexingProgress indexProgress={indexProgress} />
         )}
-      </div>
+      </FlexRow>
 
-      <div style={containerStyle}>
+      <FlexRow align="center" gap={SPACING.lg} fullWidth>
         <Tooltip title="Number of documents in this collection">
           <Text
             size="small"
@@ -254,7 +244,7 @@ const CollectionItem = ({
               flexShrink: 0
             }}
           >
-            {collection.count} items
+            {collection.count} item{collection.count === 1 ? "" : "s"}
           </Text>
         </Tooltip>
         <Tooltip title="Model used for embedding documents">
@@ -312,7 +302,7 @@ const CollectionItem = ({
             </EditorButton>
           </Tooltip>
         )}
-      </div>
+      </FlexRow>
     </FlexColumn>
   );
 };

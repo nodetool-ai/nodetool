@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { Workflow } from "../../stores/ApiTypes";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { WorkflowMiniPreview } from "../version/WorkflowMiniPreview";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useWorkflowActionsStore } from "../../stores/WorkflowActionsStore";
@@ -11,6 +11,7 @@ import { relativeTime } from "../../utils/formatDateAndTime";
 import StarIcon from "@mui/icons-material/Star";
 import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../config/constants";
 import { FavoriteButton, FlexColumn, FlexRow, Text, Tooltip, Checkbox, Box, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { WorkflowTriggerIndicator } from "./WorkflowTriggerIndicator";
 
 // Single-click on the row opens the workflow. Double-clicking the name renames
 // it inline instead, so the open is deferred briefly to let a following
@@ -218,7 +219,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
             {workflow.tags?.map((tag) => (
               <Text
                 key={tag}
-                size="tiny"
+                size="smaller"
                 weight={600}
                 family="secondary"
                 sx={{
@@ -326,6 +327,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
         </Box>
       </Box>
       <Box className="date-container">
+        <WorkflowTriggerIndicator workflowId={workflow.id} />
         {isFavorite && <StarIcon className="favorite-indicator" sx={{ fontSize: "var(--fontSizeNormal)", color: "warning.main" }} />}
         {!hideDate && (
           <Text

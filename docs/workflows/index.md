@@ -30,7 +30,6 @@ Create and transform images:
 Create and enhance video content:
 
 - [Color Boost Video](color-boost-video.md) - AI-powered color enhancement for video
-- [Story to Video Generator](story-to-video-generator.md) - Transform stories into visual videos
 
 ## 🎵 Audio & Voice Workflows
 
@@ -45,7 +44,6 @@ Generate and transform written content:
 
 - [Creative Story Ideas](creative-story-ideas.md) - Brainstorming for writers and creators
 - [Flashcard Generator](flashcard-generator.md) - Turn content into study materials
-- [Story to Video Generator](story-to-video-generator.md) - Bring written stories to life
 
 ## 📚 Document Workflows
 

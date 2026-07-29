@@ -3,7 +3,7 @@ layout: page
 title: "Node Reference"
 ---
 
-Complete reference documentation for all 720 NodeTool nodes across 92 namespaces.
+Complete reference documentation for all 747 NodeTool nodes across 95 namespaces.
 
 ## Namespaces
 
@@ -36,10 +36,11 @@ Complete reference documentation for all 720 NodeTool nodes across 92 namespaces
 
 ### lib
 
+- **[lib.apple](lib/apple/)** - 17 node(s)
 - **[lib.audio](lib/audio/)** - 16 node(s)
 - **[lib.browser](lib/browser/)** - 5 node(s)
 - **[lib.charts](lib/charts/)** - 1 node(s)
-- **[lib.comfy](lib/comfy/)** - 1 node(s)
+- **[lib.comfy](lib/comfy/)** - 2 node(s)
 - **[lib.convert](lib/convert/)** - 1 node(s)
 - **[lib.convert.pandoc](lib/convert/pandoc/)** - 2 node(s)
 - **[lib.datetime](lib/datetime/)** - 5 node(s)
@@ -94,16 +95,17 @@ Complete reference documentation for all 720 NodeTool nodes across 92 namespaces
 
 ### nodetool
 
-- **[nodetool.agents](nodetool/agents/)** - 27 node(s)
-- **[nodetool.audio](nodetool/audio/)** - 23 node(s)
+- **[nodetool.agents](nodetool/agents/)** - 28 node(s)
+- **[nodetool.audio](nodetool/audio/)** - 24 node(s)
 - **[nodetool.audio.realtime](nodetool/audio/realtime/)** - 6 node(s)
 - **[nodetool.audio.synth](nodetool/audio/synth/)** - 9 node(s)
 - **[nodetool.code](nodetool/code/)** - 19 node(s)
 - **[nodetool.compare](nodetool/compare/)** - 1 node(s)
 - **[nodetool.constant](nodetool/constant/)** - 30 node(s)
-- **[nodetool.control](nodetool/control/)** - 21 node(s)
+- **[nodetool.control](nodetool/control/)** - 22 node(s)
 - **[nodetool.data](nodetool/data/)** - 29 node(s)
 - **[nodetool.document](nodetool/document/)** - 8 node(s)
+- **[nodetool.fake](nodetool/fake/)** - 2 node(s)
 - **[nodetool.generators](nodetool/generators/)** - 5 node(s)
 - **[nodetool.image](nodetool/image/)** - 26 node(s)
 - **[nodetool.input](nodetool/input/)** - 33 node(s)
@@ -113,10 +115,11 @@ Complete reference documentation for all 720 NodeTool nodes across 92 namespaces
 - **[nodetool.sandbox](nodetool/sandbox/)** - 2 node(s)
 - **[nodetool.sketch](nodetool/sketch/)** - 3 node(s)
 - **[nodetool.test](nodetool/test/)** - 22 node(s)
-- **[nodetool.text](nodetool/text/)** - 51 node(s)
+- **[nodetool.text](nodetool/text/)** - 52 node(s)
 - **[nodetool.timeline](nodetool/timeline/)** - 3 node(s)
 - **[nodetool.triggers](nodetool/triggers/)** - 5 node(s)
-- **[nodetool.video](nodetool/video/)** - 31 node(s)
+- **[nodetool.variable](nodetool/variable/)** - 2 node(s)
+- **[nodetool.video](nodetool/video/)** - 32 node(s)
 - **[nodetool.workflows.base_node](nodetool/workflows/base_node/)** - 1 node(s)
 - **[nodetool.workflows.subgraph](nodetool/workflows/subgraph/)** - 1 node(s)
 - **[nodetool.workflows.workflow_node](nodetool/workflows/workflow_node/)** - 1 node(s)

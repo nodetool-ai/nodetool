@@ -1,19 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
 import { OpenRouterProvider } from "../../src/providers/openrouter-provider.js";
 import type { Message, TextToImageParams } from "../../src/providers/types.js";
-
-function makeAsyncIterable(items: unknown[]) {
-  return {
-    async *[Symbol.asyncIterator]() {
-      for (const item of items) {
-        yield item;
-      }
-    },
-    async close() {
-      return;
-    }
-  };
-}
+import {
+  chatJsonResponse,
+  chatSSEResponse,
+  mockChatFetch,
+  requestBodyOf
+} from "./helpers/compat-fetch.js";
 
 describe("OpenRouterProvider", () => {
   it("throws if OPENROUTER_API_KEY is missing", () => {
@@ -106,25 +99,23 @@ describe("OpenRouterProvider", () => {
     expect(models).toEqual([]);
   });
 
-  it("generates non-streaming message via inherited OpenAI logic", async () => {
-    const create = vi.fn().mockResolvedValue({
-      choices: [
-        {
-          message: {
-            content: "routed response",
-            tool_calls: null
+  it("generates non-streaming message via the compat chat client", async () => {
+    const fetchMock = mockChatFetch(
+      chatJsonResponse({
+        choices: [
+          {
+            message: {
+              content: "routed response",
+              tool_calls: null
+            }
           }
-        }
-      ]
-    });
+        ]
+        })
+    );
 
     const provider = new OpenRouterProvider(
       { OPENROUTER_API_KEY: "k" },
-      {
-        client: {
-          chat: { completions: { create } }
-        } as any
-      }
+      { fetchFn: fetchMock as unknown as typeof fetch }
     );
 
     const messages: Message[] = [{ role: "user", content: "hello" }];
@@ -137,7 +128,7 @@ describe("OpenRouterProvider", () => {
     expect(result.content).toBe("routed response");
   });
 
-  it("streams messages via inherited OpenAI logic", async () => {
+  it("streams messages via the compat chat client", async () => {
     const chunks = [
       {
         choices: [
@@ -157,15 +148,11 @@ describe("OpenRouterProvider", () => {
       }
     ];
 
-    const create = vi.fn().mockResolvedValue(makeAsyncIterable(chunks));
+    const fetchMock = mockChatFetch(() => chatSSEResponse(chunks));
 
     const provider = new OpenRouterProvider(
       { OPENROUTER_API_KEY: "k" },
-      {
-        client: {
-          chat: { completions: { create } }
-        } as any
-      }
+      { fetchFn: fetchMock as unknown as typeof fetch }
     );
 
     const messages: Message[] = [{ role: "user", content: "hi" }];
@@ -182,21 +169,19 @@ describe("OpenRouterProvider", () => {
 
   describe("o1/o3 system message conversion", () => {
     it("converts system messages to user with Instructions prefix for o1 models", async () => {
-      const create = vi.fn().mockResolvedValue({
-        choices: [
-          {
-            message: { content: "ok", tool_calls: null }
-          }
-        ]
-      });
+      const fetchMock = mockChatFetch(
+        chatJsonResponse({
+          choices: [
+            {
+              message: { content: "ok", tool_calls: null }
+            }
+          ]
+          })
+      );
 
       const provider = new OpenRouterProvider(
         { OPENROUTER_API_KEY: "k" },
-        {
-          client: {
-            chat: { completions: { create } }
-          } as any
-        }
+        { fetchFn: fetchMock as unknown as typeof fetch }
       );
 
       const messages: Message[] = [
@@ -210,7 +195,7 @@ describe("OpenRouterProvider", () => {
       });
 
       // The first message should have been converted from system to user
-      const sentMessages = create.mock.calls[0][0].messages;
+      const sentMessages = requestBodyOf(fetchMock).messages as Array<{ role: string; content: string }>;
       expect(sentMessages[0].role).toBe("user");
       expect(sentMessages[0].content).toBe("Instructions: You are helpful.");
     });
@@ -227,15 +212,11 @@ describe("OpenRouterProvider", () => {
         }
       ];
 
-      const create = vi.fn().mockResolvedValue(makeAsyncIterable(chunks));
+      const fetchMock = mockChatFetch(() => chatSSEResponse(chunks));
 
       const provider = new OpenRouterProvider(
         { OPENROUTER_API_KEY: "k" },
-        {
-          client: {
-            chat: { completions: { create } }
-          } as any
-        }
+        { fetchFn: fetchMock as unknown as typeof fetch }
       );
 
       const messages: Message[] = [
@@ -251,27 +232,25 @@ describe("OpenRouterProvider", () => {
         items.push(item);
       }
 
-      const sentMessages = create.mock.calls[0][0].messages;
+      const sentMessages = requestBodyOf(fetchMock).messages as Array<{ role: string; content: string }>;
       expect(sentMessages[0].role).toBe("user");
       expect(sentMessages[0].content).toBe("Instructions: Be concise.");
     });
 
     it("does not convert system messages for non-o1/o3 models", async () => {
-      const create = vi.fn().mockResolvedValue({
-        choices: [
-          {
-            message: { content: "ok", tool_calls: null }
-          }
-        ]
-      });
+      const fetchMock = mockChatFetch(
+        chatJsonResponse({
+          choices: [
+            {
+              message: { content: "ok", tool_calls: null }
+            }
+          ]
+          })
+      );
 
       const provider = new OpenRouterProvider(
         { OPENROUTER_API_KEY: "k" },
-        {
-          client: {
-            chat: { completions: { create } }
-          } as any
-        }
+        { fetchFn: fetchMock as unknown as typeof fetch }
       );
 
       const messages: Message[] = [
@@ -284,7 +263,7 @@ describe("OpenRouterProvider", () => {
         model: "anthropic/claude-3-opus"
       });
 
-      const sentMessages = create.mock.calls[0][0].messages;
+      const sentMessages = requestBodyOf(fetchMock).messages as Array<{ role: string; content: string }>;
       expect(sentMessages[0].role).toBe("system");
     });
   });

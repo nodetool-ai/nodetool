@@ -24,21 +24,16 @@ export function MarkdownPastePlugin(): null {
         const text = clipboardData.getData("text/plain");
         if (!text) {return false;}
 
-        // Check if the text looks like markdown
         if (!isMarkdownText(text)) {
-          // Not markdown, let default paste behavior handle it
           return false;
         }
 
-        // Prevent default paste behavior
         event.preventDefault();
 
-        // Convert markdown to Lexical
         editor.update(() => {
           const selection = $getSelection();
 
           if ($isRangeSelection(selection)) {
-            // Remove selected content if any
             selection.removeText();
 
             try {
@@ -48,7 +43,6 @@ export function MarkdownPastePlugin(): null {
               const isEmpty = root.getTextContent().trim() === "";
 
               if (isEmpty) {
-                // Safe to replace entire content with parsed markdown
                 $convertFromMarkdownString(text, TRANSFORMERS);
               } else {
                 // Editor has content - insert as plain text to preserve existing content
@@ -65,7 +59,7 @@ export function MarkdownPastePlugin(): null {
           }
         });
 
-        return true; // Command handled
+        return true;
       },
       COMMAND_PRIORITY_HIGH
     );

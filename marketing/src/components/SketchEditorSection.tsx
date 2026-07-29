@@ -31,15 +31,15 @@ export default function SketchEditorSection() {
     <section
       id="sketch-editor"
       aria-labelledby="sketch-title"
-      className="relative py-24 overflow-hidden"
+      className="relative py-24 overflow-clip-safe"
     >
       {/* Background glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[500px] bg-violet-900/20 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="mb-12 text-center max-w-3xl mx-auto">
+        <div className="scroll-fade mb-12 text-center max-w-3xl mx-auto">
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={false}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             className="inline-flex items-center justify-center p-3 mb-6 rounded-2xl bg-violet-500/10 border border-violet-500/20 shadow-lg shadow-violet-500/10"
@@ -49,20 +49,20 @@ export default function SketchEditorSection() {
 
           <motion.h2
             id="sketch-title"
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
             Built-in <span className="text-white">sketch editor</span>
           </motion.h2>
 
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-300 leading-relaxed"
           >
             A full layer-based image editor with generation built in. Paint with
@@ -73,11 +73,11 @@ export default function SketchEditorSection() {
         </div>
 
         <motion.figure
-          initial={{ opacity: 0, y: 30 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="relative"
+          transition={{ duration: 0.3 }}
+          className="scroll-fade relative"
         >
           <div className="relative rounded-2xl border border-slate-700/60 bg-slate-900/80 overflow-hidden shadow-2xl shadow-violet-900/20 ring-1 ring-white/5 backdrop-blur-sm">
             <Image

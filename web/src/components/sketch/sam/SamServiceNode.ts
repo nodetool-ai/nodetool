@@ -1,8 +1,6 @@
 /**
  * SamServiceNode – SAM service backed by NodeTool node execution.
- *
- * Phase 3 starts with a curated Local SAM3 backend that reuses existing
- * NodeTool metadata, model download, and execution infrastructure.
+ * Reuses NodeTool metadata, model download, and execution infrastructure.
  */
 
 import useMetadataStore from "../../../stores/MetadataStore";

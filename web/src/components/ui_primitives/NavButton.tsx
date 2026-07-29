@@ -155,7 +155,6 @@ export const NavButton = memo(
         ...sx
       };
 
-      // Render as IconButton when no label is provided
       if (!label) {
         return (
           <Tooltip
@@ -184,7 +183,6 @@ export const NavButton = memo(
         );
       }
 
-      // Render as Button with icon and label
       const button = (
         <Button
           ref={ref}

@@ -192,6 +192,7 @@ function classifyError(message: string | undefined): string {
   if (!message) return "none";
   const m = message.toLowerCase();
   if (m.includes("graph validation failed")) return "graph-validation";
+  if (m.includes("is not installed or not on path")) return "missing-binary";
   if (m.includes("select a model")) return "missing-model";
   if (m.includes("requires a") && m.includes("model")) return "missing-model";
   if (m.includes("is not configured") || m.includes("must be configured"))
@@ -200,6 +201,9 @@ function classifyError(message: string | undefined): string {
   if (m.includes("unexpected character")) return "invalid-expression";
   if (m.includes("required property")) return "missing-required-property";
   if (m.includes("no provider available")) return "no-provider";
+  if (m.includes("failed to create a task plan")) return "no-provider";
+  if (m.includes("no add_item tool calls")) return "no-provider";
+  if (m.includes("libpng") || m.includes("vips2png")) return "image-codec";
   if (m.includes("does not support")) return "unsupported-capability";
   if (m.includes("exceeded") && m.includes("ms")) return "timeout";
   if (m.includes("not found") || m.includes("enoent")) return "not-found";
@@ -207,6 +211,7 @@ function classifyError(message: string | undefined): string {
   if (m.includes("input") && m.includes("required")) return "missing-input";
   if (m.includes("provide a") && m.includes("input")) return "missing-input";
   if (m.includes("required")) return "missing-input";
+  if (m.includes("is empty")) return "missing-input";
   if (m.includes("no tiles provided")) return "missing-input";
   return "other";
 }

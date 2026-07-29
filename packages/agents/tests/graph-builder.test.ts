@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { GraphBuilder, AGENT_STEP_NODE_TYPE } from "../src/graph-builder.js";
+import { GraphBuilder, AGENT_NODE_TYPE } from "../src/graph-builder.js";
 
 describe("GraphBuilder", () => {
   it("adds nodes and builds a valid graph", () => {
@@ -39,16 +39,17 @@ describe("GraphBuilder", () => {
     expect(errors[0]).toContain("Self-loops");
   });
 
-  it("detects cycles", () => {
+  it("rejects an edge that would close a cycle", () => {
     const builder = new GraphBuilder();
     builder.addNode("a", "test.Node");
     builder.addNode("b", "test.Node");
     builder.addNode("c", "test.Node");
-    builder.addEdge("a", "out", "b", "in");
-    builder.addEdge("b", "out", "c", "in");
-    builder.addEdge("c", "out", "a", "in");
+    expect(builder.addEdge("a", "out", "b", "in")).toHaveLength(0);
+    expect(builder.addEdge("b", "out", "c", "in")).toHaveLength(0);
 
-    const errors = builder.validate();
+    // The closing edge c→a is rejected at add time (a is reachable from c),
+    // so the cycle never enters the graph.
+    const errors = builder.addEdge("c", "out", "a", "in");
     expect(errors.some((e) => e.includes("cycle"))).toBe(true);
   });
 
@@ -85,13 +86,13 @@ describe("GraphBuilder", () => {
 
   it("stores properties on nodes", () => {
     const builder = new GraphBuilder();
-    builder.addNode("step1", AGENT_STEP_NODE_TYPE, {
-      instructions: "Do something",
+    builder.addNode("step1", AGENT_NODE_TYPE, {
+      prompt: "Do something",
       tools: ["browser"]
     });
     const graph = builder.build();
     expect(graph.nodes[0].properties).toEqual({
-      instructions: "Do something",
+      prompt: "Do something",
       tools: ["browser"]
     });
   });
@@ -122,6 +123,89 @@ describe("GraphBuilder", () => {
     // Source must come before left, right, and sink
     const ids = graph.nodes.map((n) => n.id);
     expect(ids.indexOf("source")).toBeLessThan(ids.indexOf("sink"));
+  });
+
+  it("removes a node and its attached edges", () => {
+    const builder = new GraphBuilder();
+    builder.addNode("a", "test.Node");
+    builder.addNode("b", "test.Node");
+    builder.addNode("c", "test.Node");
+    builder.addEdge("a", "out", "b", "in");
+    builder.addEdge("b", "out", "c", "in");
+
+    expect(builder.removeNode("b")).toEqual([]);
+    expect(builder.nodeCount).toBe(2);
+    expect(builder.edgeCount).toBe(0);
+  });
+
+  it("errors when removing a missing node or edge", () => {
+    const builder = new GraphBuilder();
+    builder.addNode("a", "test.Node");
+    expect(builder.removeNode("nope")[0]).toContain("does not exist");
+    expect(builder.removeEdge("a", "out", "nope", "in")[0]).toContain(
+      "does not exist"
+    );
+  });
+
+  it("removes a specific edge", () => {
+    const builder = new GraphBuilder();
+    builder.addNode("a", "test.Node");
+    builder.addNode("b", "test.Node");
+    builder.addEdge("a", "out", "b", "in");
+    builder.addEdge("a", "out2", "b", "in2");
+
+    expect(builder.removeEdge("a", "out", "b", "in")).toEqual([]);
+    expect(builder.edgeCount).toBe(1);
+  });
+
+  it("allows re-adding an edge that previously closed a cycle after removal", () => {
+    const builder = new GraphBuilder();
+    builder.addNode("a", "test.Node");
+    builder.addNode("b", "test.Node");
+    builder.addEdge("a", "out", "b", "in");
+    expect(builder.addEdge("b", "out", "a", "in")).not.toEqual([]);
+    builder.removeEdge("a", "out", "b", "in");
+    expect(builder.addEdge("b", "out", "a", "in")).toEqual([]);
+  });
+
+  it("refuses removal after build", () => {
+    const builder = new GraphBuilder();
+    builder.addNode("a", "test.Node");
+    builder.build();
+    expect(builder.removeNode("a")[0]).toContain("finalized");
+    expect(builder.removeEdge("a", "o", "b", "i")[0]).toContain("finalized");
+  });
+
+  it("snapshots the current graph without finalizing", () => {
+    const builder = new GraphBuilder();
+    builder.addNode("a", "test.Node");
+    builder.addNode("b", "test.Node");
+    builder.addEdge("a", "out", "b", "in");
+
+    const snap = builder.snapshot();
+    expect(snap.nodes).toHaveLength(2);
+    expect(snap.edges).toHaveLength(1);
+
+    // Snapshot is a copy — mutating it does not affect the builder.
+    snap.nodes.pop();
+    snap.edges.pop();
+    expect(builder.nodeCount).toBe(2);
+    expect(builder.edgeCount).toBe(1);
+    // And the builder is still mutable afterwards.
+    expect(builder.addNode("c", "test.Node")).toEqual([]);
+  });
+
+  it("describes the current graph state", () => {
+    const empty = new GraphBuilder();
+    expect(empty.describe()).toContain("empty graph");
+
+    const builder = new GraphBuilder();
+    builder.addNode("a", "test.NodeA");
+    builder.addNode("b", "test.NodeB");
+    builder.addEdge("a", "out", "b", "in");
+    const text = builder.describe();
+    expect(text).toContain("node a (test.NodeA)");
+    expect(text).toContain("edge a.out → b.in");
   });
 
   it("resets for reuse", () => {

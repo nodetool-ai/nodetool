@@ -204,19 +204,19 @@ function ModelList<TModel extends ModelSelectorModel>({
     ...badgeStyle,
     display: "inline-flex",
     alignItems: "center",
-    gap: 2
+    gap: getSpacingPx(SPACING.micro)
   }), [badgeStyle]);
 
   const secondaryTextStyle = useMemo<React.CSSProperties>(() => ({
     display: "flex",
     alignItems: "center",
-    gap: 4,
-    fontSize: theme.vars.fontSizeTiny,
+    gap: getSpacingPx(SPACING.xs),
+    fontSize: theme.vars.fontSizeSmaller,
     color: theme.vars.palette.text.secondary,
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap"
-  }), [theme.vars.fontSizeTiny, theme.vars.palette.text.secondary]);
+  }), [theme.vars.fontSizeSmaller, theme.vars.palette.text.secondary]);
 
   // Flatten selectable models + recommended downloads into one virtualized
   // list. Model rows stay first and 1:1 with `models`, so a model's flat index
@@ -481,8 +481,13 @@ function ModelList<TModel extends ModelSelectorModel>({
                 Download a local model or add an API key for a cloud provider to get going.
                 {" "}
                 <Box
-                  component="span"
+                  component="button"
+                  type="button"
                   sx={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    font: "inherit",
                     color: "primary.main",
                     cursor: "pointer",
                     textDecoration: "underline",
@@ -506,8 +511,13 @@ function ModelList<TModel extends ModelSelectorModel>({
               <>
                 Enable a provider in the left sidebar or add an API key in{" "}
                 <Box
-                  component="span"
+                  component="button"
+                  type="button"
                   sx={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    font: "inherit",
                     color: "primary.main",
                     cursor: "pointer",
                     textDecoration: "underline",

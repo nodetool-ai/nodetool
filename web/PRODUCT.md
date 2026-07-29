@@ -33,7 +33,7 @@ Some positive commitments that shape every screen:
 
 ## Design Principles
 
-When we disagree, we check which principle is in tension. The first five are the decision-makers; the last is the product commitment those decisions exist to protect. Visual principles (canvas-is-hero, tonal layering, two accents) live in `DESIGN.md`.
+When we disagree, we check which principle is in tension. The first five are the decision-makers; the last is the product commitment those decisions exist to protect. Visual principles (canvas-is-hero, tonal layering, two accents) live in `../docs/DESIGN.md`.
 
 1. **The graph is the source of truth for computation.** Interfaces may own presentation state, but they must not hide computation from the graph. A chat panel, an inspector, or a custom UI on top of a workflow does not get to do real work invisibly. If it computes, it's a node.
 

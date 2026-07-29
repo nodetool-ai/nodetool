@@ -90,6 +90,10 @@ describe("GoogleGroundedSearchTool", () => {
       expect(result.sources).toHaveLength(2);
       expect(result.sources[0].url).toBe("https://example.com");
       expect(result.sources[0].title).toBe("Example");
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        expect.stringContaining("/models/gemini-3.5-flash:generateContent"),
+        expect.any(Object)
+      );
     } finally {
       globalThis.fetch = originalFetch;
       delete process.env["GEMINI_API_KEY"];
@@ -205,12 +209,12 @@ describe("GoogleImageGenerationTool", () => {
     }
   });
 
-  it("returns error when no predictions in response", async () => {
+  it("returns error when no candidates are returned", async () => {
     process.env["GEMINI_API_KEY"] = "fake-key";
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ predictions: [] })
+      json: () => Promise.resolve({ candidates: [] })
     }) as any;
     try {
       const result = (await tool.process(ctx, {
@@ -224,12 +228,15 @@ describe("GoogleImageGenerationTool", () => {
     }
   });
 
-  it("returns error when no image bytes in prediction", async () => {
+  it("returns error when no candidate contains image bytes", async () => {
     process.env["GEMINI_API_KEY"] = "fake-key";
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ predictions: [{}] })
+      json: () =>
+        Promise.resolve({
+          candidates: [{ content: { parts: [{ text: "none" }] } }]
+        })
     }) as any;
     try {
       const result = (await tool.process(ctx, {
@@ -251,7 +258,20 @@ describe("GoogleImageGenerationTool", () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          predictions: [{ bytesBase64Encoded: fakeImageB64 }]
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    inlineData: {
+                      mimeType: "image/png",
+                      data: fakeImageB64
+                    }
+                  }
+                ]
+              }
+            }
+          ]
         })
     }) as any;
     const tmpDir = await fs.mkdtemp(
@@ -281,6 +301,19 @@ describe("GoogleImageGenerationTool", () => {
       expect(result.type).toBe("image");
       expect(result.prompt).toBe("a cute cat");
       expect(result.output_file).toBe("cat.png");
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "/models/gemini-3.1-flash-image:generateContent"
+        ),
+        expect.objectContaining({
+          body: JSON.stringify({
+            contents: [
+              { role: "user", parts: [{ text: "a cute cat" }] }
+            ],
+            generationConfig: { responseModalities: ["IMAGE"] }
+          })
+        })
+      );
       // Verify file was actually written
       const written = await fs.readFile(path.join(tmpDir, "cat.png"));
       expect(written).toEqual(Buffer.from("fake-png-data"));

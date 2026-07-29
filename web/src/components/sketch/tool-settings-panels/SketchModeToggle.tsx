@@ -17,7 +17,7 @@ import {
   ToggleOption,
   type ToggleGroupProps,
   type ToggleOptionProps
-} from "../../ui_primitives/ToggleGroup";
+} from "../../ui_primitives";
 import { SKETCH_FONT, SKETCH_SPACING } from "../sketchStyles";
 import type { SxProps, Theme } from "@mui/material/styles";
 

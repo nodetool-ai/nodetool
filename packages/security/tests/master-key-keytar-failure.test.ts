@@ -4,7 +4,7 @@
  *
  * A failed `import("keytar")` must surface as a KeychainAccessError naming the
  * backend-load failure, NOT fall through to some other state. This is the error
- * operators hit when no SECRETS_MASTER_KEY / AWS source is configured on a box
+ * operators hit when no SECRETS_MASTER_KEY is configured on a box
  * without a keychain, so the message must point at the real cause.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -25,7 +25,6 @@ describe("loadKeytar — dynamic import failure path", () => {
     clearMasterKeyCache();
     resetKeytarLoader();
     delete process.env["SECRETS_MASTER_KEY"];
-    delete process.env["AWS_SECRETS_MASTER_KEY_NAME"];
   });
 
   afterEach(() => {

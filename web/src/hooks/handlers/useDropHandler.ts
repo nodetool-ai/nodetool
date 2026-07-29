@@ -33,12 +33,6 @@ const NODES_PER_ROW = 2;
 const CONSTANT_SKETCH_NODE_TYPE = "nodetool.constant.Sketch";
 const CONSTANT_TIMELINE_NODE_TYPE = "nodetool.constant.Timeline";
 
-/**
- * Detects the file type based on MIME type.
- * 
- * @param file - The file to analyze
- * @returns Detected type: "png", "json", "csv", "document", or "unknown"
- */
 function detectFileType(file: File): string {
   const fileName = file.name.toLowerCase();
 
@@ -92,30 +86,6 @@ const isAssetResult = (value: unknown): value is Asset => {
   );
 };
 
-/**
- * Hook for handling drop events on the ReactFlow canvas.
- * 
- * This hook manages dropping various content onto the workflow canvas:
- * - External files (images, JSON, CSV, documents)
- * - Assets from the asset browser
- * - Nodes from the node menu
- * 
- * It handles file processing, node creation, and error notifications.
- * 
- * @returns Object containing onDrop and onDragOver handlers for the canvas
- * 
- * @example
- * ```typescript
- * const { onDrop, onDragOver } = useDropHandler();
- * 
- * return (
- *   <ReactFlow
- *     onDrop={onDrop}
- *     onDragOver={onDragOver}
- *   />
- * );
- * ```
- */
 interface UseDropHandlerResult {
   onDrop: (event: React.DragEvent<HTMLDivElement>) => Promise<void>;
   onDragOver: (event: React.DragEvent<HTMLDivElement>) => void;
@@ -149,10 +119,8 @@ export const useDropHandler = (): UseDropHandlerResult => {
         y: event.clientY
       });
 
-      // Use unified deserialization
       const dragData = deserializeDragData(event.dataTransfer);
 
-      // Handle create-node drop
       if (dragData?.type === "create-node") {
         const nodeMeta = dragData.payload as NodeMetadata;
         const { node: newNode, afterAdd } = instantiatePaletteNode(

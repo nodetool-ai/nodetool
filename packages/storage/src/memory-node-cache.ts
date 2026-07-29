@@ -1,9 +1,3 @@
-/**
- * Node cache — T-ST-6/T-ST-7.
- *
- * Abstract cache interface and in-memory implementation with TTL support.
- */
-
 export interface AbstractNodeCache {
   get(key: string): Promise<unknown | undefined>;
   set(key: string, value: unknown, ttlSeconds?: number): Promise<void>;

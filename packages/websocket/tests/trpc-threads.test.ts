@@ -3,25 +3,29 @@ import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
 
-// Mock @nodetool-ai/models — router orchestrates Thread + Message static methods.
+// Mock @nodetool-ai/models — router orchestrates Thread + Message + ThreadMemory
+// static methods.
 vi.mock("@nodetool-ai/models", async (orig) => {
   const actual = await orig<typeof import("@nodetool-ai/models")>();
   return {
     ...actual,
     Thread: {
       ...actual.Thread,
-      create: vi.fn(),
       find: vi.fn(),
       paginate: vi.fn()
     },
     Message: {
       ...actual.Message,
       paginate: vi.fn()
+    },
+    ThreadMemory: {
+      ...actual.ThreadMemory,
+      deleteByThread: vi.fn().mockResolvedValue(0)
     }
   };
 });
 
-import { Thread, Message } from "@nodetool-ai/models";
+import { Thread, Message, ThreadMemory } from "@nodetool-ai/models";
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -164,50 +168,6 @@ describe("threads router", () => {
     });
   });
 
-  // ── create ──────────────────────────────────────────────────────
-  describe("create", () => {
-    it("creates a thread with provided title", async () => {
-      const t = makeThread({ id: "new-t", title: "My Thread" });
-      (Thread.create as ReturnType<typeof vi.fn>).mockResolvedValue(t);
-
-      const caller = createCaller(makeCtx());
-      const result = await caller.threads.create({ title: "My Thread" });
-      expect(Thread.create).toHaveBeenCalledWith({
-        user_id: "user-1",
-        workflow_id: null,
-        title: "My Thread"
-      });
-      expect(result.id).toBe("new-t");
-      expect(result.title).toBe("My Thread");
-    });
-
-    it("defaults title to 'New Thread' when omitted", async () => {
-      const t = makeThread({ id: "auto", title: "New Thread" });
-      (Thread.create as ReturnType<typeof vi.fn>).mockResolvedValue(t);
-
-      const caller = createCaller(makeCtx());
-      await caller.threads.create({});
-      expect(Thread.create).toHaveBeenCalledWith({
-        user_id: "user-1",
-        workflow_id: null,
-        title: "New Thread"
-      });
-    });
-
-    it("binds the thread to a workflow when workflow_id is given", async () => {
-      const t = makeThread({ id: "wf-t", title: "New Thread" });
-      (Thread.create as ReturnType<typeof vi.fn>).mockResolvedValue(t);
-
-      const caller = createCaller(makeCtx());
-      await caller.threads.create({ workflow_id: "wf-1" });
-      expect(Thread.create).toHaveBeenCalledWith({
-        user_id: "user-1",
-        workflow_id: "wf-1",
-        title: "New Thread"
-      });
-    });
-  });
-
   // ── get ─────────────────────────────────────────────────────────
   describe("get", () => {
     it("returns a thread the user owns", async () => {
@@ -270,6 +230,8 @@ describe("threads router", () => {
       const result = await caller.threads.delete({ id: "t1" });
       expect(msg1.delete).toHaveBeenCalled();
       expect(msg2.delete).toHaveBeenCalled();
+      // Thread deletion cascades to its durable memories.
+      expect(ThreadMemory.deleteByThread).toHaveBeenCalledWith("user-1", "t1");
       expect(t.delete).toHaveBeenCalled();
       expect(result).toEqual({ ok: true });
     });

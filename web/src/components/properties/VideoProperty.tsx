@@ -7,7 +7,7 @@ import { useAsset } from "../../serverState/useAsset";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyDropzone from "./PropertyDropzone";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { memo, useMemo } from "react";
 
 const styles = (theme: Theme) =>

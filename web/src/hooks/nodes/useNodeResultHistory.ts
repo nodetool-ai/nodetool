@@ -21,6 +21,16 @@ import type { Asset } from "../../stores/ApiTypes";
 import { normalizeAssetList } from "../../utils/normalizeAsset";
 import { assetToOutputValue } from "../../utils/nodeGenerations";
 
+export interface UseNodeResultHistoryResult {
+  assetHistory: Asset[];
+  historyCount: number;
+  lastJobAssets: Asset[];
+  lastJobId: string | null;
+  isLoading: boolean;
+  refresh: () => Promise<unknown>;
+  workflowId: string | null;
+}
+
 export { assetToOutputValue };
 
 const EMPTY_ASSETS: Asset[] = [];
@@ -47,7 +57,7 @@ export const assetsToPreviewValue = (assets: Asset[]): unknown => {
 export const useNodeResultHistory = (
   workflowId: string | null,
   nodeId: string | null
-) => {
+): UseNodeResultHistoryResult => {
   const enabled = Boolean(nodeId);
   const query = useQuery({
     queryKey: nodeAssetsQueryKey(nodeId),

@@ -1,13 +1,12 @@
 import { memo, useCallback } from "react";
-import {
-  SelectChangeEvent
-} from "@mui/material";
+import type { SelectChangeEvent } from "../ui_primitives";
 import { WorkflowList } from "../../stores/ApiTypes";
 import PropertyLabel from "../node/PropertyLabel";
 import { useQuery } from "@tanstack/react-query";
 import { PropertyProps } from "../node/PropertyInput";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { workflowListQueryKey } from "../../serverState/workflowQueryKeys";
 import { NodeSelect, NodeMenuItem } from "../editor_ui";
 
 import {
@@ -19,7 +18,7 @@ const WorkflowListProperty = (props: PropertyProps) => {
   const load = useWorkflowManager((state) => state.load);
 
   const { data, error, isLoading } = useQuery<WorkflowList, Error>({
-    queryKey: ["workflows"],
+    queryKey: workflowListQueryKey(200),
     queryFn: async () => {
       return await load("", 200);
     }

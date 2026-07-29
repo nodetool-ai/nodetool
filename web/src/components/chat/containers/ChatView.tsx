@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import type { Theme } from "@mui/material/styles";
 import { useCallback, useMemo, memo } from "react";
 import {
@@ -14,13 +15,18 @@ import {
   LanguageModel,
   TodoItem
 } from "../../../stores/ApiTypes";
-import { SPACING, getSpacingPx } from "../../ui_primitives";
+import { SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
 import ChatThreadView from "../thread/ChatThreadView";
 import { ConversationHeader } from "./ConversationHeader";
 import ChatInputSection, { type ChatComposerVariant } from "./ChatInputSection";
 import ComposerSlot from "../composer/ComposerSlot";
 import { TodoSidebar } from "../sidebar/TodoSidebar";
+import { ThreadMemorySidebar } from "../sidebar/ThreadMemorySidebar";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
+import {
+  buildUiContext,
+  type BuildUiContextOptions
+} from "../../../lib/chat/uiContext";
 import type {
   ChatOutgoingMessage,
   MediaGenerationRequest
@@ -59,7 +65,7 @@ const styles = (theme: Theme) =>
       minHeight: 0,
       display: "flex",
       flexDirection: "column",
-      paddingBottom: theme.spacing(6),
+      paddingBottom: theme.spacing(2),
       width: "100%",
       maxWidth: "1180px",
       alignSelf: "center"
@@ -67,7 +73,7 @@ const styles = (theme: Theme) =>
     ".chat-controls": {
       padding: `0 ${getSpacingPx(SPACING.xl)} 0 0`,
       marginTop: "auto",
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       display: "flex",
       alignItems: "center",
       gap: getSpacingPx(SPACING.md)
@@ -108,8 +114,16 @@ type ChatViewProps = {
   onNewChat?: () => void;
   memoryEnabled?: boolean;
   onMemoryToggle?: (enabled: boolean) => void;
-  helpMode?: boolean;
   workflowAssistant?: boolean;
+  /** Context-specific system-prompt addendum appended to the base chat prompt. */
+  systemPrompt?: string;
+  /**
+   * Overrides for the `ui_context` sent with each message. Surfaces that aren't
+   * workspace tabs (the App Builder) name their focused document here; surfaces
+   * with a selection worth telling the agent about pass it too. When omitted the
+   * context is derived from the open workspace tabs.
+   */
+  uiContext?: BuildUiContextOptions;
   currentPlanningUpdate?: PlanningUpdate | null;
   currentTaskUpdate?: TaskUpdate | null;
   currentLogUpdate?: LogUpdate | null;
@@ -140,6 +154,8 @@ type ChatViewProps = {
   composerToolbar?: React.ReactNode;
   /** Override the composer's textarea placeholder. */
   composerPlaceholder?: string;
+  /** Pure chat panel: hide the media mode picker and force chat mode. */
+  hideModePicker?: boolean;
   /**
    * When true, ChatView does not render its own composer. Instead it renders a
    * bottom ComposerSlot wired to its send handler, and the shared
@@ -155,6 +171,12 @@ type ChatViewProps = {
    * so the title would not match. Defaults to off.
    */
   showConversationHeader?: boolean;
+  /**
+   * Bind thread-scoped store reads (todos) to this thread instead of the
+   * store's current one. Pass it when the surface renders a specific thread
+   * (e.g. a workspace chat tab) that may not be `currentThreadId`.
+   */
+  threadId?: string | null;
 };
 
 // Stable empty-array sentinel so the Zustand selector below returns the same
@@ -176,7 +198,8 @@ const ChatView = ({
   onNewChat,
   memoryEnabled,
   onMemoryToggle,
-  helpMode = false,
+  systemPrompt,
+  uiContext,
   currentPlanningUpdate,
   currentTaskUpdate,
   currentLogUpdate,
@@ -191,8 +214,10 @@ const ChatView = ({
   composerVariant,
   composerToolbar,
   composerPlaceholder,
+  hideModePicker,
   useExternalComposer = false,
-  showConversationHeader = false
+  showConversationHeader = false,
+  threadId
 }: ChatViewProps) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
@@ -217,7 +242,8 @@ const ChatView = ({
               ? mediaGeneration.model ?? model?.id
               : model?.id,
           content: content,
-          help_mode: helpMode,
+          system_prompt: systemPrompt,
+          ui_context: buildUiContext(uiContext),
           graph: graph,
           workflow_id: workflowId ?? undefined,
           workflow_target: graph ? "workflow" : undefined,
@@ -231,14 +257,21 @@ const ChatView = ({
         console.error("Error sending message:", error);
       }
     },
-    [sendMessage, model, helpMode, graph, workflowId]
+    [sendMessage, model, systemPrompt, uiContext, graph, workflowId]
   );
 
   const todos = useGlobalChatStore((state) => {
-    const id = state.currentThreadId;
+    const id = threadId ?? state.currentThreadId;
     return (id && state.todosByThread[id]) || NO_TODOS;
   });
-  const showTodoSidebar = todos.length > 0;
+  const effectiveThreadId = useGlobalChatStore(
+    (state) => threadId ?? state.currentThreadId
+  );
+  // The two rails are 280px and 300px of fixed width. Below `md` they leave
+  // the conversation itself almost no room, so they drop out entirely on
+  // phones and narrow panels.
+  const railsFit = useMediaQuery(theme.breakpoints.up("md"));
+  const showTodoSidebar = railsFit && todos.length > 0;
 
   return (
     <div className="chat-view" css={cssStyles}>
@@ -287,10 +320,14 @@ const ChatView = ({
             variant={composerVariant}
             composerToolbar={composerToolbar}
             placeholder={composerPlaceholder}
+            hideModePicker={hideModePicker}
           />
         )}
       </div>
       {showTodoSidebar && <TodoSidebar todos={todos} />}
+      {railsFit && effectiveThreadId && (
+        <ThreadMemorySidebar threadId={effectiveThreadId} />
+      )}
     </div>
   );
 };

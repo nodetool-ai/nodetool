@@ -59,7 +59,14 @@ export interface TranscriptToken {
  * the right media span.
  */
 export interface TranscriptSegment {
-  /** Stable id — the paragraph key (shared `paragraphId` of its clips). */
+  /**
+   * Stable id, unique across the doc. Normally the paragraph key (shared
+   * `paragraphId` of its clips); when that same `paragraphId` recurs in a
+   * later, non-contiguous group (a differently-paragraphed clip lands between
+   * two pieces of the same paragraph), later occurrences get a `#n` suffix so
+   * no two segments ever share an id — segment ids back React keys and
+   * DOM-ref map keys downstream (see `ScriptLane`).
+   */
   id: string;
   /** Backing clips, in timeline order. A single draft, or 1..n voiced pieces. */
   clipIds: string[];
@@ -166,7 +173,7 @@ function maxEnd(clips: TimelineClip[]): number {
   return clips.reduce((max, c) => Math.max(max, c.startMs + c.durationMs), 0);
 }
 
-function buildSegment(key: string, members: TimelineClip[]): TranscriptSegment {
+function buildSegment(id: string, members: TimelineClip[]): TranscriptSegment {
   const tokens: TranscriptToken[] = [];
   for (const clip of members) {
     const offset = clip.startMs;
@@ -192,7 +199,7 @@ function buildSegment(key: string, members: TimelineClip[]): TranscriptSegment {
     tokens.length === 0 &&
     first.sourceType !== "imported";
   return {
-    id: key,
+    id,
     clipIds: members.map((c) => c.id),
     kind: first.sourceType === "imported" ? "imported" : "generated",
     speaker: first.speaker,
@@ -230,6 +237,11 @@ export function buildTranscriptDoc(clips: TimelineClip[]): TranscriptDoc {
 
   const sorted = clips.filter(isTranscriptClip).sort(byTimeline);
   const segments: TranscriptSegment[] = [];
+  // A paragraphId can recur in more than one non-contiguous group (a clip
+  // with a different paragraphId lands between two pieces of the same
+  // paragraph) — track how many groups each key has produced so far and
+  // disambiguate every group after the first, keeping ids unique doc-wide.
+  const occurrences = new Map<string, number>();
 
   let i = 0;
   while (i < sorted.length) {
@@ -239,7 +251,10 @@ export function buildTranscriptDoc(clips: TimelineClip[]): TranscriptDoc {
       members.push(sorted[i]);
       i += 1;
     }
-    segments.push(buildSegment(key, members));
+    const occurrence = occurrences.get(key) ?? 0;
+    occurrences.set(key, occurrence + 1);
+    const id = occurrence === 0 ? key : `${key}#${occurrence}`;
+    segments.push(buildSegment(id, members));
   }
 
   const doc: TranscriptDoc = { segments, durationMs: maxEnd(sorted) };
@@ -337,15 +352,28 @@ export function resolveSelectionRange(
   };
 }
 
+/**
+ * Effective source-playback rate for a clip: one timeline-ms consumes this
+ * many source-ms. Mirrors `sourceRate` in `@nodetool-ai/timeline`
+ * (`splitClip`/`trimClip`) — not part of that package's public exports, so
+ * duplicated here rather than reaching into its `src/`.
+ */
+function sourceRate(clip: Pick<TimelineClip, "speedBaked" | "speedMultiplier">): number {
+  return clip.speedBaked ? 1 : Math.max(0.0001, clip.speedMultiplier ?? 1);
+}
+
 /** The head remnant of `clip`, keeping clip-local [0, lengthMs). */
 function headRemnant(clip: TimelineClip, lengthMs: number): TimelineClip {
+  const rate = sourceRate(clip);
   const inPointMs = clip.inPointMs ?? 0;
   const words = (clip.caption?.words ?? []).filter((w) => w.endMs <= lengthMs);
   return {
     ...clip,
     durationMs: lengthMs,
     inPointMs,
-    outPointMs: inPointMs + lengthMs,
+    // Source in/out points are source-space; one timeline-ms consumes `rate`
+    // source-ms (mirrors splitClip's `cutPointMs`).
+    outPointMs: inPointMs + lengthMs * rate,
     caption: clip.caption ? { ...clip.caption, words } : undefined
   };
 }
@@ -356,8 +384,9 @@ function tailRemnant(
   fromMs: number,
   startMs: number
 ): TimelineClip {
+  const rate = sourceRate(clip);
   const inPointMs = clip.inPointMs ?? 0;
-  const outPointMs = clip.outPointMs ?? inPointMs + clip.durationMs;
+  const outPointMs = clip.outPointMs ?? inPointMs + clip.durationMs * rate;
   const words = (clip.caption?.words ?? [])
     .filter((w) => w.startMs >= fromMs)
     .map((w) => ({ ...w, startMs: w.startMs - fromMs, endMs: w.endMs - fromMs }));
@@ -366,7 +395,9 @@ function tailRemnant(
     id: createTimeOrderedUuid(),
     startMs,
     durationMs: clip.durationMs - fromMs,
-    inPointMs: inPointMs + fromMs,
+    // Cut point is source-space, `fromMs` timeline-ms in (mirrors splitClip's
+    // `cutPointMs`).
+    inPointMs: inPointMs + fromMs * rate,
     outPointMs,
     caption: clip.caption ? { ...clip.caption, words } : undefined
   };
@@ -615,6 +646,7 @@ function midRemnant(
   hiMs: number,
   blockMs: number
 ): TimelineClip {
+  const rate = sourceRate(clip);
   const inPointMs = clip.inPointMs ?? 0;
   const words = (clip.caption?.words ?? [])
     .filter((w) => w.startMs >= loMs && w.endMs <= hiMs)
@@ -624,8 +656,10 @@ function midRemnant(
     id: createTimeOrderedUuid(),
     startMs: blockMs,
     durationMs: hiMs - loMs,
-    inPointMs: inPointMs + loMs,
-    outPointMs: inPointMs + hiMs,
+    // Both cut points are source-space, `loMs`/`hiMs` timeline-ms in (mirrors
+    // splitClip's `cutPointMs`).
+    inPointMs: inPointMs + loMs * rate,
+    outPointMs: inPointMs + hiMs * rate,
     caption: clip.caption ? { ...clip.caption, words } : undefined
   };
 }

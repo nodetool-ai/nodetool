@@ -51,10 +51,7 @@ export const useCreateNode = (
         updateNodeData(newNode.id, afterAdd);
       }
 
-      // Track this node as recently used
       addRecentNode(metadata.node_type);
-
-      // Close the node menu after creating a node
       closeNodeMenu();
     },
     [

@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useState, useRef, useEffect } from "react";
+import { memo, useMemo, useState, useRef, useEffect } from "react";
 
 import {
   LoadingSpinner,
@@ -7,7 +7,8 @@ import {
   Box,
   TextInput,
   BORDER_RADIUS,
-  Modal
+  Modal,
+  SPACING
 } from "../ui_primitives";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -23,7 +24,7 @@ import "../../styles/handle_edge_tooltip.css";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 // constants
 import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentation";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { useShallow } from "zustand/react/shallow";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
 import { generateCSS } from "../themes/GenerateCSS";
@@ -40,11 +41,13 @@ import { isMac } from "../../utils/platform";
 import { EditorUiProvider } from "../editor_ui";
 import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
+import WorkflowShareDialogHost from "../workflows/WorkflowShareDialogHost";
 import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowRuntimeCheck } from "../../hooks/useWorkflowRuntimeCheck";
+import RuntimeInstallDialog from "./RuntimeInstallDialog";
 import { useAutoEnableNodePacks } from "../../hooks/useAutoEnableNodePacks";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 
@@ -61,6 +64,28 @@ interface NodeEditorProps {
 
 const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const theme = useTheme();
+  const editorBgStyle = useMemo<React.CSSProperties>(
+    () => ({ backgroundColor: theme.vars.palette.c_editor_bg_color }),
+    [theme.vars.palette.c_editor_bg_color]
+  );
+  const shortcutsModalSx = useMemo(
+    () => ({
+      position: "absolute" as const,
+      top: "250px",
+      left: "50%",
+      transform: "translateX(-50%)",
+      width: "80vw",
+      maxWidth: "1400px",
+      padding: SPACING.xl,
+      backgroundColor: theme.vars.palette.grey[800],
+      boxShadow: 24,
+      borderRadius: BORDER_RADIUS.lg,
+      border: 0,
+      outline: 0,
+      overflow: "hidden"
+    }),
+    [theme.vars.palette.grey]
+  );
   /* USE STORE */
   const { isUploading } = useAssetUpload();
   // Use getSelectedNodeCount to avoid re-renders when nodes are moved (getSelectedNodes returns new array reference on move)
@@ -78,7 +103,13 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     handleSaveExampleCancel
   } = useNodeEditorShortcuts(active, () => setShowShortcuts((v) => !v));
 
-  useWorkflowRuntimeCheck(workflowId);
+  const { missing: missingRuntimes } = useWorkflowRuntimeCheck(workflowId);
+  // Let the user dismiss the install prompt without acting on it.
+  const [runtimeDialogDismissed, setRuntimeDialogDismissed] = useState(false);
+  // Re-show the prompt when switching to a different workflow.
+  useEffect(() => {
+    setRuntimeDialogDismissed(false);
+  }, [workflowId]);
 
   // Enable provider packs whose API key is set, and packs used by the loaded
   // workflow, so their nodes register without a manual step.
@@ -174,16 +205,14 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           ref={reactFlowWrapperRef}
           className="node-editor"
           css={generateCSS}
-          style={{
-            backgroundColor: theme.vars.palette.c_editor_bg_color
-          }}
+          style={editorBgStyle}
         >
           {isUploading && (
             <div className="loading-overlay">
               <LoadingSpinner variant="circular" size="medium" /> Uploading assets…
             </div>
           )}
-          <ReactFlowWrapper workflowId={workflowId} active={active} />
+          <ReactFlowWrapper workflowId={workflowId} />
           {active && (
             <>
               <SelectionActionToolbar
@@ -204,6 +233,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 reactFlowWrapper={reactFlowWrapperRef}
               />
               <FindInWorkflowDialog workflowId={workflowId} />
+              <WorkflowShareDialogHost />
               <Modal
                 open={showShortcuts}
                 onClose={(event, reason) => {
@@ -212,23 +242,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                   }
                 }}
                 closeAfterTransition
+                aria-label="Keyboard shortcuts"
               >
                 <Box
-                  sx={{
-                    position: "absolute",
-                    top: "250px",
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    width: "80vw",
-                    maxWidth: "1400px",
-                    padding: 4,
-                    backgroundColor: theme.vars.palette.grey[800],
-                    boxShadow: 24,
-                    borderRadius: BORDER_RADIUS.lg,
-                    border: 0,
-                    outline: 0,
-                    overflow: "hidden"
-                  }}
+                  sx={shortcutsModalSx}
                 >
                   <KeyboardShortcutsView shortcuts={NODE_EDITOR_SHORTCUTS} />
                 </Box>
@@ -244,7 +261,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
         onClose={handleSaveExampleCancel}
         maxWidth="sm"
         fullWidth
-        title="Save Example"
+        title="Save example"
         onConfirm={handleSaveExampleConfirm}
         onCancel={handleSaveExampleCancel}
         confirmText="Save"
@@ -265,6 +282,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           }}
         />
       </Dialog>
+
+      <RuntimeInstallDialog
+        missing={missingRuntimes}
+        open={missingRuntimes.length > 0 && !runtimeDialogDismissed}
+        onClose={() => setRuntimeDialogDismissed(true)}
+      />
     </>
   );
 };

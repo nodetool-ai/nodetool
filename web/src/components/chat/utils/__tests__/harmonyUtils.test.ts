@@ -72,6 +72,39 @@ describe("harmonyUtils", () => {
 
       expect(result.messages[0].content).toBe("Line 1\nLine 2\nLine 3");
     });
+
+    it("removes every occurrence of byte-identical blocks from rawText", () => {
+      const block = "<|start|>assistant<|channel|>final<|message|>hi<|end|>";
+      const content = `${block} between ${block} tail`;
+      const result = parseHarmonyContent(content);
+
+      expect(result.messages).toHaveLength(2);
+      expect(result.rawText).toBe("between  tail");
+    });
+
+    it("hides raw control tokens of an unterminated streaming block", () => {
+      const content =
+        "<|start|>assistant<|channel|>analysis<|message|>Thinking so far";
+      const result = parseHarmonyContent(content);
+
+      // No complete block yet, so nothing is emitted as a message...
+      expect(result.messages).toHaveLength(0);
+      // ...but the partial control tokens are stripped from the displayed text.
+      expect(result.rawText).toBe("Thinking so far");
+      expect(result.rawText).not.toContain("<|start|>");
+      expect(result.rawText).not.toContain("<|message|>");
+    });
+
+    it("keeps completed blocks and strips a trailing partial block", () => {
+      const content =
+        "<|start|>assistant<|channel|>final<|message|>Done<|end|>" +
+        "<|start|>assistant<|channel|>analysis<|message|>still going";
+      const result = parseHarmonyContent(content);
+
+      expect(result.messages).toHaveLength(1);
+      expect(result.messages[0].content).toBe("Done");
+      expect(result.rawText).toBe("still going");
+    });
   });
 
   describe("hasHarmonyTokens", () => {

@@ -58,7 +58,7 @@ story. [See all use cases →]({{ '/use-cases' | relative_url }})
 
 ## What you can do
 
-* **Mix models from every vendor** — Wire Flux next to GPT-5 next to ElevenLabs in one graph. Pick the best model per step, not per project.
+* **Mix models from every vendor** — Wire Flux next to GPT-5.6 next to ElevenLabs in one graph. Pick the best model per step, not per project.
 * **Run frontier models locally** — Ollama, MLX, and GGUF on your hardware. Works offline. Files never leave your disk.
 * **Bring your own keys** — Pay OpenAI, Anthropic, Gemini, Replicate, FAL, and ElevenLabs directly. No credit markup, no provider tax.
 * **Ship a workflow as a Mini-App** — Hide the graph, expose just inputs and outputs. Share a link, no install required.
@@ -100,7 +100,7 @@ Same code, same workflows. Both AGPL-3.0.
   <article class="pattern-card">
     <h5>Story to video</h5>
     <p>Prompt to storyboard to narration to animation to score.</p>
-    <a href="{{ '/workflows/story-to-video-generator' | relative_url }}">Story to Video →</a>
+    <a href="{{ '/use-cases/movie-trailer' | relative_url }}">Movie Trailer Generator →</a>
   </article>
   <article class="pattern-card">
     <h5>Sound and voice</h5>
@@ -120,8 +120,8 @@ More patterns — pipelines, data, RAG, email — in the [Cookbook]({{ '/cookboo
 
 <ol class="step-sequence">
   <li><a href="{{ '/installation' | relative_url }}">Download NodeTool</a> for macOS, Windows, or Linux.</li>
-  <li><a href="{{ '/getting-started' | relative_url }}#step-2--run-a-workflow">Open a template, press Run.</a></li>
-  <li><a href="{{ '/getting-started' | relative_url }}#step-3--edit">Edit, re-run, ship as a Mini-App.</a></li>
+  <li><a href="{{ '/getting-started' | relative_url }}#step-2--run-a-ready-made-example">Open a template, press Run.</a></li>
+  <li><a href="{{ '/getting-started' | relative_url }}#step-3--change-something">Edit, re-run, ship as a Mini-App.</a></li>
 </ol>
 
 ## Explore

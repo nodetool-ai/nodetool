@@ -111,12 +111,23 @@ function getOutputText(detail: unknown): string | null {
   return null;
 }
 
-function LLMDetail({ detail }: { detail: Record<string, unknown> }) {
+interface LLMCallDetail {
+  messages?: unknown[];
+  response?: string | Record<string, unknown>;
+  tool_calls?: unknown[];
+  tokens_input?: number;
+  tokens_output?: number;
+  cost?: number;
+  duration_ms?: number;
+  error?: string;
+}
+
+function LLMDetail({ detail }: { detail: LLMCallDetail }) {
   return (
     <div>
       {detail.messages ? (
         <div className="llm-section">
-          <div className="llm-label">Request ({(detail.messages as unknown[]).length} messages)</div>
+          <div className="llm-label">Request ({detail.messages.length} messages)</div>
           <pre>{JSON.stringify(detail.messages, null, 2)}</pre>
         </div>
       ) : null}
@@ -126,7 +137,7 @@ function LLMDetail({ detail }: { detail: Record<string, unknown> }) {
           <pre>{typeof detail.response === "string" ? detail.response : JSON.stringify(detail.response, null, 2)}</pre>
         </div>
       ) : null}
-      {detail.tool_calls && (detail.tool_calls as unknown[]).length > 0 ? (
+      {detail.tool_calls && detail.tool_calls.length > 0 ? (
         <div className="llm-section">
           <div className="llm-label">Tool Calls</div>
           <pre>{JSON.stringify(detail.tool_calls, null, 2)}</pre>
@@ -137,7 +148,7 @@ function LLMDetail({ detail }: { detail: Record<string, unknown> }) {
           {[
             detail.tokens_input && `In: ${detail.tokens_input}`,
             detail.tokens_output && `Out: ${detail.tokens_output}`,
-            detail.cost && `Cost: $${(detail.cost as number).toFixed(4)}`,
+            detail.cost && `Cost: $${detail.cost.toFixed(4)}`,
             detail.duration_ms && `Duration: ${detail.duration_ms}ms`,
           ]
             .filter(Boolean)
@@ -178,6 +189,7 @@ const TraceRow = memo(function TraceRow({
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleClick(); }}
         role="button"
         tabIndex={0}
+        aria-expanded={expanded}
       >
         <span className="trace-time">{formatRelativeTime(event.relativeMs)}</span>
         <span className="trace-icon">{EVENT_ICONS[event.type]}</span>
@@ -191,7 +203,7 @@ const TraceRow = memo(function TraceRow({
       {expanded && (
         <div className="trace-detail">
           {event.type === "llm_call" ? (
-            <LLMDetail detail={event.detail as Record<string, unknown>} />
+            <LLMDetail detail={event.detail as LLMCallDetail} />
           ) : outputText !== null ? (
             <pre>{outputText}</pre>
           ) : (
@@ -264,7 +276,9 @@ const TracePanel: React.FC = () => {
     a.href = url;
     a.download = `trace-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
     a.click();
-    URL.revokeObjectURL(url);
+    // Defer the revoke: releasing the blob synchronously cancels the download
+    // in Firefox and for large files.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }, [exportJSON]);
 
   const copyValue = useMemo(

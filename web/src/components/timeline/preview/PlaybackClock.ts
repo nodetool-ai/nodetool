@@ -4,7 +4,7 @@ export class PlaybackClock {
   private rafId: number | null = null;
   private startPositionMs = 0;
   private startWallMs = 0;
-  private audioContext: AudioContext | null = null;
+  private audioContext: BaseAudioContext | null = null;
   /** AudioContext.currentTime captured at start() */
   private audioStartTimeSec = 0;
   private rate = 1;
@@ -13,7 +13,7 @@ export class PlaybackClock {
   start(
     positionMs: number,
     rate = 1,
-    audioContext: AudioContext | null = null,
+    audioContext: BaseAudioContext | null = null,
     durationMs = Infinity
   ): void {
     this.stop();

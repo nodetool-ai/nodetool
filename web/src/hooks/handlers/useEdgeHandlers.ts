@@ -1,6 +1,6 @@
 import { useCallback, MouseEvent as ReactMouseEvent } from "react";
 import type { Edge } from "@xyflow/react";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { shallow } from "zustand/shallow";
@@ -23,57 +23,26 @@ type EdgeHandlersResult = {
   onEdgeClick: (event: ReactMouseEvent, edge: Edge) => void;
 };
 
-/**
- * Hook for handling edge-related events in the workflow editor.
- *
- * Provides event handlers for edge interactions including:
- * - Hover effects (animation, label display)
- * - Context menu on right-click
- * - Edge reconnection handling
- * - Deletion on middle-click
- *
- * @returns Object containing all edge event handlers
- *
- * @example
- * ```typescript
- * const {
- *   onEdgeMouseEnter,
- *   onEdgeMouseLeave,
- *   onEdgeContextMenu,
- *   onEdgeClick,
- * } = useEdgeHandlers();
- *
- * return (
- *   <ReactFlow
- *     onEdgeMouseEnter={onEdgeMouseEnter}
- *     onEdgeMouseLeave={onEdgeMouseLeave}
- *     onEdgeContextMenu={onEdgeContextMenu}
- *     onEdgeClick={onEdgeClick}
- *   />
- * );
- * ```
- */
 export default function useEdgeHandlers(): EdgeHandlersResult {
   const {
     findEdge,
     updateEdge,
     deleteEdge,
-    edgeUpdateSuccessful,
     setEdgeUpdateSuccessful
   } = useNodes((state) => ({
     findEdge: state.findEdge,
     updateEdge: state.updateEdge,
     deleteEdge: state.deleteEdge,
-    edgeUpdateSuccessful: state.edgeUpdateSuccessful,
     setEdgeUpdateSuccessful: state.setEdgeUpdateSuccessful
   }), shallow);
+
+  const nodeStoreRef = useNodeStoreRef();
 
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const setIsReconnecting = useConnectionStore(
     (state) => state.setIsReconnecting
   );
 
-  /* EDGE HOVER */
   const onEdgeMouseEnter = useCallback(
     (event: React.MouseEvent, edge: Edge) => {
       const hovered_edge = findEdge(edge.id);
@@ -97,7 +66,6 @@ export default function useEdgeHandlers(): EdgeHandlersResult {
     [findEdge, updateEdge]
   );
 
-  // edge hover out
   const onEdgeMouseLeave = useCallback(
     (event: React.MouseEvent, edge: Edge) => {
       const hovered_edge = findEdge(edge.id);
@@ -120,7 +88,6 @@ export default function useEdgeHandlers(): EdgeHandlersResult {
     [findEdge, updateEdge]
   );
 
-  // open context menu on right click
   const onEdgeContextMenu = useCallback(
     (event: ReactMouseEvent, edge: Edge) => {
       event.preventDefault();
@@ -139,18 +106,16 @@ export default function useEdgeHandlers(): EdgeHandlersResult {
     setIsReconnecting(true);
   }, [setEdgeUpdateSuccessful, setIsReconnecting]);
 
-  // change edge connection
   const onEdgeUpdateEnd = useCallback(
     (_event: MouseEvent | TouchEvent, edge: Edge) => {
-      // delete edge when dropped
-      if (!edgeUpdateSuccessful) {
+      if (!nodeStoreRef.getState().edgeUpdateSuccessful) {
         deleteEdge(edge.id);
       }
       setEdgeUpdateSuccessful(true);
       setIsReconnecting(false);
     },
     [
-      edgeUpdateSuccessful,
+      nodeStoreRef,
       setEdgeUpdateSuccessful,
       deleteEdge,
       setIsReconnecting

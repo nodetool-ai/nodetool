@@ -13,6 +13,35 @@
         background-color: var(--palette-background-default, #181a1b);
         overscroll-behavior-y: none;
       }
+      /* App-shell spinner: paints the instant the HTML arrives, covering the
+         JS download/parse gap before React mounts. React's createRoot().render()
+         replaces #root's children, so no cleanup script is needed. */
+      #boot-spinner {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #boot-spinner::after {
+        content: "";
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(128, 128, 128, 0.25);
+        border-top-color: rgba(180, 180, 180, 0.9);
+        border-radius: 50%;
+        animation: boot-spin 0.8s linear infinite;
+      }
+      @keyframes boot-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #boot-spinner::after {
+          animation-duration: 2s;
+        }
+      }
     </style>
     <meta charset="utf-8" />
     <meta
@@ -26,7 +55,7 @@
     <link rel="manifest" href="/manifest.json" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:* https: wss: blob: data:; media-src 'self' blob:; frame-src 'self' http://127.0.0.1:*;"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://plausible.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://rsms.me; font-src 'self' data: https://fonts.gstatic.com https://rsms.me; img-src 'self' data: blob: https:; connect-src 'self' http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:* https: wss: blob: data:; media-src 'self' blob:; frame-src 'self' http://127.0.0.1:*;"
     />
     <meta name="referrer" content="no-referrer-when-downgrade" />
     <meta name="theme-color" content="#000000" />
@@ -49,7 +78,9 @@
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
+    <div id="root">
+      <div id="boot-spinner" role="status" aria-label="Loading NodeTool"></div>
+    </div>
     <!--
       This HTML file is a template.
       If you open it directly in the browser, you will see an empty page.

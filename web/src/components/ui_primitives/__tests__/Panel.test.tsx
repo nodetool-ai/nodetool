@@ -171,18 +171,18 @@ describe("Panel", () => {
   });
 
   describe("Border", () => {
-    it("applies border when bordered is true", () => {
+    it("applies border by default", () => {
       const { container } = renderWithTheme(
-        <Panel bordered>
+        <Panel>
           <div>Content</div>
         </Panel>
       );
 
       const panel = container.firstChild as HTMLElement;
-      expect(panel).toBeInTheDocument();
+      expect(panel).toHaveStyle({ border: "1px solid #2f2f2f" });
     });
 
-    it("does not apply border when bordered is false (default)", () => {
+    it("does not apply border when bordered is false", () => {
       const { container } = renderWithTheme(
         <Panel bordered={false}>
           <div>Content</div>
@@ -190,11 +190,22 @@ describe("Panel", () => {
       );
 
       const panel = container.firstChild as HTMLElement;
-      expect(panel).toBeInTheDocument();
+      expect(panel).not.toHaveStyle({ border: "1px solid #2f2f2f" });
     });
   });
 
   describe("Background", () => {
+    it("applies paper background by default", () => {
+      const { container } = renderWithTheme(
+        <Panel>
+          <div>Content</div>
+        </Panel>
+      );
+
+      const panel = container.firstChild as HTMLElement;
+      expect(panel).toHaveStyle({ backgroundColor: "#232323" });
+    });
+
     it("applies default background", () => {
       const { container } = renderWithTheme(
         <Panel background="default">
@@ -203,7 +214,7 @@ describe("Panel", () => {
       );
 
       const panel = container.firstChild as HTMLElement;
-      expect(panel).toBeInTheDocument();
+      expect(panel).toHaveStyle({ backgroundColor: "#202020" });
     });
 
     it("applies paper background", () => {

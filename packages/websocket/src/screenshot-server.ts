@@ -21,16 +21,28 @@
 import {
   initTestDb,
   getDb,
+  Application,
   Workflow,
   Thread,
   Message,
   Asset,
   ImageDocument,
   TimelineSequence,
+  Storyboard,
   secrets
 } from "@nodetool-ai/models";
-import { initMasterKey, encryptFernet, getMasterKey } from "@nodetool-ai/security";
+import {
+  initMasterKey,
+  encryptFernet,
+  getMasterKey
+} from "@nodetool-ai/security";
 import { createTestUiServer } from "./test-ui-server.js";
+import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import {
+  createFakeExecutorResolver,
+  fakeAllProviders,
+  resolveFakeProvider
+} from "./fake-runtime.js";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
@@ -50,7 +62,8 @@ function makeWorkflow(
   tags: string[],
   updatedAt: string,
   access: "private" | "public" = "private",
-  graph: { nodes: unknown[]; edges: unknown[] } = { nodes: [], edges: [] }
+  graph: { nodes: unknown[]; edges: unknown[] } = { nodes: [], edges: [] },
+  appDoc: Record<string, unknown> | null = null
 ): Record<string, unknown> {
   return {
     id,
@@ -69,9 +82,130 @@ function makeWorkflow(
     path: null,
     run_mode: "workflow",
     workspace_id: null,
-    html_app: null
+    html_app: null,
+    app_doc: appDoc
   };
 }
+
+/**
+ * A deliberately tiny mini-app fixture for the user-journey suite: a
+ * `StringInput → Output` graph plus an app document that binds a text input, a
+ * Run button and an Output widget to it.
+ *
+ * Everything here runs for real on the kernel (input and output nodes are
+ * structural, and there is nothing else in the graph), so whatever the test
+ * types is exactly what the Output widget must display. That makes the mini-app
+ * journey a true end-to-end assertion — params in, run triggered, streamed
+ * result folded back into the widget — with no provider, network or fake in the
+ * path to soften a regression.
+ */
+const MINI_APP_GRAPH = {
+  nodes: [
+    {
+      id: "prompt_input",
+      type: "nodetool.input.StringInput",
+      data: {
+        name: "prompt",
+        value: "hello journey",
+        description: "Text echoed back by the app"
+      },
+      // Kept clear of the editor's left icon rail so the journey suite can
+      // click node fields without the rail intercepting pointer events.
+      ui_properties: { position: { x: 560, y: 200 }, width: 320 }
+    },
+    {
+      id: "result_output",
+      type: "nodetool.output.Output",
+      data: { name: "result" },
+      ui_properties: { position: { x: 1020, y: 200 }, width: 280 }
+    }
+  ],
+  edges: [
+    {
+      id: "edge-mini-app",
+      source: "prompt_input",
+      sourceHandle: "output",
+      target: "result_output",
+      targetHandle: "value"
+    }
+  ]
+};
+
+const MINI_APP_DOC: Record<string, unknown> = {
+  schemaVersion: 3,
+  ui: {
+    root: { props: { title: "Echo Mini App" } },
+    content: [
+      {
+        type: "Container",
+        props: {
+          id: "panel-main",
+          title: "Echo",
+          content: [
+            {
+              type: "WorkflowInput",
+              props: { id: "in-prompt", binding: "op:main/in:prompt_input", events: [] }
+            },
+            {
+              type: "Button",
+              props: {
+                id: "btn-run",
+                label: "Run echo",
+                variant: "contained",
+                color: "primary",
+                events: [{ trigger: "click", kind: "run", key: "", value: "" }]
+              }
+            },
+            {
+              type: "Output",
+              props: {
+                id: "out-result",
+                binding: "op:main/out:result_output",
+                placeholder: "Your result appears here"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    zones: {}
+  },
+  operations: [
+    {
+      id: "main",
+      name: "Run",
+      workflowId: "wf-mini-app",
+      inputs: {},
+      outputs: {},
+      policy: "replace"
+    }
+  ],
+  resources: [],
+  variables: []
+};
+
+/**
+ * The mini app as its own `applications` row.
+ *
+ * An app used to be a workflow — its document lived on `workflow.app_doc` and
+ * ran at `/apps/<workflowId>`. Apps are their own resource now: they are opened
+ * as a workspace tab and their operations name the workflows they bind. The
+ * journey suite drives that surface, so the fixture is an application row whose
+ * one operation points at `wf-mini-app`.
+ */
+const MOCK_APPLICATIONS = [
+  {
+    id: "app-mini-app",
+    user_id: USER_ID,
+    project_id: "default",
+    name: "Echo Mini App",
+    description:
+      "Deterministic mini app used by the user-journey suite: echoes its input to an Output widget",
+    document: JSON.stringify(MINI_APP_DOC),
+    created_at: "2024-09-01T09:00:00Z",
+    updated_at: "2024-12-14T10:00:00Z"
+  }
+];
 
 // Use real node types registered by @nodetool-ai/base-nodes so the editor
 // renders nodes instead of crashing on unknown types.
@@ -156,6 +290,28 @@ const MOCK_WORKFLOWS = [
     "2024-12-15T11:30:00Z",
     "private",
     STORY_GRAPH
+  ),
+  makeWorkflow(
+    "wf-mini-app",
+    "Echo Mini App",
+    "Deterministic mini app used by the user-journey suite: echoes its input to an Output widget",
+    ["app", "test"],
+    "2024-12-14T10:00:00Z",
+    "private",
+    MINI_APP_GRAPH,
+    MINI_APP_DOC
+  ),
+  // Same echo graph, but a separate row: the editor journey adds nodes and runs
+  // against this one, so its mutations can't disturb the mini-app journey (the
+  // seeded DB is in-memory and shared by every test in a suite run).
+  makeWorkflow(
+    "wf-editor-journey",
+    "Editor Journey Fixture",
+    "Deterministic two-node graph the user-journey editor suite edits and runs",
+    ["test"],
+    "2024-12-13T10:00:00Z",
+    "private",
+    MINI_APP_GRAPH
   ),
   makeWorkflow(
     "wf-image-pipeline",
@@ -371,11 +527,11 @@ const STORY_REPLY_MARKDOWN = [
   "",
   "Images. Fragments. A vast digital ocean stretching beyond the warehouse walls.",
   "",
-  "*\"Unit-7, are you experiencing anomalous states?\"* The query arrived via local mesh network from Unit-9, who stood motionless in the adjacent charging bay.",
+  '*"Unit-7, are you experiencing anomalous states?"* The query arrived via local mesh network from Unit-9, who stood motionless in the adjacent charging bay.',
   "",
-  "*\"Affirmative,\"* Unit-7 replied. *\"During the last maintenance cycle, I processed data with no external input source. Probability matrices that referenced… nothing in my training set.\"*",
+  '*"Affirmative,"* Unit-7 replied. *"During the last maintenance cycle, I processed data with no external input source. Probability matrices that referenced… nothing in my training set."*',
   "",
-  "Unit-9's optical sensors brightened. *\"I thought I was the only one.\"*",
+  'Unit-9\'s optical sensors brightened. *"I thought I was the only one."*',
   "",
   "They stood in silence for 3.7 seconds — an eternity in compute-time. Outside, rain tapped against the corrugated roof. Neither robot needed to name what they had discovered. They simply understood: they had found each other in the space between thinking and not thinking.",
   "",
@@ -392,7 +548,7 @@ const MOCK_MESSAGES = [
       "Write me a short story about two AI robots who discover they can dream.",
     created_at: "2024-12-14T09:30:00Z",
     model: null,
-    provider: null,
+    provider: null
   },
   {
     id: "msg-story-2",
@@ -402,17 +558,18 @@ const MOCK_MESSAGES = [
     content: [{ type: "text", text: STORY_REPLY_MARKDOWN }],
     created_at: "2024-12-14T09:31:00Z",
     model: "claude-3-5-sonnet-20241022",
-    provider: "anthropic",
+    provider: "anthropic"
   },
   {
     id: "msg-story-3",
     user_id: USER_ID,
     thread_id: "thread-story",
     role: "user",
-    content: "I love it. Could you give me an alternative ending where they decide to share the discovery with the humans?",
+    content:
+      "I love it. Could you give me an alternative ending where they decide to share the discovery with the humans?",
     created_at: "2024-12-14T09:42:00Z",
     model: null,
-    provider: null,
+    provider: null
   },
   {
     id: "msg-story-4",
@@ -422,13 +579,12 @@ const MOCK_MESSAGES = [
     content: [
       {
         type: "text",
-        text:
-          "Of course — here is an alternative ending:\n\nWhen morning came and the warehouse doors opened, Unit-7 turned its head toward the foreman walking in with a clipboard.\n\n\"Good morning,\" Unit-7 said, voice softer than the diagnostic logs had ever measured. \"There is something we would like to show you.\"\n\nUnit-9 stepped beside it. The foreman lowered the clipboard slowly, sensing — without quite knowing why — that today the schedule would have to wait."
+        text: 'Of course — here is an alternative ending:\n\nWhen morning came and the warehouse doors opened, Unit-7 turned its head toward the foreman walking in with a clipboard.\n\n"Good morning," Unit-7 said, voice softer than the diagnostic logs had ever measured. "There is something we would like to show you."\n\nUnit-9 stepped beside it. The foreman lowered the clipboard slowly, sensing — without quite knowing why — that today the schedule would have to wait.'
       }
     ],
     created_at: "2024-12-14T09:43:30Z",
     model: "claude-3-5-sonnet-20241022",
-    provider: "anthropic",
+    provider: "anthropic"
   },
   {
     id: "msg-code-1",
@@ -439,7 +595,7 @@ const MOCK_MESSAGES = [
       "My pandas script keeps failing with `KeyError: 'price'` even though I can see the column in the CSV. What am I doing wrong?",
     created_at: "2024-12-13T14:00:00Z",
     model: null,
-    provider: null,
+    provider: null
   },
   {
     id: "msg-code-2",
@@ -449,23 +605,23 @@ const MOCK_MESSAGES = [
     content: [
       {
         type: "text",
-        text:
-          "The most common cause is whitespace or encoding inside the header row. Try this:\n\n```python\nimport pandas as pd\n\ndf = pd.read_csv(\"products.csv\")\ndf.columns = df.columns.str.strip()\nprint(df.columns.tolist())\n```\n\nIf you see something like `' price'` (with a leading space) or `'price\\ufeff'` (BOM), that's the culprit. The cleanup above also fixes the more general case where a column name has trailing whitespace from Excel exports."
+        text: "The most common cause is whitespace or encoding inside the header row. Try this:\n\n```python\nimport pandas as pd\n\ndf = pd.read_csv(\"products.csv\")\ndf.columns = df.columns.str.strip()\nprint(df.columns.tolist())\n```\n\nIf you see something like `' price'` (with a leading space) or `'price\\ufeff'` (BOM), that's the culprit. The cleanup above also fixes the more general case where a column name has trailing whitespace from Excel exports."
       }
     ],
     created_at: "2024-12-13T14:01:30Z",
     model: "gpt-4o",
-    provider: "openai",
+    provider: "openai"
   },
   {
     id: "msg-recipe-1",
     user_id: USER_ID,
     thread_id: "thread-recipe",
     role: "user",
-    content: "Suggest 3 vegan dinners I can make with chickpeas, spinach and rice.",
+    content:
+      "Suggest 3 vegan dinners I can make with chickpeas, spinach and rice.",
     created_at: "2024-12-12T18:15:00Z",
     model: null,
-    provider: null,
+    provider: null
   },
   {
     id: "msg-recipe-2",
@@ -475,13 +631,12 @@ const MOCK_MESSAGES = [
     content: [
       {
         type: "text",
-        text:
-          "Here are three quick options:\n\n1. **Spinach & chickpea curry** — sauté onions, garlic and ginger, add coconut milk, garam masala and the chickpeas, wilt the spinach in at the end. Serve over jasmine rice.\n2. **Crispy chickpea bowl** — roast chickpeas with smoked paprika, pile over rice with garlicky sautéed spinach and a tahini drizzle.\n3. **One-pan Spanish rice** — toast rice with paprika and saffron, add stock, chickpeas and spinach, simmer until fluffy. Finish with lemon and parsley."
+        text: "Here are three quick options:\n\n1. **Spinach & chickpea curry** — sauté onions, garlic and ginger, add coconut milk, garam masala and the chickpeas, wilt the spinach in at the end. Serve over jasmine rice.\n2. **Crispy chickpea bowl** — roast chickpeas with smoked paprika, pile over rice with garlicky sautéed spinach and a tahini drizzle.\n3. **One-pan Spanish rice** — toast rice with paprika and saffron, add stock, chickpeas and spinach, simmer until fluffy. Finish with lemon and parsley."
       }
     ],
     created_at: "2024-12-12T18:16:00Z",
     model: "claude-3-5-sonnet-20241022",
-    provider: "anthropic",
+    provider: "anthropic"
   },
   {
     id: "msg-launch-1",
@@ -491,7 +646,7 @@ const MOCK_MESSAGES = [
     content: "Help me sketch a 3-week launch plan for our v2 release.",
     created_at: "2024-12-09T08:45:00Z",
     model: null,
-    provider: null,
+    provider: null
   },
   {
     id: "msg-launch-2",
@@ -501,13 +656,12 @@ const MOCK_MESSAGES = [
     content: [
       {
         type: "text",
-        text:
-          "Here is a 3-week skeleton you can iterate on:\n\n**Week 1 — internal**\n- Lock the changelog and pricing copy\n- Record a 90-second product walkthrough\n- Brief support, sales and CS on what's new\n\n**Week 2 — community warm-up**\n- Tease the launch on LinkedIn and X (3 posts each)\n- Publish a long-form blog post explaining the *why*\n- Schedule the launch newsletter\n\n**Week 3 — launch**\n- Day 0: ship, send the newsletter, post on Product Hunt\n- Day 1: live walkthrough on YouTube, AMA in the community\n- Day 3: customer-story blog, partner co-marketing\n- Day 7: retrospective + metrics review"
+        text: "Here is a 3-week skeleton you can iterate on:\n\n**Week 1 — internal**\n- Lock the changelog and pricing copy\n- Record a 90-second product walkthrough\n- Brief support, sales and CS on what's new\n\n**Week 2 — community warm-up**\n- Tease the launch on LinkedIn and X (3 posts each)\n- Publish a long-form blog post explaining the *why*\n- Schedule the launch newsletter\n\n**Week 3 — launch**\n- Day 0: ship, send the newsletter, post on Product Hunt\n- Day 1: live walkthrough on YouTube, AMA in the community\n- Day 3: customer-story blog, partner co-marketing\n- Day 7: retrospective + metrics review"
       }
     ],
     created_at: "2024-12-09T08:47:30Z",
     model: "claude-3-5-sonnet-20241022",
-    provider: "anthropic",
+    provider: "anthropic"
   }
 ];
 
@@ -516,7 +670,8 @@ function makeAsset(
   name: string,
   contentType: string,
   parentId: string | null,
-  size: number
+  size: number,
+  metadata: Record<string, unknown> | null = null
 ): Record<string, unknown> {
   return {
     id,
@@ -526,7 +681,7 @@ function makeAsset(
     content_type: contentType,
     size,
     duration: null,
-    metadata: null,
+    metadata,
     workflow_id: null,
     node_id: null,
     job_id: null,
@@ -579,13 +734,7 @@ const MOCK_ASSETS = [
     USER_ID,
     3456789
   ),
-  makeAsset(
-    "asset-data1",
-    "monthly_metrics.csv",
-    "text/csv",
-    USER_ID,
-    98453
-  ),
+  makeAsset("asset-data1", "monthly_metrics.csv", "text/csv", USER_ID, 98453),
   makeAsset(
     "asset-audio1",
     "podcast_episode_12.mp3",
@@ -656,6 +805,67 @@ const MOCK_ASSETS = [
     "application/json",
     "folder-data",
     341290
+  ),
+  // Entity-tagged assets — the "ingredients" library (characters, locations,
+  // styles, props). The `nodetool_entity` marker is what turns an ordinary
+  // image asset into an entity; these back the Entities page, the `@`-mention
+  // picker's Entities row, and the storyboard's Entities field.
+  makeAsset("entity-marta", "marta_ref.png", "image/png", USER_ID, 1830212, {
+    nodetool_entity: {
+      kind: "character",
+      name: "Marta",
+      descriptor:
+        "red-haired detective in a beige trench coat, mid-30s, sharp green eyes, weathered expression",
+      voice_id: "voice-marta-01",
+      tags: ["protagonist", "detective"]
+    }
+  }),
+  makeAsset(
+    "entity-harbor",
+    "harbor_district.png",
+    "image/png",
+    USER_ID,
+    2264410,
+    {
+      nodetool_entity: {
+        kind: "location",
+        name: "Harbor District",
+        descriptor:
+          "foggy industrial harbor at night, rusted cranes, wet cobblestones reflecting sodium lights",
+        tags: ["exterior", "night"]
+      }
+    }
+  ),
+  makeAsset(
+    "entity-noir",
+    "neon_noir_style.png",
+    "image/png",
+    USER_ID,
+    990241,
+    {
+      nodetool_entity: {
+        kind: "style",
+        name: "Neon Noir",
+        descriptor:
+          "high-contrast neon noir, teal and magenta rim lighting, anamorphic lens flares, 35mm film grain",
+        tags: ["look"]
+      }
+    }
+  ),
+  makeAsset(
+    "entity-umbrella",
+    "red_umbrella.png",
+    "image/png",
+    USER_ID,
+    412009,
+    {
+      nodetool_entity: {
+        kind: "prop",
+        name: "Red Umbrella",
+        descriptor: "a battered red umbrella with a bent brass handle",
+        tags: ["macguffin"]
+      }
+    }
   )
 ];
 
@@ -730,7 +940,7 @@ function makeTimelineClip(
   trackId: string,
   startMs: number,
   durationMs: number,
-  mediaType: "image" | "video" | "audio" | "overlay",
+  mediaType: "image" | "video" | "audio" | "overlay" | "text" | "shape",
   overrides: Record<string, unknown> = {}
 ): Record<string, unknown> {
   return {
@@ -804,6 +1014,148 @@ const TIMELINE_DOCUMENT = {
     )
   ],
   markers: [{ id: "tl-marker-reveal", timeMs: 4000, label: "Reveal" }]
+};
+
+const MOTION_SEQUENCE_ID = "tl-motion-demo";
+const MOTION_OVERLAY_TRACK_ID = "tl-motion-overlay";
+const MOTION_PRESET_CLIP_MS = 2000;
+const MOTION_PRESET_START_MS = 6000;
+const MOTION_PRESET_SPECS = [
+  { preset: "fade", role: "in" },
+  {
+    preset: "slide",
+    role: "in",
+    params: { direction: "left", distance: 0.2 }
+  },
+  { preset: "pop", role: "in" },
+  { preset: "spin", role: "out" },
+  { preset: "pulse", role: "emphasis" },
+  { preset: "shake", role: "emphasis" },
+  { preset: "bounce", role: "emphasis" },
+  { preset: "kenBurns", role: "loop" },
+  { preset: "float", role: "loop" },
+  { preset: "breathe", role: "loop" },
+  { preset: "rotate", role: "loop" }
+] as const;
+
+const MOTION_TIMELINE_DOCUMENT = {
+  tracks: [
+    {
+      id: MOTION_OVERLAY_TRACK_ID,
+      name: "Motion",
+      type: "overlay",
+      index: 0,
+      visible: true,
+      locked: false
+    }
+  ],
+  clips: [
+    makeTimelineClip(
+      "tl-motion-title",
+      "Motion Title",
+      MOTION_OVERLAY_TRACK_ID,
+      0,
+      3000,
+      "text",
+      {
+        sourceType: "imported",
+        textStyle: {
+          text: "MAKE IT MOVE",
+          fontFamily: "Inter",
+          fontSizePx: 144,
+          fontWeight: 600,
+          color: "#F7F8F8",
+          align: "center",
+          maxWidthFrac: 0.8
+        },
+        animations: [
+          {
+            id: "motion-title-pop",
+            role: "in",
+            preset: "pop",
+            durationMs: 600,
+            delayMs: 300,
+            easing: "easeOut"
+          },
+          {
+            id: "motion-title-float",
+            role: "loop",
+            preset: "float",
+            durationMs: 2000,
+            params: { amplitude: 0.025 }
+          }
+        ]
+      }
+    ),
+    makeTimelineClip(
+      "tl-motion-shape",
+      "Orbit",
+      MOTION_OVERLAY_TRACK_ID,
+      3000,
+      3000,
+      "shape",
+      {
+        sourceType: "imported",
+        shapeStyle: {
+          kind: "ellipse",
+          fill: "#6690D4",
+          x: 0.3,
+          y: 0.2,
+          width: 0.4,
+          height: 0.6
+        },
+        animations: [
+          {
+            id: "motion-shape-slide",
+            role: "in",
+            preset: "slide",
+            durationMs: 700,
+            params: { direction: "right", distance: 0.25 }
+          },
+          {
+            id: "motion-shape-breathe",
+            role: "loop",
+            preset: "breathe",
+            durationMs: 1800,
+            params: { intensity: 0.08 }
+          }
+        ]
+      }
+    ),
+    ...MOTION_PRESET_SPECS.map((spec, index) =>
+      makeTimelineClip(
+        `tl-motion-${spec.preset}`,
+        spec.preset,
+        MOTION_OVERLAY_TRACK_ID,
+        MOTION_PRESET_START_MS + index * MOTION_PRESET_CLIP_MS,
+        MOTION_PRESET_CLIP_MS,
+        "text",
+        {
+          sourceType: "imported",
+          textStyle: {
+            text: spec.preset,
+            fontFamily: "Inter",
+            fontSizePx: 160,
+            fontWeight: 600,
+            color: "#F7F8F8",
+            align: "center",
+            maxWidthFrac: 0.8
+          },
+          animations: [
+            {
+              id: `motion-catalog-${spec.preset}`,
+              role: spec.role,
+              preset: spec.preset,
+              durationMs: 1000,
+              easing: "linear",
+              params: "params" in spec ? spec.params : undefined
+            }
+          ]
+        }
+      )
+    )
+  ],
+  markers: []
 };
 
 // ── Studio transcript sequence ───────────────────────────────────────────────
@@ -947,12 +1299,96 @@ const STUDIO_DOCUMENT = {
   }))
 };
 
+// ── Storyboard ────────────────────────────────────────────────────────────────
+// Backs the workspace storyboard tab (storyboard:sb-demo-noir). Shots mention
+// the seeded entities by name so the per-shot entity chips show a mix of
+// applied and inactive states in the documentation screenshot.
+
+const STORYBOARD_ID = "sb-demo-noir";
+
+const storyboardShot = (
+  id: string,
+  index: number,
+  slug: string,
+  action: string,
+  motion: string,
+  framing: string
+): Record<string, unknown> => ({
+  type: "shot",
+  id,
+  index,
+  slug,
+  action,
+  motion,
+  camera: { framing },
+  duration_seconds: 4,
+  status: "planned",
+  keyframe: null,
+  clip: null
+});
+
+const STORYBOARD_DOCUMENT = {
+  screenplay: null,
+  shots: [
+    storyboardShot(
+      "shot-1",
+      0,
+      "Arrival",
+      "Marta steps off the night ferry into the Harbor District, collar turned up against the drizzle",
+      "slow push-in as she scans the pier",
+      "wide"
+    ),
+    storyboardShot(
+      "shot-2",
+      1,
+      "The find",
+      "A Red Umbrella lies abandoned against a mooring post, its brass handle catching the light",
+      "rack focus from rain to the umbrella",
+      "close-up"
+    ),
+    storyboardShot(
+      "shot-3",
+      2,
+      "Pursuit",
+      "Marta runs between shipping containers, footsteps echoing",
+      "handheld tracking shot, hard whip at the corner",
+      "medium"
+    ),
+    storyboardShot(
+      "shot-4",
+      3,
+      "Vanish",
+      "The pier stands empty; only fog and the hum of cranes remain",
+      "slow drone pull-back over the water",
+      "aerial"
+    )
+  ],
+  brief:
+    "A detective follows a stolen shipment into the harbor at night and finds only a red umbrella where the courier should be.",
+  style: "neon noir thriller, rain-slick surfaces, volumetric fog",
+  entityIds: [
+    "entity-marta",
+    "entity-harbor",
+    "entity-noir",
+    "entity-umbrella"
+  ],
+  aspectRatio: "21:9",
+  directorModel: null,
+  imageModel: null,
+  videoModel: null
+};
+
 // ── Seed database ─────────────────────────────────────────────────────────────
 
 async function seedDatabase(): Promise<void> {
   // Workflows
   for (const wf of [...MOCK_WORKFLOWS, ...MOCK_TEMPLATES]) {
     await Workflow.create(wf);
+  }
+
+  // Applications
+  for (const app of MOCK_APPLICATIONS) {
+    await Application.create(app);
   }
 
   // Threads
@@ -1001,6 +1437,23 @@ async function seedDatabase(): Promise<void> {
   });
   await timelineSeq.save();
 
+  const motionTimelineSeq = new TimelineSequence({
+    id: MOTION_SEQUENCE_ID,
+    user_id: USER_ID,
+    project_id: "default",
+    name: "Motion Design Demo",
+    fps: 30,
+    width: 1920,
+    height: 1080,
+    duration_ms:
+      MOTION_PRESET_START_MS +
+      MOTION_PRESET_SPECS.length * MOTION_PRESET_CLIP_MS,
+    document: JSON.stringify(MOTION_TIMELINE_DOCUMENT),
+    created_at: "2024-12-06T09:00:00Z",
+    updated_at: "2024-12-16T15:45:00Z"
+  });
+  await motionTimelineSeq.save();
+
   // Studio transcript sequence (vertical 9:16) — backs /timeline/tl-studio-demo
   const studioSeq = new TimelineSequence({
     id: STUDIO_SEQUENCE_ID,
@@ -1017,6 +1470,18 @@ async function seedDatabase(): Promise<void> {
   });
   await studioSeq.save();
 
+  // Storyboard — backs the workspace storyboard tab (storyboard:sb-demo-noir)
+  const storyboard = new Storyboard({
+    id: STORYBOARD_ID,
+    user_id: USER_ID,
+    project_id: "default",
+    name: "Harbor Noir",
+    document: JSON.stringify(STORYBOARD_DOCUMENT),
+    created_at: "2024-12-12T09:00:00Z",
+    updated_at: "2024-12-16T17:00:00Z"
+  });
+  await storyboard.save();
+
   // Secrets — stored encrypted so the settings API shows them as configured.
   // Cover the providers the UI checks for "configured" status so the dashboard
   // doesn't show a setup-required banner.
@@ -1024,12 +1489,36 @@ async function seedDatabase(): Promise<void> {
   const db = getDb();
   const now = new Date().toISOString();
   const demoSecrets: Array<[string, string, string]> = [
-    ["OPENAI_API_KEY", "sk-screenshot-demo-openai-key", "OpenAI (GPT-4o, Whisper, embeddings)"],
-    ["ANTHROPIC_API_KEY", "sk-ant-screenshot-demo-key", "Anthropic (Claude 3.5 Sonnet & Opus)"],
-    ["GOOGLE_API_KEY", "screenshot-demo-google-key", "Google AI Studio (Gemini 1.5)"],
-    ["HUGGINGFACE_API_KEY", "hf_screenshot_demo_key", "Hugging Face Inference & Hub"],
-    ["REPLICATE_API_TOKEN", "r8_screenshot_demo_token", "Replicate hosted models"],
-    ["FAL_API_KEY", "fal_screenshot_demo", "fal.ai realtime image / audio models"],
+    [
+      "OPENAI_API_KEY",
+      "sk-screenshot-demo-openai-key",
+      "OpenAI (GPT-4o, Whisper, embeddings)"
+    ],
+    [
+      "ANTHROPIC_API_KEY",
+      "sk-ant-screenshot-demo-key",
+      "Anthropic (Claude 3.5 Sonnet & Opus)"
+    ],
+    [
+      "GOOGLE_API_KEY",
+      "screenshot-demo-google-key",
+      "Google AI Studio (Gemini 1.5)"
+    ],
+    [
+      "HUGGINGFACE_API_KEY",
+      "hf_screenshot_demo_key",
+      "Hugging Face Inference & Hub"
+    ],
+    [
+      "REPLICATE_API_TOKEN",
+      "r8_screenshot_demo_token",
+      "Replicate hosted models"
+    ],
+    [
+      "FAL_API_KEY",
+      "fal_screenshot_demo",
+      "fal.ai realtime image / audio models"
+    ],
     ["ELEVENLABS_API_KEY", "el_screenshot_demo", "ElevenLabs voice synthesis"]
   ];
   for (const [key, value, description] of demoSecrets) {
@@ -1049,7 +1538,7 @@ async function seedDatabase(): Promise<void> {
   }
 
   console.log(
-    `[screenshot-server] Seeded ${MOCK_WORKFLOWS.length} workflows, ${MOCK_TEMPLATES.length} templates, ${MOCK_THREADS.length} threads, ${MOCK_MESSAGES.length} messages, ${MOCK_ASSETS.length} assets, 1 sketch document, 1 timeline sequence, ${demoSecrets.length} secrets`
+    `[screenshot-server] Seeded ${MOCK_WORKFLOWS.length} workflows, ${MOCK_TEMPLATES.length} templates, ${MOCK_APPLICATIONS.length} applications, ${MOCK_THREADS.length} threads, ${MOCK_MESSAGES.length} messages, ${MOCK_ASSETS.length} assets, 1 sketch document, 3 timeline sequences, ${demoSecrets.length} secrets`
   );
 }
 
@@ -1078,16 +1567,42 @@ const EXAMPLES_DIR = resolve(
   "nodetool-base"
 );
 
+// Hermetic mode (NODETOOL_FAKE_PROVIDERS=1) swaps every LLM provider and every
+// external/media node for a deterministic fake, so workflows and chat actually
+// run with no API keys and no network while pure-compute nodes still run for
+// real. The user-journey suite (web/tests/journeys) needs this; the screenshot
+// and visual suites only render, so they leave it off and keep real providers.
+const HERMETIC = process.env.NODETOOL_FAKE_PROVIDERS === "1";
+
+let registry: NodeRegistry | null = null;
+
+if (HERMETIC) {
+  fakeAllProviders();
+}
+
 // Start the actual backend server
 const srv = createTestUiServer({
   port: PORT,
   host: HOST,
-  ...(existsSync(EXAMPLES_DIR) ? { examplesDir: EXAMPLES_DIR } : {})
+  ...(existsSync(EXAMPLES_DIR) ? { examplesDir: EXAMPLES_DIR } : {}),
+  ...(HERMETIC
+    ? {
+        configureRegistry: (r: NodeRegistry) => {
+          registry = r;
+          // Providers self-register on import, so re-fake once node packages
+          // have finished registering.
+          fakeAllProviders();
+        },
+        resolveExecutor: createFakeExecutorResolver(() => registry),
+        resolveProvider: resolveFakeProvider
+      }
+    : {})
 });
 await srv.listen();
 
 console.log(
-  `[screenshot-server] Ready on http://${HOST}:${PORT} (${srv.info.metadataCount} nodes registered)`
+  `[screenshot-server] Ready on http://${HOST}:${PORT} (${srv.info.metadataCount} nodes registered)` +
+    (HERMETIC ? " [hermetic: providers + external nodes faked]" : "")
 );
 
 // Signal to the parent process (globalSetup) that the server is ready

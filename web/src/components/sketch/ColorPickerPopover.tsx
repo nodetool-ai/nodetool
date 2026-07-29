@@ -39,10 +39,17 @@ import {
   rgbToHsv,
   hsvToRgb
 } from "./types";
-import { SKETCH_FONT, SKETCH_SPACING, SKETCH_SIZE, SKETCH_Z_INDEX, SKETCH_COLORS, SKETCH_TOOLTIP_DELAY_MS, toggleButtonSmallSx, colorPickerSliderThumbSx } from "./sketchStyles";
+import { SKETCH_FONT, SKETCH_SPACING, SKETCH_Z_INDEX, SKETCH_COLORS, SKETCH_TOOLTIP_DELAY_MS, toggleButtonSmallSx, colorPickerSliderThumbSx } from "./sketchStyles";
 
 const SV_SIZE = 160;
 const HUE_HEIGHT = 12;
+
+const RGB_LABELS = { r: "Red", g: "Green", b: "Blue" } as const;
+const HSL_LABELS = {
+  h: "Hue (degrees)",
+  s: "Saturation (percent)",
+  l: "Lightness (percent)"
+} as const;
 
 interface ColorPickerPopoverProps {
   anchorEl: HTMLElement | null;
@@ -62,7 +69,6 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
   const open = Boolean(anchorEl);
   const [mode, setMode] = useState<ColorMode>("hex");
 
-  // Parse current color
   const { r, g, b, a } = parseColorToRgba(color);
   const fgHex6 = colorToHex6(color);
   const hsl = rgbToHsl(r, g, b);
@@ -158,7 +164,6 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
     onColorChange(rgbaToCss({ r: nr, g: ng, b: nb, a }));
   };
 
-  // Cursor position in SV square
   const cursorX = hsv.s * SV_SIZE;
   const cursorY = (1 - hsv.v) * SV_SIZE;
 
@@ -211,7 +216,6 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
         </Tooltip>
       </FlexRow>
 
-      {/* SV gradient square */}
       <Box
         className="color-picker__sv-area"
         ref={svBoxRef}
@@ -241,7 +245,6 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
           position: "absolute", inset: 0,
           background: "linear-gradient(to top, #000 0%, transparent 100%)"
         }} />
-        {/* Cursor circle */}
         <Box sx={{
           position: "absolute",
           left: `${cursorX}px`,
@@ -256,7 +259,6 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
         }} />
       </Box>
 
-      {/* Hue slider */}
       <Box className="color-picker__hue" sx={{ px: SKETCH_SPACING.sm }}>
         <Slider
           value={localHue}
@@ -285,7 +287,6 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
         />
       </Box>
 
-      {/* Opacity slider */}
       <Box className="color-picker__opacity" sx={{ px: SKETCH_SPACING.sm }}>
         <FlexRow align="center" sx={{ gap: SKETCH_SPACING.md }}>
           <Text sx={{ fontSize: SKETCH_FONT.xs, color: SKETCH_COLORS.textSecondary, minWidth: "24px" }}>A</Text>
@@ -328,7 +329,6 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
         <Box sx={{ flex: 1, backgroundColor: color, border: "1px solid rgba(255,255,255,0.1)" }} />
       </FlexRow>
 
-      {/* Mode toggle */}
       <ToggleButtonGroup
         value={mode}
         exclusive
@@ -341,13 +341,12 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
         <ToggleButton value="hsl" sx={toggleButtonSmallSx}>HSL</ToggleButton>
       </ToggleButtonGroup>
 
-      {/* Mode inputs */}
       {mode === "hex" && (
         <TextField
           size="small"
           value={fgHex6}
           onChange={(e) => handleHex(e.target.value)}
-          inputProps={{ maxLength: 7 }}
+          inputProps={{ maxLength: 7, "aria-label": "Hex color" }}
           sx={{
             "& .MuiInputBase-root": { fontSize: SKETCH_FONT.sm, height: "22px" },
             "& .MuiInputBase-input": { padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`, textAlign: "center" }
@@ -365,7 +364,11 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
                 type="number"
                 value={ch === "r" ? r : ch === "g" ? g : b}
                 onChange={(e) => handleRgb(ch, e.target.value)}
-                inputProps={{ min: 0, max: 255 }}
+                inputProps={{
+                  min: 0,
+                  max: 255,
+                  "aria-label": RGB_LABELS[ch]
+                }}
                 sx={numSx}
               />
             </FlexColumn>
@@ -385,7 +388,11 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
                 type="number"
                 value={ch === "h" ? hsl.h : ch === "s" ? hsl.s : hsl.l}
                 onChange={(e) => handleHsl(ch, e.target.value)}
-                inputProps={{ min: 0, max: ch === "h" ? 360 : 100 }}
+                inputProps={{
+                  min: 0,
+                  max: ch === "h" ? 360 : 100,
+                  "aria-label": HSL_LABELS[ch]
+                }}
                 sx={numSx}
               />
             </FlexColumn>

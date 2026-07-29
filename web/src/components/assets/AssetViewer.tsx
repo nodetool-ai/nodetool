@@ -17,7 +17,16 @@ const EASE_OUT_QUINT = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 import { useEffect, useState, useRef, useCallback, useMemo, memo } from "react";
 //mui
-import { EditorButton, Dialog, Text, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import {
+  EditorButton,
+  Dialog,
+  Text,
+  MOTION,
+  reducedMotion,
+  BORDER_RADIUS,
+  SPACING,
+  Z_INDEX
+} from "../ui_primitives";
 //icons
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
@@ -73,7 +82,7 @@ const styles = (theme: Theme) =>
       display: "block"
     },
     ".MuiModal-root": {
-      zIndex: 15000
+      zIndex: theme.zIndex.floating
     },
     ".MuiPaper-root": {
       overflow: "hidden",
@@ -82,7 +91,7 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[900],
       width: "100vw",
       maxWidth: "100vw",
-      zIndex: 11000,
+      zIndex: theme.zIndex.floating,
       margin: 0,
       borderRadius: 0,
       position: "relative"
@@ -104,7 +113,7 @@ const styles = (theme: Theme) =>
       top: "20px"
     },
     ".actions": {
-      zIndex: 10_200,
+      zIndex: Z_INDEX.tooltip,
       position: "absolute",
       top: "1em",
       right: "2em"
@@ -133,19 +142,19 @@ const styles = (theme: Theme) =>
       padding: "0 0 .5em 0",
       backgroundColor: theme.vars.palette.grey[800],
       bottom: 0,
-      zIndex: 200
+      zIndex: Z_INDEX.overlay
     },
     ".prev-next-button": {
       position: "absolute",
       top: "40%",
       width: "2em",
       height: "2em",
-      zIndex: 20000,
+      zIndex: Z_INDEX.toast,
       cursor: "pointer",
       color: theme.vars.palette.grey[200],
       backgroundColor: theme.vars.palette.background.paper,
       border: `2px solid ${theme.vars.palette.action.disabledBackground}`,
-      transition: `transform 140ms ${EASE_OUT_QUINT}, ${MOTION.background}, ${MOTION.opacity}`
+      transition: `transform var(--motion-fast) ${EASE_OUT_QUINT}, ${MOTION.background}, ${MOTION.opacity}`
     },
     ".prev-next-button:active": {
       transform: "scale(0.88)"
@@ -200,7 +209,7 @@ const styles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.md,
       cursor: "pointer !important",
       willChange: "transform",
-      transition: `transform 200ms ${EASE_OUT_QUINT}, ${MOTION.shadow}`,
+      transition: `transform var(--motion-normal) ${EASE_OUT_QUINT}, ${MOTION.shadow}`,
       // `backwards` keeps the from-state during the stagger delay but releases
       // the element afterward, so the hover transition below still applies.
       animation: `${thumbReveal} ${MOTION.slow} backwards`
@@ -208,26 +217,28 @@ const styles = (theme: Theme) =>
     ".prev-next-items .item:hover": {
       transform: "translateY(-6px) scale(1.06)",
       boxShadow: "0 12px 26px rgb(0 0 0 / 0.45)",
-      zIndex: 5
+      zIndex: Z_INDEX.raised
     },
     // Press feedback: quick dip on click before the frame slides to center.
     ".prev-next-items .item:active": {
       transform: "translateY(-1px) scale(0.95)",
       transition: MOTION.transform,
-      zIndex: 5
+      zIndex: Z_INDEX.raised
     },
-    // Cascade from the center outward: nearest-to-center frame leads.
-    ".prev-next-items.left .item:nth-last-child(1)": { animationDelay: "20ms" },
-    ".prev-next-items.left .item:nth-last-child(2)": { animationDelay: "60ms" },
-    ".prev-next-items.left .item:nth-last-child(3)": { animationDelay: "100ms" },
-    ".prev-next-items.left .item:nth-last-child(4)": { animationDelay: "140ms" },
-    ".prev-next-items.left .item:nth-last-child(5)": { animationDelay: "180ms" },
-    ".prev-next-items.right .item:nth-child(1)": { animationDelay: "20ms" },
-    ".prev-next-items.right .item:nth-child(2)": { animationDelay: "60ms" },
-    ".prev-next-items.right .item:nth-child(3)": { animationDelay: "100ms" },
-    ".prev-next-items.right .item:nth-child(4)": { animationDelay: "140ms" },
-    ".prev-next-items.right .item:nth-child(5)": { animationDelay: "180ms" },
-    "@media (prefers-reduced-motion: reduce)": {
+    // Cascade from the center outward: nearest-to-center frame leads. These
+    // per-item stagger delays are functional offsets, not a motion-design tier,
+    // so they stay as explicit ms values (see DESIGN.md §5).
+    ".prev-next-items.left .item:nth-last-child(1)": { animationDelay: `${20}ms` },
+    ".prev-next-items.left .item:nth-last-child(2)": { animationDelay: `${60}ms` },
+    ".prev-next-items.left .item:nth-last-child(3)": { animationDelay: `${100}ms` },
+    ".prev-next-items.left .item:nth-last-child(4)": { animationDelay: `${140}ms` },
+    ".prev-next-items.left .item:nth-last-child(5)": { animationDelay: `${180}ms` },
+    ".prev-next-items.right .item:nth-child(1)": { animationDelay: `${20}ms` },
+    ".prev-next-items.right .item:nth-child(2)": { animationDelay: `${60}ms` },
+    ".prev-next-items.right .item:nth-child(3)": { animationDelay: `${100}ms` },
+    ".prev-next-items.right .item:nth-child(4)": { animationDelay: `${140}ms` },
+    ".prev-next-items.right .item:nth-child(5)": { animationDelay: `${180}ms` },
+    ...reducedMotion({
       ".prev-next-items .item, .prev-next-items.current": {
         animation: "none",
         transition: "none"
@@ -235,7 +246,7 @@ const styles = (theme: Theme) =>
       ".prev-next-items .item:hover, .prev-next-items .item:active, .prev-next-button:active": {
         transform: "none"
       }
-    },
+    }),
     ".prev-next-items .item .asset-item": {
       cursor: "pointer"
     },
@@ -247,7 +258,7 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(1, 2),
       backgroundColor: theme.vars.palette.background.paper,
       borderRadius: BORDER_RADIUS.md,
-      zIndex: 10001,
+      zIndex: Z_INDEX.modal,
       color: theme.vars.palette.text.primary,
       fontSize: theme.fontSizeSmall
     },
@@ -260,7 +271,7 @@ const styles = (theme: Theme) =>
       bottom: "130px",
       left: "50%",
       transform: "translateX(-50%)",
-      zIndex: 10001,
+      zIndex: Z_INDEX.modal,
       padding: theme.spacing(1, 1.5),
       backgroundColor: theme.vars.palette.background.paper,
       borderRadius: BORDER_RADIUS.md,
@@ -277,7 +288,7 @@ const styles = (theme: Theme) =>
       right: 0,
       height: "calc(100% - 120px)",
       overflowY: "auto",
-      zIndex: 10001,
+      zIndex: Z_INDEX.modal,
       backgroundColor: theme.vars.palette.grey[900],
       boxShadow: "-8px 0 24px rgb(0 0 0 / 0.5)"
     }
@@ -342,7 +353,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
 
   const { handleDownload } = useAssetDownload({ currentAsset, url });
 
-  // Check if current asset is an image
   const isImage = useMemo(() => {
     const ct = currentAsset?.content_type || contentType;
     return ct?.startsWith("image/") || false;
@@ -366,7 +376,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     return ct?.startsWith("video/") || false;
   }, [currentAsset?.content_type, contentType]);
 
-  // Check if there are multiple images to compare
   const imageAssets = useMemo(
     () => assetsToUse.filter((a) => a.content_type?.startsWith("image/")),
     [assetsToUse]
@@ -502,8 +511,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         return;
       }
       const newAsset = assetsToUse[index];
-      // Use requestAnimationFrame for deferred updates instead of setTimeout
-      // This automatically gets cancelled if component unmounts
       requestAnimationFrame(() => {
         setCurrentAsset(newAsset);
       });
@@ -647,8 +654,8 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
             />
           </>
         )}
-        <FlexRow className="asset-navigation" align="flex-end" justify="center" gap={1}>
-          <FlexRow className="prev-next-items left" align="center" justify="flex-end" gap={0.5}>
+        <FlexRow className="asset-navigation" align="flex-end" justify="center" gap={SPACING.xs}>
+          <FlexRow className="prev-next-items left" align="center" justify="flex-end" gap={SPACING.micro}>
             {displayPrevAssets?.map((asset, idx) => {
               const assetIndex = Math.max(
                 0,
@@ -695,7 +702,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               showFiletype={true}
             />
           </FlexRow>
-          <FlexRow className="prev-next-items right" align="center" justify="flex-start" gap={0.5}>
+          <FlexRow className="prev-next-items right" align="center" justify="flex-start" gap={SPACING.micro}>
             {displayNextAssets?.map((asset, idx) => {
               const assetIndex = currentIndex + 1 + idx;
               const isCompareSelected = compareAssetA?.id === asset.id;
@@ -748,6 +755,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         fullWidth
         open={open}
         onClose={handleClose}
+        aria-label="Asset viewer"
         slotProps={{
           // Override the primitive's default glass/rounded/bordered paper so the
           // viewer is a true edge-to-edge fullscreen surface with no top gap.
@@ -775,7 +783,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       >
         {/* Compare mode instruction bar */}
         {compareMode && !compareAssetB && (
-          <FlexRow className="compare-mode-bar" gap={1} align="center">
+          <FlexRow className="compare-mode-bar" gap={SPACING.xs} align="center">
             <Text size="small">
               Select another image from the thumbnails below to compare
             </Text>
@@ -816,9 +824,9 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         */}
         <FlexRow
           className="actions"
-          gap={1.5}
+          gap={SPACING.sm}
           align="center"
-          sx={{ zIndex: 10_200 }}
+          sx={{ zIndex: Z_INDEX.tooltip }}
         >
           <DownloadButton
             onClick={handleDownload}

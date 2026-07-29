@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 /**
- * LevelsBody — bespoke body for `nodetool.image.Levels` (plan §9.E1, PR 15).
+ * LevelsBody — bespoke body for `nodetool.image.Levels`.
  *
  * Layout:
  *   • Full-bleed image preview (top)
@@ -36,7 +36,6 @@ import {
   StateIconButton
 } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
-import ImageView from "../../node/ImageView";
 import ImageRefPreview from "../../node/ImageRefPreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
@@ -171,9 +170,9 @@ const asImageRef = (value: unknown): ImageRefLike | undefined => {
   if (!value || typeof value !== "object") return undefined;
   const v = value as Record<string, unknown>;
   return {
-    uri: typeof v.uri === "string" ? (v.uri as string) : undefined,
-    width: typeof v.width === "number" ? (v.width as number) : undefined,
-    height: typeof v.height === "number" ? (v.height as number) : undefined,
+    uri: typeof v.uri === "string" ? v.uri : undefined,
+    width: typeof v.width === "number" ? v.width : undefined,
+    height: typeof v.height === "number" ? v.height : undefined,
     data: v.data
   };
 };

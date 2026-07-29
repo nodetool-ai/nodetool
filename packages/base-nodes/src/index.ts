@@ -368,13 +368,18 @@ export {
   TIMELINE_NODES
 } from "@nodetool-ai/video-nodes/nodes/timeline";
 export {
+  LoadScriptNode,
+  VoiceScriptNode,
+  ScriptToTimelineNode,
+  SCRIPT_NODES
+} from "@nodetool-ai/video-nodes/nodes/script";
+export {
   SummarizerNode,
   EnhancePromptNode,
   CreateThreadNode,
   ExtractorNode,
   ClassifierNode,
   AgentNode,
-  AgentStepNode,
   AGENT_NODES
 } from "@nodetool-ai/llm-nodes/nodes/agents";
 export {
@@ -385,6 +390,17 @@ export {
   SVGGeneratorNode,
   GENERATOR_NODES
 } from "@nodetool-ai/llm-nodes/nodes/generators";
+export {
+  DirectorNode,
+  ScreenplayShotsNode,
+  ApplyEntitiesNode,
+  DIRECTOR_NODES
+} from "@nodetool-ai/llm-nodes/nodes/director";
+export {
+  ShotBatchNode,
+  ShotChainNode,
+  SHOTS_NODES
+} from "@nodetool-ai/llm-nodes/nodes/shots";
 export {
   LoadModel3DFileNode,
   SaveModel3DFileNode,
@@ -400,6 +416,7 @@ export {
   MergeMeshesNode,
   TextTo3DNode,
   ImageTo3DNode,
+  RenderToImageNode,
   MODEL3D_NODES
 } from "@nodetool-ai/video-nodes/nodes/model3d";
 export {
@@ -593,6 +610,23 @@ export {
   LIB_NOTION_NODES
 } from "@nodetool-ai/integration-nodes/nodes/lib-notion";
 export {
+  GoogleDriveSearchLibNode,
+  GoogleDriveReadFileLibNode,
+  GoogleDriveCreateFileLibNode,
+  GoogleGmailSearchLibNode,
+  GoogleGmailSendLibNode,
+  GoogleGmailModifyLabelsLibNode,
+  GoogleDocsReadLibNode,
+  GoogleDocsCreateLibNode,
+  GoogleDocsAppendLibNode,
+  GoogleSheetsReadLibNode,
+  GoogleSheetsAppendLibNode,
+  GoogleSheetsUpdateLibNode,
+  GoogleCalendarListEventsLibNode,
+  GoogleCalendarCreateEventLibNode,
+  LIB_GOOGLE_NODES
+} from "@nodetool-ai/integration-nodes/nodes/lib-google";
+export {
   S3ListBucketsLibNode,
   S3ListObjectsLibNode,
   S3GetObjectLibNode,
@@ -730,6 +764,7 @@ import { LIST_NODES } from "@nodetool-ai/core-nodes/nodes/list";
 import { VARIABLE_NODES } from "@nodetool-ai/core-nodes/nodes/variable";
 import { TEXT_EXTRA_NODES } from "@nodetool-ai/text-nodes/nodes/text-extra";
 import { CONSTANT_NODES } from "@nodetool-ai/core-nodes/nodes/constant";
+import { FAKE_MEDIA_NODES } from "@nodetool-ai/core-nodes/nodes/fake-media";
 import { EXTENDED_PLACEHOLDER_NODES } from "@nodetool-ai/core-nodes/nodes/extended-placeholders";
 import { INPUT_NODES } from "@nodetool-ai/core-nodes/nodes/input";
 import { OUTPUT_NODES } from "@nodetool-ai/audio-nodes/nodes/output";
@@ -748,8 +783,11 @@ import { IMAGE_NODES } from "@nodetool-ai/image-nodes/nodes/image";
 import { SKETCH_NODES } from "@nodetool-ai/image-nodes/nodes/sketch";
 import { VIDEO_NODES } from "@nodetool-ai/video-nodes/nodes/video";
 import { TIMELINE_NODES } from "@nodetool-ai/video-nodes/nodes/timeline";
+import { SCRIPT_NODES } from "@nodetool-ai/video-nodes/nodes/script";
 import { AGENT_NODES } from "@nodetool-ai/llm-nodes/nodes/agents";
 import { GENERATOR_NODES } from "@nodetool-ai/llm-nodes/nodes/generators";
+import { DIRECTOR_NODES } from "@nodetool-ai/llm-nodes/nodes/director";
+import { SHOTS_NODES } from "@nodetool-ai/llm-nodes/nodes/shots";
 import { MODEL3D_NODES } from "@nodetool-ai/video-nodes/nodes/model3d";
 import { LIB_OS_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-os";
 import { LIB_APPLE_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-apple";
@@ -785,6 +823,7 @@ import { LIB_PPTX_NODES } from "@nodetool-ai/document-nodes/nodes/lib-pptx";
 import { LIB_OCR_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-ocr";
 import { LIB_TENSORFLOW_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-tensorflow";
 import { LIB_NOTION_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-notion";
+import { LIB_GOOGLE_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-google";
 import { KIE_DYNAMIC_NODES } from "@nodetool-ai/integration-nodes/nodes/kie-dynamic";
 import { VECTOR_NODES } from "@nodetool-ai/core-nodes/nodes/vector";
 import { GEMINI_NODES } from "@nodetool-ai/llm-nodes/nodes/gemini";
@@ -816,6 +855,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...VARIABLE_NODES,
   ...TEXT_EXTRA_NODES,
   ...CONSTANT_NODES,
+  ...FAKE_MEDIA_NODES,
   ...EXTENDED_PLACEHOLDER_NODES,
   ...INPUT_NODES,
   ...OUTPUT_NODES,
@@ -836,8 +876,11 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...SKETCH_NODES,
   ...VIDEO_NODES,
   ...TIMELINE_NODES,
+  ...SCRIPT_NODES,
   ...AGENT_NODES,
   ...GENERATOR_NODES,
+  ...DIRECTOR_NODES,
+  ...SHOTS_NODES,
   ...MODEL3D_NODES,
   ...LIB_OS_NODES,
   ...(process.platform === "darwin" ? LIB_APPLE_NODES : []),
@@ -873,6 +916,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_OCR_NODES,
   ...LIB_TENSORFLOW_NODES,
   ...LIB_NOTION_NODES,
+  ...LIB_GOOGLE_NODES,
   ...KIE_DYNAMIC_NODES,
   ...VECTOR_NODES,
   ...GEMINI_NODES,

@@ -29,8 +29,6 @@ interface SystemInfoData {
   cudaVersion: string | null;
   ollamaInstalled: boolean;
   ollamaVersion: string | null;
-  llamaServerInstalled: boolean;
-  llamaServerVersion: string | null;
 }
 
 const InfoRow: React.FC<{
@@ -164,7 +162,6 @@ const AboutMenu: React.FC = memo(() => {
   useEffect(() => {
     const fetchSystemInfo = async () => {
       if (!isElectron) {
-        // In web browser, just show basic info
         setSystemInfo(null);
         setLoading(false);
         return;
@@ -235,7 +232,6 @@ Features & Versions
 Python: ${systemInfo.pythonVersion || "Not available"}
 CUDA: ${systemInfo.cudaAvailable ? systemInfo.cudaVersion || "Available" : "Not available"}
 Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" : "Not installed"}
-Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion || "Installed" : "Not installed"}
 `;
 
     try {
@@ -279,7 +275,6 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
 
   return (
     <Box>
-      {/* Application Info */}
       <Text size="big" id="application">
         Application
       </Text>
@@ -301,7 +296,6 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
         )}
       </div>
 
-      {/* Operating System */}
       <Text size="big" id="operating-system">
         Operating System
       </Text>
@@ -320,7 +314,6 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
         )}
       </div>
 
-      {/* Installation Paths - hide in production */}
       {systemInfo && !isProduction && (
         <>
           <Text size="big" id="installation-paths">
@@ -361,7 +354,6 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
         </>
       )}
 
-      {/* Features & Versions */}
       {systemInfo && (
         <>
           <Text size="big" id="features">
@@ -379,22 +371,21 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
               available={systemInfo.ollamaInstalled}
               version={systemInfo.ollamaVersion}
             />
-            <FeatureStatus
-              label="Llama Server"
-              available={systemInfo.llamaServerInstalled}
-              version={systemInfo.llamaServerVersion}
-            />
           </div>
         </>
       )}
 
-      {/* Copy All Button */}
       {systemInfo && (
         <Box sx={{ marginTop: "1.5em", marginBottom: "1em" }}>
           <Text
             size="small"
+            component="button"
+            type="button"
             onClick={handleCopyAll}
             sx={{
+              background: "none",
+              border: "none",
+              padding: 0,
               color: "var(--palette-primary-main)",
               cursor: "pointer",
               display: "inline-flex",
@@ -411,7 +402,6 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
         </Box>
       )}
 
-      {/* Links */}
       <Text size="big" id="links">
         Links
       </Text>

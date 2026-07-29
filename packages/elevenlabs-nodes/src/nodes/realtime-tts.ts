@@ -213,7 +213,6 @@ export class RealtimeTextToSpeechNode extends BaseNode {
     const outputFormat = String(this.output_format ?? "mp3_44100_128");
     const enableSsml = String(this.enable_ssml_parsing ?? false).toLowerCase();
 
-    // Build WebSocket URL
     const params = new URLSearchParams({
       model_id: modelId,
       output_format: outputFormat,
@@ -224,7 +223,6 @@ export class RealtimeTextToSpeechNode extends BaseNode {
     }
     const wsUrl = `wss://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream-input?${params}`;
 
-    // Determine audio metadata from output format
     const formatParts = outputFormat.split("_");
     const encoding = formatParts[0];
     const sampleRate = parseInt(formatParts[1], 10) || 44100;
@@ -244,7 +242,6 @@ export class RealtimeTextToSpeechNode extends BaseNode {
       ws.on("error", reject);
     });
 
-    // Send initialization message with voice settings
     ws.send(
       JSON.stringify({
         text: " ",
@@ -331,7 +328,6 @@ export class RealtimeTextToSpeechNode extends BaseNode {
       }
     }
 
-    // Wait for consumer to finish receiving audio
     await consumerPromise;
 
     if (ws.readyState === WebSocket.OPEN) {

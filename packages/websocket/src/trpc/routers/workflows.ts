@@ -5,13 +5,11 @@
  *   - GET  /api/workflows/:id/dsl-export   (text/plain file download)
  *
  * Everything else is served via tRPC:
- *   - list, names, get, create, update, delete
- *   - run, autosave
- *   - tools, examples (list + search)
+ *   - list, get, create, update, delete
+ *   - autosave
+ *   - examples (list + search)
  *   - public (list + get) — publicProcedure (no auth required)
- *   - app (metadata for workflow app page)
- *   - generateName
- *   - versions (list, create, get, restore, delete)
+ *   - versions (list, create, restore, delete)
  *
  * Auth note:
  *   - `public.*` endpoints use publicProcedure — no auth required, matches
@@ -25,23 +23,14 @@ import { withCacheBuster } from "../../lib/example-thumbnail.js";
 import {
   Workflow,
   WorkflowVersion,
-  Job
+  WorkflowCollaborator,
+  WorkflowShare
 } from "@nodetool-ai/models";
 import type {
   Workflow as WorkflowModel,
   WorkflowVersion as WorkflowVersionModel
 } from "@nodetool-ai/models";
-import { PythonNodeExecutor } from "@nodetool-ai/runtime";
-import { WorkflowRunner } from "@nodetool-ai/kernel";
-import {
-  resolveWorkflowWorkspace,
-  buildWorkspaceExecutionContext
-} from "../../lib/workflow-workspace.js";
-import type { GraphData, NodeDescriptor } from "@nodetool-ai/protocol";
-import {
-  hydrateGraphNodeFlags,
-  loadPythonPackageMetadata
-} from "@nodetool-ai/node-sdk";
+import { loadPythonPackageMetadata } from "@nodetool-ai/node-sdk";
 import { createLogger } from "@nodetool-ai/config";
 import {
   loadExampleGraph,
@@ -52,34 +41,31 @@ import { ApiErrorCode } from "../../error-codes.js";
 import { router, publicProcedure } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
+import { syncRegistrations } from "../../triggers/registration-sync.js";
+import {
+  getWorkflowInterfaceV1,
+  getWorkflowInterfacesV1,
+  listWorkflowSummariesV1,
+  WorkflowInterfaceServiceError
+} from "../../workflow-interface-service.js";
 import {
   listInput,
   listOutput,
-  namesOutput,
   getInput,
   createInput,
   updateInput,
   deleteInput,
   deleteOutput,
-  runInput,
-  runOutput,
   autosaveInput,
   autosaveOutput,
-  toolsInput,
-  toolsOutput,
   examplesInput,
   examplesOutput,
   publicListInput,
   publicListOutput,
   publicGetInput,
-  appInput,
-  appOutput,
-  generateNameInput,
-  generateNameOutput,
   versionsListInput,
   versionsListOutput,
   versionCreateInput,
-  versionGetInput,
   versionResponse,
   versionRestoreInput,
   versionDeleteInput,
@@ -87,12 +73,99 @@ import {
   terminalOutputsInput,
   terminalOutputsOutput,
   workflowResponse,
+  workflowInterfaceInput,
+  workflowInterfaceV1,
+  workflowInterfacesInput,
+  workflowInterfacesOutput,
+  sdkWorkflowSummariesInput,
+  sdkWorkflowSummariesOutput,
   graph as graphSchema,
+  sharingGetInput,
+  sharingGetOutput,
+  sharingCreateLinkInput,
+  sharingRevokeLinkInput,
+  sharingSetRoleInput,
+  sharingRemoveCollaboratorInput,
+  sharingOkOutput,
+  sharingAcceptInput,
+  sharingAcceptOutput,
+  shareItem,
+  collaboratorItem,
+  sharedWithMeInput,
+  sharedWithMeOutput,
   type WorkflowResponse,
   type VersionResponse
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
 const log = createLogger("nodetool.websocket.trpc.workflows");
+
+function throwWorkflowInterfaceError(error: unknown): never {
+  if (!(error instanceof WorkflowInterfaceServiceError)) {
+    throw error;
+  }
+  if (error.code === "feature_disabled") {
+    throwApiError(ApiErrorCode.SERVICE_UNAVAILABLE, error.message);
+  }
+  if (error.code === "workflow_not_found") {
+    throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, error.message);
+  }
+  throwApiError(ApiErrorCode.INVALID_INPUT, error.message);
+}
+
+/**
+ * Reconcile `trigger_registrations` against the workflow's current graph.
+ * Non-fatal by design — a broken trigger sync must not stop the user's graph
+ * from saving, so failures are logged and swallowed here.
+ */
+async function syncTriggerRegistrations(workflow: WorkflowModel): Promise<void> {
+  try {
+    await syncRegistrations(workflow, {});
+  } catch (error) {
+    log.error("Trigger registration sync failed", {
+      workflowId: workflow.id,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
+/**
+ * The caller's effective role on a workflow:
+ *   owner  — workflows.user_id
+ *   editor — collaborator grant with role "editor"
+ *   viewer — collaborator grant with role "viewer", or public access
+ *   null   — no access (surfaced as WORKFLOW_NOT_FOUND, never FORBIDDEN,
+ *            so private workflow ids are not probeable)
+ */
+type WorkflowRole = "owner" | "editor" | "viewer";
+
+async function resolveWorkflowRole(
+  workflow: WorkflowModel,
+  userId: string
+): Promise<WorkflowRole | null> {
+  if (workflow.user_id === userId) return "owner";
+  const grant = await WorkflowCollaborator.findFor(workflow.id, userId);
+  if (grant) return grant.role;
+  if (workflow.access === "public") return "viewer";
+  return null;
+}
+
+/** Load a workflow and require at least `minimum` access, else 404. */
+async function requireWorkflowRole(
+  workflowId: string,
+  userId: string,
+  minimum: "viewer" | "editor" | "owner"
+): Promise<{ workflow: WorkflowModel; role: WorkflowRole }> {
+  const workflow = (await Workflow.get(workflowId)) as WorkflowModel | null;
+  if (!workflow) {
+    throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
+  }
+  const role = await resolveWorkflowRole(workflow, userId);
+  const rank: Record<WorkflowRole, number> = { viewer: 1, editor: 2, owner: 3 };
+  if (!role || rank[role] < rank[minimum]) {
+    throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
+  }
+  return { workflow, role };
+}
 
 /**
  * Validate a workflow graph against the wire schema. Returns the graph if it
@@ -150,7 +223,7 @@ function findTerminalMediaOutputNodes(
   const edges = (graph?.edges ?? []) as Array<{ source?: string }>;
   const terminalOutputNodeIds = new Set(
     nodes
-      .filter((n) => n.type in OUTPUT_NODE_MEDIA_TYPES)
+      .filter((n) => Object.hasOwn(OUTPUT_NODE_MEDIA_TYPES, n.type))
       .map((n) => n.id)
   );
   for (const edge of edges) {
@@ -169,6 +242,18 @@ function hasTerminalMediaOutput(workflow: WorkflowModel): boolean {
 // ── Rate-limit tracking for autosave ───────────────────────────────────────
 const lastAutosaveTime = new Map<string, number>();
 const AUTOSAVE_RATE_LIMIT_MS = 30_000;
+
+// Entries older than the rate-limit window can never rate-limit again, so drop
+// them. Without this the map grows one permanent entry per workflow ever
+// autosaved (including deleted ones) for the lifetime of the process.
+function recordAutosave(workflowId: string, now: number): void {
+  for (const [id, ts] of lastAutosaveTime) {
+    if (now - ts >= AUTOSAVE_RATE_LIMIT_MS) {
+      lastAutosaveTime.delete(id);
+    }
+  }
+  lastAutosaveTime.set(workflowId, now);
+}
 
 // ── toWorkflowResponse ─────────────────────────────────────────────────────
 
@@ -196,6 +281,7 @@ function toWorkflowResponse(workflow: WorkflowModel): WorkflowResponse {
     required_providers: null,
     required_models: null,
     html_app: workflow.html_app ?? null,
+    app_doc: workflow.app_doc ?? null,
     etag: workflow.getEtag() ?? null
   };
 }
@@ -214,6 +300,27 @@ function toVersionResponse(v: WorkflowVersionModel): VersionResponse {
     save_type: (v.save_type as string | null) ?? "manual",
     autosave_metadata: (v.autosave_metadata as unknown) ?? null,
     created_at: (v.created_at as string | undefined) ?? null
+  };
+}
+
+function toCollaboratorItem(grant: WorkflowCollaborator) {
+  return {
+    workflow_id: grant.workflow_id,
+    user_id: grant.user_id,
+    role: grant.role,
+    invited_by: grant.invited_by,
+    created_at: grant.created_at ?? null
+  };
+}
+
+function toShareItem(share: WorkflowShare) {
+  return {
+    id: share.id,
+    workflow_id: share.workflow_id,
+    token: share.token,
+    role: share.role,
+    created_at: share.created_at ?? null,
+    revoked_at: share.revoked_at ?? null
   };
 }
 
@@ -291,6 +398,7 @@ function buildExamplesFromDir(
         required_providers: null,
         required_models: null,
         html_app: null,
+        app_doc: null,
         etag: null
       });
     } catch {
@@ -346,6 +454,7 @@ function buildExampleWorkflows(
         required_providers: null,
         required_models: null,
         html_app: null,
+        app_doc: null,
         etag: null
       });
     }
@@ -354,36 +463,37 @@ function buildExampleWorkflows(
 }
 
 
-// ── deriveWorkflowName ─────────────────────────────────────────────────────
-
-function deriveWorkflowName(workflow: WorkflowModel): string {
-  const graph = workflow.graph as { nodes?: Array<{ type?: unknown }> } | null;
-  const nodes: Array<{ type?: unknown }> = graph?.nodes ?? [];
-  if (nodes.length === 0) {
-    return workflow.name || "Untitled Workflow";
-  }
-  const categories = new Set<string>();
-  for (const n of nodes) {
-    if (typeof n.type === "string") {
-      const parts = n.type.split(".");
-      if (parts.length >= 2 && parts[1]) {
-        categories.add(parts[1]);
-      }
-    }
-  }
-  const segments = Array.from(categories).slice(0, 3);
-  if (segments.length === 0) {
-    return workflow.name || "Untitled Workflow";
-  }
-  const label = segments
-    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-    .join(" + ");
-  return `${label} Workflow`;
-}
-
 // ── Router ─────────────────────────────────────────────────────────────────
 
 export const workflowsRouter = router({
+  sdkSummaries: protectedProcedure
+    .input(sdkWorkflowSummariesInput)
+    .output(sdkWorkflowSummariesOutput)
+    .query(async ({ ctx, input }) => {
+      try {
+        const result = await listWorkflowSummariesV1({
+          userId: ctx.userId,
+          limit: input.limit,
+          ...(input.cursor ? { cursor: input.cursor } : {})
+        });
+        return {
+          workflows: result.workflows.map((workflow) => ({
+            id: workflow.id,
+            name: workflow.name,
+            description: workflow.description,
+            revision: workflow.updated_at,
+            registry_revision: Number.isSafeInteger(ctx.registry.revision)
+              ? ctx.registry.revision
+              : null,
+            run_mode: workflow.run_mode
+          })),
+          next: result.next
+        };
+      } catch (error) {
+        throwWorkflowInterfaceError(error);
+      }
+    }),
+
   // ── list (GET /api/workflows) ─────────────────────────────────────────────
   list: protectedProcedure
     .input(listInput)
@@ -392,7 +502,8 @@ export const workflowsRouter = router({
       const [workflows, cursor] = await Workflow.paginate(ctx.userId, {
         limit: input.limit,
         runMode: input.run_mode,
-        tag: input.tag
+        tag: input.tag,
+        startKey: input.cursor
       });
       let filtered = workflows;
       if (input.mediaOutput) {
@@ -406,27 +517,49 @@ export const workflowsRouter = router({
       };
     }),
 
-  // ── names (GET /api/workflows/names) ─────────────────────────────────────
-  names: protectedProcedure
-    .output(namesOutput)
-    .query(async ({ ctx }) => {
-      const [workflows] = await Workflow.paginate(ctx.userId, { limit: 1000 });
-      const names: Record<string, string> = {};
-      for (const wf of workflows) names[wf.id] = wf.name;
-      return names;
-    }),
-
   // ── get (GET /api/workflows/:id) ─────────────────────────────────────────
   get: protectedProcedure
     .input(getInput)
     .output(workflowResponse)
     .query(async ({ ctx, input }) => {
-      const workflow = (await Workflow.get(input.id)) as WorkflowModel | null;
-      if (!workflow) throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-      if (workflow.access !== "public" && workflow.user_id !== ctx.userId) {
-        throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-      }
+      const { workflow } = await requireWorkflowRole(
+        input.id,
+        ctx.userId,
+        "viewer"
+      );
       return toWorkflowResponse(workflow);
+    }),
+
+  // SDK-only, versioned workflow contract. Existing workflow responses remain
+  // unchanged, and the flag lets deployments roll this out independently.
+  interface: protectedProcedure
+    .input(workflowInterfaceInput)
+    .output(workflowInterfaceV1)
+    .query(async ({ ctx, input }) => {
+      try {
+        return await getWorkflowInterfaceV1({
+          workflowId: input.id,
+          userId: ctx.userId,
+          registry: ctx.registry
+        });
+      } catch (error) {
+        throwWorkflowInterfaceError(error);
+      }
+    }),
+
+  interfaces: protectedProcedure
+    .input(workflowInterfacesInput)
+    .output(workflowInterfacesOutput)
+    .query(async ({ ctx, input }) => {
+      try {
+        return await getWorkflowInterfacesV1({
+          workflowIds: input.ids,
+          userId: ctx.userId,
+          registry: ctx.registry
+        });
+      } catch (error) {
+        throwWorkflowInterfaceError(error);
+      }
     }),
 
   // ── create (POST /api/workflows) ─────────────────────────────────────────
@@ -438,6 +571,7 @@ export const workflowsRouter = router({
         throwApiError(ApiErrorCode.INVALID_INPUT, "graph is required and must have nodes and edges arrays");
       }
       let graph = input.graph;
+      let appDoc = input.app_doc ?? null;
 
       // Optionally seed from example
       if (input.from_example_name && (!graph || graph.nodes?.length === 0)) {
@@ -452,6 +586,10 @@ export const workflowsRouter = router({
         );
         if (example?.graph) {
           graph = example.graph as typeof graph;
+        }
+        // Carry the example's app UI unless the caller supplied one.
+        if (appDoc == null && example?.app_doc) {
+          appDoc = example.app_doc as Record<string, unknown>;
         }
       }
 
@@ -470,8 +608,11 @@ export const workflowsRouter = router({
         settings: input.settings ?? null,
         run_mode: input.run_mode ?? "workflow",
         workspace_id: input.workspace_id ?? null,
-        html_app: input.html_app ?? null
+        html_app: input.html_app ?? null,
+        app_doc: appDoc
       })) as WorkflowModel;
+
+      await syncTriggerRegistrations(workflow);
 
       return toWorkflowResponse(workflow);
     }),
@@ -487,8 +628,12 @@ export const workflowsRouter = router({
       const graph = input.graph;
       const existing = (await Workflow.get(input.id)) as WorkflowModel | null;
 
-      if (existing && existing.user_id !== ctx.userId) {
-        throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
+      let existingRole: WorkflowRole | null = null;
+      if (existing) {
+        existingRole = await resolveWorkflowRole(existing, ctx.userId);
+        if (existingRole !== "owner" && existingRole !== "editor") {
+          throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
+        }
       }
 
       if (existing) {
@@ -498,14 +643,23 @@ export const workflowsRouter = router({
         existing.tags = input.tags ?? [];
         existing.package_name = input.package_name ?? null;
         if (input.thumbnail !== undefined) existing.thumbnail = input.thumbnail;
-        existing.access = input.access === "public" ? "public" : "private";
+        // Only the owner can change visibility; editors keep it as-is.
+        if (existingRole === "owner") {
+          existing.access = input.access === "public" ? "public" : "private";
+        }
         existing.graph = graph;
-        existing.settings = input.settings ?? null;
+        // Only touch optional columns when the caller sent them, so a partial
+        // update (a body omitting these keys) doesn't wipe stored values. A
+        // deliberate clear still sends an explicit null.
+        if (input.settings !== undefined) existing.settings = input.settings;
         if (input.run_mode !== undefined && input.run_mode !== null)
           existing.run_mode = input.run_mode;
-        existing.workspace_id = input.workspace_id ?? null;
-        existing.html_app = input.html_app ?? null;
+        if (input.workspace_id !== undefined)
+          existing.workspace_id = input.workspace_id;
+        if (input.html_app !== undefined) existing.html_app = input.html_app;
+        if (input.app_doc !== undefined) existing.app_doc = input.app_doc;
         await existing.save();
+        await syncTriggerRegistrations(existing);
         return toWorkflowResponse(existing);
       }
 
@@ -526,8 +680,11 @@ export const workflowsRouter = router({
         settings: input.settings ?? null,
         run_mode: input.run_mode ?? "workflow",
         workspace_id: input.workspace_id ?? null,
-        html_app: input.html_app ?? null
+        html_app: input.html_app ?? null,
+        app_doc: input.app_doc ?? null
       })) as WorkflowModel;
+
+      await syncTriggerRegistrations(workflow);
 
       return toWorkflowResponse(workflow);
     }),
@@ -543,151 +700,10 @@ export const workflowsRouter = router({
         throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
       }
       await workflow.delete();
+      lastAutosaveTime.delete(input.id);
+      await WorkflowCollaborator.removeAllForWorkflow(input.id);
+      await WorkflowShare.removeAllForWorkflow(input.id);
       return { ok: true as const };
-    }),
-
-  // ── run (POST /api/workflows/:id/run) ────────────────────────────────────
-  run: protectedProcedure
-    .input(runInput)
-    .output(runOutput)
-    .mutation(async ({ ctx, input }) => {
-      const workflow = await Workflow.find(ctx.userId, input.id);
-      if (!workflow) throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-
-      const runMode = workflow.run_mode ?? "workflow";
-      if (runMode !== "workflow") {
-        throwApiError(
-          ApiErrorCode.INVALID_INPUT,
-          `Workflow run mode "${runMode}" is not supported by the standalone backend`
-        );
-      }
-
-      const params = input.params ?? {};
-      const graph = workflow.getGraph();
-
-      const runnableGraph: {
-        nodes: Array<{ id: string; type: string; [key: string]: unknown }>;
-        edges: Array<{
-          id?: string | null;
-          source: string;
-          target: string;
-          sourceHandle: string;
-          targetHandle: string;
-          edge_type?: "data" | "control";
-          [key: string]: unknown;
-        }>;
-      } = {
-        nodes: graph.nodes.map((node) => {
-          const record = node as Record<string, unknown>;
-          return {
-            ...record,
-            id: String(record.id ?? ""),
-            type: String(record.type ?? ""),
-            properties: (record.properties ?? record.data ?? {}) as Record<
-              string,
-              unknown
-            >
-          };
-        }),
-        edges: graph.edges.map((edge) => {
-          const record = edge as Record<string, unknown>;
-          return {
-            ...record,
-            id:
-              typeof record.id === "string" || record.id == null
-                ? (record.id as string | null | undefined)
-                : String(record.id),
-            source: String(record.source ?? ""),
-            target: String(record.target ?? ""),
-            sourceHandle: String(record.sourceHandle ?? ""),
-            targetHandle: String(record.targetHandle ?? ""),
-            edge_type: record.edge_type === "control" ? "control" : "data"
-          };
-        })
-      };
-
-      const registry = ctx.registry;
-      const pythonBridge = ctx.pythonBridge;
-      const getPythonBridgeReady = ctx.getPythonBridgeReady;
-
-      const hasPythonNode = runnableGraph.nodes.some((node) => {
-        const nodeType = typeof node.type === "string" ? node.type : "";
-        return (
-          nodeType !== "" &&
-          Boolean(registry.getMetadata(nodeType)) &&
-          !registry.has(nodeType)
-        );
-      });
-      if (hasPythonNode) {
-        if (!getPythonBridgeReady()) {
-          await pythonBridge.ensureConnected();
-        }
-      }
-
-      const resolveExecutor = (node: NodeDescriptor) => {
-        if (registry.has(node.type)) {
-          return registry.resolve(node as Parameters<typeof registry.resolve>[0]);
-        }
-        if (getPythonBridgeReady() && pythonBridge.hasNodeType(node.type)) {
-          const meta = pythonBridge
-            .getNodeMetadata()
-            .find((n) => n.node_type === node.type);
-          const props = (node.properties ?? {}) as Record<string, unknown>;
-          return new PythonNodeExecutor(
-            pythonBridge,
-            node.type,
-            props,
-            Object.fromEntries(
-              (meta?.outputs ?? []).map((o) => [o.name, o.type.type])
-            ),
-            meta?.required_settings ?? [],
-            node.id
-          );
-        }
-        return registry.resolve(node as Parameters<typeof registry.resolve>[0]);
-      };
-
-      const job = await Job.create({
-        workflow_id: input.id,
-        user_id: ctx.userId,
-        status: "running",
-        params,
-        graph: runnableGraph
-      });
-
-      const workspaceDir = await resolveWorkflowWorkspace(input.id, ctx.userId);
-      const runner = new WorkflowRunner(job.id, {
-        resolveExecutor,
-        executionContext: buildWorkspaceExecutionContext({
-          jobId: job.id,
-          workflowId: input.id,
-          userId: ctx.userId,
-          workspaceDir
-        })
-      });
-      const result = await runner.run(
-        { job_id: job.id, workflow_id: input.id, params },
-        hydrateGraphNodeFlags(runnableGraph as unknown as GraphData, registry)
-      );
-
-      if (result.status === "completed") {
-        job.markCompleted();
-      } else if (result.status === "cancelled") {
-        job.markCancelled();
-      } else {
-        job.markFailed(result.error ?? "Workflow run failed");
-      }
-      await job.save();
-
-      return {
-        job_id: job.id,
-        workflow_id: input.id,
-        status: result.status,
-        outputs: result.outputs ?? null,
-        error: result.error ?? null,
-        message_count: result.messages.length,
-        background: input.background ?? false
-      };
     }),
 
   // ── autosave (POST/PUT /api/workflows/:id/autosave) ───────────────────────
@@ -695,11 +711,11 @@ export const workflowsRouter = router({
     .input(autosaveInput)
     .output(autosaveOutput)
     .mutation(async ({ ctx, input }) => {
-      const workflow = (await Workflow.get(input.id)) as WorkflowModel | null;
-      if (!workflow) throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-      if (workflow.user_id !== ctx.userId) {
-        throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-      }
+      const { workflow, role } = await requireWorkflowRole(
+        input.id,
+        ctx.userId,
+        "editor"
+      );
 
       const force = input.force === true;
       const maxVersions = typeof input.max_versions === "number" ? input.max_versions : 10;
@@ -720,10 +736,14 @@ export const workflowsRouter = router({
       if (input.name !== undefined) workflow.name = input.name;
       if (input.description !== undefined)
         workflow.description = input.description;
-      if (input.access === "public" || input.access === "private")
+      // Only the owner can change visibility; editors keep it as-is.
+      if (
+        role === "owner" &&
+        (input.access === "public" || input.access === "private")
+      )
         workflow.access = input.access;
       await workflow.save();
-      lastAutosaveTime.set(input.id, Date.now());
+      recordAutosave(input.id, Date.now());
 
       let version: {
         id: string;
@@ -761,24 +781,6 @@ export const workflowsRouter = router({
         version,
         message: "Autosaved successfully",
         skipped: false
-      };
-    }),
-
-  // ── tools (GET /api/workflows/tools) ─────────────────────────────────────
-  tools: protectedProcedure
-    .input(toolsInput)
-    .output(toolsOutput)
-    .query(async ({ ctx, input }) => {
-      const [workflows] = await Workflow.paginateTools(ctx.userId, {
-        limit: input.limit
-      });
-      return {
-        workflows: workflows.map((w) => ({
-          name: w.name,
-          tool_name: w.tool_name ?? null,
-          description: w.description ?? null
-        })),
-        next: null
       };
     }),
 
@@ -830,32 +832,6 @@ export const workflowsRouter = router({
       })
   }),
 
-  // ── app (GET /api/workflows/:id/app) ─────────────────────────────────────
-  app: protectedProcedure
-    .input(appInput)
-    .output(appOutput)
-    .query(async ({ ctx, input }) => {
-      const baseUrl = input.baseUrl ?? ctx.apiOptions.baseUrl ?? "http://127.0.0.1:7777";
-      return {
-        workflow_id: input.id,
-        api_url: baseUrl
-      };
-    }),
-
-  // ── generateName (POST /api/workflows/:id/generate-name) ─────────────────
-  generateName: protectedProcedure
-    .input(generateNameInput)
-    .output(generateNameOutput)
-    .mutation(async ({ ctx, input }) => {
-      const workflow = (await Workflow.get(input.id)) as WorkflowModel | null;
-      if (!workflow) throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-      if (workflow.user_id !== ctx.userId) {
-        throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-      }
-      const name = deriveWorkflowName(workflow);
-      return { name };
-    }),
-
   // ── terminalOutputs (GET /api/workflows/:id/terminal-outputs) ─────────────
   // Returns the terminal media-output nodes of a workflow for the multi-output
   // selection prompt in AddClipMenu.
@@ -887,11 +863,8 @@ export const workflowsRouter = router({
       .input(versionsListInput)
       .output(versionsListOutput)
       .query(async ({ ctx, input }) => {
-        // Check ownership via the parent workflow
-        const workflow = (await Workflow.get(input.id)) as WorkflowModel | null;
-        if (!workflow || workflow.user_id !== ctx.userId) {
-          throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-        }
+        // Owners and editors see version history
+        await requireWorkflowRole(input.id, ctx.userId, "editor");
         const versions = await WorkflowVersion.listForWorkflow(input.id, {
           limit: input.limit
         });
@@ -903,11 +876,11 @@ export const workflowsRouter = router({
       .input(versionCreateInput)
       .output(versionResponse)
       .mutation(async ({ ctx, input }) => {
-        const workflow = (await Workflow.get(input.id)) as WorkflowModel | null;
-        if (!workflow) throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-        if (workflow.user_id !== ctx.userId) {
-          throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-        }
+        const { workflow } = await requireWorkflowRole(
+          input.id,
+          ctx.userId,
+          "editor"
+        );
         const nextVer = await WorkflowVersion.nextVersion(input.id);
         const version = (await WorkflowVersion.create({
           workflow_id: input.id,
@@ -920,32 +893,16 @@ export const workflowsRouter = router({
         return toVersionResponse(version);
       }),
 
-    // GET /api/workflows/:id/versions/:version
-    get: protectedProcedure
-      .input(versionGetInput)
-      .output(versionResponse)
-      .query(async ({ ctx, input }) => {
-        const workflow = (await Workflow.get(input.id)) as WorkflowModel | null;
-        if (!workflow || workflow.user_id !== ctx.userId) {
-          throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-        }
-        const version = await WorkflowVersion.findByVersion(
-          input.id,
-          input.version
-        );
-        if (!version) throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
-        return toVersionResponse(version);
-      }),
-
     // POST /api/workflows/:id/versions/:version/restore
     restore: protectedProcedure
       .input(versionRestoreInput)
       .output(workflowResponse)
       .mutation(async ({ ctx, input }) => {
-        const workflow = (await Workflow.get(input.id)) as WorkflowModel | null;
-        if (!workflow || workflow.user_id !== ctx.userId) {
-          throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-        }
+        const { workflow } = await requireWorkflowRole(
+          input.id,
+          ctx.userId,
+          "editor"
+        );
         const version = await WorkflowVersion.findByVersion(
           input.id,
           input.version
@@ -966,10 +923,163 @@ export const workflowsRouter = router({
         )) as WorkflowVersionModel | null;
         if (!version) throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
         if (version.user_id !== ctx.userId) {
-          throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
+          // The workflow owner may prune versions saved by collaborators.
+          const parent = (await Workflow.get(
+            version.workflow_id
+          )) as WorkflowModel | null;
+          if (!parent || parent.user_id !== ctx.userId) {
+            throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
+          }
         }
         await version.delete();
         return { ok: true as const };
+      })
+  }),
+
+  // ── sharing ────────────────────────────────────────────────────────────────
+  // Private sharing via role-scoped links: the owner mints a link, any
+  // authenticated user who redeems it becomes a collaborator (viewer/editor).
+  sharing: router({
+    // Collaborators + share links for the dialog. Owner only.
+    get: protectedProcedure
+      .input(sharingGetInput)
+      .output(sharingGetOutput)
+      .query(async ({ ctx, input }) => {
+        await requireWorkflowRole(input.id, ctx.userId, "owner");
+        const [collaborators, shares] = await Promise.all([
+          WorkflowCollaborator.listForWorkflow(input.id),
+          WorkflowShare.listForWorkflow(input.id)
+        ]);
+        return {
+          collaborators: collaborators.map(toCollaboratorItem),
+          shares: shares.map(toShareItem)
+        };
+      }),
+
+    // Mint (or return the existing active) share link for a role.
+    createLink: protectedProcedure
+      .input(sharingCreateLinkInput)
+      .output(shareItem)
+      .mutation(async ({ ctx, input }) => {
+        await requireWorkflowRole(input.id, ctx.userId, "owner");
+        const share = await WorkflowShare.ensure({
+          workflowId: input.id,
+          role: input.role,
+          createdBy: ctx.userId
+        });
+        return toShareItem(share);
+      }),
+
+    // Stop new redemptions of a link. Existing collaborators keep access.
+    revokeLink: protectedProcedure
+      .input(sharingRevokeLinkInput)
+      .output(sharingOkOutput)
+      .mutation(async ({ ctx, input }) => {
+        await requireWorkflowRole(input.id, ctx.userId, "owner");
+        const share = (await WorkflowShare.get(
+          input.share_id
+        )) as WorkflowShare | null;
+        if (!share || share.workflow_id !== input.id) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Share not found");
+        }
+        if (!share.isRevoked) await share.revoke();
+        return { ok: true as const };
+      }),
+
+    // Change a collaborator's role. Owner only.
+    setRole: protectedProcedure
+      .input(sharingSetRoleInput)
+      .output(collaboratorItem)
+      .mutation(async ({ ctx, input }) => {
+        await requireWorkflowRole(input.id, ctx.userId, "owner");
+        const grant = await WorkflowCollaborator.findFor(
+          input.id,
+          input.user_id
+        );
+        if (!grant) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Collaborator not found");
+        }
+        if (grant.role !== input.role) {
+          grant.role = input.role;
+          await grant.save();
+        }
+        return toCollaboratorItem(grant);
+      }),
+
+    // Remove a collaborator. Owner removes anyone; a collaborator may
+    // remove themself ("leave").
+    removeCollaborator: protectedProcedure
+      .input(sharingRemoveCollaboratorInput)
+      .output(sharingOkOutput)
+      .mutation(async ({ ctx, input }) => {
+        if (input.user_id !== ctx.userId) {
+          await requireWorkflowRole(input.id, ctx.userId, "owner");
+        }
+        const removed = await WorkflowCollaborator.remove(
+          input.id,
+          input.user_id
+        );
+        if (!removed) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Collaborator not found");
+        }
+        return { ok: true as const };
+      }),
+
+    // Redeem a share link: the caller becomes a collaborator with the
+    // link's role and gets the workflow back for navigation.
+    accept: protectedProcedure
+      .input(sharingAcceptInput)
+      .output(sharingAcceptOutput)
+      .mutation(async ({ ctx, input }) => {
+        const share = await WorkflowShare.findByToken(input.token);
+        if (!share || share.isRevoked) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Share link is invalid or revoked");
+        }
+        const workflow = (await Workflow.get(
+          share.workflow_id
+        )) as WorkflowModel | null;
+        if (!workflow) {
+          throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
+        }
+        // The owner opening their own link is a no-op, not a grant.
+        if (workflow.user_id !== ctx.userId) {
+          await WorkflowCollaborator.upsert({
+            workflowId: workflow.id,
+            userId: ctx.userId,
+            role: share.role,
+            invitedBy: share.created_by
+          });
+        }
+        return { workflow: toWorkflowResponse(workflow), role: share.role };
+      }),
+
+    // Workflows shared with the caller, with their role on each.
+    sharedWithMe: protectedProcedure
+      .input(sharedWithMeInput)
+      .output(sharedWithMeOutput)
+      .query(async ({ ctx, input }) => {
+        const grants = await WorkflowCollaborator.listForUser(ctx.userId);
+        const limited = grants.slice(0, input.limit);
+        const loaded = await Promise.all(
+          limited.map(async (grant) => ({
+            grant,
+            workflow: (await Workflow.get(
+              grant.workflow_id
+            )) as WorkflowModel | null
+          }))
+        );
+        const workflows: Array<
+          WorkflowResponse & { shared_role: "viewer" | "editor" }
+        > = [];
+        for (const { grant, workflow } of loaded) {
+          // Skip grants pointing at deleted workflows.
+          if (!workflow) continue;
+          workflows.push({
+            ...toWorkflowResponse(workflow),
+            shared_role: grant.role
+          });
+        }
+        return { workflows };
       })
   })
 });

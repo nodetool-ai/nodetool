@@ -1,8 +1,3 @@
-/**
- * Color harmony utilities for generating complementary colors.
- * Based on color theory principles.
- */
-
 import { HSL, rgbToHsl, hslToRgb, rgbToHex, hexToRgb } from "./colorConversion";
 
 export type HarmonyType =
@@ -20,9 +15,6 @@ export interface ColorHarmony {
   colors: string[]; // hex colors
 }
 
-/**
- * Rotate hue by a given number of degrees
- */
 function rotateHue(hsl: HSL, degrees: number): HSL {
   let newHue = (hsl.h + degrees) % 360;
   if (newHue < 0) {
@@ -135,9 +127,6 @@ function getSquare(hex: string): string[] {
   ];
 }
 
-/**
- * Get all harmony types with their descriptions
- */
 export function getHarmonyInfo(): Array<{ type: HarmonyType; name: string; description: string }> {
   return [
     {
@@ -173,9 +162,6 @@ export function getHarmonyInfo(): Array<{ type: HarmonyType; name: string; descr
   ];
 }
 
-/**
- * Generate harmony colors for a given type
- */
 export function generateHarmony(hex: string, type: HarmonyType): ColorHarmony {
   const info = getHarmonyInfo().find((h) => h.type === type)!;
   

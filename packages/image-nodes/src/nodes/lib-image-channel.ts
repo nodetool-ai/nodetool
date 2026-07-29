@@ -19,13 +19,9 @@ import {
   IMAGE_PROP,
   extraImageProp,
   intProp,
+  num,
   runShaderNode
 } from "./lib-shader-utils.js";
-
-function num(value: unknown, fallback: number): number {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
 
 class ChannelShuffleNode extends BaseNode {
   static readonly nodeType = "lib.image.channel.Shuffle";

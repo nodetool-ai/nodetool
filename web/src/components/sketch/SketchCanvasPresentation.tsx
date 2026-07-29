@@ -105,6 +105,7 @@ export interface SketchCanvasPresentationProps {
   onPointerDown: (e: React.PointerEvent) => void;
   onPointerMove: (e: React.PointerEvent) => void;
   onPointerUp: (e: React.PointerEvent) => void;
+  onPointerCancel?: (e: React.PointerEvent) => void;
   onDoubleClick: (e: React.MouseEvent) => void;
   onPointerLeave: () => void;
   onMouseLeave: () => void;
@@ -171,6 +172,7 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
       onPointerDown,
       onPointerMove,
       onPointerUp,
+      onPointerCancel,
       onDoubleClick,
       onPointerLeave,
       onMouseLeave,
@@ -198,6 +200,7 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
+        onPointerCancel={onPointerCancel}
         onDoubleClick={onDoubleClick}
         onPointerLeave={onPointerLeave}
         onMouseLeave={onMouseLeave}
@@ -326,7 +329,7 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
               fontSize: SKETCH_FONT.md,
               fontFamily: SKETCH_FONT.familyMono,
               pointerEvents: "none",
-              zIndex: 5,
+              zIndex: SKETCH_Z_INDEX.readout,
               gap: getSpacingPx(SPACING.lg)
             }}
           >

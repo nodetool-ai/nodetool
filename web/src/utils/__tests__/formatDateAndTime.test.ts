@@ -78,6 +78,22 @@ describe('formatDateAndTime utilities', () => {
       const hourAgo = new Date(Date.now() - 3600 * 1000);
       expect(relativeTime(hourAgo.toISOString())).toBe('1 hour ago');
     });
+
+    test('counts a local day across the spring DST transition', () => {
+      const originalTimezone = process.env.TZ;
+      process.env.TZ = 'America/New_York';
+      try {
+        jest.setSystemTime(new Date(2024, 2, 11, 12));
+        expect(relativeTime(new Date(2024, 2, 10, 12))).toBe('1 day ago');
+      } finally {
+        jest.setSystemTime(new Date('2023-01-02T03:04:05Z'));
+        if (originalTimezone === undefined) {
+          delete process.env.TZ;
+        } else {
+          process.env.TZ = originalTimezone;
+        }
+      }
+    });
   });
 
 });

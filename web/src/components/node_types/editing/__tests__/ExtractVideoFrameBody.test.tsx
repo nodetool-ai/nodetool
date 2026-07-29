@@ -107,6 +107,9 @@ describe("ExtractVideoFrameBody", () => {
       screen.getByRole("button", { name: "Next frame" })
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Mute" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Download frame" })
+    ).toBeInTheDocument();
     expect(screen.getByTestId("frame-input")).toBeInTheDocument();
     expect(screen.getByText("Frame")).toBeInTheDocument();
     expect(screen.getByText("Timecode")).toBeInTheDocument();

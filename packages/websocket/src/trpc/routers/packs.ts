@@ -13,6 +13,7 @@ import { protectedProcedure } from "../middleware.js";
 import { getPackSnapshot, reloadPacks } from "../../pack-snapshot.js";
 import {
   readBuiltinPackOverrides,
+  readPackTrustFromFile,
   resolvePackTrust,
   writeBuiltinPackOverrides,
   writePackTrustConfig,
@@ -118,13 +119,20 @@ export const packsRouter = router({
     .input(trustUpdateInput)
     .output(trustSchema)
     .mutation(({ input }) => {
-      const current = resolvePackTrust();
+      // Base unspecified fields on what's ON DISK, not the env/default-merged
+      // effective values — otherwise a partial update bakes an ephemeral
+      // NODETOOL_PACKS_ALLOWLIST env override permanently into packs.json.
+      const fromFile = readPackTrustFromFile();
+      const isProd = process.env["NODETOOL_ENV"] === "production";
       const next = {
-        allowlist: input.allowlist ?? current.allowlist,
-        allowUnlisted: input.allowUnlisted ?? current.allowUnlisted
+        allowlist: input.allowlist ?? fromFile.allow ?? [],
+        allowUnlisted:
+          input.allowUnlisted ?? fromFile.allowUnlisted ?? !isProd
       };
       writePackTrustConfig(next);
-      return next;
+      // Return the effective trust (env + file + defaults) so the client sees
+      // what's actually in force, consistent with getTrust.
+      return resolvePackTrust();
     }),
 
   /** Built-in packs that ship with NodeTool and whether each is enabled. */

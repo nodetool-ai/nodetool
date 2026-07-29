@@ -64,7 +64,7 @@ Every executor writes results into `context.memory`. Every step has the three me
 |---|---|---|---|
 | `step:<id>` | `memoryKeys.step(id)` | `StepExecutor`, `TaskExecutor` (process mode) | Per-step results |
 | `task:<id>` | `memoryKeys.task(id)` | `StepExecutor` (finish-task steps), `ParallelTaskExecutor` | Per-task results |
-| `input:<key>` | `memoryKeys.input(key)` | `TaskExecutor`, `ParallelTaskExecutor`, `AgentStepExecutor` | Caller-supplied inputs and edge inputs |
+| `input:<key>` | `memoryKeys.input(key)` | `TaskExecutor`, `ParallelTaskExecutor` | Caller-supplied inputs |
 | `shared:<key>` | `memoryKeys.shared(key)` | `memory_write` tool | Cross-agent communication, scratch space |
 
 Always use the helper functions when constructing keys — they prevent typos and make grep-able call sites.
@@ -309,25 +309,6 @@ Runs a `TaskPlan` of multiple tasks as a DAG. It owns no private result map — 
 | Read specific task | `getTaskResult(id)` |
 
 Downstream tasks see their declared upstream task keys as hints in the step user message and pull values via `memory_read` when needed.
-
-### AgentStepExecutor (`packages/agents/src/agent-step-executor.ts`)
-
-The bridge between the kernel's workflow runner and the agent system. When a workflow node of type `nodetool.agents.AgentStep` runs, this adapter wraps `StepExecutor`. It also surfaces upstream **edge** inputs into memory:
-
-```ts
-for (const [key, value] of Object.entries(inputs)) {
-  if (value === undefined || value === null) continue;
-  context.memory.set({
-    key: memoryKeys.input(`${this.node.id}.${key}`),
-    kind: "input",
-    value,
-    source: this.node.id,
-    title: `${this.node.id}.${key}`
-  });
-}
-```
-
-The result is written under `step:<node.id>` by `StepExecutor`, so subsequent agent steps in the same workflow graph discover prior nodes' outputs through `memory_list`.
 
 ### Agent (`packages/agents/src/agent.ts`)
 

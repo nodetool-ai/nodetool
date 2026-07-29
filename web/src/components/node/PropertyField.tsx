@@ -9,14 +9,14 @@ import { Property } from "../../stores/ApiTypes";
 import PropertyInput from "./PropertyInput";
 import PropertyLabel from "./PropertyLabel";
 import { Slugify, isCollectType } from "../../utils/TypeHandler";
-import useContextMenuStore from "../../stores/ContextMenuStore";
-import isEqual from "fast-deep-equal";
+import { useContextMenuActions } from "../../stores/ContextMenuStore";
+import isEqual from "../../utils/isEqual";
 import { isFieldRelevantDataEqual } from "./propertyFieldEquality";
 import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";
 import { NodeData } from "../../stores/NodeData";
 import usePropertyValidationStore from "../../stores/PropertyValidationStore";
-import { Tooltip } from "../ui_primitives/Tooltip";
+import { Tooltip, BORDER_RADIUS, MOTION, reducedMotion } from "../ui_primitives";
 import useModelCalloutStore from "../../stores/ModelCalloutStore";
 import { isModelEmpty } from "../../utils/findMissingModelNodes";
 import ModelSetupCallout from "./ModelSetupCallout";
@@ -33,12 +33,13 @@ const highlightBlink = keyframes({
 });
 
 const highlightStyle = css({
-  borderRadius: "var(--rounded-buttonSmall)",
+  borderRadius: BORDER_RADIUS.sm,
   outline: "2px solid var(--palette-primary-light)",
   outlineOffset: 2,
   // Blink the outline + glow fully on and off to draw the eye to an unset
   // model. Runs until the highlight store clears it (HIGHLIGHT_DURATION_MS).
-  animation: `${highlightBlink} 0.55s ease-in-out infinite`
+  animation: `${highlightBlink} ${MOTION.pulse} infinite`,
+  ...reducedMotion({ animation: "none" })
 });
 
 const HANDLE_POPUP_STYLE = { position: "absolute" as const, left: "0" };
@@ -70,9 +71,6 @@ export type PropertyFieldProps = {
   onValueChange?: (value: unknown) => void;
 };
 
-/**
- * PropertyField renders a single property of a node.
- */
 const PropertyField: React.FC<PropertyFieldProps> = ({
   id,
   value,
@@ -97,7 +95,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
       connectNodeId: state.connectNodeId
     }))
   );
-  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+  const { openContextMenu } = useContextMenuActions();
 
   // Transient highlight (e.g. guiding the user to set a model). Only in the
   // inspector, where we also scroll the field into view.

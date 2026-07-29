@@ -3,13 +3,14 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useCallback, useRef, useState } from "react";
-import { MOTION, Tooltip, BORDER_RADIUS } from "../ui_primitives";
+import { MOTION, Tooltip, BORDER_RADIUS, Z_INDEX } from "../ui_primitives";
 import BackspaceIcon from "@mui/icons-material/Backspace";
 import SearchIcon from "@mui/icons-material/Search";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback";
-import { NodeMetadata } from "../../stores/ApiTypes";
 import { isMac } from "../../utils/platform";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
+import type { NodeMetadata } from "../../stores/ApiTypes";
 
 const styles = (theme: Theme) =>
   css({
@@ -31,7 +32,7 @@ const styles = (theme: Theme) =>
       transform: "translateY(-50%)",
       color: theme.vars.palette.text.disabled,
       pointerEvents: "none",
-      zIndex: 1
+      zIndex: Z_INDEX.raised
     },
     ".search-box": {
       position: "relative"
@@ -68,6 +69,12 @@ const styles = (theme: Theme) =>
       borderColor: "var(--palette-primary-main)",
       outline: "none",
       boxShadow: `0 0 0 3px rgba(${theme.vars.palette.primary.mainChannel} / 0.15), inset 0 1px 2px rgba(0,0,0,0.05)`
+    },
+    // Keyboard focus gets a solid ring on top of the soft :focus glow; inset
+    // offset avoids clipping by the container's overflow: hidden.
+    "input[type='text']:focus-visible": {
+      outline: "2px solid var(--palette-primary-main)",
+      outlineOffset: "-2px"
     },
     ".clear-search-btn": {
       position: "absolute",
@@ -135,39 +142,29 @@ const SearchInput: React.FC<SearchInputProps> = ({
   maxWidth = "unset",
   debounceTime = 50,
   searchTerm: externalSearchTerm = "",
-  searchResults = [],
   width = 150
 }) => {
   const theme = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
+  const autoFocusEnabled = useAutoFocusEnabled();
   const [localSearchTerm, setLocalSearchTerm] = useState(externalSearchTerm);
-  const isControlOrMetaPressed = useKeyPressedStore(
-    (state) => state.isKeyPressed("control") || state.isKeyPressed("meta")
-  );
 
   // Debounced search - store handles search ID management internally
   const debouncedSetSearchTerm = useDebouncedCallback((value: string) => {
     onSearchChange(value);
   }, debounceTime);
 
-  // Reset search state and cancel any pending searches
   const resetSearch = useCallback(() => {
-    // Cancel any pending debounced searches first
     debouncedSetSearchTerm.cancel();
-    // Clear local input state
     setLocalSearchTerm("");
-    // Reset search in store
     onSearchChange("");
   }, [debouncedSetSearchTerm, onSearchChange]);
 
-
-  // Handle input changes with debouncing
   const handleInputChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const newValue = event.target.value;
-      // Update local state immediately for UI responsiveness
+      // Update local state immediately for responsiveness; debounce the search.
       setLocalSearchTerm(newValue);
-      // Schedule debounced search
       debouncedSetSearchTerm(newValue);
     },
     [debouncedSetSearchTerm]
@@ -178,11 +175,13 @@ const SearchInput: React.FC<SearchInputProps> = ({
     inputRef.current?.focus();
   }, [resetSearch]);
 
+  // Skipped on touch, where the virtual keyboard would cover the menu that
+  // just opened.
   React.useEffect(() => {
-    if (focusSearchInput) {
+    if (focusSearchInput && autoFocusEnabled) {
       inputRef.current?.focus();
     }
-  }, [focusSearchInput]);
+  }, [focusSearchInput, autoFocusEnabled]);
 
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -193,9 +192,11 @@ const SearchInput: React.FC<SearchInputProps> = ({
 
       if (!shouldHandleEvent) { return; }
 
+      const isControlOrMeta = useKeyPressedStore.getState().isKeyPressed("control") ||
+        useKeyPressedStore.getState().isKeyPressed("meta");
       if (
         (event.key === "Delete" || event.key === "Backspace") &&
-        isControlOrMetaPressed
+        isControlOrMeta
       ) {
         event.preventDefault();
         clearSearch();
@@ -241,7 +242,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
       }
 
       if (focusOnTyping) {
-        if (isControlOrMetaPressed) { return; }
+        if (isControlOrMeta) { return; }
         if (event.key.length === 1 && /[a-zA-Z0-9]/.test(event.key)) {
           if (document.activeElement !== inputRef.current) {
             event.preventDefault();
@@ -257,7 +258,6 @@ const SearchInput: React.FC<SearchInputProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [
     focusOnTyping,
-    isControlOrMetaPressed,
     onPressSpaceWhenEmpty,
     onPressEscape,
     onPressArrowDown,

@@ -11,10 +11,6 @@ import { join } from "node:path";
 
 const REPLICATE_API_BASE = "https://api.replicate.com/v1";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 export interface ReplicateSchema {
   modelId: string; // "owner/name"
   owner: string;
@@ -24,10 +20,6 @@ export interface ReplicateSchema {
   inputSchema: Record<string, unknown>;
   outputSchema: Record<string, unknown>;
 }
-
-// ---------------------------------------------------------------------------
-// Fetcher
-// ---------------------------------------------------------------------------
 
 export class SchemaFetcher {
   private readonly cacheDir: string;
@@ -89,7 +81,6 @@ export class SchemaFetcher {
 
     const schema = await this._fetchFromApi(modelId);
 
-    // Persist to cache
     await mkdir(this.cacheDir, { recursive: true });
     await writeFile(path, JSON.stringify(schema, null, 2), "utf-8");
 

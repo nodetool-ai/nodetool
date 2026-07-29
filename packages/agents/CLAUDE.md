@@ -35,7 +35,6 @@ memoryKeys.shared("note");         // "shared:note"  — cross-agent scratch
 | `StepExecutor` | Last step of a task (finish-task) | `task:<task.id>` | `task_result` |
 | `TaskExecutor` | Startup / process-mode aggregation | `input:<key>` / `step:<step.id>` | `input` / `step_result` |
 | `ParallelTaskExecutor` | After a task completes (idempotent) | `task:<task.id>` | `task_result` |
-| `AgentStepExecutor` | Workflow edge inputs | `input:<nodeId>.<key>` | `input` |
 | `memory_write` tool | Agent / sub-agent publish | `shared:<key>` | `shared` |
 
 `memory_write` is restricted to the `shared:` namespace so agents can't spoof step / task / input results. Internal executors write directly through `context.memory.set` for their owned namespaces.
@@ -115,7 +114,7 @@ Primitive globals pass by value (no sync).
 nodetool-chat --agent
 
 # With specific provider and model
-nodetool-chat --agent --provider anthropic --model claude-sonnet-4-6
+nodetool-chat --agent --provider anthropic --model claude-sonnet-5
 
 # With workspace directory
 nodetool-chat --agent --workspace /path/to/project
@@ -151,7 +150,7 @@ const agent = new Agent({
   name: "my-agent",
   objective: "Research and summarize AI trends",
   provider,          // BaseProvider instance
-  model: "claude-sonnet-4-6",
+  model: "claude-sonnet-5",
   tools: [readFileTool, writeFileTool, searchTool],
   outputSchema: {    // Optional: structured output
     type: "object",
@@ -166,6 +165,39 @@ for await (const msg of agent.execute(ctx)) {
 
 const result = agent.getResults();
 ```
+
+## Google Workspace Tools (`src/tools/google-workspace-tools.ts`)
+
+Drive, Gmail, Docs, Sheets and Calendar tools that authenticate with the access
+token from the user's Google sign-in — there is no API key. The Supabase Google
+login hands the browser a `provider_token`, the web app posts it to
+`POST /api/oauth/google/session`, and the server stores it as an
+`OAuthCredential` under provider `google`. Tools read it back through the
+virtual secret key `GOOGLE_ACCESS_TOKEN`, which `getSecret` routes to
+`resolveGoogleAccessToken` (refreshing a stale token when `GOOGLE_CLIENT_ID` and
+`GOOGLE_CLIENT_SECRET` are set).
+
+They are not in `BUILTIN_TOOL_CLASSES`. A server without a login can never
+produce a token, so the chat toolbelt adds them only when
+`isGoogleWorkspaceEnabled()` (`@nodetool-ai/config`) is true — Supabase auth
+mode, or `NODETOOL_GOOGLE_WORKSPACE=1`. The matching `lib.google.*` nodes are
+filtered out of `/api/nodes/metadata` under the same condition.
+
+```ts
+import {
+  getGoogleWorkspaceTools,
+  registerGoogleWorkspaceTools
+} from "@nodetool-ai/agents";
+
+if (isGoogleWorkspaceEnabled()) {
+  registerGoogleWorkspaceTools();   // makes resolveTool(name) work
+  toolbelt.push(...getGoogleWorkspaceTools());
+}
+```
+
+A missing or revoked credential surfaces as `{ error }` telling the user to sign
+in with Google again, rather than throwing — the agent can then pick another
+route instead of failing the whole step.
 
 ## Plan Approval Gate
 
@@ -259,6 +291,276 @@ const agent = new Agent({
 | `DEFAULT_MAX_STEP_ITERATIONS` | 10 | `parallel-task-executor.ts` |
 | `DEFAULT_MAX_STEPS` | 50 | `task-executor.ts` |
 | `MAX_RETRIES` (planning) | 3 | `task-planner.ts` |
+
+## Script Mode (code-shaped orchestration)
+
+The third planning mode next to `TaskPlan` and the graph planner: the LLM
+authors a JavaScript *orchestration script* (`ScriptPlanner`), and
+`ScriptRunner` executes it in the QuickJS sandbox. Every `agent()` call in the
+script runs a real `StepExecutor` sub-agent on the host. A script expresses
+what a static DAG cannot — loops until a condition holds, budget-scaled
+fan-out, dedup between rounds, early exit.
+
+```typescript
+const agent = new Agent({
+  name: "researcher",
+  objective: "Find and verify 5 claims about X",
+  provider, model,
+  useScriptPlanner: true,          // LLM writes the script
+  // script: "...",                // or supply one directly (skips planning)
+  maxConcurrentAgents: 8,          // semaphore over concurrent agent() calls
+  maxAgentCalls: 100               // lifetime cap per run
+});
+```
+
+Guest API (see `SCRIPT_PRELUDE` in `script-runner.ts`):
+
+| Primitive | Behavior |
+|---|---|
+| `await agent(prompt, opts?)` | Run a sub-agent. `opts.schema` → structured result via `finish_step`; `opts.tools` restricts the toolset; `opts.label` names progress events. Throws on failure. |
+| `await parallel(thunks)` | Concurrent thunks; a failure resolves to `null` instead of rejecting the batch. |
+| `await pipeline(items, ...stages)` | Each item flows through all stages independently (no barrier). Stages receive `(prev, originalItem, index)`. |
+| `log(message)` | Emits a `log_update` to the host event stream. |
+| `budget` | `maxAgentCalls`, `agentCalls()`, `remainingCalls()`, `await spentUsd()`. |
+| `inputs` | Caller-supplied inputs object. |
+
+The script's `return` value becomes `agent.getResults()`. Sub-agents share
+`context.memory` as usual, and concurrency is bounded host-side by a semaphore
+(`maxConcurrentAgents`, default 8) plus a lifetime call cap (`maxAgentCalls`,
+default 100) — calls past the cap fail with a budget error the script can
+handle (`budget.remainingCalls()` guards loops). Script failures (syntax
+error, uncaught exception, wall-clock timeout — default 60 min including
+sub-agent time) throw from `Agent.execute`.
+
+Host bridges never reject (the QuickJS handle-leak rule from
+`js-sandbox.ts` applies): `__runAgent` resolves `{ok, result|error}` envelopes
+and the guest `agent()` re-throws.
+
+Tests: `tests/script-runner.test.ts`, `tests/script-planner.test.ts`,
+`tests/agent-script-mode.test.ts`.
+
+## Graph Mode (one-shot DSL planning)
+
+`GraphPlanner` builds a workflow graph by having the LLM write ONE graph DSL
+program instead of a tool call per node/edge. Discovery tools (`search_nodes`,
+`get_node_info`, `list_nodes`, `find_model`) stay; construction goes through a
+single `submit_graph(code)` tool. The program is plain JavaScript with the
+same wiring semantics as `@nodetool-ai/dsl` — `node(type, properties)` creates
+a node, passing `ref.output(slot?)` as a property value becomes an edge, and
+the program ends with `return graph();`:
+
+```js
+const prompt = node("nodetool.input.StringInput", { name: "prompt" });
+const image = node("nodetool.image.TextToImage", {
+  prompt: prompt.output(),
+  model: { provider: "fal_ai", id: "fal-ai/flux/schnell" }
+});
+node("nodetool.output.ImageOutput", { name: "image", value: image.output() });
+return graph();
+```
+
+The program runs in the QuickJS sandbox (`evaluateGraphDsl` in
+`src/graph-dsl.ts` — no host access), is loaded into a `GraphBuilder`, and
+validated structurally plus with node-sdk's `validateGraph`. Failures return
+as the `submit_graph` tool result, so the model fixes the program and
+resubmits over feedback rounds; an accepted submission ends the loop. The
+outer retry (`maxRetries`, default 3) carries the last program and its errors
+into a fresh attempt when the model stops without an accepted graph.
+
+Tests: `tests/graph-dsl.test.ts`, `tests/graph-planner-coverage.test.ts`,
+`tests/graph-planner-loop.test.ts`.
+
+### Eval suite
+
+`src/evals/` carries a provider-agnostic evaluation harness for the planner:
+`GRAPH_PLANNER_EVAL_CASES` (objectives + structural expectations — input
+wiring, node-family patterns, branch handles, no provider-locked nodes) and
+`runGraphPlannerEval` (metrics per case: accepted, score, submit rounds,
+tool calls, attempts, duration, cost; aggregate: success rate, one-shot rate,
+averages). Run it against any registered provider:
+
+```bash
+npm run dev:nodetool -- eval graph-planner --list
+npm run dev:nodetool -- eval graph-planner -p anthropic -m claude-sonnet-5
+npm run dev:nodetool -- eval graph-planner -p ollama -m qwen-3.5:4b --cases summarize
+npm run dev:nodetool -- eval graph-planner -p openai -m gpt-5.4-mini --json --out report.json
+npm run dev:nodetool -- eval graph-planner -p anthropic -m ... --min-success 0.8  # CI gate
+```
+
+Harness tests (scripted provider, no network): `tests/graph-planner-eval.test.ts`.
+
+### Planning-mode eval suites (`task-planner`, `script-planner`)
+
+The graph-planner suite covers graph mode. The other two planning modes have a
+suite each, both scoring the *plan* statically — nothing is executed.
+
+**`task-planner`** runs `TaskPlanner.planMultiTask` and scores the committed
+`TaskPlan`. `PlanBuilder` already rejects structurally broken plans (duplicate
+step ids, dangling deps, cycles), so anything that comes back is valid by
+construction; what it cannot judge is quality, and that is the suite:
+parallel width, decomposition proportional to the objective, real dependencies
+modelled as dependencies, tool routing (`run_python` for arithmetic, not a
+reasoning step), the step-id prefix convention, and the prompt's hard rule that
+final synthesis belongs to the Compiler, not to an "assemble" task. Metrics per
+case: tasks, steps, parallel width, critical-path depth, planner tool calls,
+rejected `add_task`/`finish_plan` calls; aggregate adds a **clean rate** — the
+fraction of plans built without a single rejected call.
+
+**`script-planner`** runs `ScriptPlanner.plan` and scores the authored
+orchestration script by static analysis. `validateScript` already gates the
+submission (non-empty, calls `agent(`, has a `return`, compiles); the suite
+checks the control flow the objective demands — `parallel()`/`pipeline()` for
+independent work, a real `for`/`while` for unknown-size discovery, a
+`budget.remainingCalls()` guard on that loop, a `schema:` on the aggregating
+call — plus universal checks that the script does not shadow a prelude name
+(`agent`, `parallel`, `budget`, …), does not use `import`/`require` (no loader
+in the guest), and stays inside a character budget. Metrics: `agent()` call
+sites, script length, submit rounds, rejected submissions, one-shot rate.
+
+Cases + expectations live in `src/evals/{task,script}-planner-cases.ts`, the
+runners in `src/evals/{task,script}-planner-eval.ts`. Both offer the same
+never-executed tool library (`src/evals/planner-tools.ts`: `web_search`,
+`fetch_page`, `read_file`, `write_file`, `run_python`, `generate_image`) so the
+planner has something concrete to route work to.
+
+```bash
+npm run dev:nodetool -- eval task-planner --list
+npm run dev:nodetool -- eval task-planner -p anthropic -m claude-sonnet-5
+npm run dev:nodetool -- eval script-planner -p openai -m gpt-5.4-mini --min-success 0.8
+IS_SANDBOX=1 npm run dev:nodetool -- eval task-planner -p claude_agent_sdk -m sonnet --no-find-model
+```
+
+Harness tests (scripted provider, no network):
+`tests/task-planner-eval.test.ts`, `tests/script-planner-eval.test.ts`.
+
+**Cost reads `$0` on these two under `claude_agent_sdk`.** Both planners abort
+the provider loop from inside the accepting tool (`finish_plan` /
+`submit_script`), and the SDK only reports token usage on its terminal `result`
+message — which a cancelled query never emits. The run is not free; the usage
+is simply unobservable. Score, timing, and call counts are unaffected.
+
+### Tool-loop eval suites (frontend `ui_*` surfaces)
+
+Where the graph-planner eval measures one-shot DSL authoring, the tool-loop
+harness measures the incremental, multi-turn tool-calling flow the browser UI
+and the agent WebSocket bridge actually expose. A real provider is handed the
+frontend tool contract (names/descriptions/Zod schemas mirrored from
+`web/src/lib/tools/builtin/*`) and drives it against a **headless bridge** —
+a node-side fake that holds the same state shape and applies the same
+mutations, with no browser. `runToolLoopEval` (`src/evals/tool-loop-eval.ts`)
+is generic over the surface: a case supplies a `createBridge` factory
+(`HeadlessSurfaceBridge<TFinal>` — `{ tools, finalState }`) plus structural
+expectations, and the runner reports the same metrics as graph-planner
+(accepted, score, tool calls, duration, cost). Scoring is structural
+(`checkToolLoopExpectations`: required/forbidden tools, ordering, final-state
+predicates, tool-call budgets, no-error-results) — never an exact transcript,
+so many valid tool orderings pass.
+
+Eight suites are registered:
+
+| Suite | Tools | Bridge (`src/evals/`) |
+|---|---|---|
+| `tool-loop` | `ui_*` graph editor | `tool-loop-bridge.ts` |
+| `script-tools` | `ui_script_*` | `surfaces/script.ts` |
+| `sketch-tools` | `ui_sketch_*` | `surfaces/sketch.ts` |
+| `timeline-tools` | `ui_timeline_*` | `surfaces/timeline.ts` |
+| `storyboard-tools` | `ui_storyboard_*` | `surfaces/storyboard.ts` |
+| `model3d-tools` | `ui_3d_*` | `surfaces/model3d.ts` |
+| `app-tools` | `ui_app_*` App Builder | `surfaces/app.ts` |
+| `thread-memory-tools` | `thread_memory_*` / `asset_*` | `surfaces/thread-memory.ts` |
+
+`thread-memory-tools` is the odd one out: instead of reimplementing a browser
+surface, its bridge executes the **real backend tools** (`thread_memory_save`/
+`list`, `asset_search`) plus a stub `generate_image` against an in-memory DB
+(`initTestDb`), so it exercises the actual persistence + resource validation a
+chat turn does. It scores the creative loop: generate media → remember it with
+an asset reference → recall it.
+
+Bridges reuse the pure packages where the real logic already lives —
+`@nodetool-ai/timeline` (`splitClip`, `ANIMATION_PRESETS`, subtitle assembly,
+clip/track factories) — rather than reimplement. The sketch surface reimplements
+its layer-stack ops directly (the image-editor package carries only types, no
+reusable layer logic).
+Browser-only tools (image/asset capture, WebGL viewport render) are scoped out:
+`ui_sketch_get_layer_image`, `ui_sketch_render_to_asset`,
+`ui_timeline_get_clip_frames`, `ui_3d_capture_view`. Storyboard cannot import
+`@nodetool-ai/llm-nodes` (it depends on `@nodetool-ai/agents`), so its
+generate/render jobs are faked by flipping shot status. The app-builder surface
+reimplements only the Puck *layout* ops (nested slot tree: top-level content plus
+slot-valued props on Panel/Columns) headlessly — those live in `web/`
+(`puckDataOps.ts`), which a backend package can't import. Its operation,
+variable, resource, and binding-target tools call the shared doc-ops in
+`@nodetool-ai/app-runtime` (`src/doc-ops.ts`), the same module the browser
+handler calls, so that half of the contract cannot drift. The widget types it
+offers come from `WIDGET_CATALOG` in the same package — every widget the editor
+ships, with the fields each accepts — so `ui_app_list_component_types` reports
+the same catalog headlessly that the browser reads off the live Puck config.
+
+```bash
+npm run dev:nodetool -- eval timeline-tools --list
+npm run dev:nodetool -- eval script-tools -p anthropic -m claude-sonnet-5
+npm run dev:nodetool -- eval sketch-tools -p ollama -m qwen-3.5:4b --cases compose-layers
+npm run dev:nodetool -- eval model3d-tools -p openai -m gpt-5.4-mini --min-success 0.8  # CI gate
+```
+
+Harness tests (scripted provider, no network): `tests/tool-loop-eval.test.ts`
+plus one per surface (`tests/{script,sketch,timeline,storyboard,model3d,app}-tool-loop.test.ts`).
+A live check against a local Ollama model runs when a daemon is reachable:
+`tests/tool-loop-eval.ollama.test.ts`.
+
+**Running against the `claude_agent_sdk` provider.** Two gotchas, both from the
+SDK's own agent loop (not the harness):
+
+- **Turn cap throws.** The SDK raises `error_max_turns` when it reaches its turn
+  limit, so a run that would merely *stop* under a stateless provider (Anthropic,
+  Ollama) instead errors and the case scores `accepted=false`. Its turn
+  accounting also counts each tool round, so the default `--max-iterations 12`
+  is easily exhausted by an over-searching model. Pass a higher cap
+  (`--max-iterations 40`) when driving these suites with `claude_agent_sdk`.
+- **`uid=0` refusal.** The tool path runs the CLI under `bypassPermissions`, which
+  it refuses as root; set `IS_SANDBOX=1` (or run non-root). It must be **exactly
+  `1`** — the SDK's sandbox check is value-sensitive, so an ambient
+  `IS_SANDBOX=yes` (as in Claude Code on the web) does **not** satisfy it and the
+  child exits with code 1 and zero tool calls, which looks like an auth/spawn
+  failure but isn't. Override it explicitly: `IS_SANDBOX=1 npm run …`. See
+  [docs/AGENTS.md § Claude Agent SDK](../../docs/AGENTS.md) for the full
+  nested-session recipe.
+
+```bash
+IS_SANDBOX=1 npm run dev:nodetool -- eval timeline-tools \
+  -p claude_agent_sdk -m sonnet --max-iterations 40 --no-find-model
+```
+
+### Sub-agent execution eval (`subtask`)
+
+Where the tool-loop suites score a model on one flat tool surface, the
+`subtask` suite scores `RunSubtaskTool` — the primitive that lets an agent
+decompose work by spawning a fresh child agent that inherits the parent's
+toolset. It runs a real `StepExecutor` parent equipped with `run_subtask` plus
+six instrumented worker tools (`calculate`, `kv_write`, `kv_read`,
+`lookup_fact`, `slugify`, `flaky_fail`), each objective written to force
+delegation. The tools are shared instances at both levels; each records the
+`SUBTASK_DEPTH_KEY` it ran at, so the scorer distinguishes "the parent did it
+itself" (depth 0) from "the parent delegated and the child did it" (depth >=
+1). Scoring is structural (`checkSubtaskExpectations`): required parent tools,
+required *child* tools, forbidden tools, subtask-count and depth bounds, no
+failed subtasks, required store keys, and answer/subtask-result substrings.
+Cases + tools live in `src/evals/subtask-cases.ts`, the runner in
+`src/evals/subtask-eval.ts`.
+
+```bash
+npm run dev:nodetool -- eval subtask --list
+npm run dev:nodetool -- eval subtask -p anthropic -m claude-sonnet-5
+npm run dev:nodetool -- eval subtask -p openai -m gpt-5.4-mini --cases all-tools
+IS_SANDBOX=1 npm run dev:nodetool -- eval subtask \
+  -p claude_agent_sdk -m sonnet --max-iterations 40 --no-find-model
+```
+
+Its cases do not use `find_model`, so `--no-find-model` does not skip them —
+the primary `-p` provider runs both the parent and every subtask. A low score
+with `subtasks=0` is a real finding, not a harness bug: a capable model often
+does trivial single-step work inline instead of delegating. Harness tests
+(scripted provider, no network): `tests/subtask-eval.test.ts`.
 
 ## Observing LLM Steps and Planning
 
@@ -392,7 +694,7 @@ Use separate models for planning vs execution to optimize cost/quality:
 ```typescript
 const agent = new Agent({
   model: "claude-haiku-4-5",           // Fast/cheap for step execution
-  planningModel: "claude-sonnet-4-6",  // Better for plan decomposition
+  planningModel: "claude-sonnet-5",  // Better for plan decomposition
   reasoningModel: "claude-opus-4-6",   // Best for complex reasoning
   ...
 });

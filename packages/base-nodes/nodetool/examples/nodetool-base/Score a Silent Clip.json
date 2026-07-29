@@ -1,0 +1,250 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-06-21T16:03:52.969Z",
+  "updated_at": "2026-06-21T16:55:51.256Z",
+  "name": "Score a Silent Clip",
+  "tool_name": null,
+  "description": "Give a clip a soundtrack. Describe the mood, Stable Audio on fal.ai writes a bed to match the clip's length, and the mix is laid under the original audio. Cheaper than the video templates — one audio generation per run.",
+  "tags": [
+    "video",
+    "audio",
+    "music",
+    "example"
+  ],
+  "thumbnail": "Score a Silent Clip.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "comment-1",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "Score a Silent Clip",
+          "comment": [
+            "Put a soundtrack under a clip.\n\n",
+            "Set duration to match your clip: a bed shorter than the video leaves silence at the tail.\n\n",
+            "mix stays on so the original audio survives underneath. Turn it off to replace the track outright."
+          ]
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 170
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "in-video",
+        "type": "nodetool.input.VideoInput",
+        "data": {
+          "name": "clip",
+          "value": null,
+          "description": "The clip to score"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 240
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Clip"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "in-mood",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "mood",
+          "value": "Warm analogue synth bed, slow pulse, hopeful but restrained, no drums",
+          "description": "The mood of the score"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Mood"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "score",
+        "type": "nodetool.audio.TextToMusic",
+        "data": {
+          "model": {
+            "type": "music_model",
+            "provider": "fal_ai",
+            "id": "fal-ai/stable-audio-25/text-to-audio",
+            "name": "Stable Audio 2.5",
+            "path": null
+          },
+          "lyrics": "",
+          "duration": 12.0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 400,
+            "y": 380
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Write the score (fal)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "mix",
+        "type": "nodetool.video.AddAudio",
+        "data": {
+          "volume": 0.35,
+          "mix": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 760,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Lay it under"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "output-scored",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "scored_clip"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1120,
+            "y": 320
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "5  Scored clip"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in-mood",
+        "sourceHandle": "output",
+        "target": "score",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e2",
+        "source": "in-video",
+        "sourceHandle": "output",
+        "target": "mix",
+        "targetHandle": "video"
+      },
+      {
+        "id": "e3",
+        "source": "score",
+        "sourceHandle": "audio",
+        "target": "mix",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e4",
+        "source": "mix",
+        "sourceHandle": "output",
+        "target": "output-scored",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "clip": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "const": "video"
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      },
+      "mood": {
+        "type": "string",
+        "default": "Warm analogue synth bed, slow pulse, hopeful but restrained, no drums",
+        "label": ""
+      }
+    },
+    "required": [
+      "clip",
+      "mood"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "scored_clip": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "const": "video"
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      }
+    },
+    "required": [
+      "scored_clip"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "e31acfae86ee104dbf9df243c9ba6084"
+}

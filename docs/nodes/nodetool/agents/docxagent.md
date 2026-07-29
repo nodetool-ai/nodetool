@@ -11,8 +11,8 @@ namespace: "nodetool.agents"
 
 ## Description
 
-Prompt-driven DOCX creation skill.
-    skills, docx, word, document creation, docx-js
+Create Word (.docx) documents from a plain-language description.
+    agent, docx, word, document
 
 ## Properties
 

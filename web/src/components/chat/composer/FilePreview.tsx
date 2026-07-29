@@ -1,7 +1,7 @@
 import React from "react";
 import FileIcon from "@mui/icons-material/InsertDriveFile";
-import { ResponsiveImage } from "../../ui_primitives/ResponsiveImage";
-import { CloseButton } from "../../ui_primitives/CloseButton";
+import { ResponsiveImage } from "../../ui_primitives";
+import { CloseButton } from "../../ui_primitives";
 import { BORDER_RADIUS } from "../../ui_primitives";
 import { DroppedFile } from "../types/chat.types";
 

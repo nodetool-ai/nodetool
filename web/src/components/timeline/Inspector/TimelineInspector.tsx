@@ -1,16 +1,13 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useCallback, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { memo, useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
-import ContentCutOutlinedIcon from "@mui/icons-material/ContentCutOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
-import { useTimelinePlaybackStoreApi } from "../../../stores/timeline/TimelineInstance";
 import { findClipById } from "../../../stores/timeline/clipLookup";
 import { usePersistedFold } from "./usePersistedFold";
 import {
@@ -19,10 +16,9 @@ import {
   FlexColumn,
   Panel,
   Text,
-  Toast,
   SPACING,
   getSpacingPx,
-  Z_INDEX
+  TextInput
 } from "../../ui_primitives";
 import { trackTypeAccent } from "../Tracks/trackVisuals";
 import {
@@ -32,6 +28,7 @@ import {
   InspectorPillInput,
   InspectorRow,
   InspectorSectionTitle,
+  InspectorSelect,
   InspectorStaticValue,
   InspectorToggleRow
 } from "./InspectorPrimitives";
@@ -40,8 +37,8 @@ import {
   parseSeconds,
   parseTimecode
 } from "./InspectorPrimitives.helpers";
-import { ClipActions } from "./ClipActions";
 import { ClipAdjustments } from "./ClipAdjustments";
+import { ClipAnimations } from "./ClipAnimations";
 import { GeneratedClipPanel } from "./GeneratedClipPanel";
 import { DirectGenClipPanel } from "./DirectGenClipPanel";
 
@@ -61,7 +58,7 @@ const sectionContentStyles = (theme: Theme) =>
     display: "flex",
     flexDirection: "column",
     gap: 2,
-    padding: theme.spacing(1, 0, 3)
+    padding: theme.spacing(0.5, 0, 2)
   });
 
 const inspectorPanelSx = {
@@ -72,23 +69,11 @@ const inspectorPanelSx = {
   boxSizing: "border-box"
 };
 
-// Identity + clip action toolbar, pinned to the top of the scrolling panel so
-// actions stay reachable (matching the generated-clip panels). Full-bleed via
-// negative margins that cancel the panel's padding.
-const stickyTopStyles = (theme: Theme) =>
-  css({
-    position: "sticky",
-    top: 0,
-    zIndex: Z_INDEX.sticky,
-    backgroundColor: theme.vars.palette.background.default,
-    marginTop: `-${getSpacingPx(SPACING.md)}`,
-    marginLeft: `-${getSpacingPx(SPACING.lg)}`,
-    marginRight: `-${getSpacingPx(SPACING.lg)}`,
-    paddingTop: getSpacingPx(SPACING.md),
-    paddingLeft: getSpacingPx(SPACING.lg),
-    paddingRight: getSpacingPx(SPACING.lg),
-    borderBottom: `1px solid ${theme.vars.palette.divider}`
-  });
+const TEXT_ALIGNMENTS = [
+  { value: "left", label: "Left" },
+  { value: "center", label: "Center" },
+  { value: "right", label: "Right" }
+] as const;
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
@@ -97,7 +82,6 @@ const clamp = (value: number, min: number, max: number) =>
 
 export const TimelineInspector: React.FC = memo(() => {
   const theme = useTheme();
-  const navigate = useNavigate();
 
   const selectedClipIds = useTimelineUIStore((s) => s.selectedClipIds);
   const clipId = selectedClipIds.size === 1 ? [...selectedClipIds][0] : null;
@@ -106,24 +90,19 @@ export const TimelineInspector: React.FC = memo(() => {
   // Persisted fold state — closed by default, remembered across selections
   // and reloads via localStorage.
   const [mediaOpen, setMediaOpen] = usePersistedFold("media");
+  const [textOpen, setTextOpen] = usePersistedFold("text");
   const [timingOpen, setTimingOpen] = usePersistedFold("timing");
 
   const clip = useTimelineStore((s) =>
     clipId ? (findClipById(s.clips, clipId) ?? null) : null
   );
+  const textStyle = clip?.mediaType === "text" ? clip.textStyle : undefined;
   const track = useTimelineStore((s) =>
     clip ? s.tracks.find((t) => t.id === clip.trackId) : null
   );
   const fps = useTimelineStore((s) => s.fps);
   const deleteSelected = useTimelineStore((s) => s.deleteSelected);
-  const splitClipAtTime = useTimelineStore((s) => s.splitClipAtTime);
   const patchClip = useTimelineStore((s) => s.patchClip);
-  // The playhead is read imperatively only when splitting (a click). Subscribing
-  // reactively would re-render this large panel on every seek/scrub for no
-  // visible benefit.
-  const playbackApi = useTimelinePlaybackStoreApi();
-  const setSelection = useTimelineUIStore((s) => s.setSelection);
-  const [toast, setToast] = useState<string | null>(null);
 
   const onPatchNumber = useCallback(
     (field: string, raw: string, min?: number, max?: number) => {
@@ -136,27 +115,6 @@ export const TimelineInspector: React.FC = memo(() => {
     },
     [clipId, patchClip]
   );
-
-  const isAudio = clip?.mediaType === "audio";
-  const isOverlay = track?.type === "overlay";
-
-  // ── Header action handlers ──────────────────────────────────────────────
-
-  const handleSplitAtPlayhead = useCallback(() => {
-    if (!clip) return;
-    const at = playbackApi.getState().getTimeMs();
-    if (at > clip.startMs && at < clip.startMs + clip.durationMs) {
-      splitClipAtTime(clip.id, at);
-    } else {
-      setToast("Move the playhead inside the clip to split it.");
-    }
-  }, [clip, playbackApi, splitClipAtTime]);
-
-  const handleDelete = useCallback(() => {
-    if (!clipId) return;
-    deleteSelected(new Set([clipId]));
-    setSelection([]);
-  }, [clipId, deleteSelected, setSelection]);
 
   // ── Identity metadata ───────────────────────────────────────────────────
 
@@ -180,7 +138,12 @@ export const TimelineInspector: React.FC = memo(() => {
 
   if (selectedCount === 0) {
     return (
-      <Panel css={containerStyles} sx={inspectorPanelSx}>
+      <Panel
+        background="default"
+        bordered={false}
+        css={containerStyles}
+        sx={inspectorPanelSx}
+      >
         <InspectorHeader eyebrow="Inspector" />
         <EmptyState
           variant="empty"
@@ -194,7 +157,12 @@ export const TimelineInspector: React.FC = memo(() => {
 
   if (selectedCount > 1) {
     return (
-      <Panel css={containerStyles} sx={inspectorPanelSx}>
+      <Panel
+        background="default"
+        bordered={false}
+        css={containerStyles}
+        sx={inspectorPanelSx}
+      >
         <InspectorHeader
           eyebrow={`${selectedCount} Clips`}
           actions={[
@@ -231,32 +199,103 @@ export const TimelineInspector: React.FC = memo(() => {
   // ── Imported-clip inspector ─────────────────────────────────────────────
 
   return (
-    <Panel css={containerStyles} sx={inspectorPanelSx}>
-      <div css={stickyTopStyles(theme)}>
-        <InspectorHeader
-          eyebrow="Clip"
-          actions={[
-            {
-              icon: <ContentCutOutlinedIcon />,
-              label: "Split at playhead",
-              onClick: handleSplitAtPlayhead
-            },
-            {
-              icon: <DeleteOutlineOutlinedIcon />,
-              label: "Delete clip",
-              onClick: handleDelete,
-              variant: "danger"
-            }
-          ]}
-        />
-        <ClipActions clipId={clip.id} />
-      </div>
-
+    <Panel
+      background="default"
+      bordered={false}
+      css={containerStyles}
+      sx={inspectorPanelSx}
+    >
       <ClipIdentityCard
         name={clip.name}
         metadata={identityMeta}
         accentColor={accentColor}
       />
+
+      {textStyle && (
+        <>
+          <CollapsibleSection
+            title={
+              <InspectorSectionTitle
+                title="Text"
+                icon={<PermMediaOutlinedIcon />}
+              />
+            }
+            open={textOpen}
+            onToggle={setTextOpen}
+            unmountOnExit
+          >
+            <FlexColumn css={sectionContentStyles(theme)}>
+              <TextInput
+                value={textStyle.text}
+                multiline
+                minRows={3}
+                fullWidth
+                onChange={(event) =>
+                  patchClip(clip.id, {
+                    textStyle: { ...textStyle, text: event.target.value }
+                  })
+                }
+                inputProps={{ "aria-label": "Text content" }}
+              />
+              <InspectorRow label="Font size">
+                <InspectorPillInput
+                  value={String(textStyle.fontSizePx)}
+                  unit="px"
+                  onCommit={(raw) => {
+                    const fontSizePx = Number(raw);
+                    if (!Number.isFinite(fontSizePx) || fontSizePx < 1) return;
+                    patchClip(clip.id, {
+                      textStyle: { ...textStyle, fontSizePx }
+                    });
+                  }}
+                  ariaLabel="Text font size"
+                />
+              </InspectorRow>
+              <InspectorRow label="Weight">
+                <InspectorPillInput
+                  value={String(textStyle.fontWeight ?? 400)}
+                  onCommit={(raw) => {
+                    const fontWeight = Number(raw);
+                    if (!Number.isFinite(fontWeight) || fontWeight < 1) return;
+                    patchClip(clip.id, {
+                      textStyle: { ...textStyle, fontWeight }
+                    });
+                  }}
+                  ariaLabel="Text font weight"
+                />
+              </InspectorRow>
+              <InspectorRow label="Color">
+                <TextInput
+                  type="color"
+                  value={textStyle.color}
+                  onChange={(event) =>
+                    patchClip(clip.id, {
+                      textStyle: { ...textStyle, color: event.target.value }
+                    })
+                  }
+                  inputProps={{ "aria-label": "Text color" }}
+                />
+              </InspectorRow>
+              <InspectorRow label="Align">
+                <InspectorSelect
+                  label="Text alignment"
+                  value={textStyle.align ?? "center"}
+                  options={TEXT_ALIGNMENTS}
+                  onChange={(value) =>
+                    patchClip(clip.id, {
+                      textStyle: {
+                        ...textStyle,
+                        align: value as "left" | "center" | "right"
+                      }
+                    })
+                  }
+                />
+              </InspectorRow>
+            </FlexColumn>
+          </CollapsibleSection>
+          <InspectorDivider />
+        </>
+      )}
 
       <CollapsibleSection
         title={
@@ -309,6 +348,7 @@ export const TimelineInspector: React.FC = memo(() => {
             <InspectorPillInput
               value={(clip.durationMs / 1000).toFixed(2)}
               unit="s"
+              scrub={{ step: 0.02, min: 0.01 }}
               onCommit={(raw) => {
                 const ms = parseSeconds(raw);
                 if (ms == null || ms < 1) return;
@@ -321,9 +361,8 @@ export const TimelineInspector: React.FC = memo(() => {
             <InspectorPillInput
               value={(clip.speedMultiplier ?? 1).toFixed(2)}
               unit="×"
-              onCommit={(raw) =>
-                onPatchNumber("speedMultiplier", raw, 0.1, 8)
-              }
+              scrub={{ step: 0.01, min: 0.1, max: 8 }}
+              onCommit={(raw) => onPatchNumber("speedMultiplier", raw, 0.1, 8)}
               ariaLabel="Playback speed"
             />
           </InspectorRow>
@@ -337,12 +376,7 @@ export const TimelineInspector: React.FC = memo(() => {
 
       <ClipAdjustments clip={clip} />
 
-      <Toast
-        open={toast !== null}
-        message={toast ?? ""}
-        onClose={() => setToast(null)}
-        severity="info"
-      />
+      <ClipAnimations clip={clip} />
     </Panel>
   );
 });

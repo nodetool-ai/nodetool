@@ -1,9 +1,6 @@
 import { customType } from "drizzle-orm/sqlite-core";
 
-/**
- * Custom Drizzle column type that stores JSON as TEXT in SQLite.
- * Handles serialization/deserialization automatically.
- */
+/** Drizzle column type that stores JSON as TEXT in SQLite. */
 export const jsonText = <T>() =>
   customType<{ data: T; driverData: string }>({
     dataType() {

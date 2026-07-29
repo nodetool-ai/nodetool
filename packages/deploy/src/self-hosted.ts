@@ -220,11 +220,8 @@ export class LocalExecutor {
   }
 
   /**
-   * Execute a command locally.
-   *
-   * Matches SSHConnection behavior by running in a shell.
-   * This allows shell features like pipes, redirects, &&/|| operators,
-   * and environment variable assignments.
+   * Execute a command locally in a shell, so pipes, redirects, &&/||, and
+   * environment-variable assignments work as they do over SSH.
    */
   async execute(
     command: string,
@@ -600,16 +597,12 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
         await this.createDirectories(executor, results);
         await this.ensureImage(executor, results);
 
-        // Stop existing container if present
         await this.stopExistingContainer(executor, results);
 
-        // Start container
         const containerRunHash = await this.startContainer(executor, results);
 
-        // Check health
         await this.checkHealth(executor, results);
 
-        // Update state with success
         const containerName = this.containerName();
         await this.stateManager.writeState(this.deploymentName, {
           status: DeploymentStatus.RUNNING,
@@ -902,7 +895,6 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
         const containerName = this.containerName();
         const runtime = this.runtimeCommandForShell();
 
-        // Stop container
         try {
           await ssh.execute(
             `${runtime} stop ${safeShellQuote(containerName)}`,
@@ -918,7 +910,6 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
           }
         }
 
-        // Remove container
         try {
           await ssh.execute(
             `${runtime} rm ${safeShellQuote(containerName)}`,
@@ -933,7 +924,6 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
           throw e;
         }
 
-        // Update state
         await this.stateManager.updateDeploymentStatus(
           this.deploymentName,
           DeploymentStatus.DESTROYED

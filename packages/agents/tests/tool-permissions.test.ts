@@ -49,7 +49,7 @@ function gateOne(
 describe("permissionCategoryFor", () => {
   it("classifies known tools", () => {
     expect(permissionCategoryFor("read_file")).toBe("read");
-    expect(permissionCategoryFor("google_search")).toBe("read");
+    expect(permissionCategoryFor("web_search")).toBe("read");
     expect(permissionCategoryFor("write_file")).toBe("write");
     expect(permissionCategoryFor("run_node")).toBe("execute");
     expect(permissionCategoryFor("run_workflow")).toBe("execute");

@@ -9,11 +9,12 @@
  */
 
 import { pack, unpack } from 'msgpackr';
-import { 
-  ConnectionState, 
+import {
+  ConnectionState,
   WebSocketConfig,
-  WebSocketMessageData 
+  WebSocketMessageData
 } from '../types/chat';
+import { isAppForeground, subscribeAppLifecycle } from '../hooks/useAppLifecycle';
 
 type WebSocketMessage = { type: string };
 
@@ -48,7 +49,10 @@ const STATE_TRANSITIONS: Record<string, { from: ConnectionState[]; to: Connectio
     to: 'reconnecting',
   },
   failed: {
-    from: ['connecting', 'reconnecting'],
+    // 'disconnected' included so a close that exhausts (or forbids) reconnects
+    // reaches the terminal state instead of being indistinguishable from an
+    // ordinary disconnect. Mirrors the web manager.
+    from: ['connecting', 'reconnecting', 'disconnected'],
     to: 'failed',
   },
 };
@@ -59,14 +63,27 @@ export class WebSocketManager {
   private state: ConnectionState = 'disconnected';
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private connectionTimer: ReturnType<typeof setTimeout> | null = null;
+  private livenessTimer: ReturnType<typeof setInterval> | null = null;
+  private lastInboundAt = 0;
+  private probeSentAt = 0;
   private reconnectAttempt = 0;
   private intentionalDisconnect = false;
   private messageQueue: WebSocketMessage[] = [];
   private connectionResolver: (() => void) | null = null;
   private connectionRejector: ((error: Error) => void) | null = null;
   private callbacks: WebSocketCallbacks = {};
+  private backgrounded = false;
+  private lifecycleUnsubscribe: (() => void) | null = null;
 
   constructor(config: WebSocketConfig) {
+    this.backgrounded = !isAppForeground();
+    this.lifecycleUnsubscribe = subscribeAppLifecycle((event) => {
+      if (event === 'foreground') {
+        this.handleForeground();
+      } else {
+        this.handleBackground();
+      }
+    });
     this.config = {
       url: config.url,
       reconnect: config.reconnect ?? true,
@@ -74,6 +91,8 @@ export class WebSocketManager {
       reconnectDecay: config.reconnectDecay ?? 1.5,
       reconnectAttempts: config.reconnectAttempts ?? 10,
       timeoutInterval: config.timeoutInterval ?? 30000,
+      heartbeatInterval: config.heartbeatInterval ?? 45000,
+      heartbeatTimeout: config.heartbeatTimeout ?? 10000,
       headers: config.headers ?? {},
     };
   }
@@ -110,6 +129,74 @@ export class WebSocketManager {
 
   public isConnected(): boolean {
     return this.state === 'connected' && this.ws?.readyState === WebSocket.OPEN;
+  }
+
+  private handleForeground(): void {
+    this.backgrounded = false;
+    this.resumeFromBackground();
+  }
+
+  private handleBackground(): void {
+    this.backgrounded = true;
+    this.pauseForBackground();
+  }
+
+  /**
+   * Bring the socket back after the app was suspended. A healthy connection is
+   * left alone; otherwise the backoff counter is reset and a reconnect starts
+   * immediately rather than waiting out an exponential delay that was scheduled
+   * (or skipped) while the app was in the background.
+   *
+   * Idempotent — safe to call from both the AppState listener and an owner.
+   */
+  public resumeFromBackground(): void {
+    if (this.isConnected()) {
+      // The socket may be half-open: suspended radios and cellular/wifi
+      // handoffs kill connections without an onclose, and readyState keeps
+      // saying OPEN. Make it prove otherwise.
+      this.checkLiveness();
+      return;
+    }
+
+    if (
+      this.intentionalDisconnect ||
+      !this.config.reconnect ||
+      this.state === 'connecting' ||
+      this.state === 'reconnecting' ||
+      this.state === 'disconnecting'
+    ) {
+      return;
+    }
+
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    this.reconnectAttempt = 0;
+
+    if (this.state === 'connected') {
+      // State says connected but the socket isn't OPEN — it died while
+      // suspended without an onclose. Close it so handleClose drives recovery.
+      console.log('WebSocket: app foregrounded with a stale socket, closing it');
+      this.ws?.close();
+      return;
+    }
+
+    console.log('WebSocket: app foregrounded, reconnecting immediately');
+    void this.reconnect();
+  }
+
+  /**
+   * Stop burning reconnect attempts while the app is suspended. A live socket
+   * is deliberately left open — iOS often keeps short backgrounds alive, and
+   * closing it would drop chat stream continuity for no reason.
+   */
+  public pauseForBackground(): void {
+    if (this.reconnectTimer) {
+      console.log('WebSocket: app backgrounded, cancelling pending reconnect');
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
   }
 
   public async connect(): Promise<void> {
@@ -188,6 +275,8 @@ export class WebSocketManager {
 
     this.callbacks.onOpen?.();
 
+    this.startLivenessWatchdog();
+
     // Process queued messages
     this.processMessageQueue();
 
@@ -200,6 +289,10 @@ export class WebSocketManager {
   }
 
   private async handleMessage(event: WebSocketMessageEvent): Promise<void> {
+    // Any frame proves the socket is alive, decodable or not.
+    this.lastInboundAt = Date.now();
+    this.probeSentAt = 0;
+
     try {
       let data: unknown;
 
@@ -218,12 +311,38 @@ export class WebSocketManager {
         data = unpack(new Uint8Array(buffer));
       }
 
+      if (this.handleLivenessFrame(data)) {
+        return;
+      }
+
       console.log('[WS Receive]', data);
       this.callbacks.onMessage?.(data as WebSocketMessageData);
     } catch (error) {
       console.error('Failed to process message:', error);
       this.callbacks.onError?.(error as Error);
     }
+  }
+
+  /**
+   * Consume heartbeat frames instead of forwarding them: they carry no chat
+   * content. Returns true when the frame was a heartbeat.
+   */
+  private handleLivenessFrame(data: unknown): boolean {
+    const type =
+      data && typeof data === 'object'
+        ? (data as { type?: unknown }).type
+        : undefined;
+
+    if (type === 'ping') {
+      try {
+        this.send({ type: 'pong' });
+      } catch (error) {
+        console.log('Failed to answer server ping:', error);
+      }
+      return true;
+    }
+
+    return type === 'pong';
   }
 
   private async blobToArrayBuffer(blob: Blob): Promise<ArrayBuffer> {
@@ -247,6 +366,7 @@ export class WebSocketManager {
 
     this.ws = null;
     this.clearConnectionTimeout();
+    this.stopLivenessWatchdog();
 
     const wasConnecting =
       this.state === 'connecting' || this.state === 'reconnecting';
@@ -306,6 +426,13 @@ export class WebSocketManager {
 
   private scheduleReconnect(): void {
     if (this.reconnectTimer) {
+      return;
+    }
+
+    if (this.backgrounded) {
+      // Retrying against a suspended radio just exhausts the attempt budget;
+      // resumeFromBackground() reconnects as soon as the app is active again.
+      console.log('WebSocket: app backgrounded, deferring reconnect to foreground');
       return;
     }
 
@@ -379,7 +506,110 @@ export class WebSocketManager {
         Math.pow(this.config.reconnectDecay, this.reconnectAttempt),
       30000 // Max 30 seconds
     );
-    return delay;
+    // Half-to-full jitter. Without it every client that dropped on a server
+    // restart comes back in lockstep and hammers the server as it boots.
+    return delay * (0.5 + Math.random() * 0.5);
+  }
+
+  /**
+   * Ask the socket to prove it is alive right now — used when the environment
+   * hints the connection may have died without notice (app foregrounded).
+   */
+  public checkLiveness(): void {
+    if (this.state !== 'connected') {
+      return;
+    }
+    if (this.ws?.readyState !== WebSocket.OPEN) {
+      this.handleDeadConnection('socket no longer open');
+      return;
+    }
+    this.probeLiveness();
+  }
+
+  private startLivenessWatchdog(): void {
+    this.stopLivenessWatchdog();
+    if (this.config.heartbeatInterval <= 0) {
+      return;
+    }
+
+    this.lastInboundAt = Date.now();
+    this.probeSentAt = 0;
+    // Poll well below the silence threshold so a dead socket is caught within
+    // roughly one heartbeat interval rather than two.
+    const tick = Math.max(1000, Math.floor(this.config.heartbeatInterval / 4));
+    this.livenessTimer = setInterval(() => this.checkForSilence(), tick);
+  }
+
+  private stopLivenessWatchdog(): void {
+    if (this.livenessTimer) {
+      clearInterval(this.livenessTimer);
+      this.livenessTimer = null;
+    }
+    this.probeSentAt = 0;
+  }
+
+  private checkForSilence(): void {
+    if (this.state !== 'connected' || this.backgrounded) {
+      // A suspended app cannot service timers reliably; foregrounding runs the
+      // check explicitly through resumeFromBackground().
+      return;
+    }
+
+    if (this.probeSentAt) {
+      if (Date.now() - this.probeSentAt >= this.config.heartbeatTimeout) {
+        this.handleDeadConnection('no response to heartbeat probe');
+      }
+      return;
+    }
+
+    if (Date.now() - this.lastInboundAt >= this.config.heartbeatInterval) {
+      this.probeLiveness();
+    }
+  }
+
+  private probeLiveness(): void {
+    if (this.probeSentAt) {
+      return;
+    }
+    this.probeSentAt = Date.now();
+    try {
+      this.send({ type: 'ping' });
+    } catch (error) {
+      console.warn('Heartbeat probe failed to send:', error);
+      this.handleDeadConnection('heartbeat probe could not be sent');
+    }
+  }
+
+  /**
+   * Drop a socket the runtime still calls OPEN but that has stopped carrying
+   * traffic. `close()` alone is not enough: the closing handshake on a dead
+   * connection can hang for minutes before `onclose` fires, so detach the
+   * handlers and run the close path ourselves to get reconnect going now.
+   */
+  private handleDeadConnection(reason: string): void {
+    const dead = this.ws;
+    console.warn(`WebSocket appears dead (${reason}); reconnecting`);
+    this.stopLivenessWatchdog();
+
+    if (dead) {
+      dead.onopen = null;
+      dead.onmessage = null;
+      dead.onerror = null;
+      dead.onclose = null;
+      try {
+        dead.close();
+      } catch (error) {
+        console.log('Failed to close dead socket:', error);
+      }
+    }
+
+    this.callbacks.onError?.(
+      new Error(`WebSocket liveness check failed: ${reason}`)
+    );
+    this.handleClose({
+      code: 1006,
+      reason: 'Heartbeat timeout',
+    } as WebSocketCloseEvent);
   }
 
   private startConnectionTimeout(): void {
@@ -403,6 +633,7 @@ export class WebSocketManager {
 
   private clearTimers(): void {
     this.clearConnectionTimeout();
+    this.stopLivenessWatchdog();
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -441,6 +672,8 @@ export class WebSocketManager {
     this.intentionalDisconnect = true;
     this.clearTimers();
     this.callbacks = {};
+    this.lifecycleUnsubscribe?.();
+    this.lifecycleUnsubscribe = null;
 
     if (this.ws) {
       this.ws.close();

@@ -69,6 +69,29 @@ describe("hashPlanKey", () => {
     const b = hashPlanKey({ objective: "obj", tools: ["a"] });
     expect(a).toBe(b);
   });
+
+  it("differs when the output schema differs", () => {
+    // Regression: the key omitted outputSchema, so two requests with the same
+    // objective/tools/model but different schemas collided and reused the wrong
+    // plan.
+    const a = hashPlanKey({
+      objective: "obj",
+      tools: ["a"],
+      outputSchema: { type: "object", properties: { x: { type: "string" } } }
+    });
+    const b = hashPlanKey({
+      objective: "obj",
+      tools: ["a"],
+      outputSchema: { type: "object", properties: { y: { type: "number" } } }
+    });
+    expect(a).not.toBe(b);
+  });
+
+  it("differs when the input keys differ", () => {
+    const a = hashPlanKey({ objective: "obj", tools: ["a"], inputKeys: ["x"] });
+    const b = hashPlanKey({ objective: "obj", tools: ["a"], inputKeys: ["y"] });
+    expect(a).not.toBe(b);
+  });
 });
 
 describe("InMemoryPlanCache", () => {
@@ -91,8 +114,8 @@ describe("FilePlanCache", () => {
     const writer = new FilePlanCache(file);
     await writer.load();
     writer.set(key, plan);
-    // Give the fire-and-forget write a tick to flush.
-    await new Promise((r) => setTimeout(r, 20));
+    // Await the fire-and-forget write instead of racing a fixed delay.
+    await writer.flush();
 
     const reader = new FilePlanCache(file);
     await reader.load();

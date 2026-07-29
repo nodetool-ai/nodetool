@@ -94,7 +94,7 @@ describe("DEFAULT_SETTINGS.model (detectDefaultModel)", () => {
     vi.stubEnv("OPENAI_API_KEY", "");
     vi.stubEnv("GEMINI_API_KEY", "test-gemini");
     const { DEFAULT_SETTINGS } = await import("../src/settings.js");
-    expect(DEFAULT_SETTINGS.model).toBe("gemini-2.0-flash");
+    expect(DEFAULT_SETTINGS.model).toBe("gemini-3.5-flash");
   });
 
   it("returns llama3.2 model for ollama (fallback)", async () => {

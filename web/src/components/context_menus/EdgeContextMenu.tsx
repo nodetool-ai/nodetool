@@ -55,13 +55,11 @@ const EdgeContextMenuComponent: React.FC<EdgeContextMenuProps> = () => {
       return;
     }
 
-    // Convert screen coordinates to flow coordinates
     const flowPosition = reactFlowInstance.screenToFlowPosition({
       x: menuPosition.x,
       y: menuPosition.y
     });
 
-    // Get metadata for the Reroute node
     const rerouteMetadata = getMetadata(REROUTE_NODE_TYPE);
     if (!rerouteMetadata) {
       console.error("Reroute node metadata not found");
@@ -69,13 +67,8 @@ const EdgeContextMenuComponent: React.FC<EdgeContextMenuProps> = () => {
       return;
     }
 
-    // Create a new Reroute node at the click position
     const rerouteNode = createNode(rerouteMetadata, flowPosition);
-
-    // Add the reroute node
     addNode(rerouteNode);
-
-    // Delete the original edge
     deleteEdge(edgeId);
 
     // Create new edges: source -> reroute -> target
@@ -95,7 +88,6 @@ const EdgeContextMenuComponent: React.FC<EdgeContextMenuProps> = () => {
       targetHandle: edge.targetHandle
     };
 
-    // Add the new edges
     addEdge(sourceToReroute);
     addEdge(rerouteToTarget);
 

@@ -1,7 +1,14 @@
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { SvgIconProps } from "@mui/material/SvgIcon";
-import { Box, FlexRow, FlexColumn, Text, BORDER_RADIUS } from "../ui_primitives";
+import {
+  Box,
+  FlexRow,
+  FlexColumn,
+  Text,
+  BORDER_RADIUS,
+  SPACING
+} from "../ui_primitives";
 
 export interface CostStatCardProps {
   label: string;
@@ -37,7 +44,7 @@ const CostStatCardInternal: React.FC<CostStatCardProps> = ({
   const theme = useTheme();
   return (
     <FlexColumn
-      gap={1.5}
+      gap={SPACING.sm}
       sx={{
         flex: "1 1 0",
         minWidth: 200,
@@ -59,11 +66,10 @@ const CostStatCardInternal: React.FC<CostStatCardProps> = ({
         >
           {label}
         </Text>
-        <Box
+        <FlexRow
+          align="center"
+          justify="center"
           sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
             width: 26,
             height: 26,
             borderRadius: BORDER_RADIUS.lg,
@@ -72,10 +78,14 @@ const CostStatCardInternal: React.FC<CostStatCardProps> = ({
           }}
         >
           <Icon sx={{ fontSize: 15 }} />
-        </Box>
+        </FlexRow>
       </FlexRow>
 
-      <FlexRow gap={1} align={isLabel ? "flex-start" : "center"} sx={{ minWidth: 0 }}>
+      <FlexRow
+        gap={SPACING.xs}
+        align={isLabel ? "flex-start" : "center"}
+        sx={{ minWidth: 0 }}
+      >
         {valueDotColor && (
           <Box
             sx={{
@@ -84,7 +94,7 @@ const CostStatCardInternal: React.FC<CostStatCardProps> = ({
               borderRadius: BORDER_RADIUS.sm,
               backgroundColor: valueDotColor,
               flexShrink: 0,
-              mt: isLabel ? "8px" : 0
+              mt: isLabel ? SPACING.md : 0
             }}
           />
         )}
@@ -118,7 +128,12 @@ const CostStatCardInternal: React.FC<CostStatCardProps> = ({
         </Text>
       </FlexRow>
 
-      <FlexRow gap={1} align="center" sx={{ rowGap: 0.5 }} wrap>
+      <FlexRow
+        gap={SPACING.xs}
+        align="center"
+        sx={{ rowGap: SPACING.micro }}
+        wrap
+      >
         {badge}
         <Text size="small" color="secondary">
           {caption}

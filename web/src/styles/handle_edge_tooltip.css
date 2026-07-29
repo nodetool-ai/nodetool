@@ -39,12 +39,12 @@
 }
 
 .MuiTooltip-tooltipPlacementLeft span {
-  border-radius: 4px 0 0 4px;
+  border-radius: var(--rounded-sm) 0 0 var(--rounded-sm);
   padding-right: var(--spacing-md);
 }
 
 .MuiTooltip-tooltipPlacementRight span {
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 var(--rounded-sm) var(--rounded-sm) 0;
   padding-left: var(--spacing-md);
 }
 
@@ -99,9 +99,9 @@
   stroke: var(--palette-grey-400);
   stroke-width: 1.5;
   transition:
-    stroke 0.18s ease-in-out,
-    stroke-opacity 0.2s ease-in-out,
-    stroke-width 0.15s ease-in-out;
+    stroke var(--motion-normal) ease-in-out,
+    stroke-opacity var(--motion-normal) ease-in-out,
+    stroke-width var(--motion-fast) ease-in-out;
 }
 
 /* Dim static edges by default */
@@ -150,7 +150,7 @@
   stroke-linecap: round;
   /* create a repeating dash pattern to simulate flow */
   stroke-dasharray: 14 10;
-  animation: edgeFlow 2s linear infinite;
+  animation: edgeFlow var(--motion-spin) linear infinite;
 }
 
 /* Streaming edges get bigger stroke when animated */
@@ -225,12 +225,12 @@
   visibility: visible !important;
   fill: var(--palette-grey-1000);
   font-size: var(--fontSizeSmaller);
-  transition: all 0.1s;
+  transition: all var(--motion-fast);
 }
 
 /* CONTROL EDGE - dashed edge from Agent nodes to controlled nodes */
 .react-flow .react-flow__edge.control-edge .react-flow__edge-path {
-  stroke: #f59e0b;
+  stroke: var(--palette-warning-main);
   stroke-dasharray: 8 4;
   stroke-width: 2 !important;
   stroke-opacity: 0.7;
@@ -245,10 +245,12 @@
   .react-flow__edges
   .react-flow__edge.control-edge.selected
   .react-flow__edge-path {
-  stroke: #f59e0b !important;
+  stroke: var(--palette-warning-main) !important;
   stroke-width: 3 !important;
   stroke-opacity: 1;
-  filter: drop-shadow(0 0 3px rgba(245, 158, 11, 0.5));
+  filter: drop-shadow(
+    0 0 3px color-mix(in srgb, var(--palette-warning-main) 50%, transparent)
+  );
 }
 
 /* CONTROL HANDLE - special handle at the top/bottom of controlled nodes */
@@ -264,12 +266,12 @@
 
 .react-flow__node .react-flow__handle.control-handle-top {
   top: -6px;
-  border-radius: 4px 4px 0 0;
+  border-radius: var(--rounded-sm) var(--rounded-sm) 0 0;
 }
 
 .react-flow__node .react-flow__handle.control-handle-bottom {
   bottom: -6px;
-  border-radius: 0 0 4px 4px;
+  border-radius: 0 0 var(--rounded-sm) var(--rounded-sm);
 }
 
 /* Control handle visibility */
@@ -283,19 +285,13 @@
   pointer-events: auto;
 }
 
-/* .react-flow.is-connecting
-  .react-flow__node
-  .react-flow__handle.control-handle.not-connectable {
-  transform: translateX(-50%) scale(0.8, 0.6);
-  opacity: 0.8;
-} */
-
 /* HANDLE */
 .react-flow__node .react-flow__handle {
   transform: translate(0, -50%) scale(1, 1);
   transform-origin: right center;
-  transition: transform 0.15s, width 0.15s, height 0.15s, opacity 0.15s,
-    background-color 0.15s, box-shadow 0.15s;
+  transition: transform var(--motion-fast), width var(--motion-fast),
+    height var(--motion-fast), opacity var(--motion-fast),
+    background-color var(--motion-fast), box-shadow var(--motion-fast);
   width: var(--handle_width);
   height: var(--handle_height);
   background-color: var(--palette-grey-700);
@@ -313,7 +309,7 @@
   border-left: 1px solid var(--palette-grey-700);
   border-top: 1px solid var(--palette-grey-700);
   border-bottom: 1px solid var(--palette-grey-700);
-  border-radius: 2px 0 0 2px;
+  border-radius: var(--rounded-xs) 0 0 var(--rounded-xs);
 }
 .react-flow__node .react-flow__handle-right {
   transform-origin: left center;
@@ -322,7 +318,7 @@
   border-bottom: 1px solid var(--palette-grey-700);
   right: calc(-6px - var(--node-body-padding, 0px));
   top: 5px;
-  border-radius: 0 2px 2px 0;
+  border-radius: 0 var(--rounded-xs) var(--rounded-xs) 0;
 }
 
 /* handle hover */
@@ -364,7 +360,7 @@
 .react-flow__node .react-flow__handle-left.collect-handle {
   /* Wider handle to signify multiple inputs */
   height: calc(var(--handle_height) * 1.6);
-  border-radius: 3px 0 0 3px;
+  border-radius: var(--rounded-sm) 0 0 var(--rounded-sm);
   /* Double border effect for visual distinction */
   border-left-width: 3px;
   border-left-style: double;
@@ -402,7 +398,7 @@
 .react-flow__node .react-flow__handle-right.streaming-handle {
   /* Wider handle to signify streaming */
   height: calc(var(--handle_height) * 1.25);
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 var(--rounded-sm) var(--rounded-sm) 0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   position: relative;
   overflow: visible;
@@ -422,11 +418,6 @@
   );
   pointer-events: none;
 }
-
-/* .react-flow__node .react-flow__handle-right.streaming-handle:hover {
-  height: calc(var(--handle_height) * 1.6);
-  transform: translate(0, -50%) scale(1.3, 1);
-} */
 
 /* Enhance visibility during connection */
 .react-flow.is-connecting
@@ -497,15 +488,15 @@ ul.multi-outputs li::marker {
   position: absolute;
   pointer-events: none;
   opacity: 0;
-  z-index: 999;
+  z-index: 1001;
   top: 50%;
   white-space: nowrap;
   width: max-content;
   transform: translateY(calc(-50% + 2px)) scale(0.92);
   transform-origin: center right;
   transition:
-    opacity 320ms ease-out,
-    transform 320ms cubic-bezier(0.2, 0.7, 0.2, 1);
+    opacity var(--motion-slow) ease-out,
+    transform var(--motion-slow) cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 .handle-tooltip.handle-left {
@@ -548,12 +539,18 @@ ul.multi-outputs li::marker {
 }
 
 .handle-tooltip-name {
+  color: color-mix(in srgb, currentColor 68%, var(--palette-common-black));
   font-size: var(--fontSizeSmaller);
   font-weight: 600;
   border: 0;
-  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 1px 1px var(--palette-background-paper);
   padding: 0.25em 0.5em;
   line-height: 1.2;
+}
+
+.dark .handle-tooltip-name {
+  color: currentColor;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
 }
 
 .handle-tooltip-details {
@@ -646,7 +643,7 @@ ul.multi-outputs li::marker {
   stroke-opacity: 1;
   stroke-linecap: round;
   stroke-dasharray: 14 10;
-  animation: edgeFlow 2s linear infinite;
+  animation: edgeFlow var(--motion-spin) linear infinite;
   /* Ensure crisp rendering */
   shape-rendering: geometricPrecision;
 }
@@ -663,7 +660,7 @@ ul.multi-outputs li::marker {
   .react-flow__edge.message-sent[data-type="image"]
   .data-flow-particles
   circle {
-  fill: #3b82f6;
+  fill: var(--palette-primary-main);
 }
 
 /* Audio data particles (purple) */
@@ -671,7 +668,7 @@ ul.multi-outputs li::marker {
   .react-flow__edge.message-sent[data-type="audio"]
   .data-flow-particles
   circle {
-  fill: #a855f7;
+  fill: var(--palette-secondary-main);
 }
 
 /* Text data particles (green) */
@@ -679,7 +676,7 @@ ul.multi-outputs li::marker {
   .react-flow__edge.message-sent[data-type="text"]
   .data-flow-particles
   circle {
-  fill: #22c55e;
+  fill: var(--palette-success-main);
 }
 
 /* Default/unknown data particles (primary color) */
@@ -697,7 +694,7 @@ ul.multi-outputs li::marker {
   .react-flow__edge.message-sent.streaming-active
   .react-flow__edge-path {
   stroke-dasharray: 8 4;
-  animation: edgeFlow 1s linear infinite;
+  animation: edgeFlow var(--motion-spin) linear infinite;
   stroke-width: 3 !important;
 }
 
@@ -720,7 +717,7 @@ ul.multi-outputs li::marker {
   .react-flow__edge.message-sent.gradient-mode
   .react-flow__edge-path {
   stroke-dasharray: 50 50;
-  animation: gradientFlow 3s linear infinite;
+  animation: gradientFlow var(--motion-spin) linear infinite;
 }
 
 /*

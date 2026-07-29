@@ -218,6 +218,13 @@ const styles = (theme: Theme) =>
     ".add-all-button": {
       opacity: 0.6,
       transition: `opacity ${MOTION.normal}`
+    },
+
+    // No hover on touch, so these would stay invisible while still catching
+    // taps over the media tiles.
+    "@media (hover: none)": {
+      ".add-to-canvas-button": { opacity: 1 },
+      ".add-all-button": { opacity: 1 }
     }
   });
 
@@ -264,7 +271,6 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
     [addBlocksToCanvas, mediaContents]
   );
 
-  // Derive a title from the message prompt when possible
   const prompt = useMemo(() => {
     const content = message.content;
     if (typeof content === "string") return content;

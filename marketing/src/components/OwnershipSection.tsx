@@ -6,23 +6,23 @@ import { Shield, Cpu, Globe, Lock } from "lucide-react";
 
 const features = [
   {
-    title: "BYOK, every provider",
+    title: "Your keys, every provider",
     body: "Bring your own keys to FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, and more. Keys stay on your disk in Studio, encrypted in Cloud. We never mark up model calls.",
     icon: Lock,
   },
   {
     title: "Provider prices, no credits",
-    body: "No proprietary tokens. No minimum top-up. You pay providers what they charge. The same Seedance call that costs $0.18 on KIE costs $0.18 in NodeTool.",
+    body: "No in-house credits and no minimum top-up. You pay providers exactly what they charge: a Seedance run that costs $0.18 on KIE costs $0.18 in NodeTool.",
     icon: Shield,
   },
   {
     title: "Open source, always",
-    body: "Both editions — Studio (desktop) and Cloud (hosted) — share the same AGPL-3.0 codebase. No closed-source layer, no “pro tier” hiding the good features. Self-host any time.",
+    body: "Studio on the desktop and Cloud in the browser are built from the same AGPL-3.0 source. Nothing is held back for a paid tier, and you can host it yourself at any time.",
     icon: Globe,
   },
   {
-    title: "Local inference when you want it",
-    body: "MLX, Ollama, llama.cpp, vLLM, LM Studio — fully supported. Runs offline once models are downloaded. Local is a feature, not a religion.",
+    title: "Run models on your own machine",
+    body: "MLX, Ollama, llama.cpp, vLLM, and LM Studio are supported by default. Once a model is downloaded, it keeps running with no internet connection.",
     icon: Cpu,
   },
 ];
@@ -35,41 +35,40 @@ export default function OwnershipSection({
   reducedMotion: _reducedMotion = false,
 }: OwnershipSectionProps) {
   return (
-    <section className="relative py-24 overflow-hidden">
+    <section className="relative py-24 overflow-clip-safe">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-slate-500/5 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="mb-16 text-center max-w-2xl mx-auto">
+        <div className="scroll-fade mb-16 text-center max-w-2xl mx-auto">
           <motion.h2
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
             className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
             Your keys. Your files. <br />
             <span className="text-slate-300">Your roadmap.</span>
           </motion.h2>
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Every closed AI tool ends the same way: a price hike, a worse
-            roster, or an acquisition that quietly rewrites the roadmap.
-            NodeTool calls whatever models you choose, charges you what the
-            providers charge, and ships under a license that outlives whoever
-            built it.
+            Every closed AI tool ends the same way: a price rise, fewer models,
+            or an acquisition that quietly rewrites the roadmap. NodeTool runs
+            whichever models you choose, charges you what the providers charge,
+            and is released under a license that outlives whoever built it.
           </motion.p>
         </div>
 
         <motion.div
-          className="grid grid-cols-1 gap-px sm:grid-cols-2 lg:grid-cols-4 rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/5"
+          className="scroll-fade grid grid-cols-1 gap-px sm:grid-cols-2 lg:grid-cols-4 rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/5"
           initial="hidden"
           whileInView="show"
-          viewport={{ once: true, margin: "-100px" }}
+          viewport={{ once: true, margin: "-40px" }}
           variants={{
             show: { transition: { staggerChildren: 0.08 } },
           }}
@@ -78,8 +77,8 @@ export default function OwnershipSection({
             <motion.div
               key={item.title}
               variants={{
-                hidden: { opacity: 0, y: 16 },
-                show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+                hidden: { opacity: 1, y: 0 },
+                show: { opacity: 1, y: 0, transition: { duration: 0.25 } },
               }}
               className="h-full"
             >

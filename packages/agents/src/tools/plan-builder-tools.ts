@@ -57,17 +57,32 @@ export class PlanBuilder {
     const errors = this.validateNewTask(task);
     if (errors.length > 0) return { ok: false, errors };
 
-    applySchemaOverrides(task.steps);
+    const schemaErrors = applySchemaOverrides(task.steps);
+    if (schemaErrors.length > 0) return { ok: false, errors: schemaErrors };
+
     this.tasks.push(task);
     return { ok: true, task };
   }
 
-  removeTask(id: string): { ok: boolean; error?: string } {
+  removeTask(id: string): { ok: boolean; error?: string; warning?: string } {
     const idx = this.tasks.findIndex((t) => t.id === id);
     if (idx === -1) {
       return { ok: false, error: `Task '${id}' is not in the plan.` };
     }
     this.tasks.splice(idx, 1);
+    // Warn about tasks left depending on the removed id — a dangling
+    // dependency stalls execution and is rejected by finish_plan.
+    const dependents = this.tasks
+      .filter((t) => (t.dependsOn ?? []).includes(id))
+      .map((t) => t.id);
+    if (dependents.length > 0) {
+      return {
+        ok: true,
+        warning: `Task '${id}' was removed but still referenced by depends_on of: ${dependents.join(
+          ", "
+        )}. Update or remove those tasks before finish_plan.`
+      };
+    }
     return { ok: true };
   }
 
@@ -196,6 +211,21 @@ export class PlanBuilder {
       errors.push("Plan must contain at least one task.");
       return errors;
     }
+
+    // Every task-level dependency must reference a task still in the plan.
+    // remove_task can leave a dangling `depends_on` (the dependent would then
+    // never become executable), so re-check the whole set at finish time.
+    const taskIds = new Set(this.tasks.map((t) => t.id));
+    for (const task of this.tasks) {
+      for (const dep of task.dependsOn ?? []) {
+        if (!taskIds.has(dep)) {
+          errors.push(
+            `Task '${task.id}' depends on task '${dep}' which is not in the plan. Add it back or remove the dependency.`
+          );
+        }
+      }
+    }
+
     if (!checkTaskCycles(this.tasks)) {
       errors.push("Circular dependency detected among tasks.");
     }
@@ -261,7 +291,14 @@ function checkTaskCycles(tasks: readonly Task[]): boolean {
   return true;
 }
 
-function applySchemaOverrides(steps: Step[]): void {
+/**
+ * Normalize each step's `output_schema` (default the top-level `type` to
+ * "object"). Returns validation errors for any step whose `output_schema` is
+ * not valid JSON — the caller surfaces them so the model can fix the schema
+ * instead of the malformed schema being silently dropped.
+ */
+function applySchemaOverrides(steps: Step[]): string[] {
+  const errors: string[] = [];
   for (const step of steps) {
     if (!step.outputSchema) continue;
     try {
@@ -275,10 +312,15 @@ function applySchemaOverrides(steps: Step[]): void {
           step.outputSchema = JSON.stringify(parsed);
         }
       }
-    } catch {
-      step.outputSchema = undefined;
+    } catch (e) {
+      errors.push(
+        `Step '${step.id}': output_schema is not valid JSON (${
+          e instanceof Error ? e.message : String(e)
+        }). Provide a valid JSON schema string or omit output_schema.`
+      );
     }
   }
+  return errors;
 }
 
 // ---------------------------------------------------------------------------
@@ -389,7 +431,12 @@ export class RemoveTaskTool extends Tool {
     if (!result.ok) {
       return { status: "error", error: result.error };
     }
-    return { status: "task_removed", id, tasksSoFar: this.builder.taskCount };
+    return {
+      status: "task_removed",
+      id,
+      tasksSoFar: this.builder.taskCount,
+      ...(result.warning ? { warning: result.warning } : {})
+    };
   }
 
   userMessage(params: Record<string, unknown>): string {

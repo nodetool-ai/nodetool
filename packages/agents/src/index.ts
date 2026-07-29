@@ -14,6 +14,14 @@ export { PLAN_APPROVAL_CONTEXT_KEY } from "./types.js";
 
 // Tools
 export { Tool } from "./tools/base-tool.js";
+export {
+  ToolSearchTool,
+  searchTools,
+  formatToolSearchResult,
+  formatDeferredToolsReminder,
+  TOOL_SEARCH_DESCRIPTION
+} from "./tools/tool-search.js";
+export type { ToolSearchEntry } from "./tools/tool-search.js";
 export { FinishStepTool } from "./tools/finish-step-tool.js";
 export { CalculatorTool } from "./tools/calculator-tool.js";
 export {
@@ -33,11 +41,7 @@ export {
   ListDirectoryTool
 } from "./tools/filesystem-tools.js";
 export { DownloadFileTool, HttpRequestTool } from "./tools/http-tools.js";
-export {
-  EditFileTool,
-  GlobTool,
-  GrepTool
-} from "./tools/edit-search-tools.js";
+export { EditFileTool, GlobTool, GrepTool } from "./tools/edit-search-tools.js";
 export { RunCodeTool } from "./tools/code-tools.js";
 export {
   TodoWriteTool,
@@ -57,7 +61,7 @@ export type {
   ExtractedImages
 } from "./tools/image-injection.js";
 export {
-  GoogleSearchTool,
+  WebSearchTool,
   GoogleNewsTool,
   GoogleImagesTool
 } from "./tools/search-tools.js";
@@ -105,6 +109,7 @@ export {
   RunWorkflowTool,
   DebugWorkflowTool,
   ValidateWorkflowTool,
+  PlanWorkflowGraphTool,
   GetExampleWorkflowTool,
   ExportWorkflowDigraphTool,
   ListNodesTool,
@@ -119,6 +124,7 @@ export {
   ListModelsTool,
   getAllMcpTools
 } from "./tools/mcp-tools.js";
+export type { PlanWorkflowGraphToolOptions } from "./tools/mcp-tools.js";
 export {
   ExtractPDFTextTool,
   ExtractPDFTablesTool,
@@ -181,6 +187,11 @@ export {
   registerBuiltinTools,
   resetBuiltinToolsRegistration
 } from "./tools/builtin-tools.js";
+export {
+  GOOGLE_WORKSPACE_TOOL_CLASSES,
+  getGoogleWorkspaceTools,
+  registerGoogleWorkspaceTools
+} from "./tools/google-workspace-tools.js";
 
 export {
   WorkspaceReadTool,
@@ -198,6 +209,15 @@ export {
   TranscribeAudioTool,
   EmbedTextTool
 } from "./tools/media-tools.js";
+export { ImageGenerationTool } from "./tools/image-generation-tool.js";
+export {
+  CritiqueImageTool,
+  CompareImagesTool,
+  ScoreImageAdherenceTool,
+  RecordStylePreferenceTool,
+  GetStyleProfileTool,
+  CREATIVE_CRITIQUE_TOOL_NAMES
+} from "./tools/creative-critique-tools.js";
 export {
   persistOutput,
   workspaceDir as workspaceDirFromContext,
@@ -249,18 +269,15 @@ export {
 } from "./tools/plan-builder-tools.js";
 
 // Graph-native planner tools
+export { SubmitGraphTool } from "./tools/submit-graph-tool.js";
 export { AddNodeTool } from "./tools/add-node-tool.js";
 export { AddEdgeTool } from "./tools/add-edge-tool.js";
+export { RemoveNodeTool } from "./tools/remove-node-tool.js";
+export { RemoveEdgeTool } from "./tools/remove-edge-tool.js";
 export { FinishGraphTool } from "./tools/finish-graph-tool.js";
-export {
-  LocalSearchNodesTool
-} from "./tools/local-search-nodes-tool.js";
-export {
-  LocalGetNodeInfoTool
-} from "./tools/local-get-node-info-tool.js";
-export {
-  LocalListNodesTool
-} from "./tools/local-list-nodes-tool.js";
+export { LocalSearchNodesTool } from "./tools/local-search-nodes-tool.js";
+export { LocalGetNodeInfoTool } from "./tools/local-get-node-info-tool.js";
+export { LocalListNodesTool } from "./tools/local-list-nodes-tool.js";
 
 // Shared JS sandbox engine
 export { buildSandbox, runInSandbox, serializeResult } from "./js-sandbox.js";
@@ -294,9 +311,7 @@ export type {
   CreateDefaultLongTermMemoryOptions,
   MemoryKind as LongTermMemoryKind
 } from "./long-term-memory.js";
-export {
-  formatSynthesizedMemoryForPrompt
-} from "./prompts/memory-synthesis-prompt.js";
+export { formatSynthesizedMemoryForPrompt } from "./prompts/memory-synthesis-prompt.js";
 export type {
   SynthesizedFact,
   FactUtility
@@ -309,6 +324,21 @@ export {
   setLongTermMemory,
   getLongTermMemory
 } from "./tools/ltm-tools.js";
+export {
+  ThreadMemorySaveTool,
+  ThreadMemoryListTool,
+  ThreadMemoryUpdateTool,
+  ThreadMemoryDeleteTool,
+  getThreadMemoryTools,
+  formatThreadMemoriesForPrompt,
+  THREAD_MEMORY_TOOL_NAMES
+} from "./tools/thread-memory-tools.js";
+export {
+  AssetSearchTool,
+  AssetListTool,
+  getAssetLibraryTools,
+  ASSET_LIBRARY_TOOL_NAMES
+} from "./tools/asset-library-tools.js";
 
 // Plan cache + checkpoint store (opt-in planning/execution persistence)
 export {
@@ -335,12 +365,203 @@ export type { ParallelTaskExecutorOptions } from "./parallel-task-executor.js";
 export { CompilerAgent } from "./compiler-agent.js";
 export type { CompilerAgentOptions } from "./compiler-agent.js";
 
+// Script-mode planning & execution (code-shaped orchestration)
+export { ScriptPlanner, validateScript } from "./script-planner.js";
+export type { ScriptPlannerOptions } from "./script-planner.js";
+export {
+  ScriptRunner,
+  SCRIPT_RESERVED_NAMES,
+  DEFAULT_MAX_CONCURRENT_AGENTS,
+  DEFAULT_MAX_AGENT_CALLS
+} from "./script-runner.js";
+export type { ScriptRunnerOptions } from "./script-runner.js";
+export {
+  PlanOrchestrationScriptTool,
+  DEFAULT_TOOL_MAX_AGENT_CALLS
+} from "./tools/plan-orchestration-script-tool.js";
+export type { PlanOrchestrationScriptToolOptions } from "./tools/plan-orchestration-script-tool.js";
+
+// GraphPlanner evaluation harness
+export {
+  runGraphPlannerEval,
+  formatEvalReport,
+  checkExpectations
+} from "./evals/graph-planner-eval.js";
+export type {
+  GraphPlannerEvalCase,
+  GraphPlannerEvalExpectations,
+  GraphPlannerCaseResult,
+  GraphPlannerEvalReport,
+  RunGraphPlannerEvalOptions,
+  EvalCheck
+} from "./evals/graph-planner-eval.js";
+export { GRAPH_PLANNER_EVAL_CASES } from "./evals/graph-planner-cases.js";
+
+// Tool-loop evaluation harness (frontend ui_* tool surface)
+export {
+  runToolLoopEval,
+  formatToolLoopReport,
+  checkToolLoopExpectations
+} from "./evals/tool-loop-eval.js";
+export type {
+  HeadlessSurfaceBridge,
+  ToolLoopEvalCase,
+  ToolLoopEvalExpectations,
+  ToolLoopStatePredicate,
+  ToolLoopObservation,
+  ToolCallRecord,
+  ToolLoopCaseResult,
+  ToolLoopEvalReport,
+  RunToolLoopEvalOptions
+} from "./evals/tool-loop-eval.js";
+export {
+  createToolLoopBridge,
+  DEFAULT_TOOL_NAMES
+} from "./evals/tool-loop-bridge.js";
+export type {
+  ToolLoopInitialState,
+  ToolLoopFinalState,
+  ToolLoopState,
+  HeadlessTool,
+  HeadlessBridge,
+  HeadlessNode,
+  HeadlessEdge
+} from "./evals/tool-loop-bridge.js";
+export { TOOL_LOOP_EVAL_CASES } from "./evals/tool-loop-cases.js";
+
+// Editor-surface tool-loop suites (script, sketch, timeline, storyboard, 3D)
+export {
+  createScriptToolBridge,
+  SCRIPT_TOOL_LOOP_CASES
+} from "./evals/surfaces/script.js";
+export type {
+  ScriptBridgeFinalState,
+  ScriptBridgeInitialState
+} from "./evals/surfaces/script.js";
+export {
+  createSketchToolBridge,
+  SKETCH_TOOL_LOOP_CASES
+} from "./evals/surfaces/sketch.js";
+export type {
+  SketchBridgeFinalState,
+  SketchBridgeInitialState
+} from "./evals/surfaces/sketch.js";
+export {
+  createTimelineToolBridge,
+  TIMELINE_TOOL_LOOP_CASES
+} from "./evals/surfaces/timeline.js";
+export type {
+  TimelineBridgeFinalState,
+  TimelineBridgeInitialState
+} from "./evals/surfaces/timeline.js";
+export {
+  createStoryboardToolBridge,
+  STORYBOARD_TOOL_LOOP_CASES
+} from "./evals/surfaces/storyboard.js";
+export type {
+  StoryboardBridgeFinalState,
+  StoryboardBridgeInitialState
+} from "./evals/surfaces/storyboard.js";
+export {
+  createModel3DToolBridge,
+  MODEL3D_TOOL_LOOP_CASES
+} from "./evals/surfaces/model3d.js";
+export type {
+  Model3DBridgeFinalState,
+  Model3DBridgeInitialState
+} from "./evals/surfaces/model3d.js";
+export {
+  createAppToolBridge,
+  APP_TOOL_LOOP_CASES
+} from "./evals/surfaces/app.js";
+export type {
+  AppBridgeFinalState,
+  AppBridgeInitialState,
+  AppComponentSummary,
+  SeedComponent
+} from "./evals/surfaces/app.js";
+export {
+  createThreadMemoryToolBridge,
+  THREAD_MEMORY_TOOL_LOOP_CASES
+} from "./evals/surfaces/thread-memory.js";
+export type { ThreadMemoryBridgeFinalState } from "./evals/surfaces/thread-memory.js";
+
+// Sub-agent execution evaluation harness (RunSubtaskTool + inherited toolset)
+export {
+  runSubtaskEval,
+  formatSubtaskReport,
+  checkSubtaskExpectations
+} from "./evals/subtask-eval.js";
+export type {
+  SubtaskObservation,
+  SubtaskSpawnRecord,
+  SubtaskCaseResult,
+  SubtaskEvalReport,
+  RunSubtaskEvalOptions
+} from "./evals/subtask-eval.js";
+export {
+  SUBTASK_EVAL_CASES,
+  createInstrumentedTools,
+  createToolRecorder,
+  INSTRUMENTED_TOOL_NAMES
+} from "./evals/subtask-cases.js";
+export type {
+  SubtaskEvalCase,
+  SubtaskEvalExpectations,
+  ToolInvocation,
+  ToolRecorder
+} from "./evals/subtask-cases.js";
+
+// Planning-mode evaluation harnesses (TaskPlanner DAG, ScriptPlanner script)
+export {
+  runTaskPlannerEval,
+  formatTaskPlanReport,
+  checkTaskPlanExpectations,
+  criticalPathDepth
+} from "./evals/task-planner-eval.js";
+export type {
+  TaskPlanCaseResult,
+  TaskPlanEvalReport,
+  RunTaskPlannerEvalOptions
+} from "./evals/task-planner-eval.js";
+export { TASK_PLANNER_EVAL_CASES } from "./evals/task-planner-cases.js";
+export type {
+  TaskPlannerEvalCase,
+  TaskPlannerEvalExpectations
+} from "./evals/task-planner-cases.js";
+export {
+  runScriptPlannerEval,
+  formatScriptPlanReport,
+  checkScriptExpectations,
+  countAgentCalls
+} from "./evals/script-planner-eval.js";
+export type {
+  ScriptPlanCaseResult,
+  ScriptPlanEvalReport,
+  RunScriptPlannerEvalOptions
+} from "./evals/script-planner-eval.js";
+export { SCRIPT_PLANNER_EVAL_CASES } from "./evals/script-planner-cases.js";
+export type {
+  ScriptPlannerEvalCase,
+  ScriptPlannerEvalExpectations
+} from "./evals/script-planner-cases.js";
+export {
+  createPlannerTools,
+  PLANNER_TOOL_NAMES
+} from "./evals/planner-tools.js";
+
 // Graph-native planning & execution
-export { GraphBuilder, AGENT_STEP_NODE_TYPE } from "./graph-builder.js";
+export { evaluateGraphDsl } from "./graph-dsl.js";
+export type { GraphDslResult, EvaluateGraphDslOptions } from "./graph-dsl.js";
+export { GraphBuilder, AGENT_NODE_TYPE } from "./graph-builder.js";
+export {
+  declareDynamicSlotsFromEdges,
+  toSlotTypeRecord,
+  type SlotTypeLookup
+} from "./dynamic-slots.js";
+export { normalizeModelProperties } from "./normalize-model-properties.js";
+export type { ModelPropertyRegistry } from "./normalize-model-properties.js";
 export { GraphPlanner } from "./graph-planner.js";
 export type { GraphPlannerOptions } from "./graph-planner.js";
-export { AgentStepExecutor } from "./agent-step-executor.js";
-export type { AgentStepExecutorOptions } from "./agent-step-executor.js";
 export { AgentWorkflowRunner } from "./agent-workflow-runner.js";
 export type { AgentWorkflowRunnerOptions } from "./agent-workflow-runner.js";
-

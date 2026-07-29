@@ -9,7 +9,7 @@ import { NodeStoreState } from "../../stores/NodeStore";
  * This prevents unnecessary re-renders in components (like NodeInputs) when unrelated
  * edges in the graph change during drag operations or workflow execution.
  */
-export const useConnectedEdgesSelector = (nodeId: string) => {
+export const useConnectedEdgesSelector = (nodeId: string): ((state: NodeStoreState) => Edge[]) => {
   return useMemo(() => {
     let lastEdges: Edge[] | null = null;
     let lastResult: Edge[] = [];

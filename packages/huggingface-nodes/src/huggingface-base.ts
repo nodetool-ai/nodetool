@@ -14,7 +14,6 @@
 
 export const HF_ROUTER = "https://router.huggingface.co";
 
-/** Default model suggestions surfaced in node descriptions, per task. */
 export const HF_TOKEN_SETTING = "HF_TOKEN";
 
 /** Resolve the Hugging Face access token from node secrets or the environment. */

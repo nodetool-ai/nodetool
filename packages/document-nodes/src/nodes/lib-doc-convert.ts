@@ -9,9 +9,6 @@ import { promisify } from "node:util";
 
 const execFile = promisify(execFileCb);
 
-/**
- * Resolve bytes from a ref object or raw Uint8Array.
- */
 function isByte(value: unknown): value is number {
   return typeof value === "number" &&
     Number.isInteger(value) &&
@@ -160,20 +157,12 @@ async function loadFromUri(uri: string, context?: ProcessingContext): Promise<Bu
   }
 }
 
-// ---------------------------------------------------------------------------
-// PDF → Markdown
-// ---------------------------------------------------------------------------
-
 async function pdfToText(inputBytes: Buffer): Promise<string> {
   const { LiteParse } = await import("@llamaindex/liteparse");
   const parser = new LiteParse({ ocrEnabled: false });
   const result = await parser.parse(inputBytes, true);
   return result.text;
 }
-
-// ---------------------------------------------------------------------------
-// DOCX → Markdown (pandoc)
-// ---------------------------------------------------------------------------
 
 async function docxToMarkdown(inputBytes: Buffer): Promise<string> {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-docx-"));
@@ -191,10 +180,6 @@ async function docxToMarkdown(inputBytes: Buffer): Promise<string> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Shared byte format detection
-// ---------------------------------------------------------------------------
-
 async function convertBytes(bytes: Buffer, turndown: { turndown(html: string): string }): Promise<string> {
   if (bytes.length >= 4 && bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) {
     return pdfToText(bytes);
@@ -208,10 +193,6 @@ async function convertBytes(bytes: Buffer, turndown: { turndown(html: string): s
   }
   return text;
 }
-
-// ---------------------------------------------------------------------------
-// ConvertToMarkdown node
-// ---------------------------------------------------------------------------
 
 export class ConvertToMarkdownLibNode extends BaseNode {
   static readonly nodeType = "lib.convert.ConvertToMarkdown";

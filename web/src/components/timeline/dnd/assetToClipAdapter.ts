@@ -39,7 +39,6 @@ export function isCompatibleWithTrack(
   if (mediaType === "audio") {
     return trackType === "audio";
   }
-  // image and video are accepted on video and overlay tracks
   return trackType === "video" || trackType === "overlay";
 }
 

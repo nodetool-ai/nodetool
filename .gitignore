@@ -15,10 +15,20 @@ __pycache__
 *.safetensors
 .claude/*
 !.claude/skills/
+# Shared Claude starter kit — checked in so every session gets the same setup.
+!.claude/README.md
+!.claude/settings.json
+!.claude/hooks/
+!.claude/commands/
+# Personal overrides stay local.
+.claude/settings.local.json
 .pi/*
 build/
 coverage/
 dist/
+# Storybook build output
+storybook-static/
+web/storybook-static/
 # Stryker mutation testing
 **/reports/mutation/
 **/.stryker-tmp/
@@ -27,6 +37,7 @@ electron/dist/
 electron/dist-web/
 electron/dist-electron/
 electron/backend-bundle/
+electron/mcpb/
 electron/.node-runtime/
 electron/resources/micromamba
 conda-lock.yml
@@ -75,6 +86,11 @@ cert.pem
 key.pem
 .aider*
 
+# Local dev database created by running the server
+nodetool.db
+nodetool.db-shm
+nodetool.db-wal
+
 # Dev
 .codegen-cache/
 .schema-cache/
@@ -101,3 +117,9 @@ ds-bundle/
 .design-sync/learnings/
 .design-sync/node_modules
 .design-sync/previews/.tmp
+
+# nodetool debug/validate bundle output
+nodetool-debug/
+
+# Dev-server / build logs
+*.log

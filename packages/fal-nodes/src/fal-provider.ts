@@ -23,7 +23,71 @@ export interface FalImageModel {
 
 /** All FAL AI image models available through the provider. */
 export const FAL_IMAGE_MODELS: readonly FalImageModel[] = [
-  // FLUX Models
+  // FLUX.2 Models
+  { id: "fal-ai/flux-2-pro", name: "FLUX.2 Pro" },
+  { id: "fal-ai/flux-2-max", name: "FLUX.2 Max" },
+  { id: "fal-ai/flux-2", name: "FLUX.2" },
+  { id: "fal-ai/flux-2/turbo", name: "FLUX.2 Turbo" },
+  { id: "fal-ai/flux-2/flash", name: "FLUX.2 Flash" },
+  { id: "fal-ai/flux-2-flex", name: "FLUX.2 Flex" },
+  { id: "fal-ai/flux-2/lora", name: "FLUX.2 with LoRA" },
+  { id: "fal-ai/flux-2/klein/9b", name: "FLUX.2 Klein 9B" },
+  { id: "fal-ai/flux-2/klein/4b", name: "FLUX.2 Klein 4B" },
+  // Google Models
+  { id: "fal-ai/nano-banana-2", name: "Nano Banana 2" },
+  { id: "google/nano-banana-2-lite", name: "Nano Banana 2 Lite" },
+  { id: "fal-ai/nano-banana-pro", name: "Nano Banana Pro" },
+  { id: "google/nano-banana-lite", name: "Nano Banana Lite" },
+  { id: "fal-ai/nano-banana", name: "Nano Banana" },
+  { id: "fal-ai/imagen4/preview", name: "Imagen 4 Preview" },
+  // ByteDance Seedream Models
+  {
+    id: "bytedance/seedream/v5/pro/text-to-image",
+    name: "Seedream 5.0 Pro"
+  },
+  { id: "bytedance/seedream/v5/lite/text-to-image", name: "Seedream 5.0 Lite" },
+  {
+    id: "fal-ai/bytedance/seedream/v4.5/text-to-image",
+    name: "Seedream 4.5"
+  },
+  { id: "fal-ai/bytedance/seedream/v4/text-to-image", name: "Seedream 4.0" },
+  // Qwen Models
+  { id: "fal-ai/qwen-image-2/pro/text-to-image", name: "Qwen Image 2 Pro" },
+  { id: "fal-ai/qwen-image-2/text-to-image", name: "Qwen Image 2" },
+  { id: "fal-ai/qwen-image-max/text-to-image", name: "Qwen Image Max" },
+  { id: "fal-ai/qwen-image", name: "Qwen Image" },
+  // Ideogram Models
+  { id: "ideogram/v4", name: "Ideogram v4" },
+  { id: "ideogram/v4/fast", name: "Ideogram v4 Fast" },
+  { id: "ideogram/v4/instant", name: "Ideogram v4 Instant" },
+  { id: "ideogram/v4/lora", name: "Ideogram v4 with LoRA" },
+  // Krea Models
+  { id: "fal-ai/krea-2/turbo", name: "Krea 2 Turbo" },
+  { id: "krea/v2/large/text-to-image", name: "Krea 2 Large" },
+  { id: "krea/v2/medium/text-to-image", name: "Krea 2 Medium" },
+  // Recraft Models
+  { id: "fal-ai/recraft/v4.1/pro/text-to-image", name: "Recraft v4.1 Pro" },
+  { id: "fal-ai/recraft/v4.1/text-to-image", name: "Recraft v4.1" },
+  { id: "fal-ai/recraft/v4.1/text-to-vector", name: "Recraft v4.1 Vector" },
+  // Other Recent Models
+  { id: "reve/2.1/text-to-image", name: "Reve 2.1" },
+  { id: "openai/gpt-image-2", name: "GPT Image 2" },
+  {
+    id: "xai/grok-imagine-image/quality/text-to-image",
+    name: "Grok Imagine Image"
+  },
+  { id: "microsoft/mai-image-2.5", name: "MAI Image 2.5" },
+  { id: "fal-ai/hidream-o1-image", name: "HiDream O1" },
+  { id: "fal-ai/z-image/turbo", name: "Z-Image Turbo" },
+  { id: "fal-ai/z-image/base", name: "Z-Image Base" },
+  { id: "fal-ai/wan/v2.7/pro/text-to-image", name: "Wan v2.7 Pro" },
+  { id: "fal-ai/wan/v2.7/text-to-image", name: "Wan v2.7" },
+  {
+    id: "fal-ai/hunyuan-image/v3/text-to-image",
+    name: "Hunyuan Image v3"
+  },
+  { id: "nvidia/cosmos-3-super/text-to-image", name: "Cosmos 3 Super" },
+  // FLUX.1 Models
   { id: "fal-ai/flux/dev", name: "FLUX.1 Dev" },
   { id: "fal-ai/flux/schnell", name: "FLUX.1 Schnell" },
   { id: "fal-ai/flux-pro/v1.1", name: "FLUX.1 Pro v1.1" },
@@ -50,7 +114,6 @@ export const FAL_IMAGE_MODELS: readonly FalImageModel[] = [
   { id: "fal-ai/fast-sdxl", name: "Fast SDXL" },
   { id: "fal-ai/stable-cascade", name: "Stable Cascade" },
   { id: "fal-ai/fast-lightning-sdxl", name: "Fast Lightning SDXL" },
-  { id: "fal-ai/hyper-sdxl", name: "Hyper SDXL" },
   { id: "fal-ai/fast-turbo-diffusion", name: "Fast Turbo Diffusion" },
   { id: "fal-ai/fast-lcm-diffusion", name: "Fast LCM Diffusion" },
   { id: "fal-ai/lcm", name: "LCM Diffusion" },
@@ -60,7 +123,6 @@ export const FAL_IMAGE_MODELS: readonly FalImageModel[] = [
   { id: "fal-ai/bria/text-to-image/hd", name: "Bria v1 HD" },
   // Other Models
   { id: "fal-ai/aura-flow", name: "AuraFlow v0.3" },
-  { id: "fal-ai/switti/1024", name: "Switti" },
   { id: "fal-ai/sana", name: "Sana v1" },
   { id: "fal-ai/omnigen-v1", name: "OmniGen v1" },
   { id: "fal-ai/luma-photon", name: "Luma Photon" },
@@ -68,7 +130,6 @@ export const FAL_IMAGE_MODELS: readonly FalImageModel[] = [
   { id: "fal-ai/playground-v25", name: "Playground v2.5" },
   { id: "fal-ai/fooocus", name: "Fooocus" },
   { id: "fal-ai/illusion-diffusion", name: "Illusion Diffusion" },
-  { id: "fal-ai/imagen4/preview", name: "Imagen 4 Preview" },
   { id: "fal-ai/lora", name: "LoRA Text-to-Image" }
 ];
 

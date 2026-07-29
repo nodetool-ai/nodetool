@@ -3,10 +3,10 @@ import { css } from "@emotion/react";
 
 import React, { memo, useMemo, useRef } from "react";
 import { Handle, NodeProps, Position } from "@xyflow/react";
-import { Text, Box } from "../../ui_primitives";
+import { Text, Box, Z_INDEX } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../../utils/isEqual";
 
 import { NodeData } from "../../../stores/NodeData";
 import { useNodeArtifacts } from "../../../hooks/nodes/useNodeExecState";
@@ -67,7 +67,7 @@ const styles = (theme: Theme) =>
       position: "absolute",
       right: 0,
       bottom: 0,
-      zIndex: 100
+      zIndex: Z_INDEX.overlay
     },
     ".hint": {
       position: "absolute",
@@ -78,7 +78,7 @@ const styles = (theme: Theme) =>
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 400,
       transform: "translate(-50%, -50%)",
-      zIndex: 1,
+      zIndex: Z_INDEX.raised,
       color: theme.vars.palette.grey[400],
       opacity: 0.8,
       pointerEvents: "none"
@@ -96,7 +96,6 @@ const styles = (theme: Theme) =>
     }
   });
 
-// Type metadata for image handles
 const imageTypeMetadata = {
   type: "image",
   type_args: [],
@@ -110,6 +109,7 @@ interface CompareImagesNodeProps extends NodeProps {
 
 const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const hasParent = props.parentId !== undefined;
 
   // The `comparison` snapshot is one of the node's regular outputs and
@@ -177,13 +177,12 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
 
   return (
     <Box
-      css={styles(theme)}
+      css={cssStyles}
       className={`compare-images-node nopan node-drag-handle ${
         hasParent ? "hasParent" : ""
       }`}
     >
       <div className="compare-node-content">
-        {/* Handle for image_a */}
         <div className="handle-popup image_a">
           <HandleTooltip
             typeMetadata={imageTypeMetadata}
@@ -201,7 +200,6 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
           </HandleTooltip>
         </div>
 
-        {/* Handle for image_b */}
         <div className="handle-popup image_b">
           <HandleTooltip
             typeMetadata={imageTypeMetadata}

@@ -15,7 +15,6 @@ jest.mock("../config", () => ({
   getCondaEnvPath: jest.fn().mockReturnValue("/mock/conda"),
   getPythonPath: jest.fn().mockReturnValue("/mock/conda/bin/python"),
   getSystemDataPath: jest.fn().mockImplementation((name: string) => `/mock/data/${name}`),
-  getLlamaServerPath: jest.fn().mockReturnValue("/mock/conda/bin/llama-server"),
   getOptionalNodeModulesPath: jest.fn().mockReturnValue("/mock/userData/optional-node/node_modules"),
 }));
 
@@ -75,7 +74,7 @@ describe("systemInfo.getSystemInfo()", () => {
 
   test("returns the documented SystemInfo shape (all keys present)", async () => {
     (fs.access as jest.Mock).mockResolvedValue(undefined);
-    mockExec({ python: "Python 3.11.7", "llama-server --version": "llama-server version: 0.0.4500", "nvidia-smi": "" });
+    mockExec({ python: "Python 3.11.7", "nvidia-smi": "" });
 
     const info = await getSystemInfo();
 
@@ -91,8 +90,6 @@ describe("systemInfo.getSystemInfo()", () => {
         "dataPath",
         "electronVersion",
         "installPath",
-        "llamaServerInstalled",
-        "llamaServerVersion",
         "logsPath",
         "nodeVersion",
         "optionalNodePath",
@@ -138,7 +135,6 @@ describe("systemInfo.getSystemInfo()", () => {
     (fs.access as jest.Mock).mockResolvedValue(undefined);
     mockExec({
       python: "Python 3.12.4",
-      "llama-server": new Error("not installed"),
       "nvidia-smi": new Error("no nvidia"),
     });
 
@@ -152,22 +148,6 @@ describe("systemInfo.getSystemInfo()", () => {
 
     const info = await getSystemInfo();
     expect(info.pythonVersion).toBeNull();
-  });
-
-  test("llamaServerInstalled is true when the binary exists", async () => {
-    (fs.access as jest.Mock).mockResolvedValue(undefined);
-    mockExec({ "llama-server": "version: 0.0.4500" });
-
-    const info = await getSystemInfo();
-    expect(info.llamaServerInstalled).toBe(true);
-  });
-
-  test("llamaServerInstalled is false when the binary is missing", async () => {
-    (fs.access as jest.Mock).mockRejectedValue(new Error("ENOENT"));
-    mockExec({});
-
-    const info = await getSystemInfo();
-    expect(info.llamaServerInstalled).toBe(false);
   });
 
   test("CUDA detection parses 'CUDA Version: X.Y' from nvidia-smi", async () => {

@@ -3,12 +3,13 @@ import { css } from "@emotion/react";
 
 import React, { useCallback, useEffect, useRef, useState, memo } from "react";
 import BackspaceIcon from "@mui/icons-material/Backspace";
-import { Public as GlobalIcon, Folder as LocalIcon } from "@mui/icons-material";
+import Public from "@mui/icons-material/Public";
+import Folder from "@mui/icons-material/Folder";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSearch } from "../../serverState/useAssetSearch";
-import { Tooltip, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Tooltip, MOTION, BORDER_RADIUS, reducedMotion } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -53,6 +54,12 @@ const styles = (theme: Theme) =>
       backgroundColor: "var(--palette-grey-700)",
       borderColor: "var(--palette-primary-main)",
       outline: "none"
+    },
+    // Keyboard focus needs a visible ring; inset offset avoids clipping by the
+    // container's overflow: hidden.
+    "input[type='text']:focus-visible": {
+      outline: "2px solid var(--palette-primary-main)",
+      outlineOffset: "-2px"
     },
     ".clear-search-btn": {
       position: "absolute",
@@ -101,7 +108,8 @@ const styles = (theme: Theme) =>
       border: "2px solid var(--palette-grey-500)",
       borderTop: "2px solid var(--palette-grey-100)",
       borderRadius: BORDER_RADIUS.circle,
-      animation: "spin 1s linear infinite"
+      animation: `spin ${MOTION.spin} infinite`,
+      ...reducedMotion({ animation: "none" })
     },
     "@keyframes spin": {
       "0%": { transform: "rotate(0deg)" },
@@ -184,12 +192,10 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
   // Debounced search implementation for both local and global search
   const debouncedSetSearchTerm = useDebouncedCallback(async (value: string) => {
     if (isGlobalSearchMode) {
-      // Cancel any previous search
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
 
-      // Handle global search
       if (value.length < 2) {
         setIsGlobalSearchActive(false);
         setGlobalSearchResults([]);
@@ -197,7 +203,6 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
         return;
       }
 
-      // Create new abort controller for this search
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
 
@@ -238,20 +243,16 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
       abortControllerRef.current = null;
     }
 
-    // Clear local input state
     setLocalSearchTerm("");
 
     if (isGlobalSearchMode) {
-      // Reset global search state
       setIsGlobalSearchActive(false);
       setGlobalSearchResults([]);
       setGlobalSearchQuery("");
     } else {
-      // Reset local search state
       onLocalSearchChange("");
     }
 
-    // Cancel any pending debounced searches
     debouncedSetSearchTerm.cancel();
   }, [
     debouncedSetSearchTerm,
@@ -320,7 +321,6 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
       const newValue = event.target.value;
       // Update local state immediately for UI responsiveness
       setLocalSearchTerm(newValue);
-      // Schedule debounced search
       debouncedSetSearchTerm(newValue);
     },
     [debouncedSetSearchTerm]
@@ -386,7 +386,6 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
     clearSearch
   ]);
 
-  // Dynamic placeholder based on search mode
   const effectivePlaceholder = isGlobalSearchMode
     ? "Search all assets..."
     : "Search current folder...";
@@ -421,7 +420,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
           data-testid="asset-search-mode-toggle"
           tabIndex={-1}
         >
-          {isGlobalSearchMode ? <GlobalIcon /> : <LocalIcon />}
+          {isGlobalSearchMode ? <Public /> : <Folder />}
         </button>
       </Tooltip>
 

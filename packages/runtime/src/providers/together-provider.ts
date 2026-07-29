@@ -1,6 +1,9 @@
-import OpenAI from "openai";
-import { OpenAIProvider } from "./openai-provider.js";
+import {
+  OpenAICompatProvider,
+  type OpenAICompatProviderOptions
+} from "./openai-compat-provider.js";
 import { loadImageModels, loadVideoModels } from "./manifest-models.js";
+import { bytesToImageDataUri } from "./image-mime.js";
 import type {
   ASRModel,
   EmbeddingModel,
@@ -15,12 +18,6 @@ import type {
   TTSModel,
   VideoModel
 } from "./types.js";
-
-interface TogetherProviderOptions {
-  client?: OpenAI;
-  clientFactory?: (apiKey: string) => OpenAI;
-  fetchFn?: typeof fetch;
-}
 
 // ─── Model catalogs ───────────────────────────────────────────────────────────
 
@@ -133,7 +130,10 @@ function parseWavPCM(bytes: Uint8Array): {
     const chunkId = view.getUint32(offset, false);
     const chunkSize = view.getUint32(offset + 4, true);
 
-    if (chunkId === 0x666d7420 /* "fmt " */ && offset + 12 <= bytes.byteLength) {
+    if (chunkId === 0x666d7420 /* "fmt " */ && offset + 16 <= bytes.byteLength) {
+      // The sampleRate read is a 4-byte uint32 at offset+12, so it needs
+      // offset+16 in bounds — the previous offset+12 guard let getUint32 throw
+      // RangeError on a WAV truncated between offset+12 and offset+15.
       sampleRate = view.getUint32(offset + 12, true);
     } else if (chunkId === 0x64617461 /* "data" */) {
       const dataStart = offset + 8;
@@ -167,9 +167,35 @@ function parseWavPCM(bytes: Uint8Array): {
   };
 }
 
+// ─── Abortable sleep ──────────────────────────────────────────────────────────
+
+/** Resolve the abort reason as an Error (mirrors the gemini provider). */
+function abortError(signal?: AbortSignal): Error {
+  return signal?.reason instanceof Error ? signal.reason : new Error("Aborted");
+}
+
+/** Sleep that rejects promptly when `signal` aborts instead of running full. */
+function abortableSleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(abortError(signal));
+      return;
+    }
+    const onAbort = (): void => {
+      clearTimeout(timer);
+      reject(abortError(signal));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
-export class TogetherProvider extends OpenAIProvider {
+export class TogetherProvider extends OpenAICompatProvider {
   static override requiredSecrets(): string[] {
     return ["TOGETHER_API_KEY"];
   }
@@ -178,7 +204,7 @@ export class TogetherProvider extends OpenAIProvider {
 
   constructor(
     secrets: { TOGETHER_API_KEY?: string },
-    options: TogetherProviderOptions = {}
+    options: OpenAICompatProviderOptions = {}
   ) {
     const apiKey = secrets.TOGETHER_API_KEY;
     if (!apiKey) {
@@ -188,21 +214,14 @@ export class TogetherProvider extends OpenAIProvider {
     const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
 
     super(
-      { OPENAI_API_KEY: apiKey },
       {
-        client: options.client,
-        clientFactory:
-          options.clientFactory ??
-          ((key) =>
-            new OpenAI({
-              apiKey: key,
-              baseURL: "https://api.together.xyz/v1"
-            })),
-        fetchFn
-      }
+        providerId: "together",
+        apiKey,
+        baseURL: "https://api.together.xyz/v1"
+      },
+      { ...options, fetchFn }
     );
 
-    (this as { provider: string }).provider = "together";
     this._togetherFetch = fetchFn;
   }
 
@@ -326,33 +345,41 @@ export class TogetherProvider extends OpenAIProvider {
   }
 
   /**
-   * Image-to-image editing via Together's Kontext models.
-   * The image is encoded as a base64 data URI and passed as `image_url`.
-   * This requires a model that supports the `image_url` parameter
-   * (e.g. FLUX.1-kontext-pro, FLUX.1-kontext-max, FLUX.2-pro/dev/flex).
+   * Image-to-image editing via Together's Kontext / FLUX.2 models.
+   * Images are encoded as base64 data URIs. A single image is sent as
+   * `image_url` (supported by FLUX.1-kontext-pro/max and FLUX.2-pro/flex);
+   * multiple reference images are sent as the `reference_images` array
+   * (supported by FLUX.2 and Google image models). The first image is the
+   * primary subject and the rest are additional references.
    */
   override async imageToImage(
     images: Uint8Array[],
     params: ImageToImageParams
   ): Promise<Uint8Array> {
-    const image = images[0];
-    if (!image || image.length === 0) {
+    const sources = images.filter((b) => b && b.length > 0);
+    if (sources.length === 0) {
       throw new Error("image must not be empty.");
     }
     if (!params.prompt) {
       throw new Error("The input prompt cannot be empty.");
     }
 
-    const base64 = Buffer.from(image).toString("base64");
-    const imageUrl = `data:image/jpeg;base64,${base64}`;
+    const imageUrls = sources.map((b) => bytesToImageDataUri(b));
 
     const body: Record<string, unknown> = {
       model: params.model.id,
       prompt: params.prompt,
-      image_url: imageUrl,
       n: 1,
       response_format: "b64_json"
     };
+
+    // One image → `image_url` (widest model support); multiple → the
+    // `reference_images` array that FLUX.2 / Google models accept.
+    if (imageUrls.length === 1) {
+      body.image_url = imageUrls[0];
+    } else {
+      body.reference_images = imageUrls;
+    }
 
     if (params.targetWidth != null) body.width = params.targetWidth;
     if (params.targetHeight != null) body.height = params.targetHeight;
@@ -577,7 +604,26 @@ export class TogetherProvider extends OpenAIProvider {
       return { width: dims[0], height: dims[1] };
     }
 
-    // Together's MiniMax default
+    // Fallback for aspect ratios / resolutions outside the preset table: derive
+    // the pixel size from the requested ratio so orientation is preserved (a
+    // portrait `2:3` request must not silently become a landscape video). Scale
+    // to a ~720p long edge, snapped to an even number as video encoders expect.
+    const ratio = ar.match(/^(\d+):(\d+)$/);
+    if (ratio) {
+      const rw = parseInt(ratio[1], 10);
+      const rh = parseInt(ratio[2], 10);
+      if (rw > 0 && rh > 0) {
+        const longEdge =
+          res === "480p" ? 854 : res === "1080p" ? 1920 : 1280;
+        const even = (n: number) => Math.max(2, Math.round(n / 2) * 2);
+        if (rw >= rh) {
+          return { width: even(longEdge), height: even((longEdge * rh) / rw) };
+        }
+        return { width: even((longEdge * rw) / rh), height: even(longEdge) };
+      }
+    }
+
+    // Together's MiniMax default (landscape) when the ratio can't be parsed.
     return { width: 1366, height: 768 };
   }
 
@@ -585,7 +631,23 @@ export class TogetherProvider extends OpenAIProvider {
    * Poll Together's video job endpoint until it reaches a terminal state.
    * Returns the final response payload.
    */
-  private async pollVideoJob(jobId: string): Promise<{
+  /**
+   * Per-call timeout signal (mirrors the gemini provider): threaded into the
+   * poll-loop fetch and sleep so an expired budget aborts the in-flight request
+   * promptly instead of leaking it until the internal poll cap.
+   */
+  private timeoutSignal(
+    timeoutSeconds?: number | null
+  ): AbortSignal | undefined {
+    return timeoutSeconds && timeoutSeconds > 0
+      ? AbortSignal.timeout(timeoutSeconds * 1000)
+      : undefined;
+  }
+
+  private async pollVideoJob(
+    jobId: string,
+    signal?: AbortSignal
+  ): Promise<{
     status: string;
     outputs?: { video_url?: string };
     error?: { message?: string };
@@ -601,11 +663,11 @@ export class TogetherProvider extends OpenAIProvider {
         );
       }
 
-      await new Promise<void>((resolve) => setTimeout(resolve, intervalMs));
+      await abortableSleep(intervalMs, signal);
 
       const statusResponse = await this._togetherFetch(
         `https://api.together.xyz/v2/videos/${jobId}`,
-        { headers: { Authorization: `Bearer ${this.apiKey}` } }
+        { headers: { Authorization: `Bearer ${this.apiKey}` }, signal }
       );
 
       if (!statusResponse.ok) {
@@ -634,7 +696,8 @@ export class TogetherProvider extends OpenAIProvider {
    */
   private async downloadVideo(
     status: { outputs?: { video_url?: string }; error?: { message?: string } },
-    label: string
+    label: string,
+    signal?: AbortSignal
   ): Promise<Uint8Array> {
     const videoUrl = status.outputs?.video_url;
     if (!videoUrl) {
@@ -642,7 +705,7 @@ export class TogetherProvider extends OpenAIProvider {
       throw new Error(`Together ${label} failed: ${reason}`);
     }
 
-    const videoResponse = await this._togetherFetch(videoUrl);
+    const videoResponse = await this._togetherFetch(videoUrl, { signal });
     if (!videoResponse.ok) {
       throw new Error(
         `Failed to download Together video: ${videoResponse.status}`
@@ -681,6 +744,7 @@ export class TogetherProvider extends OpenAIProvider {
     if (params.seed != null) body.seed = params.seed;
     if (params.negativePrompt) body.negative_prompt = params.negativePrompt;
 
+    const signal = this.timeoutSignal(params.timeoutSeconds);
     const createResponse = await this._togetherFetch(
       "https://api.together.xyz/v2/videos",
       {
@@ -689,7 +753,8 @@ export class TogetherProvider extends OpenAIProvider {
           Authorization: `Bearer ${this.apiKey}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
+        signal
       }
     );
 
@@ -699,7 +764,7 @@ export class TogetherProvider extends OpenAIProvider {
     }
 
     const job = (await createResponse.json()) as { id: string; status: string };
-    const finalStatus = await this.pollVideoJob(job.id);
+    const finalStatus = await this.pollVideoJob(job.id, signal);
 
     if (finalStatus.status !== "completed") {
       const reason =
@@ -708,7 +773,7 @@ export class TogetherProvider extends OpenAIProvider {
       throw new Error(`Together text-to-video failed: ${reason}`);
     }
 
-    return this.downloadVideo(finalStatus, "text-to-video");
+    return this.downloadVideo(finalStatus, "text-to-video", signal);
   }
 
   /**
@@ -729,8 +794,7 @@ export class TogetherProvider extends OpenAIProvider {
       params.resolution
     );
 
-    const base64 = Buffer.from(image).toString("base64");
-    const inputImage = `data:image/jpeg;base64,${base64}`;
+    const inputImage = bytesToImageDataUri(image);
 
     const body: Record<string, unknown> = {
       model: params.model.id,
@@ -748,6 +812,7 @@ export class TogetherProvider extends OpenAIProvider {
     if (params.seed != null) body.seed = params.seed;
     if (params.negativePrompt) body.negative_prompt = params.negativePrompt;
 
+    const signal = this.timeoutSignal(params.timeoutSeconds);
     const createResponse = await this._togetherFetch(
       "https://api.together.xyz/v2/videos",
       {
@@ -756,7 +821,8 @@ export class TogetherProvider extends OpenAIProvider {
           Authorization: `Bearer ${this.apiKey}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
+        signal
       }
     );
 
@@ -766,7 +832,7 @@ export class TogetherProvider extends OpenAIProvider {
     }
 
     const job = (await createResponse.json()) as { id: string; status: string };
-    const finalStatus = await this.pollVideoJob(job.id);
+    const finalStatus = await this.pollVideoJob(job.id, signal);
 
     if (finalStatus.status !== "completed") {
       const reason =
@@ -775,6 +841,6 @@ export class TogetherProvider extends OpenAIProvider {
       throw new Error(`Together image-to-video failed: ${reason}`);
     }
 
-    return this.downloadVideo(finalStatus, "image-to-video");
+    return this.downloadVideo(finalStatus, "image-to-video", signal);
   }
 }

@@ -9,7 +9,8 @@ import DeselectIcon from "@mui/icons-material/Deselect";
 import {
   ButtonGroup,
   Select,
-  MenuItem
+  MenuItem,
+  type SelectChangeEvent
 } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
 
@@ -107,7 +108,7 @@ const styles = (theme: Theme) =>
     ".sort-assets": {
       margin: "0 .5em",
       color: "var(--palette-primary-main)",
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       textTransform: "uppercase",
       position: "relative"
     },
@@ -155,7 +156,7 @@ const styles = (theme: Theme) =>
       margin: "0",
       padding: "0 0.25em",
       color: "var(--palette-primary-main)",
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       textTransform: "uppercase",
       position: "relative"
     },
@@ -268,12 +269,12 @@ const AssetActions = ({
     }
   }), []);
 
-  const handleSortChange = useCallback((e: unknown) => {
-    handleOrderChange(e, (e as React.ChangeEvent<HTMLSelectElement>).target.value as "name" | "date" | "size");
+  const handleSortChange = useCallback((e: SelectChangeEvent<string>) => {
+    handleOrderChange(e, e.target.value as "name" | "date" | "size");
   }, [handleOrderChange]);
 
-  const handleSizeFilter = useCallback((e: unknown) => {
-    handleSizeFilterChange(e, (e as React.ChangeEvent<HTMLSelectElement>).target.value as SizeFilterKey);
+  const handleSizeFilter = useCallback((e: SelectChangeEvent<string>) => {
+    handleSizeFilterChange(e, e.target.value as SizeFilterKey);
   }, [handleSizeFilterChange]);
 
   return (

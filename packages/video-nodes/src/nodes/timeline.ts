@@ -10,7 +10,6 @@
  */
 
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { VideoRef } from "@nodetool-ai/node-sdk";
 import type { TimelineRef } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
@@ -23,28 +22,22 @@ import {
   type TimelineTrack
 } from "@nodetool-ai/timeline";
 import { tagAsNode } from "@nodetool-ai/nodes-utils";
-import { execFile as execFileCb } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { promisify } from "node:util";
-
-const execFile = promisify(execFileCb);
-
-const FFMPEG_MAX_BUFFER = 10 * 1024 * 1024;
+import {
+  execFfmpeg,
+  execFfprobe,
+  ffprobeDuration,
+  FFMPEG_MAX_BUFFER,
+  MissingBinaryError,
+  videoRef
+} from "./ffmpeg-helpers.js";
 
 interface TimelineRefLike {
   type?: string;
   id?: string | null;
   data?: unknown;
-}
-
-function videoRef(data: Uint8Array, extras: Partial<VideoRef> = {}): VideoRef {
-  return {
-    type: "video",
-    data: Buffer.from(data).toString("base64"),
-    ...extras
-  };
 }
 
 async function loadTimelineSequence(
@@ -69,27 +62,9 @@ async function loadTimelineSequence(
   return seq;
 }
 
-async function ffprobeDurationSeconds(filePath: string): Promise<number> {
-  try {
-    const { stdout } = await execFile("ffprobe", [
-      "-v",
-      "error",
-      "-show_entries",
-      "format=duration",
-      "-of",
-      "default=noprint_wrappers=1:nokey=1",
-      filePath
-    ]);
-    const val = parseFloat(stdout.trim());
-    return Number.isFinite(val) ? val : 0;
-  } catch {
-    return 0;
-  }
-}
-
 async function ffprobeHasAudio(filePath: string): Promise<boolean> {
   try {
-    const { stdout } = await execFile("ffprobe", [
+    const { stdout } = await execFfprobe([
       "-v",
       "error",
       "-select_streams",
@@ -101,7 +76,8 @@ async function ffprobeHasAudio(filePath: string): Promise<boolean> {
       filePath
     ]);
     return stdout.trim().length > 0;
-  } catch {
+  } catch (error) {
+    if (error instanceof MissingBinaryError) throw error;
     return false;
   }
 }
@@ -225,8 +201,7 @@ async function encodeSegment(opts: {
   ];
 
   if (clip.mediaType === "image") {
-    await execFile(
-      "ffmpeg",
+    await execFfmpeg(
       [
         "-y",
         "-loop",
@@ -266,8 +241,7 @@ async function encodeSegment(opts: {
   if (typeof clip.outPointMs === "number" && clip.outPointMs > 0) {
     seek.push("-to", String(clip.outPointMs / 1000));
   }
-  await execFile(
-    "ffmpeg",
+  await execFfmpeg(
     [
       "-y",
       ...seek,
@@ -405,16 +379,14 @@ export class RenderTimelineNode extends BaseNode {
           listPath,
           segments.map((p) => `file '${p}'`).join("\n")
         );
-        await execFile(
-          "ffmpeg",
+        await execFfmpeg(
           ["-y", "-f", "concat", "-safe", "0", "-i", listPath, "-c", "copy", basePath],
           { maxBuffer: FFMPEG_MAX_BUFFER }
         );
       } else {
         const totalS =
           Math.max(...audioClips.map((c) => c.startMs + c.durationMs)) / 1000;
-        await execFile(
-          "ffmpeg",
+        await execFfmpeg(
           [
             "-y",
             "-f",
@@ -467,8 +439,7 @@ export class RenderTimelineNode extends BaseNode {
         if (labels.length > 0) {
           outPath = path.join(workDir, "mixed.mp4");
           const amix = `[0:a]${labels.join("")}amix=inputs=${labels.length + 1}:duration=first:normalize=0[aout]`;
-          await execFile(
-            "ffmpeg",
+          await execFfmpeg(
             [
               "-y",
               ...inputs,
@@ -490,7 +461,7 @@ export class RenderTimelineNode extends BaseNode {
       }
 
       const rendered = new Uint8Array(await fs.readFile(outPath));
-      const duration = await ffprobeDurationSeconds(outPath);
+      const duration = await ffprobeDuration(outPath);
       return {
         output: videoRef(rendered, {
           format: "mp4",
@@ -668,7 +639,7 @@ export class AddClipsToTimelineNode extends BaseNode {
           }
           const probePath = path.join(workDir, `probe_${i}`);
           await fs.writeFile(probePath, bytes);
-          const seconds = await ffprobeDurationSeconds(probePath);
+          const seconds = await ffprobeDuration(probePath);
           if (seconds <= 0) {
             console.warn(
               `AddClipsToTimeline: skipping clip ${i} — could not determine duration`

@@ -1,8 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useMemo } from "react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
@@ -14,7 +12,7 @@ import NodeProgress from "../../node/NodeProgress";
 
 export const CONSTANT_SKETCH_NODE_TYPE = "nodetool.constant.Sketch";
 
-const bodyStyles = (theme: Theme) =>
+const bodyStyles = () =>
   css({
     "&.constant-sketch-body": {
       position: "relative",
@@ -54,8 +52,7 @@ const ConstantSketchBody: React.FC<ConstantSketchBodyProps> = ({
   status,
   isOutputNode
 }) => {
-  const theme = useTheme();
-  const styles = useMemo(() => bodyStyles(theme), [theme]);
+  const styles = useMemo(() => bodyStyles(), []);
   const value = data.properties?.value;
   const valueProperty = useMemo(
     () => nodeMetadata.properties?.find((property) => property.name === "value"),

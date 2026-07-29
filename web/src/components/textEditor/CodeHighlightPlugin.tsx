@@ -19,11 +19,8 @@ import "prismjs/components/prism-jsx";
 import "prismjs/components/prism-tsx";
 import "prismjs/components/prism-json";
 
-// Import a ready-made dark theme (Tomorrow Night)
 import "prismjs/themes/prism-tomorrow.css";
 
-// A simple Lexical plugin that enables code syntax highlighting.
-// Code highlighting is always active while this plugin is mounted.
 export function CodeHighlightPlugin() {
   const [editor] = useLexicalComposerContext();
 

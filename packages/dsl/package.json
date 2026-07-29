@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22.0.0 <23.0.0"
   },
-  "version": "0.7.0-rc.29",
+  "version": "0.7.0-rc.32",
   "description": "Type-safe TypeScript DSL for defining NodeTool workflows",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -19,7 +19,9 @@
   },
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "pretest": "node scripts/ensure-deps-built.mjs",
     "test": "vitest run",
+    "pretest:watch": "node scripts/ensure-deps-built.mjs",
     "test:watch": "vitest",
     "lint": "tsc --noEmit",
     "codegen": "tsx scripts/codegen.ts"
@@ -58,5 +60,16 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "dsl",
+    "typescript-dsl",
+    "workflow-dsl",
+    "type-safe"
   ]
 }

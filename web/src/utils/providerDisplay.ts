@@ -88,6 +88,7 @@ export const formatGenericProviderName = (provider?: string): string => {
   // Normalize common aliases for display
   const providerLower = provider.toLowerCase();
   const providerAliasNames: Record<string, string> = {
+    openai: "OpenAI",
     hunyuan3d: "Hunyuan3D",
     hunyuan3d_v2: "Hunyuan3D V2",
     hunyuan3d_v3: "Hunyuan3D 3.0",
@@ -115,6 +116,8 @@ export const formatGenericProviderName = (provider?: string): string => {
   if (providerAliasNames[providerLower]) {
     return providerAliasNames[providerLower];
   }
+  if (providerLower === "node_llama_cpp" || providerLower === "node-llama-cpp")
+    {return "Llama.cpp (local)";}
   if (providerLower === "llama_cpp" || providerLower === "llama-cpp" || providerLower === "llamacpp")
     {return "Llama.cpp";}
   if (providerLower === "google") {return "Gemini";}

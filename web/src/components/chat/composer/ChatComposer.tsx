@@ -13,12 +13,12 @@ import { Caption, FlexRow, ToolbarIconButton } from "../../ui_primitives";
 import SendIcon from "@mui/icons-material/Send";
 import ClearIcon from "@mui/icons-material/Clear";
 import { MessageContent } from "../../../stores/ApiTypes";
-import { useKeyPressed } from "../../../stores/KeyPressedStore";
 import { FilePreview } from "./FilePreview";
 import { MessageInput } from "./MessageInput";
 import { ActionButtons } from "./ActionButtons";
 import { useFileHandling } from "../hooks/useFileHandling";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
+import { usePromptHistory } from "../hooks/usePromptHistory";
 import { useMessageQueue } from "../../../hooks/useMessageQueue";
 import { createStyles } from "./ChatComposer.styles";
 
@@ -47,14 +47,6 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [prompt, setPrompt] = useState("");
 
-  const { metaKeyPressed, altKeyPressed, shiftKeyPressed } = useKeyPressed(
-    (state) => ({
-      metaKeyPressed: state.isKeyPressed("meta"),
-      altKeyPressed: state.isKeyPressed("alt"),
-      shiftKeyPressed: state.isKeyPressed("shift")
-    })
-  );
-
   const { droppedFiles, addFiles, removeFile, clearFiles, getFileContents, addDroppedFiles } =
     useFileHandling();
 
@@ -69,47 +61,69 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
     textareaRef
   });
 
+  const {
+    record: recordHistory,
+    handleKeyDown: handleHistoryKeyDown,
+    resetNavigation: resetHistoryNavigation
+  } = usePromptHistory({ value: prompt, setValue: setPrompt, textareaRef });
+
   const handleOnChange = useCallback(
     (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+      // A manual edit leaves history navigation so the next ArrowUp starts over.
+      resetHistoryNavigation();
       setPrompt(event.target.value);
     },
-    []
+    [resetHistoryNavigation]
   );
 
   const handleSend = useCallback(() => {
-    if (prompt.length === 0) {
+    // Allow attachment-only sends; a whitespace-only prompt with no files
+    // is not a message. Trim so a spaces-only prompt never sends a text part.
+    if (prompt.trim().length === 0 && droppedFiles.length === 0) {
       return;
     }
 
-    const content: MessageContent[] = [
-      {
-        type: "text",
-        text: prompt
-      }
-    ];
+    const content: MessageContent[] = [];
+    if (prompt.trim().length > 0) {
+      content.push({ type: "text", text: prompt });
+    }
     const fileContents = getFileContents();
     const fullContent = [...content, ...fileContents];
 
-    sendMessage(fullContent, prompt);
-    setPrompt("");
-    clearFiles();
-  }, [prompt, getFileContents, sendMessage, clearFiles]);
+    // Only clear the input when the message was actually sent or queued;
+    // a dropped message (one already queued) keeps its text and attachments.
+    if (sendMessage(fullContent, prompt)) {
+      recordHistory(prompt);
+      setPrompt("");
+      clearFiles();
+    }
+  }, [prompt, droppedFiles, getFileContents, sendMessage, clearFiles, recordHistory]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      // Let history navigation (ArrowUp/ArrowDown) claim the key first.
+      if (handleHistoryKeyDown(e)) {
+        return;
+      }
       if (e.key === "Enter") {
-        if (shiftKeyPressed) {
-          // Allow default behavior (newline insertion)
+        // Ignore the Enter that confirms an IME composition candidate — it
+        // fires keydown with isComposing/keyCode 229 and must not send.
+        if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) {
           return;
         }
-        // For Enter without Shift (and without Meta/Alt), send the message
-        if (!metaKeyPressed && !altKeyPressed) {
+        // Read modifiers from the event, not the global KeyPressedStore, which
+        // is stale when the textarea was click-focused with a modifier held.
+        if (e.shiftKey) {
+          // Shift+Enter inserts a newline (default behavior)
+          return;
+        }
+        if (!e.metaKey && !e.altKey) {
           e.preventDefault();
           handleSend();
         }
       }
     },
-    [shiftKeyPressed, metaKeyPressed, altKeyPressed, handleSend]
+    [handleSend, handleHistoryKeyDown]
   );
 
   const isDisabled = disabled || isLoading || isStreaming;
@@ -224,7 +238,11 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
               onStop={onStop}
               onNewChat={onNewChat}
               isDisabled={isDisabled && !queuedMessage}
-              hasContent={prompt.trim() !== "" || !!queuedMessage}
+              hasContent={
+                prompt.trim() !== "" ||
+                droppedFiles.length > 0 ||
+                !!queuedMessage
+              }
             />
           </div>
         </>

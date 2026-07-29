@@ -329,7 +329,6 @@ export const config: ModuleConfig = {
       ]
     },
 
-
     "fal-ai/ltx-video/image-to-video": {
       className: "LTXImageToVideo",
       docstring:
@@ -358,7 +357,6 @@ export const config: ModuleConfig = {
       ],
       enumOverrides: { Duration: "KlingVideoV1StandardDuration" }
     },
-
 
     "fal-ai/pixverse/v5.6/transition": {
       className: "PixverseV56Transition",
@@ -1171,7 +1169,6 @@ export const config: ModuleConfig = {
       ]
     },
 
-
     "fal-ai/pixverse/v5/transition": {
       className: "PixverseV5Transition",
       docstring: "Create seamless transition between images using PixVerse v5",
@@ -1421,20 +1418,6 @@ export const config: ModuleConfig = {
       ]
     },
 
-    "fal-ai/hunyuan-portrait": {
-      className: "HunyuanPortrait",
-      docstring:
-        "HunyuanPortrait is a diffusion-based framework for generating lifelike, temporally consistent portrait animations.",
-      tags: ["video", "animation", "image-to-video", "img2vid"],
-      useCases: [
-        "Animate static images",
-        "Create engaging social media content",
-        "Product demonstrations",
-        "Marketing and promotional videos",
-        "Visual storytelling"
-      ]
-    },
-
     "fal-ai/kling-video/v1.6/standard/elements": {
       className: "KlingVideoV16StandardElements",
       docstring:
@@ -1482,20 +1465,6 @@ export const config: ModuleConfig = {
       docstring:
         "Generate videos from prompts and images using LTX Video-0.9.7 13B and custom LoRA",
       tags: ["video", "animation", "image-to-video", "img2vid"],
-      useCases: [
-        "Animate static images",
-        "Create engaging social media content",
-        "Product demonstrations",
-        "Marketing and promotional videos",
-        "Visual storytelling"
-      ]
-    },
-
-    "fal-ai/ltx-video-lora/image-to-video": {
-      className: "LtxVideoLoraImageToVideo",
-      docstring:
-        "Generate videos from prompts and images using LTX Video-0.9.7 and custom LoRA",
-      tags: ["video", "animation", "image-to-video", "img2vid", "lora"],
       useCases: [
         "Animate static images",
         "Create engaging social media content",
@@ -1952,20 +1921,6 @@ export const config: ModuleConfig = {
       ]
     },
 
-    "fal-ai/hunyuan-video-img2vid-lora": {
-      className: "HunyuanVideoImg2vidLora",
-      docstring:
-        "Image to Video for the Hunyuan Video model using a custom trained LoRA.",
-      tags: ["video", "animation", "image-to-video", "img2vid", "lora"],
-      useCases: [
-        "Animate static images",
-        "Create engaging social media content",
-        "Product demonstrations",
-        "Marketing and promotional videos",
-        "Visual storytelling"
-      ]
-    },
-
     "fal-ai/pixverse/v3.5/image-to-video/fast": {
       className: "PixverseV35ImageToVideoFast",
       docstring:
@@ -2154,7 +2109,13 @@ export const config: ModuleConfig = {
     "bytedance/seedance-2.0/image-to-video": {
       className: "BytedanceSeedance20ImageToVideo",
       docstring: "Animate images with ByteDance Seedance 2.0.",
-      tags: ["generation", "image-to-video", "img2vid", "seedance", "bytedance"],
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "seedance",
+        "bytedance"
+      ],
       useCases: [
         "Automated content generation",
         "Creative workflows",
@@ -2166,7 +2127,14 @@ export const config: ModuleConfig = {
     "bytedance/seedance-2.0/reference-to-video": {
       className: "BytedanceSeedance20ReferenceToVideo",
       docstring: "Reference-image-to-video with ByteDance Seedance 2.0.",
-      tags: ["generation", "image-to-video", "img2vid", "seedance", "bytedance", "reference"],
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "seedance",
+        "bytedance",
+        "reference"
+      ],
       useCases: [
         "Automated content generation",
         "Creative workflows",
@@ -2178,7 +2146,14 @@ export const config: ModuleConfig = {
     "bytedance/seedance-2.0/fast/image-to-video": {
       className: "BytedanceSeedance20FastImageToVideo",
       docstring: "Fast image-to-video with ByteDance Seedance 2.0.",
-      tags: ["generation", "image-to-video", "img2vid", "seedance", "bytedance", "fast"],
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "seedance",
+        "bytedance",
+        "fast"
+      ],
       useCases: [
         "Automated content generation",
         "Creative workflows",
@@ -2190,7 +2165,15 @@ export const config: ModuleConfig = {
     "bytedance/seedance-2.0/fast/reference-to-video": {
       className: "BytedanceSeedance20FastReferenceToVideo",
       docstring: "Fast reference-image-to-video with ByteDance Seedance 2.0.",
-      tags: ["generation", "image-to-video", "img2vid", "seedance", "bytedance", "fast", "reference"],
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "seedance",
+        "bytedance",
+        "fast",
+        "reference"
+      ],
       useCases: [
         "Automated content generation",
         "Creative workflows",
@@ -2202,7 +2185,13 @@ export const config: ModuleConfig = {
     "alibaba/happy-horse/image-to-video": {
       className: "AlibabaHappyHorseImageToVideo",
       docstring: "Animate images with Alibaba Happy Horse.",
-      tags: ["generation", "image-to-video", "img2vid", "happy-horse", "alibaba"],
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "happy-horse",
+        "alibaba"
+      ],
       useCases: [
         "Automated content generation",
         "Creative workflows",
@@ -2214,7 +2203,14 @@ export const config: ModuleConfig = {
     "alibaba/happy-horse/reference-to-video": {
       className: "AlibabaHappyHorseReferenceToVideo",
       docstring: "Reference-image-to-video with Alibaba Happy Horse.",
-      tags: ["generation", "image-to-video", "img2vid", "happy-horse", "alibaba", "reference"],
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "happy-horse",
+        "alibaba",
+        "reference"
+      ],
       useCases: [
         "Automated content generation",
         "Creative workflows",
@@ -2238,7 +2234,14 @@ export const config: ModuleConfig = {
     "fal-ai/kling-video/o3/4k/reference-to-video": {
       className: "KlingVideoO34kReferenceToVideo",
       docstring: "Kling Video O3 4K reference-to-video.",
-      tags: ["generation", "image-to-video", "img2vid", "kling", "4k", "reference"],
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "kling",
+        "4k",
+        "reference"
+      ],
       useCases: [
         "Automated content generation",
         "Creative workflows",
@@ -2273,7 +2276,8 @@ export const config: ModuleConfig = {
     },
     "fal-ai/sora-2/characters": {
       className: "Sora2Characters",
-      docstring: "Sora 2 Characters: image-to-video with consistent characters.",
+      docstring:
+        "Sora 2 Characters: image-to-video with consistent characters.",
       tags: ["generation", "image-to-video", "img2vid", "sora", "characters"],
       useCases: [
         "Automated content generation",
@@ -2286,7 +2290,13 @@ export const config: ModuleConfig = {
     "fal-ai/pixverse/c1/reference-to-video": {
       className: "PixverseC1ReferenceToVideo",
       docstring: "Pixverse C1 reference-to-video.",
-      tags: ["generation", "image-to-video", "img2vid", "pixverse", "reference"],
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "pixverse",
+        "reference"
+      ],
       useCases: [
         "Automated content generation",
         "Creative workflows",
@@ -2298,7 +2308,13 @@ export const config: ModuleConfig = {
     "fal-ai/pixverse/c1/transition": {
       className: "PixverseC1Transition",
       docstring: "Pixverse C1 transition video generation.",
-      tags: ["generation", "image-to-video", "img2vid", "pixverse", "transition"],
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "pixverse",
+        "transition"
+      ],
       useCases: [
         "Automated content generation",
         "Creative workflows",
@@ -2311,6 +2327,636 @@ export const config: ModuleConfig = {
       className: "PixverseV6ImageToVideo",
       docstring: "Pixverse v6 image-to-video.",
       tags: ["generation", "image-to-video", "img2vid", "pixverse"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "alibaba/happy-horse/v1.1/image-to-video": {
+      className: "HappyHorseV11ImageToVideo",
+      docstring:
+        "Happy Horse 1.1 is Alibaba's #1-ranked video model. This image-to-video endpoint animates a still image into 1080p video with synchronized native audio and multilingual lip-sync",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "alibaba",
+        "happy",
+        "horse"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "alibaba/happy-horse/v1.1/reference-to-video": {
+      className: "HappyHorseV11ReferenceToVideo",
+      docstring:
+        "Happy Horse 1.1 is Alibaba's #1-ranked video model. This reference-to-video endpoint turns up to 9 reference images into 1080p video with synchronized native audio and multilingual lip-sync for consistent characters.",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "alibaba",
+        "happy",
+        "horse",
+        "reference"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "bytedance/seedance-2.0/mini/image-to-video": {
+      className: "Seedance20MiniImageToVideo",
+      docstring:
+        "Seedance 2.0 Mini is a faster version of Seedance 2.0 that brings great performance and high generation speed at a lower cost.",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "bytedance",
+        "seedance",
+        "mini"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "bytedance/seedance-2.0/mini/reference-to-video": {
+      className: "Seedance20MiniReferenceToVideo",
+      docstring:
+        "Seedance 2.0 Mini is a faster version of Seedance 2.0 that brings great performance and high generation speed at a lower cost.",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "bytedance",
+        "seedance",
+        "mini",
+        "reference"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/bernini-r/reference-to-video": {
+      className: "BerniniRReferenceToVideo",
+      docstring:
+        "Turn up to five reference images into one continuous, consistent video with Bernini-R, with smooth, stable camera motion and no scene cuts.",
+      tags: ["generation", "image-to-video", "img2vid", "bernini", "reference"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/cosmos-predict-2.5/image-to-video": {
+      className: "CosmosPredict25ImageToVideo",
+      docstring:
+        "Generate video from text and images using NVIDIA's 2B Cosmos Post-Trained Model",
+      tags: ["generation", "image-to-video", "img2vid", "cosmos", "predict"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/davinci-magihuman": {
+      className: "DavinciMagihuman",
+      docstring:
+        "Expressive facial performance, natural speech-expression coordination, realistic body motion, and accurate audio-video synchronization with DaVinci-MagiHuman model",
+      tags: ["generation", "image-to-video", "img2vid", "davinci", "magihuman"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ffmpeg-api/images-to-video": {
+      className: "FfmpegApiImagesToVideo",
+      docstring:
+        "A fal.ai endpoint that stitches an ordered list of images into an MP4 video by holding each image for a specified number of frames at a configurable frame rate",
+      tags: ["generation", "image-to-video", "img2vid", "ffmpeg", "images"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/flashhead": {
+      className: "Flashhead",
+      docstring:
+        "SoulX-FlashHead is a unified 1.3B-parameter framework designed for high-fidelity, infinite-length, and real-time streaming portrait video generation.",
+      tags: ["generation", "image-to-video", "img2vid", "flashhead"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/heygen/avatar4/image-to-video": {
+      className: "HeygenAvatar4ImageToVideo",
+      docstring: "Heygen Photo Avatar 4 Model",
+      tags: ["generation", "image-to-video", "img2vid", "heygen", "avatar4"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/kling-video/v3/turbo/pro/image-to-video": {
+      className: "KlingVideoV3TurboProImageToVideo",
+      docstring:
+        "Generate high quality 1080p videos from images using Kling's Turbo 3.0 model, with improved lipsync and multishot generation capabilities.",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "kling",
+        "turbo",
+        "pro"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/kling-video/v3/turbo/standard/image-to-video": {
+      className: "KlingVideoV3TurboStandardImageToVideo",
+      docstring:
+        "Kling 3.0 Turbo Standard animates a first and last frame reference image into 720P video with native audio, delivering quick, affordable image-driven motion for fast turnaround",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "kling",
+        "turbo",
+        "standard"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-22b/distilled/image-to-video": {
+      className: "Ltx2322bDistilledImageToVideo",
+      docstring:
+        "Generate video with audio from images using LTX-2.3 Distilled",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "ltx",
+        "22b",
+        "distilled"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-22b/distilled/image-to-video/lora": {
+      className: "Ltx2322bDistilledImageToVideoLora",
+      docstring:
+        "Generate video with audio from images using LTX-2.3 Distilled and custom LoRA",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "ltx",
+        "22b",
+        "distilled",
+        "lora"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-22b/image-to-video": {
+      className: "Ltx2322bImageToVideo",
+      docstring: "Generate video with audio from images using LTX-2.3",
+      tags: ["generation", "image-to-video", "img2vid", "ltx", "22b"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-22b/image-to-video/lora": {
+      className: "Ltx2322bImageToVideoLora",
+      docstring:
+        "Generate video with audio from images using LTX-2.3 and custom LoRA",
+      tags: ["generation", "image-to-video", "img2vid", "ltx", "22b", "lora"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/image-to-video": {
+      className: "Ltx23QualityImageToVideo",
+      docstring:
+        "Generate high-quality video with audio from images using LTX-2.3",
+      tags: ["generation", "image-to-video", "img2vid", "ltx", "quality"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/image-to-video/lora": {
+      className: "Ltx23QualityImageToVideoLora",
+      docstring:
+        "Generate high-quality video with audio from images using LTX-2.3 and custom LoRA",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "ltx",
+        "quality",
+        "lora"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/ingredient": {
+      className: "Ltx23QualityIngredient",
+      docstring:
+        "Generate high-quality video with audio from reference, character sheet, storyboard using LTX-2.3",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "ltx",
+        "quality",
+        "ingredient"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3/image-to-video": {
+      className: "Ltx23ImageToVideo",
+      docstring:
+        "LTX-2.3 is a high-quality, fast AI video model available in Pro and Fast variants for text-to-video, image-to-video, and audio-to-video.",
+      tags: ["generation", "image-to-video", "img2vid", "ltx"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3/image-to-video/fast": {
+      className: "Ltx23ImageToVideoFast",
+      docstring:
+        "LTX-2.3 is a high-quality, fast AI video model available in Pro and Fast variants for text-to-video, image-to-video, and audio-to-video.",
+      tags: ["generation", "image-to-video", "img2vid", "ltx", "fast"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/pixverse/c1/image-to-video": {
+      className: "PixverseC1ImageToVideo",
+      docstring:
+        "Animate images into cinematic videos with PixVerse C1, supporting 1080p resolution and native audio generation.",
+      tags: ["generation", "image-to-video", "img2vid", "pixverse", "c1"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/pixverse/v6/transition": {
+      className: "PixverseV6Transition",
+      docstring: "Pixverse's latest v6 Model.",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "pixverse",
+        "v6",
+        "transition"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/sync-lipsync/v3/image-to-video": {
+      className: "SyncLipsyncV3ImageToVideo",
+      docstring:
+        "sync-3 image to video turns a single still into a talking character, and works with any illustration or animated frame paired with a voice track",
+      tags: ["generation", "image-to-video", "img2vid", "sync", "lipsync"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/veo3.1/lite/first-last-frame-to-video": {
+      className: "Veo31LiteFirstLastFrameToVideo",
+      docstring:
+        "Veo 3.1 Lite balances practical utility with professional capabilities, supporting Text-to-Video and Image-to-Video",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "veo3",
+        "first",
+        "last",
+        "frame"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/veo3.1/lite/image-to-video": {
+      className: "Veo31LiteImageToVideo",
+      docstring:
+        "Veo 3.1 Lite balances practical utility with professional capabilities, supporting Text-to-Video and Image-to-Video",
+      tags: ["generation", "image-to-video", "img2vid", "veo3"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/vidu/q3/image-to-video": {
+      className: "ViduQ3ImageToVideo",
+      docstring: "Vidu's latest Q3 pro models.",
+      tags: ["generation", "image-to-video", "img2vid", "vidu", "q3"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/vidu/q3/image-to-video/turbo": {
+      className: "ViduQ3ImageToVideoTurbo",
+      docstring: "Vidu's Q3 Turbo Model",
+      tags: ["generation", "image-to-video", "img2vid", "vidu", "q3", "turbo"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/vidu/q3/reference-to-video/mix": {
+      className: "ViduQ3ReferenceToVideoMix",
+      docstring: "Vidu's latest Q3 Reference to Video Mix model",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "vidu",
+        "q3",
+        "reference",
+        "mix"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/wan/v2.7/image-to-video": {
+      className: "WanV27ImageToVideo",
+      docstring:
+        "Wan 2.7 is the latest generation AI video model, delivering enhanced motion smoothness, superior scene fidelity, and greater visual coherence.",
+      tags: ["generation", "image-to-video", "img2vid", "wan"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/wan/v2.7/reference-to-video": {
+      className: "WanV27ReferenceToVideo",
+      docstring:
+        "Wan 2.7 is the latest generation AI video model, delivering enhanced motion smoothness, superior scene fidelity, and greater visual coherence.",
+      tags: ["generation", "image-to-video", "img2vid", "wan", "reference"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "google/gemini-omni-flash/image-to-video": {
+      className: "GeminiOmniFlashImageToVideo",
+      docstring:
+        "Animates a still image into video with audio. Extends a single frame into coherent motion, grounded in Gemini's physical understanding of how scenes and subjects behave.",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "google",
+        "gemini",
+        "omni",
+        "flash"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "google/gemini-omni-flash/reference-to-video": {
+      className: "GeminiOmniFlashReferenceToVideo",
+      docstring:
+        "Generates video with audio from combined multimodal references. Accepts text, images, audio, and video together as input to guide subject, motion, style, and sound in the output.",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "google",
+        "gemini",
+        "omni",
+        "flash",
+        "reference"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "luma/agent/ray/v3.2/image-to-video": {
+      className: "LumaAgentRayV32ImageToVideo",
+      docstring:
+        "Luma Ray 3.2 animates a source image into cinematic motion guided by a text prompt, preserving the starting frame's look while controlling resolution, duration, and seamless looping.",
+      tags: ["generation", "image-to-video", "img2vid", "luma", "agent", "ray"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "nvidia/cosmos-3-super/image-to-video": {
+      className: "Cosmos3SuperImageToVideo",
+      docstring:
+        "Cosmos3 is a collection of Omnimodal world models capable of generating dynamic, high-quality video, image, audio, and action commands from combinations of text, image, video, and action trajectory inputs.",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "nvidia",
+        "cosmos",
+        "super"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "xai/grok-imagine-video/image-to-video": {
+      className: "GrokImagineVideoImageToVideo",
+      docstring:
+        "Generate videos from images with audio using xAI's Grok Imagine Video model.",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "xai",
+        "grok",
+        "imagine"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "xai/grok-imagine-video/reference-to-video": {
+      className: "GrokImagineVideoReferenceToVideo",
+      docstring:
+        "Generate videos using multiple reference images with xAI's Grok Imagine video model",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "xai",
+        "grok",
+        "imagine",
+        "reference"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "xai/grok-imagine-video/v1.5/image-to-video": {
+      className: "GrokImagineVideoV15ImageToVideo",
+      docstring:
+        "Generate videos from images with audio using xAI's Grok Imagine 1.5 Video model.",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "xai",
+        "grok",
+        "imagine"
+      ],
       useCases: [
         "Automated content generation",
         "Creative workflows",

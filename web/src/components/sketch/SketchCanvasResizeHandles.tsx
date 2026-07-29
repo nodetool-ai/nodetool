@@ -256,9 +256,8 @@ const SketchCanvasResizeHandles: React.FC<SketchCanvasResizeHandlesProps> = ({
     (e: React.PointerEvent, edge: ResizeEdge) => {
       e.preventDefault();
       e.stopPropagation();
-      const target = e.target as HTMLElement;
-      if (typeof target.setPointerCapture === "function") {
-        target.setPointerCapture(e.pointerId);
+      if (e.target instanceof HTMLElement) {
+        e.target.setPointerCapture(e.pointerId);
       }
 
       dragStartRef.current = {
@@ -346,9 +345,8 @@ const SketchCanvasResizeHandles: React.FC<SketchCanvasResizeHandlesProps> = ({
       }
       e.preventDefault();
       e.stopPropagation();
-      const target = e.target as HTMLElement;
-      if (typeof target.releasePointerCapture === "function") {
-        target.releasePointerCapture(e.pointerId);
+      if (e.target instanceof HTMLElement) {
+        e.target.releasePointerCapture(e.pointerId);
       }
 
       dragStartRef.current = null;
@@ -364,9 +362,8 @@ const SketchCanvasResizeHandles: React.FC<SketchCanvasResizeHandlesProps> = ({
       if (!dragStartRef.current) {
         return;
       }
-      const target = e.target as HTMLElement;
-      if (typeof target.releasePointerCapture === "function") {
-        target.releasePointerCapture(e.pointerId);
+      if (e.target instanceof HTMLElement) {
+        e.target.releasePointerCapture(e.pointerId);
       }
       dragStartRef.current = null;
       lastSizeRef.current = null;

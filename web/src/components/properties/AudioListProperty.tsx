@@ -8,7 +8,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Tooltip, Text, CloseButton, MOTION, SPACING, BORDER_RADIUS, getSpacingPx } from "../ui_primitives";
 import AudioFileIcon from "@mui/icons-material/AudioFile";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { isElectron } from "../../utils/browser";
 import {
@@ -141,7 +141,6 @@ const flattenAudioItems = (items: unknown): AudioItem[] => {
     return [];
   }
   if (!Array.isArray(items)) {
-    // Single item - check if it has the right shape
     if (typeof items === "object" && items !== null && "uri" in items) {
       return [items as AudioItem];
     }
@@ -151,7 +150,6 @@ const flattenAudioItems = (items: unknown): AudioItem[] => {
   const result: AudioItem[] = [];
   for (const item of items) {
     if (Array.isArray(item)) {
-      // Nested array - recursively flatten
       result.push(...flattenAudioItems(item));
     } else if (typeof item === "object" && item !== null && "uri" in item) {
       result.push(item as AudioItem);
@@ -165,7 +163,6 @@ const AudioListProperty = (props: PropertyProps) => {
   const id = `audio-list-${props.property.name}-${props.propertyIndex}`;
   const { uploadAsset } = useAssetUpload();
 
-  // Use selectors for asset grid store to avoid full store subscriptions
   const filteredAssets = useAssetGridStore((state) => state.filteredAssets);
   const globalSearchResults = useAssetGridStore((state) => state.globalSearchResults);
   const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
@@ -195,7 +192,6 @@ const AudioListProperty = (props: PropertyProps) => {
     [audios, props]
   );
 
-  // Memoize remove handlers for each audio to prevent re-renders
   const removeHandlers = useMemo(() => {
     const handlers: Record<number, () => void> = {};
     for (let i = 0; i < audios.length; i++) {
@@ -216,7 +212,6 @@ const AudioListProperty = (props: PropertyProps) => {
     }
   }, []);
 
-  // Handle file drops
   // Handle file drops (both internal nodetool assets and external files)
   const onDrop = useCallback(
     async (event: React.DragEvent<HTMLDivElement>) => {

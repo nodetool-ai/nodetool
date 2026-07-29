@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1200" viewBox="0 0 800 1200" role="img" aria-label="Seed movie poster">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1e293b"/>
+      <stop offset="0.5" stop-color="#3730a3"/>
+      <stop offset="1" stop-color="#0f172a"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.32" r="0.6">
+      <stop offset="0" stop-color="#60a5fa" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#60a5fa" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="1200" fill="url(#g)"/>
+  <circle cx="400" cy="400" r="220" fill="url(#glow)"/>
+  <circle cx="400" cy="380" r="90" fill="#e2e8f0" opacity="0.9"/>
+  <text x="400" y="1000" fill="#f8fafc" font-family="Georgia, serif" font-size="72" font-weight="700" text-anchor="middle">THE LAST</text>
+  <text x="400" y="1080" fill="#93c5fd" font-family="Georgia, serif" font-size="72" font-weight="700" text-anchor="middle">SIGNAL</text>
+  <text x="400" y="1150" fill="#94a3b8" font-family="Arial, sans-serif" font-size="26" letter-spacing="6" text-anchor="middle">SEED · MOVIE POSTER</text>
+</svg>

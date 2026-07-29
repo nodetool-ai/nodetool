@@ -15,10 +15,11 @@ import {
   MOTION,
   BORDER_RADIUS,
   SPACING,
+  Z_INDEX,
   getSpacingPx,
   InputAdornment
 } from "../ui_primitives";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import Markdown from "react-markdown";
 
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -52,7 +53,7 @@ const styles = (theme: Theme) =>
       padding: ".5em .5em 0 .5em",
       backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.6)`,
       backdropFilter: "blur(8px)",
-      zIndex: 10000,
+      zIndex: theme.zIndex.popover,
       display: "flex",
       justifyContent: "center",
       alignItems: "flex-start",
@@ -105,7 +106,7 @@ const styles = (theme: Theme) =>
         rgba(${theme.vars.palette.background.defaultChannel} / 0.4) 0%, 
         transparent 100%)`,
       borderBottom: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.05)`,
-      zIndex: 5,
+      zIndex: Z_INDEX.raised,
       h4: {
         cursor: "default",
         fontWeight: 600,
@@ -434,28 +435,22 @@ const DataframeEditorModal = ({
   const theme = useTheme();
   const modalOverlayRef = useRef<HTMLDivElement>(null);
 
-  // Fullscreen toggle
   const { isFullscreen, toggleFullscreen } = useFullscreenMode({
     storageKey: "dataframeEditorModal_fullscreen"
   });
 
-  // Resizable modal height
   const { modalHeight, handleResizeMouseDown } = useModalResize({
     storageKey: "dataframeEditorModal_height",
     defaultHeight: Math.min(500, window.innerHeight - 200)
   });
 
-  // Local state for the dataframe
   const [localValue, setLocalValue] = useState<DataframeRef>(value);
-  
-  // Search filter state
   const [searchFilter, setSearchFilter] = useState("");
 
   const handleClearSearch = useCallback(() => {
     setSearchFilter("");
   }, []);
 
-  // Sync local state with prop changes
   useEffect(() => {
     setLocalValue(value);
   }, [value]);
@@ -510,7 +505,6 @@ const DataframeEditorModal = ({
     }
   }, [onClose]);
 
-  // Escape key closes modal
   useCombo(["escape"], onClose);
 
   // Close signal from other modals so only one modal is active

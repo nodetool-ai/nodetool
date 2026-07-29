@@ -133,7 +133,7 @@ export default function MoviePosterGraph() {
 
             <div data-node="render" style={{ position: "absolute", left: 2160, top: 60 }}>
               <FlowNode title="Text To Image" icon={<ImageIcon size={16} />} width={340} style={{ position: "relative" }}>
-                <NodePreview src="/poster-singularity-1.png" ratio="2 / 3" />
+                <NodePreview src="/poster-singularity-1.webp" ratio="2 / 3" />
                 <HandleRow side="out" color="image" />
               </FlowNode>
             </div>

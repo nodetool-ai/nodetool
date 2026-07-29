@@ -1,0 +1,79 @@
+[
+  {
+    "slug": "photo-studio",
+    "name": "Photo Studio",
+    "emoji": "📸",
+    "featured": true,
+    "workflows": 2
+  },
+  {
+    "slug": "meeting-room",
+    "name": "Meeting Room",
+    "emoji": "🎧",
+    "featured": true,
+    "workflows": 3
+  },
+  {
+    "slug": "concept-studio",
+    "name": "Concept Studio",
+    "emoji": "🖌️",
+    "featured": true,
+    "workflows": 3
+  },
+  {
+    "slug": "research-desk",
+    "name": "Research Desk",
+    "emoji": "🕵️",
+    "featured": true,
+    "workflows": 3
+  },
+  {
+    "slug": "ask-your-documents",
+    "name": "Ask Your Documents",
+    "emoji": "📄",
+    "featured": false,
+    "workflows": 2
+  },
+  {
+    "slug": "brand-and-social",
+    "name": "Brand & Social",
+    "emoji": "🎨",
+    "featured": true,
+    "workflows": 3
+  },
+  {
+    "slug": "product-launch-kit",
+    "name": "Product Launch Kit",
+    "emoji": "📦",
+    "featured": false,
+    "workflows": 2
+  },
+  {
+    "slug": "film-studio",
+    "name": "Film Studio",
+    "emoji": "🎬",
+    "featured": true,
+    "workflows": 3
+  },
+  {
+    "slug": "study-buddy",
+    "name": "Study Buddy",
+    "emoji": "🃏",
+    "featured": false,
+    "workflows": 2
+  },
+  {
+    "slug": "model-arena",
+    "name": "Model Arena",
+    "emoji": "⚖️",
+    "featured": false,
+    "workflows": 1
+  },
+  {
+    "slug": "dataset-builder",
+    "name": "Dataset Builder",
+    "emoji": "🧮",
+    "featured": false,
+    "workflows": 1
+  }
+]

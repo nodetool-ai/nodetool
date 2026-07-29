@@ -7,6 +7,7 @@ import React, {
   useState,
   type DragEvent
 } from "react";
+import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -17,6 +18,7 @@ import {
 } from "../../stores/WorkspaceTabsStore";
 import { useWorkflowManager, useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
 import { useAssetStore } from "../../stores/AssetStore";
+import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { trpcClient } from "../../trpc/client";
 import { colorForType } from "../../config/data_types";
 import { TOOLBAR_WIDTH } from "../../config/constants";
@@ -24,16 +26,21 @@ import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import NotificationButton from "../panels/NotificationButton";
 import OpenMenu from "./OpenMenu";
 import WorkspaceTabItem from "./WorkspaceTabItem";
+import MobileDocumentSelector from "./MobileDocumentSelector";
 
 /** Whether a document type supports both View and Edit (vs view-only). */
 const SUPPORTS_BOTH_MODES: Record<WorkspaceTabType, boolean> = {
-  workflow: true,
+  workflow: false,
   image: true,
   sketch: false,
   timeline: true,
+  storyboard: false,
+  script: false,
   model3d: true,
   text: true,
   audio: true,
+  chat: false,
+  application: false,
   page: false
 };
 
@@ -42,7 +49,10 @@ const RENAMEABLE_TYPES = new Set<WorkspaceTabType>([
   "workflow",
   "sketch",
   "timeline",
-  "model3d"
+  "storyboard",
+  "script",
+  "model3d",
+  "chat"
 ]);
 
 const TYPE_GLYPH: Record<WorkspaceTabType, string> = {
@@ -50,9 +60,13 @@ const TYPE_GLYPH: Record<WorkspaceTabType, string> = {
   image: "▦",
   sketch: "✎",
   timeline: "▤",
+  storyboard: "▥",
+  script: "🎙",
   model3d: "◈",
   audio: "♪",
   text: "¶",
+  chat: "❝",
+  application: "◧",
   page: "☰"
 };
 
@@ -62,9 +76,13 @@ const TYPE_COLOR: Record<WorkspaceTabType, string> = {
   image: colorForType("image"),
   sketch: colorForType("image"),
   timeline: colorForType("video"),
+  storyboard: colorForType("video"),
+  script: colorForType("audio"),
   model3d: colorForType("model_3d"),
   audio: colorForType("audio"),
   text: colorForType("text"),
+  chat: colorForType("str"),
+  application: colorForType("any"),
   page: colorForType("any")
 };
 
@@ -101,7 +119,7 @@ const styles = (theme: Theme) =>
       minWidth: "150px",
       maxWidth: "240px",
       flex: "0 0 auto",
-      padding: `0 ${getSpacingPx(SPACING.lg)} 0 ${getSpacingPx(SPACING.xl)}`, // was 0 10px 0 14px
+      padding: `0 ${getSpacingPx(SPACING.lg)} 0 ${getSpacingPx(SPACING.xl)}`,
       cursor: "pointer",
       color: theme.vars.palette.text.secondary,
       borderRight: `1px solid ${theme.vars.palette.divider}`,
@@ -173,7 +191,7 @@ const styles = (theme: Theme) =>
       flexShrink: 0,
       display: "flex",
       alignItems: "center",
-      gap: getSpacingPx(SPACING.sm), // was 5px
+      gap: getSpacingPx(SPACING.sm),
       padding: `0 ${getSpacingPx(SPACING.xl)}`,
       border: "none",
       borderRight: `1px solid ${theme.vars.palette.divider}`,
@@ -190,7 +208,7 @@ const styles = (theme: Theme) =>
       },
       "& .new-tab-caret": {
         fontSize: "var(--fontSizeSmall)",
-        marginLeft: getSpacingPx(SPACING.micro), // was 1px
+        marginLeft: getSpacingPx(SPACING.micro),
         opacity: 0.75,
         lineHeight: 1
       },
@@ -205,7 +223,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: getSpacingPx(SPACING.micro),
-      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`, // was 6px 10px
+      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`,
       flexShrink: 0,
       "& button": {
         border: `1px solid ${theme.vars.palette.divider}`,
@@ -213,7 +231,7 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.text.secondary,
         cursor: "pointer",
         fontSize: "var(--fontSizeSmaller)",
-        padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`, // was 3px 12px
+        padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`,
         "&:first-of-type": { borderRadius: `${BORDER_RADIUS.sm} 0 0 ${BORDER_RADIUS.sm}`, borderRight: "none" },
         "&:last-of-type": { borderRadius: `0 ${BORDER_RADIUS.sm} ${BORDER_RADIUS.sm} 0` },
         "&.on": {
@@ -247,12 +265,29 @@ const styles = (theme: Theme) =>
         height: "16px",
         fontSize: "var(--fontSizeNormal)"
       }
+    },
+
+    // Mobile: no left rail to clear, and the bar grows to 48px so the global
+    // 44px touch-target minimum fits inside it. The tab strip is replaced by a
+    // single document selector (see MobileDocumentSelector); text labels drop
+    // to icons.
+    [theme.breakpoints.down("sm")]: {
+      height: "48px",
+      paddingLeft: 0,
+      "& .new-tab": {
+        padding: `0 ${getSpacingPx(SPACING.md)}`
+      },
+      "& .new-tab .new-tab-label": { display: "none" },
+      "& .mode-toggle": {
+        padding: `0 ${getSpacingPx(SPACING.sm)}`
+      }
     }
   });
 
 const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   const theme = useTheme();
   const tabBarStyles = useMemo(() => styles(theme), [theme]);
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const tabs = useWorkspaceTabsStore((state) => state.tabs);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
   const setActiveTab = useWorkspaceTabsStore((state) => state.setActiveTab);
@@ -300,6 +335,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
 
   const handleDragStart = useCallback(
     (event: DragEvent<HTMLDivElement>, tabId: string) => {
+      event.dataTransfer.effectAllowed = "move";
       event.dataTransfer.setData("text/plain", tabId);
     },
     []
@@ -308,6 +344,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   const handleDragOver = useCallback(
     (event: DragEvent<HTMLDivElement>, tab: WorkspaceTab) => {
       event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
       const rect = event.currentTarget.getBoundingClientRect();
       const position =
         event.clientX < rect.left + rect.width / 2 ? "left" : "right";
@@ -316,18 +353,28 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
     []
   );
 
-  const handleDragLeave = useCallback(() => {
-    setDropTarget(null);
-  }, []);
+  const handleDragLeave = useCallback(
+    (event: DragEvent<HTMLDivElement>) => {
+      const related = event.relatedTarget as Node | null;
+      if (!related || !event.currentTarget.contains(related)) {
+        setDropTarget(null);
+      }
+    },
+    []
+  );
 
   const handleDrop = useCallback(
     (event: DragEvent<HTMLDivElement>, targetTab: WorkspaceTab) => {
       event.preventDefault();
       const sourceTabId = event.dataTransfer.getData("text/plain");
-      if (!sourceTabId || sourceTabId === targetTab.id || !dropTarget) {
+      if (!sourceTabId || sourceTabId === targetTab.id) {
         setDropTarget(null);
         return;
       }
+
+      const rect = event.currentTarget.getBoundingClientRect();
+      const position =
+        event.clientX < rect.left + rect.width / 2 ? "left" : "right";
 
       const currentTabs = useWorkspaceTabsStore.getState().tabs;
       const sourceIndex = currentTabs.findIndex((tab) => tab.id === sourceTabId);
@@ -337,8 +384,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
         return;
       }
 
-      let toIndex =
-        dropTarget.position === "right" ? targetIndex + 1 : targetIndex;
+      let toIndex = position === "right" ? targetIndex + 1 : targetIndex;
       if (sourceIndex < toIndex) {
         toIndex -= 1;
       }
@@ -352,7 +398,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
 
       setDropTarget(null);
     },
-    [dropTarget, moveTab, syncWorkflowOrderFromTabs]
+    [moveTab, syncWorkflowOrderFromTabs]
   );
 
   const commitRename = useCallback(
@@ -401,6 +447,11 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
             break;
           case "model3d":
             await useAssetStore.getState().update({ id: tab.ref, name: trimmed });
+            break;
+          case "chat":
+            await useGlobalChatStore
+              .getState()
+              .updateThreadTitle(tab.ref, trimmed);
             break;
           default:
             break;
@@ -468,36 +519,50 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
         <span className="new-tab-plus" aria-hidden>
           +
         </span>
-        New
+        <span className="new-tab-label">New</span>
         <span className="new-tab-caret" aria-hidden>
           ▾
         </span>
       </button>
-      <div className="tabs">
-        {tabs.map((tab) => (
-          <WorkspaceTabItem
-            key={tab.id}
-            tab={tab}
-            isActive={tab.id === activeTabId}
-            isEditing={editingTabId === tab.id}
-            canRename={RENAMEABLE_TYPES.has(tab.type)}
-            dropPosition={dropTarget?.id === tab.id ? dropTarget.position : null}
-            typeColor={TYPE_COLOR[tab.type]}
-            typeGlyph={TYPE_GLYPH[tab.type]}
-            onActivate={setActiveTab}
-            onBeginRename={handleBeginRename}
-            onClose={handleClose}
-            onCloseOthers={handleCloseOthers}
-            onCloseAll={handleCloseAll}
-            onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onCommitRename={commitRename}
-            onCancelRename={handleCancelRename}
-          />
-        ))}
-      </div>
+      {isMobile ? (
+        <MobileDocumentSelector
+          tabs={tabs}
+          activeTabId={activeTabId}
+          typeColor={TYPE_COLOR}
+          typeGlyph={TYPE_GLYPH}
+          onActivate={setActiveTab}
+          onClose={handleClose}
+          onCloseAll={handleCloseAll}
+        />
+      ) : (
+        <div className="tabs">
+          {tabs.map((tab) => (
+            <WorkspaceTabItem
+              key={tab.id}
+              tab={tab}
+              isActive={tab.id === activeTabId}
+              isEditing={editingTabId === tab.id}
+              canRename={RENAMEABLE_TYPES.has(tab.type)}
+              dropPosition={
+                dropTarget?.id === tab.id ? dropTarget.position : null
+              }
+              typeColor={TYPE_COLOR[tab.type]}
+              typeGlyph={TYPE_GLYPH[tab.type]}
+              onActivate={setActiveTab}
+              onBeginRename={handleBeginRename}
+              onClose={handleClose}
+              onCloseOthers={handleCloseOthers}
+              onCloseAll={handleCloseAll}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onCommitRename={commitRename}
+              onCancelRename={handleCancelRename}
+            />
+          ))}
+        </div>
+      )}
 
       <OpenMenu
         anchorEl={newTabButtonRef.current}
@@ -510,13 +575,15 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
           <button
             type="button"
             className={activeTab.mode === "view" ? "on" : ""}
+            aria-pressed={activeTab.mode === "view"}
             onClick={() => setMode(activeTab.id, "view")}
           >
-            {activeTab.type === "workflow" ? "App" : "View"}
+            View
           </button>
           <button
             type="button"
             className={activeTab.mode === "edit" ? "on" : ""}
+            aria-pressed={activeTab.mode === "edit"}
             onClick={() => setMode(activeTab.id, "edit")}
           >
             Edit

@@ -6,7 +6,7 @@
  * with the category providing a default type hint.
  */
 import { CODE_SNIPPETS, type CodeSnippet, type SnippetCategory } from "./codeSnippets";
-import type { NodeMetadata } from "../stores/ApiTypes";
+import type { NodeMetadata, PropertyTypeMetadata } from "../stores/ApiTypes";
 import { inferOutputKeysFromCode, inferInputKeysFromCode } from "../utils/codeOutputInference";
 
 export const SNIPPET_NODE_PREFIX = "nodetool.";
@@ -58,7 +58,7 @@ export function generateSnippetMetadata(): Record<string, NodeMetadata> {
 
     const properties = inputKeys.map((name) => ({
       name,
-      type: { type: defaultType, type_args: [] as never[], optional: false },
+      type: { type: defaultType, type_args: [] as PropertyTypeMetadata[], optional: false },
       default: defaultType === "bool" ? false
         : defaultType === "float" ? 0
         : defaultType === "list" ? []
@@ -69,7 +69,7 @@ export function generateSnippetMetadata(): Record<string, NodeMetadata> {
 
     const outputs = outputKeys.map((name) => ({
       name,
-      type: { type: defaultType, type_args: [] as never[], optional: false },
+      type: { type: defaultType, type_args: [] as PropertyTypeMetadata[], optional: false },
       stream: false
     }));
 

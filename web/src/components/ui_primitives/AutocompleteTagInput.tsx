@@ -23,13 +23,14 @@
  * />
  */
 
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useId } from "react";
 import {
   Autocomplete,
   TextField,
   createFilterOptions
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { Label } from "./Label";
 
 export interface AutocompleteTagInputProps {
   /** Label for the input */
@@ -63,6 +64,7 @@ const AutocompleteTagInputInternal: React.FC<AutocompleteTagInputProps> = ({
   size = "small"
 }) => {
   const theme = useTheme();
+  const fieldId = useId();
 
   const handleChange = useCallback(
     (_event: React.SyntheticEvent, newValue: (string | { inputValue?: string })[]) => {
@@ -108,7 +110,11 @@ const AutocompleteTagInputInternal: React.FC<AutocompleteTagInputProps> = ({
 
   return (
     <div style={{ marginBottom: theme.spacing(1) }}>
+      <Label htmlFor={fieldId} disabled={disabled}>
+        {label}
+      </Label>
       <Autocomplete
+        id={fieldId}
         size={size}
         multiple
         freeSolo
@@ -125,17 +131,12 @@ const AutocompleteTagInputInternal: React.FC<AutocompleteTagInputProps> = ({
         renderInput={(params) => (
           <TextField
             {...params}
-            label={label}
             placeholder={placeholder}
             sx={{
               // Shared form-control sizing with TextInput/SelectField: value at
-              // the 15px body token, resting label + placeholder softened to read
-              // as hints (full strength once the label shrinks into the notch).
+              // the 15px body token, placeholder softened to read as a hint.
               "& .MuiInputBase-input": {
                 fontSize: theme.fontSizeNormal || "15px"
-              },
-              "& .MuiInputLabel-root:not(.MuiInputLabel-shrink)": {
-                opacity: 0.6
               },
               "& .MuiInputBase-input::placeholder": {
                 opacity: 0.6

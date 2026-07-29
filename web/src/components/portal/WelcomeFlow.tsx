@@ -43,14 +43,14 @@ const styles = (theme: Theme, fullWidth: boolean) =>
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 500,
       color: theme.vars.palette.text.secondary,
-      animation: `${rise} 500ms 80ms backwards`
+      animation: `${rise} ${MOTION.slow} ${80}ms backwards`
     },
     ".welcome-eyebrow-dot": {
       width: 6,
       height: 6,
       borderRadius: BORDER_RADIUS.circle,
       background: theme.vars.palette.success.main,
-      animation: `${pulse} 2.4s ease-in-out infinite`
+      animation: `${pulse} ${MOTION.pulse} infinite`
     },
     ".welcome-heading": {
       margin: `${getSpacingPx(SPACING.sm)} 0 ${getSpacingPx(SPACING.lg)}`,
@@ -60,7 +60,7 @@ const styles = (theme: Theme, fullWidth: boolean) =>
       lineHeight: 1.15,
       letterSpacing: "-0.02em",
       color: theme.vars.palette.text.primary,
-      animation: `${rise} 600ms 160ms backwards`
+      animation: `${rise} ${MOTION.slow} ${160}ms backwards`
     },
     ".welcome-sub": {
       color: theme.vars.palette.text.secondary,
@@ -68,14 +68,14 @@ const styles = (theme: Theme, fullWidth: boolean) =>
       margin: `0 0 ${getSpacingPx(SPACING.xxxl)}`,
       fontSize: 15,
       lineHeight: 1.45,
-      animation: `${rise} 600ms 240ms backwards`
+      animation: `${rise} ${MOTION.slow} ${240}ms backwards`
     },
 
     ".welcome-grid": {
       display: "grid",
       gridTemplateColumns: "repeat(4, 1fr)",
-      gap: 8,
-      animation: `${rise} 700ms 320ms backwards`,
+      gap: getSpacingPx(SPACING.md),
+      animation: `${rise} ${MOTION.slow} ${320}ms backwards`,
       [theme.breakpoints.down("md")]: {
         gridTemplateColumns: "repeat(2, 1fr)"
       },
@@ -118,7 +118,7 @@ const styles = (theme: Theme, fullWidth: boolean) =>
       color: theme.vars.palette.text.primary
     },
     ".welcome-card-blurb": {
-      marginTop: `${theme.spacing(0.25)}`,
+      marginTop: `${theme.spacing(SPACING.micro)}`,
       marginBottom: `${theme.spacing(1)}`,
       fontSize: "var(--fontSizeSmall)",
       lineHeight: 1.45,
@@ -127,7 +127,7 @@ const styles = (theme: Theme, fullWidth: boolean) =>
     ".welcome-card-node": {
       display: "inline-flex",
       alignItems: "center",
-      padding: `${theme.spacing(0.25)} ${theme.spacing(1)}`,
+      padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(1)}`,
       borderRadius: BORDER_RADIUS.pill,
       background: theme.vars.palette.action.selected,
       color: theme.vars.palette.text.secondary,
@@ -140,12 +140,12 @@ const styles = (theme: Theme, fullWidth: boolean) =>
       alignItems: "center",
       gap: `${theme.spacing(1)}`,
       marginTop: `${theme.spacing(1)}`,
-      animation: `${rise} 700ms 480ms backwards`
+      animation: `${rise} ${MOTION.slow} ${480}ms backwards`
     },
     ".welcome-skip": {
       background: "none",
       border: "none",
-      padding: `${theme.spacing(0.75)} ${theme.spacing(1.25)}`,
+      padding: `${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.sm)}`,
       borderRadius: BORDER_RADIUS.sm,
       fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
@@ -198,7 +198,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = ({
       </div>
       <h1 className="welcome-heading">What do you want to make today?</h1>
       <p className="welcome-sub">
-        Pick one. We&apos;ll drop a starter graph onto the canvas so you can run
+        Pick one. We&apos;ll drop a starter workflow onto the canvas so you can run
         it and make it your own. You can always change your mind, or skip and
         explore.
       </p>

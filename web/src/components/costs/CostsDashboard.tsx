@@ -1,9 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type { SxProps } from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import GridViewIcon from "@mui/icons-material/GridView";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
@@ -66,7 +64,7 @@ const segmentedSx = (theme: Theme): SxProps<Theme> => ({
   gap: getSpacingPx(SPACING.micro),
   "& .MuiToggleButton-root": {
     border: "none",
-    borderRadius: "var(--rounded-md) !important",
+    borderRadius: `${BORDER_RADIUS.md} !important`,
     color: theme.vars.palette.text.secondary,
     textTransform: "none",
     fontSize: "var(--fontSizeSmall)",
@@ -113,7 +111,6 @@ const matchesSearch = (
 
 const CostsDashboard: React.FC = () => {
   const theme = useTheme();
-  const navigate = useNavigate();
 
   const [range, setRange] = useState<DateRange>("14d");
   const [groupBy, setGroupBy] = useState<GroupByKey>("execution");
@@ -200,7 +197,9 @@ const CostsDashboard: React.FC = () => {
     document.body.appendChild(a);
     a.click();
     a.remove();
-    URL.revokeObjectURL(url);
+    // Defer the revoke: releasing the blob synchronously cancels the download
+    // in Firefox and for large files.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }, [tableExecs, range]);
 
   return (
@@ -222,32 +221,6 @@ const CostsDashboard: React.FC = () => {
           )} + ${getSpacingPx(SPACING.xxxl)} + ${getSpacingPx(SPACING.md)})` // was 24px 40px 72px
         }}
       >
-        {/* back to editor */}
-        <Box
-          component="button"
-          type="button"
-          onClick={() => navigate("/editor")}
-          sx={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: getSpacingPx(SPACING.sm),
-            mb: 2,
-            padding: 0,
-            border: "none",
-            background: "none",
-            cursor: "pointer",
-            fontFamily: "inherit",
-            fontSize: "var(--fontSizeSmall)",
-            fontWeight: 500,
-            color: theme.vars.palette.text.secondary,
-            transition: `color ${MOTION.fast}`,
-            "&:hover": { color: theme.vars.palette.text.primary }
-          }}
-        >
-          <ArrowBackIcon sx={{ fontSize: 16 }} />
-          Back to editor
-        </Box>
-
         {/* header */}
         <FlexRow
           justify="space-between"
@@ -416,8 +389,6 @@ const CostsDashboard: React.FC = () => {
     </Box>
   );
 };
-
-// --- content (success state) ------------------------------------------------
 
 interface DashboardContentProps {
   view: NonNullable<ReturnType<typeof useCostsDashboard>["view"]>;
@@ -603,8 +574,6 @@ const StateMessage: React.FC<React.PropsWithChildren> = ({ children }) => (
   </FlexColumn>
 );
 
-// --- filter dropdown --------------------------------------------------------
-
 interface FilterOption {
   key: string;
   label: string;
@@ -663,14 +632,9 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
           }
         }}
       >
-        <Box
-          sx={{
-            display: "flex",
-            color: theme.vars.palette.text.secondary
-          }}
-        >
+        <FlexRow sx={{ color: theme.vars.palette.text.secondary }}>
           {icon}
-        </Box>
+        </FlexRow>
         {label}
         {count && (
           <Text

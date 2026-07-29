@@ -139,6 +139,25 @@ describe("buildExecutionTreeState", () => {
     expect(state.tasks[0].steps[0].status).toBe("failed");
   });
 
+  it("marks task as failed on task_failed (terminal, not stuck running)", () => {
+    const messages = [
+      msg("task_update", {
+        event: "task_created",
+        task: {
+          id: "t1",
+          title: "Task",
+          steps: [{ id: "s1", instructions: "Do work" }]
+        }
+      }),
+      msg("task_update", {
+        event: "task_failed",
+        task: { id: "t1", error: "budget exhausted" }
+      })
+    ] as Parameters<typeof buildExecutionTreeState>[0];
+    const state = buildExecutionTreeState(messages);
+    expect(state.tasks[0].status).toBe("failed");
+  });
+
   it("marks task as completed and sets phase to done", () => {
     const messages = [
       msg("task_update", {

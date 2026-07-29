@@ -5,7 +5,7 @@
  * Content-forward node body for nodes whose metadata declares
  * `body: "content_card"` (image / video / text / etc. generators and "thin"
  * image-edit nodes). See `isContentCardNode` in `contentCardRegistry`.
- * Three regions per plan §6.1:
+ * Three regions:
  *
  *   1. Header           — already rendered by `NodeHeader` in `BaseNode`
  *   2. Preview area     — variant dispatch by primary-output type
@@ -16,9 +16,6 @@
  * Inline fields are rendered below the preview via the existing
  * `NodeInputs` infrastructure. Input fields render as handle-only ports on
  * the left edge via `HandleColumn`. Everything else stays in the Inspector.
- *
- * PR 4 ships only the **image** variant. Other variants fall through to
- * `OutputRenderer` for now and get bespoke previews in PR 5.
  */
 
 import React, { memo, useCallback, useMemo } from "react";
@@ -34,13 +31,15 @@ import LayersIcon from "@mui/icons-material/Layers";
 import DownloadIcon from "@mui/icons-material/Download";
 import AddIcon from "@mui/icons-material/Add";
 import {
+  BORDER_RADIUS,
   CheckerDropzone,
   DynamicInputButton,
   FlexColumn,
+  MOTION,
+  reducedMotion,
+  SPACING,
   ToolbarIconButton,
   VideoPlayer,
-  BORDER_RADIUS,
-  MOTION,
   Z_INDEX
 } from "../ui_primitives";
 import { NodeInputs } from "../node/NodeInputs";
@@ -69,6 +68,7 @@ import {
   useNodeResultHistory
 } from "../../hooks/nodes/useNodeResultHistory";
 import { useNodes } from "../../contexts/NodeContext";
+import { useConnectedEdgesSelector } from "../../hooks/nodes/useConnectedEdges";
 
 import {
   getContentCardVariant,
@@ -150,15 +150,20 @@ const styles = (theme: Theme) =>
         display: "flex",
         gap: theme.spacing(0.5),
         opacity: 0,
-        transition: MOTION.opacity
+        transition: MOTION.opacity,
+        ...reducedMotion({ transition: MOTION.none })
       },
       ".video-preview:hover .video-preview-actions": {
         opacity: 1
       },
+      // Touch devices have no hover; keep the video preview actions reachable.
+      "@media (pointer: coarse)": {
+        ".video-preview-actions": { opacity: 1 }
+      },
       ".video-preview-actions button": {
         width: 24,
         height: 24,
-        padding: theme.spacing(0.25),
+        padding: theme.spacing(SPACING.micro),
         backgroundColor: theme.vars.palette.c_scrim,
         color: theme.vars.palette.grey[0],
         borderRadius: BORDER_RADIUS.sm,
@@ -480,7 +485,9 @@ const VideoPreview: React.FC<{ value: unknown; nodeId: string }> = ({
       await Promise.all(assetFiles.map(({ file }) => createAsset(file)));
       addNotification({
         type: "success",
-        content: `${assetFiles.length} file(s) added to assets`
+        content: `${assetFiles.length} file${
+          assetFiles.length === 1 ? "" : "s"
+        } added to assets`
       });
     } catch (error) {
       console.error("VideoPreview: add to assets failed", error);
@@ -567,7 +574,7 @@ const TextPreview: React.FC<{ value: unknown }> = ({ value }) => {
 };
 
 const Model3DPreview: React.FC<{ value: unknown }> = ({ value }) => {
-  // Per plan §6.2: static thumbnail only — no interactive viewer.
+  // Static thumbnail only — no interactive viewer.
   const v =
     value && typeof value === "object"
       ? (value as Record<string, unknown>)
@@ -650,6 +657,9 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   status,
   isOutputNode
 }) => {
+  const connectedEdgesSelector = useConnectedEdgesSelector(id);
+  const connectedEdges = useNodes(connectedEdgesSelector);
+
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
@@ -746,11 +756,8 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
     [useNewLayout, properties, handleNames, inlineFieldNameSet, data]
   );
 
-  // Adding a dynamic property is the responsibility of dynamic-input wiring
-  // landed in earlier work (NodeInputs / NodePropertyForm). For PR 4 we
-  // expose a placeholder onAdd that delegates to the same store flow used
-  // by NodePropertyForm — but we only render the button when the node opts
-  // into `supports_dynamic_inputs`. If no add handler is wired, the button is disabled.
+  // Only rendered when the node opts into `supports_dynamic_inputs`; delegates
+  // to the same store flow as NodePropertyForm.
   const updateNodeData = useNodes((state) => state.updateNodeData);
   const handleAddDynamicInput = useCallback(() => {
     const existing = data.dynamic_properties ?? {};
@@ -796,7 +803,7 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
         {/* Handle column lives inside the preview so its vertical extent
             is bounded by the preview — keeps `exposedInputs` handles from
             colliding with inline-field rows below. */}
-        <HandleColumn id={id} properties={handleProps} />
+        <HandleColumn id={id} properties={handleProps} connectedEdges={connectedEdges} />
       </div>
 
       {/* Inline fields: rendered as full editors in normal flow under preview.

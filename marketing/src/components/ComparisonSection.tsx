@@ -14,29 +14,29 @@ export default function ComparisonSection({
     <section
       id="differences"
       aria-labelledby="differences-title"
-      className="relative py-24"
+      className="relative py-24 scroll-mt-24"
     >
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
-        <header className="mb-14 max-w-3xl">
+        <header className="scroll-fade mb-14 max-w-3xl">
           <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-blue-300/80">
             <span className="h-px w-8 bg-amber-300/60" />
             Comparison
           </div>
           <motion.h2
             id="differences-title"
-            initial={reducedMotion ? {} : { opacity: 0, y: 16 }}
+            initial={false}
             whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
-            Where NodeTool fits in your stack
+            Where NodeTool fits among your tools
           </motion.h2>
           <motion.p
-            initial={reducedMotion ? {} : { opacity: 0, y: 16 }}
+            initial={false}
             whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.05 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl"
           >
             You&apos;re probably using two or three of these already. Here&apos;s
@@ -44,22 +44,22 @@ export default function ComparisonSection({
           </motion.p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-slate-800/60 border border-slate-800/80 rounded-2xl overflow-hidden">
+        <div className="scroll-fade grid grid-cols-1 md:grid-cols-3 gap-px bg-slate-800/60 border border-slate-800/80 rounded-2xl overflow-hidden">
           <ComparisonCard
             competitor="ComfyUI"
-            sentence="ComfyUI is a node editor for diffusion models. NodeTool is the studio around it: image, video, music, and words on one canvas, every major model a click away."
+            sentence="ComfyUI is an editor for image models. NodeTool is the studio around it: image, video, music, and words on one canvas, with every major model a click away."
             reducedMotion={reducedMotion}
             delay={0}
           />
           <ComparisonCard
-            competitor="Weavy / closed canvases"
-            sentence="Closed canvases lock you into a credit system and a curated model roster. NodeTool is open source and BYOK — every provider, your keys, provider prices."
+            competitor="Figma Weave / closed canvases"
+            sentence="Closed tools tie you to a credit system and a hand-picked list of models. NodeTool is open source: every provider, your own keys, and the prices those providers publish."
             reducedMotion={reducedMotion}
             delay={0.05}
           />
           <ComparisonCard
             competitor="A dozen browser tabs"
-            sentence="Midjourney, Runway, Photoshop, ElevenLabs, Suno — each in its own tab, none of them talking to each other. NodeTool wires them into one canvas you can run, share, and re-run."
+            sentence="Midjourney, Runway, Photoshop, ElevenLabs, and Suno each sit in their own tab, and none of them talk to each other. NodeTool brings them onto one canvas you can run, share, and run again."
             reducedMotion={reducedMotion}
             delay={0.1}
           />
@@ -67,11 +67,11 @@ export default function ComparisonSection({
 
         {/* Position panel */}
         <motion.div
-          initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+          initial={false}
           whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.15 }}
-          className="relative mt-10 rounded-2xl border border-slate-800/80 bg-slate-950/40 px-8 py-10 md:px-12 md:py-12"
+          transition={{ duration: 0.3, delay: 0.08 }}
+          className="scroll-fade relative mt-10 rounded-2xl border border-slate-800/80 bg-slate-950/40 px-8 py-10 md:px-12 md:py-12"
         >
           {/* Warm corner glow — single, subtle */}
           <div
@@ -87,7 +87,7 @@ export default function ComparisonSection({
             <div className="flex md:block">
               <div className="flex h-20 w-20 items-center justify-center rounded-xl border border-amber-500/25 bg-slate-950">
                 <Image
-                  src="/logo_small.png"
+                  src="/logo_small.webp"
                   alt=""
                   width={48}
                   height={48}
@@ -103,15 +103,15 @@ export default function ComparisonSection({
                 Every model. Your keys. Your canvas.
               </h3>
               <p className="text-slate-300 leading-relaxed mb-4 text-[1.025rem]">
-                Take Seedance, one of today&apos;s top video models. It&apos;s
-                available on FAL, Replicate, and KIE at different price points.
-                NodeTool lets you pick the cheapest. And when the next Veo or
-                Kling ships, it&apos;s one node swap away.
+                Take Seedance, one of today&apos;s best video models. It is sold
+                by FAL, Replicate, and KIE at different prices, and NodeTool
+                lets you pick the cheapest of the three. When the next Veo or
+                Kling arrives, you switch to it in one click.
               </p>
               <p className="text-slate-400 leading-relaxed text-[1.025rem]">
-                That&apos;s what vendor neutrality buys you: the best model at
-                the best price, every week — and no roadmap risk if your
-                favorite tool gets acquired.
+                That is what staying independent buys you: the best model at the
+                best price each week, and nothing to lose if your favorite tool
+                is bought by someone else.
               </p>
             </div>
           </div>
@@ -138,10 +138,10 @@ function ComparisonCard({
 
   return (
     <motion.article
-      initial={reducedMotion ? {} : { opacity: 0, y: 16 }}
+      initial={false}
       whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.5, delay }}
+      transition={{ duration: 0.25, delay }}
       className="relative bg-slate-950/70 p-8 lg:p-10 flex flex-col"
     >
       <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 mb-6">

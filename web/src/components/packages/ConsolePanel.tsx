@@ -1,14 +1,12 @@
 /** @jsxImportSource @emotion/react */
 /**
- * ConsolePanel — collapsible log view shared by the Package Manager sections.
- *
- * Shows the live conda/uv/npm output streamed from the desktop app during
- * install/uninstall, with a show/hide toggle and a clear action.
+ * ConsolePanel — collapsible view of the live conda/uv/npm output streamed from
+ * the desktop app during package install/uninstall.
  */
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 
 import {
   BORDER_RADIUS,
@@ -43,12 +41,31 @@ interface ConsolePanelProps {
 const ConsolePanel = ({ lines, onClear, busy = false }: ConsolePanelProps) => {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const preRef = useRef<HTMLPreElement>(null);
 
   // Auto-open when an operation begins so its live output is visible without a
   // manual toggle; the user can still hide it mid-run.
   useEffect(() => {
     if (busy) setOpen(true);
   }, [busy]);
+
+  // Follow the tail as new lines stream in while the console is open.
+  useEffect(() => {
+    if (!open) return;
+    const el = preRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [open, lines]);
+
+  const handleCopy = () => {
+    void navigator.clipboard?.writeText(lines.join("\n")).then(
+      () => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      },
+      () => {}
+    );
+  };
 
   return (
     <FlexColumn gap={1}>
@@ -63,13 +80,18 @@ const ConsolePanel = ({ lines, onClear, busy = false }: ConsolePanelProps) => {
           {lines.length > 0 ? ` (${lines.length})` : ""}
         </EditorButton>
         {open && lines.length > 0 && (
-          <EditorButton variant="text" density="compact" onClick={onClear}>
-            Clear
-          </EditorButton>
+          <FlexRow gap={0.5} align="center">
+            <EditorButton variant="text" density="compact" onClick={handleCopy}>
+              {copied ? "Copied" : "Copy"}
+            </EditorButton>
+            <EditorButton variant="text" density="compact" onClick={onClear}>
+              Clear
+            </EditorButton>
+          </FlexRow>
         )}
       </FlexRow>
       {open && (
-        <pre css={consoleStyles(theme)}>
+        <pre ref={preRef} css={consoleStyles(theme)}>
           {lines.length > 0
             ? lines.join("\n")
             : "No output yet. Logs appear here during install."}

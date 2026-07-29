@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/automation-nodes",
-  "version": "0.7.0-rc.29",
+  "version": "0.7.0-rc.32",
   "description": "NodeTool automation/system nodes — browser control, OS, workspace FS, triggers, SQLite, OCR, Excel, TensorFlow",
   "type": "module",
   "engines": {
@@ -34,7 +34,7 @@
     "chrome-launcher": "^1.2.0",
     "chrome-remote-interface": "^0.34.0",
     "exceljs": "^4.4.0",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.3",
     "tesseract.js": "^7.0.0",
     "turndown": "^7.2.2",
     "ws": "^8.18.0"
@@ -69,5 +69,35 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/automation-nodes"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "ai-nodes",
+    "no-code",
+    "visual-programming",
+    "workflow-nodes",
+    "automation",
+    "browser-automation",
+    "os",
+    "filesystem",
+    "sqlite",
+    "ocr",
+    "excel"
   ]
 }

@@ -5,7 +5,7 @@
  * tRPC caller:
  *   - `worker.profiles.list|create|delete` — declarative presets.
  *   - `worker.instances.list` — the live instance registry.
- *   - `worker.provision|stop|stopAll|status|reconcile` — instance lifecycle.
+ *   - `worker.provision|stop|stopAll|reconcile` — instance lifecycle.
  *   - `worker.attach|detach` — adopt/release the active worker, re-pointing the
  *     live Python bridge at the worker's `{wsUrl, token}` (attach) or back at
  *     the env/stdio default (detach).
@@ -150,13 +150,6 @@ export const workerRouter = router({
     await requireManager(ctx.workerManager).stopAll();
     return { ok: true as const };
   }),
-
-  status: protectedProcedure
-    .input(idInput)
-    .query(async ({ ctx, input }) => {
-      const status = await requireManager(ctx.workerManager).status(input.id);
-      return { status };
-    }),
 
   reconcile: protectedProcedure.mutation(({ ctx }) =>
     requireManager(ctx.workerManager).reconcile()

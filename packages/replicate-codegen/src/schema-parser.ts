@@ -11,9 +11,6 @@ import type { EnumDef, FieldDef, NodeSpec } from "./types.js";
 type AnyRecord = Record<string, any>;
 
 export class SchemaParser {
-  /**
-   * Parse a ReplicateSchema into a NodeSpec.
-   */
   parse(schema: ReplicateSchema): NodeSpec {
     const enums: EnumDef[] = [];
     const properties =
@@ -37,9 +34,6 @@ export class SchemaParser {
     };
   }
 
-  /**
-   * Parse properties into field definitions.
-   */
   private _parseProperties(
     properties: AnyRecord,
     required: string[],
@@ -50,7 +44,6 @@ export class SchemaParser {
     for (const [name, prop] of Object.entries(properties)) {
       const propObj = prop as AnyRecord;
 
-      // Check for enum
       let enumRef: string | undefined;
       if ("enum" in propObj) {
         const enumName = this._generateEnumName(name);
@@ -64,10 +57,8 @@ export class SchemaParser {
         enumRef = enumName;
       }
 
-      // Determine types
       const { tsType, propType } = this._jsonTypeToTs(propObj, enumRef, name);
 
-      // Determine default
       const defaultVal = this._getDefaultValue(
         propObj,
         propType,
@@ -218,9 +209,6 @@ export class SchemaParser {
     };
   }
 
-  /**
-   * Map OpenAPI JSON types to TS/prop types.
-   */
   private _jsonTypeToTs(
     prop: AnyRecord,
     enumRef: string | undefined,
@@ -282,9 +270,6 @@ export class SchemaParser {
     return { tsType: "any", propType: "any" };
   }
 
-  /**
-   * Get default value for a field.
-   */
   private _getDefaultValue(
     prop: AnyRecord,
     propType: string,

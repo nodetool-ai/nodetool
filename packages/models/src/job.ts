@@ -216,7 +216,6 @@ export class Job extends DBModel {
         .where(and(eq(jobs.id, this.id), eq(jobs.version, expectedVersion)))
         .returning({ id: jobs.id });
       if (updated.length === 0) return false;
-      // Sync in-memory state
       this.worker_id = workerId;
       this.heartbeat_at = now;
       this.version = newVersion;

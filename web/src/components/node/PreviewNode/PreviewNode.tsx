@@ -10,11 +10,12 @@ import {
   MOTION,
   BORDER_RADIUS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  Z_INDEX
 } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../../utils/isEqual";
 
 import { NodeData } from "../../../stores/NodeData";
 import { useNodeGenerations } from "../../../hooks/nodes/useNodeGenerations";
@@ -123,7 +124,7 @@ const styles = (theme: Theme) =>
       },
       // table
       ".preview-node-content .content .tabulator-cell": {
-        fontSize: theme.vars.fontSizeTiny + " !important"
+        fontSize: theme.vars.fontSizeSmaller + " !important"
       },
       ".preview-node-content .content .tabulator-col-resize-handle,.preview-node-content .content .tabulator-row":
         {
@@ -135,7 +136,7 @@ const styles = (theme: Theme) =>
       // top-left where the corner curve cuts into the glyphs.
       ".node-header": {
         position: "relative",
-        zIndex: 4,
+        zIndex: Z_INDEX.raised,
         width: "100%",
         minHeight: "unset",
         top: 0,
@@ -166,7 +167,7 @@ const styles = (theme: Theme) =>
         bottom: ".1em",
         left: "1em",
         width: "calc(100% - 2em)",
-        zIndex: 10,
+        zIndex: Z_INDEX.dropdown,
         transition: `opacity ${MOTION.normal}`
       },
       ".actions .action-button.copy": {
@@ -201,7 +202,7 @@ const styles = (theme: Theme) =>
         transform: "translate(-50%, -50%)",
         zIndex: 0,
         color: theme.vars.palette.grey[200],
-        transition: `opacity ${MOTION.normal} 1s`
+        transition: `opacity ${MOTION.normal} ${1000}ms`
       },
       "&:hover .hint": {
         opacity: 0.7
@@ -211,6 +212,10 @@ const styles = (theme: Theme) =>
         maxHeight: "500px",
         overflowY: "auto",
         padding: "1em"
+      },
+      // Touch devices have no hover; keep the preview action buttons reachable.
+      "@media (pointer: coarse)": {
+        ".actions": { opacity: 1 }
       }
     },
     tableStyles(theme)
@@ -335,7 +340,9 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
 
       addNotification({
         type: "success",
-        content: `${assetFiles.length} file(s) added to assets successfully`
+        content: `${assetFiles.length} file${
+          assetFiles.length === 1 ? "" : "s"
+        } added to assets`
       });
     } catch (error) {
       console.error("Error in handleAddToAssets:", error);

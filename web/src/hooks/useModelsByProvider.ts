@@ -103,7 +103,6 @@ export const useLanguageModelsByProvider = (options?: {
       : aggregated;
   }, [queries, options?.requireToolSupport]);
 
-  // Track per-provider errors for debugging feedback
   const providerErrors = useMemo(() => {
     const errors: Array<{ provider: string; error: unknown }> = [];
     queries.forEach((q, idx) => {
@@ -117,7 +116,6 @@ export const useLanguageModelsByProvider = (options?: {
     return errors;
   }, [queries, providers]);
 
-  // Track loading progress
   const loadingProgress = useMemo(() => {
     const total = providers.length;
     const loaded = queries.filter((q) => q.data || q.error).length;
@@ -195,7 +193,7 @@ const modelMatchesTask = (
   return supportedTasks.includes(task);
 };
 
-export const useImageModelsByProvider = (opts?: { task?: ImageModelTask }): ModelsByProviderResult<ImageModel> => {
+export const useImageModelsByProvider = (opts?: { task?: ImageModelTask | ImageModelTask[] }): ModelsByProviderResult<ImageModel> => {
   const { providers, isLoading: providersLoading, error: providersError } = useImageModelProviders();
 
   const queries = useQueries({
@@ -228,12 +226,18 @@ export const useImageModelsByProvider = (opts?: { task?: ImageModelTask }): Mode
   const error = providersError || queries.find((q) => q.error)?.error;
 
   const task = opts?.task;
+  // Key by content so an inline task array doesn't recompute every render.
+  const taskKey = Array.isArray(task) ? task.join(",") : task;
   const allModels = useMemo(() => {
     const aggregated = queries.flatMap((q) => q.data?.models ?? []);
-    return task
-      ? aggregated.filter((m) => modelMatchesTask(m.supported_tasks, task))
-      : aggregated;
-  }, [queries, task]);
+    if (!taskKey) {
+      return aggregated;
+    }
+    const tasks = taskKey.split(",");
+    return aggregated.filter((m) =>
+      tasks.some((t) => modelMatchesTask(m.supported_tasks, t))
+    );
+  }, [queries, taskKey]);
 
   const refetch = useMemo(
     () => async () => {
@@ -256,6 +260,30 @@ export const useImageModelsByProvider = (opts?: { task?: ImageModelTask }): Mode
     refetch
   };
 };
+
+/**
+ * Hook to fetch per-model media options (aspect ratios, resolutions, durations)
+ * for a given provider/model. Runs only once both provider and model are known.
+ * The result shape ({ aspectRatios, resolutions, durations }) is inferred from
+ * the `models.mediaOptions` tRPC procedure.
+ */
+export const useMediaOptions = (opts: {
+  provider?: string | null;
+  model?: string | null;
+  task: "image" | "video";
+}) =>
+  useQuery({
+    queryKey: ["media-options", opts.task, opts.provider ?? null, opts.model ?? null],
+    queryFn: () =>
+      trpc.models.mediaOptions.query({
+        provider: opts.provider as string,
+        model: opts.model as string,
+        task: opts.task
+      }),
+    enabled: Boolean(opts.provider) && Boolean(opts.model),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false
+  });
 
 /**
  * Hook to fetch TTS models from all providers that support text-to-speech.

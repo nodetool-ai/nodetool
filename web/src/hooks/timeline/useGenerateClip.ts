@@ -12,9 +12,8 @@ import type { Node as WorkflowGraphNode } from "../../stores/ApiTypes";
 import useStatusStore from "../../stores/StatusStore";
 import useResultsStore from "../../stores/ResultsStore";
 import useErrorStore from "../../stores/ErrorStore";
-import { normalizeOutputUpdateValue } from "../../stores/outputUpdateValue";
+import { normalizeOutputUpdateValue, isOutputUpdate } from "../../stores/outputUpdateValue";
 import { extractAssetId } from "../../stores/outputAssetId";
-import type { OutputUpdate } from "../../stores/ApiTypes";
 import {
   globalWebSocketManager,
   WebSocketMessage
@@ -177,18 +176,14 @@ const forwardWorkflowMessage = (
     return;
   }
 
-  if (
-    message.type === "output_update" &&
-    typeof message.node_id === "string" &&
-    jobId
-  ) {
+  if (isOutputUpdate(message) && typeof message.node_id === "string" && jobId) {
     useResultsStore
       .getState()
       .setOutputResult(
         workflowId,
         jobId,
         message.node_id,
-        normalizeOutputUpdateValue(message as unknown as OutputUpdate),
+        normalizeOutputUpdateValue(message),
         true
       );
   }
@@ -202,11 +197,8 @@ export const handleJobMessage = async (jobId: string, message: WebSocketMessage)
 
   forwardWorkflowMessage(context.workflowId, message);
 
-  if (
-    message.type === "output_update" &&
-    message.node_id === context.selectedOutputNodeId
-  ) {
-    jobOutputs.set(jobId, normalizeOutputUpdateValue(message as unknown as OutputUpdate));
+  if (isOutputUpdate(message) && message.node_id === context.selectedOutputNodeId) {
+    jobOutputs.set(jobId, normalizeOutputUpdateValue(message));
   }
 
   if (message.type !== "job_update") {
@@ -298,12 +290,25 @@ const subscribeJob = async (
     return;
   }
 
-  await globalWebSocketManager.ensureConnection();
+  // Reserve the slot synchronously, before the `ensureConnection` await
+  // below, so a concurrent call for the same jobId (generateClip's
+  // post-registerJob subscribe racing the `registerJob` store write that
+  // triggers useTimelineGenerationSubscriptions) sees `has()` return true
+  // and bails instead of both subscribing and leaking a listener.
+  jobSubscriptions.set(jobId, () => {});
   jobContexts.set(jobId, context);
-  const unsubscribe = globalWebSocketManager.subscribe(jobId, (message) =>
-    void handleJobMessage(jobId, message)
-  );
-  jobSubscriptions.set(jobId, unsubscribe);
+
+  try {
+    await globalWebSocketManager.ensureConnection();
+    const unsubscribe = globalWebSocketManager.subscribe(jobId, (message) =>
+      void handleJobMessage(jobId, message)
+    );
+    jobSubscriptions.set(jobId, unsubscribe);
+  } catch (error) {
+    // Undo the reservation so a later retry can subscribe.
+    jobSubscriptions.delete(jobId);
+    throw error;
+  }
 
   if (reconnect) {
     await globalWebSocketManager.send({

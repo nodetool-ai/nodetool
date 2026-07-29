@@ -29,47 +29,28 @@ import {
   getOpenWorkflowsFromStorage
 } from "../stores/WorkflowManagerStore";
 
-// -----------------------------------------------------------------
-// CONTEXT SETUP
-// -----------------------------------------------------------------
-
-// Extend Window interface for HMR context preservation
 declare global {
   interface Window {
     __WORKFLOW_MANAGER_CONTEXT__?: Context<WorkflowManagerStore | null>;
   }
 }
 
-// Create a React context to hold the workflow manager store.
 // In development, preserve the context reference on window to survive HMR.
 // This prevents "must be used within Provider" errors during hot reloads.
 const WorkflowManagerContext: Context<WorkflowManagerStore | null> = (() => {
-  // In development, reuse existing context from window if available
   if (import.meta.hot && window.__WORKFLOW_MANAGER_CONTEXT__) {
     return window.__WORKFLOW_MANAGER_CONTEXT__;
   }
-  
+
   const ctx = createContext<WorkflowManagerStore | null>(null);
-  
-  // Store on window for HMR persistence in development
+
   if (import.meta.hot) {
     window.__WORKFLOW_MANAGER_CONTEXT__ = ctx;
   }
-  
+
   return ctx;
 })();
 
-// -----------------------------------------------------------------
-// CUSTOM HOOK
-// -----------------------------------------------------------------
-
-/**
- * Custom hook to access the WorkflowManager state.
- * @template T The type of the selected state slice
- * @param {function} selector Function to select a portion of the state
- * @returns {T} The selected portion of the state
- * @throws {Error} If used outside of WorkflowManagerProvider
- */
 export const useWorkflowManager = <T,>(
   selector: (state: WorkflowManagerState) => T
 ) => {
@@ -98,28 +79,11 @@ export const useWorkflowManagerStore = (): WorkflowManagerStore => {
   return context;
 };
 
-// -----------------------------------------------------------------
-// COMPONENTS
-// -----------------------------------------------------------------
-
-// Provider component that sets up the WorkflowManager store and supplies it via context.
-// It also sets up WebSocket connections to handle real-time workflow updates and
-// restores previously open workflows from localStorage.
-/**
- * Provider component that sets up the WorkflowManager store and context.
- * @param {Object} props Component props
- * @param {React.ReactNode} props.children Child components
- * @param {QueryClient} props.queryClient React Query client instance
- * @returns {React.ReactNode}
- */
 export const WorkflowManagerProvider: FC<{
   children: ReactNode;
   queryClient: QueryClient;
 }> = ({ children, queryClient }) => {
-  const [store] = useState(() => {
-    const workflowManagerStore = createWorkflowManagerStore(queryClient);
-    return workflowManagerStore;
-  });
+  const [store] = useState(() => createWorkflowManagerStore(queryClient));
 
   useEffect(() => {
     // Restore workflows that were previously open from localStorage.

@@ -6,7 +6,8 @@ import {
   MINIMAX_T2V_MODELS,
   MINIMAX_VIDEO_DURATIONS,
   MINIMAX_VIDEO_RESOLUTIONS,
-  videoRefFromBytes
+  videoRefFromBytes,
+  videoRenderSettings
 } from "../minimax-base.js";
 
 export class MinimaxTextToVideoNode extends BaseNode {
@@ -70,11 +71,15 @@ export class MinimaxTextToVideoNode extends BaseNode {
     const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt is required");
 
+    const model = String(this.model ?? "MiniMax-Hailuo-02");
     const body: Record<string, unknown> = {
-      model: String(this.model ?? "MiniMax-Hailuo-02"),
+      model,
       prompt,
-      duration: Number(this.duration ?? 6),
-      resolution: String(this.resolution ?? "768P")
+      ...videoRenderSettings(
+        model,
+        Number(this.duration ?? 6),
+        String(this.resolution ?? "768P")
+      )
     };
 
     const bytes = await generateVideo(apiKey, body);

@@ -1,5 +1,4 @@
 import { useCallback, useMemo } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
 import { useWebsocketRunner } from "../stores/WorkflowRunner";
 import { useRunningJobs } from "./useRunningJobs";
 import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
@@ -22,12 +21,6 @@ import { usePanelStore } from "../stores/PanelStore";
 import { useMiniMapStore } from "../stores/MiniMapStore";
 import { useNotificationStore } from "../stores/NotificationStore";
 
-/**
- * Hook that provides all action handlers for the floating toolbar.
- * Includes workflow execution, save, download, layout, and panel management.
- *
- * @returns Object containing all toolbar action handlers
- */
 export interface FloatingToolbarActions {
   handleRun: () => Promise<void>;
   handleStop: () => void;
@@ -36,7 +29,6 @@ export interface FloatingToolbarActions {
   handleSave: () => Promise<void>;
   handleDownload: () => void;
   handleAutoLayout: () => void;
-  handleRunAsApp: () => void;
   handleEditWorkflow: () => void;
   handleToggleNodeMenu: () => void;
   handleToggleTrace: () => void;
@@ -51,9 +43,6 @@ export interface FloatingToolbarActions {
 }
 
 export const useFloatingToolbarActions = (): FloatingToolbarActions => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const path = location.pathname;
 
   const nodeStore = useNodeStoreRef();
   const workflow = useNodes((state) => state.workflow);
@@ -303,18 +292,14 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     link.download = `${workflow.name}.json`;
     link.href = url;
     link.click();
+    // Defer the revoke past the download; releasing it synchronously can cancel
+    // the download, and never revoking leaks the blob URL for the page's life.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }, [workflow, workflowJSON]);
 
   const handleAutoLayout = useCallback(() => {
     autoLayout();
   }, [autoLayout]);
-
-  const handleRunAsApp = useCallback(() => {
-    const workflowId = path.split("/").pop();
-    if (workflowId) {
-      navigate(`/apps/${workflowId}`);
-    }
-  }, [navigate, path]);
 
   const handleEditWorkflow = useCallback(() => {
     handlePanelViewChange("settings");
@@ -345,7 +330,7 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     toggleMiniMap();
   }, [toggleMiniMap]);
 
-  return {
+  return useMemo(() => ({
     handleRun,
     handleStop,
     handlePause,
@@ -353,7 +338,6 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     handleSave,
     handleDownload,
     handleAutoLayout,
-    handleRunAsApp,
     handleEditWorkflow,
     handleToggleNodeMenu,
     handleToggleTrace,
@@ -363,5 +347,22 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     isSuspended,
     queuePosition,
     pendingRunCount
-  };
+  }), [
+    handleRun,
+    handleStop,
+    handlePause,
+    handleResume,
+    handleSave,
+    handleDownload,
+    handleAutoLayout,
+    handleEditWorkflow,
+    handleToggleNodeMenu,
+    handleToggleTrace,
+    handleToggleMiniMap,
+    isWorkflowRunning,
+    isPaused,
+    isSuspended,
+    queuePosition,
+    pendingRunCount
+  ]);
 };

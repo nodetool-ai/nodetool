@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
+import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import {
+  PlanWorkflowGraphTool,
   ListWorkflowsTool,
   GetWorkflowTool,
   CreateWorkflowTool,
@@ -26,6 +28,7 @@ const API_URL = "http://test-api:7777";
 function makeMockContext(): ProcessingContext {
   return {
     userId: "user-1",
+    authToken: "access-token",
     environment: { NODETOOL_API_URL: API_URL }
   } as unknown as ProcessingContext;
 }
@@ -101,16 +104,221 @@ describe("GetWorkflowTool", () => {
 describe("CreateWorkflowTool", () => {
   const tool = new CreateWorkflowTool();
 
-  it("calls POST /api/workflows/ with body", async () => {
+  it("calls POST /api/workflows with body", async () => {
     await tool.process(ctx, {
       name: "Test WF",
       graph: { nodes: [], edges: [] }
     });
-    expect(lastFetchUrl()).toContain("/api/workflows/");
+    expect(lastFetchUrl()).toBe(`${API_URL}/api/workflows`);
     expect(lastFetchOpts().method).toBe("POST");
     const body = JSON.parse(lastFetchOpts().body as string);
     expect(body.name).toBe("Test WF");
     expect(body.graph).toEqual({ nodes: [], edges: [] });
+  });
+
+  it("normalizes an agent-friendly keyed graph", async () => {
+    await tool.process(ctx, {
+      name: "Daily News",
+      graph: {
+        nodes: {
+          search: {
+            node_type: "openai.text.WebSearch",
+            parameters: { query: "current technology news" }
+          },
+          summarize: {
+            node_type: "mistral.text.ChatComplete",
+            parameters: { model: "mistral-large-latest" }
+          }
+        },
+        edges: [
+          { source: "search", target: "summarize", target_input: "prompt" }
+        ]
+      }
+    });
+
+    const body = JSON.parse(lastFetchOpts().body as string);
+    // Stored shape: the property bag lives flat under `data`, not
+    // `properties` — the editor reads `node.data`.
+    expect(body.graph).toEqual({
+      nodes: [
+        {
+          id: "search",
+          type: "openai.text.WebSearch",
+          data: { query: "current technology news" },
+          ui_properties: {
+            position: { x: 0, y: 0 },
+            zIndex: 0,
+            width: 280,
+            selectable: true
+          }
+        },
+        {
+          id: "summarize",
+          type: "mistral.text.ChatComplete",
+          data: { model: "mistral-large-latest" },
+          // Downstream of `search`, so column 1 of the dataflow layout.
+          ui_properties: {
+            position: { x: 320, y: 0 },
+            zIndex: 0,
+            width: 280,
+            selectable: true
+          }
+        }
+      ],
+      edges: [
+        {
+          id: "edge-0",
+          source: "search",
+          sourceHandle: "output",
+          target: "summarize",
+          targetHandle: "prompt"
+        }
+      ]
+    });
+  });
+
+  it("normalizes node_type in an array graph", async () => {
+    await tool.process(ctx, {
+      name: "News Summarizer",
+      graph: {
+        nodes: [
+          {
+            id: "search_node",
+            node_type: "xai.text.WebSearch",
+            properties: { query: "latest news", search_mode: "on" }
+          },
+          {
+            id: "summarizer_node",
+            node_type: "nodetool.agents.Agent",
+            properties: { instructions: "Summarize the news" }
+          }
+        ],
+        edges: [
+          {
+            source: "search_node",
+            sourceHandle: "output",
+            target: "summarizer_node",
+            targetHandle: "input"
+          }
+        ]
+      }
+    });
+
+    const body = JSON.parse(lastFetchOpts().body as string);
+    expect(body.graph.nodes).toEqual([
+      {
+        id: "search_node",
+        type: "xai.text.WebSearch",
+        data: { query: "latest news", search_mode: "on" },
+        ui_properties: {
+          position: { x: 0, y: 0 },
+          zIndex: 0,
+          width: 280,
+          selectable: true
+        }
+      },
+      {
+        id: "summarizer_node",
+        type: "nodetool.agents.Agent",
+        data: { instructions: "Summarize the news" },
+        ui_properties: {
+          position: { x: 320, y: 0 },
+          zIndex: 0,
+          width: 280,
+          selectable: true
+        }
+      }
+    ]);
+  });
+
+  it("always auto-lays-out, overriding caller positions but keeping other ui_properties", async () => {
+    await tool.process(ctx, {
+      name: "Already stored shape",
+      graph: {
+        nodes: [
+          {
+            id: "n1",
+            type: "nodetool.input.StringInput",
+            data: { name: "prompt" },
+            ui_properties: {
+              position: { x: 42, y: 99 },
+              zIndex: 0,
+              title: "Prompt"
+            }
+          }
+        ],
+        edges: []
+      }
+    });
+
+    const body = JSON.parse(lastFetchOpts().body as string);
+    expect(body.graph.nodes).toEqual([
+      {
+        id: "n1",
+        type: "nodetool.input.StringInput",
+        data: { name: "prompt" },
+        ui_properties: {
+          // Caller's position is discarded; other fields (title) survive.
+          position: { x: 0, y: 0 },
+          zIndex: 0,
+          width: 280,
+          selectable: true,
+          title: "Prompt"
+        }
+      }
+    ]);
+  });
+
+  it("lays out a chain left-to-right and stacks parallel roots", async () => {
+    await tool.process(ctx, {
+      name: "Diamond",
+      graph: {
+        nodes: [
+          { id: "a", type: "t", properties: {} },
+          { id: "b", type: "t", properties: {} },
+          { id: "c", type: "t", properties: {} }
+        ],
+        // a -> c and b -> c: a,b are roots (column 0), c is column 1.
+        edges: [
+          { source: "a", target: "c", targetHandle: "x" },
+          { source: "b", target: "c", targetHandle: "y" }
+        ]
+      }
+    });
+
+    const positions = Object.fromEntries(
+      JSON.parse(lastFetchOpts().body as string).graph.nodes.map(
+        (n: { id: string; ui_properties: { position: unknown } }) => [
+          n.id,
+          n.ui_properties.position
+        ]
+      )
+    );
+    expect(positions).toEqual({
+      a: { x: 0, y: 0 },
+      b: { x: 0, y: 220 },
+      c: { x: 320, y: 0 }
+    });
+  });
+
+  it("never stores a node carrying both `properties` and `data`", async () => {
+    await tool.process(ctx, {
+      name: "Planner output",
+      graph: {
+        nodes: [
+          {
+            id: "n1",
+            type: "nodetool.input.StringInput",
+            properties: { name: "prompt" }
+          }
+        ],
+        edges: []
+      }
+    });
+
+    const node = JSON.parse(lastFetchOpts().body as string).graph.nodes[0];
+    expect(node.properties).toBeUndefined();
+    expect(node.data).toEqual({ name: "prompt" });
   });
 
   it("userMessage includes name", () => {
@@ -452,6 +660,77 @@ describe("request headers", () => {
     await tool.process(ctx, {});
     const headers = lastFetchOpts().headers as Record<string, string>;
     expect(headers["X-User-Id"]).toBe("user-1");
+    expect(headers["Authorization"]).toBe("Bearer access-token");
     expect(headers["Content-Type"]).toBe("application/json");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PlanWorkflowGraphTool
+// ---------------------------------------------------------------------------
+
+describe("PlanWorkflowGraphTool", () => {
+  // A provider whose tool loop ends immediately without calling finish_graph,
+  // so the planner exhausts its retries and returns null.
+  function makeEmptyLoopProvider(): BaseProvider {
+    return {
+      provider: "mock",
+      generateLoop: () => (async function* () {})()
+    } as unknown as BaseProvider;
+  }
+
+  function makeTool(
+    forwardMessage?: (msg: ProcessingMessage) => void
+  ): PlanWorkflowGraphTool {
+    return new PlanWorkflowGraphTool({
+      provider: makeEmptyLoopProvider(),
+      model: "mock-model",
+      registry: {} as never,
+      forwardMessage
+    });
+  }
+
+  it("rejects a missing or empty objective", async () => {
+    const tool = makeTool();
+    expect(await tool.process(ctx, {})).toMatchObject({
+      error: expect.stringContaining("objective")
+    });
+    expect(await tool.process(ctx, { objective: "   " })).toMatchObject({
+      error: expect.stringContaining("objective")
+    });
+  });
+
+  it("returns an error when the planner fails to produce a graph", async () => {
+    const tool = makeTool();
+    const result = await tool.process(ctx, { objective: "do things" });
+    expect(result).toMatchObject({
+      error: expect.stringContaining("failed to build a graph")
+    });
+  });
+
+  it("forwards planner events tagged with the parent tool_call_id", async () => {
+    const forwarded: ProcessingMessage[] = [];
+    const tool = makeTool((msg) => {
+      forwarded.push(msg);
+    });
+    await tool.process(ctx, {
+      objective: "do things",
+      _tool_call_id: "call-1"
+    });
+    expect(forwarded.length).toBeGreaterThan(0);
+    expect(forwarded.some((m) => m.type === "planning_update")).toBe(true);
+    for (const msg of forwarded) {
+      expect(
+        (msg as unknown as Record<string, unknown>).parent_tool_call_id
+      ).toBe("call-1");
+    }
+  });
+
+  it("survives a broken forwarder and still returns a result", async () => {
+    const tool = makeTool(() => {
+      throw new Error("forwarder down");
+    });
+    const result = await tool.process(ctx, { objective: "do things" });
+    expect(result).toMatchObject({ error: expect.any(String) });
   });
 });

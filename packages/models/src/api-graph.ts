@@ -8,10 +8,6 @@
 
 import type { Edge, GraphData, NodeDescriptor } from "@nodetool-ai/protocol";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 /** Simplified node for API serialisation (no runtime metadata). */
 export interface ApiNode {
   id: string;
@@ -20,6 +16,8 @@ export interface ApiNode {
   data: Record<string, unknown>;
   ui_properties?: Record<string, unknown>;
   dynamic_properties?: Record<string, unknown>;
+  /** Typed dynamic input slot declarations; empty means every slot is `any`. */
+  dynamic_inputs?: Record<string, unknown>;
   dynamic_outputs?: Record<string, unknown>;
 }
 
@@ -40,10 +38,6 @@ export interface ApiGraph {
   edges: ApiEdge[];
 }
 
-// ---------------------------------------------------------------------------
-// Converters
-// ---------------------------------------------------------------------------
-
 /**
  * Convert a kernel-level NodeDescriptor to an ApiNode.
  *
@@ -58,13 +52,11 @@ export function toApiNode(node: NodeDescriptor): ApiNode {
     data: (node.properties as Record<string, unknown>) ?? {},
     ui_properties: node.ui_properties ?? {},
     dynamic_properties: node.dynamic_properties ?? {},
+    dynamic_inputs: (node.dynamic_inputs as Record<string, unknown>) ?? {},
     dynamic_outputs: (node.dynamic_outputs as Record<string, unknown>) ?? {}
   };
 }
 
-/**
- * Convert a protocol Edge to an ApiEdge.
- */
 export function toApiEdge(edge: Edge): ApiEdge {
   return {
     id: edge.id ?? null,
@@ -86,10 +78,6 @@ export function toApiGraph(graph: GraphData): ApiGraph {
     edges: graph.edges.map(toApiEdge)
   };
 }
-
-// ---------------------------------------------------------------------------
-// Utility: remove connected slots
-// ---------------------------------------------------------------------------
 
 /**
  * Clear data slots on nodes that have incoming edges (the edge provides the

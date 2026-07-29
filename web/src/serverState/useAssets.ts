@@ -12,6 +12,7 @@ import { SIZE_FILTERS } from "../utils/formatUtils";
 import { getAssetCategory } from "../components/assets/assetGridUtils";
 import { trpcClient } from "../trpc/client";
 import { normalizeAssetList } from "../utils/normalizeAsset";
+import { useNotificationStore } from "../stores/NotificationStore";
 
 type FilterOptions = {
   searchTerm: string;
@@ -60,12 +61,14 @@ export const useAssets = (_initialFolderId: string | null = null) => {
   const sizeFilter = useAssetGridStore((state) => state.sizeFilter);
   const typeFilter = useAssetGridStore((state) => state.typeFilter);
   const workflowFilter = useAssetGridStore((state) => state.workflowFilter);
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
 
   if (currentUser === null) {
     throw new Error("User not logged");
   }
 
-  // Fetch assets in the current folder
   const fetchAssets = useCallback(async () => {
     const result = await load({
       parent_id: currentFolderId || currentUser?.id
@@ -116,7 +119,6 @@ export const useAssets = (_initialFolderId: string | null = null) => {
     });
   }, [queryClient, currentFolderId, workflowFilter]);
 
-  // Fetch all folders
   const fetchAllFolders = useCallback(async () => {
     return await loadFolderTree(settings.assetsOrder);
   }, [loadFolderTree, settings.assetsOrder]);
@@ -139,7 +141,6 @@ export const useAssets = (_initialFolderId: string | null = null) => {
     refetchFolders();
   }, [refetchAssets, refetchFolders]);
 
-  // Process assets (sort by type and exclude folders)
   const processedAssets = useMemo(() => {
     // When workflow filter is active, use workflow-filtered assets
     const sourceAssets = workflowFilter
@@ -148,7 +149,6 @@ export const useAssets = (_initialFolderId: string | null = null) => {
 
     if (!sourceAssets) {return [];}
 
-    // Filter out folders
     const nonFolderAssets = sourceAssets.filter(
       (asset) => asset.content_type !== "folder"
     );
@@ -176,7 +176,6 @@ export const useAssets = (_initialFolderId: string | null = null) => {
     });
   }, [currentFolderAssets, workflowFilteredAssets, workflowFilter, settings.assetsOrder]);
 
-  // Filter assets
   const filterAssets = useCallback(
     (assetsToFilter: Asset[], options: FilterOptions) => {
       return assetsToFilter.filter((asset) => {
@@ -241,25 +240,37 @@ export const useAssets = (_initialFolderId: string | null = null) => {
     queryClient.invalidateQueries({ queryKey: ["folderTree"] });
   }, [queryClient, currentFolderId, workflowFilter]);
 
-  // Create folder mutation
+  const notifyMutationError = useCallback(
+    (content: string) => (err: Error) => {
+      console.error(content, err);
+      addNotification({
+        type: "error",
+        alert: true,
+        content,
+        dismissable: false
+      });
+    },
+    [addNotification]
+  );
+
   const createFolderMutation = useMutation({
     mutationFn: (name: string) => createFolder(currentFolderId, name),
-    onSuccess: invalidateAssetSiblings
+    onSuccess: invalidateAssetSiblings,
+    onError: notifyMutationError("Error creating folder.")
   });
 
-  // Delete asset mutation
   const deleteAssetMutation = useMutation({
     mutationFn: (assetId: string) => deleteAsset(assetId),
-    onSuccess: invalidateAssetSiblings
+    onSuccess: invalidateAssetSiblings,
+    onError: notifyMutationError("Error deleting asset.")
   });
 
-  // Update asset mutation
   const updateAssetMutation = useMutation({
     mutationFn: (updateData: AssetUpdate) => update(updateData),
-    onSuccess: invalidateAssetSiblings
+    onSuccess: invalidateAssetSiblings,
+    onError: notifyMutationError("Error updating asset.")
   });
 
-  // Navigate to folder
   const navigateToFolder = useCallback(
     async (folder: Asset | null) => {
       if (folder) {
@@ -282,7 +293,6 @@ export const useAssets = (_initialFolderId: string | null = null) => {
       gridStore
     ]
   );
-  // Navigate to folder id
   const navigateToFolderId = useCallback(
     async (folderId: string | null) => {
       const getAsset = useAssetStore.getState().get;

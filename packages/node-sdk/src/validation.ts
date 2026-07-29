@@ -24,9 +24,23 @@
  * node that uses `@prop({ required: true, ... })`, a model-typed field, or
  * an asset-typed field gets validation for free with no per-node code.
  */
+import type { DynamicSlotMeta } from "@nodetool-ai/protocol";
 import type { DeclaredPropertyMetadata } from "./decorators.js";
+import { slotTypeToString, valueIncompatibleWithType } from "./type-compat.js";
 
 /** A single validation issue tied to a node property. */
+/**
+ * What kind of property check failed. Lets callers filter by cause instead of
+ * matching on message prose — the graph planner suppresses `unset_model`,
+ * since it is asked to omit models and have them supplied at run time.
+ */
+export type NodePropertyValidationCode =
+  | "required"
+  | "unset_model"
+  | "unsupported_platform"
+  /** An inline dynamic-slot value does not match the slot's declared type. */
+  | "dynamic_type_mismatch";
+
 export interface NodePropertyValidationIssue {
   /** Node id, when known. */
   nodeId?: string;
@@ -36,6 +50,8 @@ export interface NodePropertyValidationIssue {
   property: string;
   /** Human-readable message describing the failure. */
   message: string;
+  /** Machine-readable cause. */
+  code: NodePropertyValidationCode;
 }
 
 export interface ValidateNodePropertiesOptions {
@@ -49,6 +65,13 @@ export interface ValidateNodePropertiesOptions {
   nodeId?: string;
   /** Node type to attach to issues. */
   nodeType?: string;
+  /**
+   * Typed dynamic input slot declarations (`Node.dynamic_inputs`). Only slots
+   * listed here are validated — an undeclared slot is an untyped legacy slot.
+   */
+  dynamicSlots?: Record<string, DynamicSlotMeta>;
+  /** Inline dynamic slot values (`Node.dynamic_properties`). */
+  dynamicValues?: Record<string, unknown>;
 }
 
 const MODEL_TYPE_SUFFIX = "_model";
@@ -163,6 +186,7 @@ export function validateNodeProperties(
           nodeId: options.nodeId,
           nodeType: options.nodeType,
           property: name,
+          code: "required",
           message: isAsset
             ? `Property "${name}" requires a ${typeStr} (asset, uri, or inline data)`
             : `Required property "${name}" is not set`
@@ -176,7 +200,58 @@ export function validateNodeProperties(
         nodeId: options.nodeId,
         nodeType: options.nodeType,
         property: name,
+        code: "unset_model",
         message: `Property "${name}" requires a ${typeStr} to be selected (provider and model id)`
+      });
+    }
+  }
+
+  issues.push(...validateDynamicSlots(options, connected));
+
+  return issues;
+}
+
+/**
+ * Validate inline values against typed dynamic slot declarations.
+ *
+ * Two checks, both skipped for slots fed by an incoming edge:
+ *   1. `required: true` with no value → `required`.
+ *   2. A value that clearly cannot be the declared type → `dynamic_type_mismatch`.
+ *
+ * Slots without a declaration are untyped legacy slots and never validated.
+ */
+function validateDynamicSlots(
+  options: ValidateNodePropertiesOptions,
+  connected: ReadonlySet<string>
+): NodePropertyValidationIssue[] {
+  const slots = options.dynamicSlots;
+  if (!slots) return [];
+  const values = options.dynamicValues ?? {};
+  const issues: NodePropertyValidationIssue[] = [];
+
+  for (const [name, slot] of Object.entries(slots)) {
+    if (connected.has(name)) continue;
+    const value = values[name];
+    const typeStr = slotTypeToString(slot);
+
+    if (slot.required && isEmptyValue(value)) {
+      issues.push({
+        nodeId: options.nodeId,
+        nodeType: options.nodeType,
+        property: name,
+        code: "required",
+        message: `Required dynamic input "${name}" is not set`
+      });
+      continue;
+    }
+
+    if (valueIncompatibleWithType(value, typeStr)) {
+      issues.push({
+        nodeId: options.nodeId,
+        nodeType: options.nodeType,
+        property: name,
+        code: "dynamic_type_mismatch",
+        message: `Dynamic input "${name}" is declared as ${typeStr} but holds a ${typeof value}`
       });
     }
   }

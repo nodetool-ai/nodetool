@@ -4,7 +4,7 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState, useRef, ChangeEvent } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
-import { Tooltip, ToolbarIconButton, MOTION, SPACING, BORDER_RADIUS, getSpacingPx } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, MOTION, SPACING, BORDER_RADIUS, Z_INDEX, getSpacingPx } from "../ui_primitives";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import ImageDimensions from "../node/ImageDimensions";
 import { useTheme } from "@mui/material/styles";
@@ -13,7 +13,7 @@ import WaveRecorder from "../audio/WaveRecorder";
 import AudioPlayer from "../audio/AudioPlayer";
 import VideoRecorder from "../video/VideoRecorder";
 import { PropertyProps } from "../node/PropertyInput";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { isElectron } from "../../utils/browser";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { CopyAssetButton } from "../common/CopyAssetButton";
@@ -125,7 +125,7 @@ const PropertyDropzone = ({
         borderRadius: BORDER_RADIUS.sm
       },
       ".prop-drop": {
-        fontSize: theme.fontSizeTiny,
+        fontSize: theme.fontSizeSmaller,
         lineHeight: "1.1em"
       },
       ".image-dimensions": {
@@ -143,10 +143,14 @@ const PropertyDropzone = ({
         gap: getSpacingPx(SPACING.xs),
         opacity: 0,
         transition: `opacity ${MOTION.normal}`,
-        zIndex: 10
+        zIndex: Z_INDEX.dropdown
       },
       ".dropzone:hover .asset-actions": {
         opacity: 1
+      },
+      // Touch devices have no hover; keep the asset actions reachable.
+      "@media (pointer: coarse)": {
+        ".asset-actions": { opacity: 1 }
       },
       ".asset-action-button": {
         backgroundColor: theme.vars.palette.c_scrim,
@@ -206,7 +210,6 @@ const PropertyDropzone = ({
 
   const { uploadAsset: uploadAssetFn } = useAssetUpload();
 
-  // Get accept attribute for file input based on content type
   const getAcceptAttribute = useCallback(() => {
     const type = contentType.split("/")[0];
     switch (type) {
@@ -223,12 +226,10 @@ const PropertyDropzone = ({
     }
   }, [contentType]);
 
-  // Handle files from browser file input
   const handleBrowserFilePicker = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
 
-  // Handle file input change (browser fallback)
   const handleFileInputChange = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (files.length === 0) {
@@ -258,7 +259,6 @@ const PropertyDropzone = ({
     }
 
     try {
-      // Get appropriate file filters based on content type
       const getFilters = () => {
         const type = contentType.split("/")[0];
         switch (type) {
@@ -291,7 +291,6 @@ const PropertyDropzone = ({
       if (!result.canceled && result.filePaths.length > 0) {
         const filePath = result.filePaths[0];
 
-        // Read the file buffer using Electron's IPC
         const fileData = await window.api.clipboard?.readFileBuffer(filePath);
 
         if (!fileData) {
@@ -299,20 +298,16 @@ const PropertyDropzone = ({
           return;
         }
 
-        // Get filename with fallback that includes an extension
         const pathSegments = filePath.split(/[\\/]/);
         let fileName = pathSegments[pathSegments.length - 1];
 
         if (!fileName) {
-          // If we can't get filename, create one based on content type
           const ext = contentType.split("/")[1] || "bin";
           fileName = `file.${ext}`;
         }
 
-        // Use contentType for consistency
         const file = new File([fileData.buffer as BlobPart], fileName, { type: contentType });
 
-        // Upload the file as an asset
         uploadAssetFn({
           file,
           onCompleted: (asset) => {
@@ -328,7 +323,6 @@ const PropertyDropzone = ({
     }
   }, [contentType, onChange, uploadAssetFn]);
 
-  // Handle dropzone click - use native dialog in Electron, file input in browser
   const handleDropzoneClick = useCallback(() => {
     if (isElectron && window.api?.dialog?.openFile) {
       handleNativeFilePicker();
@@ -337,7 +331,6 @@ const PropertyDropzone = ({
     }
   }, [handleNativeFilePicker, handleBrowserFilePicker]);
 
-  // Handle replace button click - prevent event propagation and open file picker
   const handleReplaceClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     handleDropzoneClick();
@@ -388,6 +381,7 @@ const PropertyDropzone = ({
                   style={{ width: "100%", height: "20px" }}
                   onVolumeChange={handleVolumeChange}
                   src={uri as string}
+                  aria-label={filename || "Audio"}
                 >
                   Your browser does not support the audio element.
                 </audio>
@@ -415,6 +409,7 @@ const PropertyDropzone = ({
                   style={{ width: "100%", height: "auto" }}
                   controls
                   src={uri}
+                  aria-label={filename || "Video"}
                 >
                   Your browser does not support the video element.
                 </video>
@@ -443,6 +438,12 @@ const PropertyDropzone = ({
           return (
             <iframe
               src={uri}
+              // Asset bytes are user content served from the app's own origin.
+              // An empty sandbox drops it into an opaque origin so a stored
+              // .html document can't run script against the session, matching
+              // every other HTML iframe in the app. The storage endpoint also
+              // serves .html as text/plain; this is the second lock.
+              sandbox=""
               style={{ width: "100%", height: "400px", border: "none" }}
               allow="fullscreen"
               title="Text viewer"
@@ -459,7 +460,6 @@ const PropertyDropzone = ({
 
   return (
     <div css={styles(theme)}>
-      {/* Hidden file input for browser fallback */}
       <input
         ref={fileInputRef}
         type="file"
@@ -487,7 +487,6 @@ const PropertyDropzone = ({
           {uri || contentType.split("/")[0] === "audio" ? (
             <>
               {renderViewer}
-              {/* Action buttons - appear on hover when asset is present */}
               {uri && (
                 <div className="asset-actions">
                   <CopyAssetButton

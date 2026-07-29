@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Photo Enhancement Suite",
   "tool_name": null,
-  "description": "Batch enhance photos with AI-powered improvements including color correction and upscaling.",
+  "description": "Batch-enhance a list of photos through a fixed retouch chain — auto-contrast, color, sharpening, and an AI cinematic-grade pass — with no folder path required, just drop images in.",
   "tags": [
     "image",
     "photo",
@@ -19,7 +19,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 📷 Photo Enhancement Suite\n\nBatch-enhance a folder of photos through a fixed retouch chain: auto-contrast, color, brightness, sharpening, and an AI polish pass.\n\n**Pipeline:** Folder → Auto-contrast → Color/Brightness → Sharpen → AI enhance\n\n**Try this:** adjust the brightness and color factors to taste."
+          "comment": "# 📷 Photo Enhancement Suite\n\nBatch-enhance a list of photos through a fixed retouch chain: auto-contrast, color, brightness, sharpening, and an AI polish pass.\n\n**Pipeline:** Photo list → Auto-contrast → Color/Brightness → Sharpen → AI enhance → Collect\n\n**Try this:** add a few photos and adjust the brightness and color factors to taste."
         },
         "ui_properties": {
           "selected": false,
@@ -43,7 +43,9 @@
         "data": {
           "input_item": []
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "8️⃣ Collect enhanced batch"
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
@@ -52,7 +54,14 @@
         "parent_id": null,
         "type": "nodetool.image.ImageToImage",
         "data": {
-          "model": {},
+          "model": {
+            "type": "image_model",
+            "provider": "huggingface_fal_ai",
+            "id": "fal-ai/flux/schnell",
+            "name": "FLUX.1 Schnell",
+            "path": null,
+            "supported_tasks": []
+          },
           "image": {
             "type": "image",
             "uri": "",
@@ -63,7 +72,7 @@
           "prompt": "Enhance this photo with professional cinematic color grading, improved lighting, and subtle film grain. Keep the subject and composition intact, only improve quality.",
           "negative_prompt": "",
           "strength": 0.3,
-          "guidance_scale": 7.0,
+          "guidance_scale": 7,
           "num_inference_steps": 25,
           "target_width": 512,
           "target_height": 512,
@@ -186,22 +195,13 @@
       {
         "id": "9",
         "parent_id": null,
-        "type": "nodetool.image.LoadImageFolder",
+        "type": "nodetool.control.ForEach",
         "data": {
-          "folder": "",
-          "include_subdirectories": false,
-          "extensions": [
-            ".png",
-            ".jpg",
-            ".jpeg",
-            ".bmp",
-            ".webp",
-            ".tiff"
-          ],
-          "pattern": ""
+          "input_list": [],
+          "limit": -1
         },
         "ui_properties": {
-          "title": "1️⃣ Load photos"
+          "title": "1️⃣ Iterate photos"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -209,14 +209,14 @@
       {
         "id": "10",
         "parent_id": null,
-        "type": "nodetool.input.FolderPathInput",
+        "type": "nodetool.input.ImageListInput",
         "data": {
-          "name": "image_folder",
-          "value": "./photos",
-          "description": "Folder containing photos to enhance"
+          "name": "photos",
+          "value": [],
+          "description": "Photos to enhance. Add one or more images directly — no folder path or upload step required."
         },
         "ui_properties": {
-          "title": "Photo folder path"
+          "title": "Photos to enhance"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -247,7 +247,7 @@
           "value": 1.2,
           "description": "Color saturation boost factor (1.0 = no change)",
           "min": 0.5,
-          "max": 2.0
+          "max": 2
         },
         "ui_properties": {
           "title": "Color factor"
@@ -256,15 +256,18 @@
         "dynamic_outputs": {}
       },
       {
-        "id": "14",
-        "parent_id": null,
-        "type": "nodetool.control.Collect",
+        "id": "output-enhanced-photos",
+        "type": "nodetool.output.Output",
         "data": {
-          "input_item": []
+          "name": "enhanced_photos"
         },
-        "ui_properties": {},
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 0
+          },
+          "selectable": true
+        }
       }
     ],
     "edges": [
@@ -273,13 +276,13 @@
         "source": "10",
         "sourceHandle": "output",
         "target": "9",
-        "targetHandle": "folder",
+        "targetHandle": "input_list",
         "ui_properties": null
       },
       {
         "id": "2",
         "source": "9",
-        "sourceHandle": "image",
+        "sourceHandle": "output",
         "target": "8",
         "targetHandle": "image",
         "ui_properties": null
@@ -297,7 +300,7 @@
         "source": "11",
         "sourceHandle": "output",
         "target": "7",
-        "targetHandle": "factor",
+        "targetHandle": "contrast",
         "ui_properties": null
       },
       {
@@ -313,7 +316,7 @@
         "source": "12",
         "sourceHandle": "output",
         "target": "6",
-        "targetHandle": "factor",
+        "targetHandle": "saturation",
         "ui_properties": null
       },
       {
@@ -349,11 +352,11 @@
         "ui_properties": null
       },
       {
-        "id": "12",
-        "source": "9",
-        "sourceHandle": "path",
-        "target": "14",
-        "targetHandle": "input_item",
+        "id": "edge-output-enhanced-photos",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "output-enhanced-photos",
+        "targetHandle": "value",
         "ui_properties": null
       }
     ]

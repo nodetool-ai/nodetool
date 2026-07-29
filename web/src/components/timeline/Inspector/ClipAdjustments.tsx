@@ -23,6 +23,7 @@ import BlurOnOutlinedIcon from "@mui/icons-material/BlurOnOutlined";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import OpenWithOutlinedIcon from "@mui/icons-material/OpenWithOutlined";
 import CompareArrowsOutlinedIcon from "@mui/icons-material/CompareArrowsOutlined";
+import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
 
 import type {
   BlendMode,
@@ -37,13 +38,8 @@ import { BLEND_MODES } from "@nodetool-ai/gpu";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import {
   CollapsibleSection,
-  EditorButton,
   FlexColumn,
-  FlexRow,
-  NodeSelect,
-  NodeMenuItem,
-  Text,
-  type SelectChangeEvent
+  Text
 } from "../../ui_primitives";
 import { usePersistedFold } from "./usePersistedFold";
 import {
@@ -51,8 +47,8 @@ import {
   InspectorPillInput,
   InspectorRow,
   InspectorSectionTitle,
-  InspectorSliderRow,
-  InspectorToggleRow
+  InspectorSelect,
+  InspectorSliderRow
 } from "./InspectorPrimitives";
 import { parseSeconds } from "./InspectorPrimitives.helpers";
 
@@ -103,8 +99,14 @@ const sectionContentStyles = (theme: Theme) =>
     display: "flex",
     flexDirection: "column",
     gap: 2,
-    padding: theme.spacing(1, 0, 3)
+    padding: theme.spacing(0.5, 0, 2)
   });
+
+const TRANSITION_MODES = [
+  { value: "auto", label: "Auto" },
+  { value: "crossfade", label: "Crossfade" },
+  { value: "none", label: "None" }
+] as const;
 
 // ── Component ──────────────────────────────────────────────────────────────
 
@@ -157,13 +159,12 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
       [clip.id, patchClip]
     );
     const handleBlendModeChange = useCallback(
-      (e: SelectChangeEvent<unknown>) =>
-        patchClip(clip.id, { blendMode: e.target.value as BlendMode }),
+      (value: string) => patchClip(clip.id, { blendMode: value as BlendMode }),
       [clip.id, patchClip]
     );
-    const handleVolumeCommit = useCallback(
-      (raw: string) => onPatchNumber("volumeDb", raw, -60, 12),
-      [onPatchNumber]
+    const handleVolumeChange = useCallback(
+      (value: number) => patchClip(clip.id, { volumeDb: value }),
+      [clip.id, patchClip]
     );
     const handleFadeInCommit = useCallback(
       (raw: string) => {
@@ -396,8 +397,8 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
       [patchClip]
     );
     const handleTransitionModeChange = useCallback(
-      (e: SelectChangeEvent<unknown>) =>
-        setTransitionMode(e.target.value as "auto" | "crossfade" | "none"),
+      (value: string) =>
+        setTransitionMode(value as "auto" | "crossfade" | "none"),
       [setTransitionMode]
     );
     const handleTransitionDurationCommit = useCallback(
@@ -458,32 +459,31 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
             )}
             {isOverlay && !isAudio && (
               <InspectorRow label="Blend">
-                <NodeSelect
+                <InspectorSelect
+                  label="Blend mode"
                   value={clip.blendMode ?? "normal"}
+                  options={BLEND_MODES}
                   onChange={handleBlendModeChange}
-                >
-                  {BLEND_MODES.map((mode) => (
-                    <NodeMenuItem key={mode.value} value={mode.value}>
-                      {mode.label}
-                    </NodeMenuItem>
-                  ))}
-                </NodeSelect>
+                />
               </InspectorRow>
             )}
             {isAudio && (
               <>
-                <InspectorRow label="Volume">
-                  <InspectorPillInput
-                    value={(clip.volumeDb ?? 0).toFixed(1)}
-                    unit="dB"
-                    onCommit={handleVolumeCommit}
-                    ariaLabel="Volume (dB)"
-                  />
-                </InspectorRow>
+                <InspectorSliderRow
+                  label="Volume"
+                  min={-60}
+                  max={12}
+                  step={0.5}
+                  value={clip.volumeDb ?? 0}
+                  origin={0}
+                  display={`${(clip.volumeDb ?? 0).toFixed(1)} dB`}
+                  onChange={handleVolumeChange}
+                />
                 <InspectorRow label="Fade in">
                   <InspectorPillInput
                     value={((clip.fadeInMs ?? 0) / 1000).toFixed(2)}
                     unit="s"
+                    scrub={{ step: 0.02, min: 0 }}
                     onCommit={handleFadeInCommit}
                     ariaLabel="Fade in (seconds)"
                   />
@@ -492,6 +492,7 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                   <InspectorPillInput
                     value={((clip.fadeOutMs ?? 0) / 1000).toFixed(2)}
                     unit="s"
+                    scrub={{ step: 0.02, min: 0 }}
                     onCommit={handleFadeOutCommit}
                     ariaLabel="Fade out (seconds)"
                   />
@@ -509,6 +510,11 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                 <InspectorSectionTitle
                   title="Transform"
                   icon={<OpenWithOutlinedIcon />}
+                  action={{
+                    icon: <RestartAltOutlinedIcon />,
+                    label: "Reset transform",
+                    onClick: handleResetTransform
+                  }}
                 />
               }
               open={transformOpen}
@@ -520,14 +526,16 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                   <InspectorPillInput
                     value={transform.position.x.toFixed(0)}
                     unit="px"
-                    minWidth={72}
+                    minWidth={64}
+                    scrub={{ step: 1 }}
                     onCommit={handlePositionXCommit}
                     ariaLabel="Position X"
                   />
                   <InspectorPillInput
                     value={transform.position.y.toFixed(0)}
                     unit="px"
-                    minWidth={72}
+                    minWidth={64}
+                    scrub={{ step: 1 }}
                     onCommit={handlePositionYCommit}
                     ariaLabel="Position Y"
                   />
@@ -536,14 +544,16 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                   <InspectorPillInput
                     value={transform.scale.x.toFixed(2)}
                     unit="×"
-                    minWidth={72}
+                    minWidth={64}
+                    scrub={{ step: 0.01 }}
                     onCommit={handleScaleXCommit}
                     ariaLabel="Scale X"
                   />
                   <InspectorPillInput
                     value={transform.scale.y.toFixed(2)}
                     unit="×"
-                    minWidth={72}
+                    minWidth={64}
+                    scrub={{ step: 0.01 }}
                     onCommit={handleScaleYCommit}
                     ariaLabel="Scale Y"
                   />
@@ -552,6 +562,7 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                   <InspectorPillInput
                     value={((transform.rotation * 180) / Math.PI).toFixed(1)}
                     unit="°"
+                    scrub={{ step: 0.5 }}
                     onCommit={handleRotationCommit}
                     ariaLabel="Rotation in degrees"
                   />
@@ -585,11 +596,6 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                   display={`${(clip.borderRadius ?? 0).toFixed(0)}px`}
                   onChange={handleBorderRadiusChange}
                 />
-                <FlexRow justify="flex-end" sx={{ mt: 1, px: 0.5 }}>
-                  <EditorButton size="small" onClick={handleResetTransform}>
-                    Reset transform
-                  </EditorButton>
-                </FlexRow>
               </FlexColumn>
             </CollapsibleSection>
           </>
@@ -603,6 +609,14 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                 <InspectorSectionTitle
                   title="Color"
                   icon={<WbSunnyOutlinedIcon />}
+                  checked={colorEnabled}
+                  onCheckedChange={handleColorEnabledChange}
+                  action={{
+                    icon: <RestartAltOutlinedIcon />,
+                    label: "Reset color",
+                    onClick: handleClearColor,
+                    disabled: !color
+                  }}
                 />
               }
               open={colorOpen}
@@ -610,11 +624,6 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
               unmountOnExit
             >
               <FlexColumn css={sectionContentStyles(theme)}>
-                <InspectorToggleRow
-                  label="Enabled"
-                  checked={colorEnabled}
-                  onChange={handleColorEnabledChange}
-                />
                 <InspectorSliderRow
                   label="Brightness"
                   min={-1}
@@ -703,15 +712,6 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                   disabled={!colorEnabled}
                   onChange={handleHighlightsChange}
                 />
-                <FlexRow justify="flex-end" sx={{ mt: 1, px: 0.5 }}>
-                  <EditorButton
-                    size="small"
-                    disabled={!color}
-                    onClick={handleClearColor}
-                  >
-                    Clear color
-                  </EditorButton>
-                </FlexRow>
               </FlexColumn>
             </CollapsibleSection>
           </>
@@ -725,6 +725,14 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                 <InspectorSectionTitle
                   title="Blur"
                   icon={<BlurOnOutlinedIcon />}
+                  checked={blurEnabled}
+                  onCheckedChange={handleBlurEnabledChange}
+                  action={{
+                    icon: <RestartAltOutlinedIcon />,
+                    label: "Reset blur",
+                    onClick: handleClearBlur,
+                    disabled: !blur
+                  }}
                 />
               }
               open={blurOpen}
@@ -732,11 +740,6 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
               unmountOnExit
             >
               <FlexColumn css={sectionContentStyles(theme)}>
-                <InspectorToggleRow
-                  label="Enabled"
-                  checked={blurEnabled}
-                  onChange={handleBlurEnabledChange}
-                />
                 <InspectorSliderRow
                   label="Radius"
                   min={0}
@@ -747,15 +750,6 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                   disabled={!blurEnabled}
                   onChange={handleBlurRadiusChange}
                 />
-                <FlexRow justify="flex-end" sx={{ mt: 1, px: 0.5 }}>
-                  <EditorButton
-                    size="small"
-                    disabled={!blur}
-                    onClick={handleClearBlur}
-                  >
-                    Clear blur
-                  </EditorButton>
-                </FlexRow>
               </FlexColumn>
             </CollapsibleSection>
           </>
@@ -777,20 +771,19 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
             >
               <FlexColumn css={sectionContentStyles(theme)}>
                 <InspectorRow label="Type">
-                  <NodeSelect
+                  <InspectorSelect
+                    label="Transition type"
                     value={transitionMode}
+                    options={TRANSITION_MODES}
                     onChange={handleTransitionModeChange}
-                  >
-                    <NodeMenuItem value="auto">Auto</NodeMenuItem>
-                    <NodeMenuItem value="crossfade">Crossfade</NodeMenuItem>
-                    <NodeMenuItem value="none">None</NodeMenuItem>
-                  </NodeSelect>
+                  />
                 </InspectorRow>
                 {transitionMode === "crossfade" && (
                   <InspectorRow label="Duration">
                     <InspectorPillInput
                       value={(transitionDuration / 1000).toFixed(2)}
                       unit="s"
+                      scrub={{ step: 0.02, min: 0 }}
                       onCommit={handleTransitionDurationCommit}
                       ariaLabel="Transition duration"
                     />

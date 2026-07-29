@@ -31,7 +31,8 @@ const BlendUniforms = d.struct({
   params0: d.vec4f, // opacity, blendMode, canvasW, canvasH
   invRow0: d.vec4f, // inverse-affine row 0: a, b, tx, _
   invRow1: d.vec4f, // inverse-affine row 1: c, d, ty, _
-  params1: d.vec4f // borderRadius, smoothness, filterMode, _
+  params1: d.vec4f, // borderRadius, smoothness, filterMode, _
+  params2: d.vec4f // wipeEdge (0 = off), wipeProgress, wipeSoftness, _
 });
 
 /** Typed bind group layout for the blend pass. Binding order = WGSL order. */
@@ -72,6 +73,18 @@ export interface BlendPassParams {
   invAffine: InverseAffine;
   /** Normalized rounded-corner radius 0..0.5. 0 = sharp (default). */
   borderRadius?: number;
+  /**
+   * Directional wipe mask in the layer's own normalized quad space (the mask
+   * edge rotates with the layer). Omit for no mask.
+   */
+  wipe?: {
+    /** Edge the reveal starts from: 1 = left, 2 = right, 3 = top, 4 = bottom. */
+    edge: 1 | 2 | 3 | 4;
+    /** 0 = fully hidden, 1 = fully revealed. */
+    progress: number;
+    /** Feathered edge width as a fraction of the wipe axis. 0 = hard edge. */
+    softness: number;
+  };
 }
 
 const IDENTITY_INVERSE_AFFINE: InverseAffine = {
@@ -325,6 +338,7 @@ export class WebGPULayerCompositor {
         .$name(`layer-compositor-uniform-${idx}`);
       this.uniformBuffers[idx] = uniformBuffer;
     }
+    const wipe = params.wipe;
     uniformBuffer.write({
       params0: d.vec4f(
         params.opacity,
@@ -334,7 +348,10 @@ export class WebGPULayerCompositor {
       ),
       invRow0: d.vec4f(invAffine.a, invAffine.b, invAffine.tx, 0),
       invRow1: d.vec4f(invAffine.c, invAffine.d, invAffine.ty, 0),
-      params1: d.vec4f(borderRadius, smoothness, this.filterMode, 0)
+      params1: d.vec4f(borderRadius, smoothness, this.filterMode, 0),
+      params2: wipe
+        ? d.vec4f(wipe.edge, wipe.progress, wipe.softness, 0)
+        : d.vec4f(0, 0, 0, 0)
     });
 
     const bindGroup = this.device.createBindGroup({

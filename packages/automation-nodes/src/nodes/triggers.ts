@@ -1,17 +1,40 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { StreamingInputs, StreamingOutputs } from "@nodetool-ai/node-sdk";
+import type {
+  StreamingInputs,
+  StreamingOutputs,
+  TriggerEvent
+} from "@nodetool-ai/node-sdk";
 import * as fs from "fs";
 import * as path from "path";
-import * as http from "http";
-import { URL } from "url";
+import {
+  FileWatchDebouncer,
+  shouldEmitFileWatchEvent
+} from "../lib/file-watch-match.js";
 
 // Minimum wait time in seconds to prevent tight loops when drift compensation
 // causes wait_time to be near zero.
 const MIN_WAIT_SECONDS = 0.001;
 
+/** View a trigger-event payload as a record; non-objects yield {}. */
+function payloadRecord(payload: unknown): Record<string, unknown> {
+  return payload !== null &&
+    typeof payload === "object" &&
+    !Array.isArray(payload)
+    ? (payload as Record<string, unknown>)
+    : {};
+}
+
+function stringOr(value: unknown, fallback: string): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function numberOr(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
 /**
  * Async queue used by trigger nodes to receive events from external sources
- * (HTTP handlers, file watchers, etc.) and yield them in genProcess().
+ * (file watchers, etc.) and yield them in genProcess().
  */
 class AsyncQueue<T> {
   private _buffer: T[] = [];
@@ -146,12 +169,14 @@ export class ManualTriggerNode extends BaseNode {
   };
 
   static readonly isStreamingInput = true;
+  static readonly isTrigger = true;
 
   @prop({
     type: "int",
     default: 0,
     title: "Max Events",
-    description: "Maximum number of events to process (0 = unlimited)",
+    description:
+      "Events to process before the node stops listening (0 = unlimited). Applies only while the node listens in a running workflow; a fired trigger starts its own run and emits exactly one event.",
     min: 0
   })
   declare max_events: any;
@@ -160,7 +185,7 @@ export class ManualTriggerNode extends BaseNode {
     type: "str",
     default: "manual_trigger",
     title: "Name",
-    description: "Name for this trigger (used in API calls)"
+    description: "Name for this trigger, emitted on the source output"
   })
   declare name: any;
 
@@ -168,13 +193,37 @@ export class ManualTriggerNode extends BaseNode {
     type: "float",
     default: null,
     title: "Timeout Seconds",
-    description: "Timeout waiting for events (None = wait forever)",
+    description:
+      "How long to wait for the next event before stopping (empty = wait forever). Applies only while the node listens in a running workflow.",
     min: 0
   })
   declare timeout_seconds: any;
 
   async process(): Promise<Record<string, unknown>> {
     return {};
+  }
+
+  /**
+   * Wake-up entry point: a manually fired trigger input becomes one event.
+   * The payload is either the adapter envelope ({data, timestamp, source})
+   * or an arbitrary value, which is emitted whole as `data`.
+   */
+  async emitTriggerEvent(
+    event: TriggerEvent,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const p = payloadRecord(event.payload);
+    const data = "data" in p ? p.data : event.payload;
+    await outputs.emit("data", data);
+    await outputs.emit(
+      "timestamp",
+      stringOr(p.timestamp, new Date().toISOString())
+    );
+    await outputs.emit(
+      "source",
+      stringOr(p.source, String(this.name ?? "manual_trigger"))
+    );
+    await outputs.emit("event_type", "manual");
   }
 
   /**
@@ -245,7 +294,7 @@ export class IntervalTriggerNode extends BaseNode {
     "    - Periodic data collection or polling\n" +
     "    - Scheduled batch processing\n" +
     "    - Heartbeat or time-based automation";
-  static readonly inlineFields = [];
+  static readonly inlineFields = ["interval_seconds"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     tick: "int",
@@ -256,12 +305,14 @@ export class IntervalTriggerNode extends BaseNode {
     event_type: "str"
   };
 
+  static readonly isTrigger = true;
 
   @prop({
     type: "int",
     default: 0,
     title: "Max Events",
-    description: "Maximum number of events to process (0 = unlimited)",
+    description:
+      "Ticks to emit before the node stops (0 = unlimited). Applies only while the node runs in the editor; the scheduler keeps firing an activated trigger regardless.",
     min: 0
   })
   declare max_events: any;
@@ -303,6 +354,30 @@ export class IntervalTriggerNode extends BaseNode {
     return {};
   }
 
+  /**
+   * Wake-up entry point: the scheduler adapter synthesizes a tick payload
+   * ({tick, elapsed_seconds, interval_seconds, timestamp}); missing fields
+   * are synthesized here so a bare fire still yields a complete event.
+   */
+  async emitTriggerEvent(
+    event: TriggerEvent,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const p = payloadRecord(event.payload);
+    await outputs.emit("tick", numberOr(p.tick, 1));
+    await outputs.emit("elapsed_seconds", numberOr(p.elapsed_seconds, 0));
+    await outputs.emit(
+      "interval_seconds",
+      numberOr(p.interval_seconds, Number(this.interval_seconds ?? 60))
+    );
+    await outputs.emit(
+      "timestamp",
+      stringOr(p.timestamp, new Date().toISOString())
+    );
+    await outputs.emit("source", "interval");
+    await outputs.emit("event_type", "tick");
+  }
+
   async *genProcess(): AsyncGenerator<Record<string, unknown>> {
     const intervalMs = Number(this.interval_seconds ?? 60) * 1000;
     const initialDelayMs = Number(this.initial_delay_seconds ?? 0) * 1000;
@@ -313,12 +388,10 @@ export class IntervalTriggerNode extends BaseNode {
     const startTime = Date.now();
     let tickCount = 0;
 
-    // Initial delay
     if (initialDelayMs > 0) {
       await new Promise((r) => setTimeout(r, initialDelayMs));
     }
 
-    // Emit on start if configured
     if (emitOnStart) {
       tickCount++;
       yield this._createEvent(tickCount, startTime);
@@ -334,7 +407,6 @@ export class IntervalTriggerNode extends BaseNode {
     const driftOffset = emitOnStart ? 0 : 1;
     while (true) {
       if (driftCompensation) {
-        // Calculate next tick time based on start time
         const intervalsElapsed = tickCount + driftOffset;
         const nextTickMs = intervalsElapsed * intervalMs + initialDelayMs;
         const elapsed = Date.now() - startTime;
@@ -367,20 +439,24 @@ export class IntervalTriggerNode extends BaseNode {
 }
 
 // ---------------------------------------------------------------------------
-// WebhookTriggerNode — starts an HTTP server and yields on each request
+// WebhookTriggerNode — emits the event delivered by the server webhook route
 // ---------------------------------------------------------------------------
 
 export class WebhookTriggerNode extends BaseNode {
   static readonly nodeType = "nodetool.triggers.WebhookTrigger";
   static readonly title = "Webhook Trigger";
   static readonly description =
-    "Start an HTTP server and emit each incoming webhook request as an event.\n" +
-    "    trigger, webhook, http, server, api, request, integration\n\n" +
+    "Run the workflow whenever an HTTP request arrives at its webhook URL.\n" +
+    "    trigger, webhook, http, api, request, integration\n\n" +
     "    Use cases:\n" +
     "    - Receive notifications from external services\n" +
     "    - Build API endpoints that trigger workflows\n" +
-    "    - Integrate with third-party webhook providers";
-  static readonly inlineFields = ["path"];
+    "    - Integrate with third-party webhook providers\n\n" +
+    "    The node has nothing to configure: activating the workflow creates the\n" +
+    "    registration that owns the delivery URL and the shared secret. Both are\n" +
+    "    shown in the workflow's trigger panel; send the secret in the\n" +
+    "    x-webhook-secret header.";
+  static readonly inlineFields = [];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     body: "any",
@@ -393,166 +469,35 @@ export class WebhookTriggerNode extends BaseNode {
     event_type: "str"
   };
 
-
-  @prop({
-    type: "int",
-    default: 0,
-    title: "Max Events",
-    description: "Maximum number of events to process (0 = unlimited)",
-    min: 0
-  })
-  declare max_events: any;
-
-  @prop({
-    type: "int",
-    default: 8080,
-    title: "Port",
-    description: "Port to listen on for webhook requests",
-    min: 1,
-    max: 65535
-  })
-  declare port: any;
-
-  @prop({
-    type: "str",
-    default: "/webhook",
-    title: "Path",
-    description: "URL path to listen on"
-  })
-  declare path: any;
-
-  @prop({
-    type: "str",
-    default: "127.0.0.1",
-    title: "Host",
-    description:
-      "Host address to bind to. Use '0.0.0.0' to listen on all interfaces."
-  })
-  declare host: any;
-
-  @prop({
-    type: "list[str]",
-    default: ["POST"],
-    title: "Methods",
-    description: "HTTP methods to accept"
-  })
-  declare methods: any;
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "Secret",
-    description:
-      "Optional secret for validating requests (checks X-Webhook-Secret header)"
-  })
-  declare secret: any;
+  static readonly isTrigger = true;
 
   async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
-    const port = Number(this.port ?? 8080);
-    const webhookPath = String(this.path ?? "/webhook");
-    const host = String(this.host ?? "127.0.0.1");
-    const allowedMethods = (
-      Array.isArray(this.methods) ? this.methods : ["POST"]
-    ).map((m: string) => m.toUpperCase());
-    const secret = String(this.secret ?? "");
-    const maxEvents = Number(this.max_events ?? 0);
-
-    const queue = new AsyncQueue<Record<string, unknown>>();
-
-    // Create HTTP server
-    const server = http.createServer(async (req, res) => {
-      const reqUrl = new URL(req.url ?? "/", `http://${host}:${port}`);
-
-      // Check path
-      if (reqUrl.pathname !== webhookPath) {
-        res.writeHead(404, { "Content-Type": "text/plain" });
-        res.end("Not Found");
-        return;
-      }
-
-      // Check method
-      const method = (req.method ?? "GET").toUpperCase();
-      if (!allowedMethods.includes(method)) {
-        res.writeHead(405, { "Content-Type": "text/plain" });
-        res.end(`Method ${method} not allowed`);
-        return;
-      }
-
-      // Check secret
-      if (secret) {
-        const provided = req.headers["x-webhook-secret"] ?? "";
-        if (provided !== secret) {
-          res.writeHead(401, { "Content-Type": "text/plain" });
-          res.end("Invalid secret");
-          return;
-        }
-      }
-
-      // Read body
-      const chunks: Buffer[] = [];
-      for await (const chunk of req) {
-        chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
-      }
-      const rawBody = Buffer.concat(chunks).toString("utf-8");
-
-      let body: unknown = rawBody;
-      const contentType = req.headers["content-type"] ?? "";
-      if (contentType.includes("application/json")) {
-        try {
-          body = JSON.parse(rawBody);
-        } catch {
-          // keep raw string
-        }
-      }
-
-      // Build query params
-      const query: Record<string, string> = {};
-      reqUrl.searchParams.forEach((v, k) => {
-        query[k] = v;
-      });
-
-      queue.push({
-        body,
-        headers: { ...req.headers },
-        query,
-        method,
-        path: reqUrl.pathname,
-        timestamp: new Date().toISOString(),
-        source: req.socket.remoteAddress ?? "",
-        event_type: "webhook"
-      });
-
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ status: "accepted" }));
-    });
-
-    // Start server
-    await new Promise<void>((resolve, reject) => {
-      server.on("error", reject);
-      server.listen(port, host, () => resolve());
-    });
-
-    let eventsProcessed = 0;
-    try {
-      while (true) {
-        const event = await queue.get();
-        if (event === null) break;
-
-        yield event;
-
-        eventsProcessed++;
-        if (maxEvents > 0 && eventsProcessed >= maxEvents) break;
-      }
-    } finally {
-      // Shut down HTTP server
-      await new Promise<void>((resolve) => {
-        server.close(() => resolve());
-      });
-    }
+  /**
+   * Wake-up entry point: the server webhook route captures
+   * {body, headers, query, method} (plus path/timestamp when available)
+   * into the trigger input; a non-envelope payload is treated as the body.
+   */
+  async emitTriggerEvent(
+    event: TriggerEvent,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const p = payloadRecord(event.payload);
+    const isEnvelope =
+      "body" in p || "headers" in p || "query" in p || "method" in p;
+    await outputs.emit("body", isEnvelope ? p.body : event.payload);
+    await outputs.emit("headers", payloadRecord(p.headers));
+    await outputs.emit("query", payloadRecord(p.query));
+    await outputs.emit("method", stringOr(p.method, "POST"));
+    await outputs.emit("path", stringOr(p.path, ""));
+    await outputs.emit(
+      "timestamp",
+      stringOr(p.timestamp, new Date().toISOString())
+    );
+    await outputs.emit("source", stringOr(p.source, "webhook"));
+    await outputs.emit("event_type", "webhook");
   }
 }
 
@@ -580,12 +525,14 @@ export class FileWatchTriggerNode extends BaseNode {
     timestamp: "str"
   };
 
+  static readonly isTrigger = true;
 
   @prop({
     type: "int",
     default: 0,
     title: "Max Events",
-    description: "Maximum number of events to process (0 = unlimited)",
+    description:
+      "File events to emit before the node stops (0 = unlimited). Applies only while the node runs in the editor; the file-watch adapter keeps firing an activated trigger regardless.",
     min: 0
   })
   declare max_events: any;
@@ -643,6 +590,28 @@ export class FileWatchTriggerNode extends BaseNode {
     return {};
   }
 
+  /**
+   * Wake-up entry point: the file-watch adapter (or the launch-time
+   * snapshot diff) delivers {event, path, dest_path, is_directory}.
+   */
+  async emitTriggerEvent(
+    event: TriggerEvent,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const p = payloadRecord(event.payload);
+    await outputs.emit("event", stringOr(p.event, "modified"));
+    await outputs.emit("path", stringOr(p.path, ""));
+    await outputs.emit("dest_path", stringOr(p.dest_path, ""));
+    await outputs.emit(
+      "is_directory",
+      typeof p.is_directory === "boolean" ? p.is_directory : false
+    );
+    await outputs.emit(
+      "timestamp",
+      stringOr(p.timestamp, new Date().toISOString())
+    );
+  }
+
   async *genProcess(): AsyncGenerator<Record<string, unknown>> {
     const watchPath = path.resolve(String(this.path ?? "."));
     const recursive = Boolean(this.recursive ?? false);
@@ -658,51 +627,16 @@ export class FileWatchTriggerNode extends BaseNode {
     const debounceMs = Number(this.debounce_seconds ?? 0.5) * 1000;
     const maxEvents = Number(this.max_events ?? 0);
 
-    // Verify path exists
     if (!fs.existsSync(watchPath)) {
       throw new Error(`Watch path does not exist: ${watchPath}`);
     }
 
     const queue = new AsyncQueue<Record<string, unknown>>();
-    const lastEvents = new Map<string, number>();
-
-    // Simple glob matching
-    const matchesPattern = (filename: string, pattern: string): boolean => {
-      if (pattern === "*") return true;
-      // Convert glob to regex: *.txt -> ^.*\.txt$
-      const regex = new RegExp(
-        "^" +
-          pattern
-            .replace(/\./g, "\\.")
-            .replace(/\*/g, ".*")
-            .replace(/\?/g, ".") +
-          "$"
-      );
-      return regex.test(filename);
-    };
-
-    const shouldProcess = (filePath: string): boolean => {
-      const filename = path.basename(filePath);
-
-      // Check ignore patterns
-      for (const p of ignorePatterns) {
-        if (matchesPattern(filename, p)) return false;
-      }
-
-      // Check include patterns
-      for (const p of patterns) {
-        if (matchesPattern(filename, p)) return true;
-      }
-
-      return false;
-    };
-
-    const debounce = (filePath: string): boolean => {
-      const now = Date.now();
-      const last = lastEvents.get(filePath) ?? 0;
-      if (now - last < debounceMs) return true;
-      lastEvents.set(filePath, now);
-      return false;
+    const debouncer = new FileWatchDebouncer(debounceMs);
+    const filter = {
+      patterns,
+      ignorePatterns,
+      events: watchEvents
     };
 
     const emitEvent = (
@@ -710,9 +644,9 @@ export class FileWatchTriggerNode extends BaseNode {
       filePath: string,
       isDirectory: boolean
     ) => {
-      if (!watchEvents.includes(eventType)) return;
-      if (!shouldProcess(filePath)) return;
-      if (debounce(filePath)) return;
+      if (!shouldEmitFileWatchEvent(eventType, filePath, filter, debouncer)) {
+        return;
+      }
 
       queue.push({
         event: eventType,
@@ -723,7 +657,6 @@ export class FileWatchTriggerNode extends BaseNode {
       });
     };
 
-    // Use fs.watch for filesystem monitoring
     const watchers: fs.FSWatcher[] = [];
     let watchError: unknown = null;
 
@@ -781,7 +714,6 @@ export class FileWatchTriggerNode extends BaseNode {
         if (maxEvents > 0 && eventsProcessed >= maxEvents) break;
       }
     } finally {
-      // Close all watchers
       for (const w of watchers) {
         w.close();
       }

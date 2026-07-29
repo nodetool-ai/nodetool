@@ -1,5 +1,3 @@
-// - create DataFrame nodes from CSV files
-
 import { useCallback } from "react";
 import { Node, XYPosition } from "@xyflow/react";
 import Papa from "papaparse";
@@ -29,8 +27,8 @@ export const useCreateDataframe = (
             throw new Error("metadata for dataframe node is missing");
           }
           reader.onload = (event) => {
-            if (event.target) {
-              const csv = event.target.result as string;
+            if (event.target && typeof event.target.result === "string") {
+              const csv = event.target.result;
               const res = Papa.parse<string[]>(csv, {
                 header: false
               }) as ParsedCSV;

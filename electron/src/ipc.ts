@@ -17,7 +17,6 @@ import {
   runApp,
   initializeBackendServer,
   stopServer,
-  restartLlamaServer,
 } from "./server";
 import { assertSafeReadablePath } from "./utils";
 import { logMessage } from "./logger";
@@ -30,8 +29,6 @@ import {
 import {
   readSettingsAsync,
   updateSetting,
-  getModelServiceStartupSettings,
-  updateModelServiceStartupSettings,
   getUpdateChannel,
   normalizeUpdateChannel,
   setUpdateChannel,
@@ -44,6 +41,7 @@ import {
   getVaultList,
 } from "./vaults";
 import { applyVaultSwitch } from "./vaultSwitch";
+import { installMcpBundle } from "./mcpBundle";
 import { IpcRequest } from "./types.d";
 import { registerWorkflowShortcut, setupWorkflowShortcuts } from "./shortcuts";
 import { emitWorkflowsChanged, emitServerStateChanged } from "./tray";
@@ -73,6 +71,10 @@ import {
   openPathInExplorer,
   openSystemDirectory,
 } from "./fileExplorer";
+
+function isRuntimePackageId(id: string): id is RuntimePackageId {
+  return RUNTIME_PACKAGE_IDS.includes(id as RuntimePackageId);
+}
 
 const MIME_TYPE_MAP: Record<string, string> = {
   png: "image/png",
@@ -124,7 +126,7 @@ import WebSocket from "ws";
  * process and the privileged main process, following Electron's security best practices.
  */
 
-export type IpcMainHandler<T extends keyof IpcRequest & keyof IpcResponse> = (
+type IpcMainHandler<T extends keyof IpcRequest & keyof IpcResponse> = (
   event: Electron.IpcMainInvokeEvent,
   data: IpcRequest[T],
 ) => Promise<IpcResponse[T]>;
@@ -281,7 +283,6 @@ export function createIpcMainHandler<T extends keyof IpcRequest>(
     );
   }
 
-  // Wrap the handler with logging
   const wrappedHandler: IpcMainHandler<T> = async (event, data) => {
     const startTime = Date.now();
     const channelStr = String(channel);
@@ -715,12 +716,6 @@ export function initializeIpcHandlers(): void {
     await setupWorkflowShortcuts();
   });
 
-  // Restart llama-server handler (used after downloading new models)
-  createIpcMainHandler(IpcChannels.RESTART_LLAMA_SERVER, async () => {
-    logMessage("Restarting llama-server to pick up new models");
-    await restartLlamaServer();
-  });
-
   // App control handlers
   createIpcMainHandler(IpcChannels.RUN_APP, async (_event, workflowId) => {
     logMessage(`Running app with workflow ID: ${workflowId}`);
@@ -734,7 +729,7 @@ export function initializeIpcHandlers(): void {
   });
 
   // Window control handlers
-  ipcMain.on(IpcChannels.WINDOW_CLOSE, (event) => {
+  ipcMain.on(IpcChannels.WINDOW_CLOSE, (_event) => {
     try {
       const window = BrowserWindow.getFocusedWindow();
       if (window) {
@@ -745,7 +740,7 @@ export function initializeIpcHandlers(): void {
     }
   });
 
-  ipcMain.on(IpcChannels.WINDOW_MINIMIZE, (event) => {
+  ipcMain.on(IpcChannels.WINDOW_MINIMIZE, (_event) => {
     try {
       const window = BrowserWindow.getFocusedWindow();
       if (window) {
@@ -756,7 +751,7 @@ export function initializeIpcHandlers(): void {
     }
   });
 
-  ipcMain.on(IpcChannels.WINDOW_MAXIMIZE, (event) => {
+  ipcMain.on(IpcChannels.WINDOW_MAXIMIZE, (_event) => {
     try {
       const window = BrowserWindow.getFocusedWindow();
       if (window) {
@@ -773,7 +768,7 @@ export function initializeIpcHandlers(): void {
 
   createIpcMainHandler(
     IpcChannels.ON_CREATE_WORKFLOW,
-    async (event, workflow) => {
+    async (_event, workflow) => {
       logMessage(`Creating workflow: ${workflow.name}`);
       registerWorkflowShortcut(workflow);
       emitWorkflowsChanged();
@@ -782,7 +777,7 @@ export function initializeIpcHandlers(): void {
 
   createIpcMainHandler(
     IpcChannels.ON_UPDATE_WORKFLOW,
-    async (event, workflow) => {
+    async (_event, workflow) => {
       logMessage(`Updating workflow: ${workflow.name}`);
       registerWorkflowShortcut(workflow);
       emitWorkflowsChanged();
@@ -791,7 +786,7 @@ export function initializeIpcHandlers(): void {
 
   createIpcMainHandler(
     IpcChannels.ON_DELETE_WORKFLOW,
-    async (event, workflow) => {
+    async (_event, workflow) => {
       logMessage(`Deleting workflow: ${workflow.name}`);
       if (workflow.settings?.shortcut) {
         globalShortcut.unregister(workflow.settings.shortcut);
@@ -923,12 +918,12 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(
     IpcChannels.RUNTIME_PACKAGE_INSTALL,
     async (_event, data: { packageId: string; installLocation?: string }) => {
-      if (!RUNTIME_PACKAGE_IDS.includes(data.packageId as RuntimePackageId)) {
+      if (!isRuntimePackageId(data.packageId)) {
         return { success: false, message: `Unknown package ID: ${data.packageId}` };
       }
       logMessage(`Installing runtime package: ${data.packageId}`);
       return await installRuntimePackage(
-        data.packageId as RuntimePackageId,
+        data.packageId,
         data.installLocation,
       );
     },
@@ -937,12 +932,12 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(
     IpcChannels.RUNTIME_PACKAGE_UNINSTALL,
     async (_event, data: { packageId: string }) => {
-      if (!RUNTIME_PACKAGE_IDS.includes(data.packageId as RuntimePackageId)) {
+      if (!isRuntimePackageId(data.packageId)) {
         return { success: false, message: `Unknown package ID: ${data.packageId}` };
       }
       logMessage(`Uninstalling runtime package: ${data.packageId}`);
       const { uninstallRuntimePackage } = await import("./packageManager");
-      return await uninstallRuntimePackage(data.packageId as RuntimePackageId);
+      return await uninstallRuntimePackage(data.packageId);
     },
   );
 
@@ -1240,6 +1235,12 @@ export function initializeIpcHandlers(): void {
     await shell.trashItem(path);
   });
 
+  // Hand the bundled NodeTool .mcpb to the OS so Claude Desktop can install it.
+  createIpcMainHandler(IpcChannels.MCP_INSTALL_BUNDLE, async () => {
+    logMessage("Installing NodeTool MCP bundle (.mcpb)");
+    return installMcpBundle();
+  });
+
   createIpcMainHandler(IpcChannels.SHELL_BEEP, async () => {
     shell.beep();
   });
@@ -1317,26 +1318,6 @@ export function initializeIpcHandlers(): void {
       }
       logMessage(`Setting update channel to: ${nextChannel}`);
       return setUpdateChannel(nextChannel);
-    },
-  );
-
-  createIpcMainHandler(
-    IpcChannels.SETTINGS_GET_MODEL_SERVICES_STARTUP,
-    async () => {
-      const settings = await readSettingsAsync();
-      return getModelServiceStartupSettings(settings);
-    },
-  );
-
-  createIpcMainHandler(
-    IpcChannels.SETTINGS_SET_MODEL_SERVICES_STARTUP,
-    async (_event, update) => {
-      logMessage(
-        `Updating model services startup settings: ${JSON.stringify(update)}`
-      );
-      const next = updateModelServiceStartupSettings(update);
-      emitServerStateChanged();
-      return next;
     },
   );
 

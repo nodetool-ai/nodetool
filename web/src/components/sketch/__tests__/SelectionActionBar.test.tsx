@@ -12,7 +12,8 @@
 
 import React from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { ThemeProvider } from "@mui/material/styles";
+import mockTheme from "../../../__mocks__/themeMock";
 
 import { SelectionActionBar } from "../SelectionActionBar";
 import { useSketchStore } from "../state";
@@ -54,7 +55,9 @@ function containerRef(): React.RefObject<HTMLDivElement | null> {
 }
 
 function renderBar(ref: React.RefObject<HTMLDivElement | null>) {
-  const theme = createTheme({ cssVariables: true });
+  // The app theme mock carries the custom palette (Paper.overlay etc.)
+  // the primitives style against; a bare createTheme lacks it.
+  const theme = mockTheme;
   return render(
     <ThemeProvider theme={theme}>
       <SelectionActionBar containerRef={ref} />

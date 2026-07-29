@@ -51,7 +51,6 @@ export class RunLease extends DBModel {
 
         if (existing) {
           if (new Date(existing.expires_at) < now) {
-            // Expired lease -- reclaim it
             tx.update(runLeases)
               .set({
                 worker_id: workerId,
@@ -71,7 +70,6 @@ export class RunLease extends DBModel {
           return null;
         }
 
-        // No existing lease -- create one
         tx.insert(runLeases).values({
           run_id: runId,
           worker_id: workerId,
@@ -98,7 +96,6 @@ export class RunLease extends DBModel {
 
       if (existing) {
         if (new Date(existing.expires_at) < now) {
-          // Expired lease -- reclaim it
           await tx
             .update(runLeases)
             .set({
@@ -118,7 +115,6 @@ export class RunLease extends DBModel {
         return null;
       }
 
-      // No existing lease -- create one
       await tx.insert(runLeases).values({
         run_id: runId,
         worker_id: workerId,

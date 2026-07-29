@@ -22,6 +22,7 @@ export const workflows = sqliteTable(
     run_mode: text("run_mode"),
     workspace_id: text("workspace_id"),
     html_app: text("html_app"),
+    app_doc: jsonText<Record<string, unknown>>()("app_doc"),
     receive_clipboard: integer("receive_clipboard", { mode: "boolean" }),
     access: text("access").notNull().default("private"),
     created_at: text("created_at").notNull(),

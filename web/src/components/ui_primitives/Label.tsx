@@ -85,7 +85,7 @@ export const Label = forwardRef<HTMLElement, LabelProps>(({
         fontWeight,
         color: getColor(),
         display: "block",
-        marginBottom: theme.spacing(0.5),
+        marginBottom: theme.spacing(1),
         cursor: disabled ? "not-allowed" : "default",
         ...sx
       }}

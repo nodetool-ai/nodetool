@@ -1,6 +1,7 @@
 import React, { memo, useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useReactFlow, Node } from "@xyflow/react";
+import { shallow } from "zustand/shallow";
 
 import {
   Divider,
@@ -41,10 +42,15 @@ interface NodeToolbarProps {
 const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   const { getNode } = useReactFlow();
   const navigate = useNavigate();
-  const deleteNode = useNodes((state) => state.deleteNode);
-  const updateNodeData = useNodes((state) => state.updateNodeData);
-  const selectNodesByType = useNodes((state) => state.selectNodesByType);
-  const toggleBypass = useNodes((state) => state.toggleBypass);
+  const { deleteNode, updateNodeData, selectNodesByType, toggleBypass } = useNodes(
+    (state) => ({
+      deleteNode: state.deleteNode,
+      updateNodeData: state.updateNodeData,
+      selectNodesByType: state.selectNodesByType,
+      toggleBypass: state.toggleBypass
+    }),
+    shallow
+  );
 
   const node = nodeId !== null ? getNode(nodeId) : null;
   const nodeData = node?.data as NodeData | undefined;
@@ -121,7 +127,6 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
         className="node-toolbar"
         sx={{ backgroundColor: "transparent", gap: 0.5 }}
       >
-        {/* Primary Actions - Always Visible */}
         <ToolbarIconButton
           title={isWorkflowRunning ? "Running..." : "Run Node"}
           delay={TOOLTIP_ENTER_DELAY}
@@ -158,7 +163,6 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
           <CopyAllIcon fontSize="small" />
         </ToolbarIconButton>
 
-        {/* More Actions Dropdown */}
         <ToolbarIconButton
           title="More Actions"
           delay={TOOLTIP_ENTER_DELAY}
@@ -171,7 +175,6 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
         </ToolbarIconButton>
       </Toolbar>
 
-      {/* Dropdown Menu for Secondary Actions */}
       <EditorMenu
         anchorEl={anchorEl}
         open={dropdownOpen}

@@ -6,7 +6,7 @@ import type { Theme } from "@mui/material/styles";
 import { useReactFlow } from "@xyflow/react";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import type { Node } from "@xyflow/react";
-import { Box, MOTION } from "../ui_primitives";
+import { Box, MOTION, Z_INDEX } from "../ui_primitives";
 import { useNodes } from "../../contexts/NodeContext";
 import type { NodeStoreState } from "../../stores/NodeStore";
 import type { NodeData } from "../../stores/NodeData";
@@ -102,7 +102,7 @@ const styles = (theme: Theme, corner: ResizeCorner) => {
   const { placement, cursor, rotate } = CORNERS[corner];
   return css({
     position: "absolute",
-    zIndex: 100,
+    zIndex: Z_INDEX.overlay,
     ...placement,
     width: "25px",
     height: "25px",

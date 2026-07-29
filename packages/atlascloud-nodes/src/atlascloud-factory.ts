@@ -10,15 +10,18 @@
  */
 
 import {
+  applyContentCardBody,
   BaseNode,
   classifyFields,
   classNameToTitle,
   registerDeclaredProperty
 } from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
-import { mapPromptAssetsToInputs } from "@nodetool-ai/runtime";
+import { loadMediaRefBytes, mapPromptAssetsToInputs } from "@nodetool-ai/runtime";
 import type {
   AssetMediaKind,
+  MediaRefValue,
+  ProcessingContext,
   PromptAssetInputField,
   PromptAssetTextField
 } from "@nodetool-ai/runtime";
@@ -30,10 +33,6 @@ import {
   pickOutputUrl,
   type AtlasModality
 } from "./atlascloud-base.js";
-
-// ---------------------------------------------------------------------------
-// Manifest types
-// ---------------------------------------------------------------------------
 
 export type AtlasFieldType =
   | "str"
@@ -78,15 +77,22 @@ export interface AtlasManifestEntry {
   fields: AtlasFieldDef[];
 }
 
-// ---------------------------------------------------------------------------
-// Asset-ref handling
-// ---------------------------------------------------------------------------
-
 const ASSET_TYPES = new Set<AtlasFieldType>(["image", "video", "audio"]);
 const LIST_ASSET_RE = /^list\[(image|video|audio)\]$/;
 
+/**
+ * In-flight raw-RGBA images (protocol `RAW_RGBA_MIME`) carry straight-alpha
+ * pixels in `data`, not an encoded file. `loadMediaRefBytes` PNG-encodes them,
+ * so the outgoing data URI must say `image/png` rather than the ref's mime.
+ */
+const RAW_RGBA_MIME = "image/x-raw-rgba";
+
 type AssetRef = {
   uri?: string;
+  // Native NodeTool refs carry the asset's id here; the `uri` is often an
+  // internal storage path (`/api/storage/<key>`, `memory://…`) or empty, so
+  // `asset_id` is the reliable handle for resolving the bytes.
+  asset_id?: string | null;
   data?: string | Uint8Array;
   // Native NodeTool refs use snake_case `mime_type`; the refs that
   // `mapPromptAssetsToInputs` injects for @-mentioned assets (InjectedAssetRef)
@@ -265,6 +271,40 @@ function defaultMimeFor(fieldType: "image" | "video" | "audio"): string {
   return "image/png";
 }
 
+/** Mime for bytes we resolved ourselves, with the raw-RGBA case mapped to PNG. */
+function resolvedMime(
+  ref: AssetRef,
+  fieldType: "image" | "video" | "audio"
+): string {
+  const mime = guessMime(ref, defaultMimeFor(fieldType));
+  return mime === RAW_RGBA_MIME ? "image/png" : mime;
+}
+
+/** True for a raw-RGBA in-flight image: pixels in `data`, no encoded file. */
+function isRawRgba(ref: AssetRef): boolean {
+  return (
+    (ref.mime_type ?? ref.mimeType) === RAW_RGBA_MIME &&
+    ref.data instanceof Uint8Array
+  );
+}
+
+/**
+ * True when a ref carries no source at all: every slot blank. The UI sends a
+ * fully-shaped ref for an asset input the user left empty
+ * (`{ type: "image", uri: "", asset_id: null, data: null }`), which is an
+ * absent optional input — not something to fail the node over.
+ */
+function isEmptyAssetRef(ref: AssetRef): boolean {
+  if (typeof ref.uri === "string" && ref.uri.trim() !== "") return false;
+  if (typeof ref.data === "string" && ref.data.length > 0) return false;
+  if (ref.data instanceof Uint8Array && ref.data.byteLength > 0) return false;
+  return ref.asset_id == null || ref.asset_id === "";
+}
+
+function isHttpUri(uri: unknown): boolean {
+  return typeof uri === "string" && /^https?:\/\//i.test(uri);
+}
+
 /**
  * Resolve a NodeTool asset ref (ImageRef/VideoRef/AudioRef) to something the
  * AtlasCloud API accepts: either a public HTTPS URL or a `data:<mime>;base64,...`
@@ -277,39 +317,88 @@ export async function resolveAssetForAtlas(
 ): Promise<string | null> {
   if (!ref) return null;
 
-  // Bare URL string the user pasted in.
+  // Bare string the user pasted in: a public URL, or a data: URI which is
+  // already the exact shape the API wants.
   if (typeof ref === "string") {
+    if (ref.startsWith("data:")) return ref;
     return looksLikePublicUrl(ref) ? ref : null;
   }
 
   if (typeof ref !== "object") return null;
   const r = ref as AssetRef;
 
+  // An asset input left empty is an absent optional input, not a broken one.
+  if (isEmptyAssetRef(r)) return null;
+
   if (looksLikePublicUrl(r.uri)) return r.uri as string;
-
-  if (typeof r.data === "string" && r.data.length > 0) {
-    return `data:${guessMime(r, defaultMimeFor(fieldType))};base64,${r.data}`;
-  }
-  if (r.data instanceof Uint8Array && r.data.byteLength > 0) {
-    return bytesToDataUri(r.data, guessMime(r, defaultMimeFor(fieldType)));
-  }
-
-  // Reference URIs (asset://<id>, package://<pkg>/<path>) that storage adapters
-  // return null for — resolve them via the canonical, SSRF-safe context helper.
   // Read uri fresh from ref: the looksLikePublicUrl predicate above narrowed
   // r.uri away, so a typeof check re-establishes the string type here.
-  const uri = (ref as AssetRef).uri;
-  if (
-    typeof uri === "string" &&
-    (uri.startsWith("asset://") || uri.startsWith("package://")) &&
-    context?.resolveAssetBytes
-  ) {
-    const { bytes } = await context.resolveAssetBytes(uri);
-    if (bytes && bytes.byteLength > 0) {
-      return bytesToDataUri(
-        new Uint8Array(bytes),
-        guessMime(r, defaultMimeFor(fieldType))
-      );
+  const rawUri = (ref as AssetRef).uri;
+  if (typeof rawUri === "string" && rawUri.startsWith("data:")) return rawUri;
+
+  // Inline bytes, except raw-RGBA pixels — those are not an encoded image and
+  // must go through the canonical resolver's PNG encoder below.
+  if (!isRawRgba(r)) {
+    if (typeof r.data === "string" && r.data.length > 0) {
+      return r.data.startsWith("data:")
+        ? r.data
+        : `data:${resolvedMime(r, fieldType)};base64,${r.data}`;
+    }
+    if (r.data instanceof Uint8Array && r.data.byteLength > 0) {
+      return bytesToDataUri(r.data, resolvedMime(r, fieldType));
+    }
+  }
+
+  // Internal references the canonical resolver understands but a raw
+  // storage.retrieve / guarded fetch can't uniformly turn into bytes:
+  //   - asset://<id>, package://<pkg>/<path>, memory://<key> reference schemes
+  //   - the self-hosted `/api/storage/<key>` path, reduced to its bare <key>
+  //   - a ref that carries only an `asset_id` (its `uri` is empty or an
+  //     internal path) — the common shape for library-picked and generated
+  //     media wired into a downstream node
+  // The SSRF safety lives HERE, in restricting what we hand resolveAssetBytes:
+  // it will happily download an arbitrary http(s) URL if given one, so we only
+  // ever pass it these trusted internal refs (or an asset:// derived from
+  // asset_id). Arbitrary http(s) URIs stay on the isSafeHttpUrl-guarded fetch
+  // path below and are never routed through it.
+  //
+  const uri = rawUri;
+  const assetId =
+    typeof r.asset_id === "string" && r.asset_id.trim() !== ""
+      ? r.asset_id.trim()
+      : null;
+  // Map an internal-ref URI to the argument resolveAssetBytes expects, or null
+  // when it isn't one. asset:// / package:// / memory:// are passed verbatim
+  // (resolveAssetBytes recognizes each scheme); the `/api/storage/<key>` HTTP
+  // path is reduced to its bare `<key>`, since resolveAssetBytes keys off the
+  // storage key / asset id, not the route — handing it the full path makes it
+  // treat the whole string as an id and build a broken nested URL that 404s.
+  const internalRefCandidate = (u: string): string | null => {
+    if (
+      u.startsWith("asset://") ||
+      u.startsWith("package://") ||
+      u.startsWith("memory://")
+    ) {
+      return u;
+    }
+    // Strip any `?query`/`#hash` (thumb URLs carry e.g. `?thumb=1`) so the bare
+    // storage key is handed over. resolveAssetBytes strips these too, but doing
+    // it here keeps the passed key exact and the intent explicit.
+    const apiStorage = /^\/?api\/storage\/(.+)$/.exec(u);
+    return apiStorage ? apiStorage[1].split(/[?#]/)[0] || null : null;
+  };
+  if (context?.resolveAssetBytes) {
+    const candidate =
+      (typeof uri === "string" ? internalRefCandidate(uri) : null) ??
+      (assetId ? `asset://${assetId}` : null);
+    if (candidate) {
+      const { bytes } = await context.resolveAssetBytes(candidate);
+      if (bytes && bytes.byteLength > 0) {
+        return bytesToDataUri(
+          new Uint8Array(bytes),
+          guessMime(r, defaultMimeFor(fieldType))
+        );
+      }
     }
   }
 
@@ -324,6 +413,25 @@ export async function resolveAssetForAtlas(
       }
     } catch {
       /* fall through to direct fetch */
+    }
+  }
+
+  // Canonical resolver fallback — it understands ref shapes the bespoke
+  // branches above miss: `file://` URIs and absolute local paths, raw-RGBA
+  // in-flight images (PNG-encoded on the way out), and `asset_id` →
+  // `/api/storage/<id>.<ext>` storage candidates.
+  //
+  // Skipped for http(s) URIs: a safe one already passed through at the top, so
+  // anything still here is a private/loopback/metadata host, and
+  // loadMediaRefBytes downloads http(s) unguarded. Routing those through it
+  // would hand back the SSRF hole isSafeHttpUrl exists to close.
+  if (!isHttpUri(r.uri)) {
+    const bytes = await loadMediaRefBytes(
+      ref as MediaRefValue,
+      context as unknown as ProcessingContext | undefined
+    );
+    if (bytes && bytes.byteLength > 0) {
+      return bytesToDataUri(bytes, resolvedMime(r, fieldType));
     }
   }
 
@@ -342,10 +450,6 @@ export async function resolveAssetForAtlas(
     `Cannot resolve ${fieldType} asset for AtlasCloud — no usable uri or inline data`
   );
 }
-
-// ---------------------------------------------------------------------------
-// Field helpers
-// ---------------------------------------------------------------------------
 
 /**
  * Coerce a UI-serialized value back to the type AtlasCloud's worker expects.
@@ -463,10 +567,6 @@ function promptAssetOverrides(
   return mapPromptAssetsToInputs(textFields, assetFields, context);
 }
 
-// ---------------------------------------------------------------------------
-// Factory
-// ---------------------------------------------------------------------------
-
 export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
   const nodeType = `atlascloud.${spec.moduleName}.${spec.className}`;
   const title = spec.title || classNameToTitle(spec.className);
@@ -491,16 +591,22 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
 
       for (const f of specRef.fields) {
         const v = readValue(f.name);
-        if (v === undefined || v === null) continue;
 
         if (ASSET_TYPES.has(f.type)) {
           const inner = f.type as "image" | "video" | "audio";
-          const resolved = await resolveAssetForAtlas(v, context, inner);
+          const resolved =
+            v == null ? null : await resolveAssetForAtlas(v, context, inner);
           if (resolved !== null) {
             input[f.name] = f.array ? [resolved] : resolved;
+          } else if (f.required) {
+            throw new Error(
+              `${specRef.title}: the ${inner} input "${f.title ?? f.name}" is empty — connect or upload a${inner === "image" ? "n" : ""} ${inner}`
+            );
           }
           continue;
         }
+
+        if (v === undefined || v === null) continue;
 
         const listMatch = LIST_ASSET_RE.exec(f.type);
         if (listMatch) {
@@ -595,6 +701,9 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
     value: { output: spec.outputType },
     configurable: true
   });
+  // Every AtlasCloud model generates an image or a video — preview it in the
+  // node body.
+  applyContentCardBody(AtlasNodeClass);
 
   const { inlineFields, inputFields } = computeFieldClassification(spec.fields);
   Object.defineProperty(AtlasNodeClass, "inlineFields", {

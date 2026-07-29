@@ -11,8 +11,8 @@ namespace: "nodetool.agents"
 
 ## Description
 
-Prompt-driven SQLite skill with guarded query execution.
-    skills, data, sqlite, query
+Query and analyze a SQLite database using plain-language requests.
+    agent, database, sqlite, sql, query
 
 ## Properties
 

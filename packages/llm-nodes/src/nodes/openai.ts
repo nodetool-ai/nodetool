@@ -56,7 +56,6 @@ export class EmbeddingNode extends BaseNode {
     const model = String(this.model ?? "text-embedding-3-small");
     const chunkSize = Number(this.chunk_size ?? 4096);
 
-    // Chunk input text
     const chunks: string[] = [];
     for (let i = 0; i < text.length; i += chunkSize) {
       chunks.push(text.slice(i, i + chunkSize));
@@ -76,7 +75,6 @@ export class EmbeddingNode extends BaseNode {
       data: Array<{ embedding: number[] }>;
     };
 
-    // Average embeddings across chunks
     const allEmbeddings = data.data.map((d) => d.embedding);
     const dim = allEmbeddings[0]?.length ?? 0;
     const avg = new Array(dim).fill(0);
@@ -413,16 +411,13 @@ export class EditImageNode extends BaseNode {
     const size = String(this.size ?? "1024x1024");
     const quality = String(this.quality ?? "high");
 
-    // Build multipart form data
-    // Note: gpt-image-1 always returns base64 and rejects `response_format`,
-    // so it must not be sent (unlike the legacy dall-e-2 edits endpoint).
+    // gpt-image-1 always returns base64 and rejects `response_format`, so it
+    // must not be sent (unlike the legacy dall-e-2 edits endpoint).
     const formData = new FormData();
     formData.append("prompt", prompt);
     formData.append("model", model);
     formData.append("size", size);
     formData.append("quality", quality);
-    // Note: gpt-image-1 always returns base64 and rejects `response_format`
-    // (it's only valid for dall-e-2/3), so we don't send it here.
 
     // Convert image ref to blob
     const imageBlob = await refToBlob(image);

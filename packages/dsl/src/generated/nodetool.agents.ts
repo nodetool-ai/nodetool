@@ -96,22 +96,6 @@ export function agent(inputs: AgentInputs): DslNode<AgentOutputs> {
   return createNode("nodetool.agents.Agent", inputs as Record<string, unknown>, { outputNames: ["text", "chunk", "thinking", "audio"], streaming: true });
 }
 
-// Agent Step — nodetool.agents.AgentStep
-export interface AgentStepInputs {
-  instructions?: Connectable<string>;
-  tools?: Connectable<string[]>;
-  output_schema?: Connectable<string>;
-  input?: Connectable<unknown>;
-}
-
-export interface AgentStepOutputs {
-  output: string;
-}
-
-export function agentStep(inputs: AgentStepInputs): DslNode<AgentStepOutputs, "output"> {
-  return createNode("nodetool.agents.AgentStep", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
-}
-
 // Shell Agent — nodetool.agents.ShellAgent
 export interface ShellAgentInputs {
   model?: Connectable<unknown>;

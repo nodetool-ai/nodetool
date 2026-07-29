@@ -172,23 +172,20 @@ export class RemoteUserManager {
   private async saveRemoteUsers(
     users: Record<string, UserInfo>
   ): Promise<void> {
-    // Ensure directory exists
     const usersDir = posixPath.dirname(this.usersFile);
     await this.ssh.execute(`mkdir -p ${shellQuote(usersDir)}`);
 
-    // Prepare file content
     const content = yaml.dump(
       { users, version: "1.0" } satisfies UsersFileData,
       { flowLevel: -1 }
     );
 
-    // Write via SSH using base64 to avoid escaping issues
+    // Write via base64 to avoid shell escaping issues.
     const b64Content = Buffer.from(content, "utf-8").toString("base64");
     await this.ssh.execute(
       `echo ${b64Content} | base64 -d > ${shellQuote(this.usersFile)}`
     );
 
-    // Set restrictive permissions
     await this.ssh.execute(`chmod 0600 ${shellQuote(this.usersFile)}`);
   }
 

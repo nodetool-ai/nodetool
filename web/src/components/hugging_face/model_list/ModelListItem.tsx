@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 
 import React, { useMemo, useState, useCallback, memo } from "react";
-import { Chip, FlexRow, Tooltip, Text, Box, TextLink, SPACING, getSpacingPx } from "../../ui_primitives";
+import { Chip, FlexRow, Tooltip, Text, Box, TextLink, SPACING, getSpacingPx, activateOnKey } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { ModelComponentProps } from "../ModelUtils";
@@ -97,6 +97,10 @@ const ModelListItem: React.FC<
         model.downloaded ? "downloaded " : ""
       }${selectable ? "selectable" : ""}`}
       onClick={selectable ? handleRowClick : undefined}
+      onKeyDown={selectable ? activateOnKey(() => onSelect?.()) : undefined}
+      role={selectable ? "button" : undefined}
+      tabIndex={selectable ? 0 : undefined}
+      aria-label={selectable ? model.id : undefined}
       sx={selectable ? { cursor: "pointer" } : undefined}
     >
       <div className="model-content">
@@ -172,7 +176,7 @@ const ModelListItem: React.FC<
                   component="span"
                   sx={{
                     height: 20,
-                    fontSize: theme.vars.fontSizeTiny,
+                    fontSize: theme.vars.fontSizeSmaller,
                     color: theme.vars.palette.c_provider_local,
                     borderColor: theme.vars.palette.c_provider_local,
                     background: "transparent",
@@ -190,7 +194,7 @@ const ModelListItem: React.FC<
                   component="span"
                   sx={{
                     height: 20,
-                    fontSize: theme.vars.fontSizeTiny,
+                    fontSize: theme.vars.fontSizeSmaller,
                     color: theme.vars.palette.grey[50],
                     borderColor: "currentColor",
                     background: "transparent",
@@ -227,7 +231,7 @@ const ModelListItem: React.FC<
                   icon={<VisibilityIcon style={{ fontSize: "var(--fontSizeNormal)" }} />}
                   sx={{
                     height: 20,
-                    fontSize: theme.vars.fontSizeTiny,
+                    fontSize: theme.vars.fontSizeSmaller,
                     borderColor: theme.vars.palette.primary.main,
                     color: theme.vars.palette.primary.main,
                     background: "rgba(var(--palette-primary-main-channel) / 0.1)",

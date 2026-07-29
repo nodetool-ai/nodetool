@@ -9,7 +9,7 @@
  */
 
 import { create } from "zustand";
-import { apiService, type WorkflowGraphInput } from "../services/api";
+import { apiService, type WorkflowGraphInput, normalizeWorkflow } from "../services/api";
 import type { NodeMetadata, Workflow } from "../types/ApiTypes";
 import type {
   ChainNode,
@@ -98,7 +98,6 @@ interface GraphEditorState {
   /** Remove a dynamic input from a dynamic node. */
   removeDynamicInput: (nodeId: string, inputName: string) => void;
   toggleExpanded: (nodeId: string) => void;
-  collapseAll: () => void;
 
   // ---- Actions: UI ----
   showNodePicker: (insertAt?: number) => void;
@@ -108,7 +107,6 @@ interface GraphEditorState {
   loadWorkflow: (workflow: Workflow, metadata: NodeMetadata[]) => void;
   saveWorkflow: () => Promise<Workflow | null>;
   newWorkflow: (name?: string) => void;
-  setWorkflowName: (name: string) => void;
 
 }
 
@@ -360,12 +358,6 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
     }));
   },
 
-  collapseAll: () => {
-    set((state) => ({
-      chain: state.chain.map((n) => ({ ...n, expanded: false })),
-    }));
-  },
-
   // ── UI ─────────────────────────────────────────────────────────────
 
   showNodePicker: (insertAt) => {
@@ -480,6 +472,10 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
   saveWorkflow: async () => {
     const { workflowId, workflowName, chain, connections } = get();
     const graph = chainToGraph(chain, connections);
+    const graphInput: WorkflowGraphInput = {
+      nodes: graph.nodes,
+      edges: graph.edges,
+    };
 
     try {
       if (workflowId) {
@@ -487,21 +483,21 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
           id: workflowId,
           name: workflowName,
           description: "",
-          graph: graph as unknown as WorkflowGraphInput,
+          graph: graphInput,
           access: "private",
         });
         set({ isDirty: false });
-        return result as unknown as Workflow;
+        return normalizeWorkflow(result);
       } else {
         const result = await apiService.createWorkflow({
           name: workflowName,
           description: "",
-          graph: graph as unknown as WorkflowGraphInput,
+          graph: graphInput,
           access: "private",
         });
-        const newId = (result as unknown as Workflow).id;
-        set({ workflowId: newId, isDirty: false });
-        return result as unknown as Workflow;
+        const workflow = normalizeWorkflow(result);
+        set({ workflowId: workflow.id, isDirty: false });
+        return workflow;
       }
     } catch (err) {
       console.error("Failed to save workflow:", err);
@@ -519,7 +515,4 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
     });
   },
 
-  setWorkflowName: (name) => {
-    set({ workflowName: name, isDirty: true });
-  },
 }));

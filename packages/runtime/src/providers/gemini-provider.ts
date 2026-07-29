@@ -1,6 +1,8 @@
 import type { Chunk } from "@nodetool-ai/protocol";
 import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
+import { sniffAudioMime } from "./audio-mime.js";
+import { safeFetch } from "./safe-url.js";
 
 const log = createLogger("nodetool.runtime.providers.gemini");
 import type {
@@ -24,8 +26,27 @@ import type {
   TTSModel,
   VideoModel
 } from "./types.js";
+import { WEB_SEARCH_TOOL_NAME } from "./types.js";
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
+
+/** Drop `; charset=…`/`; codecs=…` parameters from a Content-Type header. */
+function stripMimeParams(value: string | null): string | undefined {
+  const mime = value?.split(";")[0].trim();
+  return mime || undefined;
+}
+
+/**
+ * Normalize an audio mime to one Gemini's `inlineData` accepts. Gemini lists
+ * audio/wav, audio/mp3, audio/aiff, audio/aac, audio/ogg and audio/flac; the
+ * common `audio/mpeg` label is remapped to `audio/mp3`. Falls back to
+ * `audio/mp3` when the type is unknown.
+ */
+function geminiAudioMime(mime: string | undefined): string {
+  if (!mime) return "audio/mp3";
+  if (mime === "audio/mpeg" || mime === "audio/mpga") return "audio/mp3";
+  return mime;
+}
 
 interface GeminiProviderOptions {
   fetchFn?: typeof fetch;
@@ -37,10 +58,11 @@ interface GeminiPart {
   thought?: boolean;
   inlineData?: { mimeType: string; data: string };
   functionCall?: {
+    id?: string;
     name: string;
     args?: Record<string, unknown>;
   };
-  functionResponse?: { name: string; response: unknown };
+  functionResponse?: { id?: string; name: string; response: unknown };
   /** Thought signature — at part level, camelCase per Gemini API. */
   thoughtSignature?: string;
 }
@@ -55,7 +77,19 @@ interface GeminiContent {
 interface GeminiRequest {
   contents: GeminiContent[];
   systemInstruction?: { parts: Array<{ text: string }> };
-  tools?: Array<{ functionDeclarations: Array<Record<string, unknown>> }>;
+  tools?: Array<
+    | { functionDeclarations: Array<Record<string, unknown>> }
+    | { googleSearch: Record<string, never> }
+    | { codeExecution: Record<string, never> }
+  >;
+  toolConfig?: {
+    functionCallingConfig?: { mode: "ANY"; allowedFunctionNames?: string[] };
+    /**
+     * Required by Gemini when a built-in tool (googleSearch, codeExecution) is
+     * sent alongside functionDeclarations — the API 400s without it.
+     */
+    includeServerSideToolInvocations?: boolean;
+  };
   generationConfig?: Record<string, unknown>;
 }
 
@@ -69,6 +103,14 @@ interface GeminiCandidate {
 interface GeminiResponse {
   candidates?: GeminiCandidate[];
   error?: { message?: string };
+  promptFeedback?: { blockReason?: string; blockReasonMessage?: string };
+  usageMetadata?: {
+    promptTokenCount?: number;
+    candidatesTokenCount?: number;
+    totalTokenCount?: number;
+    cachedContentTokenCount?: number;
+    thoughtsTokenCount?: number;
+  };
 }
 
 /** Shape of a model entry from the Gemini models list API. */
@@ -76,6 +118,11 @@ interface GeminiModelEntry {
   name?: string;
   displayName?: string;
   supportedGenerationMethods?: string[];
+}
+
+interface GeminiModelsPage {
+  models?: GeminiModelEntry[];
+  nextPageToken?: string;
 }
 
 interface GeminiVideoOperation {
@@ -102,15 +149,20 @@ const GEMINI_UNSUPPORTED_SCHEMA_KEYS = new Set([
   "$ref",
   "definitions",
   "patternProperties",
+  "propertyNames",
   "unevaluatedProperties",
   "dependentSchemas",
-  "dependentRequired"
+  "dependentRequired",
+  "exclusiveMinimum",
+  "exclusiveMaximum"
 ]);
 
 function isArraySchemaType(type: unknown): boolean {
   if (typeof type === "string") return type.toLowerCase() === "array";
   if (Array.isArray(type)) {
-    return type.some((t) => typeof t === "string" && t.toLowerCase() === "array");
+    return type.some(
+      (t) => typeof t === "string" && t.toLowerCase() === "array"
+    );
   }
   return false;
 }
@@ -137,13 +189,123 @@ function sanitizeGeminiSchema(value: unknown): unknown {
 
 function sanitizeToolName(name: string): string {
   let sanitized = (name ?? "").trim();
-  sanitized = sanitized.replace(/[^a-zA-Z0-9_.:-]/g, "_");
+  sanitized = sanitized.replace(/[^a-zA-Z0-9_-]/g, "_");
   sanitized = sanitized.replace(/_+/g, "_");
   if (!sanitized) sanitized = "_tool";
   if (!/^[a-zA-Z_]/.test(sanitized)) sanitized = `_${sanitized}`;
   if (sanitized.length > 64) sanitized = sanitized.slice(0, 64);
   if (!sanitized) sanitized = "_tool";
   return sanitized;
+}
+
+function appendGeminiContent(
+  contents: GeminiContent[],
+  content: GeminiContent
+): void {
+  const previous = contents[contents.length - 1];
+  if (previous?.role === content.role) {
+    previous.parts.push(...content.parts);
+  } else {
+    contents.push(content);
+  }
+}
+
+function geminiResponseError(data: GeminiResponse): Error | null {
+  if (data.error?.message)
+    return new Error(`Gemini API error: ${data.error.message}`);
+  if (data.promptFeedback?.blockReason) {
+    const detail = data.promptFeedback.blockReasonMessage
+      ? `: ${data.promptFeedback.blockReasonMessage}`
+      : "";
+    return new Error(
+      `Gemini prompt blocked (${data.promptFeedback.blockReason})${detail}`
+    );
+  }
+  return null;
+}
+
+function parseGeminiResponse(value: unknown): GeminiResponse {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("Gemini returned an invalid response envelope");
+  }
+  const response = value as GeminiResponse;
+  if (
+    response.candidates !== undefined &&
+    !Array.isArray(response.candidates)
+  ) {
+    throw new Error("Gemini returned invalid candidates");
+  }
+  for (const candidate of response.candidates ?? []) {
+    if (
+      candidate.content?.parts !== undefined &&
+      !Array.isArray(candidate.content.parts)
+    ) {
+      throw new Error("Gemini returned invalid candidate parts");
+    }
+  }
+  return response;
+}
+
+function normalizeEmbedding(values: number[]): number[] {
+  const norm = Math.sqrt(values.reduce((sum, value) => sum + value * value, 0));
+  return norm > 0 ? values.map((value) => value / norm) : values;
+}
+
+function abortError(signal?: AbortSignal): Error {
+  return signal?.reason instanceof Error
+    ? signal.reason
+    : new DOMException("Aborted", "AbortError");
+}
+
+async function* decodeGeminiSse(
+  body: ReadableStream<Uint8Array>,
+  signal?: AbortSignal
+): AsyncGenerator<GeminiResponse> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  try {
+    while (true) {
+      if (signal?.aborted) throw abortError(signal);
+      const { done, value } = await reader.read();
+      buffer += decoder.decode(value, { stream: !done });
+      const events = buffer.split(/\r?\n\r?\n/);
+      buffer = events.pop() ?? "";
+      if (done && buffer.trim()) {
+        events.push(buffer);
+        buffer = "";
+      }
+      for (const eventText of events) {
+        const data = eventText
+          .split(/\r?\n/)
+          .filter((line) => line.startsWith("data:"))
+          .map((line) => line.slice(5).trimStart())
+          .join("\n")
+          .trim();
+        if (!data || data === "[DONE]") continue;
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(data);
+        } catch (error) {
+          throw new Error("Gemini returned malformed SSE JSON", {
+            cause: error
+          });
+        }
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+          throw new Error("Gemini returned an invalid SSE event");
+        }
+        yield parseGeminiResponse(parsed);
+      }
+      if (done) break;
+    }
+  } finally {
+    // Stop the underlying connection whenever the consumer bails early (abort
+    // or `break`); releasing the lock alone leaves the HTTP body undrained.
+    await reader
+      .cancel(signal?.aborted ? signal.reason : undefined)
+      .catch(() => undefined);
+    reader.releaseLock();
+  }
 }
 
 export class GeminiProvider extends BaseProvider {
@@ -177,38 +339,57 @@ export class GeminiProvider extends BaseProvider {
     return true;
   }
 
+  override get supportsNativeWebSearch(): boolean {
+    return true;
+  }
+
   // ---------------------------------------------------------------------------
   // Model listing
   // ---------------------------------------------------------------------------
 
   async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    const url = `${GEMINI_API_BASE}/models?key=${this.apiKey}`;
-
-    let response: Response;
+    const items: GeminiModelEntry[] = [];
+    let pageToken: string | undefined;
     try {
-      response = await this._fetch(url);
+      do {
+        const query = new URLSearchParams({
+          key: this.apiKey,
+          pageSize: "1000"
+        });
+        if (pageToken) query.set("pageToken", pageToken);
+        const response = await this._fetch(
+          `${GEMINI_API_BASE}/models?${query}`
+        );
+        if (!response.ok) return [];
+        const payload = (await response.json()) as GeminiModelsPage;
+        if (!Array.isArray(payload.models)) return [];
+        items.push(...payload.models);
+        pageToken = payload.nextPageToken;
+      } while (pageToken);
     } catch {
       return [];
     }
 
-    if (!response.ok) return [];
-
-    const payload = (await response.json()) as { models?: GeminiModelEntry[] };
-    const items = payload.models ?? [];
-
+    const seen = new Set<string>();
     return items
       .filter((m) =>
         (m.supportedGenerationMethods ?? []).includes("generateContent")
       )
       .filter((m) => !!m.name)
+      .filter(
+        (m) => !/(embedding|aqa|imagen|veo|image|tts)/i.test(m.name ?? "")
+      )
       .map((m) => {
         const id = (m.name as string).split("/").pop() as string;
+        if (seen.has(id)) return null;
+        seen.add(id);
         return {
           id,
           name: m.displayName ?? id,
           provider: "gemini"
         };
-      });
+      })
+      .filter((model): model is LanguageModel => model !== null);
   }
 
   // ---------------------------------------------------------------------------
@@ -227,23 +408,42 @@ export class GeminiProvider extends BaseProvider {
       let base64Data: string;
       let mimeType = img.mimeType ?? "image/jpeg";
 
-      if (img.data) {
+      const parseImageDataUri = (uri: string): string => {
+        const idx = uri.indexOf(",");
+        if (idx < 0) throw new Error("Invalid image data URI");
+        const header = uri.slice(5, idx);
+        mimeType = header.split(";")[0] || mimeType;
+        return uri.slice(idx + 1);
+      };
+
+      if (
+        (typeof img.data === "string" && img.data.length > 0) ||
+        (img.data instanceof Uint8Array && img.data.length > 0)
+      ) {
         if (typeof img.data === "string") {
-          base64Data = img.data;
+          // Inline data may itself be a data: URI — strip the prefix and take
+          // the real mime type from it rather than shipping the header as
+          // base64 payload.
+          base64Data = img.data.startsWith("data:")
+            ? parseImageDataUri(img.data)
+            : img.data;
         } else {
           base64Data = Buffer.from(img.data).toString("base64");
         }
       } else if (img.uri) {
-        if (img.uri.startsWith("data:")) {
-          const idx = img.uri.indexOf(",");
-          const header = img.uri.slice(5, idx);
-          mimeType = header.split(";")[0] || mimeType;
-          base64Data = img.uri.slice(idx + 1);
+        // resolveUri turns asset file:// URIs (what the chat pipeline produces)
+        // into data: URIs; http(s) URIs pass through to safeFetch.
+        const resolvedUri = img.uri.startsWith("data:")
+          ? img.uri
+          : await this.resolveUri(img.uri);
+        if (resolvedUri.startsWith("data:")) {
+          base64Data = parseImageDataUri(resolvedUri);
         } else {
-          const resp = await this._fetch(img.uri);
+          const resp = await safeFetch(resolvedUri, undefined, 5, this._fetch);
           if (!resp.ok)
             throw new Error(`Failed to fetch image: ${resp.status}`);
-          mimeType = resp.headers.get("content-type") ?? mimeType;
+          mimeType =
+            stripMimeParams(resp.headers.get("content-type")) ?? mimeType;
           base64Data = Buffer.from(await resp.arrayBuffer()).toString("base64");
         }
       } else {
@@ -256,32 +456,55 @@ export class GeminiProvider extends BaseProvider {
     if (content.type === "audio") {
       const aud = (content as MessageAudioContent).audio;
       let base64Data: string;
-      let mimeType = aud.mimeType ?? "audio/mp3";
+      let mimeType = aud.mimeType;
 
-      if (aud.data) {
+      const parseAudioDataUri = (uri: string): string => {
+        const idx = uri.indexOf(",");
+        if (idx < 0) throw new Error("Invalid audio data URI");
+        const header = uri.slice(5, idx);
+        mimeType = mimeType ?? header.split(";")[0];
+        return uri.slice(idx + 1);
+      };
+
+      if (
+        (typeof aud.data === "string" && aud.data.length > 0) ||
+        (aud.data instanceof Uint8Array && aud.data.length > 0)
+      ) {
         if (typeof aud.data === "string") {
-          base64Data = aud.data;
+          base64Data = aud.data.startsWith("data:")
+            ? parseAudioDataUri(aud.data)
+            : aud.data;
+          mimeType =
+            mimeType ?? sniffAudioMime(Buffer.from(base64Data, "base64"));
         } else {
-          base64Data = Buffer.from(aud.data).toString("base64");
+          const bytes = Buffer.from(aud.data);
+          base64Data = bytes.toString("base64");
+          mimeType = mimeType ?? sniffAudioMime(bytes);
         }
       } else if (aud.uri) {
-        if (aud.uri.startsWith("data:")) {
-          const idx = aud.uri.indexOf(",");
-          const header = aud.uri.slice(5, idx);
-          mimeType = header.split(";")[0] || mimeType;
-          base64Data = aud.uri.slice(idx + 1);
+        const resolvedUri = aud.uri.startsWith("data:")
+          ? aud.uri
+          : await this.resolveUri(aud.uri);
+        if (resolvedUri.startsWith("data:")) {
+          base64Data = parseAudioDataUri(resolvedUri);
         } else {
-          const resp = await this._fetch(aud.uri);
+          const resp = await safeFetch(resolvedUri, undefined, 5, this._fetch);
           if (!resp.ok)
             throw new Error(`Failed to fetch audio: ${resp.status}`);
-          mimeType = resp.headers.get("content-type") ?? mimeType;
-          base64Data = Buffer.from(await resp.arrayBuffer()).toString("base64");
+          const bytes = Buffer.from(await resp.arrayBuffer());
+          mimeType =
+            stripMimeParams(resp.headers.get("content-type")) ??
+            mimeType ??
+            sniffAudioMime(bytes);
+          base64Data = bytes.toString("base64");
         }
       } else {
         base64Data = "";
       }
 
-      return { inlineData: { mimeType, data: base64Data } };
+      return {
+        inlineData: { mimeType: geminiAudioMime(mimeType), data: base64Data }
+      };
     }
 
     return { text: "[unsupported content type]" };
@@ -291,7 +514,8 @@ export class GeminiProvider extends BaseProvider {
    * Convert our Message array into Gemini contents + optional system instruction.
    */
   async convertMessages(
-    messages: Message[]
+    messages: Message[],
+    nameMap: ReadonlyMap<string, string> = new Map()
   ): Promise<{ contents: GeminiContent[]; systemInstruction?: string }> {
     let systemInstruction: string | undefined;
     const contents: GeminiContent[] = [];
@@ -304,20 +528,23 @@ export class GeminiProvider extends BaseProvider {
     for (const m of messages) {
       if (m.role === "assistant" && m.toolCalls) {
         for (const tc of m.toolCalls) {
-          if (tc.id) toolCallNames.set(tc.id, tc.name);
+          if (tc.id) toolCallNames.set(tc.id, nameMap.get(tc.name) ?? tc.name);
         }
       }
     }
 
     for (const msg of messages) {
       if (msg.role === "system") {
-        systemInstruction =
+        const instruction =
           typeof msg.content === "string"
             ? msg.content
             : (msg.content ?? [])
                 .filter((c): c is MessageTextContent => c.type === "text")
                 .map((c) => c.text)
                 .join(" ");
+        systemInstruction = systemInstruction
+          ? `${systemInstruction}\n${instruction}`
+          : instruction;
         continue;
       }
 
@@ -337,6 +564,7 @@ export class GeminiProvider extends BaseProvider {
         const responsePart: GeminiPart = {
           functionResponse: {
             name: functionName,
+            id: msg.toolCallId ?? undefined,
             response: { result: responseText }
           }
         };
@@ -352,7 +580,10 @@ export class GeminiProvider extends BaseProvider {
         ) {
           prev.parts.push(responsePart);
         } else {
-          contents.push({ role: "user", parts: [responsePart] });
+          appendGeminiContent(contents, {
+            role: "user",
+            parts: [responsePart]
+          });
         }
         continue;
       }
@@ -360,7 +591,7 @@ export class GeminiProvider extends BaseProvider {
       if (msg.role === "assistant") {
         // If we have raw Gemini parts (with thought content), replay them exactly
         if (msg._rawGeminiParts && Array.isArray(msg._rawGeminiParts)) {
-          contents.push({
+          appendGeminiContent(contents, {
             role: "model",
             parts: msg._rawGeminiParts as GeminiPart[]
           });
@@ -369,11 +600,14 @@ export class GeminiProvider extends BaseProvider {
 
         const parts: GeminiPart[] = [];
 
-        // Tool calls
         if (msg.toolCalls && msg.toolCalls.length > 0) {
           for (const tc of msg.toolCalls) {
             const part: GeminiPart = {
-              functionCall: { name: tc.name, args: tc.args }
+              functionCall: {
+                id: tc.id,
+                name: nameMap.get(tc.name) ?? tc.name,
+                args: tc.args
+              }
             };
             if (tc.thought_signature) {
               part.thoughtSignature = tc.thought_signature;
@@ -382,7 +616,6 @@ export class GeminiProvider extends BaseProvider {
           }
         }
 
-        // Text / content
         if (typeof msg.content === "string" && msg.content) {
           parts.push({ text: msg.content });
         } else if (Array.isArray(msg.content)) {
@@ -392,12 +625,11 @@ export class GeminiProvider extends BaseProvider {
         }
 
         if (parts.length > 0) {
-          contents.push({ role: "model", parts });
+          appendGeminiContent(contents, { role: "model", parts });
         }
         continue;
       }
 
-      // user
       const parts: GeminiPart[] = [];
       if (typeof msg.content === "string") {
         parts.push({ text: msg.content });
@@ -407,7 +639,7 @@ export class GeminiProvider extends BaseProvider {
         }
       }
       if (parts.length > 0) {
-        contents.push({ role: "user", parts });
+        appendGeminiContent(contents, { role: "user", parts });
       }
     }
 
@@ -427,6 +659,12 @@ export class GeminiProvider extends BaseProvider {
     const declarations: Array<Record<string, unknown>> = [];
 
     for (const tool of tools) {
+      if (
+        tool.name === WEB_SEARCH_TOOL_NAME ||
+        tool.type === "code_interpreter"
+      ) {
+        continue;
+      }
       const original = tool.name;
       let unique = sanitizeToolName(original);
 
@@ -441,12 +679,17 @@ export class GeminiProvider extends BaseProvider {
       nameMap.set(original, unique);
       reverseMap.set(unique, original);
 
-      const rawParameters =
-        tool.inputSchema ?? { type: "object", properties: {} };
+      const rawParameters = tool.inputSchema ?? {
+        type: "object",
+        properties: {}
+      };
       declarations.push({
         name: unique,
         description: tool.description ?? "",
-        parameters: sanitizeGeminiSchema(rawParameters) as Record<string, unknown>
+        parameters: sanitizeGeminiSchema(rawParameters) as Record<
+          string,
+          unknown
+        >
       });
     }
 
@@ -458,6 +701,61 @@ export class GeminiProvider extends BaseProvider {
     };
   }
 
+  /**
+   * Fill in `tools` and `toolConfig` on a request body.
+   *
+   * Built-in tools (googleSearch, codeExecution) run server side. When they are
+   * combined with functionDeclarations, Gemini rejects the request unless
+   * `toolConfig.includeServerSideToolInvocations` is set — the built-in calls
+   * and their results have to be echoed back into the conversation for the
+   * function-calling loop to stay coherent.
+   */
+  private applyTools(
+    body: GeminiRequest,
+    tools: ProviderTool[],
+    geminiTools: Array<{ functionDeclarations: Array<Record<string, unknown>> }>,
+    nameMap: Map<string, string>,
+    toolChoice?: string | "any"
+  ): void {
+    if (geminiTools.length > 0) {
+      body.tools = geminiTools;
+    }
+
+    let hasBuiltIn = false;
+    if (tools.some((tool) => tool.name === WEB_SEARCH_TOOL_NAME)) {
+      body.tools = [...(body.tools ?? []), { googleSearch: {} }];
+      hasBuiltIn = true;
+    }
+    if (tools.some((tool) => tool.type === "code_interpreter")) {
+      body.tools = [...(body.tools ?? []), { codeExecution: {} }];
+      hasBuiltIn = true;
+    }
+
+    const toolConfig: NonNullable<GeminiRequest["toolConfig"]> = {};
+
+    if (hasBuiltIn && geminiTools.length > 0) {
+      toolConfig.includeServerSideToolInvocations = true;
+    }
+
+    if (
+      toolChoice &&
+      (toolChoice === "any" ? geminiTools.length > 0 : nameMap.has(toolChoice))
+    ) {
+      const selected =
+        toolChoice === "any"
+          ? undefined
+          : (nameMap.get(toolChoice) ?? sanitizeToolName(toolChoice));
+      toolConfig.functionCallingConfig = {
+        mode: "ANY",
+        ...(selected ? { allowedFunctionNames: [selected] } : {})
+      };
+    }
+
+    if (Object.keys(toolConfig).length > 0) {
+      body.toolConfig = toolConfig;
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Non-streaming generation
   // ---------------------------------------------------------------------------
@@ -466,24 +764,29 @@ export class GeminiProvider extends BaseProvider {
     messages: Message[];
     model: string;
     tools?: ProviderTool[];
+    toolChoice?: string | "any";
     maxTokens?: number;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;
     frequencyPenalty?: number;
+    signal?: AbortSignal;
   }): Promise<Message> {
     const {
       model,
       tools = [],
       maxTokens = 16384,
       temperature,
-      topP
+      topP,
+      presencePenalty,
+      frequencyPenalty
     } = args;
 
+    const { geminiTools, nameMap, reverseMap } = this.formatTools(tools);
     const { contents, systemInstruction } = await this.convertMessages(
-      args.messages
+      args.messages,
+      nameMap
     );
-    const { geminiTools, reverseMap } = this.formatTools(tools);
 
     const body: GeminiRequest = { contents };
 
@@ -491,15 +794,17 @@ export class GeminiProvider extends BaseProvider {
       body.systemInstruction = { parts: [{ text: systemInstruction }] };
     }
 
-    if (geminiTools.length > 0) {
-      body.tools = geminiTools;
-    }
+    this.applyTools(body, tools, geminiTools, nameMap, args.toolChoice);
 
     const generationConfig: Record<string, unknown> = {
       maxOutputTokens: maxTokens
     };
     if (temperature != null) generationConfig.temperature = temperature;
     if (topP != null) generationConfig.topP = topP;
+    if (presencePenalty != null)
+      generationConfig.presencePenalty = presencePenalty;
+    if (frequencyPenalty != null)
+      generationConfig.frequencyPenalty = frequencyPenalty;
     body.generationConfig = generationConfig;
 
     log.debug("Gemini request", { model });
@@ -509,7 +814,8 @@ export class GeminiProvider extends BaseProvider {
     const response = await this._fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: args.signal
     });
 
     if (!response.ok) {
@@ -521,11 +827,12 @@ export class GeminiProvider extends BaseProvider {
       throw new Error(`Gemini API error ${response.status}: ${text}`);
     }
 
-    const data = (await response.json()) as GeminiResponse;
+    const data = parseGeminiResponse(await response.json());
 
-    if (data.error) {
-      throw new Error(`Gemini API error: ${data.error.message}`);
-    }
+    const dataError = geminiResponseError(data);
+    if (dataError) throw dataError;
+
+    this.trackGeminiUsage(model, data.usageMetadata);
 
     const candidate = data.candidates?.[0];
     if (!candidate?.content?.parts) {
@@ -533,6 +840,20 @@ export class GeminiProvider extends BaseProvider {
     }
 
     return this.extractMessage(candidate.content.parts, reverseMap);
+  }
+
+  /** Record token usage from a Gemini usageMetadata block (if present). */
+  private trackGeminiUsage(
+    model: string,
+    usage: GeminiResponse["usageMetadata"]
+  ): void {
+    if (!usage) return;
+    this.trackUsage(model, {
+      inputTokens: usage.promptTokenCount ?? 0,
+      outputTokens:
+        (usage.candidatesTokenCount ?? 0) + (usage.thoughtsTokenCount ?? 0),
+      cachedTokens: usage.cachedContentTokenCount ?? 0
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -543,19 +864,30 @@ export class GeminiProvider extends BaseProvider {
     messages: Message[];
     model: string;
     tools?: ProviderTool[];
+    toolChoice?: string | "any";
     maxTokens?: number;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;
     frequencyPenalty?: number;
     audio?: Record<string, unknown>;
+    signal?: AbortSignal;
   }): AsyncGenerator<ProviderStreamItem> {
-    const { model, tools = [], maxTokens = 16384, temperature, topP } = args;
+    const {
+      model,
+      tools = [],
+      maxTokens = 16384,
+      temperature,
+      topP,
+      presencePenalty,
+      frequencyPenalty
+    } = args;
 
+    const { geminiTools, nameMap, reverseMap } = this.formatTools(tools);
     const { contents, systemInstruction } = await this.convertMessages(
-      args.messages
+      args.messages,
+      nameMap
     );
-    const { geminiTools, reverseMap } = this.formatTools(tools);
 
     const body: GeminiRequest = { contents };
 
@@ -563,15 +895,17 @@ export class GeminiProvider extends BaseProvider {
       body.systemInstruction = { parts: [{ text: systemInstruction }] };
     }
 
-    if (geminiTools.length > 0) {
-      body.tools = geminiTools;
-    }
+    this.applyTools(body, tools, geminiTools, nameMap, args.toolChoice);
 
     const generationConfig: Record<string, unknown> = {
       maxOutputTokens: maxTokens
     };
     if (temperature != null) generationConfig.temperature = temperature;
     if (topP != null) generationConfig.topP = topP;
+    if (presencePenalty != null)
+      generationConfig.presencePenalty = presencePenalty;
+    if (frequencyPenalty != null)
+      generationConfig.frequencyPenalty = frequencyPenalty;
     body.generationConfig = generationConfig;
 
     log.debug("Gemini request", { model });
@@ -581,7 +915,8 @@ export class GeminiProvider extends BaseProvider {
     const response = await this._fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: args.signal
     });
 
     if (!response.ok) {
@@ -597,74 +932,55 @@ export class GeminiProvider extends BaseProvider {
       throw new Error("Gemini streaming response has no body");
     }
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-
     // Accumulate all parts across SSE events for raw replay.
     // Gemini thinking models emit thought parts and function calls across
     // separate SSE events, but they must all be sent back together.
     const allParts: GeminiPart[] = [];
     const pendingToolCalls: ToolCall[] = [];
+    // Gemini SSE reports CUMULATIVE usageMetadata; keep the last one seen and
+    // record it once after the stream (accumulating each event would over-count).
+    let lastUsage: GeminiResponse["usageMetadata"];
 
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+    for await (const event of decodeGeminiSse(response.body, args.signal)) {
+      const eventError = geminiResponseError(event);
+      if (eventError) throw eventError;
+      if (event.usageMetadata) lastUsage = event.usageMetadata;
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
+      const parts = event.candidates?.[0]?.content?.parts;
+      if (!parts) continue;
 
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          const jsonStr = line.slice(6).trim();
-          if (!jsonStr || jsonStr === "[DONE]") continue;
+      for (const part of parts) {
+        allParts.push(part);
 
-          let event: GeminiResponse;
-          try {
-            event = JSON.parse(jsonStr) as GeminiResponse;
-          } catch {
-            continue;
+        if (part.text !== undefined && !part.thought) {
+          const chunk: Chunk = {
+            type: "chunk",
+            content: part.text,
+            done: false
+          };
+          yield chunk;
+        } else if (part.functionCall) {
+          const originalName =
+            reverseMap.get(part.functionCall.name) ?? part.functionCall.name;
+          const toolCall: ToolCall = {
+            id:
+              part.functionCall.id ??
+              `call_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            name: originalName,
+            args: part.functionCall.args ?? {}
+          };
+          if (part.thoughtSignature) {
+            toolCall.thought_signature = part.thoughtSignature;
           }
-
-          const parts = event.candidates?.[0]?.content?.parts;
-          if (!parts) continue;
-
-          for (const part of parts) {
-            allParts.push(part);
-
-            if (part.text !== undefined && !part.thought) {
-              const chunk: Chunk = {
-                type: "chunk",
-                content: part.text,
-                done: false
-              };
-              yield chunk;
-            } else if (part.functionCall) {
-              const originalName =
-                reverseMap.get(part.functionCall.name) ??
-                part.functionCall.name;
-              const toolCall: ToolCall = {
-                id: `call_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-                name: originalName,
-                args: part.functionCall.args ?? {}
-              };
-              if (part.thoughtSignature) {
-                toolCall.thought_signature = part.thoughtSignature;
-              }
-              pendingToolCalls.push(toolCall);
-            }
-            // Thought text parts are silently accumulated in allParts
-          }
+          pendingToolCalls.push(toolCall);
         }
       }
-    } finally {
-      reader.releaseLock();
     }
 
+    this.trackGeminiUsage(model, lastUsage);
+
     // Attach accumulated raw parts to tool calls for thought replay
-    const hasThoughts = allParts.some((p) => p.thought);
+    const hasThoughts = allParts.some((p) => p.thought || p.thoughtSignature);
     for (const tc of pendingToolCalls) {
       if (hasThoughts) {
         tc._rawGeminiParts = allParts;
@@ -693,13 +1009,15 @@ export class GeminiProvider extends BaseProvider {
     const toolCalls: ToolCall[] = [];
 
     for (const part of parts) {
-      if (part.text !== undefined) {
+      if (part.text !== undefined && !part.thought) {
         textParts.push(part.text);
       } else if (part.functionCall) {
         const originalName =
           reverseMap.get(part.functionCall.name) ?? part.functionCall.name;
         const tc: ToolCall = {
-          id: `call_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          id:
+            part.functionCall.id ??
+            `call_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
           name: originalName,
           args: part.functionCall.args ?? {}
         };
@@ -710,7 +1028,7 @@ export class GeminiProvider extends BaseProvider {
       }
     }
 
-    const hasThoughts = parts.some((p) => p.thought);
+    const hasThoughts = parts.some((p) => p.thought || p.thoughtSignature);
     const msg: Message = {
       role: "assistant",
       content: textParts.join("") || null,
@@ -729,11 +1047,57 @@ export class GeminiProvider extends BaseProvider {
   async getAvailableImageModels(): Promise<ImageModel[]> {
     return [
       {
-        id: "gemini-3.1-flash-image-preview",
-        name: "Gemini 3.1 Flash Image Preview",
-        provider: "gemini"
+        id: "gemini-3.1-flash-image",
+        name: "Gemini 3.1 Flash Image",
+        provider: "gemini",
+        supportedTasks: ["text_to_image", "image_to_image"],
+        aspectRatios: [
+          "1:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9",
+          "21:9"
+        ],
+        resolutions: ["1K", "2K", "4K"]
       },
-      { id: "imagen-4.0-generate-001", name: "Imagen 4.0", provider: "gemini" }
+      {
+        id: "gemini-3.1-flash-lite-image",
+        name: "Gemini 3.1 Flash-Lite Image",
+        provider: "gemini",
+        supportedTasks: ["text_to_image", "image_to_image"],
+        aspectRatios: ["1:1", "2:3", "3:2", "3:4", "4:3", "9:16", "16:9"]
+      },
+      {
+        id: "gemini-3-pro-image",
+        name: "Gemini 3 Pro Image",
+        provider: "gemini",
+        supportedTasks: ["text_to_image", "image_to_image"],
+        aspectRatios: [
+          "1:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9",
+          "21:9"
+        ],
+        resolutions: ["1K", "2K", "4K"]
+      },
+      {
+        id: "imagen-4.0-generate-001",
+        name: "Imagen 4",
+        provider: "gemini",
+        supportedTasks: ["text_to_image"],
+        aspectRatios: ["1:1", "3:4", "4:3", "9:16", "16:9"]
+      }
     ];
   }
 
@@ -772,6 +1136,18 @@ export class GeminiProvider extends BaseProvider {
     ];
     return [
       {
+        id: "gemini-3.1-flash-tts-preview",
+        name: "Gemini 3.1 Flash TTS Preview",
+        provider: "gemini",
+        voices
+      },
+      {
+        id: "gemini-2.5-flash-preview-tts",
+        name: "Gemini 2.5 Flash TTS",
+        provider: "gemini",
+        voices
+      },
+      {
         id: "gemini-2.5-pro-preview-tts",
         name: "Gemini 2.5 Pro TTS",
         provider: "gemini",
@@ -782,8 +1158,16 @@ export class GeminiProvider extends BaseProvider {
 
   async getAvailableASRModels(): Promise<ASRModel[]> {
     return [
-      { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", provider: "gemini" },
-      { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", provider: "gemini" }
+      {
+        id: "gemini-3.5-flash",
+        name: "Gemini 3.5 Flash",
+        provider: "gemini"
+      },
+      {
+        id: "gemini-3.1-flash-lite",
+        name: "Gemini 3.1 Flash-Lite",
+        provider: "gemini"
+      }
     ];
   }
 
@@ -792,23 +1176,29 @@ export class GeminiProvider extends BaseProvider {
       {
         id: "veo-3.1-generate-preview",
         name: "Veo 3.1 Preview",
-        provider: "gemini"
+        provider: "gemini",
+        supportedTasks: ["text_to_video", "image_to_video"]
       },
-      { id: "veo-2.0-generate-001", name: "Veo 2.0", provider: "gemini" }
+      {
+        id: "veo-3.1-fast-generate-preview",
+        name: "Veo 3.1 Fast Preview",
+        provider: "gemini",
+        supportedTasks: ["text_to_video", "image_to_video"]
+      },
+      {
+        id: "veo-3.1-lite-generate-preview",
+        name: "Veo 3.1 Lite Preview",
+        provider: "gemini",
+        supportedTasks: ["text_to_video", "image_to_video"]
+      }
     ];
   }
 
   async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
     return [
       {
-        id: "text-embedding-004",
-        name: "Text Embedding 004",
-        provider: "gemini",
-        dimensions: 768
-      },
-      {
-        id: "gemini-embedding-001",
-        name: "Gemini Embedding 001",
+        id: "gemini-embedding-2",
+        name: "Gemini Embedding 2",
         provider: "gemini",
         dimensions: 3072
       }
@@ -861,7 +1251,11 @@ export class GeminiProvider extends BaseProvider {
       if (!data.embedding?.values) {
         throw new Error("No embedding returned from Gemini API");
       }
-      embeddings.push(data.embedding.values);
+      embeddings.push(
+        dimensions && dimensions < 3072
+          ? normalizeEmbedding(data.embedding.values)
+          : data.embedding.values
+      );
     }
 
     return embeddings;
@@ -880,10 +1274,14 @@ export class GeminiProvider extends BaseProvider {
 
     if (modelId.startsWith("gemini-")) {
       // Use generateContent with IMAGE response modality
+      const imageConfig: Record<string, unknown> = {};
+      if (params.aspectRatio) imageConfig.aspectRatio = params.aspectRatio;
+      if (params.resolution) imageConfig.imageSize = params.resolution;
       const body = {
         contents: [{ role: "user" as const, parts: [{ text: params.prompt }] }],
         generationConfig: {
-          responseModalities: ["IMAGE", "TEXT"]
+          responseModalities: ["IMAGE", "TEXT"],
+          ...(Object.keys(imageConfig).length > 0 ? { imageConfig } : {})
         }
       };
 
@@ -901,7 +1299,7 @@ export class GeminiProvider extends BaseProvider {
         );
       }
 
-      const data = (await response.json()) as GeminiResponse;
+      const data = parseGeminiResponse(await response.json());
       const parts = data.candidates?.[0]?.content?.parts;
       if (!parts) throw new Error("No candidates in response");
 
@@ -913,13 +1311,18 @@ export class GeminiProvider extends BaseProvider {
       throw new Error("No image data returned in response");
     }
 
-    // Imagen models use generateImages endpoint
+    // Imagen models use the predict endpoint.
+    const parameters: Record<string, unknown> = { sampleCount: 1 };
+    if (params.aspectRatio) parameters.aspectRatio = params.aspectRatio;
+    if (params.seed != null) parameters.seed = params.seed;
+    if (params.safetyCheck === false)
+      parameters.safetyFilterLevel = "block_only_high";
     const body: Record<string, unknown> = {
       instances: [{ prompt: params.prompt }],
-      parameters: { sampleCount: 1 }
+      parameters
     };
 
-    const url = `${GEMINI_API_BASE}/models/${modelId}:generateImages?key=${this.apiKey}`;
+    const url = `${GEMINI_API_BASE}/models/${modelId}:predict?key=${this.apiKey}`;
     const response = await this._fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -974,7 +1377,13 @@ export class GeminiProvider extends BaseProvider {
           data: Buffer.from(b).toString("base64")
         }
       }));
+    if (imageParts.length === 0) {
+      throw new Error("At least one input image is required");
+    }
 
+    const imageConfig: Record<string, unknown> = {};
+    if (params.aspectRatio) imageConfig.aspectRatio = params.aspectRatio;
+    if (params.resolution) imageConfig.imageSize = params.resolution;
     const body = {
       contents: [
         {
@@ -983,7 +1392,8 @@ export class GeminiProvider extends BaseProvider {
         }
       ],
       generationConfig: {
-        responseModalities: ["IMAGE", "TEXT"]
+        responseModalities: ["IMAGE", "TEXT"],
+        ...(Object.keys(imageConfig).length > 0 ? { imageConfig } : {})
       }
     };
 
@@ -1001,7 +1411,7 @@ export class GeminiProvider extends BaseProvider {
       );
     }
 
-    const data = (await response.json()) as GeminiResponse;
+    const data = parseGeminiResponse(await response.json());
     const parts = data.candidates?.[0]?.content?.parts;
     if (!parts) throw new Error("No candidates in response");
 
@@ -1051,7 +1461,7 @@ export class GeminiProvider extends BaseProvider {
       throw new Error(`Gemini TTS failed ${response.status}: ${errText}`);
     }
 
-    const data = (await response.json()) as GeminiResponse;
+    const data = parseGeminiResponse(await response.json());
     const parts = data.candidates?.[0]?.content?.parts;
     if (!parts) throw new Error("No audio in response");
 
@@ -1085,34 +1495,39 @@ export class GeminiProvider extends BaseProvider {
     if (!audio || audio.length === 0) {
       throw new Error("audio must not be empty");
     }
+    if (audio.length > 20 * 1024 * 1024) {
+      throw new Error(
+        "Gemini inline audio is limited to 20 MB; upload the audio with the File API first"
+      );
+    }
 
-    // Detect MIME type from audio header
-    let mimeType = "audio/wav";
+    // Detect MIME type from the audio header.
+    let mimeType = geminiAudioMime(sniffAudioMime(audio));
     if (
       audio[0] === 0x52 &&
       audio[1] === 0x49 &&
       audio[2] === 0x46 &&
       audio[3] === 0x46
     ) {
-      mimeType = "audio/wav"; // RIFF
+      mimeType = "audio/wav";
     } else if (audio[0] === 0x49 && audio[1] === 0x44 && audio[2] === 0x33) {
-      mimeType = "audio/mp3"; // ID3
+      mimeType = "audio/mp3";
     } else if (audio[0] === 0xff && (audio[1] === 0xfb || audio[1] === 0xf3)) {
-      mimeType = "audio/mp3"; // MPEG sync
+      mimeType = "audio/mp3";
     } else if (
       audio[0] === 0x66 &&
       audio[1] === 0x4c &&
       audio[2] === 0x61 &&
       audio[3] === 0x43
     ) {
-      mimeType = "audio/flac"; // fLaC
+      mimeType = "audio/flac";
     } else if (
       audio[0] === 0x4f &&
       audio[1] === 0x67 &&
       audio[2] === 0x67 &&
       audio[3] === 0x53
     ) {
-      mimeType = "audio/ogg"; // OggS
+      mimeType = "audio/ogg";
     }
 
     let promptText = args.prompt ?? "Transcribe this audio to text.";
@@ -1149,7 +1564,7 @@ export class GeminiProvider extends BaseProvider {
       throw new Error(`Gemini ASR failed ${response.status}: ${errText}`);
     }
 
-    const data = (await response.json()) as GeminiResponse;
+    const data = parseGeminiResponse(await response.json());
     const parts = data.candidates?.[0]?.content?.parts;
     if (!parts) return { text: "" };
 
@@ -1191,7 +1606,8 @@ export class GeminiProvider extends BaseProvider {
 
   private async waitForVideoOperation(
     operation: GeminiVideoOperation,
-    timeoutSeconds?: number | null
+    timeoutSeconds?: number | null,
+    signal?: AbortSignal
   ): Promise<GeminiVideoOperation> {
     const maxWait =
       timeoutSeconds && timeoutSeconds > 0 ? timeoutSeconds * 1000 : 600_000;
@@ -1200,14 +1616,25 @@ export class GeminiProvider extends BaseProvider {
     let current = operation;
 
     while (!current.done && elapsed < maxWait) {
-      await new Promise((resolve) => setTimeout(resolve, pollInterval));
+      await new Promise<void>((resolve, reject) => {
+        const onAbort = (): void => {
+          clearTimeout(timer);
+          reject(abortError(signal));
+        };
+        const timer = setTimeout(() => {
+          signal?.removeEventListener("abort", onAbort);
+          resolve();
+        }, pollInterval);
+        signal?.addEventListener("abort", onAbort, { once: true });
+      });
       elapsed += pollInterval;
 
       if (!current.name) {
         throw new Error("No operation name for polling");
       }
       const pollResp = await this._fetch(`${GEMINI_API_BASE}/${current.name}`, {
-        headers: { "x-goog-api-key": this.apiKey }
+        headers: { "x-goog-api-key": this.apiKey },
+        signal
       });
       if (!pollResp.ok) {
         const errText = await pollResp.text();
@@ -1220,15 +1647,28 @@ export class GeminiProvider extends BaseProvider {
       throw new Error("Video generation timed out");
     }
     if (current.error?.message) {
-      throw new Error(`Gemini video generation failed: ${current.error.message}`);
+      throw new Error(
+        `Gemini video generation failed: ${current.error.message}`
+      );
     }
     return current;
   }
 
-  private async downloadGeminiVideo(videoUri: string): Promise<Uint8Array> {
-    const response = await this._fetch(videoUri, {
-      headers: { "x-goog-api-key": this.apiKey }
-    });
+  private async downloadGeminiVideo(
+    videoUri: string,
+    signal?: AbortSignal
+  ): Promise<Uint8Array> {
+    const hostname = new URL(videoUri).hostname;
+    const headers =
+      hostname === "generativelanguage.googleapis.com"
+        ? { "x-goog-api-key": this.apiKey }
+        : undefined;
+    const response = await safeFetch(
+      videoUri,
+      { headers, signal },
+      5,
+      this._fetch
+    );
     if (!response.ok) {
       throw new Error(`Video download failed: ${response.status}`);
     }
@@ -1259,6 +1699,10 @@ export class GeminiProvider extends BaseProvider {
       body.parameters = parameters;
     }
 
+    const signal =
+      params.timeoutSeconds && params.timeoutSeconds > 0
+        ? AbortSignal.timeout(params.timeoutSeconds * 1000)
+        : undefined;
     const response = await this._fetch(
       `${GEMINI_API_BASE}/models/${modelId}:predictLongRunning`,
       {
@@ -1267,7 +1711,8 @@ export class GeminiProvider extends BaseProvider {
           "Content-Type": "application/json",
           "x-goog-api-key": this.apiKey
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
+        signal
       }
     );
 
@@ -1280,13 +1725,14 @@ export class GeminiProvider extends BaseProvider {
 
     const operation = await this.waitForVideoOperation(
       (await response.json()) as GeminiVideoOperation,
-      params.timeoutSeconds
+      params.timeoutSeconds,
+      signal
     );
     const videoUri = this.getVideoUri(operation);
     if (!videoUri) {
       throw new Error("No video URI in response");
     }
-    return this.downloadGeminiVideo(videoUri);
+    return this.downloadGeminiVideo(videoUri, signal);
   }
 
   // ---------------------------------------------------------------------------
@@ -1326,6 +1772,10 @@ export class GeminiProvider extends BaseProvider {
       body.parameters = parameters;
     }
 
+    const signal =
+      params.timeoutSeconds && params.timeoutSeconds > 0
+        ? AbortSignal.timeout(params.timeoutSeconds * 1000)
+        : undefined;
     const response = await this._fetch(
       `${GEMINI_API_BASE}/models/${modelId}:predictLongRunning`,
       {
@@ -1334,7 +1784,8 @@ export class GeminiProvider extends BaseProvider {
           "Content-Type": "application/json",
           "x-goog-api-key": this.apiKey
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
+        signal
       }
     );
 
@@ -1347,13 +1798,14 @@ export class GeminiProvider extends BaseProvider {
 
     const operation = await this.waitForVideoOperation(
       (await response.json()) as GeminiVideoOperation,
-      params.timeoutSeconds
+      params.timeoutSeconds,
+      signal
     );
     const videoUri = this.getVideoUri(operation);
     if (!videoUri) {
       throw new Error("No video URI in response");
     }
-    return this.downloadGeminiVideo(videoUri);
+    return this.downloadGeminiVideo(videoUri, signal);
   }
 
   // ---------------------------------------------------------------------------

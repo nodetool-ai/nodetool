@@ -1,40 +1,51 @@
 /**
- * AtlasCloud Provider — exposes AtlasCloud.ai's hosted image and video models
- * through the standard {@link BaseProvider} interface, and surfaces the
- * `ATLASCLOUD_API_KEY` secret in Settings → API Keys.
+ * AtlasCloud Provider — AtlasCloud.ai aggregates chat, image and video models
+ * behind one API key (`ATLASCLOUD_API_KEY`, surfaced in Settings → API Keys).
  *
- * In addition to model listing, the provider implements:
- *   - textToImage / imageToImage
- *   - textToVideo / imageToVideo
+ * Two different wire protocols live behind that key, so this provider speaks
+ * both:
  *
- * so AtlasCloud models work from NodeTool's generic image/video generation
- * nodes (model picker), not just the AtlasCloud-specific node classes shipped
- * by `@nodetool-ai/atlascloud-nodes`.
+ *  1. Chat — OpenAI-compatible, `https://api.atlascloud.ai/v1`. Inherited from
+ *     {@link OpenAICompatProvider}; model discovery reads `GET /v1/models`.
+ *     https://www.atlascloud.ai/docs/get-started
  *
- * Wire spec (per AtlasCloud docs + Gap #3 in the POC INTEGRATION.md):
- *  - Auth:   `Authorization: Bearer <api_key>`
- *  - Submit: POST /api/v1/model/generate{Image,Video}, FLAT body
- *              { model, ...fields }   (NOT nested under `input`)
- *  - Poll:   GET  /api/v1/model/prediction/{id}
- *  - Submit POST is NEVER retried — a 429/5xx may have actually created the
- *    job upstream, and a retry would double-bill.
+ *  2. Image / video — AtlasCloud's own async prediction API:
+ *       - Submit: POST /api/v1/model/generate{Image,Video}, FLAT body
+ *                   { model, ...fields }  (NOT nested under `input`)
+ *                 → { data: { id } }
+ *       - Poll:   GET  /api/v1/model/prediction/{id}
+ *                 → { data: { status, outputs: [url], error? } }
+ *       - Submit POST is NEVER retried — a 429/5xx may have actually created
+ *         the job upstream, and a retry would double-bill.
+ *     https://www.atlascloud.ai/docs/models/image · /docs/predictions
+ *
+ * Request fields are validated against the per-model schema shipped in
+ * `@nodetool-ai/atlascloud-nodes`'s manifest (itself generated from
+ * AtlasCloud's published model schemas) before being sent, so a generic
+ * text-to-image call can't put `1024x1024` into a model whose `size` enum only
+ * accepts `1K`/`2K`, or an 10s duration into a model that only allows 4/6/8.
  */
 
-import { BaseProvider } from "./base-provider.js";
-import { createLogger, importNodeBuiltin } from "@nodetool-ai/config";
-import { loadImageModels, loadVideoModels } from "./manifest-models.js";
-
-const _nodeModule = await importNodeBuiltin<typeof import("node:module")>(
-  "node:module"
-);
+import { OpenAICompatProvider } from "./openai-compat-provider.js";
+import type { OpenAICompatProviderOptions } from "./openai-compat-provider.js";
+import { createLogger } from "@nodetool-ai/config";
+import {
+  getManifestNodeMeta,
+  getModelInputFields,
+  loadImageModels,
+  loadManifest,
+  loadVideoModels
+} from "./manifest-models.js";
 import type {
+  ASRModel,
+  EmbeddingModel,
   ImageModel,
   ImageToImageParams,
   ImageToVideoParams,
-  Message,
-  ProviderStreamItem,
+  LanguageModel,
   TextToImageParams,
   TextToVideoParams,
+  TTSModel,
   VideoModel
 } from "./types.js";
 
@@ -44,52 +55,93 @@ const ATLASCLOUD_MANIFEST_PKG = "@nodetool-ai/atlascloud-nodes";
 const ATLASCLOUD_MANIFEST_PATH = "atlascloud-manifest.json";
 
 const ATLAS_BASE = "https://api.atlascloud.ai";
+const ATLAS_CHAT_BASE_URL = `${ATLAS_BASE}/v1`;
 const SUBMIT_IMAGE = "/api/v1/model/generateImage";
 const SUBMIT_VIDEO = "/api/v1/model/generateVideo";
-const POLL_INTERVAL_MS = 3000;
-const MAX_POLL_ATTEMPTS = 600;
+const DEFAULT_POLL_INTERVAL_MS = 3000;
+const DEFAULT_MAX_POLL_ATTEMPTS = 600;
 
 const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+const RETRY_MAX_WAIT_MS = 30000;
 const sleep = (ms: number): Promise<void> =>
   new Promise((r) => setTimeout(r, ms));
 
+// Parse a Retry-After header (delta-seconds or HTTP-date) into a bounded wait.
+// Returns null when absent/unparseable so the caller falls back to its backoff.
+// Capping matters: an unbounded header value (or a NaN from an HTTP-date) would
+// otherwise hang for hours or collapse the backoff to zero.
+function parseRetryAfterMs(value: string | null): number | null {
+  if (!value) return null;
+  const secs = Number(value);
+  if (Number.isFinite(secs)) {
+    return Math.min(RETRY_MAX_WAIT_MS, Math.max(0, secs * 1000));
+  }
+  const dateMs = Date.parse(value);
+  if (Number.isFinite(dateMs)) {
+    return Math.min(RETRY_MAX_WAIT_MS, Math.max(0, dateMs - Date.now()));
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------------------
-// Manifest peek — model id → declared field names + modality
+// Manifest peek — model id → declared fields + modality
 // ---------------------------------------------------------------------------
 
-interface AtlasManifestField {
-  name: string;
-  array?: boolean;
-}
-interface AtlasManifestEntry {
-  modelId: string;
-  modality?: "image" | "video";
-  outputType?: "image" | "video";
-  fields?: AtlasManifestField[];
+interface FieldInfo {
+  /** "str" | "enum" | "int" | "float" | "bool" | "image" | "list[image]" | … */
+  type: string;
+  /** Allowed values when the field is an enum. Numbers stay numbers. */
+  values?: Array<string | number>;
+  default?: unknown;
 }
 
 interface ModelInfo {
   modality: "image" | "video";
-  fields: Set<string>;
+  fields: Map<string, FieldInfo>;
+  pollInterval: number;
+  maxAttempts: number;
+}
+
+interface AtlasManifestEntry {
+  modelId?: string;
+  modality?: "image" | "video";
+  outputType?: "image" | "video";
 }
 
 function buildModelMap(): Map<string, ModelInfo> {
   const map = new Map<string, ModelInfo>();
-  if (!_nodeModule) return map;
-  let manifest: AtlasManifestEntry[];
-  try {
-    const req = _nodeModule.createRequire(import.meta.url);
-    manifest = req(`${ATLASCLOUD_MANIFEST_PKG}/${ATLASCLOUD_MANIFEST_PATH}`);
-  } catch (err) {
-    log.warn(`Could not load AtlasCloud manifest: ${err}`);
-    return map;
-  }
+  const manifest = loadManifest(
+    ATLASCLOUD_MANIFEST_PKG,
+    ATLASCLOUD_MANIFEST_PATH
+  ) as AtlasManifestEntry[];
   for (const entry of manifest) {
-    if (!entry.modelId) continue;
+    const id = entry.modelId;
+    if (!id) continue;
     const modality = entry.modality ?? entry.outputType;
     if (modality !== "image" && modality !== "video") continue;
-    const fields = new Set<string>((entry.fields ?? []).map((f) => f.name));
-    map.set(entry.modelId, { modality, fields });
+    const fields = new Map<string, FieldInfo>();
+    for (const f of getModelInputFields(
+      ATLASCLOUD_MANIFEST_PKG,
+      ATLASCLOUD_MANIFEST_PATH,
+      id
+    )) {
+      fields.set(f.name, {
+        type: f.type,
+        ...(f.enumValues ? { values: f.enumValues } : {}),
+        ...(f.default !== undefined ? { default: f.default } : {})
+      });
+    }
+    const meta = getManifestNodeMeta(
+      ATLASCLOUD_MANIFEST_PKG,
+      ATLASCLOUD_MANIFEST_PATH,
+      id
+    );
+    map.set(id, {
+      modality,
+      fields,
+      pollInterval: meta?.pollInterval ?? DEFAULT_POLL_INTERVAL_MS,
+      maxAttempts: meta?.maxAttempts ?? DEFAULT_MAX_POLL_ATTEMPTS
+    });
   }
   return map;
 }
@@ -118,10 +170,9 @@ async function fetchWithRetry(
     if (!RETRYABLE_STATUS.has(resp.status)) return resp;
     last = resp;
     if (attempt === maxAttempts) break;
-    const retryAfter = resp.headers.get("Retry-After");
-    const wait = retryAfter ? Number(retryAfter) * 1000 : delay;
+    const wait = parseRetryAfterMs(resp.headers.get("Retry-After")) ?? delay;
     await sleep(wait);
-    delay = Math.min(delay * 2, 30000);
+    delay = Math.min(delay * 2, RETRY_MAX_WAIT_MS);
   }
   return last as Response;
 }
@@ -130,14 +181,16 @@ async function atlasSubmit(
   apiKey: string,
   modality: "image" | "video",
   modelId: string,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
+  signal?: AbortSignal
 ): Promise<string> {
   const path = modality === "image" ? SUBMIT_IMAGE : SUBMIT_VIDEO;
   // Submit POST is not idempotent — never retry.
   const res = await fetch(`${ATLAS_BASE}${path}`, {
     method: "POST",
     headers: authHeaders(apiKey),
-    body: JSON.stringify({ model: modelId, ...input })
+    body: JSON.stringify({ model: modelId, ...input }),
+    ...(signal ? { signal } : {})
   });
   const text = await res.text();
   let data: { data?: { id?: string }; message?: string } | null;
@@ -166,15 +219,31 @@ interface AtlasPollResult {
   error?: string;
 }
 
+// AtlasCloud documents processing/completed/failed, but its workers have been
+// observed emitting synonyms for the terminal states. Accept them rather than
+// poll a finished job until the attempt budget runs out.
+const SUCCESS_STATUS = new Set([
+  "completed",
+  "complete",
+  "succeeded",
+  "success",
+  "done"
+]);
+const FAILURE_STATUS = new Set(["failed", "error", "canceled", "cancelled"]);
+
 async function atlasPoll(
   apiKey: string,
   predictionId: string,
-  pollInterval = POLL_INTERVAL_MS,
-  maxAttempts = MAX_POLL_ATTEMPTS
+  pollInterval: number,
+  maxAttempts: number,
+  signal?: AbortSignal
 ): Promise<AtlasPollResult> {
   const url = `${ATLAS_BASE}/api/v1/model/prediction/${predictionId}`;
   for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetchWithRetry(url, { headers: authHeaders(apiKey) });
+    const res = await fetchWithRetry(url, {
+      headers: authHeaders(apiKey),
+      ...(signal ? { signal } : {})
+    });
     const text = await res.text();
     let data: { data?: AtlasPollResult; message?: string } | null;
     try {
@@ -182,12 +251,14 @@ async function atlasPoll(
     } catch {
       data = null;
     }
+    // A non-2xx can still carry a structured failure body (status: "failed",
+    // error: "…"). Report those as job failures so the user sees the reason.
     const d = data?.data ?? {};
     const status = String(d.status ?? "").toLowerCase();
-    if (status === "completed" || status === "succeeded" || status === "success") {
+    if (SUCCESS_STATUS.has(status)) {
       return d;
     }
-    if (status === "failed" || status === "error") {
+    if (FAILURE_STATUS.has(status)) {
       const msg = d.error || data?.message || text.slice(0, 500);
       throw new Error(
         `AtlasCloud job failed: ${msg} (predictionId: ${predictionId})`
@@ -253,11 +324,61 @@ function imageDataUri(bytes: Uint8Array): string {
 // Params → AtlasCloud input mapping
 // ---------------------------------------------------------------------------
 
+/** Coerce a value to the manifest-declared scalar type, or null when it can't. */
+function coerceToType(value: unknown, type: string): unknown {
+  switch (type) {
+    case "int": {
+      const n = typeof value === "number" ? value : Number(value);
+      return Number.isFinite(n) ? Math.trunc(n) : null;
+    }
+    case "float": {
+      const n = typeof value === "number" ? value : Number(value);
+      return Number.isFinite(n) ? n : null;
+    }
+    case "bool":
+      return typeof value === "boolean" ? value : String(value) === "true";
+    default:
+      return value;
+  }
+}
+
 /**
- * Set a field on `input` under the first manifest-declared name that matches.
- * Accepts a list of candidates because AtlasCloud is inconsistent: image
- * schemas use `aspect_ratio`, Seedance video schemas use `ratio`; GPT Image 2
- * uses `size` (`"WxH"`) instead of `width`/`height`.
+ * Resolve `value` against a declared field: coerce it to the field's type and,
+ * for enums, require membership. Numeric enums snap to the nearest allowed
+ * value (a 10-second request against a 4/6/8 model becomes 8 rather than a
+ * 422); string enums must match exactly. Returns null when the field can't
+ * take the value at all.
+ */
+function resolveForField(field: FieldInfo, value: unknown): unknown {
+  const coerced = coerceToType(value, field.type);
+  if (coerced === null || coerced === undefined || coerced === "") return null;
+  const allowed = field.values;
+  if (!allowed || allowed.length === 0) return coerced;
+  if (allowed.some((v) => String(v) === String(coerced))) {
+    // Return the declared member so numeric enums keep their JSON type.
+    return allowed.find((v) => String(v) === String(coerced));
+  }
+  if (typeof coerced === "number") {
+    // Negative members are sentinels ("-1" = let the model decide), never a
+    // sensible approximation of a number the caller actually asked for.
+    const numeric = allowed
+      .map((v) => Number(v))
+      .filter((v) => Number.isFinite(v) && v >= 0);
+    if (numeric.length > 0) {
+      return numeric.reduce((best, v) =>
+        Math.abs(v - coerced) < Math.abs(best - coerced) ? v : best
+      );
+    }
+  }
+  return null;
+}
+
+/**
+ * Set a value on `input` under the first candidate field that both declares it
+ * and accepts the value. AtlasCloud is inconsistent across model families —
+ * image schemas use `aspect_ratio`, Seedance video schemas use `ratio`, Wan
+ * expresses resolution through a `size` enum of `1K`/`2K` — so callers pass
+ * every plausible name and let the declared schema pick.
  */
 function setIfDeclared(
   input: Record<string, unknown>,
@@ -267,11 +388,66 @@ function setIfDeclared(
 ): void {
   if (value === undefined || value === null || value === "") return;
   for (const name of candidates) {
-    if (info.fields.has(name)) {
-      input[name] = value;
+    const field = info.fields.get(name);
+    if (!field) continue;
+    const resolved = resolveForField(field, value);
+    if (resolved !== null) {
+      input[name] = resolved;
       return;
     }
   }
+  log.debug("AtlasCloud: dropping unsupported parameter", {
+    candidates,
+    value
+  });
+}
+
+/** Parse a `1024x768` / `1024*768` size string into pixel dimensions. */
+function parseSize(value: string): { w: number; h: number } | null {
+  const m = /^(\d+)\s*[x*]\s*(\d+)$/i.exec(value);
+  return m ? { w: Number(m[1]), h: Number(m[2]) } : null;
+}
+
+/**
+ * Render width×height for a model's `size` field.
+ *
+ * The field is a free string on some models and a fixed enum on others, and
+ * the separator differs by family (`1024x1024` on GPT Image, `1024*1024` on
+ * Seedream / Qwen / Wan). Free-string fields take the requested dimensions
+ * verbatim under the separator the model's own default uses; enum fields get
+ * the declared option closest in aspect ratio, then in area. Enums with no
+ * parseable dimensions at all (Wan's `1K`/`2K`) yield null — the caller leaves
+ * the model default in place instead of sending an option that would 422.
+ */
+function renderSize(field: FieldInfo, w: number, h: number): string | null {
+  const allowed = field.values;
+  if (!allowed || allowed.length === 0) {
+    const sep = String(field.default ?? "").includes("*") ? "*" : "x";
+    return `${w}${sep}${h}`;
+  }
+  const exact = allowed.find(
+    (v) => String(v) === `${w}x${h}` || String(v) === `${w}*${h}`
+  );
+  if (exact !== undefined) return String(exact);
+  const wanted = w / h;
+  const wantedArea = w * h;
+  let best: { value: string; ratioDelta: number; areaDelta: number } | null =
+    null;
+  for (const option of allowed) {
+    const parsed = parseSize(String(option));
+    if (!parsed) continue;
+    const ratioDelta = Math.abs(parsed.w / parsed.h - wanted);
+    const areaDelta = Math.abs(parsed.w * parsed.h - wantedArea);
+    if (
+      !best ||
+      ratioDelta < best.ratioDelta - 1e-6 ||
+      (Math.abs(ratioDelta - best.ratioDelta) <= 1e-6 &&
+        areaDelta < best.areaDelta)
+    ) {
+      best = { value: String(option), ratioDelta, areaDelta };
+    }
+  }
+  return best?.value ?? null;
 }
 
 /** Build the request input for a text-to-image / image-to-image call. */
@@ -281,19 +457,25 @@ function mapImageParams(
 ): Record<string, unknown> {
   const input: Record<string, unknown> = { prompt: params.prompt };
   setIfDeclared(input, info, params.aspectRatio, "aspect_ratio", "ratio");
-  setIfDeclared(input, info, params.resolution, "resolution");
+  // Wan expresses resolution as a `size` enum (`1K`/`2K`/`4K`); the membership
+  // check in setIfDeclared keeps the fallback from firing on pixel-size models.
+  setIfDeclared(input, info, params.resolution, "resolution", "size");
   setIfDeclared(input, info, params.quality, "quality");
   setIfDeclared(input, info, params.negativePrompt, "negative_prompt");
   setIfDeclared(input, info, params.seed, "seed");
-  // GPT Image 2 uses `size: "WxH"` instead of width/height.
-  if (info.fields.has("size")) {
+  setIfDeclared(input, info, params.guidanceScale, "cfg_scale");
+  const sizeField = info.fields.get("size");
+  if (sizeField && input.size === undefined) {
     const w =
       (params as TextToImageParams).width ??
       (params as ImageToImageParams).targetWidth;
     const h =
       (params as TextToImageParams).height ??
       (params as ImageToImageParams).targetHeight;
-    if (w && h) input.size = `${w}x${h}`;
+    if (w && h) {
+      const size = renderSize(sizeField, w, h);
+      if (size !== null) input.size = size;
+    }
   }
   return input;
 }
@@ -309,7 +491,9 @@ function mapVideoParams(
   setIfDeclared(input, info, params.resolution, "resolution");
   setIfDeclared(input, info, params.negativePrompt, "negative_prompt");
   setIfDeclared(input, info, params.seed, "seed");
-  // Seedance schemas: integer `duration` in seconds; -1 means "model decides".
+  setIfDeclared(input, info, params.guidanceScale, "cfg_scale");
+  // Duration is an integer count of seconds; the enums differ per model
+  // (Seedance takes 4–15, Veo only 4/6/8), so resolveForField snaps it.
   if (params.durationSeconds != null) {
     setIfDeclared(input, info, Math.trunc(params.durationSeconds), "duration");
   }
@@ -317,41 +501,115 @@ function mapVideoParams(
 }
 
 // ---------------------------------------------------------------------------
+// Chat models
+// ---------------------------------------------------------------------------
+
+interface AtlasChatModelRow {
+  id?: string;
+  name?: string;
+  supported_features?: string[];
+}
+
+// ---------------------------------------------------------------------------
 // Provider
 // ---------------------------------------------------------------------------
 
-export class AtlasCloudProvider extends BaseProvider {
-  private readonly apiKey: string;
+export class AtlasCloudProvider extends OpenAICompatProvider {
   private modelMap: Map<string, ModelInfo> | null = null;
+  private chatModels: Promise<AtlasChatModelRow[]> | null = null;
+  private readonly atlasFetch: typeof fetch;
 
   static override requiredSecrets(): string[] {
     return ["ATLASCLOUD_API_KEY"];
   }
 
-  constructor(secrets: Record<string, unknown> = {}) {
-    super("atlascloud");
-    this.apiKey = (secrets["ATLASCLOUD_API_KEY"] as string) ?? "";
+  constructor(
+    secrets: { ATLASCLOUD_API_KEY?: string } = {},
+    options: OpenAICompatProviderOptions = {}
+  ) {
+    const apiKey = secrets.ATLASCLOUD_API_KEY;
+    if (!apiKey) {
+      throw new Error("ATLASCLOUD_API_KEY is required");
+    }
+    const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
+    super(
+      { providerId: "atlascloud", apiKey, baseURL: ATLAS_CHAT_BASE_URL },
+      { ...options, fetchFn }
+    );
+    this.atlasFetch = fetchFn;
   }
 
   override getContainerEnv(): Record<string, string> {
     return { ATLASCLOUD_API_KEY: this.apiKey };
   }
 
-  async generateMessage(
-    _args: Parameters<BaseProvider["generateMessage"]>[0]
-  ): Promise<Message> {
-    throw new Error("atlascloud does not support chat generation");
+  // ─── Chat ────────────────────────────────────────────────────────────────
+
+  /**
+   * `GET /v1/models` — the OpenAI-compatible listing, which covers only the
+   * chat models. Image/video/audio models live in the separate
+   * `/api/v1/models` catalog and are served by the prediction API below.
+   */
+  private listChatModels(): Promise<AtlasChatModelRow[]> {
+    // Cache the successful listing; drop the cache on failure so a transient
+    // outage doesn't leave this provider instance permanently model-less.
+    this.chatModels ??= (async () => {
+      const res = await this.atlasFetch(`${ATLAS_CHAT_BASE_URL}/models`, {
+        headers: { Authorization: `Bearer ${this.apiKey}` }
+      });
+      if (!res.ok) {
+        throw new Error(`AtlasCloud model listing failed: HTTP ${res.status}`);
+      }
+      const payload = (await res.json()) as { data?: AtlasChatModelRow[] };
+      return payload.data ?? [];
+    })().catch((err) => {
+      log.warn(`Failed to list AtlasCloud chat models: ${err}`);
+      this.chatModels = null;
+      return [];
+    });
+    return this.chatModels;
   }
 
-  // eslint-disable-next-line require-yield
-  async *generateMessages(
-    _args: Parameters<BaseProvider["generateMessages"]>[0]
-  ): AsyncGenerator<ProviderStreamItem> {
-    throw new Error("atlascloud does not support chat generation");
+  override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
+    const rows = await this.listChatModels();
+    return rows
+      .filter((row): row is AtlasChatModelRow & { id: string } =>
+        Boolean(row.id)
+      )
+      .map((row) => ({
+        id: row.id,
+        name: row.name ?? row.id,
+        provider: "atlascloud" as const
+      }));
   }
+
+  /** AtlasCloud declares tool support per model in `supported_features`. */
+  override async hasToolSupport(model: string): Promise<boolean> {
+    const rows = await this.listChatModels();
+    const row = rows.find((r) => r.id === model);
+    // Unknown model: assume tools work rather than silently dropping them.
+    if (!row?.supported_features) return true;
+    return row.supported_features.includes("tools");
+  }
+
+  // AtlasCloud's OpenAI-compatible surface is chat-only — its audio and
+  // embedding models are not served from /v1. Suppress the OpenAI defaults so
+  // they don't surface as AtlasCloud models the provider can't actually run.
+  override async getAvailableTTSModels(): Promise<TTSModel[]> {
+    return [];
+  }
+
+  override async getAvailableASRModels(): Promise<ASRModel[]> {
+    return [];
+  }
+
+  override async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
+    return [];
+  }
+
+  // ─── Image / video models ────────────────────────────────────────────────
 
   override async getAvailableImageModels(): Promise<ImageModel[]> {
-    if (!this.apiKey) return [];
     try {
       return loadImageModels(
         ATLASCLOUD_MANIFEST_PKG,
@@ -365,7 +623,6 @@ export class AtlasCloudProvider extends BaseProvider {
   }
 
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
-    if (!this.apiKey) return [];
     try {
       return loadVideoModels(
         ATLASCLOUD_MANIFEST_PKG,
@@ -378,15 +635,8 @@ export class AtlasCloudProvider extends BaseProvider {
     }
   }
 
-  private requireApiKey(): string {
-    if (!this.apiKey || !this.apiKey.trim()) {
-      throw new Error("ATLASCLOUD_API_KEY is not configured");
-    }
-    return this.apiKey;
-  }
-
   private getModelMap(): Map<string, ModelInfo> {
-    if (!this.modelMap) this.modelMap = buildModelMap();
+    this.modelMap ??= buildModelMap();
     return this.modelMap;
   }
 
@@ -407,12 +657,31 @@ export class AtlasCloudProvider extends BaseProvider {
   private async runJob(
     modality: "image" | "video",
     modelId: string,
-    input: Record<string, unknown>
+    info: ModelInfo,
+    input: Record<string, unknown>,
+    opts: { timeoutSeconds?: number | null; signal?: AbortSignal } = {}
   ): Promise<Uint8Array> {
-    const apiKey = this.requireApiKey();
+    const apiKey = this.apiKey;
     log.debug("AtlasCloud submit", { modality, model: modelId });
-    const predictionId = await atlasSubmit(apiKey, modality, modelId, input);
-    const result = await atlasPoll(apiKey, predictionId);
+    const predictionId = await atlasSubmit(
+      apiKey,
+      modality,
+      modelId,
+      input,
+      opts.signal
+    );
+    // A caller-supplied timeout bounds the polling window; without one the
+    // model's own manifest budget applies.
+    const maxAttempts = opts.timeoutSeconds
+      ? Math.max(1, Math.ceil((opts.timeoutSeconds * 1000) / info.pollInterval))
+      : info.maxAttempts;
+    const result = await atlasPoll(
+      apiKey,
+      predictionId,
+      info.pollInterval,
+      maxAttempts,
+      opts.signal
+    );
     const url = pickOutputUrl(result);
     const dl = await fetchWithRetry(url);
     if (!dl.ok) {
@@ -427,7 +696,9 @@ export class AtlasCloudProvider extends BaseProvider {
     if (!params.prompt) throw new Error("Prompt is required");
     const info = this.resolveModel(params.model.id, "image");
     const input = mapImageParams(info, params);
-    return this.runJob("image", params.model.id, input);
+    return this.runJob("image", params.model.id, info, input, {
+      ...(params.signal ? { signal: params.signal } : {})
+    });
   }
 
   override async imageToImage(
@@ -440,12 +711,15 @@ export class AtlasCloudProvider extends BaseProvider {
     }
     const info = this.resolveModel(params.model.id, "image");
     const input = mapImageParams(info, params);
-    // AtlasCloud `*/edit` endpoints accept the input image(s) as `images: [url]`.
-    // Seedance never goes through this method (it's video-only). Other future
-    // image-to-image endpoints that use `image` (singular) get that mapping too.
+    // AtlasCloud `*/edit` endpoints accept the input image(s) as `images: [url]`
+    // (Grok Imagine uses `image_urls`). Seedance never goes through this method
+    // (it's video-only). Other image-to-image endpoints that use `image`
+    // (singular) get that mapping too.
     const dataUris = sources.map((b) => imageDataUri(b));
     if (info.fields.has("images")) {
       input.images = dataUris;
+    } else if (info.fields.has("image_urls")) {
+      input.image_urls = dataUris;
     } else if (info.fields.has("image")) {
       input.image = dataUris[0];
     } else {
@@ -453,14 +727,19 @@ export class AtlasCloudProvider extends BaseProvider {
         `AtlasCloud model ${params.model.id} does not declare an input image field`
       );
     }
-    return this.runJob("image", params.model.id, input);
+    return this.runJob("image", params.model.id, info, input, {
+      ...(params.signal ? { signal: params.signal } : {})
+    });
   }
 
   override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
     if (!params.prompt) throw new Error("Prompt is required");
     const info = this.resolveModel(params.model.id, "video");
     const input = mapVideoParams(info, params);
-    return this.runJob("video", params.model.id, input);
+    return this.runJob("video", params.model.id, info, input, {
+      ...(params.timeoutSeconds ? { timeoutSeconds: params.timeoutSeconds } : {}),
+      ...(params.signal ? { signal: params.signal } : {})
+    });
   }
 
   override async imageToVideo(
@@ -473,11 +752,14 @@ export class AtlasCloudProvider extends BaseProvider {
     }
     const info = this.resolveModel(params.model.id, "video");
     const input = mapVideoParams(info, params);
-    // Seedance image-to-video uses `image` (singular). Reference-to-video has
-    // `reference_images` (list) instead — generic imageToVideo can't target it.
+    // Seedance image-to-video uses `image` (singular); Grok Imagine Video uses
+    // `image_url`. Reference-to-video has `reference_images` (list) instead —
+    // generic imageToVideo can't target it.
     const dataUri = imageDataUri(image);
     if (info.fields.has("image")) {
       input.image = dataUri;
+    } else if (info.fields.has("image_url")) {
+      input.image_url = dataUri;
     } else if (info.fields.has("images")) {
       input.images = [dataUri];
     } else if (info.fields.has("reference_images")) {
@@ -487,6 +769,9 @@ export class AtlasCloudProvider extends BaseProvider {
         `AtlasCloud model ${params.model.id} does not accept an input image (try the Seedance image-to-video variant)`
       );
     }
-    return this.runJob("video", params.model.id, input);
+    return this.runJob("video", params.model.id, info, input, {
+      ...(params.timeoutSeconds ? { timeoutSeconds: params.timeoutSeconds } : {}),
+      ...(params.signal ? { signal: params.signal } : {})
+    });
   }
 }

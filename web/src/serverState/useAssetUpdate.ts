@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AssetUpdate, useAssetStore } from "../stores/AssetStore";
-import { useState } from "react";
 import { useNotificationStore } from "../stores/NotificationStore";
 import { useAssetGridStoreApi } from "../stores/AssetGridStore";
 import { AssetList } from "../stores/ApiTypes";
@@ -12,9 +11,7 @@ export const useAssetUpdate = () => {
   );
   const updateAsset = useAssetStore((state) => state.update);
   const gridStore = useAssetGridStoreApi();
-  const [assets, setAssets] = useState<AssetUpdate[]>([]);
   const performMutation = async (updates: AssetUpdate[]) => {
-    setAssets(updates);
     await Promise.all(updates.map((asset) => updateAsset(asset)));
   };
   const mutation = useMutation({
@@ -26,7 +23,6 @@ export const useAssetUpdate = () => {
       // Cancel outgoing refetches so they don't overwrite the optimistic update
       await queryClient.cancelQueries({ queryKey });
 
-      // Snapshot the previous value for rollback
       const previousData = queryClient.getQueryData<AssetList>(queryKey);
 
       // Immediately remove the moved assets from the current folder view
@@ -54,7 +50,6 @@ export const useAssetUpdate = () => {
     },
     onError: (err, _updates, context) => {
       console.error("Failed to update asset(s):", err);
-      // Roll back to the previous state
       if (context?.previousData !== undefined) {
         queryClient.setQueryData(
           ["assets", { parent_id: context.currentFolderId }],
@@ -69,8 +64,6 @@ export const useAssetUpdate = () => {
       });
     },
     onSettled: (_data, _error, _updates, context) => {
-      setAssets([]);
-      // Re-sync with the server after the mutation completes
       if (context?.currentFolderId !== undefined) {
         queryClient.invalidateQueries({
           queryKey: ["assets", { parent_id: context.currentFolderId }]

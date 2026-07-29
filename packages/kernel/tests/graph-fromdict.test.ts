@@ -87,7 +87,7 @@ describe("T-K-14: Graph.fromDict", () => {
     expect(graph.findNode("n1")?.properties).toEqual({ value: 42, label: "x" });
   });
 
-  it("filters connected properties from incoming API graph data by default", () => {
+  it("retains connected property fallbacks from incoming API graph data", () => {
     const graph = Graph.fromDict({
       nodes: [
         { id: "src", type: "test.Source", data: { out: 1 } },
@@ -102,7 +102,10 @@ describe("T-K-14: Graph.fromDict", () => {
         }
       ]
     });
-    expect(graph.findNode("dst")?.properties).toEqual({ keep: true });
+    expect(graph.findNode("dst")?.properties).toEqual({
+      value: 42,
+      keep: true
+    });
   });
 
   it("skips malformed edges by default", () => {

@@ -28,20 +28,15 @@ try {
   moduleDir = dirname(require.resolve("better-sqlite3/package.json"));
 } catch {
   console.log("better-sqlite3 not installed; skipping native rebuild.");
+  reportNodeLlamaCpp();
   process.exit(0);
 }
 
-// Resolve node-gyp's CLI. During `npm ci`/`npm install`/`npm run`, npm exports
-// its OWN bundled node-gyp via `npm_config_node_gyp` — the only copy guaranteed
-// present during a clean install (project deps don't reliably hoist node-gyp to
-// a resolvable path, and its bundled deps like `tinyglobby` are never touched by
-// the project's reify, so there's no race). Fall back to require.resolve for the
-// case where the script is run directly with plain `node`, not via npm.
+// Resolve node-gyp's CLI. Prefer the workspace copy installed from the lockfile:
+// npm's bundled node-gyp can lag behind new GitHub Windows images and fail to
+// detect their Visual Studio toolchain. Fall back to npm_config_node_gyp for
+// unusual install layouts where only npm's bundled copy is available.
 function resolveNodeGyp() {
-  const fromNpm = process.env.npm_config_node_gyp;
-  if (fromNpm && existsSync(fromNpm)) {
-    return fromNpm;
-  }
   const candidates = [
     () => require.resolve("node-gyp/bin/node-gyp.js"),
     () => createRequire(`${moduleDir}/`).resolve("node-gyp/bin/node-gyp.js"),
@@ -53,6 +48,12 @@ function resolveNodeGyp() {
       // try the next candidate
     }
   }
+
+  const fromNpm = process.env.npm_config_node_gyp;
+  if (fromNpm && existsSync(fromNpm)) {
+    return fromNpm;
+  }
+
   return null;
 }
 
@@ -81,6 +82,7 @@ for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       continue;
     }
     console.error("Could not resolve node-gyp to rebuild better-sqlite3.");
+    reportNodeLlamaCpp();
     process.exit(1);
   }
 
@@ -96,6 +98,7 @@ for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
   lastStatus = result.status ?? 1;
 
   if (lastStatus === 0) {
+    reportNodeLlamaCpp();
     process.exit(0);
   }
 
@@ -112,4 +115,21 @@ for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
   break;
 }
 
+reportNodeLlamaCpp();
 process.exit(lastStatus);
+
+// node-llama-cpp is N-API and ships prebuilt binaries for the supported
+// platforms, so it does not need a node-gyp rebuild like better-sqlite3 does.
+// This is a documented no-op hook: it logs what's happening and skips
+// cleanly (never crashing the postinstall) whether or not the package is
+// installed, since it's an optional dependency.
+function reportNodeLlamaCpp() {
+  try {
+    require.resolve("node-llama-cpp/package.json");
+    console.log(
+      "node-llama-cpp ships prebuilt N-API binaries; no rebuild required."
+    );
+  } catch {
+    console.log("node-llama-cpp not installed; skipping.");
+  }
+}

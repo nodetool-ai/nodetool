@@ -48,6 +48,8 @@ export interface ParallelTaskExecutorOptions {
   maxIterations?: number;
   /** Maximum iterations per step within a task. */
   maxStepIterations?: number;
+  /** Cap on output tokens per step turn. Forwarded to each TaskExecutor. */
+  maxTokens?: number;
   /**
    * Opt-in checkpoint store. When supplied with a {@link runId}, the executor
    * loads any checkpoint whose `planHash` matches this plan, marks its
@@ -65,6 +67,8 @@ export interface ParallelTaskExecutorOptions {
    * lines up with the plan cache key.
    */
   planTools?: string[];
+  /** External cancellation, forwarded to every task and step executor. */
+  signal?: AbortSignal;
 }
 
 export class ParallelTaskExecutor {
@@ -77,9 +81,19 @@ export class ParallelTaskExecutor {
   private readonly systemPrompt: string | undefined;
   private readonly maxIterations: number;
   private readonly maxStepIterations: number;
+  private readonly maxTokens?: number;
   private readonly checkpointStore?: CheckpointStore;
   private readonly runId?: string;
   private readonly planTools?: string[];
+  private readonly signal?: AbortSignal;
+  /**
+   * IDs of tasks that ran but did not genuinely succeed (budget exhausted,
+   * unsatisfiable dependency, or an error result). Tracked separately from
+   * `task.completed` so a failed task is never checkpointed as success nor
+   * counted as a satisfied dependency, while still terminating the scheduler
+   * loop instead of being re-dispatched forever.
+   */
+  private readonly failedTaskIds = new Set<string>();
 
   constructor(opts: ParallelTaskExecutorOptions) {
     this.provider = opts.provider;
@@ -92,9 +106,11 @@ export class ParallelTaskExecutor {
     this.maxIterations = opts.maxIterations ?? DEFAULT_MAX_TASK_ITERATIONS;
     this.maxStepIterations =
       opts.maxStepIterations ?? DEFAULT_MAX_STEP_ITERATIONS;
+    this.maxTokens = opts.maxTokens;
     this.checkpointStore = opts.checkpointStore;
     this.runId = opts.runId;
     this.planTools = opts.planTools;
+    this.signal = opts.signal;
   }
 
   /**
@@ -230,13 +246,11 @@ export class ParallelTaskExecutor {
         severity: "info"
       } satisfies LogUpdate;
 
-      // Create task executors — each task runs as its own sub-agent
       const taskGenerators = executableTasks.map((task) => {
         return this.executeTask(task);
       });
 
       if (taskGenerators.length > 1) {
-        // Execute all tasks concurrently, merging yielded messages
         yield* mergeAsyncGenerators(taskGenerators);
       } else {
         // Single task — no need for merge overhead
@@ -266,7 +280,6 @@ export class ParallelTaskExecutor {
    * Injects dependency results into the task's context before execution.
    */
   private async *executeTask(task: Task): AsyncGenerator<ProcessingMessage> {
-    // Mark task as started
     task.completed = false;
 
     yield {
@@ -302,8 +315,10 @@ export class ParallelTaskExecutor {
       inputs: this.inputs,
       maxSteps: task.steps.length + 5, // Allow some slack
       maxStepIterations: this.maxStepIterations,
+      maxTokens: this.maxTokens,
       parallelExecution: true, // Enable parallel step execution within each task
-      upstreamMemoryKeys
+      upstreamMemoryKeys,
+      signal: this.signal
     });
 
     let taskResult: unknown = null;
@@ -330,6 +345,41 @@ export class ParallelTaskExecutor {
           taskResult = lastResult;
         }
       }
+    }
+
+    // A TaskExecutor returns without throwing even when its steps failed
+    // (StepExecutor writes an `{ error }` result and emits an error
+    // step_result rather than raising). Decide whether the task actually
+    // succeeded before recording it as complete or checkpointing it.
+    const failureReason = this.detectTaskFailure(task, taskResult);
+    if (failureReason) {
+      this.failedTaskIds.add(task.id);
+      log.warn("Task failed", {
+        taskId: task.id,
+        title: task.title,
+        reason: failureReason
+      });
+      yield {
+        type: "log_update",
+        node_id: "parallel_task_executor",
+        node_name: "ParallelTaskExecutor",
+        content: `Task "${task.title}" (${task.id}) failed: ${failureReason}`,
+        severity: "error"
+      } satisfies LogUpdate;
+      // Emit a terminal task_update so lifecycle consumers (ExecutionTree, chat
+      // UI) resolve the task instead of leaving its spinner running forever.
+      // The success path yields TaskCompleted; the failure path must yield a
+      // terminal event too — mirror StepExecutor's StepFailed emission.
+      yield {
+        type: "task_update",
+        event: TaskUpdateEvent.TaskFailed,
+        task: {
+          id: task.id,
+          title: task.title,
+          error: failureReason
+        } as TaskUpdate["task"]
+      } satisfies TaskUpdate;
+      return;
     }
 
     if (taskResult !== null && taskResult !== undefined) {
@@ -369,10 +419,57 @@ export class ParallelTaskExecutor {
   }
 
   /**
-   * Check if all tasks have been completed.
+   * Decide whether a task that just returned actually failed. Detects:
+   *  - steps that never completed (round/step budget exhausted, or an
+   *    unsatisfiable dependency left executable steps at zero), and
+   *  - steps (or the resolved task result) whose value is an `{ error }`
+   *    payload written by StepExecutor's failure path.
+   * Returns a human-readable reason on failure, or `null` on success.
+   */
+  private detectTaskFailure(task: Task, taskResult: unknown): string | null {
+    const incomplete = task.steps.filter((s) => !s.completed);
+    if (incomplete.length > 0) {
+      return `${incomplete.length} of ${task.steps.length} step(s) did not complete (budget exhausted or unsatisfiable dependency)`;
+    }
+    for (const step of task.steps) {
+      const value = this.context.memory.getValue(memoryKeys.step(step.id));
+      if (isErrorResult(value)) {
+        return `step ${step.id}: ${value.error}`;
+      }
+      // A process-mode (fan-out) step always stores an array of per-item
+      // results and is always marked completed, even when every item failed
+      // (each item is an `{ error }` object). isErrorResult returns false for
+      // arrays, so an all-failed fan-out would otherwise be recorded as a
+      // success and checkpointed, never retried. Treat a non-empty array whose
+      // every element is an error result as a failed step.
+      if (
+        Array.isArray(value) &&
+        value.length > 0 &&
+        value.every((item) => isErrorResult(item))
+      ) {
+        const first = value.find((item) => isErrorResult(item)) as {
+          error: string;
+        };
+        return `step ${step.id}: all ${value.length} fan-out item(s) failed (${first.error})`;
+      }
+    }
+    if (isErrorResult(taskResult)) {
+      return taskResult.error;
+    }
+    return null;
+  }
+
+  /**
+   * Check if the scheduler is done: every task has either completed
+   * successfully or been recorded as failed. A failed task blocks its
+   * dependents (their deps are never satisfied), so those remain pending and
+   * the scheduler exits via the "no executable tasks" path rather than
+   * spinning until the iteration cap.
    */
   private allTasksComplete(): boolean {
-    return this.taskPlan.tasks.every((task) => task.completed);
+    return this.taskPlan.tasks.every(
+      (task) => task.completed || this.failedTaskIds.has(task.id)
+    );
   }
 
   /**
@@ -380,9 +477,7 @@ export class ParallelTaskExecutor {
    */
   private getExecutableTasks(): Task[] {
     const completedIds = new Set(
-      this.taskPlan.tasks
-        .filter((t) => t.completed)
-        .map((t) => t.id)
+      this.taskPlan.tasks.filter((t) => t.completed).map((t) => t.id)
     );
     // Input keys also count as satisfied dependencies
     for (const key of Object.keys(this.inputs)) {
@@ -392,6 +487,7 @@ export class ParallelTaskExecutor {
     return this.taskPlan.tasks.filter(
       (task) =>
         !task.completed &&
+        !this.failedTaskIds.has(task.id) &&
         (task.dependsOn ?? []).every((dep) => completedIds.has(dep))
     );
   }
@@ -419,6 +515,21 @@ export class ParallelTaskExecutor {
     const lastTask = this.taskPlan.tasks[this.taskPlan.tasks.length - 1];
     return this.context.memory.getValue(memoryKeys.task(lastTask.id)) ?? null;
   }
+}
+
+/**
+ * A value is treated as a failure marker when it is a plain object carrying a
+ * non-empty string `error` field — the shape StepExecutor writes on its failure
+ * path (`{ error: "Step failed: ..." }`).
+ */
+function isErrorResult(value: unknown): value is { error: string } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    typeof (value as Record<string, unknown>).error === "string" &&
+    ((value as Record<string, unknown>).error as string).length > 0
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -459,22 +570,33 @@ async function* mergeAsyncGenerators<T>(
     }
   });
 
-  while (activeCount > 0 || queue.length > 0) {
-    if (queue.length > 0) {
-      yield queue.shift()!;
-    } else if (activeCount > 0) {
-      const waitPromise = new Promise<void>((r) => {
-        resolve = r;
-      });
+  // The try/finally guarantees that if the downstream consumer stops early
+  // (its `for await` breaks or throws, injecting `.return()` into this merge
+  // generator), we terminate the child generators instead of leaving the
+  // producer tasks driving them to completion in the background (e.g. LLM
+  // calls firing after cancellation).
+  try {
+    while (activeCount > 0 || queue.length > 0) {
       if (queue.length > 0) {
-        resolve = null;
-        continue;
+        yield queue.shift()!;
+      } else if (activeCount > 0) {
+        const waitPromise = new Promise<void>((r) => {
+          resolve = r;
+        });
+        if (queue.length > 0) {
+          resolve = null;
+          continue;
+        }
+        await waitPromise;
       }
-      await waitPromise;
     }
+  } finally {
+    // Stop every child generator so its producer `for await` loop terminates
+    // (a generator may already be done — allSettled swallows those). Then wait
+    // for all producer promises to settle before returning.
+    await Promise.allSettled(generators.map((gen) => gen.return(undefined)));
+    await Promise.allSettled(tasks);
   }
-
-  await Promise.allSettled(tasks);
 
   if (hasError) {
     throw firstError instanceof Error

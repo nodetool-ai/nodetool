@@ -446,12 +446,26 @@ describe("ConversionTool — mutation hardening", () => {
     expect((await conv(50, "celsius", "celsius")).converted_value).toBe(50);
   });
 
-  it("routes to the temperature path when only one unit is a temperature", async () => {
-    // A single temperature unit must still take the temp branch (|| not &&);
-    // each of celsius/fahrenheit/kelvin must be in the set.
-    expect((await conv(50, "celsius", "meters")).converted_value).toBe(50);
-    expect((await conv(50, "fahrenheit", "meters")).converted_value).toBeCloseTo(10, 10);
-    expect((await conv(300, "kelvin", "meters")).converted_value).toBeCloseTo(26.85, 10);
+  it("rejects mixing a temperature unit with a non-temperature unit", async () => {
+    // Temperature is its own dimension: converting a temperature to/from a
+    // length (or any other unit) must error, not silently return a number.
+    for (const temp of ["celsius", "fahrenheit", "kelvin"]) {
+      const forward = (await tool.process(ctx, {
+        value: 50,
+        from_unit: temp,
+        to_unit: "meters"
+      })) as { error?: string; converted_value?: number };
+      expect(forward.error).toBeDefined();
+      expect(forward.converted_value).toBeUndefined();
+
+      const backward = (await tool.process(ctx, {
+        value: 50,
+        from_unit: "meters",
+        to_unit: temp
+      })) as { error?: string; converted_value?: number };
+      expect(backward.error).toBeDefined();
+      expect(backward.converted_value).toBeUndefined();
+    }
   });
 
   it("errors when EITHER unit is unknown", async () => {

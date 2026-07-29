@@ -100,7 +100,7 @@ export const editorControlsComponents: Components<Theme> = {
             width: "100%",
             padding: `${editor.padYNode} ${editor.padXNode}`,
             paddingRight: getSpacingPx(SPACING.xxl),
-            fontSize: theme.fontSizeTiny,
+            fontSize: theme.fontSizeSmaller,
             backgroundColor: theme.vars.palette.Paper.overlay,
             borderRadius: editor.controlRadius,
             border: `1px solid ${theme.vars.palette.divider}`,
@@ -179,7 +179,7 @@ export const editorControlsComponents: Components<Theme> = {
       root: ({ theme }) => ({
         [`&.${editorUiClasses.menuItem}`]: {
           fontWeight: 400,
-          fontSize: theme.fontSizeTiny,
+          fontSize: theme.fontSizeSmaller,
           padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
           transition: theme.transitions.create(["background-color"], {
             duration: theme.transitions.duration.shortest

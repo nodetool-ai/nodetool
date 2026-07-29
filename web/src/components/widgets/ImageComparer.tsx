@@ -3,10 +3,11 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, useRef, useMemo } from "react";
-import { ToolbarIconButton, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { ToolbarIconButton, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx } from "../ui_primitives";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
+import { formatFileSize } from "../../utils/formatUtils";
 
 export interface ImageMetadata {
   width?: number;
@@ -65,7 +66,7 @@ const styles = (theme: Theme) =>
       position: "absolute",
       backgroundColor: theme.vars.palette.common.white,
       boxShadow: `0 0 4px ${theme.vars.palette.c_scrim}`,
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       pointerEvents: "none"
     },
     ".divider-line.horizontal": {
@@ -86,7 +87,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.common.white,
       backgroundColor: theme.vars.palette.c_scrim,
       borderRadius: BORDER_RADIUS.sm,
-      zIndex: 15,
+      zIndex: Z_INDEX.sticky,
       pointerEvents: "none"
     },
     ".label.label-a.horizontal": {
@@ -108,11 +109,11 @@ const styles = (theme: Theme) =>
     ".metadata": {
       position: "absolute",
       padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.grey[300],
       backgroundColor: theme.vars.palette.c_scrim,
       borderRadius: BORDER_RADIUS.sm,
-      zIndex: 15,
+      zIndex: Z_INDEX.sticky,
       pointerEvents: "none"
     },
     ".metadata.metadata-a.horizontal": {
@@ -135,7 +136,7 @@ const styles = (theme: Theme) =>
       position: "absolute",
       bottom: "8px",
       right: "24px",
-      zIndex: 50,
+      zIndex: Z_INDEX.overlay,
       backgroundColor: theme.vars.palette.c_scrim,
       color: theme.vars.palette.common.white,
       padding: getSpacingPx(SPACING.xs),
@@ -144,13 +145,6 @@ const styles = (theme: Theme) =>
       }
     }
   });
-
-const formatFileSize = (bytes?: number): string => {
-  if (bytes === undefined) {return "";}
-  if (bytes < 1024) {return `${bytes} B`;}
-  if (bytes < 1024 * 1024) {return `${(bytes / 1024).toFixed(1)} KB`;}
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
 
 const ImageComparer: React.FC<ImageComparerProps> = ({
   imageA,
@@ -171,9 +165,10 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
   const [loadedMetadataA, setLoadedMetadataA] = useState<ImageMetadata>({});
   const [loadedMetadataB, setLoadedMetadataB] = useState<ImageMetadata>({});
 
-  // Handle mouse move to update divider position
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
+  // Pointer events, not mouse events: on touch the comparer was inert, since
+  // the divider only ever followed a mouse.
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
       if (!containerRef.current) {return;}
 
       const rect = containerRef.current.getBoundingClientRect();
@@ -191,13 +186,18 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     [mode]
   );
 
-  const handleMouseEnter = useCallback(() => {
+  const handlePointerEnter = useCallback(() => {
     setIsHovering(true);
   }, []);
 
-  const handleMouseLeave = useCallback(() => {
+  const handlePointerLeave = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     setIsHovering(false);
-    setPosition(50);
+    // A touch pointer "leaves" the moment the finger lifts. Recentering then
+    // would undo the comparison the user just dragged to, so only a mouse
+    // leaving resets it.
+    if (e.pointerType === "mouse") {
+      setPosition(50);
+    }
   }, []);
 
   const toggleMode = useCallback((e: React.MouseEvent) => {
@@ -206,7 +206,6 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     setPosition(50);
   }, []);
 
-  // Handle image load to get natural dimensions
   const handleImageALoad = useCallback(
     (e: React.SyntheticEvent<HTMLImageElement>) => {
       const img = e.currentTarget;
@@ -231,7 +230,6 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     []
   );
 
-  // Merge provided metadata with loaded metadata
   const finalMetadataA = useMemo(
     () => ({ ...loadedMetadataA, ...metadataA }),
     [loadedMetadataA, metadataA]
@@ -241,21 +239,18 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     [loadedMetadataB, metadataB]
   );
 
-  // Calculate clip paths for revealing images
   const clipPathA = useMemo(() => {
     if (mode === "horizontal") {
-      // Show left portion of image A
       return `inset(0 ${100 - position}% 0 0)`;
     } else {
-      // Show top portion of image A
       return `inset(0 0 ${100 - position}% 0)`;
     }
   }, [mode, position]);
 
-  // Cursor style based on mode
   const cursorStyle = mode === "horizontal" ? "ew-resize" : "ns-resize";
+  // Claim the drag axis for the divider; the other axis still scrolls the page.
+  const touchAction = mode === "horizontal" ? "pan-y" : "pan-x";
 
-  // Divider position style
   const dividerStyle = useMemo(() => {
     if (mode === "horizontal") {
       return { left: `${position}%` };
@@ -269,7 +264,7 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     if (meta.width && meta.height) {
       parts.push(`${meta.width} × ${meta.height}`);
     }
-    const sizeStr = formatFileSize(meta.size);
+    const sizeStr = meta.size === undefined ? "" : formatFileSize(meta.size);
     if (sizeStr) {
       parts.push(sizeStr);
     }
@@ -281,10 +276,10 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
       <div
         ref={containerRef}
         className="comparer-container"
-        onMouseMove={handleMouseMove}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        style={{ cursor: cursorStyle }}
+        onPointerMove={handlePointerMove}
+        onPointerEnter={handlePointerEnter}
+        onPointerLeave={handlePointerLeave}
+        style={{ cursor: cursorStyle, touchAction }}
       >
         {/* Image B (background - full image) */}
         <div className="image-layer image-b">

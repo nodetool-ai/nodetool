@@ -1,0 +1,212 @@
+/**
+ * useScriptServerSync
+ *
+ * Server persistence for one script tab. On mount: load the script's server
+ * document into the store (or upsert-create it when the tab refs a script the
+ * server doesn't know — new tabs). After load: watch the store and autosave
+ * with a debounce, using the server's `updatedAt` as a CAS token
+ * (`baseUpdatedAt`). On a conflict the server copy wins and is reloaded.
+ *
+ * Copied from useStoryboardServerSync — same machinery, script payload.
+ */
+
+import { useEffect, useRef } from "react";
+import { trpc, trpcClient } from "../../trpc/client";
+import {
+  useScriptStore,
+  type ScriptDraft,
+  type ScriptSaveStatus
+} from "../../stores/script/ScriptStore";
+
+const AUTOSAVE_DEBOUNCE_MS = 750;
+const RETRY_DELAY_MS = 5_000;
+
+type ScriptResponse = Awaited<ReturnType<typeof trpcClient.scripts.get.query>>;
+type ScriptWireDocument = ScriptResponse["document"];
+
+/** The saved payload: the script minus identity and transient UI state. */
+const scriptToDocument = (script: ScriptDraft): ScriptWireDocument =>
+  ({
+    cast: script.cast,
+    sections: script.sections
+  }) as unknown as ScriptWireDocument;
+
+const responseToScript = (
+  res: ScriptResponse
+): Omit<ScriptDraft, "id" | "updatedAt"> => {
+  const doc = res.document;
+  return {
+    title: res.name === "Untitled script" ? "" : res.name,
+    cast: doc.cast as unknown as ScriptDraft["cast"],
+    sections: doc.sections as unknown as ScriptDraft["sections"],
+    timelineId: res.timelineId ?? null
+  };
+};
+
+const isNotFound = (error: unknown): boolean =>
+  !!error &&
+  typeof error === "object" &&
+  /not found/i.test((error as Error).message ?? "");
+
+export const useScriptServerSync = (scriptId: string): void => {
+  const utils = trpc.useUtils();
+  const syncedRef = useRef<ScriptDraft | null>(null);
+  const inFlightRef = useRef(false);
+  const flushAfterSaveRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const utilsRef = useRef(utils);
+  utilsRef.current = utils;
+
+  useEffect(() => {
+    let disposed = false;
+    const store = useScriptStore;
+
+    // `statusAfter` is applied only once the server copy has actually replaced
+    // the local one, so the indicator never claims a state before it's true.
+    const applyResponse = (
+      res: ScriptResponse,
+      statusAfter: ScriptSaveStatus | null
+    ): void => {
+      if (disposed) return;
+      store.getState().loadScript(scriptId, responseToScript(res));
+      store.getState().setServerRevision(scriptId, res.updatedAt);
+      syncedRef.current = store.getState().scripts[scriptId] ?? null;
+      if (statusAfter) store.getState().setSaveStatus(scriptId, statusAfter);
+    };
+
+    // `statusAfter` is the status to set once the load lands. Mount load →
+    // "saved" (clearing a stale error from a previous session); the CAS-conflict
+    // reload → "reloaded", set post-replacement so a slow reload can't claim it
+    // early. A load that never applies (early error) sets nothing.
+    const load = async (
+      statusAfter: ScriptSaveStatus | null = "saved"
+    ): Promise<void> => {
+      try {
+        applyResponse(
+          await trpcClient.scripts.get.query({ id: scriptId }),
+          statusAfter
+        );
+      } catch (error) {
+        if (!isNotFound(error)) {
+          console.error("Failed to load script", error);
+          // A failed load (e.g. a CAS-conflict reload that couldn't fetch) must
+          // not leave the status stuck on the "saving" it was set to — surface
+          // the failure.
+          store.getState().setSaveStatus(scriptId, "error");
+          return;
+        }
+        // Unknown to the server: upsert-create carrying any local content.
+        const local = store.getState().scripts[scriptId];
+        try {
+          const created = await trpcClient.scripts.create.mutate({
+            id: scriptId,
+            name: local?.title || "Untitled script",
+            document: local ? scriptToDocument(local) : undefined
+          });
+          if (disposed) return;
+          store.getState().setServerRevision(scriptId, created.updatedAt);
+          syncedRef.current = store.getState().scripts[scriptId] ?? null;
+          if (statusAfter) store.getState().setSaveStatus(scriptId, statusAfter);
+          void utilsRef.current.scripts.list.invalidate();
+        } catch (createError) {
+          console.error("Failed to create script", createError);
+          store.getState().setSaveStatus(scriptId, "error");
+        }
+      }
+    };
+
+    const save = async (flush = false): Promise<void> => {
+      if (inFlightRef.current) {
+        if (flush) flushAfterSaveRef.current = true;
+        return;
+      }
+      if (disposed && !flush) return;
+      const script = store.getState().scripts[scriptId];
+      const revision = store.getState().serverRevisions[scriptId];
+      if (!script || !revision || script === syncedRef.current) return;
+
+      inFlightRef.current = true;
+      let saved = false;
+      store.getState().setSaveStatus(scriptId, "saving");
+      try {
+        const updated = await trpcClient.scripts.update.mutate({
+          id: scriptId,
+          baseUpdatedAt: revision,
+          name: script.title || "Untitled script",
+          document: scriptToDocument(script),
+          timelineId: script.timelineId
+        });
+        store.getState().setServerRevision(scriptId, updated.updatedAt);
+        syncedRef.current = script;
+        saved = true;
+        void utilsRef.current.scripts.list.invalidate();
+        // Only claim "saved" when the saved snapshot still matches the store.
+        // Edits that landed mid-flight leave newer work queued, so keep the
+        // "unsaved" state (the subscriber already set it) and go again rather
+        // than flashing a false "Saved".
+        if (store.getState().scripts[scriptId] !== syncedRef.current) {
+          store.getState().setSaveStatus(scriptId, "unsaved");
+          if (disposed || flushAfterSaveRef.current) {
+            flushAfterSaveRef.current = true;
+          } else {
+            schedule();
+          }
+        } else {
+          store.getState().setSaveStatus(scriptId, "saved");
+        }
+      } catch (error) {
+        console.error("Script autosave failed", error);
+        // Tab unmounted mid-flush: no live hook remains to retry or reload, but
+        // don't leave the singleton status stuck on "saving" — mark it failed so
+        // reopening the script shows the truth. The next mount reconciles.
+        if (disposed) {
+          store.getState().setSaveStatus(scriptId, "error");
+          return;
+        }
+        if (/modified since last read/i.test((error as Error).message ?? "")) {
+          // Set "reloaded" only after the server copy is applied, not before.
+          await load("reloaded");
+        } else {
+          store.getState().setSaveStatus(scriptId, "error");
+          schedule(RETRY_DELAY_MS);
+        }
+      } finally {
+        inFlightRef.current = false;
+        if (saved && flushAfterSaveRef.current) {
+          flushAfterSaveRef.current = false;
+          void save(true);
+        }
+      }
+    };
+
+    const schedule = (delayMs: number = AUTOSAVE_DEBOUNCE_MS): void => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        void save();
+      }, delayMs);
+    };
+
+    const unsubscribe = store.subscribe((state, prev) => {
+      if (state.scripts[scriptId] === prev.scripts[scriptId]) return;
+      if (state.scripts[scriptId] === syncedRef.current) return;
+      if (!state.serverRevisions[scriptId]) return;
+      // Edits landed; the debounced save hasn't fired yet. Reflect the pending
+      // state so "saved" never lies during the debounce window. (Setting status
+      // only touches saveStatus, so this subscriber early-returns on it.)
+      store.getState().setSaveStatus(scriptId, "unsaved");
+      schedule();
+    });
+
+    void load();
+
+    return () => {
+      disposed = true;
+      unsubscribe();
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (inFlightRef.current) flushAfterSaveRef.current = true;
+      else void save(true);
+    };
+  }, [scriptId]);
+};
+
+export default useScriptServerSync;

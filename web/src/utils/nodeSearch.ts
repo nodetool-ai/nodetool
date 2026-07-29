@@ -1,11 +1,10 @@
-import Fuse from "fuse.js";
 import { NodeMetadata, TypeName } from "../stores/ApiTypes";
 import {
   filterDataByType,
   filterDataByExactType
 } from "../components/node_menu/typeFilterUtils";
 import { formatNodeDocumentation } from "../stores/formatNodeDocumentation";
-import { fuseOptions } from "../stores/fuseOptions";
+import { fuzzyScore } from "./fuzzyMatch";
 import { PrefixTreeSearch, SearchField } from "./PrefixTreeSearch";
 import { getProviderKindForNamespace } from "./nodeProvider";
 import { rankNodeMetadata, searchTermsFromQuery } from "./nodeRanking";
@@ -40,13 +39,35 @@ const PREFIX_FIELD_BOOSTS: Record<string, number> = {
   tags: 3
 };
 
-const FUSE_FIELD_BOOSTS: Record<string, number> = {
+const FUZZY_FIELD_BOOSTS: Record<string, number> = {
   title: 6,
   namespace: 3,
   tags: 3,
   description: 1.5,
   use_cases: 1.5
 };
+
+// Field weights for the fuzzy fallback, mirroring the key weights the old
+// fuse.js fallback used.
+const FUZZY_FIELD_WEIGHTS: ReadonlyArray<{
+  field: keyof Pick<
+    SearchEntry,
+    "title" | "node_type" | "namespace" | "tags" | "description" | "use_cases"
+  >;
+  weight: number;
+}> = [
+  { field: "title", weight: 1.0 },
+  { field: "node_type", weight: 0.9 },
+  { field: "namespace", weight: 0.65 },
+  { field: "tags", weight: 0.55 },
+  { field: "description", weight: 0.25 },
+  { field: "use_cases", weight: 0.25 }
+];
+
+// Minimum raw fuzzy score (see fuzzyScore's 0..1 scale) for a field match to
+// count. 0.3 admits solid subsequence matches but drops noise, roughly the
+// strictness of the old fuse.js threshold of 0.35.
+const MIN_FUZZY_FIELD_SCORE = 0.3;
 
 const addCandidateBoost = (
   boosts: Map<string, number>,
@@ -156,8 +177,8 @@ const createSearchEntries = (nodes: NodeMetadata[]): SearchEntry[] =>
     };
   });
 
-const MIN_RESULTS_BEFORE_FUSE = 100;
-const MIN_FUSE_QUERY_LENGTH = 3;
+const MIN_RESULTS_BEFORE_FUZZY = 100;
+const MIN_FUZZY_QUERY_LENGTH = 3;
 
 function collectPrefixCandidateBoosts(
   nodes: NodeMetadata[],
@@ -188,51 +209,45 @@ function collectPrefixCandidateBoosts(
   return boosts;
 }
 
-function collectFuseCandidateBoosts(
+function collectFuzzyCandidateBoosts(
   entries: SearchEntry[],
   terms: string[]
 ): Map<string, number> {
   const boosts = new Map<string, number>();
   const normalizedTerms = terms
     .map((searchTerm) => searchTerm.trim())
-    .filter((searchTerm) => searchTerm.length >= MIN_FUSE_QUERY_LENGTH);
+    .filter((searchTerm) => searchTerm.length >= MIN_FUZZY_QUERY_LENGTH);
 
   if (normalizedTerms.length === 0) {
     return boosts;
   }
 
-  const fuse = new Fuse(entries, {
-    ...fuseOptions,
-    threshold: 0.35,
-    distance: 80,
-    minMatchCharLength: 2,
-    ignoreLocation: true,
-    includeMatches: true,
-    keys: [
-      { name: "title", weight: 1.0 },
-      { name: "node_type", weight: 0.9 },
-      { name: "namespace", weight: 0.65 },
-      { name: "tags", weight: 0.55 },
-      { name: "description", weight: 0.25 },
-      { name: "use_cases", weight: 0.25 }
-    ]
-  });
-
   normalizedTerms.forEach((searchTerm) => {
-    fuse.search(searchTerm).forEach((result) => {
-      const fuseScore = result.score ?? 1;
-      const bestFieldBoost = Math.max(
-        1,
-        ...(result.matches ?? []).map(
-          (match) => FUSE_FIELD_BOOSTS[match.key ?? ""] ?? 1
-        )
-      );
-      addCandidateBoost(
-        boosts,
-        result.item.metadata.node_type,
-        Math.max(0, 1 - fuseScore) * bestFieldBoost
-      );
-    });
+    for (const entry of entries) {
+      // Score every field, keep the best weighted match — like the old
+      // fuse.js weighted-keys search, higher = better.
+      let bestWeightedScore = 0;
+      let bestField = "";
+      for (const { field, weight } of FUZZY_FIELD_WEIGHTS) {
+        const rawScore = fuzzyScore(searchTerm, entry[field]);
+        if (rawScore < MIN_FUZZY_FIELD_SCORE) {
+          continue;
+        }
+        const weightedScore = rawScore * weight;
+        if (weightedScore > bestWeightedScore) {
+          bestWeightedScore = weightedScore;
+          bestField = field;
+        }
+      }
+      if (bestWeightedScore > 0) {
+        const fieldBoost = FUZZY_FIELD_BOOSTS[bestField] ?? 1;
+        addCandidateBoost(
+          boosts,
+          entry.metadata.node_type,
+          bestWeightedScore * fieldBoost
+        );
+      }
+    }
   });
 
   return boosts;
@@ -310,12 +325,12 @@ export function rankSearchNodes(
     recentNodeTypes
   });
 
-  // Fall back to Fuse only if BM25 + prefix didn't surface enough results
-  // (e.g. typo-tolerant fuzzy matches that BM25 won't catch).
-  if (term.trim().length >= MIN_FUSE_QUERY_LENGTH && ranked.length < MIN_RESULTS_BEFORE_FUSE) {
+  // Fall back to the fuzzy scorer only if BM25 + prefix didn't surface
+  // enough results (e.g. subsequence matches that BM25 won't catch).
+  if (term.trim().length >= MIN_FUZZY_QUERY_LENGTH && ranked.length < MIN_RESULTS_BEFORE_FUZZY) {
     mergeCandidateBoosts(
       candidateBoosts,
-      collectFuseCandidateBoosts(createSearchEntries(nodes), expandedSearchTerms)
+      collectFuzzyCandidateBoosts(createSearchEntries(nodes), expandedSearchTerms)
     );
     ranked = rankNodeMetadata(nodes, expandedSearchTerms, {
       boostedNodeTypes,

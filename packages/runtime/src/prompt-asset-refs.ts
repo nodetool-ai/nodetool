@@ -105,9 +105,15 @@ export function classifyAssetToken(
 ): { kind: AssetMediaKind; mime: string } | null {
   if (!token.startsWith("asset://")) return null;
   const ext = tokenExt(token);
-  if (ext in IMAGE_EXT_MIME) return { kind: "image", mime: IMAGE_EXT_MIME[ext] };
-  if (ext in AUDIO_EXT_MIME) return { kind: "audio", mime: AUDIO_EXT_MIME[ext] };
-  if (ext in VIDEO_EXT_MIME) return { kind: "video", mime: VIDEO_EXT_MIME[ext] };
+  // Object.hasOwn, not `in`: `in` walks the prototype chain, so an extension of
+  // "__proto__"/"toString"/"constructor" would match an inherited key and
+  // return a non-string (object/function) mime, fabricating a bogus media ref.
+  if (Object.hasOwn(IMAGE_EXT_MIME, ext))
+    return { kind: "image", mime: IMAGE_EXT_MIME[ext] };
+  if (Object.hasOwn(AUDIO_EXT_MIME, ext))
+    return { kind: "audio", mime: AUDIO_EXT_MIME[ext] };
+  if (Object.hasOwn(VIDEO_EXT_MIME, ext))
+    return { kind: "video", mime: VIDEO_EXT_MIME[ext] };
   return null;
 }
 
@@ -119,7 +125,9 @@ export function classifyAssetToken(
 export function classifyTextToken(token: string): { mime: string } | null {
   if (!token.startsWith("asset://")) return null;
   const ext = tokenExt(token);
-  return ext in TEXT_EXT_MIME ? { mime: TEXT_EXT_MIME[ext] } : null;
+  return Object.hasOwn(TEXT_EXT_MIME, ext)
+    ? { mime: TEXT_EXT_MIME[ext] }
+    : null;
 }
 
 /**
@@ -136,9 +144,102 @@ function extForContentType(contentType: string): string | null {
   if (ct === "audio/mpeg" || ct === "audio/mp3") sub = "mp3";
   else if (ct === "audio/mp4") sub = "m4a";
   else if (ct === "video/quicktime") sub = "mov";
-  if (top === "image" && sub in IMAGE_EXT_MIME) return sub;
-  if (top === "audio" && sub in AUDIO_EXT_MIME) return sub;
-  if (top === "video" && sub in VIDEO_EXT_MIME) return sub;
+  if (top === "image" && Object.hasOwn(IMAGE_EXT_MIME, sub)) return sub;
+  if (top === "audio" && Object.hasOwn(AUDIO_EXT_MIME, sub)) return sub;
+  if (top === "video" && Object.hasOwn(VIDEO_EXT_MIME, sub)) return sub;
+  return null;
+}
+
+/**
+ * Reverse of the ext→mime tables: the extension whose mime matches. Tries the
+ * media tables first (via {@link extForContentType}, which also normalizes
+ * `+suffix` and audio/video aliases), then falls back to a text-document match.
+ * Returns null for an unrecognized mime.
+ */
+function extForMime(mime: string): string | null {
+  const viaMedia = extForContentType(mime);
+  if (viaMedia) return viaMedia;
+  const ct = (mime ?? "").toLowerCase().split(";")[0].trim();
+  for (const [ext, m] of Object.entries(TEXT_EXT_MIME)) {
+    if (m === ct) return ext;
+  }
+  return null;
+}
+
+/** Fallback extension per ref `type` when the mime is missing/unrecognized. */
+const DEFAULT_EXT_BY_KIND: Record<string, string> = {
+  image: "png",
+  audio: "mp3",
+  video: "mp4",
+  document: "txt",
+  text: "txt"
+};
+
+/** Pick an extension for a ref from its mime, else its declared `type`. */
+function extForRef(ref: {
+  type?: unknown;
+  mimeType?: unknown;
+  content_type?: unknown;
+}): string | null {
+  const mime =
+    typeof ref.mimeType === "string"
+      ? ref.mimeType
+      : typeof ref.content_type === "string"
+        ? ref.content_type
+        : "";
+  const byMime = mime ? extForMime(mime) : null;
+  if (byMime) return byMime;
+  const kind = typeof ref.type === "string" ? ref.type.toLowerCase() : "";
+  return Object.hasOwn(DEFAULT_EXT_BY_KIND, kind)
+    ? DEFAULT_EXT_BY_KIND[kind]
+    : null;
+}
+
+/**
+ * Convert a media / document ref — the `{ type, uri, asset_id, mimeType }` shape
+ * image / audio / video / document outputs carry — into the inline
+ * `asset://<id>.<ext>` token the prompt-expansion machinery understands.
+ *
+ * This lets an asset wired into a Prompt node's `{{ variable }}` flow through
+ * the same path as an inline `@`-mention: once rendered, the token is picked up
+ * by {@link expandAssetReferences} (LLM message blocks), `mapPromptAssetsToInputs`
+ * (typed provider inputs), or {@link inlineTextAssetRefs} (text documents),
+ * instead of stringifying to `"[object Object]"`.
+ *
+ * Returns null for values that aren't asset refs (strings, numbers, plain
+ * objects with no `uri`/`asset_id`) so callers fall back to normal stringify.
+ * A ref pointing only at a non-asset uri (http / data / file) yields that uri
+ * verbatim — it won't route as media, but it still beats `"[object Object]"`.
+ */
+export function assetRefToPromptToken(value: unknown): string | null {
+  if (!value || typeof value !== "object") return null;
+  const ref = value as {
+    type?: unknown;
+    uri?: unknown;
+    asset_id?: unknown;
+    mimeType?: unknown;
+    content_type?: unknown;
+  };
+  const uri = typeof ref.uri === "string" ? ref.uri.trim() : "";
+  const assetId = typeof ref.asset_id === "string" ? ref.asset_id.trim() : "";
+
+  if (uri.startsWith("asset://")) {
+    // Drop any query/hash; keep the id (and any existing extension) intact.
+    const id = uri.slice("asset://".length).split(/[?#]/)[0];
+    if (!id) return null;
+    if (id.includes(".")) return `asset://${id}`;
+    const ext = extForRef(ref);
+    return ext ? `asset://${id}.${ext}` : `asset://${id}`;
+  }
+
+  if (assetId) {
+    const ext = extForRef(ref);
+    return ext ? `asset://${assetId}.${ext}` : `asset://${assetId}`;
+  }
+
+  // Asset-less ref that still points somewhere resolvable.
+  if (uri) return uri;
+
   return null;
 }
 
@@ -154,6 +255,52 @@ export interface PromptAssetRef {
 }
 
 /**
+ * Trim trailing dots (sentence punctuation) off a token. A character loop, not
+ * `/\.+$/` — that regex backtracks polynomially on long dot runs, which CodeQL
+ * flags as a ReDoS risk on prompt-derived input.
+ */
+function trimTrailingDots(token: string): string {
+  let end = token.length;
+  while (end > 0 && token[end - 1] === ".") {
+    end--;
+  }
+  return token.slice(0, end);
+}
+
+/**
+ * Collapse horizontal-whitespace gaps left behind by token substitution:
+ * runs of 2+ spaces/tabs become one space, horizontal whitespace before a
+ * newline is dropped, and the result is trimmed. A single pass instead of
+ * `/[ \t]{2,}/` + `/[ \t]+\n/` — those backtrack polynomially on long
+ * space/tab runs (a ReDoS risk on prompt-derived input).
+ */
+function collapseGapWhitespace(text: string): string {
+  let out = "";
+  let run = ""; // pending run of spaces/tabs
+  for (const ch of text) {
+    if (ch === " " || ch === "\t") {
+      run += ch;
+      continue;
+    }
+    if (ch === "\n") {
+      // Drop horizontal whitespace before a newline.
+      run = "";
+      out += "\n";
+      continue;
+    }
+    if (run) {
+      out += run.length > 1 ? " " : run;
+      run = "";
+    }
+    out += ch;
+  }
+  if (run) {
+    out += run.length > 1 ? " " : run;
+  }
+  return out.trim();
+}
+
+/**
  * Scan a prompt for `asset://` tokens in source order, yielding each token with
  * its source offset. Trailing dots are treated as sentence punctuation (not
  * part of the extension), so `asset://a.png.` yields `asset://a.png` and leaves
@@ -166,11 +313,7 @@ function scanAssetTokens(
   ASSET_URI_RE.lastIndex = 0;
   let match: RegExpExecArray | null;
   while ((match = ASSET_URI_RE.exec(prompt)) !== null) {
-    let token = match[0];
-    const trailingDots = token.match(/\.+$/);
-    if (trailingDots) {
-      token = token.slice(0, token.length - trailingDots[0].length);
-    }
+    const token = trimTrailingDots(match[0]);
     out.push({ token, index: match.index });
   }
   return out;
@@ -235,7 +378,9 @@ export async function inlineTextAssetRefs(
   const contents = await Promise.all(
     refs.map(async (ref) => {
       const bytes = await loadMediaRefBytes({ type: "text", uri: ref.uri }, context);
-      return bytes && bytes.length > 0 ? decoder.decode(bytes) : null;
+      // A resolved-but-empty asset must inline as "" (not fall back to the
+      // literal token); only a failed resolution (null bytes) keeps the token.
+      return bytes ? decoder.decode(bytes) : null;
     })
   );
 
@@ -324,10 +469,7 @@ function replaceAssetRefs(
     cursor = ref.index + ref.length;
   }
   result += prompt.slice(cursor);
-  return result
-    .replace(/[ \t]{2,}/g, " ")
-    .replace(/[ \t]+\n/g, "\n")
-    .trim();
+  return collapseGapWhitespace(result);
 }
 
 /**
@@ -428,10 +570,124 @@ async function expandFolderRefs(
     cursor = candidate.index + candidate.length;
   }
   result += text.slice(cursor);
-  return result
-    .replace(/[ \t]{2,}/g, " ")
-    .replace(/[ \t]+\n/g, "\n")
-    .trim();
+  return collapseGapWhitespace(result);
+}
+
+/** Matches an inline `entity://<id>` token (an entity mention from `@`). */
+const ENTITY_URI_RE = /entity:\/\/[A-Za-z0-9._~-]+/g;
+
+/** The prompt-relevant fields of an asset's `nodetool_entity` marker. */
+interface EntityMarkerLike {
+  name: string;
+  descriptor: string;
+}
+
+/** Read the entity marker off asset metadata, or null when absent/malformed. */
+function readEntityMarker(
+  metadata: Record<string, unknown> | null
+): EntityMarkerLike | null {
+  const raw = metadata?.["nodetool_entity"];
+  if (!raw || typeof raw !== "object") return null;
+  const obj = raw as Record<string, unknown>;
+  const name = typeof obj.name === "string" ? obj.name.trim() : "";
+  if (!name) return null;
+  const descriptor =
+    typeof obj.descriptor === "string" ? obj.descriptor.trim() : "";
+  return { name, descriptor };
+}
+
+/**
+ * Expand `entity://<id>` mentions (entities are library assets tagged with a
+ * `nodetool_entity` marker; the `@`-mention pickers encode them as this token).
+ *
+ * Each token is replaced inline with the entity's **name** so the sentence
+ * still reads naturally, and every mentioned entity contributes once to a
+ * trailing `Consistency references:` block carrying its canonical descriptor —
+ * the same shape the Apply Entities node produces. With `includeImageRefs`,
+ * each entity's reference image is appended as an `asset://<id>.<ext>` token so
+ * the normal media-mention machinery routes it into a typed image input.
+ *
+ * Resolution happens here, at generation time, so later edits to an entity's
+ * descriptor or image propagate to every prompt that mentions it. A token that
+ * cannot be resolved (unknown id, no marker, no context) is dropped.
+ */
+export async function expandEntityRefs(
+  text: string,
+  context: ProcessingContext | undefined,
+  includeImageRefs: boolean
+): Promise<string> {
+  if (!text.includes("entity://")) return text;
+
+  const tokens: Array<{ index: number; length: number; id: string }> = [];
+  ENTITY_URI_RE.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = ENTITY_URI_RE.exec(text)) !== null) {
+    // Trailing dots are sentence punctuation, not part of the id.
+    const token = trimTrailingDots(match[0]);
+    tokens.push({
+      index: match.index,
+      length: token.length,
+      id: token.slice("entity://".length)
+    });
+  }
+  if (tokens.length === 0) return text;
+
+  // Resolve each unique id once; a mention of the same entity twice reads as
+  // its name twice but contributes a single consistency line / image ref.
+  const resolved = new Map<
+    string,
+    { marker: EntityMarkerLike; imageToken: string | null } | null
+  >();
+  for (const token of tokens) {
+    if (resolved.has(token.id)) continue;
+    const info =
+      typeof context?.getAssetInfo === "function"
+        ? await context.getAssetInfo(token.id)
+        : null;
+    const marker = info ? readEntityMarker(info.metadata) : null;
+    if (!info || !marker) {
+      resolved.set(token.id, null);
+      continue;
+    }
+    const ext = extForContentType(info.content_type);
+    resolved.set(token.id, {
+      marker,
+      imageToken: ext ? `asset://${info.id}.${ext}` : null
+    });
+  }
+
+  let result = "";
+  let cursor = 0;
+  const consistencyLines: string[] = [];
+  const imageTokens: string[] = [];
+  const contributed = new Set<string>();
+  for (const token of tokens) {
+    result += text.slice(cursor, token.index);
+    cursor = token.index + token.length;
+    const entity = resolved.get(token.id);
+    if (!entity) continue; // unresolvable mention → dropped
+    result += entity.marker.name;
+    if (contributed.has(token.id)) continue;
+    contributed.add(token.id);
+    if (entity.marker.descriptor) {
+      consistencyLines.push(
+        `- ${entity.marker.name}: ${entity.marker.descriptor}`
+      );
+    }
+    if (includeImageRefs && entity.imageToken) {
+      imageTokens.push(entity.imageToken);
+    }
+  }
+  result += text.slice(cursor);
+  result = collapseGapWhitespace(result);
+
+  if (consistencyLines.length > 0) {
+    result += `\n\nConsistency references:\n${consistencyLines.join("\n")}`;
+  }
+  if (imageTokens.length > 0) {
+    result += `\n${imageTokens.join(" ")}`;
+  }
+  return result;
 }
 
 /**
@@ -472,17 +728,24 @@ export async function mapPromptAssetsToInputs(
   const overrides: Record<string, unknown> = {};
   const acceptedKinds = new Set(assetFields.map((f) => f.kind));
 
-  // Expand any folder mentions into their member assets first (only meaningful
-  // when the node has media inputs to receive them), then work off the expanded
-  // text. The original value is kept to decide whether the field actually
-  // changed (a folder that expanded to nothing still rewrites text).
+  // Expand entity mentions first (they inject descriptor text and, when the
+  // node accepts images, an `asset://` reference-image token), then folder
+  // mentions (only meaningful when the node has media inputs to receive them),
+  // and work off the expanded text. The original value is kept to decide
+  // whether the field actually changed (a folder that expanded to nothing
+  // still rewrites text).
   const expandedByField = new Map<string, string>();
   for (const tf of textFields) {
+    const withEntities = await expandEntityRefs(
+      tf.value,
+      context,
+      acceptedKinds.has("image")
+    );
     expandedByField.set(
       tf.name,
       assetFields.length > 0
-        ? await expandFolderRefs(tf.value, context, acceptedKinds)
-        : tf.value
+        ? await expandFolderRefs(withEntities, context, acceptedKinds)
+        : withEntities
     );
   }
 

@@ -24,6 +24,7 @@ import {
   getLayerGeometry
 } from "../transform/geometry/layerGeometry";
 import { getSelectionBounds, selectionHasAnyPixels } from "../selection";
+import { computeFitZoom } from "../sketchCanvasPresentation.helpers";
 import {
   buildSketchInternalClipboardCanvas,
   drawSketchPasteOnLayerContext,
@@ -444,10 +445,25 @@ export function useCanvasGeometryActions({
     },
     [setZoom]
   );
-  const handleZoomReset = useCallback(() => {
-    setZoom(1);
+  /**
+   * Fit the whole artboard into the viewport and re-center it. Falls back to
+   * 100% when the viewport size is not yet known. `setZoom` clamps the result
+   * to the sketch zoom range.
+   */
+  const handleZoomFit = useCallback(() => {
+    const viewport = canvasRef.current?.getViewportSize() ?? null;
+    const { document: doc } = useSketchStore.getState();
+    const fit = viewport
+      ? computeFitZoom(
+          viewport.width,
+          viewport.height,
+          doc.canvas.width,
+          doc.canvas.height
+        )
+      : 1;
+    setZoom(fit);
     setPan({ x: 0, y: 0 });
-  }, [setZoom, setPan]);
+  }, [canvasRef, setZoom, setPan]);
 
   // ─── Crop completion ───────────────────────────────────────────
   const handleCropComplete = useCallback(
@@ -1042,7 +1058,7 @@ export function useCanvasGeometryActions({
     handleCanvasResizeDrag,
     handleZoomIn,
     handleZoomOut,
-    handleZoomReset,
+    handleZoomFit,
     handleCropComplete,
     handleCropCanvasToActiveLayerVisiblePixels,
     handleCropCanvasToActiveLayerExtents,

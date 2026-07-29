@@ -39,6 +39,14 @@ export {
 } from "./supabase-provider.js";
 
 export {
+  PostgrestClient,
+  type PostgrestClientApi,
+  type PostgrestError,
+  type PostgrestRow,
+  type PostgrestRowsResult
+} from "./postgrest.js";
+
+export {
   createSqliteVecProvider,
   createVectorProviderFromEnv,
   getDefaultVectorProvider,

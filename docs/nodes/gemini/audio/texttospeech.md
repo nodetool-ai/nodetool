@@ -37,7 +37,7 @@ Generate speech audio from text using Google's Gemini text-to-speech models.
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | text | `str` | The text to convert to speech. | `` |
-| model | `enum` | The text-to-speech model to use | `gemini-2.5-pro-preview-tts` |
+| model | `enum` | The text-to-speech model to use | `gemini-3.1-flash-tts-preview` |
 | voice_name | `enum` | The voice to use for speech generation | `kore` |
 | style_prompt | `str` | Optional style prompt to control speech characteristics (e.g., 'Say cheerfully', 'Speak with excitement') | `` |
 

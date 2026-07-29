@@ -22,6 +22,8 @@ import {
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { WorkflowList, Workflow } from "../../stores/ApiTypes";
+import { useActivateOnKey } from "../../hooks/useActivateOnKey";
+import { workflowListQueryKey } from "../../serverState/workflowQueryKeys";
 
 // Show the inline search field once the list grows past this many workflows.
 const SEARCH_THRESHOLD = 8;
@@ -159,7 +161,7 @@ const WorkflowTree: React.FC = () => {
 
   const load = useWorkflowManager((state) => state.load);
   const { data, isLoading } = useQuery<WorkflowList, Error>({
-    queryKey: ["workflows"],
+    queryKey: workflowListQueryKey(200),
     queryFn: async () => load("", 200)
   });
 
@@ -183,9 +185,20 @@ const WorkflowTree: React.FC = () => {
     [setWorkflowFilter, setSelectedFolderIds]
   );
 
+  const toggleExpanded = useCallback(() => setExpanded((prev) => !prev), []);
+  const handleRootKeyDown = useActivateOnKey(toggleExpanded);
+
   return (
     <Box className={`workflow-tree ${expanded ? "expanded" : ""}`} css={treeStyles}>
-      <div className="root-row" onClick={() => setExpanded((prev) => !prev)}>
+      <div
+        className="root-row"
+        role="button"
+        tabIndex={0}
+        aria-expanded={expanded}
+        aria-label="Workflows"
+        onClick={toggleExpanded}
+        onKeyDown={handleRootKeyDown}
+      >
         <AccountTreeIcon className="root-icon" />
         <span className="root-label">Workflows</span>
         <ExpandMoreIcon className="expand-icon" />
@@ -215,7 +228,16 @@ const WorkflowTree: React.FC = () => {
               className={`workflow-leaf ${
                 workflowFilter === workflow.id ? "selected" : ""
               }`}
+              role="button"
+              tabIndex={0}
+              aria-label={workflow.name}
               onClick={() => handleSelect(workflow)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleSelect(workflow);
+                }
+              }}
             >
               <span className="leaf-icon-slot">
                 <AccountTreeOutlinedIcon className="leaf-icon" />

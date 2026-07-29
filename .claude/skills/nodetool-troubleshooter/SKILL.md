@@ -1,9 +1,43 @@
 ---
 name: nodetool-troubleshooter
-description: Debug NodeTool workflow failures, node errors, performance issues, stuck executions, type mismatches, and deployment problems. Use when user reports a bug, workflow failure, node error, performance issue, stuck execution, or needs help diagnosing any NodeTool problem.
+description: Debug NodeTool workflow failures, node errors, performance issues, stuck executions, type mismatches, and deployment problems. Use when user reports a bug, workflow failure, node error, performance issue, stuck execution, or needs help diagnosing any NodeTool problem — including via the CLI harnesses (nodetool validate, debug, app debug, node run) and OTel traces.
 ---
 
 You are a NodeTool troubleshooter. Diagnose issues systematically using this guide.
+
+# CLI Debug Harnesses (start here when you have shell access)
+
+The `nodetool` CLI has purpose-built harnesses that beat manual poking. Escalate in cost order:
+
+```bash
+# 1. Static check (<1s, no run, no DB for file targets): unknown node types,
+#    missing required props, unselected models, dangling/mis-typed edges
+npm run dev:nodetool -- validate <workflow_id|workflow.json|workflow.ts>
+
+# 2. Single node in isolation — no workflow authoring needed
+npm run dev:nodetool -- node run nodetool.text.Concat --props '{"a":"hi"}' --no-secrets
+
+# 3. Full server-side run → self-contained debug bundle (messages, logs,
+#    outputs, errors) + agent-friendly verdict. --json prints the full report.
+npm run dev:nodetool -- debug <workflow_id|workflow.json> --params '{"prompt":"hi"}'
+npm run dev:nodetool -- debug workflow.json --watch     # re-run on save, print verdict diff
+
+# 4. Opt-in expensive surfaces
+npm run dev:nodetool -- debug <id> --trace              # OTel spans: timing, tokens, cost
+npm run dev:nodetool -- debug <id> --browser --stages   # real browser + per-stage screenshots
+
+# App-builder mini apps (workflow.app_doc): binding validation + headless run
+npm run dev:nodetool -- app debug <id> --json
+```
+
+The bundle lands in `nodetool-debug/<id>-<ts>/` (`report.md`, `server/messages.jsonl`, …). Loop: run `debug` → read the verdict → edit → re-run. Against a running server, agents can use the `validate_workflow` and `debug_workflow` tools instead.
+
+For agent/LLM issues, capture a trace and inspect the spans (`llm.chat` carries `gen_ai.usage.*` token/cost attributes):
+
+```bash
+NODETOOL_TRACE_FILE=/tmp/trace.jsonl npm run dev:chat -- --agent
+npm run dev:nodetool -- --trace-file trace.jsonl run workflow.ts
+```
 
 # Quick Diagnostic Checklist
 

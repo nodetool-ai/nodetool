@@ -8,6 +8,7 @@
  */
 
 import {
+  applyContentCardBody,
   BaseNode,
   classifyFields,
   classNameToTitle,
@@ -26,10 +27,6 @@ import {
   type TopazVideoKind,
   type TopazVideoSpec
 } from "./topaz-base.js";
-
-// ---------------------------------------------------------------------------
-// Manifest types
-// ---------------------------------------------------------------------------
 
 export interface TopazFieldDef {
   name: string;
@@ -62,10 +59,6 @@ export interface TopazManifestEntry {
   maxAttempts: number;
   fields: TopazFieldDef[];
 }
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 function isAssetType(type: string): boolean {
   return type === "image" || type === "video";
@@ -130,10 +123,6 @@ function uploadFieldName(spec: TopazManifestEntry): string {
   const upload = spec.fields.find((f) => f.uploadField);
   return upload?.name ?? (spec.outputType === "video" ? "video" : "image");
 }
-
-// ---------------------------------------------------------------------------
-// Factory
-// ---------------------------------------------------------------------------
 
 export function createTopazNodeClass(spec: TopazManifestEntry): NodeClass {
   const nodeType = `topaz.${spec.moduleName}.${spec.className}`;
@@ -231,6 +220,8 @@ export function createTopazNodeClass(spec: TopazManifestEntry): NodeClass {
     value: { output: spec.outputType },
     configurable: true
   });
+  // Enhancers return an image or a video — preview it in the node body.
+  applyContentCardBody(TopazNodeClass);
 
   const { inlineFields, inputFields } = computeFieldClassification(spec.fields);
   Object.defineProperty(TopazNodeClass, "inlineFields", {

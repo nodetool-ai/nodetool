@@ -2,7 +2,7 @@
  * Workflows REST routes — file downloads and JSON metadata used outside tRPC.
  *
  * The web app uses `/trpc/workflows.*`. These routes serve:
- *   - Workflow list / detail JSON (`GET /api/workflows`, `GET /api/workflows/:id`) for SDKs (e.g. VVVV)
+ *   - Workflow list, creation, and detail JSON for SDKs and agents
  *   - Public workflows, examples, tools, names (parity with `http-api` router)
  *   - File endpoints that cannot use tRPC's JSON layer (DSL export, thumbnails)
  */
@@ -21,6 +21,9 @@ import {
   handleWorkflowExamplesSearch,
   handleWorkflowExamplesThumbnail,
   handleWorkflowTools,
+  handleSdkWorkflowSummaries,
+  handleWorkflowInterface,
+  handleWorkflowInterfaces,
   handleWorkflowsRoot,
   handlePublicWorkflowById,
   handlePublicWorkflows
@@ -87,6 +90,18 @@ const workflowsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     );
   });
 
+  app.get("/api/sdk/v1/workflows", async (req, reply) => {
+    await bridge(req, reply, (request) =>
+      handleSdkWorkflowSummaries(request, apiOptions)
+    );
+  });
+
+  app.post("/api/sdk/v1/workflow-interfaces", async (req, reply) => {
+    await bridge(req, reply, (request) =>
+      handleWorkflowInterfaces(request, apiOptions)
+    );
+  });
+
   // Bundle export/import (.nodetool). Static paths registered before
   // `/api/workflows/:id` so they aren't captured as a workflow id.
   app.post("/api/workflows/export-bundle", async (req, reply) => {
@@ -113,16 +128,27 @@ const workflowsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   });
 
   // Single route: Fastify normalizes `/api/workflows` and `/api/workflows/` to one path.
-  app.get("/api/workflows", async (req, reply) => {
-    await bridge(req, reply, (request) =>
-      handleWorkflowsRoot(request, apiOptions)
-    );
+  app.route({
+    method: ["GET", "POST"],
+    url: "/api/workflows",
+    handler: async (req, reply) => {
+      await bridge(req, reply, (request) =>
+        handleWorkflowsRoot(request, apiOptions)
+      );
+    }
   });
 
   app.get("/api/workflows/:id/dsl-export", async (req, reply) => {
     const { id } = req.params as { id: string };
     await bridge(req, reply, (request) =>
       handleWorkflowDslExport(request, id, apiOptions)
+    );
+  });
+
+  app.get("/api/workflows/:id/interface", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    await bridge(req, reply, (request) =>
+      handleWorkflowInterface(request, id, apiOptions)
     );
   });
 
@@ -133,11 +159,15 @@ const workflowsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     );
   });
 
-  app.get("/api/workflows/:id", async (req, reply) => {
-    const { id } = req.params as { id: string };
-    await bridge(req, reply, (request) =>
-      handleWorkflowById(request, id, apiOptions)
-    );
+  app.route({
+    method: ["GET", "PUT", "DELETE"],
+    url: "/api/workflows/:id",
+    handler: async (req, reply) => {
+      const { id } = req.params as { id: string };
+      await bridge(req, reply, (request) =>
+        handleWorkflowById(request, id, apiOptions)
+      );
+    }
   });
 };
 

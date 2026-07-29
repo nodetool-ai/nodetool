@@ -29,7 +29,7 @@ import { NodePickerModal } from "./NodePickerModal";
 import type { NodeMetadata } from "../../types/ApiTypes";
 
 export const ChainEditor: React.FC = () => {
-  const { colors, shadows, isDark } = useTheme();
+  const { colors } = useTheme();
   const scrollRef = useRef<ScrollView>(null);
 
   // ── Store selectors ────────────────────────────────────────────────

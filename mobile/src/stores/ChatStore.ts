@@ -26,6 +26,13 @@ import {
   LanguageModel,
 } from '../types';
 import type { MediaGenerationRequest } from './MediaGenerationStore';
+import { buildUiContext } from '../documents/uiContext';
+import { MobileToolRegistry } from '../documents/tools/registry';
+import {
+  executeToolCall,
+  isToolCallMessage,
+} from '../documents/tools/executeToolCall';
+import '../documents/tools';
 
 interface ChatState {
   // Connection state
@@ -59,10 +66,7 @@ interface ChatState {
   sendMessage: (content: MessageContent[], text: string, mediaGeneration?: MediaGenerationRequest) => Promise<void>;
   stopGeneration: () => void;
   createNewThread: (title?: string) => Promise<string>;
-  switchThread: (threadId: string) => void;
   loadThreadFromServer: (threadId: string) => Promise<void>;
-  getCurrentMessages: () => Message[];
-  resetMessages: () => void;
   setSelectedModel: (model: LanguageModel) => void;
   setAgentMode: (enabled: boolean) => void;
   setHelpMode: (enabled: boolean) => void;
@@ -71,9 +75,6 @@ interface ChatState {
 
   // Internal actions
   addMessageToCache: (threadId: string, message: Message) => void;
-  setStatus: (status: ChatStatus) => void;
-  setError: (error: string | null) => void;
-  clearError: () => void;
 }
 
 // Tracks the in-flight safety timeout from sendMessage. Module-scoped so
@@ -99,6 +100,21 @@ function handleWebSocketMessage(
     if (!['generation_stopped', 'error', 'job_update'].includes(msgType)) {
       return;
     }
+  }
+
+  // Client-side tool call. Handled before the switch because `tool_call` is a
+  // request/response exchange rather than a state update, and because the
+  // result must go back even for a tool we don't have.
+  // `data` is typed as the set of state-update messages, which `tool_call` is
+  // deliberately not part of — widen before narrowing.
+  const incoming: unknown = data;
+  if (isToolCallMessage(incoming)) {
+    const { wsManager } = state;
+    if (wsManager) {
+      set({ statusMessage: `Running ${incoming.name}` });
+      void executeToolCall(incoming, wsManager);
+    }
+    return;
   }
 
   switch (data.type) {
@@ -304,8 +320,24 @@ export const useChatStore = create<ChatState>((set, get) => ({
       timeoutInterval: 30000,
     });
 
+    // Advertise the client-side `ui_*` tools. The server exposes whatever the
+    // manifest lists for the life of the connection, so it has to be re-sent on
+    // every reconnect — not just the first open.
+    const sendToolManifest = (): void => {
+      const tools = MobileToolRegistry.getManifest();
+      if (tools.length === 0) {
+        return;
+      }
+      try {
+        wsManager.send({ type: 'client_tools_manifest', tools });
+      } catch (error) {
+        console.error('Failed to send tool manifest:', error);
+      }
+    };
+
     // Set up callbacks
     wsManager.setCallbacks({
+      onOpen: sendToolManifest,
       onStateChange: (newState: ConnectionState) => {
         const currentState = get();
         // Don't override loading/streaming status when WebSocket events occur
@@ -428,6 +460,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
         ? stateForSend.selectedTools
         : undefined,
       media_generation: mediaGeneration,
+      // Which document ids the `ui_*` tools may address. Omitted when nothing
+      // is open, so a plain chat turn stays unchanged.
+      ui_context: buildUiContext(),
     };
 
     // Cancel any prior safety timeout — otherwise rapid sends accumulate
@@ -534,13 +569,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
     return id;
   },
 
-  switchThread: (threadId: string) => {
-    const exists = !!get().threads[threadId];
-    if (!exists) {return;}
-
-    set({ currentThreadId: threadId });
-  },
-
   /**
    * Loads a thread from the server (e.g. after the user picks one from the
    * Threads screen). Falls back to creating a stub local thread entry if the
@@ -582,28 +610,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  getCurrentMessages: () => {
-    const { currentThreadId, messageCache } = get();
-    if (!currentThreadId) {return [];}
-    return messageCache[currentThreadId] || [];
-  },
-
-  /**
-   * Clears all messages in the current thread.
-   * Reserved for future use (e.g., reset conversation feature).
-   */
-  resetMessages: () => {
-    const threadId = get().currentThreadId;
-    if (threadId) {
-      set((state) => ({
-        messageCache: {
-          ...state.messageCache,
-          [threadId]: [],
-        },
-      }));
-    }
-  },
-
   addMessageToCache: (threadId: string, message: Message) => {
     set((state) => {
       const existingMessages = state.messageCache[threadId] || [];
@@ -613,28 +619,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
           [threadId]: [...existingMessages, message],
         },
       };
-    });
-  },
-
-  setStatus: (status: ChatStatus) => {
-    set({ status });
-  },
-
-  setError: (error: string | null) => {
-    set({ error });
-  },
-
-  /**
-   * Dismiss the current error and return to a usable state so the user can
-   * retry — back to `connected` if the socket is still up, otherwise
-   * `disconnected` (the next send will reconnect).
-   */
-  clearError: () => {
-    const { wsManager } = get();
-    set({
-      error: null,
-      statusMessage: null,
-      status: wsManager?.isConnected() ? 'connected' : 'disconnected',
     });
   },
 

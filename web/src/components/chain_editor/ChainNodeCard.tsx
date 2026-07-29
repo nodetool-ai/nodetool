@@ -8,7 +8,15 @@ import {
   Collapse,
   MOTION,
   BORDER_RADIUS,
-  LinearProgress
+  LinearProgress,
+  FlexRow,
+  FlexColumn,
+  Text,
+  Divider,
+  ToolbarIconButton,
+  Box,
+  reducedMotion,
+  activateOnKey
 } from "../ui_primitives";
 import { PREVIEW_NODE_TYPE } from "../../constants/nodeTypes";
 import { getOutputFromResult } from "../node/outputResult";
@@ -20,11 +28,6 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import { FlexRow } from "../ui_primitives/FlexRow";
-import { FlexColumn } from "../ui_primitives/FlexColumn";
-import { Text } from "../ui_primitives/Text";
-import { Divider } from "../ui_primitives/Divider";
-import { ToolbarIconButton, Box } from "../ui_primitives";
 import { ChainNodeProperties } from "./ChainNodeProperties";
 import { OutputSelector } from "./OutputSelector";
 import { InputMappingSelector } from "./InputMappingSelector";
@@ -75,7 +78,8 @@ const pulseGlow = keyframes`
 const runningCardStyles = (nsColor: string) =>
   css({
     borderColor: `${nsColor}80 !important`,
-    animation: `${pulseGlow} 2s ease-in-out infinite`,
+    animation: `${pulseGlow} ${MOTION.pulse} infinite`,
+    ...reducedMotion({ animation: "none" }),
     color: `${nsColor}60`,
   });
 
@@ -138,7 +142,6 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
         boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
       }}
     >
-      {/* Progress bar */}
       {isRunning && (
         <LinearProgress
           variant={progress ? "determinate" : "indeterminate"}
@@ -153,12 +156,16 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
         />
       )}
 
-      {/* Header */}
       <FlexRow
         gap={1.5}
         align="center"
         padding={2}
         onClick={onToggleExpanded}
+        onKeyDown={activateOnKey(onToggleExpanded)}
+        role="button"
+        tabIndex={0}
+        aria-expanded={node.expanded}
+        aria-label={node.metadata.title}
         sx={{ cursor: "pointer", "&:hover": { backgroundColor: theme.vars.palette.action.hover } }}
       >
         <Box
@@ -175,13 +182,10 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
         <FlexColumn gap={0.5} sx={{ flex: 1, minWidth: 0 }}>
           <Text size="small" weight={600} truncate>{node.metadata.title}</Text>
           {node.expanded && (
-            <Text size="tiny" weight={600} sx={{ color: nsColor }}>
-              {formatNs(node.metadata.namespace)}
-            </Text>
+            <Text size="smaller" weight={600} sx={{ color: nsColor }}>{formatNs(node.metadata.namespace)}</Text>
           )}
         </FlexColumn>
 
-        {/* Status indicator */}
         {isCompleted && (
           <CheckCircleOutlineIcon sx={{ fontSize: 18, color: theme.vars.palette.success.main }} />
         )}
@@ -212,7 +216,6 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
         </Box>
       )}
 
-      {/* Expanded content */}
       <Collapse in={node.expanded} unmountOnExit>
         <FlexColumn gap={1.5} sx={{ px: 2, pb: 2 }}>
           {node.metadata.description && (
@@ -253,7 +256,6 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
 
           <Divider spacing="compact" color="subtle" />
 
-          {/* Actions */}
           <FlexRow gap={0.5} align="center">
             <ToolbarIconButton ariaLabel="Move node up" size="small" onClick={onMoveUp} disabled={index === 0} tooltip="Move up" icon={<ArrowUpwardIcon sx={{ fontSize: 18 }} />} />
             <ToolbarIconButton ariaLabel="Move node down" size="small" onClick={onMoveDown} disabled={index === totalNodes - 1} tooltip="Move down" icon={<ArrowDownwardIcon sx={{ fontSize: 18 }} />} />

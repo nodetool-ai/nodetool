@@ -40,8 +40,6 @@ interface SystemInfo {
   cudaVersion: string | null;
   ollamaInstalled: boolean;
   ollamaVersion: string | null;
-  llamaServerInstalled: boolean;
-  llamaServerVersion: string | null;
 }
 
 interface FileExplorerResult {
@@ -159,6 +157,14 @@ interface VaultListResult {
   activeVaultId: string;
 }
 
+interface McpBundleInstallResult {
+  ok: boolean;
+  opened: boolean;
+  revealed: boolean;
+  path: string;
+  error?: string;
+}
+
 declare global {
   interface Window {
     api: {
@@ -223,7 +229,9 @@ declare global {
       onCreateWorkflow: (workflow: Workflow) => Promise<void>;
       onUpdateWorkflow: (workflow: Workflow) => Promise<void>;
       onDeleteWorkflow: (workflow: Workflow) => Promise<void>;
-      restartLlamaServer?: () => Promise<void>;
+      mcp?: {
+        installBundle: () => Promise<McpBundleInstallResult>;
+      };
       windowControls: WindowControls;
       platform: string;
       logging?: {
@@ -299,12 +307,6 @@ declare global {
         setAutoUpdates?: (enabled: boolean) => Promise<void>;
         getUpdateChannel?: () => Promise<"latest" | "nightly">;
         setUpdateChannel?: (channel: "latest" | "nightly") => Promise<"latest" | "nightly">;
-        getModelServicesStartup?: () => Promise<{
-          startLlamaCppOnStartup: boolean;
-        }>;
-        setModelServicesStartup?: (update: {
-          startLlamaCppOnStartup?: boolean;
-        }) => Promise<{ startLlamaCppOnStartup: boolean }>;
       };
 
       // Vaults module - switchable, isolated data stores (each its own SQLite
@@ -560,6 +562,14 @@ declare global {
     isLocalhost?: boolean;
     isElectron?: boolean;
     setForceLocalhost?: (force: boolean | null) => void;
+    // Plausible analytics (loaded only on the production website).
+    plausible?: {
+      (
+        event: string,
+        options?: { props?: Record<string, string | number | boolean> }
+      ): void;
+      q?: unknown[];
+    };
   }
 }
 

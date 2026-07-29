@@ -7,7 +7,7 @@ import {
 import { NodeMetadata, Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { NodeStore } from "../../stores/NodeStore";
 
-export interface FrontendToolDefinition<Result = unknown> {
+export interface FrontendToolDefinition<Result = unknown, Args = any> {
   name: `ui_${string}`;
   description: string;
   parameters: ZodOrJsonSchema;
@@ -17,8 +17,7 @@ export interface FrontendToolDefinition<Result = unknown> {
    */
   hidden?: boolean;
   requireUserConsent?: boolean;
-  // Use `any` here to allow destructured parameters in tool implementations
-  execute: (args: any, ctx: FrontendToolContext) => Promise<Result>;
+  execute: (args: Args, ctx: FrontendToolContext) => Promise<Result>;
 }
 
 export interface FrontendToolState {
@@ -91,7 +90,6 @@ export const FrontendToolRegistry = {
     const controller = new AbortController();
     active.set(toolCallId, { controller });
     try {
-      // Validate args using Zod if parameters is a Zod schema
       const validatedArgs = isZodSchema(tool.parameters)
         ? parseWithTypeCoercion(tool.parameters, args)
         : args;

@@ -74,6 +74,13 @@ class FakeBridge extends EventEmitter {
   providerGenerate(): Promise<Record<string, unknown>> {
     return Promise.resolve({});
   }
+  async *providerStream(): AsyncGenerator<Record<string, unknown>> {
+    yield { chunk: "hello" };
+    yield { chunk: " world" };
+  }
+  async *providerTTS(): AsyncGenerator<Uint8Array> {
+    yield new Uint8Array([1, 2, 3]);
+  }
   providerTextToImage(): Promise<Uint8Array> {
     return Promise.resolve(new Uint8Array());
   }
@@ -170,6 +177,24 @@ describe("SwappableBridge", () => {
     await expect(swap.listCachedModels()).resolves.toEqual([
       { id: "a", name: "A" }
     ]);
+  });
+
+  it("delegates providerStream and providerTTS (#17)", async () => {
+    // Regression: these two async-generator methods existed only on the
+    // concrete PythonBridgeBase, not the PythonBridge interface, so SwappableBridge
+    // never delegated them — streaming chat and TTS through a Python provider
+    // crashed on the server with `providerStream is not a function`.
+    const swap = new SwappableBridge(makeFake());
+    expect(typeof swap.providerStream).toBe("function");
+    expect(typeof swap.providerTTS).toBe("function");
+
+    const chunks: unknown[] = [];
+    for await (const c of swap.providerStream("hf", [], "m")) chunks.push(c);
+    expect(chunks).toEqual([{ chunk: "hello" }, { chunk: " world" }]);
+
+    const audio: Uint8Array[] = [];
+    for await (const a of swap.providerTTS("hf", "hi", "m")) audio.push(a);
+    expect(audio).toEqual([new Uint8Array([1, 2, 3])]);
   });
 
   it("routes calls to the new target after swap", async () => {

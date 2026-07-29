@@ -62,7 +62,6 @@ export class LocalListNodesTool extends Tool {
       );
     }
 
-    // Group by namespace for overview
     const namespaces = new Map<string, number>();
     for (const m of allMetadata) {
       namespaces.set(m.namespace, (namespaces.get(m.namespace) ?? 0) + 1);

@@ -1,4 +1,5 @@
 import { defineConfig, loadEnv, type Plugin, type ProxyOptions, type UserConfig } from "vite";
+import type { Plugin as EsbuildPlugin } from "esbuild";
 import react from "@vitejs/plugin-react";
 import svgr from "vite-plugin-svgr";
 import { execSync } from "node:child_process";
@@ -59,10 +60,12 @@ const NODE_BUILTIN_STUBS: Record<string, string> = {
   "node:http2": `${NODE_STUBS}/empty.js`,
   "node:perf_hooks": `${NODE_STUBS}/empty.js`,
   "node:vm": `${NODE_STUBS}/empty.js`,
-  "node:stream": `${NODE_STUBS}/empty.js`,
+  // Not empty: memfs (QuickJS sandbox → universal Code node) subclasses
+  // stream.Readable/Writable at module scope — see stream-stub.js.
+  "node:stream": `${NODE_STUBS}/stream-stub.js`,
   "node:async_hooks": `${NODE_STUBS}/empty.js`,
   "node:util": `${NODE_STUBS}/empty.js`,
-  "node:buffer": `${NODE_STUBS}/empty.js`,
+  "node:buffer": `${NODE_STUBS}/buffer-stub.js`,
   "node:assert": `${NODE_STUBS}/empty.js`,
   "node:process": `${NODE_STUBS}/empty.js`,
   "node:module": `${NODE_STUBS}/empty.js`
@@ -74,10 +77,9 @@ const NODE_BUILTIN_STUBS: Record<string, string> = {
 // warning), but a Web Worker bundle can't carry external imports, so the worker
 // must stub them — see the `worker` config block.
 const BARE_BUILTIN_STUBS: Record<string, string> = Object.fromEntries(
-  Object.entries(NODE_BUILTIN_STUBS).map(([key, stub]) => [
-    key.replace(/^node:/, ""),
-    stub
-  ])
+  Object.entries(NODE_BUILTIN_STUBS)
+    .filter(([key]) => key !== "node:buffer")
+    .map(([key, stub]) => [key.replace(/^node:/, ""), stub])
 );
 
 // Vite's `resolve.alias` doesn't intercept the `node:` protocol — these imports
@@ -95,6 +97,28 @@ function stubNodeProtocolPlugin(includeBare = false): Plugin {
         (includeBare ? BARE_BUILTIN_STUBS[source] : undefined) ??
         null
       );
+    }
+  };
+}
+
+// The esbuild counterpart of stubNodeProtocolPlugin, for Vite's dependency
+// pre-bundle (optimizeDeps). That pass is a separate esbuild run whose module
+// resolution does NOT go through Vite's `resolve.alias` or the `resolveId`
+// plugins above — so a pre-bundled dependency like `@sebastianwessel/quickjs`
+// gets its `node:buffer` import externalized, and the resulting shim throws the
+// moment the code touches `Buffer.allocUnsafe` at module load. Redirect the
+// `node:`-prefixed builtins to the same stub files during pre-bundling so the
+// real polyfill (buffer-stub → npm `buffer`) is bundled instead. Bare builtin
+// names are intentionally left alone: the app externalizes them, and bare
+// `buffer` must resolve to the npm package that buffer-stub.js itself imports.
+function stubNodeBuiltinsEsbuildPlugin(): EsbuildPlugin {
+  return {
+    name: "stub-node-builtins-esbuild",
+    setup(build) {
+      build.onResolve({ filter: /^node:/ }, (args) => {
+        const stub = NODE_BUILTIN_STUBS[args.path];
+        return stub ? { path: stub } : undefined;
+      });
     }
   };
 }
@@ -129,12 +153,81 @@ function stubServerTelemetryPlugin(): Plugin {
   };
 }
 
+// Strip remote `@import url(https://…)` statements from emitted CSS chunks.
+// Third-party CSS can smuggle one in (e.g. @measured/puck imports Inter from
+// rsms.me). Chrome treats a failed @import as a failure of the whole
+// stylesheet, so when the CDN is blocked/unreachable the chunk's <link> errors,
+// Vite fires `vite:preloadError`, and preloadErrorReload.ts reloads the page —
+// every affected click becomes a page reload. Fonts are already self-hosted
+// (@fontsource imports in ThemeNodetool), so remote font CSS is redundant;
+// drop it at build time.
+function stripExternalCssImportsPlugin(): Plugin {
+  const EXTERNAL_IMPORT_RE =
+    /@import\s*(?:url\(\s*)?["']?https?:\/\/[^"'()\s;]+["']?\s*\)?[^;]*;/gi;
+  return {
+    name: "strip-external-css-imports",
+    generateBundle(_options, bundle) {
+      for (const asset of Object.values(bundle)) {
+        if (asset.type !== "asset" || !asset.fileName.endsWith(".css")) {
+          continue;
+        }
+        const source =
+          typeof asset.source === "string"
+            ? asset.source
+            : new TextDecoder().decode(asset.source);
+        const stripped = source.replace(EXTERNAL_IMPORT_RE, "");
+        if (stripped !== source) {
+          asset.source = stripped;
+        }
+      }
+    }
+  };
+}
+
 // Cross-origin isolation for the perf harness page only. crossOriginIsolated
 // unlocks performance.measureUserAgentSpecificMemory(), which attributes JS
 // heap to every realm in the agent cluster — including the browser-runner
 // Web Worker, whose memory is otherwise unreadable (dedicated workers expose
 // no performance.memory). Scoped to /perf-realtime so the app keeps its
 // normal embedding behavior.
+/** Benign while the backend is still booting or tsx is restarting. */
+function isBenignProxyError(err: unknown): boolean {
+  if (!err || typeof err !== "object") {
+    return false;
+  }
+  const code =
+    "code" in err && typeof err.code === "string" ? err.code : undefined;
+  if (code === "ECONNREFUSED" || code === "ECONNRESET" || code === "EPIPE") {
+    return true;
+  }
+  if (err instanceof AggregateError) {
+    return err.errors.length > 0 && err.errors.every(isBenignProxyError);
+  }
+  return false;
+}
+
+// Vite logs every failed /ws and /api proxy while the backend is down. During
+// `npm run dev` that window is normal (tsx boot + restarts), so swallow those.
+function suppressBenignDevProxyErrorsPlugin(): Plugin {
+  return {
+    name: "suppress-benign-dev-proxy-errors",
+    configureServer(server) {
+      const logger = server.config.logger;
+      const logError = logger.error.bind(logger);
+      logger.error = (msg, options) => {
+        if (
+          typeof msg === "string" &&
+          (msg.includes("ws proxy error") || msg.includes("http proxy error")) &&
+          isBenignProxyError(options?.error)
+        ) {
+          return;
+        }
+        logError(msg, options);
+      };
+    }
+  };
+}
+
 function perfPageIsolationPlugin(): Plugin {
   return {
     name: "perf-page-isolation",
@@ -218,7 +311,10 @@ export default defineConfig(async ({ mode }) => {
         "monaco-editor",
         "@monaco-editor/react",
         "@monaco-editor/loader",
-      ]
+      ],
+      rolldownOptions: {
+        plugins: [stubNodeBuiltinsEsbuildPlugin()]
+      }
     },
     resolve: {
       // Use the `nodetool-dev` export condition so @nodetool-ai/* packages
@@ -257,8 +353,10 @@ export default defineConfig(async ({ mode }) => {
       plugins: () => [stubServerTelemetryPlugin(), stubNodeProtocolPlugin(true)]
     },
     plugins: [
+      suppressBenignDevProxyErrorsPlugin(),
       perfPageIsolationPlugin(),
       stubNodeProtocolPlugin(),
+      stripExternalCssImportsPlugin(),
       react({
         jsxImportSource: "@emotion/react",
         babel: {
@@ -272,7 +370,7 @@ export default defineConfig(async ({ mode }) => {
       // worker bundling) cannot downlevel certain destructuring patterns in
       // monaco-editor's pre-bundled workers to those ancient targets.
       target: browserslistToEsbuild([">0.2%", "not dead", "not op_mini all", "not ios < 14"]),
-      sourcemap: true,
+      sourcemap: isDebug,
       minify: isDebug ? false : "esbuild",
       ...(isDebug
         ? {}
@@ -296,9 +394,7 @@ export default defineConfig(async ({ mode }) => {
                     return "vendor-mui";
                   if (/[\\/]node_modules[\\/]@mui[\\/]x-/.test(id))
                     return "vendor-mui-x";
-                  if (
-                    /[\\/]node_modules[\\/](react-plotly\.js|plotly\.js)[\\/]/.test(id)
-                  )
+                  if (/[\\/]node_modules[\\/]plotly\.js[\\/]/.test(id))
                     return "vendor-plotly";
                   if (
                     /[\\/]node_modules[\\/](three|@react-three[\\/]fiber|@react-three[\\/]drei)[\\/]/.test(
@@ -334,7 +430,7 @@ export default defineConfig(async ({ mode }) => {
                   // unified processor state, hast/mdast types, and micromark
                   // extension registry).
                   if (
-                    /[\\/]node_modules[\\/](react-markdown|remark-[^\\/]+|rehype-[^\\/]+|micromark[^\\/]*|mdast-util-[^\\/]+|hast-util-[^\\/]+|unified|unist-util-[^\\/]+|vfile[^\\/]*|bail|trough|is-plain-obj|decode-named-character-reference|character-entities[^\\/]*|html-void-elements|property-information|space-separated-tokens|comma-separated-tokens|web-namespaces|zwitch|longest-streak|parse-entities|ccount|escape-string-regexp|markdown-table|github-slugger|stringify-entities|html-url-attributes|dompurify|prismjs|react-syntax-highlighter|refractor)[\\/]/.test(
+                    /[\\/]node_modules[\\/](react-markdown|remark-[^\\/]+|rehype-[^\\/]+|micromark[^\\/]*|mdast-util-[^\\/]+|hast-util-[^\\/]+|unified|unist-util-[^\\/]+|vfile[^\\/]*|bail|trough|is-plain-obj|decode-named-character-reference|character-entities[^\\/]*|html-void-elements|property-information|space-separated-tokens|comma-separated-tokens|web-namespaces|zwitch|longest-streak|parse-entities|ccount|escape-string-regexp|markdown-table|github-slugger|stringify-entities|html-url-attributes|dompurify|prismjs)[\\/]/.test(
                       id
                     )
                   )
@@ -354,7 +450,7 @@ export default defineConfig(async ({ mode }) => {
                     return "vendor-supabase";
                   // Search / command palette / small utilities cluster
                   if (
-                    /[\\/]node_modules[\\/](cmdk|fuse\.js|chroma-js|zundo|date-fns|uuid|zod|fast-deep-equal|acorn-walk)[\\/]/.test(
+                    /[\\/]node_modules[\\/](cmdk|chroma-js|uuid|zod)[\\/]/.test(
                       id
                     )
                   )

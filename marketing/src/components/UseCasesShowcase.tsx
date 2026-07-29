@@ -41,33 +41,34 @@ export default function UseCasesShowcase() {
     <section
       id="use-cases"
       aria-labelledby="use-cases-title"
-      className="relative py-24 overflow-hidden"
+      className="relative py-24 overflow-clip-safe"
     >
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="mb-16 max-w-2xl">
+        <div className="scroll-fade mb-16 max-w-2xl">
           <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-blue-300/80">
             <span className="h-px w-8 bg-amber-300/60" />
             Use cases
           </div>
           <motion.h2
             id="use-cases-title"
-            initial={{ opacity: 0, y: 16 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
             From a brief to a finished asset
           </motion.h2>
           <motion.p
-            initial={{ opacity: 0, y: 16 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.05 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 leading-relaxed"
           >
-            Real workflows you can open, run, and rewire. Each one is a complete
-            pipeline, not a demo, built from the same nodes you get on day one.
+            Real workflows you can open, run, and change. Each one runs from the
+            brief to the finished piece without leaving the canvas, and every one
+            is built from the blocks you get on day one.
           </motion.p>
         </div>
 
@@ -79,11 +80,11 @@ export default function UseCasesShowcase() {
               <motion.a
                 key={item.slug}
                 href={`/use-cases/${item.slug}`}
-                initial={{ opacity: 0, y: 24 }}
+                initial={false}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-80px" }}
-                transition={{ duration: 0.6 }}
-                className="group relative grid items-center gap-8 rounded-3xl border border-white/10 bg-slate-900/40 p-6 backdrop-blur-sm transition-all duration-300 hover:border-white/20 hover:bg-slate-900/60 lg:grid-cols-2 lg:gap-12 lg:p-8"
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ duration: 0.3 }}
+                className="scroll-fade group relative grid items-center gap-8 rounded-3xl border border-white/10 bg-slate-900/40 p-6 backdrop-blur-sm transition-all duration-300 hover:border-white/20 hover:bg-slate-900/60 lg:grid-cols-2 lg:gap-12 lg:p-8"
               >
                 {/* Media */}
                 <div
@@ -102,11 +103,8 @@ export default function UseCasesShowcase() {
                         src={item.video}
                         poster={item.poster}
                         className="aspect-video w-full object-cover"
-                        autoPlay
-                        loop
-                        muted
                         playsInline
-                        preload="metadata"
+                        preload="none"
                       />
                     ) : (
                       <Image

@@ -165,11 +165,16 @@ describe("safeFetch", () => {
     await safeFetch("https://fal.media/a.png", {
       method: "POST",
       body: "secret-payload",
-      headers: { Authorization: "Bearer token", "X-Trace": "keep-me" }
+      headers: {
+        Authorization: "Bearer token",
+        "X-Goog-Api-Key": "gemini-secret",
+        "X-Trace": "keep-me"
+      }
     });
     const secondInit = fetchMock.mock.calls[1][1] as RequestInit;
     const headers = new Headers(secondInit.headers ?? undefined);
     expect(headers.get("authorization")).toBeNull();
+    expect(headers.get("x-goog-api-key")).toBeNull();
     expect(headers.get("x-trace")).toBe("keep-me");
     expect(secondInit.body).toBeUndefined();
   });

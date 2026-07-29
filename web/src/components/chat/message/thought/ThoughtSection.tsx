@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import ChatMarkdown from "../ChatMarkdown";
 import { ReasoningToggle } from "../../../common/ReasoningToggle";
 import { useTheme } from "@mui/material/styles";
@@ -9,23 +9,21 @@ import { BORDER_RADIUS, FONT_SIZE_MONO } from "../../../ui_primitives";
 interface ThoughtSectionProps {
   thoughtContent: string;
   isExpanded: boolean;
-  onToggle: () => void;
+  onToggle: (event?: React.MouseEvent) => void;
   textBefore?: string;
   textAfter?: string;
 }
 
 export const ThoughtSection: React.FC<ThoughtSectionProps> = React.memo(({
   thoughtContent,
-  isExpanded: initialExpanded,
-  onToggle: externalToggle,
+  isExpanded,
+  onToggle,
   textBefore,
   textAfter
 }) => {
-  const [isExpanded, setExpanded] = useState(initialExpanded);
-  const onToggle = useCallback(() => {
-    setExpanded((v) => !v);
-    externalToggle();
-  }, [externalToggle]);
+  // Fully controlled: render from the `isExpanded` prop (owned by the parent's
+  // expansion store) and report clicks via `onToggle`. A local useState mirror
+  // would desync from an external "expand/collapse all" mutation.
   const theme = useTheme();
   const thoughtContentStyles = useMemo(() => css({
     margin: "0 0 1em 00",

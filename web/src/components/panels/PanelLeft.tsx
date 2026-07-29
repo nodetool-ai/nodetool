@@ -8,7 +8,7 @@ import {
 import { ToolbarIconButton, FlexColumn, Box, Z_INDEX, SPACING, getSpacingPx } from "../ui_primitives";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { BORDER_RADIUS } from "../ui_primitives";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { memo, useCallback, useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import AssetGrid from "../assets/AssetGrid";
@@ -21,6 +21,14 @@ import WorkflowForm from "../workflows/WorkflowForm";
 import CreateWorkflowButton from "../workflows/CreateWorkflowButton";
 import TimelineListPanel, { CreateTimelineButton } from "../timeline/TimelineListPanel";
 import SketchListPanel, { CreateSketchButton } from "../sketch/SketchListPanel";
+import StoryboardListPanel, {
+  CreateStoryboardButton
+} from "../storyboard/StoryboardListPanel";
+import ScriptListPanel, { CreateScriptButton } from "../script/ScriptListPanel";
+import ApplicationListPanel, {
+  CreateApplicationButton,
+  CreateApplicationFromWorkflowButton
+} from "../applications/ApplicationListPanel";
 import HistoryTilesPanel from "../node_menu/HistoryTilesPanel";
 import FavoritesTiles from "../node_menu/FavoritesTiles";
 import QuickAccessSidebar from "../node_menu/QuickAccessSidebar";
@@ -56,7 +64,7 @@ import CodeIcon from "@mui/icons-material/Code";
 import GridViewIcon from "@mui/icons-material/GridView";
 import CollectionsOutlinedIcon from "@mui/icons-material/CollectionsOutlined";
 
-import { Fullscreen } from "@mui/icons-material";
+import Fullscreen from "@mui/icons-material/Fullscreen";
 
 const HEADER_HEIGHT = 77;
 const HEADER_HEIGHT_MOBILE = 40;
@@ -159,7 +167,7 @@ const styles = (
 
       "& .MuiIconButton-root, .MuiButton-root": {
         padding: `${theme.spacing(1)}`,
-        margin: `0 ${theme.spacing(0.75)}`,
+        margin: `0 ${theme.spacing(SPACING.xs)}`,
         borderRadius: BORDER_RADIUS.lg,
         backgroundColor: "transparent",
         transition: `${MOTION.background}, color ${MOTION.fast}`,
@@ -359,6 +367,7 @@ const PanelContent = memo(function PanelContent({
                     onClick={handleFullscreenClick}
                     tabIndex={-1}
                     icon={<Fullscreen />}
+                    ariaLabel="Open the global asset library"
                   />
                 </Tooltip>
               }
@@ -388,6 +397,7 @@ const PanelContent = memo(function PanelContent({
                     onClick={handleFullscreenClick}
                     tabIndex={-1}
                     icon={<Fullscreen />}
+                    ariaLabel="Open library in full page"
                   />
                 </Tooltip>
               }
@@ -454,6 +464,62 @@ const PanelContent = memo(function PanelContent({
           <TimelineListPanel />
         </FlexColumn>
       )}
+      {activeView === "storyboards" && (
+        <FlexColumn
+          className="storyboard-list-container"
+          fullWidth
+          fullHeight
+          sx={{
+            overflow: "hidden"
+          }}
+        >
+          {!isMobile && (
+            <PanelHeadline
+              title="Storyboards"
+              actions={<CreateStoryboardButton />}
+            />
+          )}
+          <StoryboardListPanel />
+        </FlexColumn>
+      )}
+      {activeView === "scripts" && (
+        <FlexColumn
+          className="script-list-container"
+          fullWidth
+          fullHeight
+          sx={{
+            overflow: "hidden"
+          }}
+        >
+          {!isMobile && (
+            <PanelHeadline title="Scripts" actions={<CreateScriptButton />} />
+          )}
+          <ScriptListPanel />
+        </FlexColumn>
+      )}
+      {activeView === "apps" && (
+        <FlexColumn
+          className="application-list-container"
+          fullWidth
+          fullHeight
+          sx={{
+            overflow: "hidden"
+          }}
+        >
+          {!isMobile && (
+            <PanelHeadline
+              title="Apps"
+              actions={
+                <>
+                  <CreateApplicationFromWorkflowButton />
+                  <CreateApplicationButton />
+                </>
+              }
+            />
+          )}
+          <ApplicationListPanel />
+        </FlexColumn>
+      )}
       {activeView === "settings" && currentWorkflow && (
         <FlexColumn
           className="workflow-settings-container"
@@ -477,33 +543,55 @@ const PanelContent = memo(function PanelContent({
 // Mobile variant
 // ---------------------------------------------------------------------------
 
-const MOBILE_LAUNCHER_TOP = 48;
+// Clears the mobile tab bar (48px) plus an 8px gap.
+const MOBILE_LAUNCHER_TOP = 56;
 const MOBILE_LAUNCHER_TOP_STANDALONE = 8;
 
-const mobileLauncherStyles = (theme: Theme, hasHeader: boolean) =>
+// Chrome shared by every button in the floating mobile launcher cluster.
+const mobileLauncherChrome = (theme: Theme) => ({
+  backgroundColor: theme.vars.palette.background.paper,
+  color: theme.vars.palette.text.primary,
+  border: `1px solid ${theme.vars.palette.divider}`,
+  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+  padding: getSpacingPx(SPACING.md),
+  borderRadius: BORDER_RADIUS.lg,
+  "&:hover": {
+    backgroundColor: theme.vars.palette.action.hover
+  },
+  "& svg": {
+    fontSize: "var(--fontSizeBig)"
+  }
+});
+
+// The floating cluster in the top-left corner: the app menu (logo) and the
+// panel toggle, so the app menu is reachable without opening the sheet first.
+const mobileLauncherBarStyles = (theme: Theme, hasHeader: boolean) =>
   css({
     position: "fixed",
     top: `${hasHeader ? MOBILE_LAUNCHER_TOP : MOBILE_LAUNCHER_TOP_STANDALONE}px`,
     left: 8,
     zIndex: theme.zIndex.appBar,
-    backgroundColor: theme.vars.palette.background.paper,
-    color: theme.vars.palette.text.primary,
-    border: `1px solid ${theme.vars.palette.divider}`,
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-    padding: getSpacingPx(SPACING.md),
-    borderRadius: BORDER_RADIUS.lg,
-    "&:hover": {
-      backgroundColor: theme.vars.palette.action.hover
-    },
+    display: "flex",
+    alignItems: "center",
+    gap: getSpacingPx(SPACING.xs),
+    "& .rail-app-logo": {
+      ...mobileLauncherChrome(theme),
+      width: "auto",
+      height: "auto",
+      margin: 0,
+      opacity: 1
+    }
+  });
+
+const mobileLauncherStyles = (theme: Theme) =>
+  css({
+    ...mobileLauncherChrome(theme),
     "&.active": {
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.primary.contrastText,
       "&:hover": {
         backgroundColor: theme.vars.palette.primary.dark
       }
-    },
-    "& svg": {
-      fontSize: "var(--fontSizeBig)"
     }
   });
 
@@ -541,6 +629,7 @@ const MobilePanelLeft: React.FC<{
   onClose: () => void;
   onViewChange: (view: LeftPanelView) => void;
   handlePanelToggle: (view: LeftPanelView) => void;
+  showAppMenu?: boolean;
 }> = ({
   activeView,
   activeNodeCategory,
@@ -550,7 +639,8 @@ const MobilePanelLeft: React.FC<{
   onOpen,
   onClose,
   onViewChange,
-  handlePanelToggle
+  handlePanelToggle,
+  showAppMenu = false
 }) => {
   const theme = useTheme();
 
@@ -566,15 +656,21 @@ const MobilePanelLeft: React.FC<{
 
   return (
     <>
-      <ToolbarIconButton
-        className={`panel-left-mobile-launcher ${isVisible ? "active" : ""}`}
-        css={mobileLauncherStyles(theme, hasHeader)}
-        onClick={isVisible ? onClose : onOpen}
-        ariaLabel={isVisible ? "Close panel" : "Open left panel"}
-        aria-expanded={isVisible}
-        tabIndex={-1}
-        icon={<MenuIcon />}
-      />
+      <div css={mobileLauncherBarStyles(theme, hasHeader)}>
+        {/* Settings, Help, Models, Downloads, … — on mobile the vertical
+          toolbar that carries the app menu on desktop isn't rendered, so the
+          logo sits in the floating launcher instead. */}
+        {showAppMenu && <RailAppMenu onAction={onClose} />}
+        <ToolbarIconButton
+          className={`panel-left-mobile-launcher ${isVisible ? "active" : ""}`}
+          css={mobileLauncherStyles(theme)}
+          onClick={isVisible ? onClose : onOpen}
+          ariaLabel={isVisible ? "Close panel" : "Open left panel"}
+          aria-expanded={isVisible}
+          tabIndex={-1}
+          icon={<MenuIcon />}
+        />
+      </div>
 
       <MobileBottomSheet
         open={isVisible}
@@ -674,9 +770,7 @@ const PanelLeft: React.FC = () => {
     })
   );
 
-  const isStandaloneMode =
-    location.pathname.startsWith("/standalone-chat") ||
-    location.pathname.startsWith("/miniapp");
+  const isStandaloneMode = location.pathname.startsWith("/standalone-chat");
   // The rail owns the app menu (logo) only in the unified workspace shell;
   // legacy routes still carry it in their own header.
   const isWorkspace = location.pathname.startsWith("/workspace");
@@ -690,6 +784,7 @@ const PanelLeft: React.FC = () => {
       activeTabType === "workflow" &&
       activeTabMode === "edit");
   const hasHeader = !isStandaloneMode && !isChatRoute;
+  const panelLeftStyles = useMemo(() => styles(theme, hasHeader, false), [theme, hasHeader]);
 
   const {
     ref: panelRef,
@@ -782,13 +877,14 @@ const PanelLeft: React.FC = () => {
         onClose={handleMobileClose}
         onViewChange={onViewChange}
         handlePanelToggle={handlePanelToggle}
+        showAppMenu={isWorkspace}
       />
     );
   }
 
   return (
     <div
-      css={styles(theme, hasHeader, false)}
+      css={panelLeftStyles}
       className={`panel-left-container ${
         displayActiveView === "nodes" ? "is-nodes" : ""
       }`}
@@ -822,7 +918,9 @@ const PanelLeft: React.FC = () => {
                 (displayActiveView === "nodes" ||
                   displayActiveView === "workflows" ||
                   displayActiveView === "sketches" ||
-                  displayActiveView === "timelines")
+                  displayActiveView === "timelines" ||
+                  displayActiveView === "storyboards" ||
+                  displayActiveView === "scripts")
               ) {
                 e.stopPropagation();
                 setVisibility(false);

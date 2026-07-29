@@ -1,13 +1,6 @@
 /**
- * buildToolContext — shared tool-runtime context builder.
- *
- * Extracts the ToolContext construction from usePointerHandlers so the
- * same builder can be used by tests, and so usePointerHandlers and
- * tools/types.ts share one authoritative mapping from runtime params
- * to ToolContext fields.
- *
- * The builder takes a subset of UsePointerHandlersParams (plus utility
- * callbacks) and returns a complete ToolContext object.
+ * buildToolContext — builds a ToolContext from runtime params. Shared by
+ * usePointerHandlers and tests as the single param-to-context mapping.
  */
 
 import type {
@@ -135,11 +128,8 @@ export interface BuildToolContextParams {
 }
 
 /**
- * Build a ToolContext from the given parameters.
- *
- * This is a pure mapping function — no side effects, no hooks, no state.
- * It centralizes the parameter-to-context mapping that was previously
- * inlined in `usePointerHandlers`.
+ * Build a ToolContext from the given parameters. Pure mapping — no side
+ * effects, no hooks, no state.
  */
 export function buildToolContext(params: BuildToolContextParams): ToolContext {
   return {

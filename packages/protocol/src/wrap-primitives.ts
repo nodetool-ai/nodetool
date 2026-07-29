@@ -9,9 +9,6 @@ export interface WrappedPrimitive {
   value: number | string | boolean;
 }
 
-/**
- * Wrap a JS primitive into a typed wrapper.
- */
 export function wrapPrimitive(
   value: number | string | boolean
 ): WrappedPrimitive {
@@ -21,16 +18,12 @@ export function wrapPrimitive(
   if (typeof value === "boolean") {
     return { type: "bool", value };
   }
-  // number
   if (Number.isInteger(value)) {
     return { type: "int", value };
   }
   return { type: "float", value };
 }
 
-/**
- * Unwrap a typed wrapper back to a JS primitive.
- */
 export function unwrapPrimitive(
   wrapped: WrappedPrimitive
 ): number | string | boolean {

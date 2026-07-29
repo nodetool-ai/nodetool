@@ -19,7 +19,9 @@ import type { UsageInfo } from "./cost-calculator.js";
 import { createUsageSlot } from "../tracing-helpers.js";
 import type {
   Message,
+  ProviderEffort,
   ProviderStreamItem,
+  ProviderThinkingConfig,
   ProviderTool
 } from "./types.js";
 
@@ -43,7 +45,17 @@ export type CassetteMethod = "generateMessage" | "generateMessages";
 export interface CassetteRequest {
   model: string;
   messages: Message[];
-  tools?: Array<{ name: string; description?: string; inputSchema?: unknown }>;
+  tools?: Array<{
+    name: string;
+    description?: string;
+    inputSchema?: unknown;
+    inputExamples?: Array<Record<string, unknown>>;
+    cacheControl?: ProviderTool["cacheControl"];
+    strict?: boolean;
+    deferLoading?: boolean;
+    allowedCallers?: string[];
+    type?: ProviderTool["type"];
+  }>;
   toolChoice?: string;
   maxTokens?: number;
   maxTurns?: number;
@@ -51,6 +63,8 @@ export interface CassetteRequest {
   topP?: number;
   presencePenalty?: number;
   frequencyPenalty?: number;
+  thinking?: ProviderThinkingConfig;
+  effort?: ProviderEffort;
   audio?: Record<string, unknown>;
 }
 
@@ -109,15 +123,19 @@ export function stableStringify(value: unknown): string {
     }
     if (seen.has(v as object)) return "[circular]";
     seen.add(v as object);
-    if (Array.isArray(v)) {
-      return v.map(encode);
+    try {
+      if (Array.isArray(v)) {
+        return v.map(encode);
+      }
+      const obj = v as Record<string, unknown>;
+      const out: Record<string, unknown> = {};
+      for (const key of Object.keys(obj).sort()) {
+        out[key] = encode(obj[key]);
+      }
+      return out;
+    } finally {
+      seen.delete(v as object);
     }
-    const obj = v as Record<string, unknown>;
-    const out: Record<string, unknown> = {};
-    for (const key of Object.keys(obj).sort()) {
-      out[key] = encode(obj[key]);
-    }
-    return out;
   };
 
   return JSON.stringify(encode(value));
@@ -167,6 +185,8 @@ export function normalizeRequest(args: {
   topP?: number;
   presencePenalty?: number;
   frequencyPenalty?: number;
+  thinking?: ProviderThinkingConfig;
+  effort?: ProviderEffort;
   audio?: Record<string, unknown>;
 }): CassetteRequest {
   const request: CassetteRequest = {
@@ -179,7 +199,13 @@ export function normalizeRequest(args: {
     request.tools = args.tools.map((t) => ({
       name: t.name,
       description: t.description,
-      inputSchema: t.inputSchema
+      inputSchema: t.inputSchema,
+      inputExamples: t.inputExamples,
+      cacheControl: t.cacheControl,
+      strict: t.strict,
+      deferLoading: t.deferLoading,
+      allowedCallers: t.allowedCallers,
+      type: t.type
     }));
   }
   if (args.toolChoice !== undefined) request.toolChoice = args.toolChoice;
@@ -193,6 +219,8 @@ export function normalizeRequest(args: {
   if (args.frequencyPenalty !== undefined) {
     request.frequencyPenalty = args.frequencyPenalty;
   }
+  if (args.thinking !== undefined) request.thinking = args.thinking;
+  if (args.effort !== undefined) request.effort = args.effort;
   if (args.audio !== undefined) request.audio = args.audio;
   return request;
 }
@@ -459,7 +487,12 @@ export class CassetteProvider extends BaseProvider {
  * recorded run.
  */
 function usageFromSlot(
-  usage: { inputTokens: number; outputTokens: number; cachedInputTokens?: number } | null
+  usage: {
+    inputTokens: number;
+    outputTokens: number;
+    cachedInputTokens?: number;
+    cacheWriteTokens?: number;
+  } | null
 ): UsageInfo | undefined {
   if (!usage) return undefined;
   const info: UsageInfo = {
@@ -468,6 +501,9 @@ function usageFromSlot(
   };
   if (usage.cachedInputTokens !== undefined) {
     info.cachedTokens = usage.cachedInputTokens;
+  }
+  if (usage.cacheWriteTokens !== undefined) {
+    info.cacheWriteTokens = usage.cacheWriteTokens;
   }
   return info;
 }

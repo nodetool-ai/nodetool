@@ -50,18 +50,20 @@ export {
   type EmitOptions
 } from "./io.js";
 export {
+  applyDynamicSlotTypes,
+  dynamicSlotPropertyTypes,
+  dynamicSlotTypeErrorMessage,
+  dynamicSlotTypeString,
+  getDynamicSlotTypeString
+} from "./dynamic-slots.js";
+export {
   findNodeOrThrow,
+  getInputTypeString,
   getNodeInputTypes,
   getDownstreamSubgraph,
   isNodeBypassed,
   rewriteBypassedNodes
 } from "./graph-utils.js";
-export {
-  TriggerWorkflowManager,
-  type TriggerJob,
-  type StartJobFn,
-  type HasTriggerNodesFn
-} from "./trigger-manager.js";
 export {
   WorkflowSuspendedError,
   SuspendableState,
@@ -74,4 +76,9 @@ export {
   type DurableInboxStore,
   type DurableMessage
 } from "./durable-inbox.js";
-export { TriggerWakeupService, type TriggerInput } from "./trigger-wakeup.js";
+export {
+  TriggerWakeupService,
+  MemoryTriggerInputStore,
+  type TriggerInput,
+  type TriggerInputStore
+} from "./trigger-wakeup.js";

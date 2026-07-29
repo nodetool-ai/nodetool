@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 // Full-page settings (formerly a Dialog).
 import React, { memo, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
   useMediaQuery
 } from "@mui/material";
@@ -20,9 +20,9 @@ import {
   FlexColumn,
   Box,
   Tabs,
-  Tab
+  Tab,
+  SPACING
 } from "../ui_primitives";
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { isLocalhost, isElectron } from "../../lib/env";
 import RemoteSettingsMenuComponent from "./RemoteSettingsMenu";
@@ -35,8 +35,7 @@ import {
   SecurityNotice
 } from "./APIKeysTab";
 import {
-  getDisplayedSettingGroups,
-  settingGroupSlug
+  getDisplayedSettingGroups
 } from "./RemoteSettingsMenu";
 import ServerNumberSetting from "./ServerNumberSetting";
 import { getAboutSidebarSections } from "./aboutSidebarUtils";
@@ -155,7 +154,6 @@ const SearchItem = React.memo(function SearchItem({
 });
 
 function SettingsPage() {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const session = useAuth((state) => state.session);
 
@@ -214,14 +212,13 @@ function SettingsPage() {
   );
 
   const [activeSection, setActiveSection] = useState("editor");
-  const [, setSecretsUpdated] = useState({});
+  const [, setSecretsUpdated] = useState(0);
   const settingsContentRef = useRef<HTMLDivElement | null>(null);
   const [closeBehavior, setCloseBehavior] = useState<
     "ask" | "quit" | "background"
   >("ask");
   const [autoUpdatesEnabled, setAutoUpdatesEnabled] = useState(false);
   const [updateChannel, setUpdateChannel] = useState<"latest" | "nightly">("latest");
-  const [startLlamaCppOnStartup, setStartLlamaCppOnStartup] = useState(false);
   const desktopUpdateSettingsApi = useMemo(() => {
     // `isElectron` and `window.api` are static for the lifetime of the renderer session.
     if (!isElectron) {
@@ -254,32 +251,6 @@ function SettingsPage() {
   }, []);
   const supportsDesktopUpdateSettings = desktopUpdateSettingsApi !== null;
 
-  const desktopModelServicesApi = useMemo(() => {
-    // `isElectron` and `window.api` are static for the lifetime of the renderer session.
-    if (!isElectron) {
-      return null;
-    }
-
-    const api = window.api?.settings;
-    if (
-      !api ||
-      typeof api.getModelServicesStartup !== "function" ||
-      typeof api.setModelServicesStartup !== "function"
-    ) {
-      return null;
-    }
-
-    const getModelServicesStartup = api.getModelServicesStartup;
-    const setModelServicesStartup = api.setModelServicesStartup;
-
-    return {
-      get: () => getModelServicesStartup(),
-      set: (update: { startLlamaCppOnStartup?: boolean }) =>
-        setModelServicesStartup(update)
-    };
-  }, []);
-  const supportsDesktopModelServices = desktopModelServicesApi !== null;
-
   // Load close behavior setting on mount (Electron only)
   useEffect(() => {
     if (isElectron && window.api?.settings?.getCloseBehavior) {
@@ -304,50 +275,6 @@ function SettingsPage() {
         });
     }
   }, [desktopUpdateSettingsApi, supportsDesktopUpdateSettings]);
-
-  // Load managed local model service startup settings on mount (Electron only)
-  useEffect(() => {
-    if (!supportsDesktopModelServices) {
-      return;
-    }
-    desktopModelServicesApi
-      .get()
-      .then((startup) =>
-        setStartLlamaCppOnStartup(startup.startLlamaCppOnStartup)
-      )
-      .catch((error: unknown) => {
-        console.error(
-          "Failed to load model services startup setting:",
-          error
-        );
-      });
-  }, [desktopModelServicesApi, supportsDesktopModelServices]);
-
-  const handleStartLlamaCppOnStartupChange = useCallback(
-    (checked: boolean) => {
-      if (!supportsDesktopModelServices) {
-        return;
-      }
-      const previousValue = startLlamaCppOnStartup;
-      setStartLlamaCppOnStartup(checked);
-      void desktopModelServicesApi
-        .set({ startLlamaCppOnStartup: checked })
-        .then((next) => setStartLlamaCppOnStartup(next.startLlamaCppOnStartup))
-        .catch((error: unknown) => {
-          setStartLlamaCppOnStartup(previousValue);
-          console.error(
-            "Failed to update model services startup setting:",
-            error
-          );
-          addNotification({
-            type: "error",
-            alert: true,
-            content: "Failed to save Llama.cpp startup preference."
-          });
-        });
-    },
-    [addNotification, desktopModelServicesApi, startLlamaCppOnStartup, supportsDesktopModelServices]
-  );
 
   const handleCloseBehaviorChange = useCallback(
     (action: "ask" | "quit" | "background") => {
@@ -398,7 +325,7 @@ function SettingsPage() {
 
   // Subscribe to secrets store changes to update sidebar when secrets are modified
   useEffect(() => {
-    const unsubscribe = useSecretsStore.subscribe(() => setSecretsUpdated({}));
+    const unsubscribe = useSecretsStore.subscribe(() => setSecretsUpdated((n) => n + 1));
     return unsubscribe;
   }, []);
 
@@ -469,10 +396,6 @@ function SettingsPage() {
     },
     [setTimeFormat]
   );
-  const handleClose = useCallback(() => {
-    navigate(-1);
-  }, [navigate]);
-
   const copyAuthToken = async () => {
     const accessToken = session?.access_token;
     if (accessToken) {
@@ -566,29 +489,16 @@ function SettingsPage() {
   const secrets = useSecretsStore((state) => state.secrets);
   void secrets;
 
-  // Tab 2: Integrations sidebar folders — Configuration lists every group the
-  // generic settings panel renders, so the sidebar shows all items.
+  // Tab 2: Integrations sidebar folders — Configuration mirrors the panel
+  // top-to-bottom: the registry meta-sections (Local Model Servers, Search
+  // Provider, …) then Folders; Servers (localhost) and the Nodetool API token
+  // (hosted) follow.
   const integrationsSidebarSections = useMemo(() => {
     const configItems = [
-      { id: "api-settings", label: "API Settings" },
-      { id: "huggingface-oauth", label: "HuggingFace" },
-      { id: "search-provider", label: "Search Provider" },
-      ...getDisplayedSettingGroups(remoteSettings ?? []).map((group) => ({
-        id: settingGroupSlug(group),
-        label: group
-      }))
+      ...getDisplayedSettingGroups(remoteSettings ?? []),
+      { id: "folders", label: "Folders" }
     ];
     return [
-      ...(session?.access_token && !isLocalhost
-        ? [
-            {
-              category: "Credentials",
-              items: [
-                { id: "nodetool-api-token", label: "Nodetool API Token" }
-              ]
-            }
-          ]
-        : []),
       { category: "Configuration", items: configItems },
       ...(isLocalhost
         ? [
@@ -601,12 +511,25 @@ function SettingsPage() {
             }
           ]
         : []),
-      { category: "Storage", items: [{ id: "folders", label: "Folders" }] }
+      ...(session?.access_token && !isLocalhost
+        ? [
+            {
+              category: "Credentials",
+              items: [
+                { id: "nodetool-api-token", label: "Nodetool API Token" }
+              ]
+            }
+          ]
+        : [])
     ];
   }, [remoteSettings, session?.access_token]);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  // The right sidebar is wider than the search/cards layout it sits next to;
+  // drop it one breakpoint earlier (`md`, ~900px) so the card list doesn't
+  // compress below the threshold where it becomes unreadable.
+  const isCompact = useMediaQuery(theme.breakpoints.down("md"));
 
   return (
     <FlexColumn
@@ -619,15 +542,6 @@ function SettingsPage() {
     >
       <Box css={settingsStyles(theme)} sx={{ flex: 1, minHeight: 0 }}>
         <header className="settings-page-header">
-          <EditorButton
-            className="settings-back"
-            density="normal"
-            onClick={handleClose}
-            startIcon={<ArrowBackRoundedIcon sx={{ fontSize: 16 }} />}
-            aria-label="Go back"
-          >
-            Back
-          </EditorButton>
           <div className="settings-page-header__titles">
             <h1 className="settings-page-header__title">Settings</h1>
             <p className="settings-page-header__subtitle">
@@ -645,6 +559,8 @@ function SettingsPage() {
                 onChange={handleTabChange}
                 className="settings-tabs"
                 aria-label="settings tabs"
+                variant={isMobile ? "scrollable" : "standard"}
+                scrollButtons={false}
               >
                 <Tab label="General" id="settings-tab-0" />
                 <Tab label="API Keys" id="settings-tab-1" />
@@ -653,7 +569,7 @@ function SettingsPage() {
               </Tabs>
             </div>
 
-            <div className={`settings-container${settingsTab === TAB_API_KEYS && !isMobile ? " settings-container--api-keys" : ""}`}>
+            <div className={`settings-container${settingsTab === TAB_API_KEYS && !isCompact ? " settings-container--api-keys" : ""}`}>
               {!isMobile &&
                 (settingsTab === TAB_GENERAL ||
                   settingsTab === TAB_INTEGRATIONS ||
@@ -680,7 +596,7 @@ function SettingsPage() {
               >
                 {/* Tab 0: General */}
                 <TabPanel value={settingsTab} index={TAB_GENERAL}>
-                  <div style={{ marginBottom: "1.5em" }}>
+                  <Box sx={{ marginBottom: theme.spacing(SPACING.xxl) }}>
                     <SearchInput
                       placeholder="Search settings..."
                       value={generalSearchTerm}
@@ -688,7 +604,7 @@ function SettingsPage() {
                       size="small"
                       showClear
                     />
-                  </div>
+                  </Box>
                   <div className="general-settings">
                     <div className="settings-section">
                       <Text size="big" id="editor" className="settings-heading">
@@ -761,7 +677,6 @@ function SettingsPage() {
                           <SelectField
                             label="Update Channel"
                             value={updateChannel}
-                            variant="standard"
                             onChange={handleUpdateChannelChange}
                             options={UPDATE_CHANNEL_OPTIONS}
                           />
@@ -780,7 +695,6 @@ function SettingsPage() {
                           <SelectField
                             label="On Close Behavior"
                             value={closeBehavior}
-                            variant="standard"
                             onChange={(v) =>
                               handleCloseBehaviorChange(
                                 v as "ask" | "quit" | "background"
@@ -798,20 +712,6 @@ function SettingsPage() {
                             <b>Background:</b> Keeps the app running in the system
                             tray.
                           </Text>
-                        </SearchItem>
-                      )}
-
-                      {supportsDesktopModelServices && (
-                        <SearchItem
-                          search={generalSearch}
-                          keywords="editor workspace local model services llama llama.cpp startup launch"
-                        >
-                          <LabeledSwitch
-                            label="Start Llama.cpp on Startup"
-                            checked={startLlamaCppOnStartup}
-                            onChange={handleStartLlamaCppOnStartupChange}
-                            description="Start or attach to the local llama-server when the desktop app launches."
-                          />
                         </SearchItem>
                       )}
                     </div>
@@ -943,7 +843,6 @@ function SettingsPage() {
                         <SelectField
                           label="Left-Click Drag"
                           value={settings.panControls}
-                          variant="standard"
                           onChange={handlePanControlsChange}
                           options={PAN_CONTROLS_OPTIONS}
                         />
@@ -969,7 +868,6 @@ function SettingsPage() {
                         <SelectField
                           label="Node Selection Mode"
                           value={settings.selectionMode}
-                          variant="standard"
                           onChange={handleSelectionModeChange}
                           options={SELECTION_MODE_OPTIONS}
                         />
@@ -1056,7 +954,6 @@ function SettingsPage() {
                         <SelectField
                           label="Autosave Interval (minutes)"
                           value={settings.autosave?.intervalMinutes ?? 10}
-                          variant="standard"
                           onChange={(v) =>
                             updateAutosaveSettings({
                               intervalMinutes: Number(v)
@@ -1109,7 +1006,6 @@ function SettingsPage() {
                           value={
                             settings.autosave?.maxVersionsPerWorkflow ?? 50
                           }
-                          variant="standard"
                           onChange={(v) =>
                             updateAutosaveSettings({
                               maxVersionsPerWorkflow: Number(v)
@@ -1136,7 +1032,6 @@ function SettingsPage() {
                         <SelectField
                           label="Time Format"
                           value={settings.timeFormat}
-                          variant="standard"
                           onChange={handleTimeFormatChange}
                           options={TIME_FORMAT_OPTIONS}
                           description="Display time in 12h or 24h format."
@@ -1148,7 +1043,7 @@ function SettingsPage() {
 
                 {/* Tab 1: API Keys (provider credentials only) */}
                 <TabPanel value={settingsTab} index={TAB_API_KEYS}>
-                  <div style={{ marginBottom: "1.5em" }}>
+                  <Box sx={{ marginBottom: theme.spacing(SPACING.xxl) }}>
                     <SearchInput
                       placeholder="Search providers..."
                       value={apiSearchTerm}
@@ -1156,9 +1051,9 @@ function SettingsPage() {
                       size="small"
                       showClear
                     />
-                  </div>
+                  </Box>
                   <APIKeysTabContent searchTerm={apiSearchTerm} />
-                  <Box sx={{ marginTop: "1.5em" }}>
+                  <Box sx={{ marginTop: theme.spacing(SPACING.xxl) }}>
                     <SecurityNotice />
                   </Box>
                 </TabPanel>
@@ -1166,6 +1061,39 @@ function SettingsPage() {
                 {/* Tab 2: Integrations (endpoints, MCP, storage, Nodetool API) */}
                 <TabPanel value={settingsTab} index={TAB_INTEGRATIONS}>
                   <div className="integrations-settings">
+                  {/* Meta-sections from the registry + the Web-search picker. */}
+                  <RemoteSettingsMenuComponent />
+
+                  {/* Data & storage: Folders browser. */}
+                  <Text size="big" id="folders" className="settings-heading">
+                    Folders
+                  </Text>
+                  <FoldersSettings />
+
+                  {/* Servers (localhost only): MCP + Browser Extension. */}
+                  {isLocalhost && (
+                    <>
+                      <Text
+                        size="big"
+                        id="mcp-integration"
+                        className="settings-heading"
+                      >
+                        MCP Integration
+                      </Text>
+                      <MCPSettingsMenu />
+
+                      <Text
+                        size="big"
+                        id="browser-extension"
+                        className="settings-heading"
+                      >
+                        Browser Extension
+                      </Text>
+                      <BrowserExtensionSettingsMenu />
+                    </>
+                  )}
+
+                  {/* Nodetool API (hosted only): token copy card. */}
                   {session?.access_token && !isLocalhost && (
                     <>
                       <Text
@@ -1240,42 +1168,6 @@ function SettingsPage() {
                       </div>
                     </>
                   )}
-
-                  <Text
-                    size="big"
-                    id="api-settings"
-                    className="settings-heading"
-                  >
-                    API Settings
-                  </Text>
-                  <RemoteSettingsMenuComponent />
-
-                  {isLocalhost && (
-                    <>
-                      <Text
-                        size="big"
-                        id="mcp-integration"
-                        className="settings-heading"
-                      >
-                        MCP Integration
-                      </Text>
-                      <MCPSettingsMenu />
-
-                      <Text
-                        size="big"
-                        id="browser-extension"
-                        className="settings-heading"
-                      >
-                        Browser Extension
-                      </Text>
-                      <BrowserExtensionSettingsMenu />
-                    </>
-                  )}
-
-                  <Text size="big" id="folders" className="settings-heading">
-                    Folders
-                  </Text>
-                  <FoldersSettings />
                   </div>
                 </TabPanel>
 
@@ -1285,7 +1177,7 @@ function SettingsPage() {
                 </TabPanel>
               </div>
 
-              {settingsTab === TAB_API_KEYS && !isMobile && (
+              {settingsTab === TAB_API_KEYS && !isCompact && (
                 <APIKeysRightSidebar />
               )}
             </div>

@@ -2,8 +2,6 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
-// ── Discord Nodes ───────────────────────────────────────────────────────────
-
 export class DiscordBotTrigger extends BaseNode {
   static readonly nodeType = "messaging.discord.DiscordBotTrigger";
   static readonly title = "Discord Bot Trigger";
@@ -214,8 +212,6 @@ export class DiscordSendMessage extends BaseNode {
     };
   }
 }
-
-// ── Telegram Nodes ──────────────────────────────────────────────────────────
 
 export class TelegramBotTrigger extends BaseNode {
   static readonly nodeType = "messaging.telegram.TelegramBotTrigger";
@@ -493,8 +489,6 @@ export class TelegramSendMessage extends BaseNode {
     };
   }
 }
-
-// ── Export ───────────────────────────────────────────────────────────────────
 
 export const MESSAGING_NODES = tagAsServer([
   DiscordBotTrigger,

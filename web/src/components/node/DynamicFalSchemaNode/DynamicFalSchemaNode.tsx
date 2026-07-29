@@ -47,10 +47,7 @@ const Toolbar = memo(function Toolbar({
 /** FAL node accent (distinct from input/output/generic) */
 const FAL_HEADER_COLOR = "#8B5CF6";
 
-/**
- * Dedicated React Flow node for fal.DynamicFal.
- * Full control over layout, styling, and future FAL-specific UI (credits, docs).
- */
+/** Dedicated React Flow node for fal.DynamicFal. */
 const DynamicFalSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const theme = useTheme();
   const { id, type, data, selected, parentId, dragging } = props;

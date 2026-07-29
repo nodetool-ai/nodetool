@@ -20,8 +20,15 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import AddIcon from "@mui/icons-material/Add";
+import TitleIcon from "@mui/icons-material/Title";
 
-import type { TimelineTrack } from "@nodetool-ai/timeline";
+import {
+  makeClip,
+  DEFAULT_TEXT_CLIP_COLOR,
+  DEFAULT_TEXT_CLIP_DURATION_MS,
+  DEFAULT_TEXT_CLIP_FONT_SIZE_PX,
+  type TimelineTrack
+} from "@nodetool-ai/timeline";
 import {
   useTimelineStore,
   useTimelineStoreApi
@@ -30,7 +37,7 @@ import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { Clip } from "./Clip";
-import { ContextMenu, WarningBanner, MOTION, MenuItemPrimitive } from "../../ui_primitives";
+import { ContextMenu, WarningBanner, MOTION, MenuItemPrimitive, Z_INDEX } from "../../ui_primitives";
 import { AddClipMenu } from "../AddClipMenu";
 import { deserializeDragData } from "../../../lib/dragdrop";
 import type { Asset } from "../../../stores/ApiTypes";
@@ -40,13 +47,9 @@ import {
 } from "../dnd/assetToClipAdapter";
 import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport";
 
-// ── Constants ──────────────────────────────────────────────────────────────
-
 const DEFAULT_TRACK_HEIGHT_PX = 64;
 /** Duration (ms) the mismatch warning banner remains visible. */
 const WARNING_DISMISS_MS = 3000;
-
-// ── Styles ─────────────────────────────────────────────────────────────────
 
 const laneStyles = (
   theme: Theme,
@@ -87,10 +90,8 @@ const rubberBandStyles = (theme: Theme) =>
     border: `1px solid ${theme.vars.palette.secondary.main}`,
     backgroundColor: `${theme.vars.palette.secondary.main}22`,
     pointerEvents: "none",
-    zIndex: 20
+    zIndex: Z_INDEX.sticky
   });
-
-// ── Rubber-band selection helper ───────────────────────────────────────────
 
 interface RubberBandRect {
   left: number;
@@ -98,8 +99,6 @@ interface RubberBandRect {
   width: number;
   height: number;
 }
-
-// ── Component ──────────────────────────────────────────────────────────────
 
 export interface TrackLaneProps {
   track: TimelineTrack;
@@ -126,11 +125,10 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
   const seek = useTimelinePlaybackStore((s) => s.seek);
   const setSelection = useTimelineUIStore((s) => s.setSelection);
   const addImportedClip = useTimelineStore((s) => s.addImportedClip);
+  const addClip = useTimelineStore((s) => s.addClip);
   const importVideoWithAudio = useVideoAudioImport();
 
   const heightPx = track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX;
-
-  // ── Rubber-band state ───────────────────────────────────────────────────
 
   const isRubberBandingRef = useRef(false);
   const rbStartRef = useRef({ x: 0, y: 0 });
@@ -154,14 +152,10 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
     null
   );
 
-  // ── Asset drop state ────────────────────────────────────────────────────
-
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDragReject, setIsDragReject] = useState(false);
   const [dropWarning, setDropWarning] = useState<string | null>(null);
   const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // ── Context menu / add-clip state ───────────────────────────────────────
 
   const [contextMenuPos, setContextMenuPos] = useState<{
     x: number;
@@ -428,8 +422,6 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
     setRubberBand(null);
   }, []);
 
-  // ── Right-click context menu ────────────────────────────────────────────
-
   const handleLaneContextMenu = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       // Only on empty lane space — let clips handle their own context menu.
@@ -459,6 +451,27 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
     });
     setContextMenuPos(null);
   }, [contextMenuPos]);
+
+  const handleAddText = useCallback(() => {
+    if (!contextMenuPos) return;
+    const clip = makeClip({
+      trackId: track.id,
+      startMs: contextMenuPos.startMs,
+      durationMs: DEFAULT_TEXT_CLIP_DURATION_MS,
+      name: "Text",
+      mediaType: "text",
+      sourceType: "imported",
+      status: "generated",
+      textStyle: {
+        text: "Text",
+        fontSizePx: DEFAULT_TEXT_CLIP_FONT_SIZE_PX,
+        color: DEFAULT_TEXT_CLIP_COLOR
+      }
+    });
+    addClip(clip);
+    setSelection([clip.id]);
+    setContextMenuPos(null);
+  }, [addClip, contextMenuPos, setSelection, track.id]);
 
   const handleAddClipClose = useCallback(() => {
     setAddClipState(null);
@@ -511,6 +524,17 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
         onClose={() => setContextMenuPos(null)}
         compact
       >
+        {/* Text is the one clip you can author outright — no workflow, no
+            generation — so it sits at the top level rather than behind the
+            generated-clip picker. */}
+        {(track.type === "overlay" || track.type === "video") && (
+          <MenuItemPrimitive
+            label="Add text"
+            icon={<TitleIcon fontSize="small" />}
+            onClick={handleAddText}
+            compact
+          />
+        )}
         <MenuItemPrimitive
           label="Add generated clip here…"
           icon={<AddIcon fontSize="small" />}
@@ -554,7 +578,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
             bottom: 4,
             left: 4,
             right: 4,
-            zIndex: 30,
+            zIndex: Z_INDEX.sticky + 10,
             pointerEvents: "none"
           }}
           aria-live="polite"

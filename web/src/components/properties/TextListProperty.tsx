@@ -8,7 +8,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Tooltip, Text, CloseButton, MOTION, SPACING, BORDER_RADIUS, getSpacingPx } from "../ui_primitives";
 import DescriptionIcon from "@mui/icons-material/Description";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { isElectron } from "../../utils/browser";
 import {
@@ -130,21 +130,17 @@ const styles = (theme: Theme) =>
     }
   });
 
-// Text file extensions and MIME types
 const TEXT_EXTENSIONS = [".txt", ".md", ".json", ".csv", ".xml", ".html", ".htm", ".yaml", ".yml", ".log", ".ini", ".cfg", ".conf"];
 const TEXT_MIME_TYPES = ["text/", "application/json", "application/xml", "application/yaml"];
 
 const isTextFile = (file: File): boolean => {
-  // Check by MIME type
   if (TEXT_MIME_TYPES.some((type) => file.type.startsWith(type))) {
     return true;
   }
-  // Check by extension
   const fileName = file.name.toLowerCase();
   return TEXT_EXTENSIONS.some((ext) => fileName.endsWith(ext));
 };
 
-// Helper to check if an asset is a text file by content_type
 const isTextAsset = (contentType: string | undefined): boolean => {
   if (!contentType) {
     return false;
@@ -158,7 +154,6 @@ const flattenTextItems = (items: unknown): TextItem[] => {
     return [];
   }
   if (!Array.isArray(items)) {
-    // Single item - check if it has the right shape
     if (typeof items === "object" && items !== null && "uri" in items) {
       return [items as TextItem];
     }
@@ -168,7 +163,6 @@ const flattenTextItems = (items: unknown): TextItem[] => {
   const result: TextItem[] = [];
   for (const item of items) {
     if (Array.isArray(item)) {
-      // Nested array - recursively flatten
       result.push(...flattenTextItems(item));
     } else if (typeof item === "object" && item !== null && "uri" in item) {
       result.push(item as TextItem);
@@ -187,7 +181,6 @@ const TextListProperty = (props: PropertyProps) => {
   const globalSearchResults = useAssetGridStore((state) => state.globalSearchResults);
   const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
 
-  // Convert value to array of TextItem, flattening nested arrays
   const texts: TextItem[] = useMemo(
     () => flattenTextItems(props.value),
     [props.value]
@@ -219,7 +212,6 @@ const TextListProperty = (props: PropertyProps) => {
     [texts, handleRemoveText]
   );
 
-  // Extract filename from URI
   const getFilename = useCallback((uri: string) => {
     try {
       const url = new URL(uri);
@@ -231,20 +223,17 @@ const TextListProperty = (props: PropertyProps) => {
     }
   }, []);
 
-  // Handle file drops
-  // Handle file drops (both internal nodetool assets and external files)
+  // Handles both internal nodetool asset drops and external file drops.
   const onDrop = useCallback(
     async (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault();
       event.stopPropagation();
       setIsDragOver(false);
 
-      // First, try to handle internal nodetool asset drops
       const dragData = deserializeDragData(event.dataTransfer);
       if (dragData) {
         const droppedTexts: TextItem[] = [];
 
-        // Handle multiple assets
         if (dragData.type === "assets-multiple") {
           const selectedIds = dragData.payload as string[];
           const uniqueAssets = resolveAssetsMultiple(
@@ -260,7 +249,6 @@ const TextListProperty = (props: PropertyProps) => {
           });
         }
 
-        // Handle single asset
         if (droppedTexts.length === 0 && dragData.type === "asset") {
           const asset = dragData.payload as Asset;
           if (asset.get_url && isTextAsset(asset.content_type)) {
@@ -274,7 +262,6 @@ const TextListProperty = (props: PropertyProps) => {
         }
       }
 
-      // Fall back to handling external file drops
       if (!hasExternalFiles(event.dataTransfer)) {
         return;
       }
@@ -285,14 +272,12 @@ const TextListProperty = (props: PropertyProps) => {
         return;
       }
 
-      // Upload all files and collect their assets
       const uploadPromises = files.map(
         (file) =>
           new Promise<TextItem>((resolve, reject) => {
             uploadAsset({
               file,
               onCompleted: (asset: Asset) => {
-                // Validate asset URL before adding
                 const uri = asset.get_url;
                 if (!uri) {
                   reject(new Error("Asset URL is missing"));
@@ -329,7 +314,6 @@ const TextListProperty = (props: PropertyProps) => {
     setIsDragOver(false);
   }, []);
 
-  // Native file picker for Electron
   const handleNativeFilePicker = useCallback(async () => {
     if (!window.api?.dialog?.openFile) {
       return;
@@ -384,12 +368,10 @@ const TextListProperty = (props: PropertyProps) => {
     }
   }, [uploadAsset, handleAddTexts]);
 
-  // Handle files from browser file input
   const handleBrowserFilePicker = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
 
-  // Handle file input change (browser fallback)
   const handleFileInputChange = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []).filter(isTextFile);
     if (files.length === 0) {
@@ -429,7 +411,6 @@ const TextListProperty = (props: PropertyProps) => {
     }
   }, [uploadAsset, handleAddTexts]);
 
-  // Handle dropzone click - use native dialog in Electron, file input in browser
   const handleDropzoneClick = useCallback(() => {
     if (isElectron && window.api?.dialog?.openFile) {
       handleNativeFilePicker();
@@ -440,7 +421,6 @@ const TextListProperty = (props: PropertyProps) => {
 
   return (
     <div className="text-list-property" css={styles(theme)}>
-      {/* Hidden file input for browser fallback */}
       <input
         ref={fileInputRef}
         type="file"
@@ -455,8 +435,7 @@ const TextListProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
-      
-      {/* Text List */}
+
       {texts.length > 0 && (
         <div className="text-grid">
           {texts.map((text, index) => (
@@ -478,7 +457,6 @@ const TextListProperty = (props: PropertyProps) => {
         </div>
       )}
 
-      {/* Dropzone */}
       <Tooltip title="Click to select text files or drag and drop">
         <div
           role="button"

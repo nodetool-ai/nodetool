@@ -46,6 +46,7 @@ const LOCAL_PROVIDER_IDS = new Set([
   "lmstudio",
   "vllm",
   "llama_cpp",
+  "node_llama_cpp",
   "huggingface"
 ]);
 
@@ -93,7 +94,7 @@ const FIND_MODEL_INPUT_SCHEMA = {
     prefer_local: {
       type: "boolean" as const,
       description:
-        "If true, ranks local providers (ollama, lmstudio, vllm, llama_cpp, huggingface) above hosted ones.",
+        "If true, ranks local providers (ollama, lmstudio, vllm, llama_cpp, node_llama_cpp, huggingface) above hosted ones.",
       default: false
     },
     limit: {
@@ -246,7 +247,7 @@ export class FindModelTool extends Tool {
         capability,
         total: 0,
         results: [],
-        note: "No providers configured. Use nodetool.agents.AgentStep for AI work."
+        note: "No providers configured. Use nodetool.agents.Agent without a model property for AI work."
       };
     }
 

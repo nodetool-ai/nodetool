@@ -108,37 +108,29 @@ export class DockerRunGenerator {
   generateCommand(): string {
     const parts: string[] = [`${shellEscape(this.runtimeCommand)} run`];
 
-    // Detached mode
     parts.push("-d");
 
-    // Container name
     const containerName = `nodetool-${this.container.name}`;
     parts.push(`--name ${shellEscape(containerName)}`);
 
-    // Restart policy
     parts.push("--restart unless-stopped");
 
-    // Port mapping
     const hostPort = this.resolveHostPort();
     parts.push(`-p ${hostPort}:${INTERNAL_API_PORT}`);
 
-    // Volume mounts
     for (const volume of this.buildVolumes()) {
       parts.push(`-v ${volume}`);
     }
 
-    // Environment variables
     for (const env of this.buildEnvironment()) {
       parts.push(`-e ${env}`);
     }
 
-    // GPU configuration
     if (this.container.gpu) {
       const gpuArgs = this.buildGpuArgs();
       parts.push(...gpuArgs);
     }
 
-    // Health check
     const healthcheck =
       `--health-cmd="curl -f http://localhost:${INTERNAL_API_PORT}/health || exit 1" ` +
       "--health-interval=30s " +
@@ -147,7 +139,6 @@ export class DockerRunGenerator {
       "--health-start-period=40s";
     parts.push(healthcheck);
 
-    // Image name
     parts.push(shellEscape(imageFullName(this.deployment.image)));
 
     return parts.join(" \\\n  ");
@@ -185,11 +176,9 @@ export class DockerRunGenerator {
   private buildVolumes(): string[] {
     const volumes: string[] = [];
 
-    // Workspace volume (read-write)
     const workspacePath = this.deployment.paths.workspace;
     volumes.push(`${workspacePath}:/workspace`);
 
-    // HuggingFace cache volume
     const persistentPaths = this.deployment.persistentPaths;
     if (persistentPaths) {
       volumes.push(`${this.deployment.paths.hfCache}:/hf-cache`);
@@ -201,17 +190,14 @@ export class DockerRunGenerator {
   }
 
   private buildEnvironment(): string[] {
-    // Start with container environment
     const env: Record<string, string> = {
       ...(this.container.environment ?? {})
     };
 
-    // Add container-specific settings
     env["PORT"] = String(APP_ENV_PORT);
     env["NODETOOL_API_URL"] = `http://localhost:${this.container.port}`;
     env["NODETOOL_SERVER_MODE"] = "private";
 
-    // Configure paths from persistentPaths if available
     const persistentPaths = this.deployment.persistentPaths;
     if (persistentPaths) {
       env["USERS_FILE"] = persistentPaths.usersFile;
@@ -228,12 +214,10 @@ export class DockerRunGenerator {
       }
     }
 
-    // Add authentication token for self-hosted deployments
     if (this.deployment.serverAuthToken) {
       env["SERVER_AUTH_TOKEN"] = this.deployment.serverAuthToken;
     }
 
-    // Convert to KEY=value format and quote
     return Object.entries(env).map(([key, value]) =>
       safeShellQuote(`${key}=${value}`)
     );

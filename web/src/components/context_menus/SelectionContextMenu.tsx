@@ -15,19 +15,26 @@ import { useDuplicateNodes } from "../../hooks/useDuplicate";
 import useAlignNodes from "../../hooks/useAlignNodes";
 import { useSurroundWithGroup } from "../../hooks/nodes/useSurroundWithGroup";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
+import { useGroupIntoSubgraph } from "../../hooks/nodes/useGroupIntoSubgraph";
+import { useRunSelectedNodes } from "../../hooks/nodes/useRunSelectedNodes";
+import { useToggleCollapse } from "../../hooks/nodes/useToggleCollapse";
 import { useSelectConnected } from "../../hooks/useSelectConnected";
 //icons
 import QueueIcon from "@mui/icons-material/Queue";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
+import ContentCutIcon from "@mui/icons-material/ContentCut";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import BlockIcon from "@mui/icons-material/Block";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import { useNodes } from "../../contexts/NodeContext";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { shallow } from "zustand/shallow";
 
 interface SelectionContextMenuProps {
@@ -36,7 +43,7 @@ interface SelectionContextMenuProps {
 }
 
 const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
-  const { handleCopy } = useCopyPaste();
+  const { handleCopy, handleCut } = useCopyPaste();
   const { deleteNodes, toggleBypassSelected } = useNodes((state) => ({
     deleteNodes: state.deleteNodes,
     toggleBypassSelected: state.toggleBypassSelected
@@ -45,6 +52,9 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const alignNodes = useAlignNodes();
   const surroundWithGroup = useSurroundWithGroup();
   const removeFromGroup = useRemoveFromGroup();
+  const groupIntoSubgraph = useGroupIntoSubgraph();
+  const { runSelectedNodes } = useRunSelectedNodes();
+  const toggleCollapse = useToggleCollapse();
   const selectConnectedAll = useSelectConnected({ direction: "both" });
   const selectConnectedInputs = useSelectConnected({ direction: "upstream" });
   const selectConnectedOutputs = useSelectConnected({ direction: "downstream" });
@@ -72,12 +82,10 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
     isEqual
   );
 
-  // any has parent
   const anyHasParent = useMemo(() => {
     return selectedNodes.some((node) => node.parentId);
   }, [selectedNodes]);
 
-  // Check if majority of selected nodes are bypassed
   const majorityBypassed = useMemo(() => {
     if (selectedNodes.length === 0) {
       return false;
@@ -86,18 +94,15 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
     return bypassedCount >= selectedNodes.length / 2;
   }, [selectedNodes]);
 
-  // bypass
   const handleToggleBypass = useCallback(() => {
     toggleBypassSelected();
     closeContextMenu();
   }, [toggleBypassSelected, closeContextMenu]);
 
-  //duplicate
   const handleDuplicateNodes = useCallback(() => {
     duplicateNodes();
   }, [duplicateNodes]);
 
-  //delete
   const handleDelete = useCallback(() => {
     if (selectedNodes?.length) {
       // [PERF] Use batch deletion (deleteNodes) instead of iterating deleteNode(node.id) to avoid O(N) re-renders
@@ -106,7 +111,6 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
     closeContextMenu();
   }, [closeContextMenu, deleteNodes, selectedNodes]);
 
-  //select connected
   const handleSelectConnectedAll = useCallback(() => {
     selectConnectedAll.selectConnected();
     closeContextMenu();
@@ -139,7 +143,32 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
 
   const handleCopyNodes = useCallback(() => {
     handleCopy();
-  }, [handleCopy]);
+    closeContextMenu();
+  }, [handleCopy, closeContextMenu]);
+
+  const handleCutNodes = useCallback(() => {
+    void handleCut();
+    closeContextMenu();
+  }, [handleCut, closeContextMenu]);
+
+  const handleRunSelected = useCallback(() => {
+    void runSelectedNodes();
+    closeContextMenu();
+  }, [runSelectedNodes, closeContextMenu]);
+
+  const handleGroupIntoSubgraph = useCallback(() => {
+    const ids = selectedNodes.map((node) => node.id);
+    if (ids.length === 0) {
+      return;
+    }
+    groupIntoSubgraph(ids);
+    closeContextMenu();
+  }, [groupIntoSubgraph, selectedNodes, closeContextMenu]);
+
+  const handleToggleCollapsed = useCallback(() => {
+    toggleCollapse(selectedNodes.map((node) => node.id));
+    closeContextMenu();
+  }, [toggleCollapse, selectedNodes, closeContextMenu]);
 
   const handleAlignNodesFalse = useCallback(() => {
     handleAlignNodes(false);
@@ -198,6 +227,25 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
           </div>
         }
       />
+      <ContextMenuItem
+        onClick={handleCutNodes}
+        label="Cut"
+        IconComponent={<ContentCutIcon />}
+        tooltip={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Cut</div>
+            <div className="tooltip-key">
+              <kbd>CTRL</kbd>+<kbd>X</kbd> / <kbd>⌘</kbd>+<kbd>X</kbd>
+            </div>
+          </div>
+        }
+      />
+      <ContextMenuItem
+        onClick={handleRunSelected}
+        label="Run Selected"
+        IconComponent={<PlayArrowIcon />}
+        tooltip="Run the selected nodes as their own job"
+      />
       {selectedNodes?.length > 1 && (
         <ContextMenuItem
           onClick={handleAlignNodesFalse}
@@ -245,10 +293,24 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         }
       />
 
+      <ContextMenuItem
+        onClick={handleToggleCollapsed}
+        label="Collapse / Expand"
+        IconComponent={<UnfoldLessIcon />}
+        tooltip={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Collapse / Expand</div>
+            <div className="tooltip-key">
+              <kbd>C</kbd>
+            </div>
+          </div>
+        }
+      />
+
       {!anyHasParent && (
         <ContextMenuItem
           onClick={handleSurroundWithGroup}
-          label="Surrround With Group"
+          label="Surround With Group"
           IconComponent={<GroupWorkIcon />}
           tooltip={
             <div className="tooltip-span">
@@ -264,14 +326,24 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         />
       )}
 
+      <ContextMenuItem
+        onClick={handleGroupIntoSubgraph}
+        label="Group into Subgraph"
+        IconComponent={<AccountTreeIcon />}
+        tooltip="Move the selected nodes into a new subgraph node"
+        addButtonClassName={`action ${
+          selectedNodes.length < 1 ? "disabled" : ""
+        }`}
+      />
+
       {anyHasParent && (
         <ContextMenuItem
           onClick={handleRemoveFromGroup}
-          label="Remove From Group"
+          label="Remove from Group"
           IconComponent={<GroupWorkIcon />}
           tooltip={
             <div className="tooltip-span">
-              <div className="tooltip-title">Remove From Group</div>
+              <div className="tooltip-title">Remove from Group</div>
               <div className="tooltip-key">
                 <kbd>Right-Click</kbd>
               </div>

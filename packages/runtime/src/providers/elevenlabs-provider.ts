@@ -120,20 +120,30 @@ export class ElevenLabsProvider extends BaseProvider {
   }
 
   private async requestSpeech(
-    args: { text: string; model: string; voice?: string },
+    args: { text: string; model: string; voice?: string; speed?: number },
     outputFormat: string
   ): Promise<Uint8Array> {
     const voiceId = this.resolveVoiceId(args.voice);
     const url =
       `${ELEVENLABS_API_BASE}/text-to-speech/${voiceId}` +
       `?output_format=${outputFormat}`;
+    const body: Record<string, unknown> = {
+      text: args.text,
+      model_id: args.model
+    };
+    // ElevenLabs applies playback speed via voice_settings.speed (0.7–1.2).
+    // Forward it when the caller asked for a non-default tempo — omitting it
+    // silently discarded the request.
+    if (typeof args.speed === "number" && args.speed !== 1.0) {
+      body.voice_settings = { speed: Math.max(0.7, Math.min(1.2, args.speed)) };
+    }
     const response = await this._fetch(url, {
       method: "POST",
       headers: {
         "xi-api-key": this.apiKey,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ text: args.text, model_id: args.model })
+      body: JSON.stringify(body)
     });
     if (!response.ok) {
       const detail = await response.text().catch(() => "");
@@ -170,6 +180,13 @@ export class ElevenLabsProvider extends BaseProvider {
   }): Promise<EncodedAudioResult | null> {
     if (!args.text) throw new Error("text must not be empty");
     log.debug("ElevenLabs textToSpeechEncoded", { model: args.model });
+    const fmt = (args.audioFormat ?? "mp3").toLowerCase();
+    if (fmt !== "mp3" && fmt !== "mpeg") {
+      // This encoded path only produces MP3. For any other requested format
+      // (pcm/wav/flac/…) defer to the streaming PCM path instead of silently
+      // handing back MP3 bytes mislabeled as the requested format.
+      return null;
+    }
     const bytes = await this.requestSpeech(args, "mp3_44100_128");
     return { data: bytes, mimeType: "audio/mpeg" };
   }

@@ -11,8 +11,8 @@ namespace: "nodetool.agents"
 
 ## Description
 
-Prompt-driven filesystem skill for file inspection and transformations.
-    skills, filesystem, files, directories, io
+Inspect and transform files and folders in the workspace from a prompt.
+    agent, filesystem, files, folders, io
 
 ## Properties
 

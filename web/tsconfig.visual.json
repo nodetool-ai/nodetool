@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.e2e.json",
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "types": ["@playwright/test", "node"]
+  },
+  "include": [
+    "tests/visual/**/*",
+    "tests/benchmarks/helpers/**/*"
+  ]
+}

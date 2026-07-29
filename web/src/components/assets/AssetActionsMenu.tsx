@@ -37,7 +37,7 @@ import {
   SPACING
 } from "../ui_primitives";
 import { TYPE_FILTERS, TypeFilterKey } from "../../utils/formatUtils";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 
 const styles = (theme: Theme) =>
   css({
@@ -159,21 +159,21 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
           display: "flex",
           flexWrap: "wrap",
           alignItems: "center",
-          columnGap: 2,
-          rowGap: 1,
-          px: 2,
-          py: 1
+          columnGap: SPACING.md,
+          rowGap: SPACING.xs,
+          px: SPACING.md,
+          py: SPACING.xs
         })
       }}
     >
       <FlexRow
         className="asset-menu-toolbar"
         align="center"
-        gap={0.75}
+        gap={SPACING.xs}
         wrap
         sx={{
-          px: 0.5,
-          py: 0.5,
+          px: SPACING.micro,
+          py: SPACING.micro,
           "& .MuiIconButton-root": { padding: SPACING.sm },
           "& .MuiSvgIcon-root": { fontSize: 16 }
         }}
@@ -199,14 +199,14 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
           active={typeFilterActive}
           sx={{
             borderRadius: BORDER_RADIUS.sm,
-            px: 0.5,
-            gap: 0.5,
+            px: SPACING.micro,
+            gap: SPACING.micro,
             fontSize: FONT_SIZE_SANS.label
           }}
         >
           <FlexRow
             align="center"
-            gap={0.5}
+            gap={SPACING.micro}
             sx={{ "& .MuiSvgIcon-root": { fontSize: 18 } }}
           >
             {TYPE_FILTER_ICONS[typeFilter]}
@@ -228,8 +228,12 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
         )}
 
         {/* Actions: create & add assets */}
-        <FlexRow align="center" gap={0.5} sx={{ ml: "auto", pl: 0.5 }}>
-          <Divider orientation="vertical" flexItem sx={{ my: 0.5, mr: 0.5 }} />
+        <FlexRow align="center" gap={SPACING.micro} sx={{ ml: "auto", pl: SPACING.micro }}>
+          <Divider
+            orientation="vertical"
+            flexItem
+            sx={{ my: SPACING.micro, mr: SPACING.micro }}
+          />
           {!hideFolderControls && (
             <ToolbarIconButton
               icon={<CreateNewFolderIcon />}
@@ -253,7 +257,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
         anchorEl={typeFilterAnchor}
         onClose={() => setTypeFilterAnchor(null)}
         placement="bottom-left"
-        paperSx={{ py: 0.5, minWidth: 160 }}
+        paperSx={{ py: SPACING.micro, minWidth: 160 }}
       >
         {TYPE_FILTERS.map((filter) => (
           <MenuItemPrimitive

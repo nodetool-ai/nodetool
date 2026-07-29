@@ -149,6 +149,18 @@ export const MOTION = {
   background: "background-color 150ms ease",
   all: "all 200ms ease",
 
+  // Keyframe loop tiers — duration + easing for infinite @keyframes animations.
+  // Compose with the keyframe name and iteration:
+  //   animation: `${spin} ${MOTION.spin} infinite`
+  //   animation: `${pulse} ${MOTION.pulse} infinite`
+  // The fast/normal/slow tiers cover one-shot transitions; looping spinners and
+  // breathing/pulsing indicators run on their own timing and never on those
+  // sub-second tiers (DESIGN.md §11.5).
+  /** 1s linear — continuous rotation (loading spinners) */
+  spin: "1s linear",
+  /** 2s ease-in-out — breathing / pulsing status indicators */
+  pulse: "2s ease-in-out",
+
   /** Disables a transition entirely. Use in prefers-reduced-motion overrides. */
   none: "none",
 } as const;
@@ -212,6 +224,40 @@ export const BORDER_RADIUS = {
   circle: "var(--rounded-circle)",
   /** Full pill shape — for tags, chips, and compact buttons */
   pill: "var(--rounded-pill)",
+} as const;
+
+/**
+ * Control-chrome tokens: the five control heights, the two horizontal
+ * paddings, and the single field radius. Every interactive control in
+ * ui_primitives/ and editor_ui/ derives its box from these — never invent
+ * a control height or field radius outside this object.
+ *
+ * Height roles:
+ *   xs 24  toolbar-density buttons (EditorButton compact)
+ *   sm 28  node-canvas controls, EditorButton normal
+ *   md 32  inspector controls
+ *   lg 36  default form controls (TextInput, SelectField, SearchInput)
+ *   xl 44  touch targets (MobileBottomSheet actions, TagInput)
+ *
+ * `theme.editor.heightNode` / `heightInspector` / `controlRadius` derive
+ * from these in ThemeNodetool — the two scales cannot drift.
+ */
+export const CONTROL = {
+  /** px, all on the 4px grid */
+  height: {
+    xs: 24,
+    sm: 28,
+    md: 32,
+    lg: 36,
+    xl: 44,
+  },
+  /** horizontal padding inside controls, px, on-grid */
+  paddingX: {
+    compact: 8,
+    normal: 12,
+  },
+  /** the single field/control radius (6px — matches buttons and editor controls) */
+  radius: BORDER_RADIUS.md,
 } as const;
 
 /**

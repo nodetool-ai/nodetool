@@ -83,10 +83,7 @@ export function useModelsForType(modelType: string): UseModelsResult<BaseModel> 
       if (query.data) {
         const provider = providers[index]?.provider ?? "";
         all.push(
-          ...normalizeModels<BaseModel>(
-            query.data as unknown as Array<Record<string, unknown>>,
-            provider
-          )
+          ...normalizeModels<BaseModel>(query.data, provider)
         );
       }
     });

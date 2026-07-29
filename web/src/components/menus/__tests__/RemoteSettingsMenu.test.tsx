@@ -18,8 +18,10 @@ jest.mock("../../common/ExternalLink", () => {
     );
   };
 });
-jest.mock("../sharedSettingsStyles", () => ({
-  getSharedSettingsStyles: () => ({})
+jest.mock("../settingsMenuStyles", () => ({
+  __esModule: true,
+  getSharedSettingsStyles: () => ({}),
+  settingsStyles: () => ({})
 }));
 
 // Mock MUI components to avoid theme complexity
@@ -242,10 +244,13 @@ describe("RemoteSettingsMenu", () => {
 
       render(<RemoteSettingsMenuComponent />, { wrapper });
 
-      // Component should render successfully
+      // Non-secret setting renders; the save bar stays hidden without edits.
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: /SAVE SETTINGS/i })).toBeInTheDocument();
+        expect(screen.getByDisplayValue("localhost")).toBeInTheDocument();
       });
+      expect(
+        screen.queryByRole("button", { name: /SAVE SETTINGS/i })
+      ).not.toBeInTheDocument();
     });
 
     it("should remove empty groups after filtering secrets", async () => {
@@ -292,7 +297,7 @@ describe("RemoteSettingsMenu", () => {
 
       // Component should render without throwing
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: /SAVE SETTINGS/i })).toBeInTheDocument();
+        expect(screen.getByDisplayValue("30")).toBeInTheDocument();
       });
     });
   });
@@ -313,11 +318,62 @@ describe("RemoteSettingsMenu", () => {
 
       mockRemoteSettingsStore.fetchSettings.mockResolvedValue(mockSettings);
       mockRemoteSettingsStore.updateSettings.mockResolvedValue(undefined);
+      const user = userEvent.setup();
 
       render(<RemoteSettingsMenuComponent />, { wrapper });
 
+      // The save bar only appears once a field is edited.
+      const input = await screen.findByDisplayValue("30");
+      expect(
+        screen.queryByRole("button", { name: /SAVE SETTINGS/i })
+      ).not.toBeInTheDocument();
+
+      await user.clear(input);
+      await user.type(input, "60");
+
       const saveButton = await screen.findByRole("button", { name: /SAVE SETTINGS/i });
-      expect(saveButton).toBeInTheDocument();
+      await user.click(saveButton);
+
+      await waitFor(() => {
+        expect(mockRemoteSettingsStore.updateSettings).toHaveBeenCalledWith(
+          { TIMEOUT: "60" },
+          expect.anything()
+        );
+      });
+    });
+
+    it("hides the save bar until there are unsaved edits", async () => {
+      const mockSettings = [
+        {
+          package_name: "nodetool",
+          env_var: "TIMEOUT",
+          group: "Configuration",
+          description: "Timeout",
+          is_secret: false,
+          value: "30",
+          enum: null
+        }
+      ];
+      mockRemoteSettingsStore.fetchSettings.mockResolvedValue(mockSettings);
+      const user = userEvent.setup();
+
+      render(<RemoteSettingsMenuComponent />, { wrapper });
+
+      // No edits yet — sticky save bar is hidden.
+      await waitFor(() => {
+        expect(screen.getByDisplayValue("30")).toBeInTheDocument();
+      });
+      expect(
+        screen.queryByRole("button", { name: /SAVE SETTINGS/i })
+      ).not.toBeInTheDocument();
+
+      // Edit a field — the bar appears.
+      const input = screen.getByDisplayValue("30");
+      await user.clear(input);
+      await user.type(input, "45");
+      expect(
+        await screen.findByRole("button", { name: /SAVE SETTINGS/i })
+      ).toBeInTheDocument();
     });
   });
 
@@ -348,9 +404,9 @@ describe("RemoteSettingsMenu", () => {
 
       render(<RemoteSettingsMenuComponent />, { wrapper });
 
-      // Component should render the save button
+      // Non-secret setting renders (secret filtered out)
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: /SAVE SETTINGS/i })).toBeInTheDocument();
+        expect(screen.getByDisplayValue("value1")).toBeInTheDocument();
       });
     });
 
@@ -362,6 +418,113 @@ describe("RemoteSettingsMenu", () => {
       // Component should render "No settings available" message
       await waitFor(() => {
         expect(screen.getByText("No settings available")).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("OAuth flows removed", () => {
+    // Phase 1 moved the OpenAI / HuggingFace OAuth connect flows to the API
+    // Keys tab. The Integrations panel must never render those affordances.
+    it("renders no OAuth connect affordances", async () => {
+      const mockSettings = [
+        {
+          package_name: "nodetool",
+          env_var: "VLLM_BASE_URL",
+          group: "vLLM",
+          description: "vLLM endpoint",
+          is_secret: false,
+          value: "http://localhost:8000",
+          enum: null
+        }
+      ];
+      mockRemoteSettingsStore.fetchSettings.mockResolvedValue(mockSettings);
+
+      render(<RemoteSettingsMenuComponent />, { wrapper });
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue("http://localhost:8000")).toBeInTheDocument();
+      });
+
+      // No OAuth sign-in / authentication sections belong here anymore.
+      expect(screen.queryByText(/sign in with/i)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/openai authentication/i)
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/huggingface authentication/i)
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /disconnect/i })
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Meta-section grouping", () => {
+    // Registry groups map onto stable meta-section headings; the panel must
+    // render those headings (not raw backend group names) and keep its order.
+    it("groups registry settings under their meta-section headings", async () => {
+      const mockSettings = [
+        {
+          package_name: "nodetool",
+          env_var: "VLLM_BASE_URL",
+          group: "vLLM",
+          description: "vLLM endpoint",
+          is_secret: false,
+          value: "http://localhost:8000",
+          enum: null
+        },
+        {
+          package_name: "nodetool",
+          env_var: "KIE_API_KEY",
+          group: "KIE",
+          description: "Kie.ai key",
+          is_secret: false,
+          value: "kie-value",
+          enum: null
+        },
+        {
+          package_name: "nodetool",
+          env_var: "NODE_SUPABASE_URL",
+          group: "NodeSupabase",
+          description: "Supabase URL",
+          is_secret: false,
+          value: "https://supabase.co",
+          enum: null
+        }
+      ];
+      mockRemoteSettingsStore.fetchSettings.mockResolvedValue(mockSettings);
+
+      render(<RemoteSettingsMenuComponent />, { wrapper });
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue("http://localhost:8000")).toBeInTheDocument();
+      });
+
+      // Meta-section headings render in the fixed order (the raw group names
+      // "vLLM", "KIE", "NodeSupabase" must not appear as section headings).
+      expect(screen.getByText("Local Model Servers")).toBeInTheDocument();
+      expect(screen.getByText("Provider Options")).toBeInTheDocument();
+      expect(screen.getByText("Data & Storage")).toBeInTheDocument();
+    });
+
+    it("renders unmapped registry groups under the catch-all Other section", async () => {
+      const mockSettings = [
+        {
+          package_name: "nodetool",
+          env_var: "SOMETHING_NEW",
+          group: "SomethingNew",
+          description: "A future registry group",
+          is_secret: false,
+          value: "value",
+          enum: null
+        }
+      ];
+      mockRemoteSettingsStore.fetchSettings.mockResolvedValue(mockSettings);
+
+      render(<RemoteSettingsMenuComponent />, { wrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText("Other")).toBeInTheDocument();
       });
     });
   });

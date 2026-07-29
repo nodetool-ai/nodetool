@@ -5,12 +5,23 @@
  * the app still needs but that have no richer primitive of their own (lists,
  * dialog sub-parts, form controls, plain menus/selects/switches, tabs, etc.).
  *
- * These are intentionally thin pass-throughs — the MUI theme overrides in
- * `ThemeNodetool` already style them, so a re-export carries the design tokens
- * with zero behavior change (same pattern as `Box.tsx`). Routing them through
- * the primitives barrel means application code imports from `ui_primitives`,
- * never from `@mui/material` directly, so the design system stays the single
- * seam over MUI.
+ * These are intentionally thin pass-throughs (same pattern as `Box.tsx`).
+ * How they pick up the design system:
+ *
+ * - Interactive controls (Button, Tabs, Tab, ToggleButton, Accordion,
+ *   LinearProgress, Modal, Toolbar, Tooltip, Select/Switch/Menu/MenuItem/
+ *   OutlinedInput via editorControls) carry explicit `Mui*` overrides in
+ *   `ThemeNodetool` / `themes/components/editorControls.ts`. If you re-export
+ *   a new interactive control, add its override in the same PR or it renders
+ *   stock MUI.
+ * - Structural components (the List and Dialog sub-part families, form
+ *   wrappers, InputAdornment, Fade, Drawer, Fab, IconButton) inherit
+ *   palette + typography from the theme baseline and deliberately have no
+ *   per-component override.
+ *
+ * Routing them through the primitives barrel means application code imports
+ * from `ui_primitives`, never from `@mui/material` directly, so the design
+ * system stays the single seam over MUI.
  *
  * Prefer a semantic primitive when one fits (`ToolbarIconButton` over
  * `IconButton`, `SelectField` over `Select`, `LabeledSwitch` over `Switch`,

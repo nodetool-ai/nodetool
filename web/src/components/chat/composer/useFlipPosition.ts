@@ -1,4 +1,3 @@
-// web/src/components/chat/composer/useFlipPosition.ts
 import { useLayoutEffect, useRef, type RefObject, type DependencyList } from "react";
 
 const FLIP_DURATION_MS = 350;

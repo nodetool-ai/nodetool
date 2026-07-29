@@ -1,21 +1,8 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import {
-  WorkflowRunner,
-  Graph,
-  withExplicitNodeFlags
-} from "@nodetool-ai/kernel";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import type {
-  GraphData,
-  HydratedGraphData,
-  InputMode,
-  OutputCorrelation
-} from "@nodetool-ai/protocol";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import { tagAsUniversal } from "@nodetool-ai/nodes-utils";
-
-const randomUUID = (): string =>
-  globalThis.crypto?.randomUUID?.() ??
-  `uuid_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+import { runInnerGraph } from "./run-inner-graph.js";
 
 /**
  * WorkflowNode – executes a sub-workflow selected by the user.
@@ -55,64 +42,18 @@ export class WorkflowNode extends BaseNode {
     }
 
     const graph = workflowJson.graph as {
-      nodes?: Array<Record<string, unknown>>;
-      edges?: Array<Record<string, unknown>>;
+      nodes?: unknown[];
+      edges?: unknown[];
     };
     if (!graph.nodes || !graph.edges) {
       yield {};
       return;
     }
 
-    if (!context?.resolveExecutor) {
+    if (!context) {
       throw new Error(
-        "WorkflowNode requires a resolveExecutor on the ProcessingContext to run sub-workflows."
+        "WorkflowNode requires a ProcessingContext to run sub-workflows."
       );
-    }
-
-    const resolveExecutor = context.resolveExecutor;
-
-    // Normalize graph: web UI stores properties under `data`, kernel expects `properties`.
-    // The web UI nests actual node properties inside `data.properties`, so when we
-    // move `data` → `properties` we must unwrap that extra level so the runner
-    // sees e.g. `node.properties.name` instead of `node.properties.properties.name`.
-    const normalizedNodes = graph.nodes.map((n) => {
-      if (n.properties === undefined && n.data !== undefined) {
-        const { data, ...rest } = n;
-        const dataObj = data as Record<string, unknown>;
-        // If data has a nested `properties` object, use that as the node properties
-        // (this is the web UI's format: data.properties holds the actual node props).
-        const props =
-          dataObj.properties &&
-          typeof dataObj.properties === "object" &&
-          !Array.isArray(dataObj.properties)
-            ? dataObj.properties
-            : dataObj;
-        return { ...rest, properties: props };
-      }
-      return { ...n };
-    });
-    const normalizedEdges = graph.edges.map((edge) => {
-      const rawEdgeType = (edge.edge_type as string) ?? (edge.type as string);
-      const edge_type = rawEdgeType === "control" ? "control" : "data";
-      const { type: _type, ...rest } = edge;
-      return { ...rest, edge_type };
-    });
-
-    // Hydrate graph via resolver if available
-    let hydratedGraph: HydratedGraphData;
-    if (context.resolveNodeType) {
-      const loaded = await Graph.loadFromDict(
-        { nodes: normalizedNodes, edges: normalizedEdges },
-        { resolver: { resolveNodeType: context.resolveNodeType } }
-      );
-      hydratedGraph = { nodes: [...loaded.nodes], edges: [...loaded.edges] };
-    } else {
-      // No registry resolver on the context — behavior flags can only come
-      // from the saved sub-workflow itself; absent ones default off.
-      hydratedGraph = withExplicitNodeFlags({
-        nodes: normalizedNodes,
-        edges: normalizedEdges
-      } as unknown as GraphData);
     }
 
     // Collect dynamic input values as params for the sub-workflow's input nodes
@@ -123,61 +64,12 @@ export class WorkflowNode extends BaseNode {
       }
     }
 
-    // Build a mapping from runner output key (node.name ?? node.id) to the
-    // output node's properties.name. The frontend uses properties.name as
-    // the dynamic output handle name, but the runner keys by node.name ?? node.id.
-    const OUTPUT_TYPE_PREFIXES = ["nodetool.output."];
-    const outputKeyMap = new Map<string, string>();
-    for (const n of hydratedGraph.nodes) {
-      const nodeType = String(n.type ?? "");
-      if (!OUTPUT_TYPE_PREFIXES.some((p) => nodeType.startsWith(p))) continue;
-      const nodeId = String(n.id ?? "");
-      const nodeName = n.name as string | undefined;
-      const runnerKey = nodeName ?? nodeId;
-      const props = (n.properties ?? {}) as Record<string, unknown>;
-      const outputName =
-        typeof props.name === "string" && props.name.trim()
-          ? props.name.trim()
-          : runnerKey;
-      outputKeyMap.set(runnerKey, outputName);
-    }
-
-    const jobId = `sub-${randomUUID()}`;
-    const runner = new WorkflowRunner(jobId, {
-      resolveExecutor: (node) =>
-        resolveExecutor(
-          node as { id: string; type: string; [key: string]: unknown }
-        ),
-      executionContext: context
+    const output = await runInnerGraph(context, graph, {
+      params,
+      jobPrefix: "sub",
+      workflowId: this.workflow_id || undefined,
+      failureLabel: "Sub-workflow"
     });
-
-    const result = await runner.run(
-      {
-        job_id: jobId,
-        workflow_id: this.workflow_id || undefined,
-        params
-      },
-      hydratedGraph
-    );
-
-    if (result.status === "failed") {
-      throw new Error(
-        `Sub-workflow failed: ${result.error ?? "unknown error"}`
-      );
-    }
-
-    // Map outputs: the runner collects outputs keyed by output node name/id.
-    // Remap to the properties.name used by the frontend as dynamic output handles.
-    const output: Record<string, unknown> = {};
-    for (const [runnerKey, vals] of Object.entries(result.outputs)) {
-      const outputName = outputKeyMap.get(runnerKey) ?? runnerKey;
-      const arr = vals as unknown[];
-      if (arr.length === 1) {
-        output[outputName] = arr[0];
-      } else if (arr.length > 1) {
-        output[outputName] = arr;
-      }
-    }
 
     yield output;
   }

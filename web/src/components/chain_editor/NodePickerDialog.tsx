@@ -14,17 +14,18 @@ import {
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
-  InputAdornment
+  InputAdornment,
+  Box,
+  Dialog,
+  FlexColumn,
+  Text,
+  TextInput,
+  HighlightText
 } from "../ui_primitives";
-import { Box } from "../ui_primitives";
 import SearchIcon from "@mui/icons-material/Search";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Dialog } from "../ui_primitives/Dialog";
-import { FlexColumn } from "../ui_primitives/FlexColumn";
-import { Text } from "../ui_primitives/Text";
-import { TextInput } from "../ui_primitives/TextInput";
-import { HighlightText } from "../ui_primitives/HighlightText";
 import useMetadataStore from "../../stores/MetadataStore";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import { computeSearchResults } from "../../utils/nodeSearch";
 import {
   QUICK_ACTION_BUTTONS,
@@ -86,6 +87,7 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
 }) => {
   const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
+  const autoFocusEnabled = useAutoFocusEnabled();
   const allMetadata = useMetadataStore((s) => s.metadata);
   const getMetadata = useMetadataStore((s) => s.getMetadata);
 
@@ -143,15 +145,22 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
   });
 
   return (
-    <Dialog open={open} onClose={onClose} title="Add Node" minWidth={520}>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title="Add Node"
+      minWidth="min(520px, 100vw - 32px)"
+    >
       <FlexColumn gap={2} sx={{ minHeight: 400, maxHeight: "70vh" }}>
+        {/* autoFocus is skipped on touch, where the virtual keyboard would
+            cover the node list the dialog just opened to show. */}
         <TextInput
           fullWidth
           size="small"
           placeholder="Search nodes..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          autoFocus
+          autoFocus={autoFocusEnabled}
           slotProps={{
             input: {
               startAdornment: (
@@ -203,10 +212,8 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
             </FlexColumn>
           ) : (
             <FlexColumn gap={0}>
-              <Text size="tiny" color="secondary" sx={{ mb: 0.5, px: 0.5, opacity: 0.5 }}>
-                {searchResults.length}{" "}
-                {searchResults.length === 1 ? "result" : "results"}
-              </Text>
+              <Text size="smaller" color="secondary" sx={{ mb: 0.5, px: 0.5, opacity: 0.5 }}>{searchResults.length}{" "}
+              {searchResults.length === 1 ? "result" : "results"}</Text>
               <div
                 ref={listScrollRef}
                 style={{

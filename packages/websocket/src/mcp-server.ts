@@ -15,6 +15,7 @@ import {
 } from "@modelcontextprotocol/ext-apps/server";
 import { z } from "zod";
 import { getListAssetsAppHtml } from "./mcp-apps/list-assets-app.js";
+import { assetKeyCandidates } from "@nodetool-ai/storage";
 import { getAssetAdapter } from "./lib/storage.js";
 import { thumbnailKey } from "./lib/thumbnail.js";
 import { getListWorkflowsAppHtml } from "./mcp-apps/list-workflows-app.js";
@@ -53,11 +54,25 @@ import {
   buildWorkspaceExecutionContext
 } from "./lib/workflow-workspace.js";
 import type { AgentTransport } from "./agent/transport.js";
+import { registerAgentMcpTools } from "./mcp-agent-tools.js";
 
 export interface McpServerOptions {
   metadataRoots?: string[];
   metadataMaxDepth?: number;
   registry?: NodeRegistry;
+  /**
+   * User scope for the bridged agent tools (media generation, assets,
+   * provider secrets). Without a scope those tools are NOT registered — they
+   * must never run against a default user on a session whose caller was not
+   * explicitly bound to one. `source` documents why the binding is safe:
+   * "stdio-local" (single-user `nodetool mcp serve`) or "local-dev-http"
+   * (the non-production /mcp mount). An authenticated multi-user mount must
+   * pass the session's real userId here.
+   */
+  agentToolsScope?: {
+    userId: string;
+    source: "stdio-local" | "local-dev-http" | "http-session";
+  };
   /**
    * Public base URL (e.g. "http://127.0.0.1:7777") used to rewrite relative
    * asset URLs (`/api/storage/...`) into absolute ones. MCP gallery UIs run
@@ -274,11 +289,14 @@ function getRuntimeEnvironment(
               getLoadErrors?: () => Array<{ module: string; error: string }>;
             }
           ).getLoadErrors?.() ?? [];
-          const matchingLoadError = loadErrors.find(
-            (entry) =>
-              entry.module.includes(node.type) ||
-              node.type.startsWith(entry.module.split(".").slice(2).join("."))
-          );
+          const matchingLoadError = loadErrors.find((entry) => {
+            if (entry.module.includes(node.type)) return true;
+            const suffix = entry.module.split(".").slice(2).join(".");
+            // An empty suffix makes startsWith("") match every node type,
+            // mis-attributing an unrelated import failure. Require a non-empty
+            // prefix match.
+            return suffix.length > 0 && node.type.startsWith(suffix);
+          });
           throw new Error(
             pythonBridgeReady
               ? `Python node "${node.type}" cannot execute: it is declared in metadata but was not loaded by the Python worker.${matchingLoadError ? ` Load error: ${matchingLoadError.module}: ${matchingLoadError.error}.` : stderrSummary ? ` Recent Python worker stderr: ${stderrSummary}` : " Check Python worker status/load errors for import failures."}`
@@ -294,7 +312,13 @@ function getRuntimeEnvironment(
         ensurePythonBridge,
         resolveExecutor
       };
-    })();
+    })().catch((err) => {
+      // Don't cache a rejected promise — a single transient bootstrap failure
+      // would otherwise poison every later run_workflow / node-metadata call for
+      // the process lifetime. Clear the cache so the next call retries.
+      runtimeEnvironmentPromise = null;
+      throw err;
+    });
   }
 
   return runtimeEnvironmentPromise;
@@ -819,6 +843,10 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     }
   );
 
+  // ── Workflow-building + creative tools (bridged from @nodetool-ai/agents) ──
+  // Registered last so any name collision with a native tool throws loudly.
+  registerAgentMcpTools(server, options);
+
   return server;
 }
 
@@ -913,7 +941,12 @@ function assetHasThumb(asset: Asset): boolean {
 
 async function loadAssetThumb(asset: Asset): Promise<LoadedThumb | null> {
   if (!assetHasThumb(asset)) return null;
-  return loadStorageThumb(thumbnailKey(asset.id));
+  const fileName = thumbnailKey(asset.id);
+  for (const key of assetKeyCandidates(asset.user_id, fileName)) {
+    const thumb = await loadStorageThumb(key);
+    if (thumb) return thumb;
+  }
+  return null;
 }
 
 async function loadAssetThumbs(
@@ -1411,6 +1444,13 @@ export async function handleMcpHttpRequest(
       const transport = sessionTransports.get(sessionId)!;
       return transport.handleRequest(request);
     }
+    // A session id that is present but unknown must NOT fall through to the
+    // new-session path: that constructed a fresh transport + server per stale
+    // request (leaking both). Reject it — only an initialize request without a
+    // session id creates a new session.
+    if (sessionId) {
+      return new Response("Session not found", { status: 404 });
+    }
 
     // New session — create transport and server
     const transport = new WebStandardStreamableHTTPServerTransport({
@@ -1420,6 +1460,12 @@ export async function handleMcpHttpRequest(
         sessionTransports.set(id, transport);
       }
     });
+    // Evict the session when the transport closes (client disconnect without an
+    // explicit DELETE) so sessionTransports — and the McpServer each entry keeps
+    // alive — does not grow unbounded over the process lifetime.
+    transport.onclose = () => {
+      if (transport.sessionId) sessionTransports.delete(transport.sessionId);
+    };
 
     const publicBaseUrl =
       options?.publicBaseUrl ?? `${url.protocol}//${url.host}`;

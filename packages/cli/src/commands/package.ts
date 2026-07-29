@@ -229,7 +229,7 @@ export function registerPackageCommands(program: Command): void {
         });
         const outPath = path.join(opts.outputDir, "index.md");
         fs.writeFileSync(outPath, md);
-        console.log(`Wrote ${outPath}`);
+        console.log(`Wrote ${outPath.split(path.sep).join("/")}`);
       } catch (e) {
         console.error(String(e));
         process.exit(1);

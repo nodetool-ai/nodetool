@@ -58,7 +58,6 @@ const isNodeFullyEnclosed = (node: Node, rect: SelectionRect): boolean => {
   const rectRight = rect.x + rect.width;
   const rectBottom = rect.y + rect.height;
 
-  // Node must be fully inside the rect
   return (
     nodeX >= rect.x &&
     nodeY >= rect.y &&
@@ -82,8 +81,7 @@ export const getNodesWithinSelection = (
   }
 
   const allNodes = instance.getNodes();
-  
-  // Filter to nodes that match predicate (if provided) and are fully enclosed
+
   return allNodes.filter((node) => {
     if (predicate && !predicate(node)) {
       return false;

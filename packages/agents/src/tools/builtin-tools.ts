@@ -36,13 +36,14 @@ import {
   GoogleGroundedSearchTool,
   GoogleImageGenerationTool
 } from "./google-tools.js";
+import { ImageGenerationTool } from "./image-generation-tool.js";
 import {
   DataForSEOSearchTool,
   DataForSEONewsTool,
   DataForSEOImagesTool
 } from "./dataseo-tools.js";
 import {
-  GoogleSearchTool,
+  WebSearchTool,
   GoogleNewsTool,
   GoogleImagesTool
 } from "./search-tools.js";
@@ -76,6 +77,20 @@ import {
 } from "./edit-search-tools.js";
 import { TodoWriteTool } from "./todo-tools.js";
 import { ViewImageTool, ListImagesTool } from "./view-image-tool.js";
+import {
+  CritiqueImageTool,
+  CompareImagesTool,
+  ScoreImageAdherenceTool,
+  RecordStylePreferenceTool,
+  GetStyleProfileTool
+} from "./creative-critique-tools.js";
+import {
+  ThreadMemorySaveTool,
+  ThreadMemoryListTool,
+  ThreadMemoryUpdateTool,
+  ThreadMemoryDeleteTool
+} from "./thread-memory-tools.js";
+import { AssetSearchTool, AssetListTool } from "./asset-library-tools.js";
 
 export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   // Filesystem (workspace-relative)
@@ -89,51 +104,69 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   // Task tracking
   TodoWriteTool,
 
+  // Thread-level memory (durable per-conversation notes + asset references)
+  ThreadMemorySaveTool,
+  ThreadMemoryListTool,
+  ThreadMemoryUpdateTool,
+  ThreadMemoryDeleteTool,
+
+  // Asset library (discover + reuse generated/uploaded media)
+  AssetSearchTool,
+  AssetListTool,
+
   // Vision (lazy image loading: handles → pixels on demand)
   ListImagesTool,
   ViewImageTool,
 
   // Search
-  // GoogleSearchTool,
-  // GoogleNewsTool,
-  // GoogleImagesTool,
-  // GoogleGroundedSearchTool,
-  // OpenAIWebSearchTool,
-  // DataForSEOSearchTool,
-  // DataForSEONewsTool,
-  // DataForSEOImagesTool,
+  WebSearchTool,
+  GoogleNewsTool,
+  GoogleImagesTool,
+  GoogleGroundedSearchTool,
+  OpenAIWebSearchTool,
+  DataForSEOSearchTool,
+  DataForSEONewsTool,
+  DataForSEOImagesTool,
+
+  // Creative critique (VLM judging + taste memory)
+  CritiqueImageTool,
+  CompareImagesTool,
+  ScoreImageAdherenceTool,
+  RecordStylePreferenceTool,
+  GetStyleProfileTool,
 
   // Generation
-  // GoogleImageGenerationTool,
-  // OpenAIImageGenerationTool,
-  // OpenAITextToSpeechTool,
+  ImageGenerationTool,
+  GoogleImageGenerationTool,
+  OpenAIImageGenerationTool,
+  OpenAITextToSpeechTool,
 
   // Web
-  // BrowserTool,
-  // ScreenshotTool,
-  // DownloadFileTool,
-  // HttpRequestTool,
+  BrowserTool,
+  ScreenshotTool,
+  DownloadFileTool,
+  HttpRequestTool,
 
   // Email
-  // SearchEmailTool,
-  // ArchiveEmailTool,
-  // AddLabelToEmailTool,
+  SearchEmailTool,
+  ArchiveEmailTool,
+  AddLabelToEmailTool,
 
   // Compute
-  // CalculatorTool,
-  // RunCodeTool,
-  // MiniJSAgentTool,
-  // StatisticsTool,
-  // GeometryTool,
-  // TrigonometryTool,
-  // ConversionTool,
+  CalculatorTool,
+  RunCodeTool,
+  MiniJSAgentTool,
+  StatisticsTool,
+  GeometryTool,
+  TrigonometryTool,
+  ConversionTool,
 
   // Documents
-  // ExtractPDFTextTool,
-  // ExtractPDFTablesTool,
-  // ConvertPDFToMarkdownTool,
-  // ConvertMarkdownToPDFTool,
-  // ConvertDocumentTool
+  ExtractPDFTextTool,
+  ExtractPDFTablesTool,
+  ConvertPDFToMarkdownTool,
+  ConvertMarkdownToPDFTool,
+  ConvertDocumentTool
 ];
 
 /**

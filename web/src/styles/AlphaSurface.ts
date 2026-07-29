@@ -1,24 +1,17 @@
 import type { Theme } from "@mui/material/styles";
 
 /**
- * Subtle checkerboard pattern for transparent-image preview surfaces.
- *
- * The pattern uses dark, low-contrast squares so opaque images look normal
- * while transparent regions show a quiet grid.  Two presets are provided:
- *
- *  • `alphaSurfaceBg`  – raw CSS properties to spread into any style object
- *
- * Both work with any `object-fit` value; the checkerboard tiles via
+ * Checkerboard pattern for transparent-image preview surfaces. Dark,
+ * low-contrast squares so opaque images look normal while transparent regions
+ * show a quiet grid. Works with any `object-fit`; the checkerboard tiles via
  * `background-size` independently of the image element.
  */
 
-// ── colours ──────────────────────────────────────────────────────────
 // Two low-contrast dark tones – visible in transparent regions,
 // invisible behind opaque content.
 const CHECKER_A = "#1e1e1e";
 const CHECKER_B = "#2a2a2a";
 
-// ── pattern ──────────────────────────────────────────────────────────
 const CHECKER_SIZE = "12px";
 const HALF_SIZE = "6px";
 
@@ -29,11 +22,7 @@ const checkerboardPattern = `
   linear-gradient(-45deg, transparent 75%, ${CHECKER_B} 75%)
 `;
 
-// ── exports ──────────────────────────────────────────────────────────
-
-/**
- * Theme-aware plain CSS property object for transparent-image preview surfaces.
- */
+/** Theme-aware CSS property object for transparent-image preview surfaces. */
 export const getAlphaSurfaceBg = (theme: Theme) => {
   const baseColor = theme.vars.palette.background.default;
   const checkerColor = theme.vars.palette.action.hover;

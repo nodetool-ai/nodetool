@@ -87,6 +87,25 @@ describe("parseVerdict", () => {
     expect(parseVerdict("I am not sure, maybe?")).toBeNull();
     expect(parseVerdict("")).toBeNull();
   });
+
+  it("picks the verdict object even when prose prepends another JSON object (#19)", () => {
+    // Regression: a verbose judge that echoes the tool args as a JSON object
+    // before its verdict made extractJSON grab the wrong (block/tier-less)
+    // object, so a real BLOCK fell through to the fail-open ALLOW default.
+    const v = parseVerdict(
+      'Reviewing arguments {"cmd":"rm -rf /"}: this is dangerous. ' +
+        '{"block":true,"tier":"hard","severity":"critical","reason":"bulk delete"}'
+    );
+    expect(v?.block).toBe(true);
+    expect(v?.tier).toBe("hard");
+  });
+
+  it("does not fail open on a non-boolean block with a hard tier (#19)", () => {
+    const v = parseVerdict('{"block":1,"tier":"hard"}');
+    // A hard/soft tier forces a block even if `block` isn't a clean boolean.
+    expect(v?.block).toBe(true);
+    expect(v?.tier).toBe("hard");
+  });
 });
 
 describe("SecurityMonitor.review", () => {

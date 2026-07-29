@@ -26,7 +26,6 @@ jest.mock('../systemPaths', () => ({
 
 import {
   getNodePath,
-  getLlamaServerPath,
   getDefaultAssetsPath,
   getOptionalNodeModulesPath,
   _resetCondaEnvCache,
@@ -133,36 +132,6 @@ describe('Config – node paths', () => {
       const result = getNodePath();
 
       expect(result).toBe('node.exe');
-    });
-  });
-
-  // ── getLlamaServerPath ──────────────────────────────────────────────
-
-  describe('getLlamaServerPath', () => {
-    it('should return Windows path on win32', () => {
-      Object.defineProperty(process, 'platform', { value: 'win32' });
-
-      const result = getLlamaServerPath();
-
-      expect(result).toBe(
-        path.join('/test/conda', 'Library', 'bin', 'llama-server.exe')
-      );
-    });
-
-    it('should return Unix path on linux', () => {
-      Object.defineProperty(process, 'platform', { value: 'linux' });
-
-      const result = getLlamaServerPath();
-
-      expect(result).toBe(path.join('/test/conda', 'bin', 'llama-server'));
-    });
-
-    it('should return Unix path on darwin', () => {
-      Object.defineProperty(process, 'platform', { value: 'darwin' });
-
-      const result = getLlamaServerPath();
-
-      expect(result).toBe(path.join('/test/conda', 'bin', 'llama-server'));
     });
   });
 

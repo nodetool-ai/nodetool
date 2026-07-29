@@ -90,7 +90,8 @@
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
+  transition: opacity var(--motion-slow) ease-out,
+    visibility var(--motion-slow) ease-out;
 }
 
 /* Keep media outputs visible; hide text-like preview outputs only */
@@ -100,7 +101,8 @@
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
+  transition: opacity var(--motion-slow) ease-out,
+    visibility var(--motion-slow) ease-out;
 }
 
 .react-flow.zoomed-out .node-property .image-property,

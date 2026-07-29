@@ -22,7 +22,8 @@ import {
   ListItem,
   ListItemButton,
   ListItemText,
-  ListItemIcon
+  ListItemIcon,
+  Z_INDEX
 } from "../ui_primitives";
 import PaletteIcon from "@mui/icons-material/Palette";
 import LegendToggleIcon from "@mui/icons-material/LegendToggle";
@@ -32,7 +33,7 @@ const minimapStyle = {
   position: "absolute" as const,
   bottom: "70px",
   right: "20px",
-  zIndex: 10
+  zIndex: Z_INDEX.dropdown
 };
 
 const MiniMapNavigator: React.FC = () => {
@@ -103,9 +104,13 @@ const MiniMapNavigator: React.FC = () => {
       if (node.selected) {
         return theme.vars.palette.primary.main;
       }
-      return isDarkMode ? "#475569" : "#cbd5e1";
+      // Mid-tone stroke in dark mode, light stroke in light mode (the light
+      // palette's grey scale is inverted, so 600 is the lighter shade there).
+      return isDarkMode
+        ? theme.vars.palette.grey[500]
+        : theme.vars.palette.grey[600];
     },
-    [theme.vars.palette.primary.main, isDarkMode]
+    [theme.vars.palette.primary.main, theme.vars.palette.grey, isDarkMode]
   );
 
   const legendItems = useMemo(
@@ -174,7 +179,6 @@ const MiniMapNavigator: React.FC = () => {
             }}
           />
 
-          {/* Settings and Legend Buttons */}
           <FlexRow
             gap={0.5}
             sx={{
@@ -221,7 +225,6 @@ const MiniMapNavigator: React.FC = () => {
         </div>
       </div>
 
-      {/* Settings Popover */}
       <Popover
         open={Boolean(settingsAnchor)}
         anchorEl={settingsAnchor}
@@ -286,7 +289,6 @@ const MiniMapNavigator: React.FC = () => {
         </List>
       </Popover>
 
-      {/* Legend Popover */}
       <Popover
         open={Boolean(legendAnchor)}
         anchorEl={legendAnchor}

@@ -405,6 +405,15 @@ export interface ImageModelValue {
   provider: Provider;
   name: string;
   path: string;
+  aspectRatios?: string[];
+  resolutions?: string[];
+}
+
+export interface VideoModelValue {
+  type: "video_model";
+  id: string;
+  provider: Provider;
+  name: string;
 }
 
 export interface TTSModelValue {
@@ -426,7 +435,10 @@ export interface MusicModelValue {
 export interface HuggingFaceModelValue {
   type: string;
   repo_id: string;
-  path?: string;
+  // Nullable so callers can emit msgpack `nil` for a missing path. Passing
+  // `undefined` makes msgpackr encode the field as ExtType(0), which the
+  // Python backend rejects. See PR #4429 / issue #3946.
+  path?: string | null;
 }
 
 export type HuggingFaceModelValueInput = HuggingFaceModelValue & {

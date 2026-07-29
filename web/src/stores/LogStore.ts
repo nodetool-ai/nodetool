@@ -51,21 +51,9 @@ const buildLogsByNode = (logs: Log[]): Record<string, Log[]> => {
 const useLogsStore = create<LogsStore>((set, get) => ({
   logs: [],
   logsByNode: {},
-  /**
-   * Get the Logs for a node.
-   *
-   * @param workflowId The id of the workflow.
-   * @param nodeId The id of the node.
-   * @returns The Logs for the node.
-   */
   getLogs: (workflowId: string, nodeId: string) => {
     return get().logsByNode[nodeLogKey(workflowId, nodeId)] ?? [];
   },
-  /**
-   * Append a log to the Logs for a node.
-   *
-   * @param log The log to append.
-   */
   appendLog: (log: Log) => {
     const safeLog: Log = {
       ...log,
@@ -96,9 +84,6 @@ const useLogsStore = create<LogsStore>((set, get) => ({
     });
   },
 
-  /**
-   * Clear the Logs.
-   */
   clearLogs: () => {
     set({ logs: [], logsByNode: {} });
   }

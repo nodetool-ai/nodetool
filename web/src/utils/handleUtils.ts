@@ -7,6 +7,7 @@ import {
   TypeMetadata
 } from "../stores/ApiTypes";
 import { inferOutputType } from "./outputTypeInference";
+import { ANY_TYPE, normalizeDynamicSlot, slotType } from "./dynamicSlots";
 
 /**
  * Represents an output handle (either static or dynamic)
@@ -41,7 +42,6 @@ export function findOutputHandle(
   handleName: string,
   metadata: NodeMetadata
 ): OutputHandle | undefined {
-  // First check static outputs
   const staticOutput = metadata.outputs.find(
     (output: OutputSlot) => output.name === handleName
   );
@@ -70,7 +70,6 @@ export function findOutputHandle(
     };
   }
 
-  // Then check dynamic outputs
   const dynamicOutputs = node.data.dynamic_outputs || {};
   const dynamicOutput = dynamicOutputs[handleName];
 
@@ -95,7 +94,6 @@ export function findInputHandle(
   handleName: string,
   metadata: NodeMetadata
 ): InputHandle | undefined {
-  // First check static properties
   const staticProperty = metadata.properties.find(
     (property: Property) => property.name === handleName
   );
@@ -112,25 +110,9 @@ export function findInputHandle(
   // while API metadata may omit supports_dynamic_inputs.
   const earlyDynamicInputs = node.data.dynamic_inputs || {};
   if (earlyDynamicInputs[handleName] !== undefined) {
-    const inputMeta = earlyDynamicInputs[handleName];
-    const type = inputMeta
-      ? {
-          type: inputMeta.type,
-          optional: inputMeta.optional ?? false,
-          values: inputMeta.values ?? null,
-          type_args: inputMeta.type_args ?? [],
-          type_name: inputMeta.type_name ?? null
-        }
-      : {
-          type: "any",
-          optional: false,
-          values: null,
-          type_args: [],
-          type_name: null
-        };
     return {
       name: handleName,
-      type,
+      type: slotType(normalizeDynamicSlot(earlyDynamicInputs[handleName])),
       isDynamic: true
     };
   }
@@ -173,7 +155,7 @@ export function getAllOutputHandles(
 ): OutputHandle[] {
   const handles: OutputHandle[] = [];
 
-  // Add static outputs, resolving instance-dependent types via the registry.
+  // Resolve instance-dependent output types via the registry.
   metadata.outputs.forEach((output: OutputSlot) => {
     const inferred = inferOutputType(
       metadata.node_type,
@@ -245,24 +227,11 @@ export function getAllInputHandles(
       return;
     }
     const inputMeta = dynamicInputs[name];
-    const type = inputMeta
-      ? {
-          type: inputMeta.type,
-          optional: inputMeta.optional ?? false,
-          values: inputMeta.values ?? null,
-          type_args: inputMeta.type_args ?? [],
-          type_name: inputMeta.type_name ?? null
-        }
-      : {
-          type: "any",
-          optional: false,
-          values: null,
-          type_args: [],
-          type_name: null
-        };
     handles.push({
       name,
-      type,
+      type: inputMeta
+        ? slotType(normalizeDynamicSlot(inputMeta))
+        : { ...ANY_TYPE },
       isDynamic: true
     });
   });

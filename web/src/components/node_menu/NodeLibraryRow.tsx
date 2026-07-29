@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
 
 import { Caption, Text, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
-import FavoriteButton from "../ui_primitives/FavoriteButton";
+import { FavoriteButton } from "../ui_primitives";
 import { IconForType } from "../../config/IconForType";
 import { colorForType } from "../../config/data_types";
 import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
@@ -54,6 +54,10 @@ const rowStyles = (theme: Theme) =>
     },
     "&:hover .nl-fav, &:focus-within .nl-fav, &.is-favorite .nl-fav": {
       opacity: 1
+    },
+    // Touch devices have no hover; keep the favorite toggle reachable.
+    "@media (pointer: coarse)": {
+      ".nl-fav": { opacity: 1 }
     }
   });
 

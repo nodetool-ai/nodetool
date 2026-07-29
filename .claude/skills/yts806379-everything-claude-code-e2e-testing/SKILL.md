@@ -1,10 +1,12 @@
 ---
 name: e2e-testing
-description: Playwright E2E testing patterns, Page Object Model, configuration, CI/CD integration, artifact management, and flaky test strategies.
+description: Playwright E2E testing patterns, Page Object Model, configuration, CI/CD integration, artifact management, and flaky test strategies. Use when writing, fixing, or deflaking Playwright tests in this repo — the web E2E suites under web/tests/ (e2e-runner, debug-harness, visual) and the Electron E2E setup.
 origin: ECC
 ---
 
 # E2E Testing Patterns
+
+> **This repo**: Playwright suites live in `web/tests/` with per-suite configs at the `web/` root — `playwright.config.ts`, `playwright.e2e-runner.config.ts`, `playwright.debug-harness.config.ts`, `playwright.visual.config.ts`. Run the harness suites via `cd web && npm run test:debug-harness` (see root `CLAUDE.md` § nodetool debug). Electron E2E setup: `electron/src/AGENTS.md` § E2E Test Setup. The generic patterns below apply on top of that layout — prefer the repo's existing fixtures and configs over the scaffold shown here.
 
 Comprehensive Playwright patterns for building stable, fast, and maintainable E2E test suites.
 

@@ -9,7 +9,8 @@ import {
   BORDER_RADIUS,
   reducedMotion,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  Z_INDEX
 } from "../ui_primitives";
 
 interface EditableTitleProps {
@@ -87,7 +88,7 @@ const EditableTitle = memo(function EditableTitle({
     gap: 0,
     border: `1px solid ${theme.vars.palette.divider}`,
     boxShadow: `0 1px 2px ${theme.vars.palette.c_black}33`,
-    zIndex: 10,
+    zIndex: Z_INDEX.dropdown,
     animation: `${fadeIn} ${MOTION.normal}`,
     transition: MOTION.border,
     cursor: "text",
@@ -111,7 +112,6 @@ const EditableTitle = memo(function EditableTitle({
       transform: "rotate(45deg)"
     },
 
-    // Textarea styling
     "& textarea": {
       flex: 1,
       minWidth: "160px",
@@ -133,7 +133,6 @@ const EditableTitle = memo(function EditableTitle({
       }
     },
 
-    // Title text styling
     ".title": {
       pointerEvents: "none",
       minWidth: 0,
@@ -200,6 +199,13 @@ const EditableTitle = memo(function EditableTitle({
 
     "&:hover .remove-title": {
       opacity: 1
+    },
+
+    // Touch devices have no hover; keep the remove button reachable.
+    "@media (pointer: coarse)": {
+      ".remove-title": {
+        opacity: 1
+      }
     }
   }), [theme]);
 
@@ -265,6 +271,7 @@ const EditableTitle = memo(function EditableTitle({
             className="remove-title"
             onClick={handleRemoveTitle}
             title="Remove note"
+            aria-label="Remove note"
           >
             <CloseIcon className="icon" />
           </button>

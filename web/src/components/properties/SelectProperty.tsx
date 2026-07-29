@@ -1,6 +1,6 @@
 import React, { memo, useMemo } from "react";
 import { PropertyProps } from "../node/PropertyInput";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import Select from "../inputs/Select";
 import PropertyLabel from "../node/PropertyLabel";
 import { useNodes } from "../../contexts/NodeContext";
@@ -10,7 +10,7 @@ import { useNodes } from "../../contexts/NodeContext";
  * Unlike EnumProperty, it reads the options from the node's "options" property
  * rather than from the property type metadata.
  */
-const SelectProperty: React.FC<PropertyProps> = ({
+const SelectProperty: React.FC<PropertyProps<string>> = ({
   property,
   propertyIndex,
   nodeId,
@@ -24,7 +24,6 @@ const SelectProperty: React.FC<PropertyProps> = ({
     [property.name, propertyIndex]
   );
 
-  // Get the options from the node's properties
   const findNode = useNodes((state) => state.findNode);
   const node = findNode(nodeId);
   const options = useMemo(() => {

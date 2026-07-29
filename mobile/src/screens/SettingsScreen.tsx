@@ -347,7 +347,7 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.aboutRow}
+          style={[styles.aboutRow, { borderBottomColor: colors.borderLight }]}
           onPress={() => navigation.navigate('Jobs')}
           accessibilityRole="button"
           accessibilityLabel="View jobs"
@@ -355,6 +355,19 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
           <View style={styles.manageRowLeft}>
             <Ionicons name="time-outline" size={18} color={colors.textSecondary} style={{ marginRight: 10 }} />
             <Text style={[styles.aboutLabel, { color: colors.text }]}>Jobs</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.aboutRow}
+          onPress={() => navigation.navigate('Triggers')}
+          accessibilityRole="button"
+          accessibilityLabel="View triggers"
+        >
+          <View style={styles.manageRowLeft}>
+            <Ionicons name="flash-outline" size={18} color={colors.textSecondary} style={{ marginRight: 10 }} />
+            <Text style={[styles.aboutLabel, { color: colors.text }]}>Triggers</Text>
           </View>
           <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
         </TouchableOpacity>

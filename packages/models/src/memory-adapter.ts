@@ -20,8 +20,6 @@ import type {
   TableSchema
 } from "./database-adapter.js";
 
-// ── Condition evaluator ──────────────────────────────────────────────
-
 function evaluateCondition(row: Row, cond: Condition): boolean {
   const val = row[cond.field];
   const target = cond.value instanceof Variable ? null : cond.value;
@@ -72,8 +70,6 @@ function evaluateGroup(row: Row, group: ConditionGroup): boolean {
 function matchesCondition(row: Row, builder: ConditionBuilder): boolean {
   return evaluateGroup(row, builder.build());
 }
-
-// ── In-memory Adapter ────────────────────────────────────────────────
 
 export class MemoryAdapter implements DatabaseAdapter {
   readonly tableName: string;

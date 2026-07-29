@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { FlexRow, Text, SPACING, getSpacingPx } from "../ui_primitives";
 
 const PANEL_TOOLBAR_HEIGHT = 36;
@@ -54,10 +54,11 @@ const PanelToolbar: React.FC<PanelToolbarProps> = ({
   actions
 }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
 
   return (
     <FlexRow
-      css={styles(theme)}
+      css={cssStyles}
       className="panel-toolbar"
       align="center"
       gap={1.5}

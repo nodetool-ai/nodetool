@@ -17,7 +17,11 @@ import {
   MOTION,
   BORDER_RADIUS,
   ListItemText,
-  ListItemIcon
+  ListItemIcon,
+  FlexRow,
+  FlexColumn,
+  Text,
+  activateOnKey
 } from "../ui_primitives";
 import InputOutlinedIcon from "@mui/icons-material/InputOutlined";
 import CheckIcon from "@mui/icons-material/Check";
@@ -25,9 +29,6 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import CloseIcon from "@mui/icons-material/Close";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { FlexRow } from "../ui_primitives/FlexRow";
-import { FlexColumn } from "../ui_primitives/FlexColumn";
-import { Text } from "../ui_primitives/Text";
 import type { Property, TypeMetadata } from "../../stores/ApiTypes";
 import type { ChainNode, InputMappings, InputSource } from "./chainTypes";
 import { areTypesCompatible } from "./chainTypes";
@@ -63,7 +64,10 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
   const mappedCount = Object.keys(inputMappings).length;
 
   const handleOpenPicker = useCallback(
-    (inputName: string, event: React.MouseEvent<HTMLElement>) => {
+    (
+      inputName: string,
+      event: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>
+    ) => {
       setActiveInput(inputName);
       setAnchorEl(event.currentTarget);
     },
@@ -140,6 +144,13 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
             <Box
               key={prop.name}
               onClick={(e) => handleOpenPicker(prop.name, e)}
+              onKeyDown={activateOnKey<HTMLDivElement>((e) =>
+                handleOpenPicker(prop.name, e)
+              )}
+              role="button"
+              tabIndex={0}
+              aria-haspopup="menu"
+              aria-label={`Source for input ${prop.name}`}
               sx={{
                 display: "flex",
                 alignItems: "center",
@@ -176,9 +187,7 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
                 >
                   {prop.title ?? prop.name}
                 </Text>
-                <Text size="tiny" color="secondary">
-                  {formatType(prop.type)}
-                </Text>
+                <Text size="smaller" color="secondary">{formatType(prop.type)}</Text>
               </FlexColumn>
 
               {mapping && sourceNode ? (
@@ -189,14 +198,9 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
                       color: theme.vars.palette.secondary.main,
                     }}
                   />
-                  <Text
-                    size="tiny"
-                    weight={600}
-                    truncate
-                    sx={{ color: theme.vars.palette.secondary.main }}
-                  >
-                    {sourceNode.metadata.title}.{mapping.sourceOutput}
-                  </Text>
+                  <Text size="smaller" weight={600}
+                  truncate
+                  sx={{ color: theme.vars.palette.secondary.main }}>{sourceNode.metadata.title}.{mapping.sourceOutput}</Text>
                   <ToolbarIconButton
                     size="small"
                     ariaLabel="Remove mapping"
@@ -222,7 +226,6 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
         })}
       </FlexColumn>
 
-      {/* Source picker menu */}
       <EditorMenu
         anchorEl={anchorEl}
         open={Boolean(anchorEl) && activeInput !== null}
@@ -239,7 +242,6 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
           />
         </EditorMenuItem>
 
-        {/* None option */}
         <EditorMenuItem
           selected={activeInput !== null && !inputMappings[activeInput]}
           onClick={() => handleSelect(null)}

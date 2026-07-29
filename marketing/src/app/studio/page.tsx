@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { SmartDownloadButton } from "../SmartDownloadButton";
 import SiteHeader from "../../components/SiteHeader";
+import CanvasScreenshot from "../../components/CanvasScreenshot";
 import SiteFooter from "../../components/SiteFooter";
 
 const ModelSupportSection = dynamic(
@@ -59,47 +60,47 @@ const proPoints = [
   {
     icon: WifiOff,
     title: "Works fully offline",
-    body: "Once your local models are downloaded, disconnect the internet and keep building — travel, secure environments, air-gapped machines.",
+    body: "Once your local models are downloaded you can disconnect from the internet and keep working, whether you are travelling or on a machine with no network at all.",
   },
   {
     icon: Shield,
     title: "Your data never leaves the device",
-    body: "Workflows, assets, prompts, and model outputs stay on your disk. No telemetry — and no cloud round-trip unless you explicitly call a remote API.",
+    body: "Workflows, files, prompts, and results stay on your disk. Nothing is reported back to us, and nothing leaves the machine unless you call a remote provider on purpose.",
   },
   {
     icon: Cpu,
-    title: "Run open-weight models locally",
-    body: "Ollama, MLX (Apple Silicon), GGUF/GGML, HuggingFace Transformers — all wired into the same nodes. Pick any open model with zero API cost.",
+    title: "Run open models on your machine",
+    body: "Ollama, MLX for Apple Silicon, llama.cpp, and Hugging Face all work with the same building blocks. Pick any open model and pay no usage fees.",
   },
   {
     icon: Zap,
     title: "Use your GPU to the fullest",
-    body: "NVIDIA CUDA on Windows/Linux, Metal on Apple Silicon. Image, video, and audio nodes go straight to the metal.",
+    body: "NVIDIA graphics cards on Windows and Linux, Apple Silicon on macOS. Image, video, and audio work runs on your own hardware.",
   },
   {
     icon: HardDrive,
     title: "Own your model library",
-    body: "Built-in Model Manager downloads, organizes, and shares model files across workflows. Curate the exact stack you want.",
+    body: "The built-in model manager downloads and organizes model files and shares them across workflows, so you keep exactly the models you want.",
   },
   {
     icon: Code2,
     title: "Custom Python and TypeScript nodes",
-    body: "Drop in your own code, install Python packages in the bundled environment, or sandbox untrusted code in Docker.",
+    body: "Add your own code, install Python packages in the environment that ships with the app, or run code you do not trust inside Docker.",
   },
 ];
 
 const consPoints = [
   {
     title: "Hardware matters",
-    body: "Local LLMs need RAM and ideally a GPU. We recommend 16GB+ RAM and 4GB+ VRAM for serious local-model work.",
+    body: "Local models need memory and ideally a graphics card. For serious local work we suggest 16GB or more of RAM and at least 4GB of graphics memory.",
   },
   {
     title: "You manage updates",
-    body: "When a new release ships, you install it. We sign and notarize builds for macOS/Windows so updates stay easy.",
+    body: "When a new release comes out, you install it. Builds are signed and notarized for macOS and Windows, so updating stays simple.",
   },
   {
     title: "Disk space",
-    body: "Local models are large — plan ~20GB for a small starter set, much more for video/image weights.",
+    body: "Local models are large. Allow around 20GB for a small starter set, and considerably more for image and video models.",
   },
 ];
 
@@ -212,10 +213,10 @@ export default function StudioPage() {
                   </span>
                 </h1>
                 <p className="mt-6 text-lg text-slate-300 leading-relaxed max-w-xl">
-                  NodeTool Studio is the desktop app for builders who want their
-                  models, data, and outputs to stay local. Use Ollama, MLX, and
-                  GGUF models with zero per-token cost — and bring your own keys
-                  for any cloud provider when you need them.
+                  NodeTool Studio is the desktop app for people who want their
+                  models, data, and results to stay on their own machine. Run
+                  free local models with Ollama and MLX, and bring your own keys
+                  for a cloud provider whenever you need one.
                 </p>
                 <div className="mt-8 flex flex-col gap-3">
                   <SmartDownloadButton
@@ -253,12 +254,7 @@ export default function StudioPage() {
                   }}
                 />
                 <div className="rounded-2xl border border-slate-700/60 bg-slate-900/80 p-1.5 shadow-2xl shadow-black/60 ring-1 ring-white/5 backdrop-blur">
-                  <img
-                    src="/screen_canvas.png"
-                    alt="NodeTool Studio workflow editor"
-                    className="block w-full rounded-xl"
-                    loading="eager"
-                  />
+                  <CanvasScreenshot alt="NodeTool Studio workflow editor" />
                 </div>
               </div>
             </div>
@@ -281,11 +277,12 @@ export default function StudioPage() {
                 id="why-studio-title"
                 className="text-3xl md:text-5xl font-bold tracking-tight text-white"
               >
-                Privacy, speed, and zero per-token cost.
+                Privacy, speed, and no usage fees.
               </h2>
               <p className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl">
                 Everything Studio does, it can do without a network connection.
-                Your prompts, your files, and your models — all on your hardware.
+                Your prompts, your files, and your models all stay on your own
+                hardware.
               </p>
             </header>
 
@@ -328,8 +325,9 @@ export default function StudioPage() {
                 What Studio asks of you.
               </h2>
               <p className="mt-4 text-base text-slate-400 leading-relaxed max-w-2xl">
-                Local-first means you take on a few things the cloud would
-                otherwise handle. If any of these feel heavy,{" "}
+                Running everything on your own machine means taking on a few jobs
+                the cloud would otherwise handle. If any of these feel like too
+                much,{" "}
                 <a
                   href="/cloud"
                   className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
@@ -383,9 +381,9 @@ export default function StudioPage() {
                 100% open source. Always.
               </h2>
               <p className="mt-4 text-slate-400 leading-relaxed">
-                Studio is released under AGPL-3.0. Every node, every provider,
-                every line of the runtime is on GitHub. Audit it, fork it,
-                self-host it — there is no separate &ldquo;pro&rdquo; codebase.
+                Studio is released under AGPL-3.0. Every building block, every
+                provider, and every line that runs it is on GitHub. Read it, copy
+                it, or host it yourself. There is no separate paid version.
               </p>
               <a
                 href="https://github.com/nodetool-ai/nodetool"

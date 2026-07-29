@@ -1,15 +1,15 @@
-import OpenAI from "openai";
-import { OpenAIProvider } from "./openai-provider.js";
+import {
+  OpenAICompatProvider,
+  type OpenAICompatProviderOptions
+} from "./openai-compat-provider.js";
+import { trimTrailingSlashes } from "./openai-compat/index.js";
 import type { LanguageModel } from "./types.js";
 
-interface VLLMProviderOptions {
-  client?: OpenAI;
-  clientFactory?: (apiKey: string) => OpenAI;
-  fetchFn?: typeof fetch;
+interface VLLMProviderOptions extends OpenAICompatProviderOptions {
   baseURL?: string;
 }
 
-export class VLLMProvider extends OpenAIProvider {
+export class VLLMProvider extends OpenAICompatProvider {
   static override requiredSecrets(): string[] {
     return [];
   }
@@ -30,7 +30,7 @@ export class VLLMProvider extends OpenAIProvider {
         "VLLM_BASE_URL is required (options.baseURL, secret, or env)"
       );
     }
-    const baseURL = String(rawBaseURL).replace(/\/+$/, "");
+    const baseURL = trimTrailingSlashes(String(rawBaseURL));
 
     const apiKey =
       secrets.VLLM_API_KEY && secrets.VLLM_API_KEY.trim().length > 0
@@ -39,21 +39,10 @@ export class VLLMProvider extends OpenAIProvider {
     const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
 
     super(
-      { OPENAI_API_KEY: apiKey },
-      {
-        client: options.client,
-        clientFactory:
-          options.clientFactory ??
-          ((key) =>
-            new OpenAI({
-              apiKey: key,
-              baseURL: `${baseURL}/v1`
-            })),
-        fetchFn
-      }
+      { providerId: "vllm", apiKey, baseURL: `${baseURL}/v1` },
+      { ...options, fetchFn }
     );
 
-    (this as { provider: string }).provider = "vllm";
     this._vllmFetch = fetchFn;
     this._vllmBaseURL = baseURL;
   }

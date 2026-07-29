@@ -89,8 +89,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     } else {
       dataToStringify = Array.isArray(data)
         ? (data as DictTableRow[]).map((row) => {
-            // Create a new object excluding rownum
-             
+
             const { rownum, ...rest } = row;
             return rest;
           })
@@ -154,10 +153,11 @@ const TableActions: React.FC<TableActionsProps> = memo(({
 
   const handleDeleteRows = useCallback(() => {
     if (Array.isArray(data)) {
+      const selectedIndices = new Set(
+        selectedRows.map((row) => row.getData().rownum)
+      );
       const filtered = (data as CellValue[]).filter((_, index) => {
-        return !selectedRows.some(
-          (selectedRow) => selectedRow.getData().rownum === index
-        );
+        return !selectedIndices.has(index);
       });
       onChangeRows(filtered);
     } else {
@@ -190,7 +190,6 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     setShowRowNumbers?.(!showRowNumbers);
   }, [setShowRowNumbers, showRowNumbers]);
 
-  // Duplicate selected rows
   const handleDuplicateRows = useCallback(() => {
     if (!Array.isArray(data) || selectedRows.length === 0) {return;}
 
@@ -207,7 +206,6 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     const newData = [...data];
     newData.splice(lastSelectedIndex + 1, 0, ...duplicatedRows);
 
-    // Reassign rownums - memoize this operation
     let reindexedData;
     if (isListTable) {
         // List table data is just values, no reindexing needed in the data itself
@@ -224,7 +222,6 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     });
   }, [data, selectedRows, onChangeRows, addNotification, isListTable]);
 
-  // Undo action
   const handleUndo = useCallback(() => {
     if (tabulator) {
       tabulator.undo();
@@ -232,7 +229,6 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     }
   }, [tabulator, onHistoryChange]);
 
-  // Redo action
   const handleRedo = useCallback(() => {
     if (tabulator) {
       tabulator.redo();
@@ -342,9 +338,9 @@ const TableActions: React.FC<TableActionsProps> = memo(({
             }
             // Coerce to correct type
             if (col.data_type === "int") {
-              value = parseInt(value as string) || 0;
+              value = parseInt(String(value)) || 0;
             } else if (col.data_type === "float") {
-              value = parseFloat(value as string) || 0.0;
+              value = parseFloat(String(value)) || 0.0;
             }
             newRow[col.name] = value;
           });
@@ -368,7 +364,6 @@ const TableActions: React.FC<TableActionsProps> = memo(({
         const newData = [...data];
         newData.splice(insertIndex, 0, ...newRows);
 
-        // Reassign rownums - memoize this operation
         const reindexedData = (newData as DictTableRow[]).map((row, index) => ({ ...row, rownum: index }));
         onChangeRows(reindexedData);
         
@@ -392,7 +387,6 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     if (!dataframeColumns || !Array.isArray(data)) {return;}
 
     // Build CSV content manually to exclude utility columns
-    // Memoize headers to avoid recreating on each render
     const headers = dataframeColumns.map((c) => `"${c.name}"`).join(",");
     const rows = (data as DictTableRow[]).map((row) => {
       return dataframeColumns.map((col) => {
@@ -410,7 +404,9 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     link.href = url;
     link.download = "dataframe.csv";
     link.click();
-    URL.revokeObjectURL(url);
+    // Defer the revoke: releasing the blob synchronously cancels the download
+    // in Firefox and for large files.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
 
     addNotification({
       content: "Exported as CSV",

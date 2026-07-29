@@ -15,7 +15,6 @@ function isCssVar(color: string): boolean {
 }
 
 export function hexToRgba(hex: string, alphaValue: number): string {
-  // Return transparent if the color is empty or undefined
   if (!hex) {
     return "transparent";
   }
@@ -96,13 +95,7 @@ export function createLinearGradient(
   return `linear-gradient(${direction}, ${rgbaColor}, ${rgbaModifiedColor})`;
 }
 
-// ---------------------------------------------------------------------
-// NODE TYPE COLORS FOR MINIMAP
-// ---------------------------------------------------------------------
-
-/**
- * Node categories for color coding in the minimap.
- */
+/** Node categories for color coding in the minimap. */
 export enum NodeTypeCategory {
   /** Input nodes that accept user data */
   Input = "input",
@@ -118,9 +111,6 @@ export enum NodeTypeCategory {
   Output = "output"
 }
 
-/**
- * Determines the category of a node based on its type string.
- */
 function getNodeTypeCategory(nodeType: string | undefined): NodeTypeCategory {
   if (!nodeType) {
     return NodeTypeCategory.Processing;
@@ -145,9 +135,6 @@ function getNodeTypeCategory(nodeType: string | undefined): NodeTypeCategory {
   return NodeTypeCategory.Processing;
 }
 
-/**
- * Gets a color for a node type category in light mode.
- */
 export function getNodeCategoryColor(
   category: NodeTypeCategory,
   isDarkMode: boolean
@@ -175,7 +162,6 @@ export function createMinimapNodeColorFn(
   primaryColor: string
 ): (node: { type?: string; selected?: boolean }) => string {
   return (node) => {
-    // Always use primary color for selected nodes
     if (node.selected) {
       return primaryColor;
     }
@@ -191,7 +177,6 @@ export function createMinimapNodeColorFn(
       return isDarkMode ? "#94a3b8" : "#64748b";
     }
 
-    // Type-based coloring
     const category = getNodeTypeCategory(node.type);
     return getNodeCategoryColor(category, isDarkMode);
   };

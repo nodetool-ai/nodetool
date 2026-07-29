@@ -7,8 +7,10 @@ import {
   createStorageAdapter,
   FileStorageAdapter,
   InMemoryStorageAdapter,
+  S3Error,
   S3StorageAdapter,
-  SupabaseStorageAdapter
+  SupabaseStorageAdapter,
+  type S3Api
 } from "../src/index.js";
 
 describe("InMemoryStorageAdapter", () => {
@@ -59,26 +61,32 @@ describe("FileStorageAdapter", () => {
 });
 
 describe("S3StorageAdapter", () => {
-  function fakeClient(store: Map<string, Uint8Array>) {
+  function fakeClient(store: Map<string, Uint8Array>): S3Api {
     return {
-      send: vi.fn(async (cmd: any) => {
-        const key = `${cmd.input.Bucket}/${cmd.input.Key}`;
-        if (cmd.constructor.name === "PutObjectCommand") {
-          store.set(key, new Uint8Array(cmd.input.Body));
-          return {};
+      async putObject(input) {
+        store.set(`${input.bucket}/${input.key}`, new Uint8Array(input.body));
+        return {};
+      },
+      async getObject(input) {
+        const body = store.get(`${input.bucket}/${input.key}`);
+        if (!body) {
+          throw new S3Error("NoSuchKey", "The specified key does not exist.", 404);
         }
-        if (cmd.constructor.name === "GetObjectCommand") {
-          const body = store.get(key);
-          if (!body) throw new Error("NoSuchKey");
-          return { Body: { transformToByteArray: async () => body } };
+        return { body };
+      },
+      async headObject(input) {
+        if (!store.has(`${input.bucket}/${input.key}`)) {
+          throw new S3Error("NotFound", "Not Found", 404);
         }
-        if (cmd.constructor.name === "HeadObjectCommand") {
-          if (!store.has(key)) throw new Error("NotFound");
-          return {};
-        }
-        throw new Error(`unknown command ${cmd.constructor.name}`);
-      })
-    } as any;
+        return { contentLength: store.get(`${input.bucket}/${input.key}`)?.byteLength ?? 0 };
+      },
+      async deleteObject(input) {
+        store.delete(`${input.bucket}/${input.key}`);
+      },
+      async listObjectsV2() {
+        return { contents: [], commonPrefixes: [], isTruncated: false };
+      }
+    };
   }
 
   it("stores and retrieves under s3:// uri with prefix", async () => {
@@ -111,49 +119,63 @@ describe("S3StorageAdapter", () => {
 
   it("rejects empty bucket", () => {
     expect(
-      () => new S3StorageAdapter({ bucket: "", client: {} as any })
+      () => new S3StorageAdapter({ bucket: "", client: {} as unknown as S3Api })
     ).toThrow(/bucket is required/);
   });
 
-  it("retries a transient upload error then succeeds", async () => {
-    const store = new Map<string, Uint8Array>();
+  // Transient-failure retries live in S3Client (see s3-retry.test.ts); the
+  // adapter calls putObject once and wraps failures with bucket/key context.
+  it("surfaces upload errors with the s3:// target and does not add retries", async () => {
     let attempts = 0;
-    const client = {
-      send: vi.fn(async (cmd: any) => {
-        if (cmd.constructor.name === "PutObjectCommand") {
-          attempts++;
-          if (attempts < 3) {
-            const err: any = new Error("ServiceUnavailable");
-            err.$metadata = { httpStatusCode: 503 };
-            throw err;
-          }
-          store.set(`${cmd.input.Bucket}/${cmd.input.Key}`, new Uint8Array(cmd.input.Body));
-          return {};
-        }
-        throw new Error(`unexpected ${cmd.constructor.name}`);
-      })
-    } as any;
-    const storage = new S3StorageAdapter({ bucket: "b", client });
-    const uri = await storage.store("k.bin", new Uint8Array([1]));
-    expect(uri).toBe("s3://b/k.bin");
-    expect(attempts).toBe(3);
-  });
-
-  it("does not retry a permanent (4xx) upload error and surfaces it", async () => {
-    let attempts = 0;
-    const client = {
-      send: vi.fn(async () => {
+    const client: S3Api = {
+      ...fakeClient(new Map()),
+      async putObject() {
         attempts++;
-        const err: any = new Error("AccessDenied");
-        err.$metadata = { httpStatusCode: 403 };
-        throw err;
-      })
-    } as any;
+        throw new S3Error("AccessDenied", "AccessDenied", 403);
+      }
+    };
     const storage = new S3StorageAdapter({ bucket: "b", client });
     await expect(storage.store("k.bin", new Uint8Array([1]))).rejects.toThrow(
-      /S3 upload failed.*AccessDenied/s
+      /S3 upload failed for s3:\/\/b\/k\.bin.*AccessDenied/s
     );
     expect(attempts).toBe(1);
+  });
+
+  it("lists objects across continuation tokens", async () => {
+    const pages = [
+      {
+        contents: [
+          { key: "runs/r1/files/a.txt", size: 1, lastModified: new Date(1000) }
+        ],
+        commonPrefixes: [],
+        isTruncated: true,
+        nextContinuationToken: "tok"
+      },
+      {
+        contents: [
+          { key: "runs/r1/files/b.txt", size: 2, lastModified: new Date(2000) }
+        ],
+        commonPrefixes: ["runs/r1/files/sub/"],
+        isTruncated: false
+      }
+    ];
+    const listCalls: Array<Record<string, unknown>> = [];
+    const client: S3Api = {
+      ...fakeClient(new Map()),
+      async listObjectsV2(input) {
+        listCalls.push({ ...input });
+        return pages[listCalls.length - 1];
+      }
+    };
+    const storage = new S3StorageAdapter({ bucket: "b", prefix: "runs/r1", client });
+    const result = await storage.list("files", { delimiter: "/" });
+    expect(listCalls[0]).toMatchObject({ prefix: "runs/r1/files/", delimiter: "/" });
+    expect(listCalls[1]).toMatchObject({ continuationToken: "tok" });
+    expect(result.entries.map((e) => e.key)).toEqual([
+      "files/a.txt",
+      "files/b.txt"
+    ]);
+    expect(result.commonPrefixes).toEqual(["files/sub/"]);
   });
 });
 

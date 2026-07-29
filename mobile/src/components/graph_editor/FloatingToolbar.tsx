@@ -28,12 +28,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface FloatingToolbarProps {
   workflowId?: string;
-  onToggleView?: () => void;
-  viewMode: "editor" | "runner";
 }
 
 export const FloatingToolbar: React.FC<FloatingToolbarProps> = memo(
-  function FloatingToolbar({ workflowId, onToggleView, viewMode }) {
+  function FloatingToolbar({ workflowId }) {
     const { colors, shadows } = useTheme();
     const insets = useSafeAreaInsets();
 
@@ -47,19 +45,16 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = memo(
 
     // Subscribe to runner store state without conditional hooks
     const [runState, setRunState] = useState<RunnerState>("idle");
-    const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
     useEffect(() => {
       if (!effectiveWorkflowId) {
         setRunState("idle");
-        setStatusMessage(null);
         return;
       }
       const store = getWorkflowRunnerStore(effectiveWorkflowId);
       const update = () => {
         const s = store.getState();
         setRunState(s.state);
-        setStatusMessage(s.statusMessage);
       };
       update();
       return store.subscribe(update);
@@ -169,34 +164,14 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = memo(
         ]}
       >
         {/* Add Node */}
-        {viewMode === "editor" && (
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: colors.primaryMuted }]}
-            onPress={handleAddNode}
-            accessibilityRole="button"
-            accessibilityLabel="Add node"
-          >
-            <Ionicons name="add-circle" size={22} color={colors.primary} />
-          </TouchableOpacity>
-        )}
-
-        {/* Toggle View */}
-        {workflowId && onToggleView && (
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: colors.primaryMuted }]}
-            onPress={onToggleView}
-            accessibilityRole="button"
-            accessibilityLabel={
-              viewMode === "editor" ? "Switch to runner" : "Switch to editor"
-            }
-          >
-            <Ionicons
-              name={viewMode === "editor" ? "play-outline" : "git-network-outline"}
-              size={20}
-              color={colors.primary}
-            />
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: colors.primaryMuted }]}
+          onPress={handleAddNode}
+          accessibilityRole="button"
+          accessibilityLabel="Add node"
+        >
+          <Ionicons name="add-circle" size={22} color={colors.primary} />
+        </TouchableOpacity>
 
         {/* Save */}
         <TouchableOpacity

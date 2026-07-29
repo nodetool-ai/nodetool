@@ -31,9 +31,6 @@ export interface GraphDiff {
   hasChanges: boolean;
 }
 
-/**
- * Deep equality check for values
- */
 const isEqual = (a: unknown, b: unknown): boolean => {
   if (a === b) {
     return true;
@@ -75,9 +72,6 @@ const isEqual = (a: unknown, b: unknown): boolean => {
   return aKeys.every((key) => isEqual(a[key], b[key]));
 };
 
-/**
- * Find property changes between two nodes
- */
 const findNodePropertyChanges = (
   oldNode: Node,
   newNode: Node
@@ -89,7 +83,6 @@ const findNodePropertyChanges = (
   const oldData = toRecord(oldNode.data);
   const newData = toRecord(newNode.data);
 
-  // Get all keys from both objects
   const allKeys = new Set([...Object.keys(oldData), ...Object.keys(newData)]);
 
   for (const key of allKeys) {
@@ -101,7 +94,6 @@ const findNodePropertyChanges = (
     }
   }
 
-  // Also check UI properties that matter
   if (!isEqual(oldNode.ui_properties, newNode.ui_properties)) {
     changes.push({
       key: "ui_properties",
@@ -113,9 +105,6 @@ const findNodePropertyChanges = (
   return changes;
 };
 
-/**
- * Find modified nodes between two graphs
- */
 const findModifiedNodes = (
   oldGraph: Graph,
   newGraph: Graph
@@ -125,7 +114,6 @@ const findModifiedNodes = (
   const oldNodesMap = new Map<string, Node>(oldGraph.nodes.map((n) => [n.id, n]));
   const newNodesMap = new Map<string, Node>(newGraph.nodes.map((n) => [n.id, n]));
 
-  // Check nodes that exist in both
   for (const [nodeId, newNode] of newNodesMap) {
     const oldNode = oldNodesMap.get(nodeId);
     if (oldNode) {
@@ -143,18 +131,13 @@ const findModifiedNodes = (
   return modifiedNodes;
 };
 
-/**
- * Create a unique edge identifier for comparison
- */
+/** Unique edge identifier for comparison. */
 const getEdgeKey = (edge: Edge): string => {
   const source = edge.source ?? "unknown";
   const target = edge.target ?? "unknown";
   return `${source}:${edge.sourceHandle || "default"}->${target}:${edge.targetHandle || "default"}`;
 };
 
-/**
- * Compute the differences between two graph versions
- */
 export const computeGraphDiff = (
   oldGraph: Graph,
   newGraph: Graph
@@ -169,16 +152,10 @@ export const computeGraphDiff = (
     newGraph.edges.map((e: Edge) => [getEdgeKey(e), e])
   );
 
-  // Find added nodes (in new but not in old)
   const addedNodes = newGraph.nodes.filter((n: Node) => !oldNodeIds.has(n.id));
-
-  // Find removed nodes (in old but not in new)
   const removedNodes = oldGraph.nodes.filter((n: Node) => !newNodeIds.has(n.id));
-
-  // Find modified nodes
   const modifiedNodes = findModifiedNodes(oldGraph, newGraph);
 
-  // Find added edges
   const addedEdges: Edge[] = [];
   for (const [key, edge] of newEdgeKeys) {
     if (!oldEdgeKeys.has(key)) {
@@ -186,7 +163,6 @@ export const computeGraphDiff = (
     }
   }
 
-  // Find removed edges
   const removedEdges: Edge[] = [];
   for (const [key, edge] of oldEdgeKeys) {
     if (!newEdgeKeys.has(key)) {

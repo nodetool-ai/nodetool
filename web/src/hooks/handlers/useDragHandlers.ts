@@ -14,16 +14,27 @@ import { useRemoveFromGroup } from "../nodes/useRemoveFromGroup";
 import { useIsGroupable } from "../nodes/useIsGroupable";
 import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
 import { shallow } from "zustand/shallow";
-// Removed comment creation via drag
 
 // Throttle interval for intersection checks (ms)
 const INTERSECTION_THROTTLE_MS = 50;
+
+type NodeDragEvent = MouseEvent | TouchEvent;
+
+const getNodeDragClientPosition = (event: NodeDragEvent) => {
+  if ("touches" in event) {
+    const touch = event.touches[0] ?? event.changedTouches[0];
+    if (!touch) {
+      return null;
+    }
+    return { x: touch.clientX, y: touch.clientY };
+  }
+  return { x: event.clientX, y: event.clientY };
+};
 
 export default function useDragHandlers() {
   const addToGroup = useAddToGroup();
   const removeFromGroup = useRemoveFromGroup();
   const { isGroup } = useIsGroupable();
-  // Removed: c-key drag-to-create-comment feature
   const controlKeyPressed = useKeyPressed((state) =>
     state.isKeyPressed("control")
   );
@@ -54,7 +65,7 @@ export default function useDragHandlers() {
 
   /* NODE DRAG START */
   const onNodeDragStart = useCallback(
-    (_event: ReactMouseEvent, node: Node<NodeData>) => {
+    (_event: NodeDragEvent, node: Node<NodeData>) => {
       setLastParentNode(undefined);
       resetWiggleDetection();
       setDraggedNodes(new Set([node]));
@@ -66,9 +77,12 @@ export default function useDragHandlers() {
 
   /* NODE DRAG */
   const onNodeDrag = useCallback(
-    (event: ReactMouseEvent, node: Node<NodeData>) => {
+    (event: NodeDragEvent, node: Node<NodeData>) => {
       pause();
-      addWiggleMovement(event.clientX, event.clientY);
+      const position = getNodeDragClientPosition(event);
+      if (position) {
+        addWiggleMovement(position.x, position.y);
+      }
 
       // Wiggle ungrouping (works for both single nodes and selections)
       if (node.parentId && isWiggling()) {
@@ -131,7 +145,7 @@ export default function useDragHandlers() {
 
   /* NODE DRAG STOP */
   const onNodeDragStop = useCallback(
-    (_event: ReactMouseEvent, node: Node<NodeData>) => {
+    (_event: NodeDragEvent, node: Node<NodeData>) => {
       // Only add to group if a valid parent was intersected during drag
       // and the node isn't already in that group
       if (lastParentNode && node.parentId !== lastParentNode.id) {
@@ -273,12 +287,8 @@ export default function useDragHandlers() {
       x: currentMousePos.x,
       y: currentMousePos.y
     });
-    setStartPos(projectedStartPos); // General purpose
-  }, [
-    reactFlow,
-    setStartPos,
-    // comment creation via drag removed
-  ]); // Added commentDragState.isActive
+    setStartPos(projectedStartPos);
+  }, [reactFlow, setStartPos]);
 
   const onSelectionEnd = useCallback(
     (_event: ReactMouseEvent | TouchEvent | null) => {

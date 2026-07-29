@@ -11,6 +11,7 @@
 
 import { createLogger } from "@nodetool-ai/config";
 import type {
+  DynamicSlotMeta,
   Edge,
   NodeDescriptor,
   HydratedNodeDescriptor,
@@ -27,6 +28,7 @@ import {
   TypeMetadata
 } from "@nodetool-ai/protocol";
 import { syntheticEdgeId } from "./edge-ids.js";
+import { dynamicSlotPropertyTypes } from "./dynamic-slots.js";
 
 // ---------------------------------------------------------------------------
 // Graph errors
@@ -52,13 +54,6 @@ export interface GraphFromDictOptions {
   skipErrors?: boolean;
   allowUndefinedProperties?: boolean;
   validateNodeType?: (nodeType: string) => boolean;
-  /**
-   * When true (default), delete each node's saved property default for every
-   * handle fed by a surviving edge (the edge value wins at runtime).
-   * loadFromDict disables this and prunes itself after node-type resolution,
-   * since resolution can drop further nodes — and with them, edges.
-   */
-  pruneEdgeProperties?: boolean;
 }
 
 export interface ResolvedNodeType {
@@ -98,10 +93,10 @@ function nodeTypeToJsonSchema(typeStr: string | undefined): string {
     case "float":
     case "number":
       return "number";
-    // Stryker disable next-line StringLiteral: equivalent — the "str" case falls through to "string", which returns the same value as the default branch
+    // Stryker disable StringLiteral: equivalent — both labels return "string", the same value as the default branch
     case "str":
-    // Stryker disable next-line StringLiteral: equivalent — "string" maps to "string", identical to the default branch
     case "string":
+      // Stryker restore StringLiteral
       return "string";
     case "bool":
     case "boolean":
@@ -170,16 +165,17 @@ export class Graph {
   private _streamingUpstream: Set<string> | null = null;
 
   constructor(data: GraphData) {
-    this.nodes = data.nodes;
+    // Auto-detect is_controlled from incoming control edges (Python parity:
+    // BaseNode.is_controlled() checks graph edges at runtime). Affected nodes
+    // are replaced with shallow copies rather than mutated in place, so a
+    // WorkflowRunner.run() never writes back onto the caller's graph data.
+    this.nodes = Graph._withControlledFlags(data.nodes, data.edges);
     this.edges = data.edges;
     this._nodeIndex = new Map();
     this._incomingEdges = new Map();
     this._outgoingEdges = new Map();
     this._outgoingByHandle = new Map();
     this._buildIndices();
-    // Auto-detect is_controlled from incoming control edges (Python parity:
-    // BaseNode.is_controlled() checks graph edges at runtime).
-    this._detectControlledNodes();
   }
 
   /**
@@ -190,8 +186,7 @@ export class Graph {
     const {
       skipErrors = true,
       allowUndefinedProperties = true,
-      validateNodeType,
-      pruneEdgeProperties = true
+      validateNodeType
     } = options;
     if (!data || typeof data !== "object") {
       throw new GraphValidationError("Graph data must be an object");
@@ -250,20 +245,45 @@ export class Graph {
       // Merge dynamic_properties into the node's properties so that
       // dynamic nodes (e.g. WorkflowNode) receive user-provided values
       // for inputs that aren't connected via edges.
-      // Stryker disable next-line all: equivalent — Object.assign with a non-object dynamic_properties value adds no keys (no-op)
-      if (nodeObj.dynamic_properties && typeof nodeObj.dynamic_properties === "object") {
+      if (
+        nodeObj.dynamic_properties &&
+        typeof nodeObj.dynamic_properties === "object"
+      ) {
         Object.assign(
           rawProperties,
           nodeObj.dynamic_properties as Record<string, unknown>
         );
       }
 
+      // Declared dynamic slots are real, typed handles: register their type
+      // in propertyTypes so the undefined-property guard below keeps them and
+      // downstream type lookups see a type instead of `any`. Only merged into
+      // an existing non-empty map — synthesizing propertyTypes here would
+      // switch the guard on for a node that had no type map at all.
+      const slotTypes = dynamicSlotPropertyTypes(
+        nodeObj.dynamic_inputs as Record<string, DynamicSlotMeta> | undefined
+      );
+      if (
+        Object.keys(slotTypes).length > 0 &&
+        nodeObj.propertyTypes != null &&
+        typeof nodeObj.propertyTypes === "object" &&
+        Object.keys(nodeObj.propertyTypes as Record<string, unknown>).length > 0
+      ) {
+        nodeObj.propertyTypes = {
+          ...slotTypes,
+          ...(nodeObj.propertyTypes as Record<string, string>)
+        };
+      }
+
       if (!allowUndefinedProperties) {
         // Only validate against propertyTypes when it is explicitly provided.
         // Using properties itself as a source of truth would defeat the purpose
         // of this check, since every property key would always be "defined".
-        // Stryker disable next-line all: these operands all guard the same thing — a non-object or empty propertyTypes disables the check (the empty-object case has a dedicated test)
-        const hasPropertyTypes = nodeObj.propertyTypes != null && typeof nodeObj.propertyTypes === "object" && Object.keys(nodeObj.propertyTypes as Record<string, unknown>).length > 0;
+        const hasPropertyTypes =
+          nodeObj.propertyTypes != null &&
+          typeof nodeObj.propertyTypes === "object" &&
+          Object.keys(nodeObj.propertyTypes as Record<string, unknown>).length >
+            0;
 
         if (hasPropertyTypes) {
           const definedProperties = new Set<string>(
@@ -324,45 +344,7 @@ export class Graph {
       validEdges.push(edgeObj as unknown as Edge);
     }
 
-    // Delete property defaults only for handles fed by edges that survived
-    // validation. Pruning from the raw edge list would strip a node's saved
-    // default for a malformed or dangling edge that is then dropped, leaving
-    // the node with neither its default nor an incoming value.
-    if (pruneEdgeProperties) {
-      Graph._pruneEdgeFedProperties(validNodes, validEdges);
-    }
-
     return new Graph({ nodes: validNodes, edges: validEdges });
-  }
-
-  /**
-   * Delete each node's saved property default for every handle that has an
-   * incoming edge — the runtime edge value wins, and stale defaults would
-   * shadow it in `_executeWithInputs`'s property merge.
-   */
-  private static _pruneEdgeFedProperties(
-    nodes: ReadonlyArray<NodeDescriptor>,
-    edges: ReadonlyArray<Edge>
-  ): void {
-    const handlesByTarget = new Map<string, Set<string>>();
-    for (const edge of edges) {
-      let handles = handlesByTarget.get(edge.target);
-      if (!handles) {
-        handles = new Set<string>();
-        handlesByTarget.set(edge.target, handles);
-      }
-      handles.add(edge.targetHandle);
-    }
-    for (const node of nodes) {
-      const handles = handlesByTarget.get(node.id);
-      if (!handles) continue;
-      const props = node.properties as Record<string, unknown> | undefined;
-      // Stryker disable next-line ConditionalExpression: defensive — fromDict/loadFromDict always normalize `properties` to an object before reaching here, so `!props` is never true and skipping vs not skipping is indistinguishable
-      if (!props) continue;
-      for (const handle of handles) {
-        delete props[handle];
-      }
-    }
   }
 
   static async loadFromDict(
@@ -377,11 +359,7 @@ export class Graph {
     const normalized = Graph.fromDict(data, {
       skipErrors,
       // Stryker disable next-line BooleanLiteral: must stay true — property validation happens later against the RESOLVED types, not the saved cache (see comment in loadFromDict)
-      allowUndefinedProperties: true,
-      // Resolution below can drop further nodes (unknown types) and their
-      // edges; prune edge-fed defaults only after the final edge set is known
-      // so a node downstream of a dropped node keeps its saved default.
-      pruneEdgeProperties: false
+      allowUndefinedProperties: true
     });
 
     const resolvedNodes: HydratedNodeDescriptor[] = [];
@@ -425,6 +403,13 @@ export class Graph {
         properties: mergedProperties,
         propertyTypes: {
           ...resolvedPropertyTypes,
+          // Declared dynamic slots type their handles, but never shadow a
+          // static property the registry already declares.
+          ...Object.fromEntries(
+            Object.entries(
+              dynamicSlotPropertyTypes(node.dynamic_inputs)
+            ).filter(([name]) => !Object.hasOwn(resolvedPropertyTypes, name))
+          ),
           ...(node.propertyTypes ?? {})
         },
         outputs: {
@@ -432,15 +417,18 @@ export class Graph {
           ...(node.outputs ?? {})
         },
         // Streaming/control flags: registry metadata (descriptorDefaults) is
-        // the source of truth.  Saved graph data may have stale or missing
-        // values, so always prefer the registry if it declares true.
+        // authoritative when it speaks. An explicit registry boolean — true OR
+        // false — wins; the saved value applies only when the resolver omits
+        // the flag (undefined), e.g. for unresolved/dynamic types. OR-ing here
+        // would let a stale saved `true` survive a registry that migrated the
+        // type to buffered/uncontrolled, silently running the wrong mode.
         is_streaming_input:
-          descriptorDefaults.is_streaming_input ||
-          node.is_streaming_input ||
+          descriptorDefaults.is_streaming_input ??
+          node.is_streaming_input ??
           false,
         is_streaming_output:
-          descriptorDefaults.is_streaming_output ||
-          node.is_streaming_output ||
+          descriptorDefaults.is_streaming_output ??
+          node.is_streaming_output ??
           false,
         // Correlation metadata is authoritative from the registry. Saved JSON
         // is treated as a cache and overwritten — including when the resolver
@@ -449,12 +437,9 @@ export class Graph {
         input_mode: descriptorDefaults.input_mode,
         output_correlation: descriptorDefaults.output_correlation,
         is_controlled:
-          descriptorDefaults.is_controlled || node.is_controlled || false,
-        // Correlation metadata is registry-authoritative; saved JSON is a
-        // cache that gets overwritten — matching `input_mode` /
-        // `output_correlation` above. See docs/correlation-design.md §1.
+          descriptorDefaults.is_controlled ?? node.is_controlled ?? false,
         is_join_node:
-          descriptorDefaults.is_join_node || node.is_join_node || false
+          descriptorDefaults.is_join_node ?? node.is_join_node ?? false
       };
 
       resolvedNodes.push(hydratedNode);
@@ -464,7 +449,6 @@ export class Graph {
     const validEdges = normalized.edges.filter(
       (edge) => validNodeIds.has(edge.source) && validNodeIds.has(edge.target)
     );
-    Graph._pruneEdgeFedProperties(resolvedNodes, validEdges);
     // Sound: resolvedNodes were built as HydratedNodeDescriptor above.
     return new Graph({
       nodes: resolvedNodes,
@@ -507,21 +491,30 @@ export class Graph {
   }
 
   /**
-   * Auto-detect is_controlled from incoming control edges.
-   * In Python, BaseNode.is_controlled() is a runtime method that checks
-   * the graph context. In TS, we set the flag on the descriptor so that
-   * the actor knows to use _runControlled().
+   * Return the node list with is_controlled set on every control-edge target.
+   * In Python, BaseNode.is_controlled() is a runtime method that checks the
+   * graph context; in TS we set the flag on the descriptor so the actor knows
+   * to use _runControlled(). Node objects are caller-owned (the runner passes
+   * `graphData.nodes` straight through), so a target lacking the flag is
+   * replaced with a shallow copy — the original is left untouched. Every other
+   * node keeps its identity.
    */
-  private _detectControlledNodes(): void {
-    for (const edge of this.edges) {
-      if (!isControlEdge(edge)) continue;
-      const target = this._nodeIndex.get(edge.target);
-      // Stryker disable next-line ConditionalExpression,LogicalOperator,BooleanLiteral: equivalent — control edges always have a known target here, and re-setting an already-true flag is a no-op; the guard is a micro-optimization
-      if (target && !target.is_controlled) {
-        // NodeDescriptor is readonly in the type, but we own the instances
-        (target as { is_controlled?: boolean }).is_controlled = true;
-      }
+  private static _withControlledFlags(
+    nodes: ReadonlyArray<NodeDescriptor>,
+    edges: ReadonlyArray<Edge>
+  ): ReadonlyArray<NodeDescriptor> {
+    const controlledIds = new Set<string>();
+    for (const edge of edges) {
+      if (isControlEdge(edge)) controlledIds.add(edge.target);
     }
+    // Stryker disable next-line ConditionalExpression: equivalent — with no control edges the map below returns every node unchanged, so the early return only avoids allocating a new array
+    if (controlledIds.size === 0) return nodes;
+    return nodes.map((node) =>
+      // Stryker disable next-line ConditionalExpression,LogicalOperator,BooleanLiteral: equivalent — re-copying an already-controlled node yields the same is_controlled value; the guard only preserves object identity (a micro-optimization)
+      controlledIds.has(node.id) && !node.is_controlled
+        ? { ...node, is_controlled: true }
+        : node
+    );
   }
 
   // -----------------------------------------------------------------------
@@ -574,8 +567,11 @@ export class Graph {
   getControllerNodes(): NodeDescriptor[];
   getControllerNodes(targetId: string): NodeDescriptor[];
   getControllerNodes(targetId?: string): NodeDescriptor[] {
-    // Stryker disable next-line all: redundant ternary — getControlEdges(undefined) already returns all control edges, identical to getControlEdges()
-    const controlEdges = targetId === undefined ? this.getControlEdges() : this.getControlEdges(targetId);
+    const controlEdges =
+      // Stryker disable next-line ConditionalExpression: redundant ternary — getControlEdges(undefined) already returns all control edges, identical to getControlEdges()
+      targetId === undefined
+        ? this.getControlEdges()
+        : this.getControlEdges(targetId);
     const ids = new Set(controlEdges.map((e) => e.source));
     return this.nodes.filter((n) => ids.has(n.id));
   }
@@ -601,16 +597,26 @@ export class Graph {
    * Return nodes that have no incoming data edges (source nodes).
    */
   inputNodes(): NodeDescriptor[] {
-    return this.nodes.filter((n) => this.findDataEdges(n.id).length === 0);
+    const hasIncomingData = new Set<string>();
+    for (const edge of this.edges) {
+      if (isDataEdge(edge)) {
+        hasIncomingData.add(edge.target);
+      }
+    }
+    return this.nodes.filter((n) => !hasIncomingData.has(n.id));
   }
 
   /**
    * Return nodes that have no outgoing data edges (sink nodes).
    */
   outputNodes(): NodeDescriptor[] {
-    return this.nodes.filter(
-      (n) => this.findOutgoingEdges(n.id).filter(isDataEdge).length === 0
-    );
+    const hasOutgoingData = new Set<string>();
+    for (const edge of this.edges) {
+      if (isDataEdge(edge)) {
+        hasOutgoingData.add(edge.source);
+      }
+    }
+    return this.nodes.filter((n) => !hasOutgoingData.has(n.id));
   }
 
   // -----------------------------------------------------------------------
@@ -682,8 +688,9 @@ export class Graph {
 
     const isInScope = (node: NodeDescriptor): boolean => {
       const directlyInScope = (node.parent_id ?? null) === parentId;
-      // Stryker disable next-line ConditionalExpression: the `!= null` guard is redundant — groupNodeIds only holds real node-id strings, so has(null/undefined) is already false
-      const inScopedGroup = node.parent_id != null && groupNodeIds.has(node.parent_id);
+      const inScopedGroup =
+        // Stryker disable next-line ConditionalExpression: the `!= null` guard is redundant — groupNodeIds only holds real node-id strings, so has(null/undefined) is already false
+        node.parent_id != null && groupNodeIds.has(node.parent_id);
       return directlyInScope || inScopedGroup;
     };
     const filteredNodes = this.nodes.filter(isInScope);
@@ -769,17 +776,24 @@ export class Graph {
     properties: Record<string, unknown>;
     required: string[];
   } {
-    return this._buildSchema((n) => n.type.includes("Input"));
+    // Match the input-node namespace, not any type merely CONTAINING "Input":
+    // a loose substring pulled in mid-graph nodes like
+    // `nodetool.test.StreamingInputProcessor` (phantom required input) and
+    // missed real ones like `nodetool.input.MessageDeconstructor`.
+    return this._buildSchema((n) => n.type.startsWith("nodetool.input."));
   }
 
   /**
-   * Build a JSON Schema object from output nodes (type contains "Output").
+   * Build a JSON Schema object from output nodes (`nodetool.output.*`).
    */
   getOutputSchema(): {
     properties: Record<string, unknown>;
     required: string[];
   } {
-    return this._buildSchema((n) => n.type.includes("Output"));
+    // Namespace match, not a substring: `nodetool.generators.
+    // StructuredOutputGenerator` / `nodetool.audio.realtime.AudioOutput`
+    // contain "Output" but are not workflow output nodes.
+    return this._buildSchema((n) => n.type.startsWith("nodetool.output."));
   }
 
   private _buildSchema(filter: (n: NodeDescriptor) => boolean): {
@@ -843,7 +857,11 @@ export class Graph {
       ) {
         continue;
       }
-      if (!(edge.sourceHandle in outputs)) {
+      // Own-property check, not `in`: `in` walks the prototype chain, so a
+      // sourceHandle named after an Object.prototype member ("toString",
+      // "constructor", …) would spuriously pass this guard and then hang at
+      // runtime when the source node emits nothing on that handle.
+      if (!Object.hasOwn(outputs, edge.sourceHandle)) {
         throw new GraphValidationError(
           `Edge ${edge.id ?? syntheticEdgeId(edge.source, edge.sourceHandle, edge.target, edge.targetHandle)} ` +
             `references unknown output "${edge.sourceHandle}" on node "${edge.source}"` +
@@ -940,8 +958,15 @@ export class Graph {
       const targetNode = this._nodeIndex.get(edge.target);
       if (!sourceNode || !targetNode) continue;
 
-      // Get source output type from node.outputs[sourceHandle]
-      const sourceType = sourceNode.outputs?.[edge.sourceHandle];
+      // Get source output type from node.outputs[sourceHandle]. Own-property
+      // guard: a prototype-named handle ("toString", "constructor", …) would
+      // otherwise read an inherited Object.prototype member (a truthy function)
+      // and pass it to TypeMetadata.fromString, crashing on a runnable graph.
+      const sourceType =
+        sourceNode.outputs &&
+        Object.hasOwn(sourceNode.outputs, edge.sourceHandle)
+          ? sourceNode.outputs[edge.sourceHandle]
+          : undefined;
       if (!sourceType) continue; // no type info, skip
 
       // Get target input type: propertyTypes is the authoritative map after
@@ -949,7 +974,10 @@ export class Graph {
       // `type` descriptor for raw payloads. Plain string property values
       // are runtime data (e.g. saved literals), never type names.
       let targetType: string | undefined =
-        targetNode.propertyTypes?.[edge.targetHandle];
+        targetNode.propertyTypes &&
+        Object.hasOwn(targetNode.propertyTypes, edge.targetHandle)
+          ? targetNode.propertyTypes[edge.targetHandle]
+          : undefined;
       if (!targetType) {
         const targetProp = targetNode.properties?.[edge.targetHandle];
         if (

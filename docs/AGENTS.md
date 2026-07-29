@@ -371,7 +371,7 @@ const agent = new Agent({
   name: "researcher",
   objective: "Research TypeScript ORMs and write a comparison report",
   provider: openaiProvider,
-  model: "gpt-4o",
+  model: "gpt-5.6",
   tools: [new GoogleSearchTool(), new BrowserTool(), new WriteFileTool()],
   workspace: "/tmp/research-output",
   maxSteps: 10,
@@ -398,7 +398,7 @@ const agent = new Agent({
   name: "extractor",
   objective: "Extract all email addresses from this text: ...",
   provider: openaiProvider,
-  model: "gpt-4o",
+  model: "gpt-5.6",
   tools: [],
   outputSchema: {
     type: "object",
@@ -424,7 +424,7 @@ const { emails } = agent.getResults() as { emails: string[] };
 | `name` | required | Agent identifier |
 | `objective` | required | Goal to achieve |
 | `provider` | required | LLM provider instance (`BaseProvider`) |
-| `model` | required | Model ID (e.g. `"gpt-4o"`) |
+| `model` | required | Model ID (e.g. `"gpt-5.6"`) |
 | `planningModel` | same as `model` | Alternative model for the planning phase |
 | `reasoningModel` | same as `model` | Alternative model for reasoning-heavy steps |
 | `tools` | `[]` | Array of `Tool` instances |
@@ -469,6 +469,22 @@ profile since it needs a local executable. Token usage is attributed to the
 concrete dated model the CLI resolves an alias to (captured from the
 `message_start` event) so cost maps onto Anthropic pricing.
 
+### Signing in
+
+`nodetool auth claude login` runs the same OAuth flow the `claude` CLI does
+(public client, PKCE, JSON token endpoint) and writes the tokens to
+`$CLAUDE_CONFIG_DIR/.credentials.json` — the file the SDK reads — so a NodeTool
+login and a `claude login` are interchangeable. On a headless or remote host,
+`--manual` skips the loopback listener and takes the `code#state` shown in the
+browser instead. The same flow is served at
+`/api/oauth/claude/{start,complete,tokens,disconnect}` and rendered as a sign-in
+card on the Models & Providers settings page. Implementation and protocol notes:
+[packages/runtime/src/providers/oauth/README.md](../packages/runtime/src/providers/oauth/README.md).
+
+`CLAUDE_CODE_OAUTH_TOKEN` remains the alternative on hosts with no interactive
+login; it is explicitly allowlisted through the nested-session env stripping
+below.
+
 **Soft dependency.** `@anthropic-ai/claude-agent-sdk` is an *optional peer
 dependency* of `@nodetool-ai/runtime` — it is not installed by default and must
 be added with the package manager (`npm install @anthropic-ai/claude-agent-sdk`)
@@ -486,9 +502,24 @@ When NodeTool itself runs **under** Claude Code (e.g. Claude Code on the web),
 the inherited `CLAUDECODE` / `CLAUDE_CODE_*` / `CLAUDE_SESSION_*` /
 `CLAUDE_ENABLE_*` / `CLAUDE_AFTER_*` / `CLAUDE_AUTO_*` env vars are stripped from
 the spawned child so the nested CLI starts clean. `ANTHROPIC_BASE_URL` and
-`HTTP_PROXY` / `HTTPS_PROXY` are preserved for API routing. Because no tools are
-enabled, the provider never passes `--dangerously-skip-permissions`, so it
-avoids the SDK's refusal to run that flag as `uid=0`.
+`HTTP_PROXY` / `HTTPS_PROXY` are preserved for API routing.
+
+**`uid=0` blocker (tool path).** The tool-free primitive
+(`generateMessages`) runs without permission bypass, but `generateLoop` with
+tools exposes them as an in-process MCP server and runs the SDK under
+`permissionMode: "bypassPermissions"` + `allowDangerouslySkipPermissions: true`
+(see the query options in `claude-agent-provider.ts`). The CLI **refuses
+`--dangerously-skip-permissions` as `root`/sudo** — so the tool path fails
+(`Claude Code process exited with code 1`) whenever NodeTool runs as `uid=0`,
+which the web sandbox does. Two ways out:
+- Run the server as a **non-root** user — but only if that user can reach the
+  CLI's auth (in the web sandbox the OAuth credentials + proxy CA bundle are
+  root-only, so switching users trips `authentication_failed` and a CA
+  `EACCES`). This is the SDK's intended fix and works on normal hosts.
+- Set **`IS_SANDBOX=1`** in the environment. It is preserved by
+  `buildChildEnv()` (not a `CLAUDE_*` var) and lifts the CLI's root refusal.
+  Accurate and safe inside an actual sandboxed container; do **not** set it on a
+  real multi-tenant host.
 
 ---
 

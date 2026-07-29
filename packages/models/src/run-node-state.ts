@@ -9,8 +9,6 @@ import { DBModel } from "./base-model.js";
 import { getDb } from "./db.js";
 import { runNodeState } from "./schema/run-node-state.js";
 
-// ── Types ────────────────────────────────────────────────────────────
-
 export type NodeStatus =
   | "idle"
   | "scheduled"
@@ -71,9 +69,6 @@ export class RunNodeState extends DBModel {
     }
   }
 
-  // ── Static lookups ────────────────────────────────────────────────
-
-  /** Get state for a specific node in a run. */
   static async getNodeState(
     runId: string,
     nodeId: string
@@ -121,7 +116,6 @@ export class RunNodeState extends DBModel {
     return rows.map((r: Record<string, unknown>) => new RunNodeState(r as Record<string, unknown>));
   }
 
-  /** Get all suspended nodes for a run. */
   static async getSuspendedNodes(runId: string): Promise<RunNodeState[]> {
     const db = getDb();
     const rows = await db
@@ -136,8 +130,6 @@ export class RunNodeState extends DBModel {
       .limit(10000);
     return rows.map((r: Record<string, unknown>) => new RunNodeState(r as Record<string, unknown>));
   }
-
-  // ── State transitions ─────────────────────────────────────────────
 
   async markScheduled(attempt?: number): Promise<void> {
     this.status = "scheduled";
@@ -195,8 +187,6 @@ export class RunNodeState extends DBModel {
     this.status = "paused";
     await this.save();
   }
-
-  // ── Status checks ─────────────────────────────────────────────────
 
   isIncomplete(): boolean {
     return this.status === "scheduled" || this.status === "running";

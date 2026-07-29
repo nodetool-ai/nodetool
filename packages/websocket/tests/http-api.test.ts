@@ -161,6 +161,48 @@ describe("HTTP API: metadata + workflows", () => {
     expect(missingRes.status).toBe(404);
   });
 
+  it("does not leak another user's workflow version history (IDOR)", async () => {
+    // User A creates a private workflow and a version.
+    const createRes = await handleApiRequest(
+      new Request("http://localhost/api/workflows/", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-user-id": "user-A" },
+        body: JSON.stringify({
+          name: "A private",
+          access: "private",
+          graph: { nodes: [], edges: [] },
+          run_mode: "workflow"
+        })
+      })
+    );
+    const wfId = String(
+      ((await jsonBody(createRes)) as Record<string, unknown>).id
+    );
+    const versUrl = `http://localhost/api/workflows/${wfId}/versions`;
+    const postVer = await handleApiRequest(
+      new Request(versUrl, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-user-id": "user-A" },
+        body: JSON.stringify({ name: "v1" })
+      })
+    );
+    expect(postVer.status).toBe(200);
+
+    // User B must NOT be able to read A's version history.
+    const bRes = await handleApiRequest(
+      new Request(versUrl, { headers: { "x-user-id": "user-B" } })
+    );
+    expect(bRes.status).toBe(404);
+
+    // The owner can still read them.
+    const aRes = await handleApiRequest(
+      new Request(versUrl, { headers: { "x-user-id": "user-A" } })
+    );
+    expect(aRes.status).toBe(200);
+    const aBody = (await jsonBody(aRes)) as { versions: unknown[] };
+    expect(aBody.versions.length).toBeGreaterThan(0);
+  });
+
   it("seeds create from configured examplesDir", async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "nt-examples-api-"));
     const examplesDir = path.join(root, "examples", "nodetool-base");

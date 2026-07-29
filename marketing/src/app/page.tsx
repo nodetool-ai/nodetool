@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import NodeToolHero from "../components/NodeToolHero";
+import StatusQuoSection from "../components/StatusQuoSection";
 import BuildRunDeploy from "../components/BuildRunDeploy";
 import OwnershipSection from "../components/OwnershipSection";
 import ModelSupportSection from "../components/ModelSupportSection";
@@ -26,6 +27,7 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import { Download } from "lucide-react";
 import { SmartDownloadButton } from "./SmartDownloadButton";
 import { track } from "../lib/analytics";
+import { useGithubStars } from "../lib/useGithubStars";
 
 import { Feature, features } from "./features";
 
@@ -117,80 +119,11 @@ function usePrefersReducedMotion() {
   return reduced;
 }
 
-// Legacy reveal hook for backward compatibility
-function useReveal() {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.opacity = "0";
-    el.style.transform = "translateY(8px)";
-    el.style.willChange = "transform, opacity";
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            el.style.transition = "opacity 600ms ease, transform 600ms ease";
-            el.style.opacity = "1";
-            el.style.transform = "translateY(0)";
-            obs.disconnect();
-          }
-        });
-      },
-      { threshold: 0.15 }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-  return ref;
-}
-
 export default function Home() {
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
-  const [stars, setStars] = useState<number | null>(null);
+  const stars = useGithubStars();
   const parallaxRef = useRef<HTMLDivElement>(null);
   const reducedMotion = usePrefersReducedMotion();
-  const heroRevealRef = useReveal();
-
-  // Global section fly-in using IntersectionObserver + CSS transitions
-  useEffect(() => {
-    if (reducedMotion) return;
-    const root = document.getElementById("content");
-    if (!root) return;
-    const sections = Array.from(root.querySelectorAll<HTMLElement>("section"));
-    // Initialize base class + slight stagger via CSS var
-    sections.forEach((el, i) => {
-      el.classList.add("fly-in");
-      const delay = Math.min(i * 60, 300);
-      el.style.setProperty("--fly-delay", `${delay}ms`);
-    });
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const el = entry.target as HTMLElement;
-            el.classList.add("is-visible");
-            obs.unobserve(el);
-          }
-        });
-      },
-      { root: null, threshold: 0.12, rootMargin: "0px 0px -10% 0px" }
-    );
-    sections.forEach((el) => obs.observe(el));
-    return () => obs.disconnect();
-  }, [reducedMotion]);
-
-  // Fetch GitHub stars (consumed by CommunitySection)
-  useEffect(() => {
-    fetch("https://api.github.com/repos/nodetool-ai/nodetool")
-      .then((r) => r.json())
-      .then((j) => {
-        if (typeof j.stargazers_count === "number") {
-          setStars(j.stargazers_count);
-        }
-      })
-      .catch(() => { });
-  }, []);
 
   // Parallax with reduced-motion guard and passive scroll
   useEffect(() => {
@@ -230,7 +163,7 @@ export default function Home() {
 
   return (
     <main
-      className="relative min-h-screen overflow-hidden text-white"
+      className="relative min-h-screen overflow-clip-safe text-white"
       onKeyDown={onKeyDown}
     >
       {/* Background */}
@@ -306,25 +239,28 @@ export default function Home() {
 
       <div
         id="content"
-        className="relative isolate overflow-hidden pt-24 sm:pt-36 md:pt-24"
+        className="relative isolate overflow-clip-safe pt-24 sm:pt-36 md:pt-24"
       >
         {/* Hero */}
         <section aria-labelledby="hero-title" className="pt-2 relative">
           <div className={`${sectionContainer}`}>
-            <div ref={heroRevealRef}>
+            <div>
               <NodeToolHero />
             </div>
           </div>
         </section>
 
+        {/* Name the pain before showing the fix — the demo answers this block */}
+        <StatusQuoSection />
+
         {/* Demo video — surface the product immediately after the hero */}
         <section id="demo-video" aria-label="NodeTool Demo" className="rhythm-section relative scroll-mt-24">
           <div className={`${sectionContainer}`}>
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-              className="relative group"
+              transition={{ duration: 0.35, delay: 0.05, ease: "easeOut" }}
+              className="scroll-fade relative group"
             >
               <div
                 className="absolute -inset-4 rounded-3xl opacity-60 blur-3xl transition-opacity duration-500 group-hover:opacity-80"
@@ -336,14 +272,19 @@ export default function Home() {
               <div className="relative rounded-2xl border border-slate-700/60 bg-slate-900/80 p-2 shadow-2xl shadow-amber-900/20 backdrop-blur-sm ring-1 ring-white/5 overflow-hidden">
                 <video
                   src="/demo.mp4"
+                  poster="/demo-poster-960.webp"
                   width={1500}
                   height={1000}
                   className="block aspect-[3/2] h-auto w-full rounded-xl"
                   controls
                   playsInline
-                  preload="metadata"
+                  preload="none"
                 />
               </div>
+              <p className="mt-4 text-center text-sm text-slate-400">
+                A trailer generated end-to-end in NodeTool — script, key art,
+                animation, and sound from one workflow on the canvas.
+              </p>
             </motion.div>
           </div>
         </section>
@@ -358,11 +299,20 @@ export default function Home() {
         {/* Concrete proof right after the mental model: a complete, runnable workflow */}
         <UseCasesShowcase />
 
+        {/* Position vs. the alternatives — answers the status-quo block up top */}
+        <ComparisonSection reducedMotion={reducedMotion} />
+
+        {/* Ownership — the core pillar, kept adjacent to the model story it explains */}
+        <OwnershipSection reducedMotion={reducedMotion} />
+        <ModelSupportSection reducedMotion={reducedMotion} />
+
+        {/* Cost transparency — the payoff of your own keys: real per-run cost */}
+        <CostDashboardSection />
+
+        {/* --- Secondary: what's inside, once the narrative has landed --- */}
+
         {/* What the canvas does */}
         <FeaturesSection />
-
-        {/* What's in the canvas */}
-        <NodeMenuSection />
 
         {/* Assemble the generated clips — built-in timeline editor */}
         <TimelineEditorSection />
@@ -370,22 +320,17 @@ export default function Home() {
         {/* Paint and generate on one canvas — built-in sketch editor (sibling to the timeline editor) */}
         <SketchEditorSection />
 
+        {/* What's in the canvas */}
+        <NodeMenuSection />
+
         {/* Asset Manager — companion to the canvas story */}
         <AssetManagerSection />
 
         {/* Alternate interface: drive workflows by chat (payoff after canvas) */}
         <ChatUISection />
 
-        {/* Position vs. the alternatives — sets up the BYOK / your-stack story that follows */}
-        <ComparisonSection reducedMotion={reducedMotion} />
-
-        {/* Ownership block — three adjacent sections that share the BYOK / your-stack story */}
-        <OwnershipSection reducedMotion={reducedMotion} />
-        <ModelSupportSection reducedMotion={reducedMotion} />
+        {/* Local model library — supports the "runs on your machine" claim above */}
         <ModelManagerSection />
-
-        {/* Cost transparency — the payoff of BYOK: pay providers directly, see every node's real cost */}
-        <CostDashboardSection />
 
         {/* Templates Gallery */}
         {/* <ExamplesGrid /> */}
@@ -442,7 +387,7 @@ export default function Home() {
 
         {/* Closing CTA — end the page on the product, not the mailbox */}
         <section aria-labelledby="closing-cta-title" className="relative py-24">
-          <div className={`${sectionNarrow} text-center`}>
+          <div className={`scroll-fade ${sectionNarrow} text-center`}>
             <h2
               id="closing-cta-title"
               className="text-3xl md:text-4xl font-bold tracking-tight text-white"
@@ -450,14 +395,24 @@ export default function Home() {
               Put every model on one canvas.
             </h2>
             <p className="mt-4 text-lg text-slate-300">
-              Free, open source, and yours to run. Download Studio and build
-              your first workflow in minutes.
+              Start the next piece and finish it in the same place. Free, open
+              source, and yours to run: download Studio, or try Cloud in the
+              browser with nothing to install.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <SmartDownloadButton
                 icon={<Download className="h-5 w-5" />}
                 classNameOverride="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-900/40 transition-all hover:bg-blue-500 hover:shadow-blue-900/60 focus-ring"
               />
+              <a
+                href="https://app.nodetool.ai"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => track("Try Cloud")}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-500/40 bg-blue-500/10 px-6 py-3.5 text-sm font-semibold text-blue-200 transition-all hover:border-blue-400 hover:bg-blue-500/20 focus-ring"
+              >
+                Try NodeTool Cloud
+              </a>
               <a
                 href="https://github.com/nodetool-ai/nodetool"
                 target="_blank"

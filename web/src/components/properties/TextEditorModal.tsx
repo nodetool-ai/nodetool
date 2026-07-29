@@ -24,7 +24,7 @@ import TextDecreaseIcon from "@mui/icons-material/TextDecrease";
 import TextIncreaseIcon from "@mui/icons-material/TextIncrease";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
-import { Tooltip, LoadingSpinner, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { Tooltip, LoadingSpinner, MOTION, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx, reducedMotion } from "../ui_primitives";
 import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ListItemNode, ListNode } from "@lexical/list";
@@ -33,7 +33,7 @@ import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { EditorState, $getRoot } from "lexical";
 import type { editor as MonacoEditorNS } from "monaco-editor";
 import { debounce } from "../../utils/lodashAlternatives";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useCombo } from "../../stores/KeyPressedStore";
@@ -67,7 +67,6 @@ import {
   type VariableSyntax
 } from "../textEditor/templateVariables";
 
-/* code-highlight */
 import { codeHighlightTheme } from "../textEditor/codeHighlightTheme";
 import { codeHighlightTokenStyles } from "../textEditor/codeHighlightStyles";
 
@@ -215,7 +214,7 @@ const styles = (theme: Theme) =>
       backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.6)`,
       backdropFilter: "blur(12px) saturate(150%)",
       WebkitBackdropFilter: "blur(12px) saturate(150%)",
-      zIndex: 10000,
+      zIndex: theme.zIndex.popover,
       display: "flex",
       justifyContent: "center",
       alignItems: "flex-start",
@@ -274,7 +273,7 @@ const styles = (theme: Theme) =>
       background: `linear-gradient(90deg,
         rgba(${theme.vars.palette.background.defaultChannel} / 0.5) 0%,
         rgba(${theme.vars.palette.background.defaultChannel} / 0.15) 100%)`,
-      zIndex: 5,
+      zIndex: Z_INDEX.raised,
       "&::after": {
         content: "''",
         position: "absolute",
@@ -366,7 +365,6 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       flexWrap: "nowrap"
     },
-    /* ---- unified toolbar ---- */
     ".modal-toolbar": {
       display: "flex",
       alignItems: "center",
@@ -631,7 +629,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".button-close": {
-      marginLeft: getSpacingPx(SPACING.xs), // was 3px
+      marginLeft: getSpacingPx(SPACING.xs),
       border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.08)`,
       "&:hover": {
         backgroundColor: theme.vars.palette.error.main,
@@ -698,7 +696,8 @@ const styles = (theme: Theme) =>
       justifyContent: "center",
       alignItems: "center",
       height: "100%",
-      animation: "pulseGlow 2s ease-in-out infinite"
+      animation: `pulseGlow ${MOTION.pulse} infinite`,
+      ...reducedMotion({ animation: "none" })
     },
     "@media (max-width: 1200px)": {
       ".modal-content": { width: "96%" },
@@ -942,7 +941,9 @@ const TextEditorModal = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // Defer the revoke: releasing the blob synchronously cancels the download
+    // in Firefox and for large files.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }, [currentText, language, propertyName]);
 
   const insertIntoLexical = useCallback(
@@ -1195,7 +1196,6 @@ const TextEditorModal = ({
             } as React.CSSProperties
           }
         >
-          {/* ---- header ---- */}
           <div className="modal-header">
             <div className="header-left">
               <div className="editor-icon-badge">
@@ -1314,7 +1314,6 @@ const TextEditorModal = ({
             </div>
           </div>
 
-          {/* ---- toolbar ---- */}
           {showToolbar && (
             <div className="modal-toolbar">
               <div className="toolbar-side">
@@ -1595,7 +1594,7 @@ const TextEditorModal = ({
                       </div>
                     </div>
                     <ChatView
-                      status={status === "stopping" ? "loading" : status}
+                      status={status === "stopping" ? "connected" : status}
                       progress={progress.current}
                       total={progress.total}
                       messages={getCurrentMessagesSync()}
@@ -1610,7 +1609,6 @@ const TextEditorModal = ({
                         }
                       }
                       onModelChange={setSelectedModel}
-                      helpMode={false}
                       workflowAssistant={true}
                       onStop={stopGeneration}
                       onNewChat={() => void createNewThread()}

@@ -43,7 +43,12 @@ vi.mock("node:child_process", () => ({
 vi.mock("node:fs/promises", () => ({
   readFile: vi.fn(),
   writeFile: vi.fn(),
-  mkdir: vi.fn()
+  mkdir: vi.fn(),
+  // Non-symlinked filesystem: realpath echoes the path, lstat reports a file.
+  // The workspace-containment guard uses these to re-check paths after
+  // resolving symlinks; with no symlinks the resolved path equals the input.
+  realpath: vi.fn(async (p: string) => p),
+  lstat: vi.fn(async () => ({ isDirectory: () => false, isSymbolicLink: () => false }))
 }));
 
 const workspaceDir = "/tmp/test-workspace";

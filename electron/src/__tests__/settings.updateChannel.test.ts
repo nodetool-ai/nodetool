@@ -136,25 +136,3 @@ describe("setUpdateChannel", () => {
     expect(setUpdateChannel("nightly")).toBe("nightly");
   });
 });
-
-describe("getModelServiceStartupDefaults", () => {
-  test("returns startLlamaCppOnStartup true for llama_cpp backend", async () => {
-    const { getModelServiceStartupDefaults } = await import("../settings");
-    expect(getModelServiceStartupDefaults("llama_cpp")).toEqual({
-      startLlamaCppOnStartup: true,
-    });
-  });
-
-  test("returns startLlamaCppOnStartup false for other backends", async () => {
-    const { getModelServiceStartupDefaults } = await import("../settings");
-    expect(getModelServiceStartupDefaults("onnx")).toEqual({
-      startLlamaCppOnStartup: false,
-    });
-    expect(getModelServiceStartupDefaults(undefined)).toEqual({
-      startLlamaCppOnStartup: false,
-    });
-    expect(getModelServiceStartupDefaults(null)).toEqual({
-      startLlamaCppOnStartup: false,
-    });
-  });
-});

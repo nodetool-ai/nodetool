@@ -382,6 +382,31 @@ describe("graphNodeToReactFlowNode", () => {
     });
   });
 
+  describe("bespoke default dimensions", () => {
+    it("applies the bespoke default width for ExtractFrame nodes without a saved width", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        type: "nodetool.video.ExtractFrame",
+      });
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.style?.width).toBe(320);
+    });
+
+    it("preserves a saved width for ExtractFrame nodes", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        type: "nodetool.video.ExtractFrame",
+        ui_properties: { width: 500 },
+      });
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.style?.width).toBe(500);
+    });
+  });
+
   describe("expandParent property", () => {
     it("sets expandParent to false for Loop nodes", () => {
       const workflow = createMockWorkflow();
@@ -518,6 +543,56 @@ describe("graphNodeToReactFlowNode", () => {
       const result = graphNodeToReactFlowNode(workflow, node);
 
       expect(result.position).toEqual({ x: 0, y: 0 });
+    });
+  });
+
+  describe("dynamic slots", () => {
+    const imageType = {
+      type: "image",
+      optional: false,
+      values: null,
+      type_args: [],
+      type_name: null
+    };
+
+    it("restores dynamic_inputs from the graph node", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        dynamic_properties: { picture: null },
+        dynamic_inputs: { picture: { type: imageType, description: "pic" } }
+      });
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.data.dynamic_inputs).toEqual({
+        picture: { type: imageType, description: "pic" }
+      });
+    });
+
+    it("normalizes a legacy flat declaration on the way in", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        dynamic_properties: { picture: null },
+        dynamic_inputs: {
+          picture: { type: "image", optional: false, type_args: [] }
+        }
+      } as unknown as Partial<GraphNode>);
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.data.dynamic_inputs).toEqual({ picture: { type: imageType } });
+    });
+
+    it("leaves dynamic_inputs undefined for a legacy node with none", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        dynamic_properties: { anything: "" }
+      });
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.data.dynamic_inputs).toBeUndefined();
+      expect(result.data.dynamic_properties).toEqual({ anything: "" });
     });
   });
 });

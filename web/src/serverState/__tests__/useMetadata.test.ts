@@ -2,7 +2,7 @@
  * @jest-environment node
  */
 
-import { loadMetadata, WORKFLOW_NODE_TYPE } from "../useMetadata";
+import { loadMetadata, prefetchMetadata, WORKFLOW_NODE_TYPE } from "../useMetadata";
 
 jest.mock("../../lib/rest-fetch", () => ({
   restFetch: jest.fn()
@@ -170,5 +170,45 @@ describe("loadMetadata", () => {
     expect(mockRestFetch).toHaveBeenCalledWith(
       "/api/nodes/metadata?fields=full&limit=10000"
     );
+  });
+
+  it("reuses a successful prefetch instead of refetching", async () => {
+    mockRestFetch.mockResolvedValue({
+      ok: true,
+      json: async () => []
+    } as Response);
+
+    prefetchMetadata();
+    prefetchMetadata(); // second call is a no-op (cached)
+    const result = await loadMetadata();
+
+    expect(result).toBe("success");
+    // One request total: the prefetch is reused, not re-issued by loadMetadata.
+    expect(mockRestFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to a fresh fetch when the prefetch fails", async () => {
+    mockRestFetch
+      .mockResolvedValueOnce({ ok: false, status: 401 } as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => [] } as Response);
+
+    prefetchMetadata();
+    const result = await loadMetadata();
+
+    expect(result).toBe("success");
+    expect(mockRestFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not reuse a consumed prefetch on a later reload", async () => {
+    mockRestFetch.mockResolvedValue({
+      ok: true,
+      json: async () => []
+    } as Response);
+
+    prefetchMetadata();
+    await loadMetadata(); // consumes the prefetch
+    await loadMetadata(); // must issue a fresh request
+
+    expect(mockRestFetch).toHaveBeenCalledTimes(2);
   });
 });

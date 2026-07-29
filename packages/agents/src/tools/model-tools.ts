@@ -1,8 +1,3 @@
-/**
- * Model listing tool — T-AG-3.
- *
- * Lists available language models from a registered provider.
- */
 import type { ProcessingContext, BaseProvider } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 

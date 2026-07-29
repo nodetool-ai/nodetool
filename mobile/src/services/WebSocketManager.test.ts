@@ -8,6 +8,25 @@
 
 import { WebSocketManager } from './WebSocketManager';
 
+// Controllable stand-in for the AppState-backed lifecycle module, so tests can
+// drive foreground/background transitions deterministically.
+const mockLifecycle = {
+  foreground: true,
+  listeners: new Set<(event: 'foreground' | 'background') => void>(),
+  emit(event: 'foreground' | 'background') {
+    mockLifecycle.foreground = event === 'foreground';
+    mockLifecycle.listeners.forEach((listener) => listener(event));
+  },
+};
+
+jest.mock('../hooks/useAppLifecycle', () => ({
+  isAppForeground: () => mockLifecycle.foreground,
+  subscribeAppLifecycle: (listener: (event: 'foreground' | 'background') => void) => {
+    mockLifecycle.listeners.add(listener);
+    return () => mockLifecycle.listeners.delete(listener);
+  },
+}));
+
 // Mock msgpack
 jest.mock('msgpackr', () => ({
   pack: jest.fn((data) => JSON.stringify(data)),
@@ -86,6 +105,8 @@ describe('WebSocketManager', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockWebSocketInstance = null;
+    mockLifecycle.listeners.clear();
+    mockLifecycle.foreground = true;
   });
 
   afterEach(() => {
@@ -619,16 +640,24 @@ describe('WebSocketManager', () => {
       // Set reconnectAttempt to 1 (first actual attempt)
       (manager as any).reconnectAttempt = 1;
       
-      // Access private method to test delay calculation
-      // Formula: reconnectInterval * decay^(attempt-1)
+      // Access private method to test delay calculation. The result carries
+      // half-to-full jitter, so it lands in (delay/2, delay].
+      // Formula: reconnectInterval * decay^attempt
       const delay1 = (manager as any).getReconnectDelay();
-      expect(delay1).toBe(1500); // 1000 * 1.5^1 = 1500
+      expect(delay1).toBeGreaterThan(750); // 1000 * 1.5^1 = 1500, halved
+      expect(delay1).toBeLessThanOrEqual(1500);
 
       // Simulate subsequent reconnect attempts
       (manager as any).reconnectAttempt = 3;
-      const delay3 = (manager as any).getReconnectDelay();
-      expect(delay3).toBe(3375); // 1000 * 1.5^3 = 3375
-      expect(delay3).toBeGreaterThan(delay1);
+      const delays3 = Array.from({ length: 20 }, () =>
+        (manager as any).getReconnectDelay()
+      );
+      for (const delay3 of delays3) {
+        expect(delay3).toBeGreaterThan(1687.5); // 1000 * 1.5^3 = 3375, halved
+        expect(delay3).toBeLessThanOrEqual(3375);
+      }
+      // Jitter must actually spread the attempts out.
+      expect(new Set(delays3).size).toBeGreaterThan(1);
     });
 
     it('shouldReconnect returns false for no-reconnect codes', () => {
@@ -784,6 +813,122 @@ describe('WebSocketManager', () => {
       expect(rejector).toHaveBeenCalledWith(error);
       expect((manager as any).connectionRejector).toBeNull();
       expect((manager as any).connectionResolver).toBeNull();
+    });
+  });
+
+  describe('App lifecycle', () => {
+    const lifecycleConfig = {
+      url: 'ws://localhost:7777/ws/chat',
+      reconnect: true,
+      reconnectInterval: 1000,
+      reconnectAttempts: 10,
+      timeoutInterval: 300000,
+    };
+
+    it('subscribes to app lifecycle on construction and unsubscribes on destroy', () => {
+      manager = new WebSocketManager(lifecycleConfig);
+      expect(mockLifecycle.listeners.size).toBe(1);
+
+      manager.destroy();
+      manager = null;
+      expect(mockLifecycle.listeners.size).toBe(0);
+    });
+
+    it('does not schedule a reconnect while the app is backgrounded', async () => {
+      manager = new WebSocketManager(lifecycleConfig);
+      const connectPromise = manager.connect();
+      mockWebSocketInstance?.simulateOpen();
+      await connectPromise;
+
+      mockLifecycle.emit('background');
+      mockWebSocketInstance?.simulateClose(1006, 'suspended');
+
+      expect(manager.getState()).toBe('disconnected');
+      expect((manager as any).reconnectTimer).toBeNull();
+      expect((manager as any).reconnectAttempt).toBe(0);
+    });
+
+    it('cancels a pending reconnect timer when the app is backgrounded', () => {
+      manager = new WebSocketManager(lifecycleConfig);
+      (manager as any).state = 'disconnected';
+      (manager as any).scheduleReconnect();
+      expect((manager as any).reconnectTimer).toBeTruthy();
+
+      mockLifecycle.emit('background');
+
+      expect((manager as any).reconnectTimer).toBeNull();
+    });
+
+    it('reconnects immediately on foreground with the backoff counter reset', async () => {
+      manager = new WebSocketManager(lifecycleConfig);
+      const connectPromise = manager.connect();
+      const firstSocket = mockWebSocketInstance;
+      firstSocket?.simulateOpen();
+      await connectPromise;
+
+      mockLifecycle.emit('background');
+      firstSocket?.simulateClose(1006, 'suspended');
+      // Pretend earlier attempts had already grown the backoff.
+      (manager as any).reconnectAttempt = 7;
+
+      mockLifecycle.emit('foreground');
+
+      // A brand new socket was opened without waiting out any delay.
+      expect(mockWebSocketInstance).not.toBe(firstSocket);
+      expect(manager.getState()).toBe('reconnecting');
+      expect((manager as any).reconnectAttempt).toBe(0);
+      expect((manager as any).reconnectTimer).toBeNull();
+    });
+
+    it('fires onOpen again after a lifecycle-driven reconnect', async () => {
+      manager = new WebSocketManager(lifecycleConfig);
+      const onOpen = jest.fn();
+      manager.setCallbacks({ onOpen });
+
+      const connectPromise = manager.connect();
+      mockWebSocketInstance?.simulateOpen();
+      await connectPromise;
+      expect(onOpen).toHaveBeenCalledTimes(1);
+
+      mockLifecycle.emit('background');
+      mockWebSocketInstance?.simulateClose(1006, 'suspended');
+      mockLifecycle.emit('foreground');
+      mockWebSocketInstance?.simulateOpen();
+
+      expect(onOpen).toHaveBeenCalledTimes(2);
+      expect(manager.isConnected()).toBe(true);
+    });
+
+    it('leaves a healthy connection alone on foreground', async () => {
+      manager = new WebSocketManager(lifecycleConfig);
+      const connectPromise = manager.connect();
+      const socket = mockWebSocketInstance;
+      socket?.simulateOpen();
+      await connectPromise;
+
+      mockLifecycle.emit('background');
+      mockLifecycle.emit('foreground');
+
+      expect(mockWebSocketInstance).toBe(socket);
+      expect(socket?.close).not.toHaveBeenCalled();
+      expect(manager.isConnected()).toBe(true);
+    });
+
+    it('ignores foreground after an intentional disconnect', async () => {
+      manager = new WebSocketManager(lifecycleConfig);
+      const connectPromise = manager.connect();
+      const socket = mockWebSocketInstance;
+      socket?.simulateOpen();
+      await connectPromise;
+
+      manager.disconnect();
+      socket?.simulateClose(1000, 'Client disconnect');
+
+      mockLifecycle.emit('background');
+      mockLifecycle.emit('foreground');
+
+      expect(mockWebSocketInstance).toBe(socket);
+      expect(manager.getState()).toBe('disconnected');
     });
   });
 });

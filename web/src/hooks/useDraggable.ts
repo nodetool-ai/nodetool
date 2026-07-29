@@ -68,9 +68,9 @@ const clamp = (value: number, min?: number, max?: number) => {
  * Why not react-draggable: it relies on React's *synthetic mouse-event*
  * delegation (`onMouseDown`) plus document-level `mousemove`/`mouseup`
  * listeners. That flow can be silently broken by the surrounding app while
- * pointer events keep working. Pointer events + `setPointerCapture` are the
- * modern, robust path: capture means moves/ups are delivered to the node even
- * when the pointer leaves it, with no document listener races.
+ * pointer events keep working. Pointer events + `setPointerCapture` avoid that:
+ * capture means moves/ups are delivered to the node even when the pointer
+ * leaves it, with no document listener races.
  *
  * The hook owns the node's `transform`. In controlled mode pass `position` and
  * persist `onStop`/`onDrag`; the hook re-applies `position` whenever it changes

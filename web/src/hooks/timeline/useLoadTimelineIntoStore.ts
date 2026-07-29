@@ -14,9 +14,18 @@ import {
 import { markTimelineLoadMigrated } from "./useTimelineAutosave";
 
 import type { TimelineSequence } from "@nodetool-ai/timeline";
+import type { RouterOutputs } from "../../trpc/client";
+
+/**
+ * The wire shape from `trpc.timeline.get` types animation `easing`/`preset` as
+ * plain strings (forward compat); the store's `TimelineSequence` narrows
+ * `easing` to `EasingId`. The compiler tolerates unknown ids at sample time, so
+ * the wire→store cast on load is safe.
+ */
+type WireSequence = RouterOutputs["timeline"]["get"];
 
 export function useLoadTimelineIntoStore(
-  sequence: TimelineSequence | undefined | null
+  sequence: WireSequence | undefined | null
 ): void {
   const store = useTimelineStoreApi();
 
@@ -35,7 +44,7 @@ export function useLoadTimelineIntoStore(
       // persist that migrated document once.
       markTimelineLoadMigrated(sequence.id);
     }
-    store.getState().loadSequence(sequence);
+    store.getState().loadSequence(sequence as TimelineSequence);
     // The load is a tracked `set`; clear history so the first Ctrl+Z can't
     // undo "past" the loaded sequence into the empty default state.
     timelineTemporalOf(store).clear();

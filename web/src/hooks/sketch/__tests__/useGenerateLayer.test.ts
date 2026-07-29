@@ -286,6 +286,41 @@ describe("useGenerateLayer", () => {
     expect(getWorkflowRunnerStoreMock).not.toHaveBeenCalled();
   });
 
+  it("is single-flight: a concurrent double-invoke runs only one job", async () => {
+    jest.spyOn(queryClient, "fetchQuery").mockResolvedValue(workflow as never);
+
+    let counter = 0;
+    const runnerState = {
+      job_id: null as string | null,
+      run: jest.fn(async () => {
+        const id = `job-sf-${++counter}`;
+        runnerState.job_id = id;
+        return id;
+      })
+    };
+    getWorkflowRunnerStoreMock.mockReturnValue({
+      getState: () => runnerState,
+      setState: jest.fn()
+    });
+
+    const { result } = renderHook(() =>
+      useGenerateLayer({ binding: baseBinding })
+    );
+
+    // Fire twice without awaiting the first, as a rapid double-click would.
+    await act(async () => {
+      await Promise.all([
+        result.current.generateLayer(),
+        result.current.generateLayer()
+      ]);
+    });
+
+    expect(runnerState.run).toHaveBeenCalledTimes(1);
+    expect(
+      useSketchGenerationStore.getState().layerJobs["layer-1"]?.jobId
+    ).toBe("job-sf-1");
+  });
+
   it("cancels an active layer generation job", async () => {
     useSketchGenerationStore
       .getState()

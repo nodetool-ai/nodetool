@@ -1,9 +1,6 @@
 /**
  * cursorMapping – CSS cursor logic for transform handles.
  *
- * Extracted from TransformTool.ts so the tool file owns interaction flow,
- * not presentation policy.
- *
  * @module tools/transform/cursorMapping
  */
 

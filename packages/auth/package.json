@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/auth",
-  "version": "0.7.0-rc.29",
+  "version": "0.7.0-rc.32",
   "type": "module",
   "engines": {
     "node": ">=22.0.0 <23.0.0"
@@ -14,7 +14,6 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.98.0",
     "jose": "^6.2.0"
   },
   "devDependencies": {
@@ -47,5 +46,17 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "description": "Authentication and authorization for NodeTool — pluggable auth providers (local, static token, Supabase), user management, and Fastify HTTP middleware",
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "authentication",
+    "authorization",
+    "middleware",
+    "fastify"
   ]
 }

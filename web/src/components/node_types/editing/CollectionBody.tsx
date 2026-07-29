@@ -26,6 +26,7 @@ import {
   ToolbarIconButton,
   BORDER_RADIUS,
   MOTION,
+  reducedMotion,
   SPACING,
   thinScrollbarStyles
 } from "../../ui_primitives";
@@ -87,6 +88,7 @@ const styles = (theme: Theme) =>
       alignContent: "start",
       borderRadius: BORDER_RADIUS.sm,
       transition: MOTION.background,
+      ...reducedMotion({ transition: MOTION.none }),
       ...thinScrollbarStyles(theme)
     },
     "&.drag-over .col-grid": {
@@ -130,7 +132,7 @@ const styles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.pill,
       backgroundColor: theme.vars.palette.secondary.main,
       color: theme.vars.palette.secondary.contrastText,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center"
@@ -140,10 +142,15 @@ const styles = (theme: Theme) =>
       top: 2,
       right: 2,
       opacity: 0,
-      transition: MOTION.opacity
+      transition: MOTION.opacity,
+      ...reducedMotion({ transition: MOTION.none })
     },
     ".col-tile:hover .col-remove, .col-tile:focus-within .col-remove": {
       opacity: 1
+    },
+    // Touch devices have no hover; keep the remove button reachable.
+    "@media (pointer: coarse)": {
+      ".col-remove": { opacity: 1 }
     },
     ".col-empty": {
       gridColumn: "1 / -1",

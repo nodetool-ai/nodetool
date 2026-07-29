@@ -1,4 +1,14 @@
-# Allow all robots to access all content
+# ChatGPT Search, user-initiated ChatGPT fetches, and model training have
+# independent crawler identities. All public documentation is crawlable.
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
 User-agent: *
 Allow: /
 

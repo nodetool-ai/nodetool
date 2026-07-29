@@ -7,16 +7,23 @@
  */
 
 import { createHash, randomBytes } from "node:crypto";
-import { createLogger } from "@nodetool-ai/config";
-import { OAuthCredential } from "@nodetool-ai/models";
+import { createLogger, isGoogleWorkspaceEnabled } from "@nodetool-ai/config";
+import {
+  OAuthCredential,
+  storeGoogleCredential,
+  deleteGoogleCredentials,
+  GOOGLE_CREDENTIAL_PROVIDER
+} from "@nodetool-ai/models";
 import {
   OAuthClient,
   LocalCallbackServer,
+  ClaudeCodeLogin,
   extractChatGptAccountId,
   CODEX_OAUTH_CLIENT_ID,
   CODEX_CALLBACK_PORT,
   CODEX_CALLBACK_PATH,
-  DEFAULT_CODEX_OAUTH_CONFIG
+  DEFAULT_CODEX_OAUTH_CONFIG,
+  type PendingClaudeCodeLogin
 } from "@nodetool-ai/runtime/oauth";
 
 const logger = createLogger("nodetool.websocket.oauth");
@@ -444,12 +451,20 @@ async function handleHfRefresh(
   }
 
   try {
+    // Send the decrypted refresh token, not the at-rest ciphertext.
+    const currentRefreshToken = await credential.getDecryptedRefreshToken();
+    if (!currentRefreshToken) {
+      return errorResponse(
+        400,
+        "No refresh token available. Please re-authenticate."
+      );
+    }
     const tokenRes = await fetch(HF_TOKEN_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
         grant_type: "refresh_token",
-        refresh_token: credential.encrypted_refresh_token,
+        refresh_token: currentRefreshToken,
         client_id: HF_CLIENT_ID
       })
     });
@@ -461,8 +476,9 @@ async function handleHfRefresh(
 
     const tokenData = (await tokenRes.json()) as Record<string, unknown>;
     const accessToken = tokenData.access_token as string | undefined;
+    // Reuse the current (plaintext) refresh token if the response omits one.
     const newRefreshToken =
-      (tokenData.refresh_token as string) ?? credential.encrypted_refresh_token;
+      (tokenData.refresh_token as string) ?? currentRefreshToken;
     const tokenType = (tokenData.token_type as string) ?? credential.token_type;
     const scope = (tokenData.scope as string) ?? credential.scope;
     const expiresIn = tokenData.expires_in as number | undefined;
@@ -476,13 +492,15 @@ async function handleHfRefresh(
       expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
     }
 
-    credential.encrypted_access_token = accessToken;
-    credential.encrypted_refresh_token = newRefreshToken;
-    credential.token_type = tokenType;
-    credential.scope = scope;
-    credential.received_at = new Date().toISOString();
-    credential.expires_at = expiresAt;
-    await credential.save();
+    // updateTokens encrypts before persisting — never assign plaintext to the
+    // encrypted_* columns directly.
+    await credential.updateTokens({
+      accessToken,
+      refreshToken: newRefreshToken,
+      tokenType,
+      scope,
+      expiresAt
+    });
 
     return jsonResponse({
       success: true,
@@ -522,9 +540,11 @@ async function handleHfWhoami(
   }
 
   try {
+    // Send the decrypted token, not the at-rest ciphertext, or HF always 401s.
+    const accessToken = await credential.getDecryptedAccessToken();
     const res = await fetch(HF_WHOAMI_URL, {
       headers: {
-        Authorization: `${credential.token_type} ${credential.encrypted_access_token}`
+        Authorization: `${credential.token_type} ${accessToken}`
       }
     });
 
@@ -801,9 +821,11 @@ async function handleGithubUser(
   }
 
   try {
+    // Send the decrypted token, not the at-rest ciphertext, or GitHub 401s.
+    const accessToken = await credential.getDecryptedAccessToken();
     const res = await fetch(GITHUB_USER_URL, {
       headers: {
-        Authorization: `${credential.token_type} ${credential.encrypted_access_token}`,
+        Authorization: `${credential.token_type} ${accessToken}`,
         Accept: "application/json"
       }
     });
@@ -1004,6 +1026,247 @@ async function handleOpenAIDisconnect(
   return jsonResponse({ success: true, removed: credentials.length });
 }
 
+// ── Claude (subscription) Endpoints ──────────────────────────────────
+//
+// Signs in with a Claude subscription using the same public OAuth client the
+// `claude` CLI uses, and writes the tokens to the Claude Agent SDK's credential
+// file (`~/.claude/.credentials.json`). That file — not the database — is the
+// store, because the SDK spawns the `claude` binary as this process's user and
+// reads it directly; a per-user DB row would be invisible to it.
+//
+// Two ways to finish, both from the one authorization request `start` creates:
+// the browser redirects to a loopback listener this process binds (same-machine
+// hosts), or the user pastes the `code#state` the console displays (headless and
+// remote hosts). The UI reflects success by polling `/api/oauth/claude/tokens`.
+
+/** The single in-flight login, so a re-click supersedes a stale listener. */
+let activeClaudeLogin: {
+  pending: PendingClaudeCodeLogin;
+  abort: AbortController;
+} | null = null;
+
+/** Abort and tear down any in-flight Claude login. Idempotent. */
+export async function closeActiveClaudeLogin(): Promise<void> {
+  const active = activeClaudeLogin;
+  if (!active) return;
+  activeClaudeLogin = null;
+  active.abort.abort();
+  await active.pending.cancel().catch(() => {});
+}
+
+async function handleClaudeStart(request: Request): Promise<Response> {
+  if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+
+  const url = new URL(request.url);
+  const loginMethod =
+    url.searchParams.get("login_method") === "console" ? "console" : "claude-ai";
+  // A remote browser can't reach this process's loopback listener; the caller
+  // says so and only the paste flow is offered.
+  const manualOnly = url.searchParams.get("manual") === "true";
+
+  await closeActiveClaudeLogin();
+
+  const login = new ClaudeCodeLogin();
+  let pending: PendingClaudeCodeLogin;
+  try {
+    pending = await login.begin({ loginMethod, manualOnly });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return errorResponse(500, `Could not start the Claude login: ${message}`);
+  }
+
+  const abort = new AbortController();
+  activeClaudeLogin = { pending, abort };
+
+  if (pending.authUrl) {
+    // Finish off the request path; the UI polls /tokens for success.
+    void pending
+      .waitForRedirect(abort.signal)
+      .then(() => logger.info("Claude OAuth login completed"))
+      .catch((err: unknown) => {
+        logger.warn("Claude OAuth login did not complete", {
+          error: err instanceof Error ? err.message : String(err)
+        });
+      })
+      .finally(() => {
+        if (activeClaudeLogin?.pending === pending) activeClaudeLogin = null;
+      });
+  }
+
+  return jsonResponse({
+    auth_url: pending.authUrl ?? pending.manualAuthUrl,
+    manual_auth_url: pending.manualAuthUrl,
+    state: pending.state
+  });
+}
+
+/** Complete a started login from the `code#state` the console displayed. */
+async function handleClaudeComplete(request: Request): Promise<Response> {
+  if (request.method !== "POST")
+    return errorResponse(405, "Method not allowed");
+
+  const active = activeClaudeLogin;
+  if (!active) {
+    return errorResponse(
+      400,
+      "No Claude login in progress. Start one and try again."
+    );
+  }
+
+  let body: { code?: unknown };
+  try {
+    body = (await request.json()) as { code?: unknown };
+  } catch {
+    return errorResponse(400, "Invalid JSON body");
+  }
+  const code = typeof body.code === "string" ? body.code : "";
+  if (!code) return errorResponse(400, "code is required");
+
+  try {
+    await active.pending.completeWithPastedCode(code);
+    logger.info("Claude OAuth login completed from a pasted code");
+    return jsonResponse({ success: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return errorResponse(400, message);
+  } finally {
+    if (activeClaudeLogin === active) activeClaudeLogin = null;
+  }
+}
+
+/**
+ * Connection status, shaped like the other providers' `tokens` responses so the
+ * shared `useOAuthConnection` hook works unchanged. There is at most one login.
+ */
+async function handleClaudeTokens(): Promise<Response> {
+  const status = await new ClaudeCodeLogin().status();
+  return jsonResponse({
+    tokens: status.connected
+      ? [
+          {
+            provider: "claude",
+            scope: status.scopes.join(" "),
+            expires_at:
+              status.expiresAt != null
+                ? new Date(status.expiresAt).toISOString()
+                : null,
+            expired: status.expired,
+            subscription_type: status.subscriptionType,
+            rate_limit_tier: status.rateLimitTier,
+            credentials_path: status.credentialsPath
+          }
+        ]
+      : []
+  });
+}
+
+async function handleClaudeDisconnect(request: Request): Promise<Response> {
+  if (request.method !== "POST")
+    return errorResponse(405, "Method not allowed");
+  await closeActiveClaudeLogin();
+  const removed = await new ClaudeCodeLogin().logout();
+  return jsonResponse({ success: true, removed: removed ? 1 : 0 });
+}
+
+// ── Google Workspace Endpoints ───────────────────────────────────────
+//
+// Unlike the flows above, there is no authorization round-trip here. The user
+// already signed in with Google through Supabase, which handed the browser a
+// Google `provider_token` (and, with `access_type=offline`, a
+// `provider_refresh_token`). Supabase does not expose those server-side, so the
+// web app posts them once per login and the server keeps them for agent tools
+// and workflow nodes.
+
+interface GoogleSessionBody {
+  access_token?: unknown;
+  refresh_token?: unknown;
+  expires_at?: unknown;
+  scope?: unknown;
+  email?: unknown;
+  account_id?: unknown;
+}
+
+/** Coerce Supabase's `expires_at` (unix seconds or ISO string) to ISO. */
+function toIsoExpiry(value: unknown): string | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return new Date(value * 1000).toISOString();
+  }
+  if (typeof value === "string" && value) {
+    const parsed = Date.parse(value);
+    if (!Number.isNaN(parsed)) return new Date(parsed).toISOString();
+  }
+  return null;
+}
+
+async function handleGoogleSession(
+  request: Request,
+  getUserId: () => string
+): Promise<Response> {
+  if (request.method !== "POST")
+    return errorResponse(405, "Method not allowed");
+  if (!isGoogleWorkspaceEnabled()) {
+    return errorResponse(404, "Google Workspace integration is not enabled");
+  }
+
+  let body: GoogleSessionBody;
+  try {
+    body = (await request.json()) as GoogleSessionBody;
+  } catch {
+    return errorResponse(400, "Invalid JSON body");
+  }
+
+  const accessToken =
+    typeof body.access_token === "string" ? body.access_token : "";
+  if (!accessToken) {
+    return errorResponse(400, "access_token is required");
+  }
+
+  const userId = getUserId();
+  const email = typeof body.email === "string" ? body.email : null;
+  const credential = await storeGoogleCredential({
+    userId,
+    // One credential row per Google account. The email is the stable identity
+    // the user recognises; fall back to the NodeTool user id.
+    accountId:
+      (typeof body.account_id === "string" && body.account_id) ||
+      email ||
+      userId,
+    accessToken,
+    refreshToken:
+      typeof body.refresh_token === "string" ? body.refresh_token : null,
+    email,
+    scope: typeof body.scope === "string" ? body.scope : null,
+    expiresAt: toIsoExpiry(body.expires_at)
+  });
+
+  logger.info("Google session token stored", { accountId: credential.account_id });
+  return jsonResponse({ success: true, token: toTokenMetadata(credential) });
+}
+
+async function handleGoogleTokens(getUserId: () => string): Promise<Response> {
+  if (!isGoogleWorkspaceEnabled()) {
+    return jsonResponse({ enabled: false, tokens: [] });
+  }
+  const credentials = await OAuthCredential.listForUserAndProvider(
+    getUserId(),
+    GOOGLE_CREDENTIAL_PROVIDER
+  );
+  return jsonResponse({
+    enabled: true,
+    tokens: credentials.map(toTokenMetadata)
+  });
+}
+
+async function handleGoogleDisconnect(
+  request: Request,
+  getUserId: () => string
+): Promise<Response> {
+  if (request.method !== "POST")
+    return errorResponse(405, "Method not allowed");
+  const removed = await deleteGoogleCredentials(getUserId());
+  return jsonResponse({ success: true, removed });
+}
+
 // ── Simple hash helper (replicates Python's hash() for fallback) ─────
 
 function hashCode(str: string): number {
@@ -1069,6 +1332,24 @@ export async function handleOAuthRequest(
       return handleOpenAITokens(getUserId);
     case "/api/oauth/openai/disconnect":
       return handleOpenAIDisconnect(request, getUserId);
+
+    // Claude subscription (Claude Agent SDK credentials)
+    case "/api/oauth/claude/start":
+      return handleClaudeStart(request);
+    case "/api/oauth/claude/complete":
+      return handleClaudeComplete(request);
+    case "/api/oauth/claude/tokens":
+      return handleClaudeTokens();
+    case "/api/oauth/claude/disconnect":
+      return handleClaudeDisconnect(request);
+
+    // Google Workspace (token comes from the Supabase Google login)
+    case "/api/oauth/google/session":
+      return handleGoogleSession(request, getUserId);
+    case "/api/oauth/google/tokens":
+      return handleGoogleTokens(getUserId);
+    case "/api/oauth/google/disconnect":
+      return handleGoogleDisconnect(request, getUserId);
 
     default:
       return null;

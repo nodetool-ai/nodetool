@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useCallback, useEffect, useState } from "react";
 import { Node, NodeProps } from "@xyflow/react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "../node/NodeHeader";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -23,6 +23,7 @@ import {
   EditorButton,
   FlexColumn,
   MOTION,
+  reducedMotion,
   Text,
   Tooltip,
   BORDER_RADIUS,
@@ -93,6 +94,7 @@ const styles = (theme: Theme) =>
       border: `1px solid ${theme.vars.palette.action.selected}`,
       boxShadow: `0 6px 18px ${theme.vars.palette.c_scrim_soft}`,
       transition: `${MOTION.transform}, ${MOTION.shadow}, background-position ${MOTION.slow}`,
+      ...reducedMotion({ transition: MOTION.none }),
       overflow: "hidden",
       "&::before": {
         content: "''",
@@ -104,7 +106,8 @@ const styles = (theme: Theme) =>
         background:
           `linear-gradient(120deg, transparent, ${theme.vars.palette.c_overlay_strong}, transparent)`,
         transform: "skewX(-20deg)",
-        transition: `left ${MOTION.slow}`
+        transition: `left ${MOTION.slow}`,
+        ...reducedMotion({ transition: MOTION.none })
       },
       "&:hover": {
         transform: "translateY(-1px)",
@@ -322,7 +325,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
         selected={props.selected}
         workflowId={nodeData?.workflow_id}
       />
-      <Tooltip title="Try to find a replacement node or write us a fax.">
+      <Tooltip title="This node type is missing. Search the node menu for a replacement or install the package that provides it.">
         <Text size="big" className="missing-node-text">
           Missing Node
         </Text>

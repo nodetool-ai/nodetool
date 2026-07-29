@@ -3,18 +3,12 @@ import { Job } from "../stores/ApiTypes";
 import { trpcClient } from "../trpc/client";
 import { useAuth } from "../stores/useAuth";
 
-/**
- * Fetches running jobs from the API
- */
 const fetchRunningJobs = async (): Promise<Job[]> => {
   const data = await trpcClient.jobs.list.query({ limit: 20 });
   return data.jobs ?? [];
 };
 
-/**
- * Hook to fetch running jobs
- * Only runs when user is authenticated
- */
+/** Fetches running jobs, only when the user is authenticated. */
 export const useRunningJobs = (): UseQueryResult<Job[], Error> => {
   const state = useAuth((auth) => auth.state);
   const isAuthenticated = state === "logged_in";

@@ -577,6 +577,13 @@ describe("WorkflowRunner – external workflow inputs", () => {
             value: Number(inputs.a ?? 0) + Number(inputs.b ?? 0)
           }));
         }
+        // IntegerInput emits on its "output" handle — the handle the outgoing
+        // edges read. Emitting there (not "value") keeps the double honest now
+        // that the runner no longer leaks the raw input value onto edges whose
+        // sourceHandle the process() record omits.
+        if (node.type === "nodetool.input.IntegerInput") {
+          return simpleExecutor((inputs) => ({ output: inputs.value }));
+        }
         return simpleExecutor((inputs) => ({ value: inputs.value }));
       }
     });
@@ -634,6 +641,11 @@ describe("WorkflowRunner – external workflow inputs", () => {
           return simpleExecutor((inputs) => ({
             value: Number(inputs.a ?? 0) + Number(inputs.b ?? 0)
           }));
+        }
+        // IntegerInput emits on its "output" handle (see the note in the
+        // sibling test) so the outgoing edges receive its value.
+        if (node.type === "nodetool.input.IntegerInput") {
+          return simpleExecutor((inputs) => ({ output: inputs.value }));
         }
         return simpleExecutor((inputs) => ({ value: inputs.value }));
       }

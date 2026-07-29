@@ -114,7 +114,7 @@ function buildPlan(
           target: edge.target,
           targetHandle: handle,
           edge_type: "data"
-        } as ApiEdge);
+        });
       }
       outerEdgesToAdd.push({
         ...edge,
@@ -153,7 +153,7 @@ function buildPlan(
           target: outputNodeId,
           targetHandle: "value",
           edge_type: "data"
-        } as ApiEdge);
+        });
       }
       outerEdgesToAdd.push({
         ...edge,
@@ -172,7 +172,7 @@ function buildPlan(
   return { innerNodes, innerEdges, outerEdgesToAdd, outerEdgesToRemove };
 }
 
-export function useGroupIntoSubgraph() {
+export function useGroupIntoSubgraph(): (selectedIds: string[]) => { subgraphNodeId: string } | null {
   const reactFlowInstance = useReactFlow();
   const getMetadata = useMetadataStore((s) => s.getMetadata);
   const { createNode, addNode, addEdge, deleteEdges, deleteNodes, nodes, edges } =
@@ -196,7 +196,7 @@ export function useGroupIntoSubgraph() {
       }
 
       const idSet = new Set(selectedIds);
-      const selectedNodes = nodes.filter((n) => idSet.has(n.id)) as RFNode<NodeData>[];
+      const selectedNodes = nodes.filter((n) => idSet.has(n.id));
       if (selectedNodes.length === 0) return null;
 
       const center = computeCentroid(selectedNodes);
@@ -212,7 +212,7 @@ export function useGroupIntoSubgraph() {
       const plan = buildPlan(
         idSet,
         selectedNodes,
-        edges as RFEdge[],
+        edges,
         subgraphNode.id,
         center
       );

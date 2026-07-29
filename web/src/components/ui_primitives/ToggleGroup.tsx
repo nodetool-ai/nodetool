@@ -13,6 +13,7 @@ import {
   ToggleButtonProps,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { MOTION } from "./tokens";
 
 // --- ToggleGroup ---
 
@@ -90,7 +91,7 @@ const ToggleGroupInternal: React.FC<ToggleGroupProps> = ({
           letterSpacing: 0,
           textTransform: "none" as const,
           color: palette.text.secondary,
-          transition: "background-color 0.15s ease, color 0.15s ease",
+          transition: `${MOTION.background}, color ${MOTION.fast}`,
           "&:hover": {
             backgroundColor: palette.action.hover,
             color: palette.text.primary,

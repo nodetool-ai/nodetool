@@ -14,6 +14,7 @@
  * `undefined`/`false`/empty.
  */
 
+import { useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import useStatusStore from "../../stores/StatusStore";
 import useErrorStore, { hasNodeError } from "../../stores/ErrorStore";
@@ -41,8 +42,6 @@ interface ErrorObject {
 /** Error value as stored by ErrorStore. */
 type NodeError = Error | string | null | ErrorObject;
 
-// ── Status ───────────────────────────────────────────────────────────────────
-
 /**
  * Reactive hook that returns the current status for the given workflow+node,
  * resolved against the workflow's focused run. Re-renders on focus change AND
@@ -57,8 +56,6 @@ export function useNodeStatus(
     jobId ? s.getStatus(workflowId, jobId, nodeId) : undefined
   );
 }
-
-// ── Errors ───────────────────────────────────────────────────────────────────
 
 /**
  * Reactive hook that returns the current error for the given workflow+node,
@@ -88,8 +85,6 @@ export function useNodeHasError(
   );
 }
 
-// ── Progress ─────────────────────────────────────────────────────────────────
-
 /**
  * Reactive hook that returns the current progress for the given workflow+node,
  * resolved against the workflow's focused run.
@@ -103,8 +98,6 @@ export function useNodeProgress(
     jobId ? s.getProgress(workflowId, jobId, nodeId) : undefined
   );
 }
-
-// ── Execution duration ───────────────────────────────────────────────────────
 
 /**
  * Reactive hook that returns the execution duration (ms) for the given
@@ -121,8 +114,6 @@ export function useNodeExecutionDuration(
   );
 }
 
-// ── Provider cost ────────────────────────────────────────────────────────────
-
 /**
  * Reactive hook that returns the LLM provider cost accrued by this node in the
  * workflow's focused run.
@@ -136,8 +127,6 @@ export function useNodeProviderCost(
     jobId ? s.getProviderCost(workflowId, jobId, nodeId) : undefined
   );
 }
-
-// ── Result value ─────────────────────────────────────────────────────────────
 
 /**
  * Reactive hook that returns the node's own latest output value, resolved from
@@ -153,8 +142,6 @@ export function useNodeResultValue(
   const { current } = useNodeGenerations(workflowId, nodeId);
   return current ? outputOf(current, handle) : undefined;
 }
-
-// ── Ambient liveness (other concurrent runs) ─────────────────────────────────
 
 /** Node-level statuses that mean the node is actively executing. */
 const ACTIVE_NODE_STATUSES: ReadonlySet<string> = new Set([
@@ -219,8 +206,6 @@ export function useNodeActiveRunCount(
   });
 }
 
-// ── Node artifacts (multi-value shallow selector) ────────────────────────────
-
 /**
  * Reactive hook that returns all streaming / agent artifacts for a node in a
  * single stable object, resolved against the workflow's focused run.  Uses
@@ -265,9 +250,13 @@ export function useNodeArtifacts(
       };
     })
   );
-  return {
-    result: current ? outputOf(current) : undefined,
-    output: current?.outputs,
-    ...transient
-  };
+  const result = useMemo(
+    () => (current ? outputOf(current) : undefined),
+    [current]
+  );
+  const output = current?.outputs;
+  return useMemo(
+    () => ({ result, output, ...transient }),
+    [result, output, transient]
+  );
 }

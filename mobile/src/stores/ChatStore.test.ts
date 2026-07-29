@@ -183,7 +183,7 @@ describe('ChatStore', () => {
         'Hello'
       );
       
-      const messages = useChatStore.getState().getCurrentMessages();
+      const messages = (useChatStore.getState().messageCache[useChatStore.getState().currentThreadId!] || []);
       expect(messages).toHaveLength(1);
       expect(messages[0].role).toBe('user');
     });
@@ -352,83 +352,6 @@ describe('ChatStore', () => {
     });
   });
 
-  describe('switchThread', () => {
-    beforeEach(async () => {
-      await useChatStore.getState().createNewThread();
-    });
-
-    it('switches to existing thread', async () => {
-      // Add second thread manually
-      const thread2 = { id: 'thread-2', title: 'Thread 2' } as any;
-      useChatStore.setState({
-        threads: {
-          ...useChatStore.getState().threads,
-          'thread-2': thread2,
-        },
-      });
-      
-      useChatStore.getState().switchThread('thread-2');
-      
-      expect(useChatStore.getState().currentThreadId).toBe('thread-2');
-    });
-
-    it('does nothing if thread does not exist', () => {
-      const initialThreadId = useChatStore.getState().currentThreadId;
-      
-      useChatStore.getState().switchThread('non-existent');
-      
-      expect(useChatStore.getState().currentThreadId).toBe(initialThreadId);
-    });
-  });
-
-  describe('getCurrentMessages', () => {
-    it('returns empty array if no current thread', () => {
-      expect(useChatStore.getState().getCurrentMessages()).toEqual([]);
-    });
-
-    it('returns messages for current thread', async () => {
-      const threadId = await useChatStore.getState().createNewThread();
-      
-      useChatStore.setState({
-        messageCache: {
-          [threadId]: [
-            { id: '1', type: 'message', role: 'user', content: 'Hello' },
-          ] as any,
-        },
-      });
-      
-      expect(useChatStore.getState().getCurrentMessages()).toHaveLength(1);
-    });
-
-    it('returns empty array if thread has no messages', async () => {
-      await useChatStore.getState().createNewThread();
-      
-      expect(useChatStore.getState().getCurrentMessages()).toEqual([]);
-    });
-  });
-
-  describe('resetMessages', () => {
-    beforeEach(async () => {
-      const threadId = await useChatStore.getState().createNewThread();
-      useChatStore.setState({
-        messageCache: {
-          [threadId]: [
-            { id: '1', type: 'message', role: 'user', content: 'Hello' },
-          ] as any,
-        },
-      });
-    });
-
-    it('clears messages for current thread', () => {
-      const threadId = useChatStore.getState().currentThreadId!;
-      
-      useChatStore.getState().resetMessages();
-      
-      expect(useChatStore.getState().messageCache[threadId]).toEqual([]);
-    });
-
-  });
-
   describe('addMessageToCache', () => {
     it('adds message to specified thread', async () => {
       const threadId = await useChatStore.getState().createNewThread();
@@ -472,30 +395,6 @@ describe('ChatStore', () => {
       } as any);
       
       expect(useChatStore.getState().messageCache[threadId]).toHaveLength(2);
-    });
-  });
-
-  describe('setStatus', () => {
-    it('updates status', () => {
-      useChatStore.getState().setStatus('loading');
-      
-      expect(useChatStore.getState().status).toBe('loading');
-    });
-  });
-
-  describe('setError', () => {
-    it('updates error', () => {
-      useChatStore.getState().setError('Test error');
-      
-      expect(useChatStore.getState().error).toBe('Test error');
-    });
-
-    it('clears error when null', () => {
-      useChatStore.setState({ error: 'Existing error' });
-      
-      useChatStore.getState().setError(null);
-      
-      expect(useChatStore.getState().error).toBeNull();
     });
   });
 
@@ -551,7 +450,7 @@ describe('ChatStore', () => {
           thread_id: threadId,
         });
         
-        expect(useChatStore.getState().getCurrentMessages()).toHaveLength(1);
+        expect((useChatStore.getState().messageCache[useChatStore.getState().currentThreadId!] || [])).toHaveLength(1);
       });
 
       it('handles chunk type - creates new message', () => {
@@ -562,7 +461,7 @@ describe('ChatStore', () => {
         });
         
         expect(useChatStore.getState().status).toBe('streaming');
-        expect(useChatStore.getState().getCurrentMessages()).toHaveLength(1);
+        expect((useChatStore.getState().messageCache[useChatStore.getState().currentThreadId!] || [])).toHaveLength(1);
       });
 
       it('handles chunk type - appends to existing assistant message', () => {
@@ -585,7 +484,7 @@ describe('ChatStore', () => {
           done: false,
         });
         
-        const messages = useChatStore.getState().getCurrentMessages();
+        const messages = (useChatStore.getState().messageCache[useChatStore.getState().currentThreadId!] || []);
         expect(messages[0].content).toBe('Hello World');
       });
 
@@ -697,7 +596,7 @@ describe('ChatStore', () => {
         });
         
         // No new message should be added
-        expect(useChatStore.getState().getCurrentMessages()).toHaveLength(0);
+        expect((useChatStore.getState().messageCache[useChatStore.getState().currentThreadId!] || [])).toHaveLength(0);
       });
 
       it('processes generation_stopped while stopping', () => {
@@ -747,7 +646,7 @@ describe('ChatStore', () => {
           thread_id: threadId,
         });
         
-        const messages = useChatStore.getState().getCurrentMessages();
+        const messages = (useChatStore.getState().messageCache[useChatStore.getState().currentThreadId!] || []);
         expect(messages).toHaveLength(1);
         expect(messages[0].content).toBe('Final content');
       });
@@ -788,29 +687,6 @@ describe('ChatStore', () => {
       
       useChatStore.getState().setSelectedModel(model2);
       expect(useChatStore.getState().selectedModel).toEqual(model2);
-    });
-  });
-
-  describe('clearError', () => {
-    it('clears the error and returns to connected when the socket is up', async () => {
-      await useChatStore.getState().connect();
-      useChatStore.setState({ status: 'error', error: 'boom', statusMessage: 'x' });
-
-      useChatStore.getState().clearError();
-
-      const state = useChatStore.getState();
-      expect(state.error).toBeNull();
-      expect(state.statusMessage).toBeNull();
-      expect(state.status).toBe('connected');
-    });
-
-    it('returns to disconnected when there is no live socket', () => {
-      useChatStore.setState({ status: 'error', error: 'boom', wsManager: null });
-
-      useChatStore.getState().clearError();
-
-      expect(useChatStore.getState().status).toBe('disconnected');
-      expect(useChatStore.getState().error).toBeNull();
     });
   });
 

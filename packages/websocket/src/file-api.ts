@@ -11,67 +11,21 @@
  */
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import * as os from "node:os";
 import {
   corsHeaders,
   nodeStreamToWebStream,
   parseRangeHeader
 } from "./storage-api.js";
-
-export interface FileApiOptions {
-  /** Root directory for the file browser sandbox. Defaults to user home. */
-  rootDir?: string;
-}
+import {
+  localPathDenialMessage,
+  resolveLocalPath
+} from "./lib/local-file-access.js";
 
 function errorResponse(status: number, detail: string): Response {
   return new Response(JSON.stringify({ detail }), {
     status,
     headers: { "content-type": "application/json" }
   });
-}
-
-/**
- * Resolve a user-provided path within the sandbox root.
- * Returns the resolved absolute path, or null if the path escapes the sandbox.
- */
-function resolveSandboxed(rootDir: string, userPath: string): string | null {
-  const resolved = path.resolve(
-    rootDir,
-    userPath.startsWith("/") ? "." + userPath : userPath
-  );
-  const normalizedRoot = path.resolve(rootDir);
-  if (
-    !resolved.startsWith(normalizedRoot + path.sep) &&
-    resolved !== normalizedRoot
-  ) {
-    return null;
-  }
-  return resolved;
-}
-
-async function handleDownload(url: URL, rootDir: string): Promise<Response> {
-  const userPath = url.searchParams.get("path");
-  if (!userPath) return errorResponse(400, "path parameter is required");
-
-  const resolved = resolveSandboxed(rootDir, userPath);
-  if (!resolved) return errorResponse(403, "Path traversal not allowed");
-
-  try {
-    const stat = await fs.stat(resolved);
-    if (stat.isDirectory()) {
-      return errorResponse(400, "Cannot download a directory");
-    }
-    const content = await fs.readFile(resolved);
-    return new Response(content, {
-      status: 200,
-      headers: {
-        "content-type": "application/octet-stream",
-        "content-length": String(content.byteLength)
-      }
-    });
-  } catch {
-    return errorResponse(404, "File not found");
-  }
 }
 
 // ── Local-file streaming (/api/files/local) ─────────────────────────
@@ -100,32 +54,6 @@ const LOCAL_MIME_TYPES: Record<string, string> = {
   ".json": "application/json"
 };
 
-// Files that are never a legitimate part of a preview flow — refuse them even
-// though this endpoint is dev/desktop-only. Mirrors the Electron main-process
-// denylist so the two file-read surfaces stay consistent.
-const SENSITIVE_HOME_ENTRIES = [
-  ".ssh",
-  ".aws",
-  ".gnupg",
-  ".kube",
-  ".docker",
-  ".config/gcloud",
-  ".netrc",
-  ".pgpass",
-  ".npmrc"
-];
-
-function isDeniedPath(resolved: string): boolean {
-  const home = os.homedir();
-  for (const entry of SENSITIVE_HOME_ENTRIES) {
-    const forbidden = path.resolve(home, entry);
-    if (resolved === forbidden || resolved.startsWith(forbidden + path.sep)) {
-      return true;
-    }
-  }
-  return false;
-}
-
 function localMimeType(filePath: string): string {
   return (
     LOCAL_MIME_TYPES[path.extname(filePath).toLowerCase()] ??
@@ -139,15 +67,16 @@ async function handleLocalFileStream(
 ): Promise<Response> {
   const userPath = url.searchParams.get("path");
   if (!userPath) return errorResponse(400, "path parameter is required");
-  if (userPath.includes("\0")) return errorResponse(400, "Invalid path");
 
-  const resolved = path.resolve(userPath);
-  if (!path.isAbsolute(resolved)) {
-    return errorResponse(400, "Path must be absolute");
+  // Allowlist, not denylist: the path must resolve inside a configured root
+  // (home by default), both lexically and after symlinks. Same policy the
+  // tRPC file browser applies — see lib/local-file-access.ts.
+  const allowed = await resolveLocalPath(userPath);
+  if (!allowed.ok) {
+    const status = allowed.reason === "invalid" ? 400 : 403;
+    return errorResponse(status, localPathDenialMessage(allowed.reason));
   }
-  if (isDeniedPath(resolved)) {
-    return errorResponse(403, "Access to this path is not permitted");
-  }
+  const resolved = allowed.path;
 
   let stat: Awaited<ReturnType<typeof fs.stat>>;
   try {
@@ -178,18 +107,22 @@ async function handleLocalFileStream(
   }
 
   const rangeHeader = request.headers.get("Range");
-  if (rangeHeader) {
-    const range = parseRangeHeader(rangeHeader, fileSize);
-    if (!range) {
-      return new Response(JSON.stringify({ detail: "Range Not Satisfiable" }), {
-        status: 416,
-        headers: {
-          ...cors,
-          "content-type": "application/json",
-          "Content-Range": `bytes */${fileSize}`
-        }
-      });
-    }
+  const range = rangeHeader
+    ? parseRangeHeader(rangeHeader, fileSize)
+    : null;
+  // "unsatisfiable" → 416; an unparseable/unsupported header (null with a header
+  // present) is ignored and the full file served with 200, per RFC 7233.
+  if (range === "unsatisfiable") {
+    return new Response(JSON.stringify({ detail: "Range Not Satisfiable" }), {
+      status: 416,
+      headers: {
+        ...cors,
+        "content-type": "application/json",
+        "Content-Range": `bytes */${fileSize}`
+      }
+    });
+  }
+  if (range) {
     const { start, end } = range;
     const body = nodeStreamToWebStream(resolved, { start, end });
     return new Response(body, {
@@ -221,30 +154,18 @@ async function handleLocalFileStream(
 /**
  * Handle file browser binary requests.
  * Routes:
- *   /api/files/download — sandboxed binary download (octet-stream, no Range)
- *   /api/files/local    — stream a local file by absolute path (Range-capable)
+ *   /api/files/local — stream a local file by absolute path (Range-capable)
  *
  * JSON ops (list, info) have moved to the tRPC `files` router.
  */
-export async function handleFileRequest(
-  request: Request,
-  options: FileApiOptions = {}
-): Promise<Response> {
+export async function handleFileRequest(request: Request): Promise<Response> {
   // File browser exposes the local filesystem — disabled in production
   if (process.env["NODETOOL_ENV"] === "production") {
     return errorResponse(403, "File browser is disabled in production");
   }
 
-  const rootDir = options.rootDir ?? os.homedir();
   const url = new URL(request.url);
   const pathname = url.pathname.replace(/\/+$/, "");
-
-  if (pathname === "/api/files/download") {
-    if (request.method !== "GET") {
-      return errorResponse(405, "Method not allowed");
-    }
-    return handleDownload(url, rootDir);
-  }
 
   if (pathname === "/api/files/local") {
     if (request.method !== "GET" && request.method !== "HEAD") {

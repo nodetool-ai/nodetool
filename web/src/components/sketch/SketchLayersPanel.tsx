@@ -454,8 +454,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   onRotate180,
   onMergeDown,
   onFlattenVisible,
-  onTrimLayerToBounds,
-  onCropCanvasToActiveLayerVisiblePixels,
   onCropCanvasToActiveLayerExtents,
   onAddGroup,
   onToggleGroupCollapsed,
@@ -890,8 +888,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     () => layers.find((l) => l.id === activeLayerId),
     [layers, activeLayerId]
   );
-  const activeLayerFlatIndex = activeLayer ? layers.indexOf(activeLayer) : -1;
-
   const hasMultiLayerSelection = selectedLayerIds.length >= 2;
   const layerIdsInDoc = useMemo(
     () => new Set(layers.map((l) => l.id)),
@@ -1199,7 +1195,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         gap={0.5}
         sx={{ rowGap: 0.5, minHeight: 30, py: 0.5 }}
       >
-        {/* Mask */}
         <Tooltip
           title={
             maskLayerId === activeLayerId
@@ -1230,7 +1225,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           </IconButton>
         </Tooltip>
 
-        {/* Alpha Lock */}
         <Tooltip
           title={
             activeLayer?.alphaLock ? "Unlock Transparency" : "Lock Transparency"
@@ -1253,7 +1247,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           </IconButton>
         </Tooltip>
 
-        {/* Group selected */}
         <Tooltip
           title="Group selected layers"
           enterDelay={SKETCH_TOOLTIP_DELAY_MS}
@@ -1346,6 +1339,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             sx={{ px: getSpacingPx(SPACING.sm) }}
           >
             <Select
+              aria-label="Layer blend mode"
               value={coerceBlendMode(activeLayer.blendMode)}
               onChange={(e) =>
                 onLayerBlendModeChange(

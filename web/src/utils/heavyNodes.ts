@@ -14,7 +14,7 @@ import type { NodeMetadata } from "../stores/ApiTypes";
  * these and are ignored, so the large-run warning only counts the nodes that
  * could actually overload a provider/API.
  */
-export function isHeavyNode(metadata: NodeMetadata | undefined): boolean {
+function isHeavyNode(metadata: NodeMetadata | undefined): boolean {
   if (!metadata) {
     return false;
   }

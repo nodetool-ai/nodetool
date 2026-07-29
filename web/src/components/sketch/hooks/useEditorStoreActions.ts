@@ -9,32 +9,54 @@
  * so the returned objects are referentially stable and will not cause
  * unnecessary re-renders.
  *
- * ## Why bundles instead of individual selectors
- *
- * SketchEditor previously had ~60 individual `useSketchStore(...)` calls
- * for store actions it passes to action hooks. This made it hard to see
- * which concern each action belonged to and easy to accidentally add
- * unrelated state dependencies. Grouping by concern makes the dependency
- * graph visible and keeps new actions from landing in an undifferentiated
- * grab-bag.
+ * Each bundle's return type is a `Pick` of the store, so renaming or
+ * re-signaturing an action fails here rather than silently changing a bundle.
  */
 
-import { useSketchStore } from "../state";
+import { useSketchStore, type SketchStore } from "../state";
 
-/**
- * History-related store actions (undo, redo, pushHistory).
- */
-export function useHistoryStoreActions() {
+export type HistoryStoreActions = Pick<
+  SketchStore,
+  "pushHistory" | "undo" | "redo"
+>;
+
+export function useHistoryStoreActions(): HistoryStoreActions {
   const pushHistory = useSketchStore((s) => s.pushHistory);
   const undo = useSketchStore((s) => s.undo);
   const redo = useSketchStore((s) => s.redo);
   return { pushHistory, undo, redo };
 }
 
-/**
- * Layer CRUD store actions.
- */
-export function useLayerStoreActions() {
+export type LayerStoreActions = Pick<
+  SketchStore,
+  | "updateLayerData"
+  | "setLayerTransform"
+  | "commitLayerTransform"
+  | "setLayerContentBounds"
+  | "offsetLayerTransform"
+  | "addLayer"
+  | "removeLayer"
+  | "duplicateLayer"
+  | "reorderLayers"
+  | "toggleLayerVisibility"
+  | "setLayerOpacity"
+  | "setLayerBlendMode"
+  | "renameLayer"
+  | "setMaskLayer"
+  | "toggleAlphaLock"
+  | "toggleLayerExposedInput"
+  | "toggleLayerExposedOutput"
+  | "mergeLayerDown"
+  | "flattenVisible"
+  | "addGroup"
+  | "toggleGroupCollapsed"
+  | "moveLayerToGroup"
+  | "ungroupLayer"
+  | "groupLayers"
+  | "setActiveLayer"
+>;
+
+export function useLayerStoreActions(): LayerStoreActions {
   const updateLayerData = useSketchStore((s) => s.updateLayerData);
   const setLayerTransform = useSketchStore((s) => s.setLayerTransform);
   const commitLayerTransform = useSketchStore((s) => s.commitLayerTransform);
@@ -94,10 +116,17 @@ export function useLayerStoreActions() {
   };
 }
 
-/**
- * Canvas/viewport store actions.
- */
-export function useCanvasStoreActions() {
+export type CanvasStoreActions = Pick<
+  SketchStore,
+  | "setZoom"
+  | "setPan"
+  | "resizeCanvas"
+  | "offsetAllPaintLayersTransform"
+  | "setMirrorX"
+  | "setMirrorY"
+>;
+
+export function useCanvasStoreActions(): CanvasStoreActions {
   const setZoom = useSketchStore((s) => s.setZoom);
   const setPan = useSketchStore((s) => s.setPan);
   const resizeCanvas = useSketchStore((s) => s.resizeCanvas);
@@ -122,7 +151,23 @@ export function useCanvasStoreActions() {
  * shared between ConnectedToolTopBar and ConnectedContextMenu live in
  * `useToolChromeActions` instead.
  */
-export function useColorStoreActions() {
+export type ColorStoreActions = Pick<
+  SketchStore,
+  | "setForegroundColor"
+  | "setBrushSettings"
+  | "setPencilSettings"
+  | "setEraserSettings"
+  | "setFillSettings"
+  | "setBlurSettings"
+  | "setCloneStampSettings"
+  | "setShapeSettings"
+  | "setGradientSettings"
+  | "setSelectSettings"
+  | "swapColors"
+  | "resetColors"
+>;
+
+export function useColorStoreActions(): ColorStoreActions {
   const setForegroundColor = useSketchStore((s) => s.setForegroundColor);
   const setBrushSettings = useSketchStore((s) => s.setBrushSettings);
   const setPencilSettings = useSketchStore((s) => s.setPencilSettings);
@@ -151,10 +196,12 @@ export function useColorStoreActions() {
   };
 }
 
-/**
- * Session/editor-level store actions (document set, tool set, panels toggle).
- */
-export function useSessionStoreActions() {
+export type SessionStoreActions = Pick<
+  SketchStore,
+  "setDocument" | "setActiveTool" | "togglePanelsHidden"
+>;
+
+export function useSessionStoreActions(): SessionStoreActions {
   const setDocument = useSketchStore((s) => s.setDocument);
   const setActiveTool = useSketchStore((s) => s.setActiveTool);
   const togglePanelsHidden = useSketchStore((s) => s.togglePanelsHidden);

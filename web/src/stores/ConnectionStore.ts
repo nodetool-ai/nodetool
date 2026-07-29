@@ -63,11 +63,6 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
   /**
    * Handle the start of a connection between two nodes.
    * This is used to set the type and direction of the node to connect.
-   *
-   * @param node The node to connect.
-   * @param handleId The id of the handle to connect.
-   * @param handleType The type of the handle to connect.
-   * @param metadata The metadata of the node to connect.
    */
   startConnecting: (
     node: Node<NodeData>,

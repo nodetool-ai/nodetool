@@ -1,16 +1,20 @@
-import OpenAI from "openai";
-import { OpenAIProvider } from "./openai-provider.js";
+import {
+  OpenAICompatProvider,
+  type OpenAICompatProviderOptions
+} from "./openai-compat-provider.js";
+import { trimTrailingSlashes } from "./openai-compat/index.js";
 import { LMSTUDIO_DEFAULT_URL } from "./defaults.js";
 import type { LanguageModel } from "./types.js";
 
-interface LMStudioProviderOptions {
-  client?: OpenAI;
-  clientFactory?: (apiKey: string) => OpenAI;
-  fetchFn?: typeof fetch;
+/** Cap on the local LM Studio model-list probe so a down/unreachable host
+ * can't stall the model menu's parallel provider load. */
+const MODEL_LIST_TIMEOUT_MS = 2500;
+
+interface LMStudioProviderOptions extends OpenAICompatProviderOptions {
   baseURL?: string;
 }
 
-export class LMStudioProvider extends OpenAIProvider {
+export class LMStudioProvider extends OpenAICompatProvider {
   static override requiredSecrets(): string[] {
     return [];
   }
@@ -31,26 +35,15 @@ export class LMStudioProvider extends OpenAIProvider {
       secrets.LMSTUDIO_API_URL ??
       process.env["LMSTUDIO_API_URL"] ??
       LMSTUDIO_DEFAULT_URL;
-    const baseURL = rawBaseURL.replace(/\/+$/, "");
+    const baseURL = trimTrailingSlashes(rawBaseURL);
     const apiKey = secrets.LMSTUDIO_API_KEY ?? "lm-studio";
     const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
 
     super(
-      { OPENAI_API_KEY: apiKey },
-      {
-        client: options.client,
-        clientFactory:
-          options.clientFactory ??
-          ((key) =>
-            new OpenAI({
-              apiKey: key,
-              baseURL: `${baseURL}/v1`
-            })),
-        fetchFn
-      }
+      { providerId: "lmstudio", apiKey, baseURL: `${baseURL}/v1` },
+      { ...options, fetchFn }
     );
 
-    (this as { provider: string }).provider = "lmstudio";
     this._lmstudioFetch = fetchFn;
     this._lmstudioBaseURL = baseURL;
   }
@@ -76,7 +69,12 @@ export class LMStudioProvider extends OpenAIProvider {
         {
           headers: {
             Authorization: `Bearer ${this.apiKey}`
-          }
+          },
+          // LM Studio is a local, optional server. Without a timeout a
+          // non-responsive host (proxy swallowing localhost, port open but
+          // silent) hangs this call indefinitely and stalls the whole model
+          // menu's parallel provider load. Bail fast to an empty list instead.
+          signal: AbortSignal.timeout(MODEL_LIST_TIMEOUT_MS)
         }
       );
 

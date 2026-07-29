@@ -34,17 +34,14 @@ import type {
 } from "@nodetool-ai/protocol";
 
 import { FinishStepTool } from "./tools/finish-step-tool.js";
-import {
-  MemoryListTool,
-  MemoryReadTool
-} from "./tools/memory-tools.js";
+import { MemoryListTool, MemoryReadTool } from "./tools/memory-tools.js";
 import { Tool } from "./tools/base-tool.js";
 import type { TaskPlan } from "./types.js";
+import { truncateToolResult } from "./constants.js";
 
 const log = createLogger("nodetool.agents.compiler-agent");
 
 const MAX_COMPILE_ROUNDS = 6;
-const MAX_TOOL_RESULT_CHARS = 20_000;
 
 const COMPILER_SYSTEM_PROMPT_STRUCTURED = `# Role
 You are the Compiler. The plan has finished gathering information; your only
@@ -123,7 +120,11 @@ export interface CompilerAgentOptions {
   /** Optional preamble layered above the default compiler system prompt. */
   systemPrompt?: string;
   maxRounds?: number;
+  /** Cap on output tokens per compile turn. Forwarded to `generateLoop`. */
+  maxTokens?: number;
   threadId?: string;
+  /** External cancellation. Aborts the compile turn mid-flight. */
+  signal?: AbortSignal;
 }
 
 export class CompilerAgent {
@@ -136,7 +137,9 @@ export class CompilerAgent {
   private readonly taskPlan?: TaskPlan;
   private readonly systemPrompt: string;
   private readonly maxRounds: number;
+  private readonly maxTokens?: number;
   private readonly threadId?: string;
+  private readonly signal?: AbortSignal;
 
   constructor(opts: CompilerAgentOptions) {
     this.objective = opts.objective;
@@ -147,7 +150,9 @@ export class CompilerAgent {
     this.context = opts.context;
     this.taskPlan = opts.taskPlan;
     this.maxRounds = opts.maxRounds ?? MAX_COMPILE_ROUNDS;
+    this.maxTokens = opts.maxTokens;
     this.threadId = opts.threadId;
+    this.signal = opts.signal;
 
     const base = this.outputSchema
       ? COMPILER_SYSTEM_PROMPT_STRUCTURED
@@ -249,11 +254,35 @@ export class CompilerAgent {
     let finished = false;
     let finalResult: unknown = undefined;
     let lastAssistantText = "";
+    // True only when the loop's last assistant turn had NO tool calls — a clean
+    // completion. On maxRounds exhaustion the last assistant message still
+    // carries tool calls, so this stays false and prose mode won't mislabel a
+    // partial/empty run as a completed final answer.
+    let endedWithCleanMessage = false;
 
     const finishStepExecute = async (
       args: Record<string, unknown>
     ): Promise<string> => {
-      const resultPayload = (args?.["result"] as unknown) ?? args;
+      const rawResult = args?.["result"] as unknown;
+      // Fall back to the whole args object when `result` is absent, but strip
+      // the injected `_message` protocol field so it can't leak into the result.
+      let resultPayload: unknown =
+        rawResult !== undefined && rawResult !== null
+          ? rawResult
+          : Tool.stripMessage(args ?? {});
+      // Array-output schemas are wrapped as `{ result: { items: <array> } }`
+      // for the tool parameter schema; unwrap `{ items: [...] }` back to the
+      // array. Gate on the declared schema type so a legitimate object result
+      // with an `items` key is not misinterpreted.
+      if (
+        this.outputSchema?.["type"] === "array" &&
+        resultPayload !== null &&
+        typeof resultPayload === "object" &&
+        !Array.isArray(resultPayload) &&
+        Array.isArray((resultPayload as Record<string, unknown>)["items"])
+      ) {
+        resultPayload = (resultPayload as Record<string, unknown>)["items"];
+      }
       if (resultPayload === undefined || resultPayload === null) {
         return '{"error": "Missing result in finish_step call"}';
       }
@@ -282,13 +311,9 @@ export class CompilerAgent {
     ): Promise<string> => {
       try {
         const result = await Tool.executeTool(tool, this.context, args);
-        let serialized =
+        const serialized =
           typeof result === "string" ? result : JSON.stringify(result);
-        if (serialized.length > MAX_TOOL_RESULT_CHARS) {
-          serialized =
-            serialized.slice(0, MAX_TOOL_RESULT_CHARS) + "... [truncated]";
-        }
-        return serialized;
+        return truncateToolResult(serialized);
       } catch (e) {
         return JSON.stringify({ error: String(e) });
       }
@@ -318,7 +343,9 @@ export class CompilerAgent {
       tools: providerTools,
       threadId: this.threadId,
       maxIterations: this.maxRounds,
-      sequentialTools: true
+      maxTokens: this.maxTokens,
+      sequentialTools: true,
+      signal: this.signal
     });
 
     for await (const item of stream as AsyncGenerator<ProviderStreamItem>) {
@@ -352,10 +379,22 @@ export class CompilerAgent {
       }
       // Track each assistant turn's text so prose mode can return the last one.
       if ("type" in item && (item as { type?: string }).type === "message") {
-        const m = (item as { message?: { role?: string; content?: unknown } })
-          .message;
-        if (m?.role === "assistant" && typeof m.content === "string") {
-          lastAssistantText = m.content;
+        const m = (
+          item as {
+            message?: {
+              role?: string;
+              content?: unknown;
+              toolCalls?: unknown[];
+            };
+          }
+        ).message;
+        if (m?.role === "assistant") {
+          endedWithCleanMessage = !(
+            Array.isArray(m.toolCalls) && m.toolCalls.length > 0
+          );
+          if (typeof m.content === "string") {
+            lastAssistantText = m.content;
+          }
         }
       }
       yield* drainUi();
@@ -365,9 +404,11 @@ export class CompilerAgent {
 
     if (finished) return finalResult;
 
-    // Prose mode: a no-tool-call turn ended the loop; the last assistant text is
-    // the final answer.
-    if (!finishStepTool) {
+    // Prose mode: only treat it as success when the loop ended with a clean
+    // no-tool-call assistant turn. If it ended by exhausting the round budget
+    // (last turn still had tool calls), fall through to the failure path so
+    // Agent's fallback engages instead of returning stale/empty text.
+    if (!finishStepTool && endedWithCleanMessage) {
       const text = lastAssistantText.trim();
       log.info("Compiler finished (prose)", {
         entries: snapshot.length,

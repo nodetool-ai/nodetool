@@ -280,12 +280,19 @@ interface TextChunk {
   startIndex: number;
 }
 
-function splitTextRecursive(
+export function splitTextRecursive(
   text: string,
   separators: string[],
   chunkSize: number,
   chunkOverlap: number
 ): string[] {
+  // Clamp params so the sliding window always advances. chunk_size/overlap come
+  // straight from model-supplied args; if overlap >= size the stride
+  // `chunkSize - chunkOverlap` is <= 0 and the while-loops below spin forever
+  // (event-loop hang + unbounded chunks[] → OOM). Guarantee 1 <= size and
+  // 0 <= overlap < size.
+  chunkSize = Math.max(1, Math.floor(chunkSize));
+  chunkOverlap = Math.min(Math.max(0, Math.floor(chunkOverlap)), chunkSize - 1);
   if (text.length <= chunkSize) return [text];
 
   // Find first separator that appears in text

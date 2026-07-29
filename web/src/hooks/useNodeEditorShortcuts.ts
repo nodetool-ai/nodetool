@@ -21,8 +21,9 @@ import { useNotificationStore } from "../stores/NotificationStore";
 import { useRightPanelStore } from "../stores/RightPanelStore";
 import { usePanelStore } from "../stores/PanelStore";
 import { NodeData } from "../stores/NodeData";
-import { getCollapseTogglePatches } from "../stores/collapseNodeLayout";
-import { Node } from "@xyflow/react";
+import { useToggleCollapse } from "./nodes/useToggleCollapse";
+import { Node, type Edge } from "@xyflow/react";
+import type { NodeStoreState } from "../stores/NodeStore";
 import { isMac } from "../utils/platform";
 import { useFindInWorkflowStore } from "../stores/FindInWorkflowStore";
 import { useSelectionActions } from "./useSelectionActions";
@@ -31,39 +32,9 @@ import type { MenuEventData } from "../window";
 import { useSketchCanvasRefStore } from "../stores/sketch/SketchCanvasRefStore";
 
 /**
- * Hook that registers and manages all keyboard shortcuts for the node editor.
- * Provides comprehensive keyboard-based workflow editing including:
- * - Clipboard operations (copy, cut, paste)
- * - Node manipulation (delete, duplicate, align, group)
- * - View navigation (zoom, pan, fit view)
- * - Workflow operations (save, close, create new)
- * - Node search and selection
- * 
- * Shortcuts are registered with KeyPressedStore and respond to configurable
- * keyboard combinations defined in NODE_EDITOR_SHORTCUTS config.
- * 
- * @param active - Whether the hook should register shortcuts (false when editor not active)
- * @param onShowShortcuts - Optional callback to show keyboard shortcuts help dialog
- * 
- * @example
- * ```typescript
- * // Enable shortcuts in active editor
- * useNodeEditorShortcuts(true);
- * 
- * // With shortcuts dialog
- * useNodeEditorShortcuts(true, () => setShowShortcuts(true));
- * ```
- * 
- * @example
- * **Common Shortcuts**:
- * - `Ctrl+C` / `Cmd+C` - Copy selected nodes
- * - `Ctrl+V` / `Cmd+V` - Paste nodes
- * - `Ctrl+S` / `Cmd+S` - Save workflow
- * - `Ctrl+A` / `Cmd+A` - Select all nodes
- * - `Ctrl+F` / `Cmd+F` - Find in workflow
- * - `Ctrl+/-` - Zoom in/out
- * - `Delete/Backspace` - Delete selected nodes
- * - `Alt+Arrows` - Focus navigation
+ * Registers the node editor's keyboard shortcuts with KeyPressedStore, using the
+ * combinations defined in NODE_EDITOR_SHORTCUTS. `active` gates registration;
+ * `onShowShortcuts` opens the shortcuts help dialog.
  */
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -82,7 +53,6 @@ export const useNodeEditorShortcuts = (
   const [packageNameDialogOpen, setPackageNameDialogOpen] = useState(false);
   const [packageNameInput, setPackageNameInput] = useState("");
 
-  /* USE STORE */
   // Subscribe to undo/redo functions only (stable) to prevent re-renders on history changes
   const undoHistory = useTemporalNodes((state) => state.undo);
   const redoHistory = useTemporalNodes((state) => state.redo);
@@ -128,20 +98,31 @@ export const useNodeEditorShortcuts = (
   const leftPanelToggle = usePanelStore((state) => state.handleViewChange);
   const openFind = useFindInWorkflowStore((state) => state.openFind);
   const nodeFocus = useNodeFocus();
-  // All hooks above this line
 
-  const selectedEdgeCount = useNodes((state) => {
-    let count = 0;
-    for (const edge of state.edges) {
-      if (edge.selected) count++;
-    }
-    return count;
-  });
+  // Cached on the `edges` array identity. A node drag pushes a fresh `nodes`
+  // array ~60x/s and re-runs every NodeStore selector, so counting inline walked
+  // every edge each frame even though edge selection cannot change during a drag.
+  const selectedEdgeCountSelector = useMemo(() => {
+    let lastEdges: Edge[] | null = null;
+    let lastCount = 0;
+    return (state: NodeStoreState) => {
+      if (state.edges === lastEdges) {
+        return lastCount;
+      }
+      lastEdges = state.edges;
+      let count = 0;
+      for (const edge of state.edges) {
+        if (edge.selected) count++;
+      }
+      lastCount = count;
+      return count;
+    };
+  }, []);
+  const selectedEdgeCount = useNodes(selectedEdgeCountSelector);
 
   const { handleCopy, handlePaste, handleCut } = copyPaste;
   const { openNodeMenu, closeNodeMenu, isMenuOpen } = nodeMenuStore;
 
-  // All useCallback hooks
   const handleOpenNodeMenu = useCallback(() => {
     // Space toggles: close when already open. (When the menu is open its search
     // input usually has focus, so the close-on-space-in-empty-search path in
@@ -465,30 +446,17 @@ export const useNodeEditorShortcuts = (
     leftPanelToggle("settings");
   }, [leftPanelToggle]);
 
+  const toggleCollapse = useToggleCollapse();
   const handleToggleSelectedNodesCollapsed = useCallback(() => {
-    const selected = nodeStore.getState().getSelectedNodes();
-    if (selected.length === 0) {
-      return;
-    }
-    const { updateNodeData, updateNode, findNode } = nodeStore.getState();
-    for (const n of selected) {
-      const live = findNode(n.id) ?? n;
-      const next = !live.data.collapsed;
-      const { data: dataPatch, node: nodePatch } =
-        getCollapseTogglePatches(live, next);
-      updateNodeData(n.id, dataPatch);
-      updateNode(n.id, nodePatch);
-    }
-  }, [nodeStore]);
+    toggleCollapse();
+  }, [toggleCollapse]);
 
-  // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
-  // ========================================================================
-  // DERIVED VALUES AND CONSTANTS - AFTER ALL HOOKS
-  // ========================================================================
-
-  const electronDetails = getIsElectronDetails();
+  // getIsElectronDetails() returns a fresh object literal on every call. Left
+  // unmemoized it invalidates the registration effect below on every render,
+  // tearing down and rebuilding ~60 shortcut combos per frame during drags.
+  const electronDetails = useMemo(getIsElectronDetails, []);
 
   // Helper to swap Control with Meta on macOS for registration purposes
   // Also maps Delete to Backspace on macOS since Mac keyboards send "Backspace" for the delete key
@@ -694,7 +662,6 @@ export const useNodeEditorShortcuts = (
     nodeFocus.focusHistory.length
   ]);
 
-  // useEffect for shortcut registration
   useEffect(() => {
     if (!active) {
       return;
@@ -741,7 +708,6 @@ export const useNodeEditorShortcuts = (
     // selectedNodeCount affects active flags for align shortcuts
   }, [active, selectedNodeCount, electronDetails, shortcutMeta]);
 
-  // Return dialog state and handlers for external use
   return {
     packageNameDialogOpen,
     packageNameInput,

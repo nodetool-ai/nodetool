@@ -8,8 +8,6 @@ export interface ServerState {
   error?: string;
   logs: string[];
   serverPort?: number;
-  llamaPort?: number;
-  llamaExternalManaged?: boolean;
 }
 
 let mainWindow: BrowserWindow | null = null;
@@ -22,8 +20,6 @@ const serverState: ServerState = {
   error: undefined,
   logs: [],
   serverPort: 7777,
-  llamaPort: 8080,
-  llamaExternalManaged: false,
 };
 
 export function getMainWindow(): BrowserWindow | null {

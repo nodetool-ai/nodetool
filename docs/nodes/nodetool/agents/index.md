@@ -8,7 +8,6 @@ This namespace contains 27 node(s).
 ## Nodes
 
 - **[Agent](agent.md)**
-- **[Agent Step](agentstep.md)**
 - **[Browser Agent](browseragent.md)**
 - **[Classifier](classifier.md)**
 - **[Claude Code Agent](claudecodeagent.md)**
@@ -16,6 +15,7 @@ This namespace contains 27 node(s).
 - **[Document Agent](documentagent.md)**
 - **[DOCX Agent](docxagent.md)**
 - **[Email Agent](emailagent.md)**
+- **[Enhance Prompt](enhanceprompt.md)**
 - **[Extractor](extractor.md)**
 - **[FFmpeg Agent](ffmpegagent.md)**
 - **[Filesystem Agent](filesystemagent.md)**

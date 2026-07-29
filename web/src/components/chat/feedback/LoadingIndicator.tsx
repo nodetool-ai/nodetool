@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css, keyframes } from "@emotion/react";
 import React from "react";
-import { SPACING, getSpacingPx } from "../../ui_primitives";
+import { SPACING, getSpacingPx, MOTION, BORDER_RADIUS } from "../../ui_primitives";
 
 const rotate = keyframes`
   0% { transform: rotate(0deg); }
@@ -46,18 +46,24 @@ const styles = {
   svg: css`
     width: 28px;
     height: 28px;
-    animation: ${rotate} 1.9s linear infinite;
+    animation: ${rotate} ${MOTION.spin} infinite;
     transform-origin: 50% 50%;
     will-change: transform;
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   `,
   circle: css`
     fill: none;
     stroke: currentColor;
     stroke-width: 2;
     stroke-linecap: round;
-    animation: ${dash} 1.55s cubic-bezier(0.42, 0, 0.28, 1) infinite;
+    animation: ${dash} ${MOTION.pulse} infinite;
     opacity: 0.8;
     will-change: stroke-dasharray, stroke-dashoffset;
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   `,
   core: css`
     position: absolute;
@@ -65,12 +71,15 @@ const styles = {
     left: 50%;
     width: 6px;
     height: 6px;
-    margin-left: -${getSpacingPx(SPACING.xs)}; /* was -3px */
-    margin-top: -${getSpacingPx(SPACING.xs)}; /* was -3px */
-    border-radius: 50%;
+    margin-left: -${getSpacingPx(SPACING.xs)};
+    margin-top: -${getSpacingPx(SPACING.xs)};
+    border-radius: ${BORDER_RADIUS.circle};
     background: currentColor;
-    animation: ${pulse} 1.55s cubic-bezier(0.42, 0, 0.28, 1) infinite;
+    animation: ${pulse} ${MOTION.pulse} infinite;
     will-change: transform, opacity;
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   `,
   wrapper: css`
     position: relative;

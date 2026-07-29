@@ -1,4 +1,3 @@
-// web/src/components/chat/composer/composerSlotContext.tsx
 import React, {
   createContext,
   useCallback,

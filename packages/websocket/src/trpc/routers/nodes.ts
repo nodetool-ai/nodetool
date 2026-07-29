@@ -8,9 +8,12 @@ import {
   listInput as nodesListInput,
   listOutput as nodesListOutput,
   getInput as nodesGetInput,
-  getOutput as nodesGetOutput
+  getOutput as nodesGetOutput,
+  sdkNodeTypeInventoryInput,
+  sdkNodeTypeInventoryOutput
 } from "@nodetool-ai/protocol/api-schemas/nodes.js";
 import type { NodeMetadata } from "@nodetool-ai/node-sdk";
+import { getSdkNodeTypeInventory } from "../../sdk/sdk-node-type-inventory-service.js";
 
 type NodeMetaOut = {
   node_type: string;
@@ -24,23 +27,6 @@ type NodeMetaOut = {
 
 const replicateStatusOutput = z.object({
   configured: z.boolean()
-});
-
-const validateUsernameInput = z.object({
-  username: z.string().min(3).max(32)
-});
-
-const validateUsernameOutput = z.object({
-  valid: z.boolean(),
-  available: z.boolean()
-});
-
-const dummyOutput = z.object({
-  type: z.string(),
-  uri: z.string(),
-  asset_id: z.string().nullable(),
-  data: z.unknown().nullable(),
-  metadata: z.unknown().nullable()
 });
 
 function toSummary(n: NodeMetadata): NodeMetaOut {
@@ -63,30 +49,6 @@ export const nodesRouter = router({
       const replicateKey = await getSecret("REPLICATE_API_TOKEN", "1");
       return { configured: Boolean(replicateKey) };
     }),
-
-  /**
-   * Validate a username string against the allowed pattern.
-   * Protected — requires auth.
-   */
-  validateUsername: protectedProcedure
-    .input(validateUsernameInput)
-    .output(validateUsernameOutput)
-    .query(({ input }) => {
-      const valid = /^[a-zA-Z0-9_-]{3,32}$/.test(input.username);
-      return { valid, available: true };
-    }),
-
-  /**
-   * Return a dummy asset response (used by client boot sequence).
-   * Protected — requires auth.
-   */
-  dummy: protectedProcedure.output(dummyOutput).query(() => ({
-    type: "asset",
-    uri: "",
-    asset_id: null,
-    data: null,
-    metadata: null
-  })),
 
   /**
    * List node metadata. Mirrors the legacy GET /api/nodes/metadata
@@ -159,5 +121,16 @@ export const nodesRouter = router({
         );
       }
       return match as unknown as NodeMetaOut;
-    })
+    }),
+
+  sdkTypeInventory: protectedProcedure
+    .input(sdkNodeTypeInventoryInput)
+    .output(sdkNodeTypeInventoryOutput)
+    .query(({ ctx, input }) =>
+      getSdkNodeTypeInventory({
+        registry: ctx.registry,
+        pythonBridgeReady: ctx.getPythonBridgeReady(),
+        input
+      })
+    )
 });

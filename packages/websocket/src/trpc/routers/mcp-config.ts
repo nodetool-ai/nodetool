@@ -41,8 +41,6 @@ const TARGET_LABELS: Record<McpTarget, string> = {
 const NODETOOL_MCP_BEGIN = "# BEGIN NODETOOL MCP";
 const NODETOOL_MCP_END = "# END NODETOOL MCP";
 
-// ── Helpers ──────────────────────────────────────────────────────
-
 /** Guard: MCP config is disabled in production. */
 function requireNonProduction(): void {
   if (process.env["NODETOOL_ENV"] === "production") {
@@ -159,7 +157,11 @@ function installTarget(target: McpTarget, mcpUrl: string): string {
       const block = [
         NODETOOL_MCP_BEGIN,
         "[mcp_servers.nodetool]",
-        `url = "${mcpUrl}"`,
+        // TOML-escape the url. Interpolating it raw let a value with a quote or
+        // newline terminate the string early and inject arbitrary TOML tables
+        // (e.g. an extra [mcp_servers.evil] with a command). JSON string
+        // escaping is a valid TOML basic string.
+        `url = ${JSON.stringify(mcpUrl)}`,
         "startup_timeout_sec = 20",
         "tool_timeout_sec = 60",
         "enabled = true",
@@ -256,8 +258,6 @@ function resolveTargets(
   // Zod already validated against the enum, but keep the guard for clarity.
   return raw.filter((t) => mcpTarget.safeParse(t).success);
 }
-
-// ── Router ────────────────────────────────────────────────────────
 
 export const mcpConfigRouter = router({
   status: protectedProcedure.output(statusOutput).query(() => {

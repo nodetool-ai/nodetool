@@ -1,7 +1,7 @@
 /**
  * TimelineStore
  *
- * Central Zustand + zundo store for the timeline sequence document.
+ * Central Zustand store (with temporal undo/redo middleware) for the timeline sequence document.
  * Mirrors NodeStore's undo/redo wiring (temporal middleware, partialize).
  *
  * Responsibilities:
@@ -11,7 +11,7 @@
  *     addTrack, removeTrack, reorderTracks, setTrackHeight.
  *   - Undo granularity: the temporal `equality` option dedupes no-op sets so
  *     guard-returns never create history entries, and drag handlers (e.g. in
- *     Clip.tsx) call zundo's `pause()` / `resume()` from the outside so each
+ *     Clip.tsx) call the temporal middleware's `pause()` / `resume()` from the outside so each
  *     drag gesture collapses into a single undo entry.
  *
  * Usage:
@@ -25,8 +25,8 @@
  */
 
 import { create } from "zustand";
-import { temporal } from "zundo";
-import type { TemporalState } from "zundo";
+import { temporal } from "../temporal";
+import type { TemporalState } from "../temporal";
 import {
   splitClip,
   trimClip,
@@ -44,6 +44,7 @@ import type {
   TimelineMarker,
   TrackEffect,
   ClipBindingKind,
+  ClipAnimation,
   TranscriptLine
 } from "@nodetool-ai/timeline";
 import type { Asset } from "../ApiTypes";
@@ -245,6 +246,10 @@ export interface TimelineStoreState {
   /** Update an arbitrary subset of fields on a clip. */
   patchClip: (clipId: string, patch: Partial<TimelineClip>) => void;
 
+  /** Replace a clip's motion-design animations. One patch per call so undo
+   *  granularity stays per-edit. */
+  setClipAnimations: (clipId: string, animations: ClipAnimation[]) => void;
+
   /** Restore a clip to a previously generated version (purely local; autosave persists on next save cycle). */
   restoreVersion: (clipId: string, versionId: string) => void;
 
@@ -363,6 +368,8 @@ export interface TimelineStoreState {
         | "sourceClipId"
         | "width"
         | "height"
+        | "aspectRatio"
+        | "resolution"
         | "strength"
         | "numInferenceSteps"
         | "seed"
@@ -420,7 +427,7 @@ export interface TimelineStoreState {
   removeScene: (markerId: string) => void;
 }
 
-// ── Partialized type for zundo (only document state is undo-able) ──────────
+// ── Partialized type for the temporal middleware (only document state is undo-able)
 
 type PartializedState = Pick<
   TimelineStoreState,
@@ -462,7 +469,7 @@ function shallowArrayEqual<T>(a: readonly T[], b: readonly T[]): boolean {
 }
 
 /**
- * zundo `equality`: returns true when two partialized snapshots are
+ * temporal `equality`: returns true when two partialized snapshots are
  * equivalent, so no-op sets (guard-returns, `{}` patches, value-identical
  * remaps) don't push duplicate undo entries.
  */
@@ -524,24 +531,22 @@ function patchById<T extends { id: string }>(
 
 // ── Scene split/merge helpers (pure) ───────────────────────────────────────
 
-/** Split every clip that strictly contains `timeMs` into two halves. */
+/**
+ * Split every clip that strictly contains `timeMs` into two halves,
+ * link-aware. Delegates to `splitClipsLinkAware` with every clip as a
+ * candidate target so a split through a linked A/V pair mints one fresh
+ * linkId for the LEFT halves and another for the RIGHT halves, rather than
+ * leaving all four halves sharing the original linkId.
+ */
 function splitAllClipsAt(
   clips: TimelineClip[],
   timeMs: number
 ): TimelineClip[] {
-  let next = [...clips];
-  const toSplit = next.filter(
-    (c) => timeMs > c.startMs && timeMs < c.startMs + c.durationMs
+  return splitClipsLinkAware(
+    clips,
+    timeMs,
+    clips.map((c) => c.id)
   );
-  for (const clip of toSplit) {
-    try {
-      const [left, right] = splitClip(clip, timeMs);
-      next = next.filter((c) => c.id !== clip.id).concat([left, right]);
-    } catch {
-      // Skip clips where the split is invalid (e.g. boundary mismatch).
-    }
-  }
-  return next;
 }
 
 /**
@@ -563,17 +568,29 @@ function splitClipsLinkAware(
 
   // Expand targets to include linked siblings that also contain atMs, deduped.
   const toSplit = new Map<string, TimelineClip>();
-  for (const id of targetIds) {
-    const clip = clips.find((c) => c.id === id);
-    if (!clip || !contains(clip)) {
-      continue;
+  const targetIdSet = new Set(targetIds);
+  const affectedLinkIds = new Set<string>();
+
+  // First pass: find target clips and record their link groups
+  for (const clip of clips) {
+    if (targetIdSet.has(clip.id) && contains(clip)) {
+      toSplit.set(clip.id, clip);
+      if (clip.linkId !== undefined) {
+        affectedLinkIds.add(clip.linkId);
+      }
     }
-    toSplit.set(clip.id, clip);
-    if (clip.linkId !== undefined) {
-      for (const sib of clips) {
-        if (sib.id !== clip.id && sib.linkId === clip.linkId && contains(sib)) {
-          toSplit.set(sib.id, sib);
-        }
+  }
+
+  // Second pass: add linked siblings that also contain atMs
+  if (affectedLinkIds.size > 0) {
+    for (const clip of clips) {
+      if (
+        clip.linkId !== undefined &&
+        affectedLinkIds.has(clip.linkId) &&
+        contains(clip) &&
+        !toSplit.has(clip.id)
+      ) {
+        toSplit.set(clip.id, clip);
       }
     }
   }
@@ -597,20 +614,25 @@ function splitClipsLinkAware(
     return id;
   };
 
-  let next = [...clips];
-  for (const clip of toSplit.values()) {
-    try {
-      const [left, right] = splitClip(clip, atMs);
-      if (clip.linkId !== undefined) {
-        left.linkId = groupLink(leftLinkByGroup, clip.linkId);
-        right.linkId = groupLink(rightLinkByGroup, clip.linkId);
-      } else {
-        delete left.linkId;
-        delete right.linkId;
+  const next: TimelineClip[] = [];
+  for (const clip of clips) {
+    if (toSplit.has(clip.id)) {
+      try {
+        const [left, right] = splitClip(clip, atMs);
+        if (clip.linkId !== undefined) {
+          left.linkId = groupLink(leftLinkByGroup, clip.linkId);
+          right.linkId = groupLink(rightLinkByGroup, clip.linkId);
+        } else {
+          delete left.linkId;
+          delete right.linkId;
+        }
+        next.push(left, right);
+      } catch {
+        // atMs outside this clip's bounds — leave it untouched.
+        next.push(clip);
       }
-      next = next.filter((c) => c.id !== clip.id).concat([left, right]);
-    } catch {
-      // atMs outside this clip's bounds — leave it untouched.
+    } else {
+      next.push(clip);
     }
   }
   return next;
@@ -837,12 +859,23 @@ export const createTimelineStore = (
         reorderTracks: (orderedIds) =>
           set((state) => {
             const byId = new Map(state.tracks.map((t) => [t.id, t]));
+            const orderedIdSet = new Set(orderedIds);
             const reordered = orderedIds
               .map((id, index) => {
                 const t = byId.get(id);
                 return t ? { ...t, index } : null;
               })
               .filter((t): t is TimelineTrack => t !== null);
+            // Tracks missing from `orderedIds` (e.g. a caller passed a stale
+            // subset) are appended in their original relative order rather
+            // than dropped, so their clips are never orphaned.
+            let nextIndex = reordered.length;
+            for (const t of state.tracks) {
+              if (!orderedIdSet.has(t.id)) {
+                reordered.push({ ...t, index: nextIndex });
+                nextIndex += 1;
+              }
+            }
             return { tracks: reordered };
           }),
 
@@ -894,17 +927,32 @@ export const createTimelineStore = (
           })),
 
         updateTrackEffect: (trackId, effectId, patch) =>
-          set((state) => ({
-            tracks: state.tracks.map((t) => {
-              if (t.id !== trackId) return t;
-              const effects = (t.effects ?? []).map((e) =>
-                e.id === effectId
-                  ? ({ ...e, ...patch } as TrackEffect)
-                  : e
-              );
-              return { ...t, effects };
-            })
-          })),
+          set((state) => {
+            const track = state.tracks.find((t) => t.id === trackId);
+            const effect = track?.effects?.find((e) => e.id === effectId);
+            if (!effect) {
+              return state;
+            }
+            const effectRecord = effect as unknown as Record<string, unknown>;
+            const patchRecord = patch as Record<string, unknown>;
+            const unchanged = Object.keys(patch).every((k) =>
+              Object.is(effectRecord[k], patchRecord[k])
+            );
+            if (unchanged) {
+              return state;
+            }
+            return {
+              tracks: state.tracks.map((t) => {
+                if (t.id !== trackId) return t;
+                const effects = (t.effects ?? []).map((e) =>
+                  e.id === effectId
+                    ? ({ ...e, ...patch } as TrackEffect)
+                    : e
+                );
+                return { ...t, effects };
+              })
+            };
+          }),
 
         removeTrackEffect: (trackId, effectId) =>
           set((state) => ({
@@ -1066,6 +1114,9 @@ export const createTimelineStore = (
             };
           }),
 
+        // Trims change only duration/in-out points. Animations need no rewrite:
+        // `compileClipAnimations` clamps windows to the clip's current duration
+        // and drops windows that fall off the end at sample time.
         trimClipStart: (clipId, deltaMs) =>
           set((state) => {
             const clip = state.clips.find((c) => c.id === clipId);
@@ -1205,13 +1256,26 @@ export const createTimelineStore = (
               }
             }
             let clips = state.clips.filter((c) => !selectedIds.has(c.id));
-            for (const linkId of affectedLinkIds) {
-              if (clips.filter((c) => c.linkId === linkId).length < 2) {
-                clips = clips.map((c) =>
-                  c.linkId === linkId ? { ...c, linkId: undefined } : c
-                );
+
+            if (affectedLinkIds.size > 0) {
+              const linkCounts = new Map<string, number>();
+              for (const c of clips) {
+                if (c.linkId !== undefined && affectedLinkIds.has(c.linkId)) {
+                  linkCounts.set(c.linkId, (linkCounts.get(c.linkId) ?? 0) + 1);
+                }
               }
+              clips = clips.map((c) => {
+                if (
+                  c.linkId !== undefined &&
+                  affectedLinkIds.has(c.linkId) &&
+                  (linkCounts.get(c.linkId) ?? 0) < 2
+                ) {
+                  return { ...c, linkId: undefined };
+                }
+                return c;
+              });
             }
+
             return { clips };
           }),
 
@@ -1282,6 +1346,12 @@ export const createTimelineStore = (
             };
           }),
 
+        // patchClip replaces the `animations` array wholesale (spread, no
+        // array merge) and flows through the temporal middleware, so this is
+        // just a typed, discoverable entry point for animation edits.
+        setClipAnimations: (clipId, animations) =>
+          get().patchClip(clipId, { animations }),
+
         restoreVersion: (clipId, versionId) =>
           set((state) => {
             const clip = state.clips.find((c) => c.id === clipId);
@@ -1336,6 +1406,12 @@ export const createTimelineStore = (
               lastGeneratedHash: undefined,
               // A lone duplicate is not linked to the source group.
               linkId: undefined,
+              // Copy animations with fresh ids so the two clips edit
+              // independently (trim/split re-derive windows per clip).
+              animations: currentSrc.animations?.map((a) => ({
+                ...a,
+                id: createTimeOrderedUuid()
+              })),
               versions: []
             });
             newClipId = newClip.id;
@@ -1383,22 +1459,48 @@ export const createTimelineStore = (
           }),
 
         setParamOverride: (clipId, inputNodeName, value) =>
-          set((state) => ({
-            clips: state.clips.map((c) => {
-              if (c.id !== clipId) return c;
-              const paramOverrides = { ...(c.paramOverrides ?? {}), [inputNodeName]: value };
-              // Mark as stale only when the clip has already been generated.
-              const status: TimelineClip["status"] =
-                c.lastGeneratedHash ? "stale" : c.status;
-              return { ...c, paramOverrides, status };
-            })
-          })),
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            if (!clip) {
+              return state;
+            }
+            // Mark as stale only when the clip has already been generated.
+            const status: TimelineClip["status"] = clip.lastGeneratedHash
+              ? "stale"
+              : clip.status;
+            const unchanged =
+              Object.is(clip.paramOverrides?.[inputNodeName], value) &&
+              clip.status === status;
+            if (unchanged) {
+              return state;
+            }
+            return {
+              clips: state.clips.map((c) => {
+                if (c.id !== clipId) return c;
+                const paramOverrides = {
+                  ...(c.paramOverrides ?? {}),
+                  [inputNodeName]: value
+                };
+                return { ...c, paramOverrides, status };
+              })
+            };
+          }),
 
         applyInputDrift: (workflowId, added, removed) =>
-          set((state) => ({
-            clips: state.clips.map((c) => {
+          set((state) => {
+            let changed = false;
+            const clips = state.clips.map((c) => {
               if (c.workflowId !== workflowId) return c;
-              const overrides = { ...(c.paramOverrides ?? {}) };
+              const current = c.paramOverrides ?? {};
+              const hasAddition = added.some(
+                ({ name }) => !(name in current)
+              );
+              const hasRemoval = removed.some((name) => name in current);
+              if (!hasAddition && !hasRemoval) {
+                return c;
+              }
+              changed = true;
+              const overrides = { ...current };
               for (const { name, defaultValue } of added) {
                 if (!(name in overrides)) {
                   overrides[name] = defaultValue;
@@ -1408,8 +1510,9 @@ export const createTimelineStore = (
                 delete overrides[name];
               }
               return { ...c, paramOverrides: overrides };
-            })
-          })),
+            });
+            return changed ? { clips } : state;
+          }),
 
         setClipsOutputNode: (workflowId, selectedOutputNodeId) =>
           set((state) => ({
@@ -1435,8 +1538,12 @@ export const createTimelineStore = (
             mediaTypeOverride: opts?.mediaTypeOverride
           });
 
+          // The wire schema types animation `easing`/`preset` as plain strings
+          // (forward compat); the store's TimelineClip narrows `easing` to
+          // EasingId. The compiler tolerates unknown ids at sample time, so the
+          // wire→store cast is safe here.
           set((state) => ({
-            clips: [...state.clips, newClip]
+            clips: [...state.clips, newClip as TimelineClip]
           }));
 
           return newClip.id;
@@ -1658,10 +1765,10 @@ export const createTimelineStore = (
 
 // ── Store handle type ───────────────────────────────────────────────────────
 
-/** A single timeline-document store instance (with its zundo `temporal`). */
+/** A single timeline-document store instance (with its `temporal` sub-store). */
 export type TimelineStoreApi = ReturnType<typeof createTimelineStore>;
 
-/** Read the zundo temporal (undo/redo) state of a given store instance. */
+/** Read the temporal (undo/redo) state of a given store instance. */
 export const timelineTemporalOf = (
   store: TimelineStoreApi
 ): TemporalState<PartializedState> =>

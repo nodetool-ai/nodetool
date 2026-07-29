@@ -17,12 +17,9 @@
  */
 
 import { BaseProvider } from "./base-provider.js";
-import { createLogger, importNodeBuiltin } from "@nodetool-ai/config";
-import { loadImageModels } from "./manifest-models.js";
-
-const _nodeModule = await importNodeBuiltin<typeof import("node:module")>(
-  "node:module"
-);
+import { safeFetch } from "./safe-url.js";
+import { createLogger } from "@nodetool-ai/config";
+import { loadImageModels, loadManifest } from "./manifest-models.js";
 import type {
   ImageModel,
   Message,
@@ -57,6 +54,18 @@ const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 const sleep = (ms: number): Promise<void> =>
   new Promise((r) => setTimeout(r, ms));
 
+// Parse a Retry-After header (delta-seconds or HTTP-date) into milliseconds.
+// Returns null when the value is absent or unparseable so the caller can fall
+// back to its exponential backoff.
+function parseRetryAfterMs(value: string | null): number | null {
+  if (!value) return null;
+  const secs = Number(value);
+  if (Number.isFinite(secs)) return Math.max(0, secs * 1000);
+  const dateMs = Date.parse(value);
+  if (Number.isFinite(dateMs)) return Math.max(0, dateMs - Date.now());
+  return null;
+}
+
 interface TopazManifestField {
   name: string;
   values?: string[];
@@ -84,15 +93,10 @@ interface VariantInfo {
  */
 function buildVariantMap(): Map<string, VariantInfo> {
   const map = new Map<string, VariantInfo>();
-  if (!_nodeModule) return map;
-  let manifest: TopazManifestEntry[] = [];
-  try {
-    const req = _nodeModule.createRequire(import.meta.url);
-    manifest = req(`${TOPAZ_MANIFEST_PKG}/${TOPAZ_MANIFEST_PATH}`);
-  } catch (err) {
-    log.warn(`Could not load Topaz manifest: ${err}`);
-    return map;
-  }
+  const manifest = loadManifest(
+    TOPAZ_MANIFEST_PKG,
+    TOPAZ_MANIFEST_PATH
+  ) as TopazManifestEntry[];
   for (const entry of manifest) {
     if (entry.outputType !== "image" || !entry.modelId) continue;
     // Only expose enhance / enhance-gen as upscale models. Sharpen, denoise,
@@ -224,8 +228,11 @@ export class TopazProvider extends BaseProvider {
       if (!RETRYABLE_STATUS.has(resp.status)) return resp;
       last = resp;
       if (attempt === maxAttempts) break;
+      // Retry-After is either delta-seconds or an HTTP-date (RFC 7231). Number()
+      // on a date yields NaN → sleep(NaN) fires immediately, defeating the
+      // backoff during exactly the overload the header signals. Parse both.
       const retryAfter = resp.headers.get("Retry-After");
-      const wait = retryAfter ? Number(retryAfter) * 1000 : delay;
+      const wait = parseRetryAfterMs(retryAfter) ?? delay;
       await sleep(wait);
       delay = Math.min(delay * 2, 30000);
     }
@@ -338,7 +345,10 @@ export class TopazProvider extends BaseProvider {
     if (!finalUrl) {
       throw new Error(`No download URL in response: ${JSON.stringify(json)}`);
     }
-    const dl = await this.fetchWithRetry(finalUrl);
+    // finalUrl is provider-supplied (result body) — gate it through safeFetch
+    // so it can't point the server at an internal/link-local host (SSRF), as
+    // rodin/meshy do for the equivalent download.
+    const dl = await safeFetch(finalUrl);
     if (!dl.ok) throw new Error(`Failed to fetch Topaz result: ${dl.status}`);
     return new Uint8Array(await dl.arrayBuffer());
   }

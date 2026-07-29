@@ -1,57 +1,48 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { AnthropicProvider } from "./anthropic-provider.js";
-import type { LanguageModel } from "./types.js";
+import {
+  OpenAICompatProvider,
+  type OpenAICompatProviderOptions
+} from "./openai-compat-provider.js";
+import { PROVIDER_IDS, type LanguageModel } from "./types.js";
 
-const MOONSHOT_BASE_URL = "https://api.kimi.com/coding";
-
-interface MoonshotProviderOptions {
-  client?: Anthropic;
-  clientFactory?: (apiKey: string) => Anthropic;
-  fetchFn?: typeof fetch;
-}
+const MOONSHOT_BASE_URL = "https://api.moonshot.ai/v1";
 
 /**
- * Moonshot AI (Kimi) provider. Uses the Anthropic SDK against Moonshot's
- * Claude-compatible endpoint exposed to Kimi coding plan subscribers at
- * https://api.kimi.com/coding.
+ * Moonshot AI (Kimi) provider. Speaks the OpenAI Chat Completions dialect
+ * against Moonshot's OpenAI-compatible endpoint at https://api.moonshot.ai/v1.
+ * Covers the Kimi K2 model family.
  */
-export class MoonshotProvider extends AnthropicProvider {
+export class MoonshotProvider extends OpenAICompatProvider {
   static override requiredSecrets(): string[] {
     return ["KIMI_API_KEY"];
   }
 
+  private _moonshotFetch: typeof fetch;
+
   constructor(
     secrets: { KIMI_API_KEY?: string },
-    options: MoonshotProviderOptions = {}
+    options: OpenAICompatProviderOptions = {}
   ) {
     const apiKey = secrets.KIMI_API_KEY;
     if (!apiKey || !apiKey.trim()) {
       throw new Error("KIMI_API_KEY is not configured");
     }
 
+    const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
+
     super(
-      { ANTHROPIC_API_KEY: apiKey },
       {
-        client: options.client,
-        clientFactory:
-          options.clientFactory ??
-          ((key) =>
-            new Anthropic({
-              apiKey: key,
-              baseURL: MOONSHOT_BASE_URL
-            })),
-        fetchFn: options.fetchFn
-      }
+        providerId: PROVIDER_IDS.MOONSHOT,
+        apiKey: apiKey.trim(),
+        baseURL: MOONSHOT_BASE_URL
+      },
+      { ...options, fetchFn }
     );
 
-    (this as { provider: string }).provider = "moonshot";
+    this._moonshotFetch = fetchFn;
   }
 
   override getContainerEnv(): Record<string, string> {
-    return {
-      KIMI_API_KEY: this.apiKey,
-      ANTHROPIC_BASE_URL: MOONSHOT_BASE_URL
-    };
+    return { KIMI_API_KEY: this.apiKey };
   }
 
   override async hasToolSupport(_model: string): Promise<boolean> {
@@ -59,7 +50,29 @@ export class MoonshotProvider extends AnthropicProvider {
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    const knownModels = ["kimi-k2.5", "kimi-k2.6", "kimi-k2.7"];
-    return knownModels.map((id) => ({ id, name: id, provider: "moonshot" }));
+    const response = await this._moonshotFetch(`${MOONSHOT_BASE_URL}/models`, {
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`
+      }
+    });
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const payload = (await response.json()) as {
+      data?: Array<{ id?: string }>;
+    };
+    const rows = payload.data ?? [];
+    return rows
+      .filter(
+        (row): row is { id: string } =>
+          typeof row.id === "string" && row.id.length > 0
+      )
+      .map((row) => ({
+        id: row.id,
+        name: row.id,
+        provider: PROVIDER_IDS.MOONSHOT
+      }));
   }
 }

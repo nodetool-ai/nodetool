@@ -1,11 +1,9 @@
 /**
- * VersionHistoryPanel Component
- *
  * Side panel for browsing and managing workflow version history.
  */
 
 import React, { useCallback, useMemo, useState, memo } from "react";
-import { Compare as CompareIcon } from "@mui/icons-material";
+import CompareIcon from "@mui/icons-material/Compare";
 import VersionListItem from "./VersionListItem";
 import { VersionDiff } from "./VersionDiff";
 import { GraphVisualDiff } from "./GraphVisualDiff";
@@ -14,7 +12,7 @@ import { useVersionHistoryStore, SaveType } from "../../stores/VersionHistorySto
 import { useWorkflowVersions } from "../../serverState/useWorkflowVersions";
 import { computeGraphDiff, GraphDiff } from "../../utils/graphDiff";
 import { WorkflowVersion, Graph } from "../../stores/ApiTypes";
-import { formatDistanceToNow, format } from "date-fns";
+import { formatDistanceToNow, format } from "../../utils/dateFormat";
 import PanelToolbar from "../panels/PanelToolbar";
 import {
   Caption,
@@ -39,13 +37,10 @@ interface VersionHistoryPanelProps {
   onClose: () => void;
 }
 
-// Helper function to calculate graph size efficiently
-// Uses a simple approximation instead of creating a Blob
+// Approximate byte size from JSON length (×2 for UTF-16) — cheaper than a Blob.
 const getGraphSizeBytes = (graph: Graph): number => {
   try {
-    // Use JSON.stringify length as an approximation
-    // This is much faster than creating a Blob
-    return JSON.stringify(graph).length * 2; // Approximate UTF-16 byte size
+    return JSON.stringify(graph).length * 2;
   } catch {
     return 0;
   }
@@ -144,10 +139,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         ? [selectedVersion, compareVersion]
         : [compareVersion, selectedVersion];
 
-    return computeGraphDiff(
-      older.graph as unknown as Graph,
-      newer.graph as unknown as Graph
-    );
+    return computeGraphDiff(older.graph, newer.graph);
   }, [selectedVersion, compareVersion]);
 
   const handleSelect = useCallback(
@@ -278,7 +270,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         />
         <FlexColumn padding={3} gap={0.5}>
           <Text color="error">Failed to load versions</Text>
-          <Text size="tiny" color="secondary">{String(error)}</Text>
+          <Text size="smaller" color="secondary">{String(error)}</Text>
         </FlexColumn>
       </FlexColumn>
     );
@@ -349,7 +341,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
           padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`,
           backgroundColor: "rgba(var(--palette-info-mainChannel) / 0.08)"
         }}>
-          <Caption size="tiny" color="primary">
+          <Caption size="smaller" color="primary">
             {!selectedVersionId
               ? "Select the first version to compare"
               : "Select the second version to compare"}
@@ -378,7 +370,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
           {versions.length === 0 ? (
             <div style={{ padding: getSpacingPx(SPACING.xl), textAlign: "center" }}>
               <Text color="secondary">No versions saved yet</Text>
-              <Caption size="tiny" color="muted">
+              <Caption size="smaller" color="muted">
                 Save your workflow to create a version
               </Caption>
             </div>
@@ -414,7 +406,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
           {diff && selectedVersion && compareVersion ? (
             <FlexColumn gap={2} fullHeight>
               <div>
-                <Caption size="tiny" color="muted" sx={{ textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                <Caption size="smaller" color="muted" sx={{ textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   Comparing v{Math.min(selectedVersion.version, compareVersion.version)}
                   {" "}↔{" "}
                   v{Math.max(selectedVersion.version, compareVersion.version)}
@@ -450,16 +442,15 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
           ) : selectedVersion ? (
             <FlexColumn gap={2}>
               <div style={{ display: "flex", alignItems: "baseline", gap: getSpacingPx(SPACING.md), flexWrap: "wrap" }}>
-                <Text size="bigger" weight={600}>
-                  v{selectedVersion.version}
-                </Text>
+                <Text size="big" weight={600}>
+                  v{selectedVersion.version}</Text>
                 <Chip
                   label={getSaveTypeLabel(selectedVersion.save_type)}
                   size="small"
                   variant="outlined"
                 />
                 {selectedVersion.created_at && (
-                  <Caption size="tiny" color="secondary">
+                  <Caption size="smaller" color="secondary">
                     {format(
                       new Date(selectedVersion.created_at),
                       "MMM d, yyyy · HH:mm"
@@ -471,7 +462,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
                     )}
                   </Caption>
                 )}
-                <Caption size="tiny" color="muted" sx={{ marginLeft: "auto" }}>
+                <Caption size="smaller" color="muted" sx={{ marginLeft: "auto" }}>
                   {formatBytes(selectedVersion.size_bytes)}
                 </Caption>
               </div>
@@ -492,7 +483,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
               )}
 
               <WorkflowGraphPreview
-                graph={selectedVersion.graph as unknown as Graph}
+                graph={selectedVersion.graph}
                 workflowId={workflowId}
                 width="100%"
                 height={320}
@@ -532,7 +523,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
               <Text color="secondary">
                 Select a version to preview
               </Text>
-              <Caption size="tiny" color="muted">
+              <Caption size="smaller" color="muted">
                 {isCompareMode
                   ? "Pick two versions to see what changed."
                   : "Click any entry to see its graph and metadata here."}
@@ -545,16 +536,13 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
       <Dialog
         open={deleteDialogOpen}
         onClose={handleCloseDeleteDialog}
-        title="Delete Version"
+        title="Delete this version?"
         onConfirm={handleConfirmDelete}
         onCancel={handleCloseDeleteDialog}
         confirmText="Delete"
         destructive
       >
-        <Text color="secondary">
-          Are you sure you want to delete this version? This action cannot be
-          undone.
-        </Text>
+        <Text color="secondary">This action cannot be undone.</Text>
       </Dialog>
     </div>
   );

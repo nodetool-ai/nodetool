@@ -32,6 +32,8 @@ import { ParallelTaskExecutor } from "./parallel-task-executor.js";
 import { CompilerAgent } from "./compiler-agent.js";
 import { GraphPlanner } from "./graph-planner.js";
 import { AgentWorkflowRunner } from "./agent-workflow-runner.js";
+import { ScriptPlanner } from "./script-planner.js";
+import { ScriptRunner } from "./script-runner.js";
 import type { Tool } from "./tools/base-tool.js";
 import { gateTools } from "./tools/tool-permissions.js";
 import {
@@ -84,7 +86,6 @@ export function parseFrontmatter(frontmatter: string): Record<string, string> {
     if (colonIdx === -1) continue;
     const key = line.slice(0, colonIdx).trim();
     let value = line.slice(colonIdx + 1).trim();
-    // Strip surrounding quotes
     if (
       (value.startsWith('"') && value.endsWith('"')) ||
       (value.startsWith("'") && value.endsWith("'"))
@@ -124,13 +125,16 @@ async function loadSkillFromFile(
 
   if (!content.startsWith("---")) return null;
 
-  const parts = content.split("---", 3);
+  // Frontmatter is delimited by the first two `---` fences. Rejoin everything
+  // after the second fence so a `---` horizontal rule inside the skill body is
+  // preserved rather than truncated (a limited `split` would discard the tail).
+  const parts = content.split("---");
   if (parts.length < 3) return null;
 
   const metadata = parseFrontmatter(parts[1]);
   const name = (metadata["name"] ?? "").trim();
   const description = (metadata["description"] ?? "").trim();
-  const instructions = parts[2].trim();
+  const instructions = parts.slice(2).join("---").trim();
 
   if (!isValidSkillName(name)) return null;
   if (!isValidSkillDescription(description)) return null;
@@ -212,6 +216,13 @@ export interface AgentOptions {
   workspace?: string;
   maxSteps?: number;
   maxStepIterations?: number;
+  /**
+   * Cap on output tokens per provider turn, threaded to every step executor
+   * and the final compiler pass. Undefined lets each provider use its own
+   * default. `maxSteps` (plan size) and `maxStepIterations` (tool-call rounds)
+   * are unrelated knobs and stay separate.
+   */
+  maxTokens?: number;
   outputSchema?: Record<string, unknown>;
   /**
    * Format for the agent's final result.
@@ -259,6 +270,24 @@ export interface AgentOptions {
    * graph executed by {@link AgentWorkflowRunner}.
    */
   useGraphPlanner?: boolean;
+  /**
+   * Use the script planner: the LLM authors a JavaScript orchestration
+   * script (loops, conditionals, budget-scaled fan-out) instead of a
+   * TaskPlan, and {@link ScriptRunner} executes it deterministically in the
+   * QuickJS sandbox — every `agent()` call in the script runs a real
+   * sub-agent. Takes precedence over {@link useGraphPlanner}.
+   */
+  useScriptPlanner?: boolean;
+  /**
+   * Pre-authored orchestration script. Skips planning entirely and runs the
+   * script directly (implies script mode). See {@link ScriptRunner} for the
+   * script API.
+   */
+  script?: string;
+  /** Script mode: concurrent `agent()` calls beyond this queue. Default 8. */
+  maxConcurrentAgents?: number;
+  /** Script mode: lifetime `agent()` call cap per run. Default 100. */
+  maxAgentCalls?: number;
   /** Node registry required when {@link useGraphPlanner} is true. */
   registry?: NodeRegistry;
   /**
@@ -320,12 +349,19 @@ export class Agent {
   readonly systemPrompt: string;
   results: unknown = null;
   task: Task | null = null;
+  /**
+   * External cancellation for this run, set by {@link execute}. Threaded into
+   * every planner and executor so a Stop reaches the provider call underneath
+   * instead of only being noticed at the next yield.
+   */
+  private signal?: AbortSignal;
 
   private readonly description: string;
   private readonly planningModel: string;
   private readonly reasoningModel: string;
   private readonly maxSteps: number;
   private readonly maxStepIterations: number;
+  private readonly maxTokens?: number;
   private readonly outputSchema?: Record<string, unknown>;
   private readonly outputFormat: AgentOutputFormat;
   private readonly workspace?: string;
@@ -336,6 +372,10 @@ export class Agent {
   private readonly autoPersistMemory: boolean;
   private readonly synthesizeRecall: boolean;
   private readonly useGraphPlanner: boolean;
+  private readonly useScriptPlanner: boolean;
+  private readonly script?: string;
+  private readonly maxConcurrentAgents?: number;
+  private readonly maxAgentCalls?: number;
   private readonly registry?: NodeRegistry;
   private readonly providers?: Record<string, BaseProvider>;
   private readonly securityMonitorEnabled: boolean;
@@ -359,6 +399,7 @@ export class Agent {
     this.reasoningModel = opts.reasoningModel ?? opts.model;
     this.maxSteps = opts.maxSteps ?? 10;
     this.maxStepIterations = opts.maxStepIterations ?? 15;
+    this.maxTokens = opts.maxTokens;
     this.outputFormat = opts.outputFormat ?? "structured";
     // Non-structured formats imply a string result; outputSchema is ignored.
     this.outputSchema =
@@ -371,6 +412,10 @@ export class Agent {
     this.autoPersistMemory = opts.autoPersistMemory === true;
     this.synthesizeRecall = opts.synthesizeRecall ?? true;
     this.useGraphPlanner = opts.useGraphPlanner === true;
+    this.useScriptPlanner = opts.useScriptPlanner === true;
+    this.script = opts.script;
+    this.maxConcurrentAgents = opts.maxConcurrentAgents;
+    this.maxAgentCalls = opts.maxAgentCalls;
     this.registry = opts.registry;
     this.providers = opts.providers;
     this.securityMonitorEnabled = opts.securityMonitor?.enabled === true;
@@ -575,8 +620,10 @@ export class Agent {
   }
 
   async *execute(
-    context: ProcessingContext
+    context: ProcessingContext,
+    opts?: { signal?: AbortSignal }
   ): AsyncGenerator<ProcessingMessage> {
+    this.signal = opts?.signal ?? this.signal;
     yield* withAgentSpanGen(
       "execute",
       {
@@ -598,7 +645,6 @@ export class Agent {
       objective: this.objective.slice(0, 80)
     });
 
-    // Discover and resolve skills
     const availableSkills = await this.discoverSkills();
     const activeSkills = this.resolveActiveSkills(
       availableSkills,
@@ -615,8 +661,9 @@ export class Agent {
       try {
         let block: string;
         if (this.synthesizeRecall && this.longTermMemory.synthesisEnabled) {
-          const { items, facts } =
-            await this.longTermMemory.recallSynthesized(this.objective);
+          const { items, facts } = await this.longTermMemory.recallSynthesized(
+            this.objective
+          );
           block = formatMemoryForPrompt(items, facts);
         } else {
           const recalled = await this.longTermMemory.recall(this.objective);
@@ -635,13 +682,11 @@ export class Agent {
       memoryPrompt
     );
 
-    // Ensure workspace directory exists
     const workspacePath =
       this.workspace ??
       path.join(os.homedir(), "nodetool_workspace", Date.now().toString());
     await fs.mkdir(workspacePath, { recursive: true });
 
-    // If a pre-defined task is given, fall back to single-task execution
     if (this.initialTask) {
       yield* this.executeSingleTask(
         context,
@@ -651,13 +696,22 @@ export class Agent {
       return;
     }
 
-    // Graph-native planner: build DAG of nodes directly.
+    // Script mode: LLM-authored (or pre-authored) orchestration script,
+    // executed deterministically by ScriptRunner.
+    if (this.script || this.useScriptPlanner) {
+      yield* this.executeScriptPlan(
+        context,
+        mergedSystemPrompt,
+        effectiveObjective
+      );
+      return;
+    }
+
     if (this.useGraphPlanner && this.registry) {
       yield* this.executeGraphPlan(context, mergedSystemPrompt);
       return;
     }
 
-    // Plan: use TaskPlanner to decompose the objective into parallel tasks
     log.info("Planning phase started", { name: this.name });
     yield {
       type: "log_update",
@@ -675,7 +729,8 @@ export class Agent {
       systemPrompt: mergedSystemPrompt,
       outputSchema: this.outputSchema,
       inputs: this.inputs,
-      planCache: this.planCache
+      planCache: this.planCache,
+      signal: this.signal
     });
 
     const planGen = planner.planMultiTask(effectiveObjective, context);
@@ -750,7 +805,6 @@ export class Agent {
       severity: "info"
     } satisfies LogUpdate;
 
-    // Execute: run ParallelTaskExecutor over the planned tasks
     const executor = new ParallelTaskExecutor({
       provider: this.provider,
       model: this.model,
@@ -760,9 +814,11 @@ export class Agent {
       systemPrompt: mergedSystemPrompt,
       inputs: this.inputs,
       maxStepIterations: this.maxStepIterations,
+      maxTokens: this.maxTokens,
       checkpointStore: this.checkpointStore,
       runId: this.runId,
-      planTools: this.tools.map((t) => t.name)
+      planTools: this.tools.map((t) => t.name),
+      signal: this.signal
     });
 
     for await (const item of executor.execute()) {
@@ -780,7 +836,9 @@ export class Agent {
       model: this.reasoningModel ?? this.model,
       context,
       taskPlan,
-      systemPrompt: mergedSystemPrompt
+      systemPrompt: mergedSystemPrompt,
+      maxTokens: this.maxTokens,
+      signal: this.signal
     });
 
     let compiled: unknown = null;
@@ -793,12 +851,15 @@ export class Agent {
     compiled = next.value;
 
     if (compiled !== null && compiled !== undefined) {
-      this.results =
+      // Only shoe-horn a plain-string compiler result into { markdown } when the
+      // schema is object-typed (prose that must be wrapped to satisfy an object
+      // shape). A string-typed outputSchema legitimately yields a string via
+      // finish_step; wrapping it would violate the caller's declared schema.
+      const wrapAsMarkdown =
         this.outputFormat === "structured" &&
-        this.outputSchema &&
-        typeof compiled === "string"
-          ? { markdown: compiled }
-          : compiled;
+        this.outputSchema?.type === "object" &&
+        typeof compiled === "string";
+      this.results = wrapAsMarkdown ? { markdown: compiled } : compiled;
     } else {
       // Compiler timed out — fall back to the executor's last task result so
       // the caller still gets something rather than null.
@@ -908,6 +969,68 @@ export class Agent {
   }
 
   /**
+   * Script mode: obtain an orchestration script (pre-authored via the
+   * `script` option, otherwise written by ScriptPlanner) and execute it with
+   * ScriptRunner. The script's return value becomes the agent result.
+   */
+  private async *executeScriptPlan(
+    context: ProcessingContext,
+    systemPrompt: string | undefined,
+    objective: string
+  ): AsyncGenerator<ProcessingMessage> {
+    let script = this.script ?? null;
+
+    if (!script) {
+      log.info("Script planning phase started", { name: this.name });
+      const planner = new ScriptPlanner({
+        provider: this.provider,
+        model: this.planningModel,
+        tools: this.tools,
+        systemPrompt,
+        outputSchema: this.outputSchema,
+        inputs: this.inputs,
+        signal: this.signal
+      });
+      const planGen = planner.plan(objective, context);
+      let planResult = await planGen.next();
+      while (!planResult.done) {
+        yield planResult.value;
+        planResult = await planGen.next();
+      }
+      script = planResult.value;
+      if (!script) {
+        throw new Error(
+          "ScriptPlanner failed to produce an orchestration script."
+        );
+      }
+    }
+
+    const runner = new ScriptRunner({
+      provider: this.provider,
+      model: this.model,
+      context,
+      tools: this.buildExecutorTools(),
+      systemPrompt,
+      inputs: this.inputs,
+      maxStepIterations: this.maxStepIterations,
+      maxConcurrentAgents: this.maxConcurrentAgents,
+      maxAgentCalls: this.maxAgentCalls,
+      signal: this.signal
+    });
+
+    const runGen = runner.execute(script);
+    let next = await runGen.next();
+    while (!next.done) {
+      yield next.value;
+      next = await runGen.next();
+    }
+    this.results = next.value ?? null;
+
+    log.info("Agent completed", { name: this.name });
+    this.persistAgentRunMemory();
+  }
+
+  /**
    * Graph-native plan: build a DAG of nodes via GraphPlanner, then execute it
    * with AgentWorkflowRunner.
    */
@@ -933,7 +1056,8 @@ export class Agent {
       systemPrompt,
       outputSchema: this.outputSchema,
       inputs: this.inputs,
-      providers: this.providers
+      providers: this.providers,
+      signal: this.signal
     });
 
     const planGen = planner.plan(this.objective, context);
@@ -970,7 +1094,8 @@ export class Agent {
       context,
       systemPrompt,
       maxStepIterations: this.maxStepIterations,
-      inputs: this.inputs
+      inputs: this.inputs,
+      signal: this.signal
     });
 
     for await (const item of runner.execute(graphData)) {
@@ -1021,7 +1146,9 @@ export class Agent {
       inputs: this.inputs,
       maxSteps: this.maxSteps,
       maxStepIterations: this.maxStepIterations,
-      parallelExecution: true
+      maxTokens: this.maxTokens,
+      parallelExecution: true,
+      signal: this.signal
     });
 
     for await (const item of executor.executeTasks()) {

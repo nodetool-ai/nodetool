@@ -1,9 +1,6 @@
 /**
- * GraphVisualDiff Component
- *
- * Visualizes workflow graph differences as a mini node graph.
- * Shows nodes with color-coded indicators for added (green),
- * removed (red), and modified (orange) states.
+ * Visualizes workflow graph differences as a mini node graph, color-coding
+ * nodes for added (green), removed (red), and modified (orange) states.
  */
 
 import React, { useMemo, memo } from "react";

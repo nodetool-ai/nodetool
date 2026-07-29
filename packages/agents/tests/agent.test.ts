@@ -626,9 +626,9 @@ describe("Agent", () => {
     // Execution calls use exec-model.
     expect(calls[0]).toBe("plan-model");
     expect(calls[calls.length - 1]).toBe("exec-model");
-    expect(calls.filter((m) => m === "plan-model").length).toBeGreaterThanOrEqual(
-      2
-    );
+    expect(
+      calls.filter((m) => m === "plan-model").length
+    ).toBeGreaterThanOrEqual(2);
   });
 
   it("defaults planningModel and reasoningModel to model when not provided", () => {
@@ -1189,5 +1189,61 @@ describe("Agent synthesizeRecall wiring", () => {
     // Synthesis threw -> facts empty -> raw items rendered.
     const firstPrompt = capturedPrompts[0] ?? "";
     expect(firstPrompt).toContain("[preference]");
+  });
+
+  it("threads an external abort signal through to provider calls", async () => {
+    // Regression: Agent.execute grew a `signal` option, but the initial-task
+    // path (and the compiler pass) built their executors without it, so a
+    // cancelled workflow left provider work running.
+    const runWithSignal = async (signal?: AbortSignal): Promise<number> => {
+      const provider = createMockProvider([
+        [
+          { type: "chunk", content: "working..." },
+          { id: "tc_1", name: "finish_step", args: { result: { value: 1 } } }
+        ]
+      ]);
+      let providerCalls = 0;
+      const originalGenerate = provider.generateMessages.bind(provider);
+      provider.generateMessages = async function* (
+        args: Record<string, unknown>
+      ) {
+        providerCalls++;
+        yield* originalGenerate(args);
+      };
+
+      const agent = new Agent({
+        name: "cancellable-agent",
+        objective: "Execute with cancellation",
+        provider,
+        model: "test-model",
+        task: {
+          id: "t1",
+          title: "T",
+          steps: [
+            {
+              id: "step_1",
+              instructions: "Do the thing",
+              dependsOn: [],
+              completed: false,
+              logs: []
+            }
+          ]
+        },
+        skillDirs: []
+      });
+
+      for await (const _msg of agent.execute(createMockContext(), { signal })) {
+        // consume
+      }
+      return providerCalls;
+    };
+
+    // Baseline: without cancellation the step really does call the provider.
+    expect(await runWithSignal(undefined)).toBeGreaterThan(0);
+
+    // With an aborted signal the provider is never reached — the signal is
+    // threaded all the way into the step executor's generateLoop, which
+    // short-circuits. Before the fix this ran the full agent loop.
+    expect(await runWithSignal(AbortSignal.abort())).toBe(0);
   });
 });

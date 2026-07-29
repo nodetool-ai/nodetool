@@ -11,8 +11,6 @@
 
 import type { ClipStatus, TimelineClip } from "@nodetool-ai/timeline";
 
-// ── Input shapes ───────────────────────────────────────────────────────────
-
 /**
  * Clip-level error state synthesised from ErrorStore node entries for the
  * clip's bound workflow.

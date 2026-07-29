@@ -20,9 +20,6 @@ const EMPTY_IMAGE = {
   metadata: null
 };
 
-// ---------------------------------------------------------------------------
-// Text to Image
-// ---------------------------------------------------------------------------
 export class TextToImageNode extends BaseNode {
   static readonly nodeType = "huggingface.TextToImage";
   static readonly body = "content_card";
@@ -147,9 +144,6 @@ export class TextToImageNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Image to Image
-// ---------------------------------------------------------------------------
 export class ImageToImageNode extends BaseNode {
   static readonly nodeType = "huggingface.ImageToImage";
   static readonly body = "content_card";
@@ -252,9 +246,6 @@ export class ImageToImageNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Image Classification
-// ---------------------------------------------------------------------------
 export class ImageClassificationNode extends BaseNode {
   static readonly nodeType = "huggingface.ImageClassification";
   static readonly title = "Image Classification";
@@ -317,9 +308,6 @@ export class ImageClassificationNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Image Segmentation
-// ---------------------------------------------------------------------------
 export class ImageSegmentationNode extends BaseNode {
   static readonly nodeType = "huggingface.ImageSegmentation";
   static readonly title = "Image Segmentation";
@@ -377,9 +365,6 @@ export class ImageSegmentationNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Object Detection
-// ---------------------------------------------------------------------------
 export class ObjectDetectionNode extends BaseNode {
   static readonly nodeType = "huggingface.ObjectDetection";
   static readonly title = "Object Detection";

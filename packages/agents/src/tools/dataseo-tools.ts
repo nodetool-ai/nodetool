@@ -10,10 +10,6 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 import type { SerpProvider } from "./serp-providers/index.js";
 
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                           */
-/* ------------------------------------------------------------------ */
-
 const API_BASE = "https://api.dataforseo.com";
 const DEFAULT_LOCATION_CODE = 2840; // United States
 const DEFAULT_LANGUAGE_CODE = "en";
@@ -121,10 +117,6 @@ function extractItems(
   return [];
 }
 
-/* ------------------------------------------------------------------ */
-/*  DataForSEOSearchTool                                              */
-/* ------------------------------------------------------------------ */
-
 export class DataForSEOSearchTool extends Tool {
   readonly name = "dataforseo_search";
   readonly description =
@@ -206,10 +198,6 @@ export class DataForSEOSearchTool extends Tool {
     return msg.length > 80 ? "Searching Google (DataForSEO)..." : msg;
   }
 }
-
-/* ------------------------------------------------------------------ */
-/*  DataForSEONewsTool                                                */
-/* ------------------------------------------------------------------ */
 
 export class DataForSEONewsTool extends Tool {
   readonly name = "dataforseo_news";
@@ -298,10 +286,6 @@ export class DataForSEONewsTool extends Tool {
     return msg.length > 80 ? "Searching Google News (DataForSEO)..." : msg;
   }
 }
-
-/* ------------------------------------------------------------------ */
-/*  DataForSEOImagesTool                                              */
-/* ------------------------------------------------------------------ */
 
 export class DataForSEOImagesTool extends Tool {
   readonly name = "dataforseo_images";

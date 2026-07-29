@@ -29,18 +29,10 @@ export const useRecentNodesStore = create<RecentNodesStore>()(
 
       addRecentNode: (nodeType: string) => {
         set((state) => {
-          // Remove existing entry if it exists
           const filtered = state.recentNodes.filter(
             (node) => node.nodeType !== nodeType
           );
-          
-          // Add to the front with current timestamp
-          const updated = [
-            { nodeType, timestamp: Date.now() },
-            ...filtered
-          ];
-          
-          // Keep only the most recent MAX_RECENT_NODES
+          const updated = [{ nodeType, timestamp: Date.now() }, ...filtered];
           return {
             recentNodes: updated.slice(0, MAX_RECENT_NODES)
           };

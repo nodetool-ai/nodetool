@@ -18,7 +18,6 @@ import {
   generateLayerId,
   getDescendantIds,
   isLayerCompositeVisible,
-  cloneQuad,
   cloneTransform,
   IDENTITY_AFFINE,
   makeAffineTransform,

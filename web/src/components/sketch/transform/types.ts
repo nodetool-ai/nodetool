@@ -41,17 +41,6 @@ export interface AffineTransform {
 }
 
 /**
- * Single-quad gesture modes. All render via `drawImageToQuad`; the tag only
- * affects the gizmo affordances.
- *
- * - `distort`     — independent corners, no constraints.
- * - `skew`        — opposite edges remain parallel.
- * - `perspective` — projective transform from a unit rect.
- * - `perspective-distort` — manual projective straightening.
- * - `warp`        — bezier-style edges (currently rendered as straight).
- * - `mesh-warp`   — control mesh (UI not yet implemented; aliases warp).
- */
-/**
  * Quad-transform tag. Four user-facing modes after the Affinity-parity
  * consolidation: `distort` (Deform), `perspective`, `mesh-warp`, plus the
  * internal `skew` tag that is produced when Ctrl/Cmd promotes an edge

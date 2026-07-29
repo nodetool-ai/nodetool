@@ -103,6 +103,7 @@ const summarizeArgs = (args: unknown): string => {
 
 export const ToolCallRenderer: React.FC<Props> = memo(({ chunk }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => toolCallStyles(theme), [theme]);
   const [open, setOpen] = useState(false);
 
   const meta = chunk.content_metadata ?? {};
@@ -127,11 +128,12 @@ export const ToolCallRenderer: React.FC<Props> = memo(({ chunk }) => {
   }, [argsJson]);
 
   return (
-    <div css={toolCallStyles(theme)} className="tool-call">
+    <div css={cssStyles} className="tool-call">
       <div
         className="header"
         onClick={() => setOpen((v) => !v)}
         role="button"
+        aria-expanded={open}
         tabIndex={0}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {

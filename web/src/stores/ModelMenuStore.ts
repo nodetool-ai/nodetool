@@ -104,8 +104,6 @@ export const computeProvidersList = <TModel extends ModelSelectorModel>(
     .map(([provider]) => provider)
     .sort((a, b) => a.localeCompare(b));
 
-  // Provider filtering removed - all providers from API are now shown
-
   return list;
 };
 

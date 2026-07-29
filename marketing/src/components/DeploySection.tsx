@@ -20,10 +20,10 @@ export default function DeploySection({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           {/* Left Column: Text Content */}
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
+            initial={false}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
           >
             <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6">
               Self host <br />
@@ -33,10 +33,10 @@ export default function DeploySection({
             </h2>
 
             <p className="text-lg text-slate-400 mb-8 leading-relaxed">
-              Same workflow runs locally or on a remote GPU with no rewrites.
-              NodeTool builds the container image and ships it to your provider
-              of choice—RunPod, Google Cloud Run, Fly.io, Railway, or your own
-              SSH host.
+              The same workflow runs on your machine or on a rented GPU, with
+              nothing to rewrite. NodeTool packages it and sends it to the host
+              you pick: RunPod, Google Cloud Run, Fly.io, Railway, or a server
+              of your own.
             </p>
 
             <div className="flex flex-col gap-6">
@@ -46,14 +46,14 @@ export default function DeploySection({
                 </div>
                 <div>
                   <h3 className="text-white font-semibold">
-                    One Command Deploy
+                    One command to go live
                   </h3>
                   <p className="text-slate-400 text-sm mt-1 leading-relaxed">
                     Run{" "}
                     <code className="bg-slate-800 px-1.5 py-0.5 rounded text-purple-300 text-xs font-mono border border-white/5">
                       nodetool deploy
                     </code>{" "}
-                    to push your workflow to the cloud.
+                    sends your workflow to the cloud.
                   </p>
                 </div>
               </div>
@@ -63,11 +63,11 @@ export default function DeploySection({
                   <Zap className="w-5 h-5 text-pink-400" />
                 </div>
                 <div>
-                  <h3 className="text-white font-semibold">Serverless-Ready</h3>
+                  <h3 className="text-white font-semibold">Pay only while it runs</h3>
                   <p className="text-slate-400 text-sm mt-1 leading-relaxed">
-                    Deploy to Google Cloud Run for native scale-to-zero, or to
-                    RunPod serverless endpoints—pay only when your workflow
-                    runs.
+                    On Google Cloud Run or RunPod, the workflow starts when a
+                    request comes in and shuts down when it is done, so you are
+                    billed only for the time it was working.
                   </p>
                 </div>
               </div>
@@ -108,10 +108,10 @@ export default function DeploySection({
 
           {/* Right Column: Visual */}
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="relative hidden lg:block"
           >
             <Tilt3D>
@@ -135,11 +135,11 @@ export default function DeploySection({
                     </span>
                   </div>
                   <div className="text-slate-400 pt-2">
-                    [+] Building workflow graph...{" "}
+                    [+] Packaging workflow...{" "}
                     <span className="text-green-400">Done</span>
                   </div>
                   <div className="text-slate-400">
-                    [+] Provisioning GPU instance (RTX 4090)...{" "}
+                    [+] Starting GPU machine (RTX 4090)...{" "}
                     <span className="text-green-400">Done</span>
                   </div>
                   <div className="text-slate-400">
@@ -147,7 +147,7 @@ export default function DeploySection({
                     <span className="text-green-400">Done</span>
                   </div>
                   <div className="text-slate-400 pb-2">
-                    [+] Configuring endpoint...{" "}
+                    [+] Setting up the web address...{" "}
                     <span className="text-green-400">Done</span>
                   </div>
                   <div className="text-purple-400 pt-2 border-t border-white/5">

@@ -2,12 +2,12 @@
 import { css } from "@emotion/react";
 import React, { useCallback, createElement, memo, useMemo } from "react";
 import { shallow } from "zustand/shallow";
-import { Property } from "../../stores/ApiTypes";
+import { Property, TypeMetadata } from "../../stores/ApiTypes";
 import { PropertyHandleTooltipContext } from "../../contexts/PropertyHandleTooltipContext";
-import useContextMenu from "../../stores/ContextMenuStore";
+import { useContextMenuActions } from "../../stores/ContextMenuStore";
 import StringProperty from "../properties/StringProperty";
 import DataframeProperty from "../properties/DataframeProperty";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { isFieldRelevantDataEqual } from "./propertyFieldEquality";
 import Close from "@mui/icons-material/Close";
 import Edit from "@mui/icons-material/Edit";
@@ -18,7 +18,8 @@ import {
   MOTION,
   BORDER_RADIUS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  Z_INDEX
 } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -32,6 +33,9 @@ import { deriveCodeIOUpdates } from "../../utils/codeOutputInference";
 import { InspectorHeaderResetProvider } from "../../contexts/InspectorPropertyHeaderContext";
 import { getComponentForProperty } from "./PropertyInput.resolver";
 import type { PropertyProps } from "./PropertyInput.types";
+import DynamicSlotTypePicker from "./DynamicSlotTypePicker";
+import { normalizeDynamicSlot, slotType } from "../../utils/dynamicSlots";
+import { isSchemaDrivenDynamicNode } from "../../utils/dynamicSlotTypes";
 
 export type { PropertyProps } from "./PropertyInput.types";
 
@@ -84,7 +88,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
       gap: 4,
       opacity: 0,
       transition: MOTION.opacity,
-      zIndex: 1,
+      zIndex: Z_INDEX.raised,
       background: theme.vars.palette.background.paper,
       borderRadius: BORDER_RADIUS.sm,
       padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.sm)}`,
@@ -93,6 +97,13 @@ const propertyInputContainerStyles = (theme: Theme) =>
 
     "&:hover .action-icons, &:hover .reset-button.is-active": {
       opacity: 1
+    },
+
+    // Touch devices have no hover; keep the action icons and reset reachable.
+    "@media (pointer: coarse)": {
+      ".action-icons, .reset-button.is-active": {
+        opacity: 1
+      }
     },
 
     ".action-icon": {
@@ -123,7 +134,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
       alignItems: "center",
       opacity: 0,
       transition: MOTION.opacity,
-      zIndex: 2,
+      zIndex: Z_INDEX.raised,
       cursor: "pointer",
       padding: getSpacingPx(SPACING.micro), // was 1px
       borderRadius: BORDER_RADIUS.sm,
@@ -160,23 +171,12 @@ function isImageInputType(property: Property): boolean {
   return false;
 }
 
-/**
- * Get the component for the property.
- *
- * @param property The property.
- * @returns The component for the property.
- * @returns null if the property type is not supported.
- * @returns InputProperty if the property type is supported.
- */
 function componentFor(
   property: Property
 ): React.ComponentType<PropertyProps> | null {
   return getComponentForProperty(property);
 }
 
-/**
- * Properties for the PropertyInput component.
- */
 export type PropertyInputProps = {
   id: string;
   nodeType: string;
@@ -296,13 +296,12 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   const hasResetDefault = property.default != null;
   const isChanged = hasResetDefault && !isEqual(value, property.default);
 
-  // Handle slider/number input change complete
   const handleChangeComplete = useCallback(() => {
     onPropertyChangeComplete();
   }, [onPropertyChangeComplete]);
 
   // Property Context Menu
-  const { openContextMenu } = useContextMenu();
+  const { openContextMenu } = useContextMenuActions();
   const handlePropertyContextMenu = useCallback(
     (event: React.MouseEvent<HTMLElement>, prop: Property) => {
       event.preventDefault();
@@ -421,7 +420,11 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
 
   const [isEditingName, setIsEditingName] = React.useState(false);
   const [editedName, setEditedName] = React.useState(property.name);
-  const { handleDeleteProperty, handleUpdatePropertyName } = useDynamicProperty(
+  const {
+    handleDeleteProperty,
+    handleUpdatePropertyName,
+    handleUpdatePropertyType
+  } = useDynamicProperty(
     id,
     (data?.dynamic_properties as Record<string, unknown>) || {}
   );
@@ -486,6 +489,32 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     handleDeleteProperty(property.name);
   }, [handleDeleteProperty, property.name]);
 
+  // Type picker. Hidden on schema-driven nodes (FAL/Kie/Replicate/Comfy,
+  // workflow/subgraph): their resolvers rewrite `dynamic_inputs` wholesale, so
+  // a user-picked type would not survive.
+  const nodeMetadataForSlot = useMetadataStore((state) =>
+    state.getMetadata(nodeType)
+  );
+  const slotNode = isDynamicProperty ? findNode(id) : undefined;
+  const canEditSlotType =
+    isDynamicProperty &&
+    !isConnected &&
+    slotNode !== undefined &&
+    !isSchemaDrivenDynamicNode(slotNode);
+  const slotTypeValue = useMemo(
+    () =>
+      slotType(
+        normalizeDynamicSlot(slotNode?.data?.dynamic_inputs?.[property.name])
+      ),
+    [slotNode, property.name]
+  );
+  const handleSlotTypeChange = useCallback(
+    (type: TypeMetadata) => {
+      handleUpdatePropertyType(property.name, type);
+    },
+    [handleUpdatePropertyType, property.name]
+  );
+
   const hasTopRightPropertyActions =
     componentType === StringProperty ||
     componentType === JSONProperty ||
@@ -534,6 +563,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         <span className="inspector-reset-tooltip" style={INLINE_FLEX_STYLE}>
           <ToolbarIconButton
             className={`inspector-reset-button${isChanged ? " is-changed" : ""}`}
+            ariaLabel="Reset to default"
             onClick={handleResetToDefault}
             disabled={!isChanged}
             size="small"
@@ -569,6 +599,14 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       {canvasResetButton}
       {isDynamicProperty && !hideActionIcons && (
         <div className="action-icons">
+          {canEditSlotType && (
+            <DynamicSlotTypePicker
+              propertyName={property.name}
+              value={slotTypeValue}
+              nodeMetadata={nodeMetadataForSlot}
+              onChange={handleSlotTypeChange}
+            />
+          )}
           <Edit
             className="action-icon"
             onClick={handleEditNameClick}

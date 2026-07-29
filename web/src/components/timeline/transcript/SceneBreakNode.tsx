@@ -14,7 +14,6 @@ import { styled } from "@mui/material/styles";
 import {
   DecoratorNode,
   $getNodeByKey,
-  type LexicalNode,
   type NodeKey,
   type SerializedLexicalNode,
   type Spread
@@ -41,7 +40,7 @@ const Row = styled("div")(({ theme }) => ({
     display: "inline-flex",
     alignItems: "center",
     gap: getSpacingPx(SPACING.sm),
-    padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`, // was 1px 8px
+    padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
     borderRadius: BORDER_RADIUS.pill,
     fontSize: FONT_SIZE_SANS.caption,
     fontWeight: FONT_WEIGHT.semibold,
@@ -167,7 +166,3 @@ export const $createSceneBreakNode = (
   markerId: string,
   label: string
 ): SceneBreakNode => new SceneBreakNode(markerId, label);
-
-export const $isSceneBreakNode = (
-  node: LexicalNode | null | undefined
-): node is SceneBreakNode => node instanceof SceneBreakNode;

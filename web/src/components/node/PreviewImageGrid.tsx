@@ -12,7 +12,7 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { ImageComparer } from "../widgets";
 import AssetViewer from "../assets/AssetViewer";
 import { CopyAssetButton } from "../common/CopyAssetButton";
-import { Checkbox, Dialog, Tooltip, EditorButton, ToolbarIconButton, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { Checkbox, Dialog, Tooltip, EditorButton, ToolbarIconButton, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 
 export type ImageSource = Uint8Array | string;
@@ -28,11 +28,10 @@ interface ImageTileProps {
   onOpenViewer: (url: string) => void;
   onDownload: (index: number, event: React.MouseEvent) => void;
   onOpenInViewer: (index: number, event: React.MouseEvent) => void;
-  onToggleSelect: (index: number, event: React.MouseEvent) => void;
+  onToggleSelect: (index: number, event: { stopPropagation(): void }) => void;
 }
 
 const ImageTile = memo<ImageTileProps>(({
-  img,
   idx,
   url,
   isSelected,
@@ -52,6 +51,7 @@ const ImageTile = memo<ImageTileProps>(({
     <div
       role="button"
       tabIndex={0}
+      aria-label={`Image ${idx + 1}`}
       className={`tile ${isSelected ? "selected" : ""}`}
       onDoubleClick={() => {
         if (selectionMode) return;
@@ -71,8 +71,7 @@ const ImageTile = memo<ImageTileProps>(({
           e.preventDefault();
           e.stopPropagation();
           if (selectionMode) {
-            const syntheticEvent = { stopPropagation: () => {}, shiftKey: e.shiftKey } as React.MouseEvent<HTMLDivElement>;
-            onToggleSelect(idx, syntheticEvent);
+            onToggleSelect(idx, { stopPropagation: () => {} });
           } else if (onDoubleClick) {
             onDoubleClick(idx);
           } else if (url) {
@@ -228,12 +227,16 @@ const styles = (theme: Theme, gap: number) =>
       right: 4,
       display: "flex",
       gap: 2,
-      zIndex: 5,
+      zIndex: Z_INDEX.raised,
       opacity: 0,
       transition: MOTION.opacity
     },
     ".tile:hover .tile-actions": {
       opacity: 1
+    },
+    // Touch devices have no hover; keep the per-tile actions reachable.
+    "@media (pointer: coarse)": {
+      ".tile-actions": { opacity: 1 }
     },
     ".tile-action-btn": {
       width: 24,
@@ -253,7 +256,7 @@ const styles = (theme: Theme, gap: number) =>
       position: "absolute",
       top: 4,
       right: 4,
-      zIndex: 5,
+      zIndex: Z_INDEX.raised,
       padding: 2,
       backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.5)`,
       borderRadius: BORDER_RADIUS.sm,
@@ -272,7 +275,7 @@ const styles = (theme: Theme, gap: number) =>
       padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`,
       backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.85)`,
       borderRadius: BORDER_RADIUS.lg,
-      zIndex: 100,
+      zIndex: Z_INDEX.overlay,
       alignItems: "center"
     },
     ".action-bar .action-button": {
@@ -284,7 +287,7 @@ const styles = (theme: Theme, gap: number) =>
       position: "absolute",
       top: 2,
       right: 4,
-      zIndex: 50,
+      zIndex: Z_INDEX.sticky,
       backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
       color: theme.vars.palette.common.white,
       fontSize: "var(--fontSizeSmaller)",
@@ -345,7 +348,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
     setSelectionMode(false);
   }, [images.length]);
 
-  const toggleSelect = useCallback((index: number, event: React.MouseEvent) => {
+  const toggleSelect = useCallback((index: number, event: { stopPropagation(): void }) => {
     event.stopPropagation();
     setSelectedIndices((prev) => {
       const next = new Set(prev);
@@ -385,7 +388,6 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
     const url = urlMapRef.current.get(img);
     if (!url) { return; }
 
-    // Create a temporary link to download
     const link = document.createElement("a");
     link.href = url;
 
@@ -584,6 +586,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
           open={compareDialogOpen}
           onClose={handleCloseCompare}
           maxWidth={false}
+          aria-label="Compare outputs"
         >
           <Box sx={{ width: "90vw", height: "90vh", position: "relative" }}>
             <ToolbarIconButton
@@ -593,7 +596,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                 position: "absolute",
                 top: 8,
                 right: 8,
-                zIndex: 10,
+                zIndex: Z_INDEX.dropdown,
                 backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
                 color: theme.vars.palette.common.white,
                 "&:hover": { backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.8)` }
@@ -627,8 +630,6 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   );
 };
 
-// Memoize component to prevent unnecessary re-renders when parent components update
-// Custom comparison to avoid re-rendering on every prop change
 const arePropsEqual = (prevProps: PreviewImageGridProps, nextProps: PreviewImageGridProps) => {
   return (
     prevProps.images === nextProps.images &&

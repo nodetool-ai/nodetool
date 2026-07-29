@@ -30,6 +30,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 
 const NODE_ROW_HEIGHT = 34;
 
@@ -58,13 +59,13 @@ const scrollableContentStyles = (theme: Theme) =>
       padding: "0"
     },
     ".node-item-container": {
-      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}` // was 1px 6px
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`
     },
     ".node": {
       display: "flex",
       alignItems: "center",
       margin: 0,
-      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.sm)}`, // was 3px 6px
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.sm)}`,
       borderRadius: BORDER_RADIUS.md,
       cursor: "pointer",
       transition: MOTION.background,
@@ -159,13 +160,13 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
   const [searchTerm, setSearchTerm] = useState("");
   const reactFlowInstance = useReactFlow();
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const autoFocusEnabled = useAutoFocusEnabled();
   const recentNodes = useRecentNodesStore((state) => state.recentNodes);
   const recentNodeTypes = useMemo(
     () => recentNodes.map((node) => node.nodeType),
     [recentNodes]
   );
 
-  // Memoize store selector function to prevent re-renders
   const storeSelector = useCallback(
     (state: ConnectableNodesState) => ({
       connectableNodes: state.getConnectableNodes(),
@@ -314,24 +315,22 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     hideMenu();
   }, [createConnectableNode, hideMenu]);
 
-  // Empty callback for onDragStart - prevents new function creation on each render
   const handleDragStart = useCallback(
     (_node: NodeMetadata, _event: React.DragEvent<HTMLDivElement>) => {},
     []
   );
 
+  // Skipped on touch, where the virtual keyboard would cover the menu.
   useEffect(() => {
-    if (!isVisible) {
+    if (!isVisible || !autoFocusEnabled) {
       return;
     }
-
     const timeout = window.setTimeout(() => {
       searchInputRef.current?.focus();
       searchInputRef.current?.select();
     }, 0);
-
     return () => window.clearTimeout(timeout);
-  }, [isVisible]);
+  }, [isVisible, autoFocusEnabled]);
 
   if (!menuPosition || !isVisible) {return null;}
 
@@ -360,7 +359,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
             onChange={handleSearchChange}
             onClick={(e) => e.stopPropagation()}
             onKeyDown={handleSearchKeyDown}
-            autoFocus={isVisible}
+            autoFocus={isVisible && autoFocusEnabled}
             inputRef={searchInputRef}
             aria-label="Search nodes"
             sx={{

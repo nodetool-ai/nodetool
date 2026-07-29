@@ -11,9 +11,9 @@ import { css } from "@emotion/react";
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import ViewSidebarOutlinedIcon from "@mui/icons-material/ViewSidebarOutlined";
-import FitScreenIcon from "@mui/icons-material/FitScreen";
-import { EditorButton, FlexRow, Text, Tooltip } from "../ui_primitives";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import { FlexRow, IconButton, Text, Tooltip } from "../ui_primitives";
 import { getToolSettingsLabel } from "./tool-settings-panels/getToolSettingsLabel";
 import {
   SketchTool,
@@ -126,10 +126,12 @@ export interface SketchToolTopBarProps {
   onCancelSegmentation?: () => void;
   onClearSegmentPrompts?: () => void;
   onCheckSegmentModel?: () => void;
-  /** Collapse the left tool rail + right panels for a chrome-less canvas. */
-  onTogglePanelsHidden?: () => void;
-  /** Fit the document to the canvas viewport (zoom-to-fit, centered). */
-  onFit?: () => void;
+  /** When true, only the tool header and global actions render. */
+  settingsCollapsed?: boolean;
+  /** Toggles `settingsCollapsed`; the caret is omitted when not supplied. */
+  onToggleSettingsCollapsed?: () => void;
+  /** Editor-wide actions pinned to the trailing edge of the bar. */
+  trailingActions?: React.ReactNode;
 }
 
 const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
@@ -191,8 +193,9 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
   onCancelSegmentation,
   onClearSegmentPrompts,
   onCheckSegmentModel,
-  onTogglePanelsHidden,
-  onFit
+  trailingActions,
+  settingsCollapsed = false,
+  onToggleSettingsCollapsed
 }) => {
   const theme = useTheme();
 
@@ -217,108 +220,95 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
         <Text sx={{ fontSize: SKETCH_FONT.section, fontWeight: 600 }}>
           {getToolSettingsLabel(activeTool)}
         </Text>
+        {onToggleSettingsCollapsed && (
+          <Tooltip
+            title={
+              settingsCollapsed ? "Show tool settings" : "Hide tool settings"
+            }
+          >
+            <IconButton
+              size="small"
+              onClick={onToggleSettingsCollapsed}
+              aria-expanded={!settingsCollapsed}
+              aria-label={
+                settingsCollapsed ? "Show tool settings" : "Hide tool settings"
+              }
+              data-testid="sketch-toggle-tool-settings"
+            >
+              {settingsCollapsed ? (
+                <ExpandMoreIcon fontSize="small" />
+              ) : (
+                <ExpandLessIcon fontSize="small" />
+              )}
+            </IconButton>
+          </Tooltip>
+        )}
       </FlexRow>
 
-      <ToolSettingsPanel
-        activeTool={activeTool}
-        brushSettings={brushSettings}
-        pencilSettings={pencilSettings}
-        eraserSettings={eraserSettings}
-        shapeSettings={shapeSettings}
-        fillSettings={fillSettings}
-        blurSettings={blurSettings}
-        gradientSettings={gradientSettings}
-        cloneStampSettings={cloneStampSettings}
-        selectSettings={selectSettings}
-        hasActiveSelection={hasActiveSelection}
-        adjustBrightness={adjustBrightness}
-        adjustContrast={adjustContrast}
-        adjustSaturation={adjustSaturation}
-        onBrushSettingsChange={onBrushSettingsChange}
-        onPencilSettingsChange={onPencilSettingsChange}
-        onEraserSettingsChange={onEraserSettingsChange}
-        onShapeSettingsChange={onShapeSettingsChange}
-        onFillSettingsChange={onFillSettingsChange}
-        onBlurSettingsChange={onBlurSettingsChange}
-        onGradientSettingsChange={onGradientSettingsChange}
-        onCloneStampSettingsChange={onCloneStampSettingsChange}
-        onSelectSettingsChange={onSelectSettingsChange}
-        onInvertSelection={onInvertSelection}
-        onCropCanvasToSelection={onCropCanvasToSelection}
-        onFeatherSelection={onFeatherSelection}
-        onSmoothSelectionBorders={onSmoothSelectionBorders}
-        onConvertSelectionToBorder={onConvertSelectionToBorder}
-        onAdjustBrightnessChange={onAdjustBrightnessChange}
-        onAdjustContrastChange={onAdjustContrastChange}
-        onAdjustSaturationChange={onAdjustSaturationChange}
-        onAdjustApply={onAdjustApply}
-        onAdjustCancel={onAdjustCancel}
-        transformScaleX={transformScaleX}
-        transformScaleY={transformScaleY}
-        transformRotation={transformRotation}
-        onTransformCommit={onTransformCommit}
-        onTransformCancel={onTransformCancel}
-        onTransformReset={onTransformReset}
-        transformAutoSelect={transformAutoSelect}
-        transformMode={transformMode}
-        onTransformAutoSelectChange={onTransformAutoSelectChange}
-        onTransformModeChange={onTransformModeChange}
-        moveAutoSelect={moveAutoSelect}
-        onMoveAutoSelectChange={onMoveAutoSelectChange}
-        cropHasPendingRect={cropHasPendingRect}
-        onCropApply={onCropApply}
-        onCropCancelPreview={onCropCancelPreview}
-        segmentSettings={segmentSettings}
-        onSegmentSettingsChange={onSegmentSettingsChange}
-        segmentationStatus={segmentationStatus}
-        segmentModelInfo={segmentModelInfo}
-        onRunSegmentation={onRunSegmentation}
-        onApplySegmentResult={onApplySegmentResult}
-        onDiscardSegmentResult={onDiscardSegmentResult}
-        onCancelSegmentation={onCancelSegmentation}
-        onClearSegmentPrompts={onClearSegmentPrompts}
-        onCheckSegmentModel={onCheckSegmentModel}
-      />
-
-      {(onFit || onTogglePanelsHidden) && (
-        <FlexRow
-          align="center"
-          gap={0.5}
-          className="tool-top-bar__global-actions"
-          sx={{ ml: "auto", flexShrink: 0 }}
-        >
-          {onFit && (
-            <Tooltip title="Fit canvas to the viewport">
-              <span>
-                <EditorButton
-                  variant="text"
-                  size="small"
-                  onClick={onFit}
-                  startIcon={<FitScreenIcon fontSize="small" />}
-                  data-testid="sketch-fit-view"
-                >
-                  Fit
-                </EditorButton>
-              </span>
-            </Tooltip>
-          )}
-          {onTogglePanelsHidden && (
-            <Tooltip title="Hide panels — press Tab to restore">
-              <span>
-                <EditorButton
-                  variant="text"
-                  size="small"
-                  onClick={onTogglePanelsHidden}
-                  startIcon={<ViewSidebarOutlinedIcon fontSize="small" />}
-                  data-testid="sketch-hide-panels"
-                >
-                  Hide panels
-                </EditorButton>
-              </span>
-            </Tooltip>
-          )}
-        </FlexRow>
+      {!settingsCollapsed && (
+        <ToolSettingsPanel
+          activeTool={activeTool}
+          brushSettings={brushSettings}
+          pencilSettings={pencilSettings}
+          eraserSettings={eraserSettings}
+          shapeSettings={shapeSettings}
+          fillSettings={fillSettings}
+          blurSettings={blurSettings}
+          gradientSettings={gradientSettings}
+          cloneStampSettings={cloneStampSettings}
+          selectSettings={selectSettings}
+          hasActiveSelection={hasActiveSelection}
+          adjustBrightness={adjustBrightness}
+          adjustContrast={adjustContrast}
+          adjustSaturation={adjustSaturation}
+          onBrushSettingsChange={onBrushSettingsChange}
+          onPencilSettingsChange={onPencilSettingsChange}
+          onEraserSettingsChange={onEraserSettingsChange}
+          onShapeSettingsChange={onShapeSettingsChange}
+          onFillSettingsChange={onFillSettingsChange}
+          onBlurSettingsChange={onBlurSettingsChange}
+          onGradientSettingsChange={onGradientSettingsChange}
+          onCloneStampSettingsChange={onCloneStampSettingsChange}
+          onSelectSettingsChange={onSelectSettingsChange}
+          onInvertSelection={onInvertSelection}
+          onCropCanvasToSelection={onCropCanvasToSelection}
+          onFeatherSelection={onFeatherSelection}
+          onSmoothSelectionBorders={onSmoothSelectionBorders}
+          onConvertSelectionToBorder={onConvertSelectionToBorder}
+          onAdjustBrightnessChange={onAdjustBrightnessChange}
+          onAdjustContrastChange={onAdjustContrastChange}
+          onAdjustSaturationChange={onAdjustSaturationChange}
+          onAdjustApply={onAdjustApply}
+          onAdjustCancel={onAdjustCancel}
+          transformScaleX={transformScaleX}
+          transformScaleY={transformScaleY}
+          transformRotation={transformRotation}
+          onTransformCommit={onTransformCommit}
+          onTransformCancel={onTransformCancel}
+          onTransformReset={onTransformReset}
+          transformAutoSelect={transformAutoSelect}
+          transformMode={transformMode}
+          onTransformAutoSelectChange={onTransformAutoSelectChange}
+          onTransformModeChange={onTransformModeChange}
+          moveAutoSelect={moveAutoSelect}
+          onMoveAutoSelectChange={onMoveAutoSelectChange}
+          cropHasPendingRect={cropHasPendingRect}
+          onCropApply={onCropApply}
+          onCropCancelPreview={onCropCancelPreview}
+          segmentSettings={segmentSettings}
+          onSegmentSettingsChange={onSegmentSettingsChange}
+          segmentationStatus={segmentationStatus}
+          segmentModelInfo={segmentModelInfo}
+          onRunSegmentation={onRunSegmentation}
+          onApplySegmentResult={onApplySegmentResult}
+          onDiscardSegmentResult={onDiscardSegmentResult}
+          onCancelSegmentation={onCancelSegmentation}
+          onClearSegmentPrompts={onClearSegmentPrompts}
+          onCheckSegmentModel={onCheckSegmentModel}
+        />
       )}
+
+      {trailingActions}
     </FlexRow>
   );
 };

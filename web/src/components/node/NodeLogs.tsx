@@ -2,10 +2,18 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useRef, useEffect, useCallback, useState, useMemo } from "react";
+import {
+  memo,
+  useRef,
+  useEffect,
+  useCallback,
+  useState,
+  useMemo,
+  useId
+} from "react";
 
 import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import {
   CopyButton,
   Text,
@@ -16,7 +24,8 @@ import {
   BORDER_RADIUS,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  Z_INDEX
 } from "../ui_primitives";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import LogsTable, { LogRow, Severity } from "../common/LogsTable";
@@ -36,7 +45,7 @@ type NodeLogsDialogProps = {
 const styles = (theme: Theme) =>
   css({
     width: "100%",
-    zIndex: 100,
+    zIndex: Z_INDEX.overlay,
     ".logs-button": {
       width: "100%",
       justifyContent: "space-between",
@@ -52,13 +61,10 @@ const styles = (theme: Theme) =>
     }
   });
 
-/**
- * Standalone dialog component for displaying node logs.
- * Can be controlled externally via open/onClose props.
- */
 export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
   ({ id, workflowId, open, onClose }) => {
     const theme = useTheme();
+    const titleId = useId();
     const logsRef = useRef<HTMLDivElement>(null);
     // O(1) lookup via pre-keyed map instead of filtering the full logs array.
     const logs = useLogsStore(
@@ -129,6 +135,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
       <Dialog
         open={open}
         onClose={onClose}
+        aria-labelledby={titleId}
         fullWidth
         maxWidth="md"
         slotProps={{
@@ -149,7 +156,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
           }
         }}
       >
-        <DialogTitle className="dialog-title">
+        <DialogTitle className="dialog-title" id={titleId}>
           <FlexRow gap={1} align="center">
             <Text size="normal" weight={600} component="h6">
               Node Logs

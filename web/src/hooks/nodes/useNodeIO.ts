@@ -30,12 +30,13 @@ import type { NodeStoreState } from "../../stores/NodeStore";
 import type { Edge, Node } from "@xyflow/react";
 
 const EMPTY_ASSETS: Asset[] = [];
+const EMPTY_GENS: ReadonlyArray<Generation[] | undefined> = [];
 
 /**
- * Subscribe to the generation backings for a workflow and return a resolver for
- * any node's current generation. One subscription per backing store covers an
- * arbitrary number of source nodes, so hooks resolving a variable number of
- * inputs (e.g. `useUpstreamValues`) keep a constant hook count.
+ * Return a resolver for any node's current generation. Reads liveGenerations
+ * via getState() at call time so the callback is stable (only changes with
+ * assets/workflowId). Callers add their own scoped subscriptions to trigger
+ * re-renders for their specific upstream nodes.
  */
 const useCurrentGenerationResolver = (
   workflowId: string
@@ -43,9 +44,9 @@ const useCurrentGenerationResolver = (
   const assets = useWorkflowAssetStore(
     useShallow((s) => s.assetsByWorkflow[workflowId] ?? EMPTY_ASSETS)
   );
-  const liveGenerations = useResultsStore(useShallow((s) => s.liveGenerations));
   return useCallback(
     (nodeId, node) => {
+      const liveGenerations = useResultsStore.getState().liveGenerations;
       const persisted = assets
         .filter((a) => a.node_id === nodeId)
         .map(assetToGeneration);
@@ -54,7 +55,7 @@ const useCurrentGenerationResolver = (
       const selectedId = node?.data?.selected_generation;
       return getCurrentGeneration(generations, selectedId);
     },
-    [assets, liveGenerations, workflowId]
+    [assets, workflowId]
   );
 };
 
@@ -136,28 +137,52 @@ export const useUpstreamValue = (
 
   const resolveCurrent = useCurrentGenerationResolver(workflowId);
 
-  if (upstreamEdges.length === 0) {
-    return constantFallback;
-  }
+  // Re-render only when upstream source nodes' live generations change,
+  // not when any node in the store updates.
+  const liveGenTrigger = useResultsStore(
+    useShallow((s) =>
+      upstreamEdges.length === 0
+        ? EMPTY_GENS
+        : upstreamEdges.map(
+            (e) => s.liveGenerations[`${workflowId}:${e.source}`]
+          )
+    )
+  );
 
-  if (upstreamEdges.length === 1) {
-    const value = resolveSingleEdge(
-      upstreamEdges[0],
-      workflowId,
-      resolveCurrent,
-      findNode
-    );
-    return value !== undefined ? value : constantFallback;
-  }
+  return useMemo(() => {
+    if (upstreamEdges.length === 0) return constantFallback;
 
-  const values: unknown[] = [];
-  for (const edge of upstreamEdges) {
-    const value = resolveSingleEdge(edge, workflowId, resolveCurrent, findNode);
-    if (value !== undefined) {
-      values.push(value);
+    if (upstreamEdges.length === 1) {
+      const value = resolveSingleEdge(
+        upstreamEdges[0],
+        workflowId,
+        resolveCurrent,
+        findNode
+      );
+      return value !== undefined ? value : constantFallback;
     }
-  }
-  return values.length > 0 ? values : constantFallback;
+
+    const values: unknown[] = [];
+    for (const edge of upstreamEdges) {
+      const value = resolveSingleEdge(
+        edge,
+        workflowId,
+        resolveCurrent,
+        findNode
+      );
+      if (value !== undefined) {
+        values.push(value);
+      }
+    }
+    return values.length > 0 ? values : constantFallback;
+  }, [
+    upstreamEdges,
+    workflowId,
+    resolveCurrent,
+    findNode,
+    constantFallback,
+    liveGenTrigger
+  ]);
 };
 
 /**
@@ -213,6 +238,17 @@ export const useUpstreamValues = (
 
   const resolveCurrent = useCurrentGenerationResolver(workflowId);
 
+  // Re-render only when upstream source nodes' live generations change.
+  const liveGenTrigger = useResultsStore(
+    useShallow((s) =>
+      edges.length === 0
+        ? EMPTY_GENS
+        : edges.map(
+            (e) => s.liveGenerations[`${workflowId}:${e.source}`]
+          )
+    )
+  );
+
   return useMemo(() => {
     const out: Record<string, unknown> = {};
     for (const name of inputNames) {
@@ -254,6 +290,7 @@ export const useUpstreamValues = (
     findNode,
     resolveCurrent,
     workflowId,
-    constants
+    constants,
+    liveGenTrigger
   ]);
 };

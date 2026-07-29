@@ -134,7 +134,13 @@ export function normalizeSearchResults(content: unknown): SearchResultItem[] | n
       }
     }
     const parsed = parseNumberedText(trimmed);
-    return parsed.length > 0 ? parsed : null;
+    // A bare numbered list is ambiguous: real search output (google_search)
+    // always pairs each entry with a URL line, whereas plain numbered prose
+    // ("1. Preheat oven\n2. Mix flour") never does. Only treat it as search
+    // results when at least one entry carries a URL, so ordinary numbered text
+    // isn't rendered as search-result cards.
+    const hasUrl = parsed.some((item) => item.url);
+    return parsed.length > 0 && hasUrl ? parsed : null;
   }
 
   if (Array.isArray(content)) {

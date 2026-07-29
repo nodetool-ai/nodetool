@@ -30,25 +30,20 @@ import {
   colorValueToVec4,
   floatProp,
   intProp,
+  num,
   premultiplyVec4,
   runShaderNode,
   type RunShaderOptions
 } from "./lib-shader-utils.js";
-import { decodeRgba } from "./image-io.js";
+import { imageDimensions } from "./image-io.js";
 import { tagAsBrowserGpu, tagAsContentCard } from "@nodetool-ai/nodes-utils";
 
-function num(value: unknown, fallback: number): number {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-function vec4From(value: unknown, fallback: [number, number, number, number]): ReturnType<typeof d.vec4f> {
-  const [r, g, b, a] = colorValueToVec4(value, fallback);
-  return d.vec4f(r, g, b, a);
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }
 
 /**
- * Same as {@link vec4From} but premultiplies the alpha into RGB before
+ * Convert a colour value to a vec4f, premultiplying the alpha into RGB before
  * packing. Use when handing a colour to a shader whose param contract
  * expects premultiplied (e.g. `transform.pad@1`'s `color`).
  */
@@ -65,7 +60,7 @@ async function imageDims(
   ctx?: ProcessingContext
 ): Promise<{ width: number; height: number } | null> {
   if (!image) return null;
-  const { width, height } = await decodeRgba(image, ctx);
+  const { width, height } = await imageDimensions(image, ctx);
   if (!width || !height) return null;
   return { width, height };
 }
@@ -161,8 +156,10 @@ class TileNode extends BaseNode {
     const output = await runShaderNode(
       transformTileV1,
       {
-        tilesX: num(props.tiles_x, 2),
-        tilesY: num(props.tiles_y, 2),
+        // Prop metadata caps tiles at [1, 32]; clamp so an out-of-range wire
+        // value can't reach the shader as a zero/negative or runaway count.
+        tilesX: clamp(Math.round(num(props.tiles_x, 2)), 1, 32),
+        tilesY: clamp(Math.round(num(props.tiles_y, 2)), 1, 32),
         wrap: num(props.wrap, 1)
       },
       props.image,

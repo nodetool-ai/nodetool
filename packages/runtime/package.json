@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/runtime",
-  "version": "0.7.0-rc.29",
+  "version": "0.7.0-rc.32",
   "description": "Processing context, message queue, and output normalization",
   "type": "module",
   "engines": {
@@ -27,11 +27,11 @@
     "@opentelemetry/semantic-conventions": "^1.40.0",
     "@pydantic/genai-prices": "^0.0.69",
     "js-tiktoken": "^1.0.21",
+    "msgpackr": "^1.11.2",
     "openai": "^6.35.0",
     "replicate": "^1.4.0",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.3",
     "ws": "^8.19.0",
-    "msgpackr": "^1.11.2",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -42,10 +42,14 @@
     "vitest": "^4.1.2"
   },
   "peerDependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.3.190"
+    "@anthropic-ai/claude-agent-sdk": "^0.3.190",
+    "node-llama-cpp": "^3.0.0"
   },
   "peerDependenciesMeta": {
     "@anthropic-ai/claude-agent-sdk": {
+      "optional": true
+    },
+    "node-llama-cpp": {
       "optional": true
     }
   },
@@ -91,6 +95,13 @@
       "types": "./dist/zod-schema.d.ts",
       "import": "./dist/zod-schema.js",
       "default": "./dist/zod-schema.js"
+    },
+    "./providers/aki-manifest.json": "./dist/providers/aki-manifest.json",
+    "./google": {
+      "nodetool-dev": "./src/google/index.ts",
+      "types": "./dist/google/index.d.ts",
+      "import": "./dist/google/index.js",
+      "default": "./dist/google/index.js"
     }
   },
   "license": "MIT",
@@ -109,5 +120,19 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "llm",
+    "llm-providers",
+    "openai",
+    "anthropic",
+    "gemini",
+    "ollama",
+    "inference"
   ]
 }

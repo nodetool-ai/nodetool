@@ -51,7 +51,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | Meshy AI | | | | | | | ✅ |
 | Rodin AI | | | | | | | ✅ |
 
-¹ Chat only for a short gateway list (GPT-5.5, Claude Opus/Sonnet/Haiku 4.x, Gemini 3.1 Pro) — most kie.ai models are image, video, or audio.
+¹ Chat only for a short gateway list (GPT-5.5, Claude Opus 4.6, Claude Sonnet 4.6, Claude Haiku 4.5, Gemini 3.1 Pro, Gemini 3 Flash) — most kie.ai models are image, video, or audio.
 ² Text-to-video only; no image-to-video.
 ³ Via a dedicated Speech-to-Text node, not the generic ASR picker.
 ⁴ Upscale and enhancement, not text-to-image generation.
@@ -118,7 +118,7 @@ Codex reaches GPT chat models and GPT-Image 2 generation through your logged-in 
 
 ## Claude Agent SDK
 
-Claude Agent SDK reaches Claude by spawning your local, logged-in `claude` CLI instead of calling the Anthropic API directly, billing against your Claude subscription rather than per-token API spend. It supports tool calls through an in-process MCP bridge; images in the prompt are not forwarded to the CLI, so vision input doesn't work through this path. No API key — requires the `claude` CLI installed and logged in. See the [Anthropic provider guide](developer/providers/anthropic.md#claudeagentprovider-separate-path).
+Claude Agent SDK reaches Claude by spawning your local, logged-in `claude` CLI instead of calling the Anthropic API directly, billing against your Claude subscription rather than per-token API spend. It supports tool calls through an in-process MCP bridge; images in the prompt are not forwarded to the CLI, so vision input doesn't work through this path. No API key — requires the `claude` CLI installed and logged in. See the [Anthropic provider guide](developer/providers/anthropic.md).
 
 ## Evolink
 
@@ -126,7 +126,7 @@ Evolink is an OpenAI/Anthropic-compatible gateway: one key for GPT, Claude, Gemi
 
 ## kie.ai
 
-kie.ai is a multi-model aggregator: manifest-driven image, video, TTS, and music models (Seedance, Runway, Wan, Kling, FLUX.2, Suno, and more), plus chat for a short list of gateway models (GPT-5.5, Claude Opus/Sonnet/Haiku 4.x, Gemini 3.1 Pro). One key covers all of it, often at a lower price than the upstream provider directly. Cloud only, keyed by `KIE_API_KEY`. See the [KIE provider guide](developer/providers/kie.md).
+kie.ai is a multi-model aggregator: manifest-driven image, video, TTS, and music models (Seedance, Runway, Wan, Kling, FLUX.2, Suno, and more), plus chat for a short list of gateway models (GPT-5.5, Claude Opus 4.6, Claude Sonnet 4.6, Claude Haiku 4.5, Gemini 3.1 Pro, Gemini 3 Flash). One key covers all of it, often at a lower price than the upstream provider directly. Cloud only, keyed by `KIE_API_KEY`. See the [KIE provider guide](developer/providers/kie.md).
 
 ## AKI
 
@@ -230,6 +230,14 @@ nodetool secrets get OPENAI_API_KEY     # print a stored value
 Or set the variable directly in `.env.development.local` (or your shell environment) — environment variables always take precedence over stored secrets. See [Configuration](configuration.md) for the full load order.
 
 Local providers (Ollama, vLLM, LM Studio, llama.cpp) don't need a key — point NodeTool at the server's URL instead, either in Settings → Providers or via the matching `*_URL` environment variable.
+
+## Tracking spend
+
+Every cloud call records its token counts and cost. The **Costs** page (`/costs`, or **Costs** in the app menu) aggregates them by day, provider, model, and workflow, so you can see which pipeline is expensive before the invoice does.
+
+![Costs dashboard](assets/screenshots/costs-dashboard.png)
+
+The same records are readable from the terminal with `nodetool costs summary`.
 
 ## Adding a new provider
 

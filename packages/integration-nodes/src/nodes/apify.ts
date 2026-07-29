@@ -1,7 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
-// Constants
 const DEFAULT_PAGE_FUNCTION =
   "async function pageFunction(context) { return context.request.loadedUrl; }";
 const MIN_RESULTS_PER_PAGE = 10;
@@ -59,9 +58,6 @@ async function runActor(
   return (await datasetResponse.json()) as Record<string, unknown>[];
 }
 
-// ---------------------------------------------------------------------------
-// 1. ApifyWebScraper
-// ---------------------------------------------------------------------------
 export class ApifyWebScraperNode extends BaseNode {
   static readonly nodeType = "apify.scraping.ApifyWebScraper";
   static readonly title = "Apify Web Scraper";
@@ -140,9 +136,6 @@ export class ApifyWebScraperNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// 2. ApifyGoogleSearchScraper
-// ---------------------------------------------------------------------------
 export class ApifyGoogleSearchScraperNode extends BaseNode {
   static readonly nodeType = "apify.scraping.ApifyGoogleSearchScraper";
   static readonly title = "Apify Google Search Scraper";
@@ -232,9 +225,6 @@ export class ApifyGoogleSearchScraperNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// 3. ApifyInstagramScraper
-// ---------------------------------------------------------------------------
 export class ApifyInstagramScraperNode extends BaseNode {
   static readonly nodeType = "apify.scraping.ApifyInstagramScraper";
   static readonly title = "Apify Instagram Scraper";
@@ -324,9 +314,6 @@ export class ApifyInstagramScraperNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// 4. ApifyAmazonScraper
-// ---------------------------------------------------------------------------
 export class ApifyAmazonScraperNode extends BaseNode {
   static readonly nodeType = "apify.scraping.ApifyAmazonScraper";
   static readonly title = "Apify Amazon Scraper";
@@ -416,9 +403,6 @@ export class ApifyAmazonScraperNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// 5. ApifyYouTubeScraper
-// ---------------------------------------------------------------------------
 export class ApifyYouTubeScraperNode extends BaseNode {
   static readonly nodeType = "apify.scraping.ApifyYouTubeScraper";
   static readonly title = "Apify You Tube Scraper";
@@ -526,9 +510,6 @@ export class ApifyYouTubeScraperNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// 6. ApifyTwitterScraper
-// ---------------------------------------------------------------------------
 export class ApifyTwitterScraperNode extends BaseNode {
   static readonly nodeType = "apify.scraping.ApifyTwitterScraper";
   static readonly title = "Apify Twitter Scraper";
@@ -625,9 +606,6 @@ export class ApifyTwitterScraperNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// 7. ApifyLinkedInScraper
-// ---------------------------------------------------------------------------
 export class ApifyLinkedInScraperNode extends BaseNode {
   static readonly nodeType = "apify.scraping.ApifyLinkedInScraper";
   static readonly title = "Apify Linked In Scraper";
@@ -715,9 +693,6 @@ export class ApifyLinkedInScraperNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Export
-// ---------------------------------------------------------------------------
 export const APIFY_NODES = tagAsServer([
   ApifyWebScraperNode,
   ApifyGoogleSearchScraperNode,

@@ -9,6 +9,7 @@ import {
 import {
   applyBuiltinPackEnabled,
   applyCloudNodePolicy,
+  mergePythonBridgeMetadata,
   registerBuiltInNodes
 } from "../src/node-registry-setup.js";
 
@@ -22,6 +23,9 @@ describe("registerBuiltInNodes", () => {
     // Throws if a catalog id has no registrar.
     registerBuiltInNodes(registry, { enabledOverrides: allEnabled() });
     expect(registry.list().length).toBeGreaterThan(0);
+    expect(registry.listNodePackageIds()).toEqual(
+      expect.arrayContaining(["base", "elevenlabs"])
+    );
   });
 
   it("only registers required and default-enabled packs out of the box", () => {
@@ -36,6 +40,9 @@ describe("registerBuiltInNodes", () => {
       .list()
       .filter((t) => t.startsWith("elevenlabs."));
     expect(elevenlabsTypes.length).toBeGreaterThan(0);
+    for (const nodeType of elevenlabsTypes) {
+      expect(everything.getNodePackageId(nodeType)).toBe("elevenlabs");
+    }
     for (const t of elevenlabsTypes) {
       expect(defaults.has(t)).toBe(false);
     }
@@ -119,6 +126,89 @@ describe("applyBuiltinPackEnabled", () => {
   });
 });
 
+describe("mergePythonBridgeMetadata", () => {
+  it("adds bridge-only Python nodes with current dynamic and streaming flags", () => {
+    const registry = new NodeRegistry();
+    const beforeRevision = registry.revision;
+
+    const result = mergePythonBridgeMetadata(registry, [
+      {
+        node_type: "python.dynamic.Streamer",
+        title: "Python Streamer",
+        description: "Bridge-only test node",
+        properties: [
+          {
+            name: "items",
+            type: { type: "list", type_args: [{ type: "image" }] }
+          }
+        ],
+        outputs: [
+          {
+            name: "output",
+            type: { type: "image", type_args: [] }
+          }
+        ],
+        required_settings: ["PYTHON_TEST_TOKEN"],
+        recommended_models: [],
+        is_dynamic: true,
+        is_streaming_input: true,
+        is_streaming_output: true
+      }
+    ]);
+
+    expect(result).toEqual({ total: 1, bridgeOnly: 1, alreadyKnown: 0 });
+    expect(registry.revision).toBeGreaterThan(beforeRevision);
+    expect(registry.getMetadata("python.dynamic.Streamer")).toMatchObject({
+      namespace: "python.dynamic",
+      supports_dynamic_inputs: true,
+      supports_dynamic_outputs: false,
+      is_streaming_input: true,
+      is_streaming_output: true,
+      required_settings: ["PYTHON_TEST_TOKEN"],
+      properties: [
+        {
+          name: "items",
+          type: { type: "list", type_args: [{ type: "image" }] }
+        }
+      ]
+    });
+    expect(registry.getMetadataSource("python.dynamic.Streamer")).toBe(
+      "python-bridge"
+    );
+  });
+
+  it("does not overwrite metadata already in the registry", () => {
+    const registry = new NodeRegistry();
+    registry.loadMetadata("shared.Node", {
+      title: "Authoritative TypeScript node",
+      description: "",
+      namespace: "shared",
+      node_type: "shared.Node",
+      properties: [],
+      outputs: []
+    });
+    const beforeRevision = registry.revision;
+
+    const result = mergePythonBridgeMetadata(registry, [
+      {
+        node_type: "shared.Node",
+        title: "Python copy",
+        description: "",
+        properties: [],
+        outputs: [],
+        required_settings: []
+      }
+    ]);
+
+    expect(result).toEqual({ total: 1, bridgeOnly: 0, alreadyKnown: 1 });
+    expect(registry.revision).toBe(beforeRevision);
+    expect(registry.getMetadata("shared.Node")?.title).toBe(
+      "Authoritative TypeScript node"
+    );
+    expect(registry.getMetadataSource("shared.Node")).toBe("loaded-metadata");
+  });
+});
+
 describe("applyCloudNodePolicy", () => {
   const originalProfile = process.env[CLOUD_PROFILE_ENV];
   const originalEnv = process.env[NODE_ENV_VAR];
@@ -165,10 +255,15 @@ describe("applyCloudNodePolicy", () => {
     expect(remaining).toContain("nodetool.code.Code");
     expect(remaining).not.toContain("nodetool.code.ExecutePython");
     expect(remaining).not.toContain("nodetool.code.RunShellCommandDocker");
-    // …text is trimmed to the curated set…
+    // …the text namespace stays whole (toolkit + ASR + utilities)…
     expect(remaining).toContain("nodetool.text.Prompt");
-    expect(remaining).not.toContain("nodetool.text.RegexMatch");
-    expect(remaining).not.toContain("nodetool.text.CountTokens");
+    expect(remaining).toContain("nodetool.text.RegexMatch");
+    expect(remaining).toContain("nodetool.text.CountTokens");
+    expect(remaining).toContain("nodetool.text.AutomaticSpeechRecognition");
+    // …except the host-filesystem text nodes, which are denied…
+    expect(remaining).not.toContain("nodetool.text.LoadTextFolder");
+    expect(remaining).not.toContain("nodetool.text.SaveText");
+    expect(remaining).not.toContain("nodetool.text.SaveTextFile");
     // …while the creative media core stays.
     expect(remaining.some((t) => t.startsWith("nodetool.image."))).toBe(true);
     expect(remaining.some((t) => t.startsWith("nodetool.audio."))).toBe(true);

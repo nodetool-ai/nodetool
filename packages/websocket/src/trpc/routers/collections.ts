@@ -18,15 +18,18 @@ import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { notifyResourceChange } from "../../resource-events.js";
 import {
+  OWNER_METADATA_KEY,
+  canAccessCollection,
+  stripReservedMetadata,
+  validateCollectionName
+} from "../../lib/collection-access.js";
+import {
   listOutput,
-  getInput,
   collectionResponse,
   createInput,
   updateInput,
   deleteInput,
-  deleteOutput,
-  queryInput,
-  queryOutput
+  deleteOutput
 } from "@nodetool-ai/protocol/api-schemas/collections.js";
 
 /**
@@ -70,55 +73,91 @@ function rethrowAsTrpc(err: unknown): never {
   throw err;
 }
 
+/**
+ * Load a collection the caller is allowed to touch.
+ *
+ * A collection owned by someone else answers NOT_FOUND rather than FORBIDDEN:
+ * FORBIDDEN would confirm the name exists, turning this into an oracle for
+ * enumerating other users' collection names.
+ */
+async function loadAccessibleCollection(name: string, userId: string) {
+  const provider = getDefaultVectorProvider();
+  let collection;
+  try {
+    collection = await provider.getCollection({ name });
+  } catch (err) {
+    rethrowAsTrpc(err);
+  }
+  if (!canAccessCollection(normalizeMetadata(collection.metadata), userId)) {
+    throwApiError(ApiErrorCode.NOT_FOUND, "Collection not found");
+  }
+  return collection;
+}
+
+/** Whether a collection with this name is present, regardless of owner. */
+async function collectionExists(
+  provider: ReturnType<typeof getDefaultVectorProvider>,
+  name: string
+): Promise<boolean> {
+  try {
+    await provider.getCollection({ name });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Reject a name that is malformed, before it reaches the provider. */
+function assertValidName(name: string): void {
+  const error = validateCollectionName(name);
+  if (error) {
+    throwApiError(ApiErrorCode.INVALID_INPUT, error);
+  }
+}
+
 export const collectionsRouter = router({
-  list: protectedProcedure.output(listOutput).query(async () => {
+  list: protectedProcedure.output(listOutput).query(async ({ ctx }) => {
     const provider = getDefaultVectorProvider();
     const collections = await provider.listCollections();
 
-    const results = await Promise.all(
+    // Resolve each collection independently: a single failing/racing entry
+    // (e.g. one deleted between listCollections() and getCollection(), raising
+    // CollectionNotFoundError) must not 500 the whole listing and hide every
+    // healthy collection. Skip the failures instead.
+    const settled = await Promise.all(
       collections.map(async (info) => {
-        const collection = await provider.getCollection({ name: info.name });
-        const count = await collection.count();
-        const metadata = normalizeMetadata(info.metadata);
-        const workflowName = await resolveWorkflowName(
-          typeof metadata.workflow === "string" ? metadata.workflow : undefined
-        );
-        return {
-          name: info.name,
-          count,
-          metadata,
-          workflow_name: workflowName
-        };
+        try {
+          const metadata = normalizeMetadata(info.metadata);
+          // Filter before counting: another user's collection must not even
+          // leak its size through this listing.
+          if (!canAccessCollection(metadata, ctx.userId)) return null;
+          const collection = await provider.getCollection({ name: info.name });
+          const count = await collection.count();
+          const workflowName = await resolveWorkflowName(
+            typeof metadata.workflow === "string"
+              ? metadata.workflow
+              : undefined
+          );
+          return { name: info.name, count, metadata, workflow_name: workflowName };
+        } catch {
+          return null;
+        }
       })
     );
+    const results = settled.filter((r): r is NonNullable<typeof r> => r !== null);
 
     return { collections: results, count: results.length };
   }),
 
-  get: protectedProcedure
-    .input(getInput)
-    .output(collectionResponse)
-    .query(async ({ input }) => {
-      const provider = getDefaultVectorProvider();
-      try {
-        const collection = await provider.getCollection({ name: input.name });
-        const count = await collection.count();
-        return {
-          name: collection.name,
-          metadata: normalizeMetadata(collection.metadata),
-          count
-        };
-      } catch (err) {
-        rethrowAsTrpc(err);
-      }
-    }),
-
   create: protectedProcedure
     .input(createInput)
     .output(collectionResponse)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      assertValidName(input.name);
       const provider = getDefaultVectorProvider();
-      const metadata: ProviderCollectionMetadata = {};
+      const metadata: ProviderCollectionMetadata = {
+        [OWNER_METADATA_KEY]: ctx.userId
+      };
       if (input.embedding_model) {
         metadata.embedding_model = input.embedding_model;
       }
@@ -126,10 +165,25 @@ export const collectionsRouter = router({
         metadata.embedding_provider = input.embedding_provider;
       }
 
-      const collection = await provider.createCollection({
-        name: input.name,
-        metadata
-      });
+      // Names are globally unique in the store (`vec_collections.name` carries
+      // a UNIQUE constraint), so a duplicate surfaces as a driver-level
+      // constraint error. Answer ALREADY_EXISTS rather than letting the raw
+      // SQL message reach the client.
+      let collection;
+      try {
+        collection = await provider.createCollection({
+          name: input.name,
+          metadata
+        });
+      } catch (err) {
+        if (await collectionExists(provider, input.name)) {
+          throwApiError(
+            ApiErrorCode.ALREADY_EXISTS,
+            `Collection ${input.name} already exists`
+          );
+        }
+        throw err;
+      }
 
       notifyResourceChange({
         event: "created",
@@ -147,22 +201,45 @@ export const collectionsRouter = router({
   update: protectedProcedure
     .input(updateInput)
     .output(collectionResponse)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const provider = getDefaultVectorProvider();
-      let collection;
-      try {
-        collection = await provider.getCollection({ name: input.name });
-      } catch (err) {
-        rethrowAsTrpc(err);
-      }
+      const collection = await loadAccessibleCollection(
+        input.name,
+        ctx.userId
+      );
 
       const existing = normalizeMetadata(collection.metadata);
-      const merged: ProviderCollectionMetadata = { ...existing };
-      if (input.metadata) {
-        Object.assign(merged, input.metadata);
+      // Client metadata is merged with the server-owned keys stripped, then
+      // ownership is restored from server state — otherwise a caller could
+      // rewrite `owner_user_id` and take over (or give away) a collection.
+      // An unowned legacy collection stays unowned: stamping the first user to
+      // edit it as the owner would silently lock every other user out of a
+      // collection they had been sharing.
+      const merged: ProviderCollectionMetadata = {
+        ...existing,
+        ...stripReservedMetadata(input.metadata)
+      };
+      const owner = existing[OWNER_METADATA_KEY];
+      if (typeof owner === "string" && owner) {
+        merged[OWNER_METADATA_KEY] = owner;
+      } else {
+        delete merged[OWNER_METADATA_KEY];
       }
 
       const newName = input.rename ?? collection.name;
+      if (newName !== collection.name) {
+        assertValidName(newName);
+        // Renaming onto a name already in use would hit the store's UNIQUE
+        // constraint; check first so the caller gets ALREADY_EXISTS instead of
+        // a driver error, and so a rename cannot be used to probe for another
+        // user's collection names by error type.
+        if (await collectionExists(provider, newName)) {
+          throwApiError(
+            ApiErrorCode.ALREADY_EXISTS,
+            `Collection ${newName} already exists`
+          );
+        }
+      }
       await collection.modify({ name: newName, metadata: merged });
 
       notifyResourceChange({
@@ -182,8 +259,11 @@ export const collectionsRouter = router({
   delete: protectedProcedure
     .input(deleteInput)
     .output(deleteOutput)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const provider = getDefaultVectorProvider();
+      // Ownership is checked before the delete, not after — deleteCollection
+      // is irreversible.
+      await loadAccessibleCollection(input.name, ctx.userId);
       try {
         await provider.deleteCollection(input.name);
       } catch (err) {
@@ -195,36 +275,5 @@ export const collectionsRouter = router({
         resource: { id: input.name }
       });
       return { message: `Collection ${input.name} deleted successfully` };
-    }),
-
-  query: protectedProcedure
-    .input(queryInput)
-    .output(queryOutput)
-    .query(async ({ input }) => {
-      const provider = getDefaultVectorProvider();
-      let collection;
-      try {
-        collection = await provider.getCollection({ name: input.name });
-      } catch (err) {
-        rethrowAsTrpc(err);
-      }
-
-      const ids: string[][] = [];
-      const documents: (string | null)[][] = [];
-      const metadatas: (Record<string, unknown> | null)[][] = [];
-      const distances: number[][] = [];
-
-      for (const text of input.query_texts) {
-        const matches = await collection.query({
-          text,
-          topK: input.n_results
-        });
-        ids.push(matches.map((m) => m.id));
-        documents.push(matches.map((m) => m.document));
-        metadatas.push(matches.map((m) => m.metadata));
-        distances.push(matches.map((m) => m.distance));
-      }
-
-      return { ids, documents, metadatas, distances };
     })
 });

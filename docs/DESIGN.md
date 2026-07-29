@@ -21,15 +21,22 @@ Single reference for every design token and visual rule in NodeTool. All fronten
 (oxlint) can't express the design-token AST checks, so they run through ESLint
 as a dedicated gate: `web/eslint.design.config.mjs` (rules shared from
 `web/eslint.design.mjs`) is invoked by `npm run lint:design` and chained into
-the root `npm run lint`. `lint:design` also runs `web/scripts/lint-spacing-css.mjs`
-and `web/scripts/lint-font-color-css.mjs`, which extend the spacing, font-size,
-and color rules to plain `.css` files (ESLint only parses `.ts`/`.tsx`).
+the root `npm run lint`. `lint:design` also runs `web/scripts/lint-spacing-css.mjs`,
+`web/scripts/lint-font-color-css.mjs`, and `web/scripts/lint-radius-css.mjs`, which
+extend the spacing, font-size, color, and border-radius rules to plain `.css` files
+(ESLint only parses `.ts`/`.tsx`).
 **Spacing** (`padding`/`margin`/`gap`), **`fontWeight`**, **font size**
-(`design-tokens/font-size-tokens`), and **color** (`design-tokens/color-tokens`)
-have reached zero violations and are promoted to **`error`** to lock them in —
-new raw px/rem font sizes or raw hex/rgb colors fail the gate. The remaining
-categories (`borderRadius`, `zIndex`, `transition`/`MOTION`, raw-MUI imports) are
-still **warnings**; promote each to `error` the same way as it reaches zero.
+(`design-tokens/font-size-tokens`), **color** (`design-tokens/color-tokens`),
+**border radius** (`design-tokens/border-radius-tokens`), raw-MUI imports
+(`design-tokens/no-raw-mui`), and **ui_primitives barrel imports**
+(`no-restricted-imports` — deep `.../ui_primitives/Foo` paths must go through the
+barrel) have reached zero violations and are promoted to **`error`** to lock them
+in — a new raw px/rem font size, raw hex/rgb color, magic/`var(--rounded-*)` radius,
+or deep primitive import fails the gate. **Motion** (`transition`/`animation`
+timing, via `design-tokens/motion-tokens` in TSX and `scripts/lint-motion-css.mjs`
+in `.css`) and **`zIndex`** (`design-tokens/zindex-tokens` — object-literal
+`zIndex` magic integers) are also migrated and locked at **`error`**. All design-token
+categories are now at zero violations and enforced.
 
 The font-size and color rules are custom (like spacing) so they catch raw values
 inside `styled`/`css` template literals, not just object literals. The color rule
@@ -433,6 +440,10 @@ borderRadius: `${BORDER_RADIUS.sm} ${BORDER_RADIUS.sm} 0 0`
 
 Magic numbers: `1`, `3`, `4`, `7`, `10`, `18`, `20`. Raw `"var(--rounded-*)"` string literals in TSX where a `BORDER_RADIUS` constant or `theme.rounded.*` key exists (plain `.css` files use the vars — that's what they're for). For circles, use `BORDER_RADIUS.circle` not `"50%"`.
 
+### Enforcement (border radius is fully linted)
+
+Zero violations — locked in at **`error`**. In TSX, `design-tokens/border-radius-tokens` flags any object-literal `borderRadius` that is a magic number, a raw `Npx` string, or a raw `var(--rounded-*)` string; `0` (flush) is allowed. In plain `.css`, `scripts/lint-radius-css.mjs` flags any `border-radius` with a raw px/em/rem/% value (use `var(--rounded-*)`; `0` allowed). The one sanctioned raw value is `theme.shape.borderRadius` in `ThemeNodetool.tsx` — MUI's base multiplier, carrying a scoped `eslint-disable`.
+
 ---
 
 ## 5. Motion
@@ -462,6 +473,25 @@ import { MOTION, reducedMotion } from "../ui_primitives";
 | `MOTION.transform` | `transform 120ms ease` | Scale, translate, rotate |
 | `MOTION.opacity` | `opacity 150ms ease` | Fade in/out |
 | `MOTION.shadow` | `box-shadow 200ms ease` | Elevation changes |
+
+### Keyframe Loops
+
+Infinite `@keyframes` animations (spinners, pulsing indicators) run on their own
+timing — the sub-second `fast`/`normal`/`slow` tiers don't fit a 1–5s loop. Two
+tokens carry the duration + easing; compose them with the keyframe name and
+iteration.
+
+| Token | Value | Use |
+|---|---|---|
+| `MOTION.spin` | `1s linear` | Continuous rotation (loading spinners) |
+| `MOTION.pulse` | `2s ease-in-out` | Breathing / pulsing status indicators |
+
+{% raw %}
+```tsx
+sx={{ animation: `${spin} ${MOTION.spin} infinite` }}
+sx={{ animation: `${pulse} ${MOTION.pulse} infinite` }}
+```
+{% endraw %}
 
 ### Usage
 
@@ -521,6 +551,26 @@ Existing components that write `@media (prefers-reduced-motion: reduce)` raw sho
 
 Raw timing strings of any kind: `"200ms"`, `"0.2s ease-in-out"`, `"all 150ms linear"`. Compose from `MOTION.*` tokens. Raw `@media (prefers-reduced-motion: reduce) { … }` blocks in new code — use `reducedMotion()` instead.
 
+### Delays and staggers — the one carve-out
+
+The five MOTION tokens describe a *duration + easing* vocabulary; they cannot
+express a per-item **delay** or **stagger** offset. So functional delays — a
+`transitionDelay`, an `animationDelay`, or the delay slot of an `animation`
+shorthand (`${kf} ${MOTION.slow} 80ms backwards`) — are **not** tokenized. Keep
+the real millisecond value, but write it as an explicit numeric expression (a
+local const or an inline `` `${80}ms` ``) so it reads as data, not a magic
+timing string. The lint rule only governs the duration/easing vocabulary, so a
+delay expressed this way passes.
+
+A **bare** duration prop that has no easing to bundle (`transitionDuration`,
+`animationDuration`) can't take a `MOTION.*` token either (those include the
+easing). Use the matching `--motion-*` custom property instead —
+`transitionDuration: "var(--motion-normal)"`.
+
+### Enforcement (motion is fully linted at `error`)
+
+In TSX, `design-tokens/motion-tokens` flags any object-literal `transition` / `animation` / `transitionDuration` / `transitionDelay` / `animationDuration` / `animationDelay` whose value carries a non-zero `s`/`ms` timing, and any raw `transition` / `animation` timing inside `styled` / `css` template-literal CSS. In plain `.css`, `scripts/lint-motion-css.mjs` flags the same properties (and their `-duration` / `-delay` longhands); `.css` files use the `--motion-*` custom properties from `vars.css` (mirrors of the `MOTION.*` tiers). `0` / `0s` (no delay), keyword-only values (`none`), delays written as numeric expressions (see above), and values built from `MOTION.*` tokens / `var(--motion-*)` are allowed. Both are locked in at **`error`** (zero violations) — a new raw `s`/`ms` timing fails the gate. The `ui_primitives/` layer is exempt (it defines the tokens). Template-literal `@media (prefers-reduced-motion)` blocks (in `css\`\`` styled templates and plain `.css`) stay raw, since `reducedMotion()` is a JS object helper; object-css blocks use `reducedMotion()`.
+
 ---
 
 ## 6. Z-Index
@@ -563,12 +613,17 @@ Use via `theme.zIndex.*` when you need to co-ordinate with MUI framework compone
 | `theme.zIndex.popover` | 10001 | Primary popovers |
 | `theme.zIndex.autocomplete` | 10002 | Autocomplete menus |
 | `theme.zIndex.floating` | 10003 | Floating panels |
+| `theme.zIndex.floatingPanel` | 20000 | Draggable floating panels above editor content (node menu, asset viewer, find-in-workflow dialog) |
 | `theme.zIndex.popover2` | 99990 | Secondary popovers (above popover) |
 | `theme.zIndex.highest` | 100000 | Emergency top layer |
 
 ### Forbidden
 
 Arbitrary integers (`9999` in new component code, `1000`, `2`, `5`) outside of `Z_INDEX.*` or `theme.zIndex.*`.
+
+### Enforcement (z-index is fully linted at `error`)
+
+Zero violations — locked in at **`error`**. `design-tokens/zindex-tokens` flags any object-literal `zIndex` whose value is a positive number (or numeric string); `0` (normal flow) and negative values are allowed, as are values built from `Z_INDEX.*` / `theme.zIndex.*`. A few surfaces sit above the shared scale and have no matching tier (e.g. a full-screen compositor modal, the node-info panel); these use a documented module-level constant that preserves the exact stacking value — the rule accepts the named reference, and the constant name records intent. The `.css` surface is not linted (z-index rarely appears in the plain `.css` files); the check is TSX-only.
 
 ---
 
@@ -614,7 +669,7 @@ Pre-computed overscan counts for TanStack Virtual. Access via `theme.virtualScro
 Two helpers in `tokens.ts`. Use them instead of writing raw `::-webkit-scrollbar` CSS.
 
 ```tsx
-import { scrollbarStyles, thinScrollbarStyles } from "../ui_primitives/tokens";
+import { scrollbarStyles, thinScrollbarStyles } from "../ui_primitives";
 
 // Standard app scrollbar (10px wide, theme palette colors)
 css({
@@ -680,7 +735,7 @@ When editing any UI file, scan for these violations and fix them in the same PR.
 2. **Typography**: Do not add a ninth type style. Any new text hierarchy must collapse onto one of the eight existing combinations.
 3. **Color**: Add as a `c_*` key in **both** `paletteDark.ts` and `paletteLight.ts`. Document its semantic role in a comment.
 4. **Border radius**: Add a new `BORDER_RADIUS.*` entry in `tokens.ts` and a corresponding `--rounded-*` CSS var in `ThemeNodetool.tsx` `MuiCssBaseline`.
-5. **Motion**: If a new timing is needed, add to `MOTION` in `tokens.ts` as a named constant — never use the value inline. New animated components must also include a `reducedMotion()` override.
+5. **Motion**: If a new timing is needed, add to `MOTION` in `tokens.ts` as a named constant — never use the value inline. Transitions use the `fast`/`normal`/`slow` tiers or a property shorthand; infinite `@keyframes` loops use `MOTION.spin` (1s linear) / `MOTION.pulse` (2s ease-in-out) rather than a sub-second tier. New animated components must also include a `reducedMotion()` override.
 6. **Z-index**: Add to `Z_INDEX` in `tokens.ts` or to `theme.zIndex` in `ThemeNodetool.tsx`. Never use a raw integer.
 
 ---

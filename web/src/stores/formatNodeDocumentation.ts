@@ -20,12 +20,10 @@ export const formatNodeDocumentation = (
       .map((t) => t.trim())
       .filter(Boolean) || [];
 
-  // Find section indices
   const useCasesIndex = lines.findIndex((line) =>
     line.startsWith("Use cases:")
   );
 
-  // Extract use cases if present
   let useCasesRaw = "";
   let useCasesHtml = "";
   if (useCasesIndex !== -1) {
@@ -34,21 +32,17 @@ export const formatNodeDocumentation = (
       .slice(useCasesIndex + 1, endIndex)
       .filter((line) => line.trim());
 
-    // Check if we have bullet points
     const hasBullets = useCaseLines.some((line) => line.startsWith("-"));
 
     if (hasBullets) {
-      // Clean bullet points but keep as separate lines
       useCasesRaw = useCaseLines
         .filter((line) => line.startsWith("-"))
         .map((line) => line.replace(/^-\s*/, "").trim())
         .join("\n");
     } else {
-      // Join without bullets
       useCasesRaw = useCaseLines.join(" ");
     }
 
-    // Highlight the text
     if (searchTerm && searchInfo) {
       const highlighted = highlightTextUtil(
         useCasesRaw,

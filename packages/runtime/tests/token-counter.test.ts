@@ -36,6 +36,19 @@ describe("countTokens", () => {
     expect(countTokens(text)).toBeGreaterThan(4000);
   });
 
+  it("does not bisect surrogate pairs on a long astral-only run (#16)", () => {
+    // Regression: the hard-split by UTF-16 code units could cut a surrogate
+    // pair, turning one 4-byte emoji into two U+FFFD (3 bytes each) and
+    // overcounting. Count of a whole emoji string must equal an emoji-broken
+    // recount of the same content (no corruption at the 128-unit boundary).
+    const emojis = "\u{1F600}".repeat(200); // 200 astral chars, no whitespace
+    const offset = "a" + emojis; // shift by one code unit to hit mid-pair splits
+    // If a pair were split, the encoded byte stream would contain U+FFFD, which
+    // never appears in the clean input — assert the decoded round-trip is clean.
+    const truncated = truncateToTokens(offset, countTokens(offset));
+    expect(truncated).not.toContain("�");
+  });
+
   it(
     "handles a long unbroken run of identical characters without pathological slowdown",
     () => {

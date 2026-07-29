@@ -173,6 +173,23 @@ describe("encodeRawRgbaToPng without a working sharp", () => {
     }
   });
 
+  it("extractImageRegion keeps the source mime in the no-sharp pass-through (#16)", async () => {
+    // With sharp unavailable the bytes are returned un-re-encoded. Labeling
+    // them image/png when they are actually JPEG makes a vision provider reject
+    // the image — so the caller's known sourceMime must be preserved.
+    importHiddenImpl = async () => null; // sharp unavailable
+    const { extractImageRegion: extract } = await freshCodec();
+    const jpegBytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00]);
+    const out = await extract(jpegBytes, {
+      maxSide: 100,
+      sourceMime: "image/jpeg"
+    });
+    expect(out.width).toBe(0);
+    expect(out.height).toBe(0);
+    expect(out.mimeType).toBe("image/jpeg");
+    expect(Array.from(out.data)).toEqual(Array.from(jpegBytes));
+  });
+
   it("does not cache a rejected load attempt: a later working sharp succeeds", async () => {
     // First attempt: importHidden throws (addon broken) → loadSharp resolves
     // null → encode rejects (no Canvas) or falls back to Canvas.

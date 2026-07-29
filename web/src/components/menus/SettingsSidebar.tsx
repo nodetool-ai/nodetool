@@ -39,7 +39,20 @@ const SettingsSidebar = ({
     [onSectionClick]
   );
 
-  // Track open/closed state per folder category
+  const handleItemKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+      event.preventDefault();
+      const sectionId = event.currentTarget.dataset.sectionId;
+      if (sectionId) {
+        onSectionClick(sectionId);
+      }
+    },
+    [onSectionClick]
+  );
+
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>(() =>
     sections.reduce<Record<string, boolean>>((acc, section) => {
       acc[section.category] = !section.defaultCollapsed;
@@ -68,10 +81,14 @@ const SettingsSidebar = ({
     const owner = sections.find((s) =>
       s.items.some((item) => item.id === activeSection)
     );
-    if (owner && openFolders[owner.category] === false) {
-      setOpenFolders((prev) => ({ ...prev, [owner.category]: true }));
+    if (owner) {
+      setOpenFolders((prev) =>
+        prev[owner.category] === false
+          ? { ...prev, [owner.category]: true }
+          : prev
+      );
     }
-  }, [activeSection, sections, openFolders]);
+  }, [activeSection, sections]);
 
   const toggleFolder = useCallback((category: string) => {
     setOpenFolders((prev) => ({ ...prev, [category]: !prev[category] }));
@@ -150,7 +167,7 @@ const SettingsSidebar = ({
                     role="button"
                     tabIndex={0}
                     onClick={handleItemClick}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSectionClick(item.id); } }}
+                    onKeyDown={handleItemKeyDown}
                   >
                     {item.label}
                   </div>

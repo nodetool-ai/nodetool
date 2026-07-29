@@ -12,7 +12,7 @@ import type { NodeMetadata } from "./ApiTypes";
  * mounted doesn't silently create a node minutes later when the user
  * switches to an editor tab.
  */
-export interface PendingNodeCreateRequest {
+interface PendingNodeCreateRequest {
   metadata: NodeMetadata;
   requestedAt: number;
 }

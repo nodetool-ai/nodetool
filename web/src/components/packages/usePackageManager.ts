@@ -3,10 +3,8 @@
  *
  * Subscribes to the four package stores (runtimes, builtin packs, registry
  * packs, third-party packs), runs their fetch/console effects, and derives the
- * view model the UI renders: left-rail categories with counts, the right-pane
- * title/subtitle/count, status-filter chips with counts, and the filtered row
- * list. Mirrors the claude.ai/design `PackageManager.dc.html` template logic,
- * adapted to live data.
+ * view model the UI renders: left-rail categories with counts, right-pane
+ * title/subtitle/count, status-filter chips, and the filtered row list.
  */
 import { useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
@@ -36,6 +34,7 @@ const RUNTIME_GROUP: Record<string, "language" | "media" | "ai" | "agent"> = {
   "yt-dlp": "media",
   "transformers-js": "ai",
   "tensorflow-js": "ai",
+  "node-llama-cpp": "ai",
   tmux: "agent",
   claude: "agent"
 };
@@ -113,6 +112,9 @@ export interface PackageManagerModel {
   error: string | null;
   console: { lines: string[]; onClear: () => void; busy: boolean } | null;
   thirdPartyCount: number;
+  /** Bulk "update everything with an upgrade" action for the registry tab;
+   *  `null` when it doesn't apply (wrong tab, or nothing to update). */
+  bulkUpdate: { count: number; busy: boolean; onUpdateAll: () => void } | null;
 }
 
 /** Join the registry list with installed records by repo_id (see registry tab). */
@@ -217,6 +219,7 @@ export function usePackageManager(params: {
     pyInstall,
     pyUninstall,
     pyUpdate,
+    pyUpdateAll,
     pySubscribe,
     pyUnsubscribe,
     pyClear,
@@ -232,6 +235,7 @@ export function usePackageManager(params: {
       pyInstall: s.install,
       pyUninstall: s.uninstall,
       pyUpdate: s.update,
+      pyUpdateAll: s.updateAll,
       pySubscribe: s.subscribeConsole,
       pyUnsubscribe: s.unsubscribeConsole,
       pyClear: s.clearConsole,
@@ -343,7 +347,6 @@ export function usePackageManager(params: {
           { id: "thirdparty", label: "Third-party", count: thirdPartyPacks.length }
         ];
 
-    // Build the base list + rows for the active category.
     let rows: PMRow[] = [];
     let baseCount = 0;
     const chips: PMCount[] = [];
@@ -352,10 +355,34 @@ export function usePackageManager(params: {
       list: T[],
       defs: { id: string; label: string; pred: (item: T) => boolean }[]
     ) => {
-      for (const d of defs)
-        chips.push({ id: d.id, label: d.label, count: list.filter(d.pred).length });
-      const active = defs.find((d) => d.id === filter) ?? defs[0];
-      return list.filter(active.pred);
+      const counts = new Map<string, number>();
+      for (const d of defs) {
+        counts.set(d.id, 0);
+      }
+
+      const activeDef = defs.find((d) => d.id === filter) ?? defs[0];
+      const filtered: T[] = [];
+
+      for (const item of list) {
+        let isActiveMatch = false;
+        for (const d of defs) {
+          if (d.pred(item)) {
+            counts.set(d.id, (counts.get(d.id) ?? 0) + 1);
+            if (d.id === activeDef.id) {
+              isActiveMatch = true;
+            }
+          }
+        }
+        if (isActiveMatch) {
+          filtered.push(item);
+        }
+      }
+
+      for (const d of defs) {
+        chips.push({ id: d.id, label: d.label, count: counts.get(d.id) ?? 0 });
+      }
+
+      return filtered;
     };
 
     if (isSoftware) {
@@ -480,6 +507,19 @@ export function usePackageManager(params: {
           : null
         : null;
 
+    const updatableCount =
+      cat === "python"
+        ? pythonPacks.filter((p) => p.installed?.hasUpdate).length
+        : 0;
+    const bulkUpdate =
+      cat === "python" && pyAvailable && updatableCount > 0
+        ? {
+            count: updatableCount,
+            busy: pyBusy.length > 0,
+            onUpdateAll: () => void pyUpdateAll()
+          }
+        : null;
+
     return {
       isSoftware,
       isThirdParty,
@@ -494,7 +534,8 @@ export function usePackageManager(params: {
       notice,
       error: isSoftware ? rtError : cat === "python" ? pyError : builtinsError,
       console: consoleModel,
-      thirdPartyCount: thirdPartyPacks.length
+      thirdPartyCount: thirdPartyPacks.length,
+      bulkUpdate
     };
   }, [
     tab,
@@ -522,6 +563,7 @@ export function usePackageManager(params: {
     rtUninstall,
     pyInstall,
     pyUpdate,
+    pyUpdateAll,
     pyUninstall,
     selectInstallLocation,
     rtClear,

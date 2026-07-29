@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useCallback, memo } from "react";
+import React, { useState, useCallback, useEffect, useRef, memo } from "react";
 import { FlexRow, FlexColumn, ToolbarIconButton, Text, ScrollArea, SearchInput, NavButton, MOTION, BORDER_RADIUS, reducedMotion, Z_INDEX, SPACING, getSpacingPx } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -34,10 +34,27 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 }) => {
     const theme = useTheme();
     const [searchQuery, setSearchQuery] = useState("");
+    const searchInputRef = useRef<HTMLInputElement>(null);
 
     const handleSearchChange = useCallback((value: string) => {
         setSearchQuery(value);
     }, []);
+
+    // ⌘K / Ctrl+K focuses the thread search while the sidebar is open.
+    useEffect(() => {
+        if (!isOpen) {
+            return;
+        }
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+                event.preventDefault();
+                searchInputRef.current?.focus();
+                searchInputRef.current?.select();
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isOpen]);
 
     const handleOpen = useCallback(() => {
         onOpenChange(true);
@@ -60,7 +77,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         [onSelectThread]
     );
 
-    // Filter threads based on search query
     const filteredThreads = React.useMemo(() => {
         if (!searchQuery.trim()) {
             return threads;
@@ -164,25 +180,17 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     }}
                 >
                     <FlexRow align="baseline" gap={1} sx={{ pl: 0.5, minWidth: 0 }}>
-                        <Text
-                            size="tiny"
-                            weight={500}
-                            sx={{
-                                color: theme.vars.palette.grey[400],
-                                textTransform: "uppercase",
-                                letterSpacing: "0.08em"
-                            }}
-                        >
+                        <Text size="smaller" weight={500}
+                        sx={{
+                            color: theme.vars.palette.grey[400],
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em"
+                        }}>
                             Conversations
                         </Text>
                         {threadCount > 0 && (
-                            <Text
-                                size="tiny"
-                                weight={500}
-                                sx={{ color: theme.vars.palette.grey[600] }}
-                            >
-                                {threadCount}
-                            </Text>
+                            <Text size="smaller" weight={500}
+                            sx={{ color: theme.vars.palette.grey[600] }}>{threadCount}</Text>
                         )}
                     </FlexRow>
                     <ToolbarIconButton
@@ -226,30 +234,32 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         }}
                     >
                         <SearchInput
+                            ref={searchInputRef}
                             placeholder="Search threads..."
                             value={searchQuery}
                             onChange={handleSearchChange}
                             fullWidth
-                            showClear={false}
                         />
-                        <Text
-                            aria-hidden
-                            size="tinyer"
-                            sx={{
-                                position: "absolute",
-                                right: 8,
-                                top: "50%",
-                                transform: "translateY(-50%)",
-                                pointerEvents: "none",
-                                color: theme.vars.palette.grey[500],
-                                border: `1px solid ${theme.vars.palette.grey[700]}`,
-                                borderRadius: BORDER_RADIUS.xs,
-                                px: 0.5,
-                                lineHeight: 1.4
-                            }}
-                        >
-                            ⌘K
-                        </Text>
+                        {!searchQuery && (
+                            <Text
+                                aria-hidden
+                                size="smaller"
+                                sx={{
+                                    position: "absolute",
+                                    right: 8,
+                                    top: "50%",
+                                    transform: "translateY(-50%)",
+                                    pointerEvents: "none",
+                                    color: theme.vars.palette.grey[500],
+                                    border: `1px solid ${theme.vars.palette.grey[700]}`,
+                                    borderRadius: BORDER_RADIUS.xs,
+                                    px: 0.5,
+                                    lineHeight: 1.4
+                                }}
+                            >
+                                ⌘K
+                            </Text>
+                        )}
                     </FlexRow>
                     <NavButton
                         icon={<AddIcon sx={{ fontSize: "var(--fontSizeBig)" }} />}
@@ -277,6 +287,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         onSelectThread={handleSelectThread}
                         onDeleteThread={onDeleteThread}
                         getThreadPreview={getThreadPreview}
+                        isFiltered={searchQuery.trim().length > 0}
                     />
                 </ScrollArea>
             </FlexColumn>

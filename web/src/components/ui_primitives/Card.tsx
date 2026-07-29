@@ -9,6 +9,7 @@ import React, { memo, forwardRef } from "react";
 import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { MOTION } from "./tokens";
+import { activateOnKey } from "./keyboardActivation";
 
 export interface CardProps extends BoxProps {
   /** Padding size variant */
@@ -75,13 +76,6 @@ const CardInternal = forwardRef<HTMLDivElement, CardProps>(({
     ? padding 
     : PADDING_VARIANTS[padding];
 
-  const getBackgroundColor = () => {
-    if (variant === "elevated") {
-      return theme.vars.palette.background.paper;
-    }
-    return theme.vars.palette.background.paper;
-  };
-
   const getBorder = () => {
     if (variant === "outlined") {
       return `1px solid ${theme.vars.palette.divider}`;
@@ -91,7 +85,6 @@ const CardInternal = forwardRef<HTMLDivElement, CardProps>(({
 
   const getBoxShadow = () => {
     if (variant === "elevated" && elevation > 0) {
-      // Simple elevation shadow
       const shadowIntensity = Math.min(elevation / 24, 1);
       return `0 ${elevation}px ${elevation * 2}px rgba(0, 0, 0, ${0.2 * shadowIntensity})`;
     }
@@ -102,11 +95,21 @@ const CardInternal = forwardRef<HTMLDivElement, CardProps>(({
     <Box
       ref={ref}
       onClick={clickable ? onClick : undefined}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={
+        clickable
+          ? activateOnKey<HTMLDivElement>((event) => event.currentTarget.click())
+          : undefined
+      }
       sx={{
         padding: theme.spacing(paddingValue),
-        backgroundColor: getBackgroundColor(),
+        backgroundColor: theme.vars.palette.background.paper,
         border: getBorder(),
-        borderRadius: theme.shape.borderRadius,
+        // String token, not the numeric theme.shape.borderRadius: sx multiplies
+        // bare numbers by the theme radius (6 × 6 = 36px), which is what made
+        // cards balloon off-brand.
+        borderRadius: theme.rounded.md,
         boxShadow: getBoxShadow(),
         cursor: clickable ? "pointer" : undefined,
         transition: hoverable || clickable

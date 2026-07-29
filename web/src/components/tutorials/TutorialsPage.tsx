@@ -8,11 +8,12 @@ import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import Logo from "../Logo";
 import {
-  VideoPlayer,
-  EditorButton,
-  MOTION,
   BORDER_RADIUS,
-  getSpacingPx
+  EditorButton,
+  getSpacingPx,
+  MOTION,
+  SPACING,
+  VideoPlayer
 } from "../ui_primitives";
 import { TutorialCard } from "./TutorialCard";
 import { TUTORIALS, getTutorial } from "./tutorialsData";
@@ -103,7 +104,7 @@ const styles = (theme: Theme) =>
     ".tut-meta": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(1.25),
+      gap: theme.spacing(SPACING.sm),
       marginTop: getSpacingPx(5)
     },
     ".tut-meta .pill": {

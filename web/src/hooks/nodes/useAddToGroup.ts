@@ -4,13 +4,10 @@ import { NodeData } from "../../stores/NodeData";
 import { useIsGroupable } from "./useIsGroupable";
 import { useNodes, NodeContext } from "../../contexts/NodeContext";
 import { getGroupBounds } from "./getGroupBounds";
-import { shallow } from "zustand/shallow";
 
 export function useAddToGroup(): (nodesToAdd: Node<NodeData>[], parentNode?: Node<NodeData>) => void {
   const { isGroupable, isGroup } = useIsGroupable();
-  const { updateNode } = useNodes((state) => ({
-    updateNode: state.updateNode
-  }), shallow);
+  const updateNode = useNodes((state) => state.updateNode);
   const nodeContext = useContext(NodeContext);
 
   const addToGroup = useCallback(

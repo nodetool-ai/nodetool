@@ -7,6 +7,7 @@
  */
 
 import type { Edge, InputMode, OutputCorrelation } from "./graph.js";
+import type { NodeEffect } from "./platform.js";
 
 // ---------------------------------------------------------------------------
 // Media Refs
@@ -143,7 +144,9 @@ export function isBitmapImage(
 
 /** True when `value` is any in-flight image (raw-RGBA CPU buffer, GPU texture, or preview bitmap). */
 export function isInFlightImage(value: unknown): boolean {
-  return isRawRgbaImage(value) || isGpuTextureImage(value) || isBitmapImage(value);
+  return (
+    isRawRgbaImage(value) || isGpuTextureImage(value) || isBitmapImage(value)
+  );
 }
 
 export interface AudioRef {
@@ -246,6 +249,18 @@ export interface TimelineRef {
   /** Id of the persisted timeline sequence. */
   id?: string | null;
   /** Optional inline timeline document payload. */
+  data?: unknown;
+}
+
+/**
+ * Reference to a persisted script (text-owns-audio document), editable in the
+ * script editor and passable between workflow nodes.
+ */
+export interface ScriptRef {
+  type: "script";
+  /** Id of the persisted script. */
+  id?: string | null;
+  /** Optional inline script document payload. */
   data?: unknown;
 }
 
@@ -414,6 +429,8 @@ export interface Workflow {
   required_providers?: string[] | null;
   required_models?: string[] | null;
   html_app?: string | null;
+  /** App-builder document (Puck layout + bindings): `{ version, data }`. */
+  app_doc?: Record<string, unknown> | null;
   receive_clipboard?: boolean | null;
   access: string;
   created_at: string;
@@ -439,6 +456,7 @@ export interface WorkflowRequest {
   run_mode?: string | null;
   workspace_id?: string | null;
   html_app?: string | null;
+  app_doc?: Record<string, unknown> | null;
   thumbnail?: string | null;
   thumbnail_url?: string | null;
   receive_clipboard?: boolean | null;
@@ -633,18 +651,6 @@ export interface Message {
    * remove it from the toolbelt.
    */
   enable_read_only_search?: boolean | null;
-  agent_mode?: boolean | null;
-  /**
-   * When `agent_mode` is true, selects which planner the server uses:
-   * - `"multi"` — TaskPlanner builds a parallel task DAG (one LLM step per
-   *   task) and ParallelTaskExecutor runs them.
-   * - `"graph"` — GraphPlanner builds a workflow graph of nodes
-   *   (TextToImage, AgentStep, etc.) and AgentWorkflowRunner executes it.
-   *
-   * If omitted, the server picks a default ("graph" when a NodeRegistry is
-   * wired, otherwise "multi") for backward compatibility.
-   */
-  agent_planner?: "multi" | "graph" | null;
   /**
    * Per-message opt-in for long-term memory recall + extraction. When
    * `true`, the websocket session resolves a per-user, per-thread
@@ -653,7 +659,13 @@ export interface Message {
    * message even if the global env flag is set.
    */
   memory_enabled?: boolean | null;
-  help_mode?: boolean | null;
+  /**
+   * Context-specific system-prompt addendum supplied by the originating surface
+   * (e.g. the App Builder's build-an-app-UI guidance, an editor's assistant
+   * instructions). The server layers it after the base chat system prompt — it
+   * augments, never replaces. Omit for plain chat.
+   */
+  system_prompt?: string | null;
   agent_execution_id?: string | null;
   execution_event_type?: string | null;
   workflow_target?: string | null;
@@ -665,6 +677,51 @@ export interface Message {
    * headers (model, variation count, resolution) alongside the output assets.
    */
   media_generation?: MediaGenerationRequest | null;
+  /**
+   * What the user is looking at when they send the message. The server renders
+   * this into the system prompt so the agent knows which documents are open and
+   * which one has focus, and can pass their ids to the `ui_*` tools — every one
+   * of which requires an explicit document id rather than acting on whatever
+   * editor happens to be mounted.
+   */
+  ui_context?: UiContext | null;
+}
+
+/** A document open in the workspace, addressable by the `ui_*` tools. */
+export interface UiDocumentRef {
+  type: UiSurfaceType;
+  /**
+   * The document's id: `image_documents.id` for sketch, `timeline_sequences.id`
+   * for timeline, `storyboards.id`, `scripts.id`, `workflows.id` for
+   * `workflow`, and `applications.id` for `app`.
+   */
+  id: string;
+  title?: string | null;
+}
+
+export type UiSurfaceType =
+  | "workflow"
+  | "sketch"
+  | "timeline"
+  | "storyboard"
+  | "script"
+  | "app"
+  | "chat";
+
+export interface UiContext {
+  /** The surface the user is currently looking at. */
+  focused?: UiDocumentRef | null;
+  /** Every document open in the workspace, including the focused one. */
+  open?: UiDocumentRef[] | null;
+  /** What is selected inside the focused document, when anything is. */
+  selection?: {
+    node_ids?: string[] | null;
+    clip_ids?: string[] | null;
+    layer_ids?: string[] | null;
+    shot_ids?: string[] | null;
+    line_ids?: string[] | null;
+    component_ids?: string[] | null;
+  } | null;
 }
 
 export interface MessageCreateRequest {
@@ -747,15 +804,34 @@ export interface NodeMetadata {
   output_correlation?: Record<string, OutputCorrelation>;
   supports_dynamic_outputs: boolean;
   /**
+   * Types a user may pick for a dynamic input slot on this node. Unset means
+   * the full type palette.
+   */
+  allowed_dynamic_slot_types?: PropertyTypeMetadata[];
+  /**
    * Per-type cache lifetime for partial runs (seconds, or the `"forever"`
    * sentinel — never `Infinity`, which JSON-serializes to `null`). Only
    * consulted for Computed nodes; unset / `0` means never reuse.
    */
   cache_ttl?: number | "forever";
+  /**
+   * What running the node does to the world: "pure" (output depends only on
+   * inputs), "read" (reads external state, changes nothing), "write" (mutates
+   * observable state), "external" (leaves the system). Reactive runs — a
+   * mini-app slider drag, a live preview — may traverse "pure" and "read" only;
+   * anything else needs an explicit run. Absent is treated as "external".
+   */
+  effect?: NodeEffect;
   model_packs?: ModelPack[];
   fal_unit_pricing?: FalUnitPricing | null;
   /** When true, the node remains runnable but is hidden from default discovery. */
   deprecated?: boolean;
+  /**
+   * When true, the node is registered and runnable but filtered out of
+   * discovery UIs (palette, search) entirely — for internal nodes a user never
+   * adds by hand (e.g. agent-runner-inserted steps).
+   */
+  hidden?: boolean;
   /** Preferred replacement node_type when deprecated is true. */
   replaced_by?: string;
   /**
@@ -773,6 +849,16 @@ export interface IndexResponse {
 // Node (API transport shape)
 // ---------------------------------------------------------------------------
 
+/** API-transport form of a typed dynamic input slot declaration. */
+export interface DynamicSlotMetadata {
+  type: PropertyTypeMetadata;
+  description?: string;
+  default?: unknown;
+  required?: boolean;
+  min?: number;
+  max?: number;
+}
+
 export interface Node {
   id: string;
   parent_id?: string | null;
@@ -780,6 +866,7 @@ export interface Node {
   data?: unknown;
   ui_properties?: unknown;
   dynamic_properties?: Record<string, unknown>;
+  dynamic_inputs?: Record<string, DynamicSlotMetadata>;
   dynamic_outputs?: Record<string, PropertyTypeMetadata>;
   [key: string]: unknown;
 }
@@ -834,7 +921,36 @@ export interface RunJobRequest {
   env?: Record<string, unknown>;
   graph?: WorkflowGraph;
   explicit_types?: Record<string, string> | boolean;
+  /** Suppress provisional completed events and emit one terminal result snapshot. */
+  require_terminal_result?: boolean;
+  /** Additive execution relaxations. Omitted values preserve current behavior. */
+  execution_options?: RunJobExecutionOptions;
   resource_limits?: ResourceLimits | null;
+  /**
+   * The mini app this run belongs to, when it was started by one. Present only
+   * for app runs; the server checks the app's spend budget before creating the
+   * job and settles the ledger when it finishes.
+   */
+  application_id?: string | null;
+  /** Released version the run executes against; absent for a draft run. */
+  application_version?: number | null;
+  /**
+   * Wake-up payload for a trigger-driven run: the trigger node whose event
+   * started this job, the durable input's id (for idempotent ack), and the
+   * event payload itself. Present only for runs started by the trigger
+   * dispatcher; absent for interactive/live-test runs.
+   */
+  trigger_event?: {
+    node_id: string;
+    payload: unknown;
+    input_id: string;
+  } | null;
+}
+
+export interface RunJobExecutionOptions {
+  persistence?: "job" | "session";
+  event_detail?: "full" | "outputs" | "terminal";
+  asset_persistence?: "auto" | "temporary";
 }
 
 export interface ResourceLimits {
@@ -899,6 +1015,7 @@ export const PROVIDER_IDS = {
   OLLAMA: "ollama",
   LMSTUDIO: "lmstudio",
   LLAMA_CPP: "llama_cpp",
+  NODE_LLAMA_CPP: "node_llama_cpp",
   VLLM: "vllm",
   HUGGINGFACE: "huggingface",
   TRANSFORMERS_JS: "transformers_js",
@@ -941,6 +1058,57 @@ export const CODEX_CLIENT_VERSION = "0.124.0";
 /** Loopback port/path the Codex client's redirect URI is registered against. */
 export const CODEX_CALLBACK_PORT = 1455;
 export const CODEX_CALLBACK_PATH = "/auth/callback";
+
+/**
+ * Claude Code OAuth constants — the same public client and endpoints the
+ * `claude` CLI uses to sign in with a Claude subscription. Shared across
+ * packages so the login flow (`websocket`, `cli`) and the credential store
+ * (`runtime`) agree. The client is public: there is no client secret.
+ *
+ * The resulting tokens are written to the Claude Agent SDK's own credential
+ * file, so a NodeTool login and a `claude login` are interchangeable.
+ */
+export const CLAUDE_CODE_OAUTH_CLIENT_ID =
+  "9d1c250a-e61b-44d9-88ed-5944d1962f5e";
+/** Consumer sign-in page (claude.ai subscription accounts). */
+export const CLAUDE_CODE_OAUTH_AUTHORIZATION_URL =
+  "https://claude.com/cai/oauth/authorize";
+/** Console sign-in page (API-billed org accounts). */
+export const CLAUDE_CODE_OAUTH_CONSOLE_AUTHORIZATION_URL =
+  "https://platform.claude.com/oauth/authorize";
+export const CLAUDE_CODE_OAUTH_TOKEN_URL =
+  "https://platform.claude.com/v1/oauth/token";
+/**
+ * Redirect used when no loopback listener is reachable from the browser. The
+ * console shows the user a `<code>#<state>` string to paste back.
+ */
+export const CLAUDE_CODE_OAUTH_MANUAL_REDIRECT_URL =
+  "https://platform.claude.com/oauth/code/callback";
+/** Path the loopback listener serves; the port is ephemeral. */
+export const CLAUDE_CODE_CALLBACK_PATH = "/callback";
+/** Scopes requested at login. */
+export const CLAUDE_CODE_OAUTH_SCOPES = [
+  "org:create_api_key",
+  "user:profile",
+  "user:inference",
+  "user:sessions:claude_code",
+  "user:mcp_servers",
+  "user:file_upload"
+] as const;
+/**
+ * Scopes sent on refresh. Narrower than the login set — the CLI drops
+ * `org:create_api_key`, which is only needed to mint an API key at login.
+ */
+export const CLAUDE_CODE_OAUTH_REFRESH_SCOPES = [
+  "user:profile",
+  "user:inference",
+  "user:sessions:claude_code",
+  "user:mcp_servers",
+  "user:file_upload"
+] as const;
+/** Profile endpoint used to label the account (plan tier, email). */
+export const CLAUDE_CODE_OAUTH_PROFILE_URL =
+  "https://api.anthropic.com/api/oauth/profile";
 
 /**
  * Provider identifier. Resolves to a known {@link PROVIDER_IDS} value with
@@ -1014,6 +1182,9 @@ export interface ImageModel {
   provider: Provider;
   path?: string | null;
   supported_tasks?: string[];
+  /** Per-model option constraints derived from the provider manifest. */
+  resolutions?: string[] | null;
+  aspect_ratios?: string[] | null;
 }
 
 export interface TTSModel {

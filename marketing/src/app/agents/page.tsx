@@ -4,6 +4,9 @@ import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
+import FaqBlock from "../../components/FaqBlock";
+import JsonLd from "../../components/JsonLd";
+import { faqForSurface } from "../../data/faqEntries";
 
 const AgentsGraphHero = dynamic(() => import("../../components/agents/AgentsGraphHero"), {
   ssr: true,
@@ -58,33 +61,6 @@ export default function AgentsPage() {
   const parallaxRef = useRef<HTMLDivElement>(null);
   const reducedMotion = usePrefersReducedMotion();
 
-  // Global section fly-in using IntersectionObserver + CSS transitions
-  useEffect(() => {
-    if (reducedMotion) return;
-    const root = document.getElementById("content");
-    if (!root) return;
-    const sections = Array.from(root.querySelectorAll<HTMLElement>("section"));
-    sections.forEach((el, i) => {
-      el.classList.add("fly-in");
-      const delay = Math.min(i * 60, 300);
-      el.style.setProperty("--fly-delay", `${delay}ms`);
-    });
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const el = entry.target as HTMLElement;
-            el.classList.add("is-visible");
-            obs.unobserve(el);
-          }
-        });
-      },
-      { root: null, threshold: 0.12, rootMargin: "0px 0px -10% 0px" }
-    );
-    sections.forEach((el) => obs.observe(el));
-    return () => obs.disconnect();
-  }, [reducedMotion]);
-
   // Fetch GitHub stars
   useEffect(() => {
     fetch("https://api.github.com/repos/nodetool-ai/nodetool")
@@ -116,8 +92,21 @@ export default function AgentsPage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [reducedMotion]);
 
+  const agentFaqs = faqForSurface("agents");
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: agentFaqs.map((e) => ({
+      "@type": "Question",
+      name: e.question,
+      url: `https://nodetool.ai${e.route}`,
+      acceptedAnswer: { "@type": "Answer", text: e.description },
+    })),
+  };
+
   return (
     <main className="relative min-h-screen overflow-hidden text-white">
+      <JsonLd data={faqSchema} />
       {/* Background */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
         {/* Soft radial glows */}
@@ -220,6 +209,11 @@ export default function AgentsPage() {
 
         {/* Integrations */}
         <AgentIntegrationsSection reducedMotion={reducedMotion} />
+
+        {/* FAQ — same rows as /faq, pinned to the "agents" surface */}
+        <section aria-label="Frequently asked questions" className="rhythm-section">
+          <FaqBlock surface="agents" linkToStandalone />
+        </section>
 
         {/* Community */}
         <CommunitySection stars={stars} />

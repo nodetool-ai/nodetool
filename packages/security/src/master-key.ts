@@ -1,25 +1,19 @@
 /**
- * Master key management with keychain and AWS Secrets Manager support.
+ * Master key management with keychain support.
  *
  * This module manages the master encryption key for secrets, storing it securely
- * in the system keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service)
- * or AWS Secrets Manager.
+ * in the system keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service).
  *
  * Key sources (in order of precedence):
  * 1. SECRETS_MASTER_KEY environment variable
- * 2. AWS Secrets Manager (if AWS_SECRETS_MASTER_KEY_NAME env var set)
- * 3. System keychain via keytar
- * 4. Auto-generated key (persisted to keychain when available)
+ * 2. System keychain via keytar
+ * 3. Auto-generated key (persisted to keychain when available)
  *
  * NOTE on encryption compatibility: TS uses AES-256-GCM while Python uses Fernet.
  * Secrets encrypted in one runtime cannot be decrypted in the other.
  * New secrets must be created via the appropriate runtime's endpoints.
  */
 
-import {
-  SecretsManagerClient,
-  GetSecretValueCommand
-} from "@aws-sdk/client-secrets-manager";
 import { generateMasterKey } from "./crypto.js";
 import { createLogger } from "@nodetool-ai/config";
 
@@ -80,8 +74,7 @@ async function loadKeytar(): Promise<KeytarModule> {
     log.error(
       "keytar native module failed to load. For headless deployments " +
         "(Docker, CI, Linux servers without libsecret) set the SECRETS_MASTER_KEY " +
-        "environment variable to a base64-encoded 32-byte key, or set " +
-        "AWS_SECRETS_MASTER_KEY_NAME to source the key from AWS Secrets Manager.",
+        "environment variable to a base64-encoded 32-byte key.",
       { error: message }
     );
     // Stryker restore all
@@ -109,33 +102,6 @@ export function resetKeytarLoader(): void {
 }
 
 /**
- * Retrieve master key from AWS Secrets Manager.
- *
- * Only attempted if AWS_SECRETS_MASTER_KEY_NAME environment variable is set.
- *
- * Errors are NOT swallowed here: when AWS is the configured key source, a
- * transient failure must surface to the caller rather than silently falling
- * back to a generated key (which would orphan every existing secret). Returns
- * null only when the secret exists but carries no value.
- */
-async function getFromAwsSecrets(secretName: string): Promise<string | null> {
-  const region = process.env["AWS_REGION"] ?? "us-east-1";
-  const client = new SecretsManagerClient({ region });
-
-  const response = await client.send(
-    new GetSecretValueCommand({ SecretId: secretName })
-  );
-
-  if (response.SecretString) {
-    return response.SecretString;
-  }
-  if (response.SecretBinary) {
-    return Buffer.from(response.SecretBinary).toString("utf-8");
-  }
-  return null;
-}
-
-/**
  * Get the master encryption key (synchronous).
  *
  * Checks sources in order:
@@ -144,7 +110,7 @@ async function getFromAwsSecrets(secretName: string): Promise<string | null> {
  * 2. SECRETS_MASTER_KEY environment variable.
  *
  * Throws if neither is available. Callers MUST call {@link initMasterKey}
- * once at process startup (which loads from keychain / AWS / env and
+ * once at process startup (which loads from keychain / env and
  * persists a fresh key on first run) before the first sync access.
  * Auto-generating an ephemeral key here would silently encrypt secrets
  * with a value that disappears on exit — making them undecryptable on
@@ -168,7 +134,7 @@ export function getMasterKey(): string {
 
   throw new Error(
     "Master key is not initialized. Call `initMasterKey()` once at startup " +
-      "(loads from system keychain / AWS Secrets Manager / SECRETS_MASTER_KEY) " +
+      "(loads from system keychain / SECRETS_MASTER_KEY) " +
       "before any synchronous secret access. Auto-generating a key here would " +
       "silently encrypt secrets with a value that disappears on process exit."
   );
@@ -178,19 +144,17 @@ export function getMasterKey(): string {
  * Initialize the master key from all available sources (async).
  *
  * Should be called once at application startup to resolve the master key
- * from keychain or AWS Secrets Manager. After this call, getMasterKey()
- * will return the resolved key synchronously.
+ * from the keychain. After this call, getMasterKey() will return the
+ * resolved key synchronously.
  *
  * Resolution order:
  * 1. SECRETS_MASTER_KEY environment variable
- * 2. AWS Secrets Manager (if AWS_SECRETS_MASTER_KEY_NAME is set)
- * 3. System keychain via keytar
- * 4. Auto-generate and persist to keychain
+ * 2. System keychain via keytar
+ * 3. Auto-generate and persist to keychain
  *
  * @returns The master key as a base64-encoded string.
  */
 export async function initMasterKey(): Promise<string> {
-  // Return cached key if available
   if (cachedMasterKey !== null) {
     return cachedMasterKey;
   }
@@ -222,38 +186,18 @@ async function resolveMasterKey(): Promise<string> {
     return envKey;
   }
 
-  // 2. AWS Secrets Manager, if configured. When AWS is the declared source,
-  // any failure (or an empty secret) is fatal: falling through to a freshly
-  // generated keychain key would silently orphan every existing secret.
-  const awsSecretName = process.env["AWS_SECRETS_MASTER_KEY_NAME"];
-  if (awsSecretName) {
-    let awsKey: string | null;
-    try {
-      awsKey = await getFromAwsSecrets(awsSecretName);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      throw new Error(
-        `Failed to load master key from AWS Secrets Manager (secret ` +
-          `"${awsSecretName}"): ${message}. AWS is the configured master key ` +
-          `source; refusing to fall back to a generated key that would make ` +
-          `existing secrets undecryptable.`
-      );
-    }
-    if (!awsKey) {
-      throw new Error(
-        `AWS Secrets Manager returned no value for master key secret ` +
-          `"${awsSecretName}". AWS is the configured master key source; ` +
-          `refusing to fall back to a generated key that would make existing ` +
-          `secrets undecryptable.`
-      );
-    }
-    // Stryker disable next-line all: diagnostic log, not behavior
-    log.debug("Master key source", { source: "aws" });
-    cachedMasterKey = awsKey;
-    return awsKey;
+  // AWS Secrets Manager support was removed. Fail fast instead of silently
+  // ignoring the variable: falling through to a generated key would orphan
+  // every secret encrypted under the AWS-sourced key.
+  if (process.env["AWS_SECRETS_MASTER_KEY_NAME"]) {
+    throw new Error(
+      "AWS_SECRETS_MASTER_KEY_NAME is set, but AWS Secrets Manager support " +
+        "has been removed. Set SECRETS_MASTER_KEY to the key value that was " +
+        "stored in AWS Secrets Manager, then unset AWS_SECRETS_MASTER_KEY_NAME."
+    );
   }
 
-  // 3. Try system keychain via keytar
+  // 2. Try system keychain via keytar
   const keytar = _keytar ?? (await loadKeytar());
   try {
     const storedKey = await keytar.getPassword(
@@ -271,7 +215,7 @@ async function resolveMasterKey(): Promise<string> {
     throw keychainAccessError(`Unable to read master key from system keychain: ${message}`);
   }
 
-  // 4. Auto-generate and persist to keychain. Persisting is mandatory; using
+  // 3. Auto-generate and persist to keychain. Persisting is mandatory; using
   // an unpersisted generated key would make encrypted secrets unrecoverable on
   // the next launch.
   const newKey = generateMasterKey();
@@ -291,7 +235,7 @@ async function resolveMasterKey(): Promise<string> {
  * Clear the cached master key.
  *
  * Forces the next call to getMasterKey() or initMasterKey() to
- * re-read from environment, AWS, or keychain.
+ * re-read from environment or keychain.
  */
 export function clearMasterKeyCache(): void {
   cachedMasterKey = null;
@@ -343,13 +287,4 @@ export async function deleteMasterKey(): Promise<boolean> {
  */
 export function isUsingEnvKey(): boolean {
   return process.env["SECRETS_MASTER_KEY"] !== undefined;
-}
-
-/**
- * Check if the master key should be sourced from AWS Secrets Manager.
- *
- * @returns True if AWS_SECRETS_MASTER_KEY_NAME environment variable is set.
- */
-export function isUsingAwsKey(): boolean {
-  return process.env["AWS_SECRETS_MASTER_KEY_NAME"] !== undefined;
 }

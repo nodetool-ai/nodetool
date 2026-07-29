@@ -4,10 +4,10 @@ import { css } from "@emotion/react";
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { NodeProps } from "@xyflow/react";
 import { getCopySource, getOutputFromResult } from "../outputResult";
-import { Text, Container, MOTION, BORDER_RADIUS } from "../../ui_primitives";
+import { Text, Container, MOTION, BORDER_RADIUS, Z_INDEX } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../../utils/isEqual";
 
 import { NodeData } from "../../../stores/NodeData";
 import { useNodeGenerations } from "../../../hooks/nodes/useNodeGenerations";
@@ -99,7 +99,7 @@ const styles = (theme: Theme) =>
       },
       // table
       ".output-node-content .content .tabulator-cell": {
-        fontSize: theme.vars.fontSizeTiny + " !important"
+        fontSize: theme.vars.fontSizeSmaller + " !important"
       },
       ".output-node-content .content .tabulator-col-resize-handle,.output-node-content .content .tabulator-row":
       {
@@ -133,7 +133,7 @@ const styles = (theme: Theme) =>
         bottom: ".1em",
         left: "1em",
         width: "calc(100% - 2em)",
-        zIndex: 10,
+        zIndex: Z_INDEX.dropdown,
         transition: `opacity ${MOTION.normal}`
       },
       ".actions .action-button.copy": {
@@ -168,7 +168,7 @@ const styles = (theme: Theme) =>
         transform: "translate(-50%, -50%)",
         zIndex: 0,
         color: theme.vars.palette.grey[200],
-        transition: `opacity ${MOTION.normal} 1s`
+        transition: `opacity ${MOTION.normal} ${1000}ms`
       },
       "&:hover .hint": {
         opacity: 0.7
@@ -191,6 +191,12 @@ const styles = (theme: Theme) =>
       },
       "& .tile:hover .tile-actions": {
         opacity: 1
+      },
+      // Touch devices have no hover; keep the output action buttons reachable.
+      "@media (pointer: coarse)": {
+        ".actions": { opacity: 1 },
+        ".image-view-actions": { opacity: 1 },
+        ".tile-actions": { opacity: 1 }
       }
     },
     tableStyles(theme)
@@ -201,9 +207,6 @@ interface OutputNodeProps extends NodeProps {
   id: string;
 }
 
-/**
- * Memoized style object to prevent recreation on every render
- */
 const CONTENT_DIV_STYLE = {
   width: "100%",
   height: "100%",
@@ -226,9 +229,22 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
   const hasParent = props.parentId !== undefined;
   const [isContentFocused, setIsContentFocused] = useState(false);
 
-  // Get metadata for this node type
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const nodeMetadata = getMetadata(props.type);
+
+  const { inlineFieldProps, inputFieldProps } = useMemo(() => {
+    if (!nodeMetadata) return { inlineFieldProps: [], inputFieldProps: [] };
+    const inlineNames = nodeMetadata.inline_fields ?? [];
+    const inputNames = nodeMetadata.input_fields ?? [];
+    return {
+      inlineFieldProps: nodeMetadata.properties.filter((p) =>
+        inlineNames.includes(p.name)
+      ),
+      inputFieldProps: nodeMetadata.properties.filter((p) =>
+        inputNames.includes(p.name)
+      )
+    };
+  }, [nodeMetadata]);
 
   // Live display reads the output-node stream buffer (outputResults), which
   // output_update appends to during a run, scoped to the focused job. When no
@@ -273,7 +289,9 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
 
       addNotification({
         type: "success",
-        content: `${assetFiles.length} file(s) added to assets successfully`
+        content: `${assetFiles.length} file${
+          assetFiles.length === 1 ? "" : "s"
+        } added to assets`
       });
     } catch (error) {
       console.error("Error in handleAddToAssets:", error);
@@ -382,31 +400,21 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
             hideLogs={true}
           />
 
-          {nodeMetadata && (() => {
-            const inlineNames = nodeMetadata.inline_fields ?? [];
-            const inputNames = nodeMetadata.input_fields ?? [];
-            const inlineProps = nodeMetadata.properties.filter((p) =>
-              inlineNames.includes(p.name)
-            );
-            const inputProps = nodeMetadata.properties.filter((p) =>
-              inputNames.includes(p.name)
-            );
-            return (
+          {nodeMetadata && (
               <>
-                <HandleColumn id={props.id} properties={inputProps} />
+                <HandleColumn id={props.id} properties={inputFieldProps} />
                 <NodeInputs
                   id={props.id}
                   nodeMetadata={nodeMetadata}
                   layout={nodeMetadata.layout}
-                  properties={inlineProps}
+                  properties={inlineFieldProps}
                   nodeType={props.type}
                   data={props.data}
                   showHandle={false}
                   showFields={true}
                 />
               </>
-            );
-          })()}
+          )}
 
           {result === null || result === undefined && (
             <Text className="hint">

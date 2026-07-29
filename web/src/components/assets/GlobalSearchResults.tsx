@@ -2,10 +2,8 @@
 import { css } from "@emotion/react";
 import React, { useCallback, memo, useMemo, useRef, useEffect } from "react";
 import { EditorButton, Text, Tooltip, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
-import {
-  Folder as FolderIcon,
-  NavigateNext as NavigateIcon
-} from "@mui/icons-material";
+import FolderIcon from "@mui/icons-material/Folder";
+import NavigateIcon from "@mui/icons-material/NavigateNext";
 import { AssetWithPath } from "../../stores/ApiTypes";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -215,10 +213,8 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
   const clearDrag = useDragDropStore((s) => s.clearDrag);
 
-  // Track drag image removal timeout for cleanup
   const dragImageTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Cleanup drag image timeout on unmount
   useEffect(() => {
     return () => {
       if (dragImageTimeoutRef.current) {
@@ -227,7 +223,6 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
     };
   }, []);
 
-  // Memoize static styles to prevent recreation on every render
   const flexCenterStyle = useMemo(() => ({ display: "flex", alignItems: "center", gap: "0.5em" }), []);
   const spinnerStyle = useMemo(() => ({
     width: "20px",
@@ -235,7 +230,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
     border: "2px solid " + "var(--palette-grey-500)",
     borderTop: "2px solid var(--palette-grey-100)",
     borderRadius: BORDER_RADIUS.circle,
-    animation: "spin 1s linear infinite"
+    animation: `spin ${MOTION.spin} infinite`
   }), []);
 
   const handleContextMenu = useCallback(
@@ -278,7 +273,6 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
         handleSelectAsset(asset.id);
       }
 
-      // Use unified drag serialization
       if (assetIds.length === 1) {
         serializeDragData(
           {
@@ -313,25 +307,19 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
       // Note: serializeDragData sets "selectedAssetIds" but some code may only check "asset"
       e.dataTransfer.setData("asset", JSON.stringify(asset));
 
-      // Create and set drag image using the unified utility
-      // For global search, we might not have all selected assets in store correctly or they might be from different queries.
-      // But we can try to use store or just minimal info.
       const dragImage = createAssetDragImage(asset, assetIds.length, selectedAssets || []);
       document.body.appendChild(dragImage);
       e.dataTransfer.setDragImage(dragImage, 10, 10);
 
-      // Clear any existing timeout before setting a new one
       if (dragImageTimeoutRef.current) {
         clearTimeout(dragImageTimeoutRef.current);
       }
 
-      // Store timeout reference for cleanup
       dragImageTimeoutRef.current = setTimeout(() => {
         document.body.removeChild(dragImage);
         dragImageTimeoutRef.current = null;
       }, 0);
 
-      // Update global drag state
       setActiveDrag({
         type: "assets-multiple",
         payload: assetIds,
@@ -345,7 +333,6 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
     clearDrag();
   }, [clearDrag]);
 
-  // Create stable handlers for each asset to prevent inline function recreation
   const createAssetHandlers = useCallback(
     (asset: AssetWithPath) => ({
       onDragStart: (e: React.DragEvent) => handleDragStart(e, asset),
@@ -354,7 +341,14 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
         handleSelectAsset(asset.id);
       },
       onDoubleClick: () => onAssetDoubleClick?.(asset),
-      onContextMenu: (e: React.MouseEvent) => handleContextMenu(e, asset.id)
+      onContextMenu: (e: React.MouseEvent) => handleContextMenu(e, asset.id),
+      onKeyDown: (e: React.KeyboardEvent) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          handleSelectAsset(asset.id);
+        }
+      }
     }),
     [handleDragStart, handleSelectAsset, onAssetDoubleClick, handleContextMenu]
   );
@@ -368,7 +362,6 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
     return getAssetCategory(contentType);
   };
 
-  // Determine which columns to show based on container width
   const showDetails = containerWidth > 600;
 
   if (results.length === 0) {
@@ -448,10 +441,14 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
                 key={asset.id}
                 className={`global-search-result-item search-result-item ${isSelected ? "selected global-search-selected" : ""
                   }`}
+                role="button"
+                tabIndex={0}
+                aria-label={asset.name}
                 draggable={true}
                 onDragStart={assetHandlers.onDragStart}
                 onDragEnd={handleDragEnd}
                 onClick={assetHandlers.onClick}
+                onKeyDown={assetHandlers.onKeyDown}
                 onDoubleClick={assetHandlers.onDoubleClick}
                 onContextMenu={assetHandlers.onContextMenu}
                 data-testid={`global-search-result-${asset.id}`}

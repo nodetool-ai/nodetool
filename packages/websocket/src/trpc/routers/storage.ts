@@ -2,51 +2,24 @@
  * tRPC router for the storage domain — JSON ops only.
  * Binary PUT/GET stay as REST (/api/storage/*).
  */
-import { stat, unlink, readdir } from "node:fs/promises";
-import path from "node:path";
-import { extname } from "node:path";
-import {
-  getDefaultAssetsPath,
-  loadAssetStorageConfig
-} from "@nodetool-ai/config";
+import { loadAssetStorageConfig } from "@nodetool-ai/config";
 import { createAssetUrlBuilder } from "@nodetool-ai/storage";
 
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
+import { assetKeyOwner } from "@nodetool-ai/storage";
 import {
-  listStorageInput,
-  listStorageOutput,
-  storageMetadataInput,
-  storageMetadataOutput,
-  storageDeleteInput,
-  storageDeleteOutput,
+  callerOwnsStorageKey,
+  canReadStorageKey
+} from "../../lib/storage-access.js";
+import { resolveExistingAssetKey } from "../../lib/asset-paths.js";
+import { getAssetAdapter } from "../../lib/storage.js";
+import {
   signUrlInput,
   signUrlOutput
 } from "@nodetool-ai/protocol/api-schemas/storage.js";
 import { ApiErrorCode } from "@nodetool-ai/protocol/api-schemas/api-error-code.js";
-
-// ── MIME types (mirrors storage-api.ts) ──────────────────────────────────────
-
-const MIME_TYPES: Record<string, string> = {
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".png": "image/png",
-  ".gif": "image/gif",
-  ".webp": "image/webp",
-  ".mp4": "video/mp4",
-  ".mp3": "audio/mpeg",
-  ".wav": "audio/wav",
-  ".json": "application/json",
-  ".txt": "text/plain",
-  ".pdf": "application/pdf"
-};
-
-function getMimeType(filePath: string): string {
-  return (
-    MIME_TYPES[extname(filePath).toLowerCase()] ?? "application/octet-stream"
-  );
-}
 
 // ── Key validation (mirrors storage-api.ts) ──────────────────────────────────
 
@@ -60,21 +33,6 @@ function validateStorageKey(key: string): string | null {
   if (parts.some((p) => p === ".."))
     return "Key must not contain path traversal";
   return null; // valid
-}
-
-function resolveStoragePath(rootDir: string, key: string): string {
-  const normalized = key
-    .replace(/\\/g, "/")
-    .split("/")
-    .filter((p) => p && p !== ".")
-    .join("/");
-  return path.join(rootDir, normalized);
-}
-
-function keyFromPath(rootDir: string, filePath: string): string {
-  return path
-    .relative(rootDir, filePath)
-    .replace(/\\/g, "/");
 }
 
 // ── URL builder (lazy, cached per backend kind) ───────────────────────────────
@@ -94,120 +52,43 @@ function getUrlBuilder(): (key: string) => Promise<string> {
 // ── Router ────────────────────────────────────────────────────────────────────
 
 export const storageRouter = router({
-  list: protectedProcedure
-    .input(listStorageInput)
-    .output(listStorageOutput)
-    .query(async ({ input }) => {
-      const rootDir = getDefaultAssetsPath();
-      const prefix = input.prefix ?? "";
-
-      // Validate prefix if provided
-      if (prefix) {
-        const err = validateStorageKey(prefix);
-        if (err) {
-          throwApiError(ApiErrorCode.INVALID_INPUT, err);
-        }
-      }
-
-      const baseDir = prefix
-        ? resolveStoragePath(rootDir, prefix)
-        : rootDir;
-
-      // Recursively collect all file entries
-      const entries: {
-        key: string;
-        size: number;
-        content_type: string;
-        last_modified: string;
-      }[] = [];
-
-      async function walk(dir: string): Promise<void> {
-        let dirents;
-        try {
-          dirents = await readdir(dir, { withFileTypes: true });
-        } catch {
-          return; // directory may not exist yet
-        }
-        for (const dirent of dirents) {
-          const fullPath = path.join(dir, dirent.name);
-          if (dirent.isDirectory()) {
-            await walk(fullPath);
-          } else {
-            try {
-              const fileStat = await stat(fullPath);
-              entries.push({
-                key: keyFromPath(rootDir, fullPath),
-                size: fileStat.size,
-                content_type: getMimeType(fullPath),
-                last_modified: fileStat.mtime.toISOString()
-              });
-            } catch {
-              // skip files we can't stat
-            }
-          }
-        }
-      }
-
-      await walk(baseDir);
-      return { entries, count: entries.length };
-    }),
-
-  metadata: protectedProcedure
-    .input(storageMetadataInput)
-    .output(storageMetadataOutput)
-    .query(async ({ input }) => {
-      const validationError = validateStorageKey(input.key);
-      if (validationError) {
-        throwApiError(ApiErrorCode.INVALID_INPUT, validationError);
-      }
-
-      const rootDir = getDefaultAssetsPath();
-      const filePath = resolveStoragePath(rootDir, input.key);
-
-      try {
-        const fileStat = await stat(filePath);
-        return {
-          key: input.key,
-          size: fileStat.size,
-          content_type: getMimeType(filePath),
-          last_modified: fileStat.mtime.toISOString()
-        };
-      } catch {
-        throwApiError(ApiErrorCode.NOT_FOUND, "Object not found");
-      }
-    }),
-
   signUrl: protectedProcedure
     .input(signUrlInput)
     .output(signUrlOutput)
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
       const validationError = validateStorageKey(input.key);
       if (validationError) {
         throwApiError(ApiErrorCode.INVALID_INPUT, validationError);
       }
-      const url = await getUrlBuilder()(input.key);
-      return { url };
-    }),
-
-  delete: protectedProcedure
-    .input(storageDeleteInput)
-    .output(storageDeleteOutput)
-    .mutation(async ({ input }) => {
-      const validationError = validateStorageKey(input.key);
-      if (validationError) {
-        throwApiError(ApiErrorCode.INVALID_INPUT, validationError);
-      }
-
-      const rootDir = getDefaultAssetsPath();
-      const filePath = resolveStoragePath(rootDir, input.key);
-
-      try {
-        await stat(filePath);
-      } catch {
+      if (!(await canReadStorageKey(ctx.userId, input.key))) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Object not found");
       }
-
-      await unlink(filePath);
-      return { ok: true as const };
+      // Prefer the owner-prefixed object; fall back to the flat legacy key
+      // when a deployment hasn't run `nodetool storage migrate-keys` yet.
+      const adapter = getAssetAdapter();
+      const owner = assetKeyOwner(input.key);
+      let key = input.key;
+      if (owner === ctx.userId) {
+        const resolved = await resolveExistingAssetKey(
+          adapter,
+          ctx.userId,
+          input.key.slice(owner.length + 1)
+        );
+        // Falling back drops the owner prefix, and the prefix was the only
+        // thing that vouched for ownership — `<me>/<someone-else's-id>.png`
+        // would otherwise resolve to (and sign) their flat object. Re-check
+        // against the `assets` row, exactly as the REST route does.
+        if (resolved) {
+          const stillOwned =
+            assetKeyOwner(resolved) === ctx.userId ||
+            (await callerOwnsStorageKey(ctx.userId, resolved));
+          if (!stillOwned) {
+            throwApiError(ApiErrorCode.NOT_FOUND, "Object not found");
+          }
+          key = resolved;
+        }
+      }
+      const url = await getUrlBuilder()(key);
+      return { url };
     })
 });

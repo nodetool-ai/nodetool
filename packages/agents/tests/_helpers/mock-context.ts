@@ -11,8 +11,15 @@ import { AgentMemory } from "@nodetool-ai/runtime";
 
 export function createMockContext() {
   const variables = new Map<string, unknown>();
+  let injectedTools: Array<{ name: string }> = [];
   return {
     memory: new AgentMemory(),
+    setInjectedTools: vi.fn((tools: Array<{ name: string }>) => {
+      injectedTools = tools;
+    }),
+    getInjectedTool: vi.fn(
+      (name: string) => injectedTools.find((t) => t.name === name) ?? null
+    ),
     workspaceDir: null,
     storeStepResult: vi.fn(async (key: string, value: unknown) => {
       variables.set(key, value);

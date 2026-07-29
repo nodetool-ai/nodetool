@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
-# Container entrypoint for nodetool/sandbox-agent.
+# Sandbox entrypoint for the shared nodetool Docker image.
 #
-# Starts the X11 desktop stack (Xvfb + fluxbox + x11vnc + websockify) and
-# the Node tool server. The desktop stack is required for:
+# The sandbox no longer has its own image: DockerSandboxProvider starts a
+# container from the regular nodetool image with this script as the
+# entrypoint (installed at /usr/local/bin/sandbox-agent-entrypoint.sh by the
+# root Dockerfile). It starts the X11 desktop stack (Xvfb + fluxbox + x11vnc
+# + websockify) and the bundled tool server (/app/backend/sandbox-agent.mjs).
+# The desktop stack is required for:
 #   - browser_* tools (Chromium renders against :99)
 #   - desktop_* tools (xdotool/scrot act on :99)
 #   - live viewing via noVNC over websockify
@@ -43,5 +47,4 @@ if [[ "${NODETOOL_HEADLESS:-0}" != "1" ]]; then
     >/dev/null 2>&1 &
 fi
 
-cd /opt/sandbox-agent
-exec node dist/entry.js
+exec node /app/backend/sandbox-agent.mjs

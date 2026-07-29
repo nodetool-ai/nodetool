@@ -237,6 +237,7 @@ const TABLE_COLUMNS: Record<string, Record<string, string>> = {
     run_mode: "text",
     workspace_id: "text",
     html_app: "text",
+    app_doc: "text",
     receive_clipboard: "integer",
     access: "text",
     created_at: "text",
@@ -306,6 +307,18 @@ const TABLE_COLUMNS: Record<string, Record<string, string>> = {
     user_id: "text",
     workflow_id: "text",
     title: "text",
+    created_at: "text",
+    updated_at: "text"
+  },
+  nodetool_thread_memories: {
+    id: "text",
+    user_id: "text",
+    thread_id: "text",
+    kind: "text",
+    title: "text",
+    content: "text",
+    resources: "text",
+    metadata: "text",
     created_at: "text",
     updated_at: "text"
   },
@@ -475,8 +488,52 @@ const TABLE_COLUMNS: Record<string, Record<string, string>> = {
     height: "integer",
     duration_ms: "integer",
     document: "text",
+    revision: "integer NOT NULL DEFAULT 0",
     created_at: "text",
     updated_at: "text"
+  },
+  storyboards: {
+    id: "text",
+    user_id: "text",
+    project_id: "text",
+    name: "text",
+    document: "text",
+    timeline_id: "text",
+    revision: "integer NOT NULL DEFAULT 0",
+    created_at: "text",
+    updated_at: "text"
+  },
+  image_documents: {
+    id: "text",
+    user_id: "text",
+    project_id: "text",
+    workflow_id: "text",
+    name: "text",
+    width: "integer",
+    height: "integer",
+    background_color: "text",
+    document: "text",
+    thumbnail_asset_id: "text",
+    revision: "integer NOT NULL DEFAULT 0",
+    created_at: "text",
+    updated_at: "text"
+  },
+  nodetool_workflow_collaborators: {
+    id: "text",
+    workflow_id: "text",
+    user_id: "text",
+    role: "text",
+    invited_by: "text",
+    created_at: "text"
+  },
+  nodetool_workflow_shares: {
+    id: "text",
+    workflow_id: "text",
+    token: "text",
+    role: "text",
+    created_by: "text",
+    created_at: "text",
+    revoked_at: "text"
   }
 };
 
@@ -516,6 +573,7 @@ function getCreateSchemaSql(): string {
       "run_mode" text,
       "workspace_id" text,
       "html_app" text,
+      "app_doc" text,
       "receive_clipboard" integer,
       "access" text NOT NULL DEFAULT 'private',
       "created_at" text NOT NULL,
@@ -805,6 +863,7 @@ function getCreateSchemaSql(): string {
       "height" integer NOT NULL DEFAULT 1080,
       "duration_ms" integer NOT NULL DEFAULT 0,
       "document" text NOT NULL,
+      "revision" integer NOT NULL DEFAULT 0,
       "created_at" text NOT NULL,
       "updated_at" text NOT NULL
     );
@@ -822,6 +881,7 @@ function getCreateSchemaSql(): string {
       "background_color" text NOT NULL DEFAULT '#ffffff',
       "document" text NOT NULL,
       "thumbnail_asset_id" text,
+      "revision" integer NOT NULL DEFAULT 0,
       "created_at" text NOT NULL,
       "updated_at" text NOT NULL
     );
@@ -856,6 +916,183 @@ function getCreateSchemaSql(): string {
     );
     CREATE INDEX IF NOT EXISTS "idx_worker_instances_status" ON "worker_instances" ("status");
     CREATE INDEX IF NOT EXISTS "idx_worker_instances_profile_name" ON "worker_instances" ("profile_name");
+
+    CREATE TABLE IF NOT EXISTS "run_inbox_messages" (
+      "id" text PRIMARY KEY NOT NULL,
+      "message_id" text NOT NULL,
+      "run_id" text NOT NULL,
+      "node_id" text NOT NULL,
+      "handle" text NOT NULL,
+      "msg_seq" integer NOT NULL,
+      "payload_json" text,
+      "payload_ref" text,
+      "status" text NOT NULL,
+      "claim_worker_id" text,
+      "claim_expires_at" text,
+      "consumed_at" text,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_inbox_run_node_handle_seq" ON "run_inbox_messages" ("run_id", "node_id", "handle", "msg_seq");
+    CREATE INDEX IF NOT EXISTS "idx_inbox_run_node_handle_status" ON "run_inbox_messages" ("run_id", "node_id", "handle", "status");
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_inbox_message_id" ON "run_inbox_messages" ("message_id");
+
+    CREATE TABLE IF NOT EXISTS "trigger_inputs" (
+      "id" text PRIMARY KEY NOT NULL,
+      "input_id" text NOT NULL,
+      "run_id" text NOT NULL,
+      "node_id" text NOT NULL,
+      "payload_json" text,
+      "processed" integer NOT NULL DEFAULT 0,
+      "processed_at" text,
+      "cursor" text,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_trigger_input_run_node_processed" ON "trigger_inputs" ("run_id", "node_id", "processed");
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_trigger_input_id" ON "trigger_inputs" ("input_id");
+
+    CREATE TABLE IF NOT EXISTS "trigger_registrations" (
+      "id" text PRIMARY KEY NOT NULL,
+      "user_id" text NOT NULL,
+      "workflow_id" text NOT NULL,
+      "node_id" text NOT NULL,
+      "kind" text NOT NULL,
+      "config_json" text,
+      "enabled" integer NOT NULL DEFAULT 1,
+      "cursor" text,
+      "last_fired_at" text,
+      "last_error" text,
+      "disabled_reason" text,
+      "consecutive_failures" integer NOT NULL DEFAULT 0,
+      "run_count" integer NOT NULL DEFAULT 0,
+      "expires_at" text,
+      "max_runs" integer,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_trigger_reg_workflow" ON "trigger_registrations" ("workflow_id");
+    CREATE INDEX IF NOT EXISTS "idx_trigger_reg_kind_enabled" ON "trigger_registrations" ("kind", "enabled");
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_trigger_reg_workflow_node" ON "trigger_registrations" ("workflow_id", "node_id");
+
+    CREATE TABLE IF NOT EXISTS "nodetool_workflow_collaborators" (
+      "id" text PRIMARY KEY NOT NULL,
+      "workflow_id" text NOT NULL,
+      "user_id" text NOT NULL,
+      "role" text NOT NULL DEFAULT 'viewer',
+      "invited_by" text NOT NULL,
+      "created_at" text NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_wcol_workflow_user" ON "nodetool_workflow_collaborators" ("workflow_id", "user_id");
+    CREATE INDEX IF NOT EXISTS "idx_wcol_user_id" ON "nodetool_workflow_collaborators" ("user_id");
+
+    CREATE TABLE IF NOT EXISTS "nodetool_workflow_shares" (
+      "id" text PRIMARY KEY NOT NULL,
+      "workflow_id" text NOT NULL,
+      "token" text NOT NULL,
+      "role" text NOT NULL DEFAULT 'viewer',
+      "created_by" text NOT NULL,
+      "created_at" text NOT NULL,
+      "revoked_at" text
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_wshare_token" ON "nodetool_workflow_shares" ("token");
+    CREATE INDEX IF NOT EXISTS "idx_wshare_workflow_id" ON "nodetool_workflow_shares" ("workflow_id");
+
+    CREATE TABLE IF NOT EXISTS "storyboards" (
+      "id" text PRIMARY KEY NOT NULL,
+      "user_id" text NOT NULL,
+      "project_id" text NOT NULL,
+      "name" text NOT NULL,
+      "document" text NOT NULL,
+      "timeline_id" text,
+      "revision" integer NOT NULL DEFAULT 0,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_storyboard_user" ON "storyboards" ("user_id");
+    CREATE INDEX IF NOT EXISTS "idx_storyboard_project" ON "storyboards" ("project_id");
+    CREATE INDEX IF NOT EXISTS "idx_storyboard_updated" ON "storyboards" ("updated_at");
+
+    CREATE TABLE IF NOT EXISTS "applications" (
+      "id" text PRIMARY KEY NOT NULL,
+      "user_id" text NOT NULL,
+      "project_id" text NOT NULL,
+      "name" text NOT NULL,
+      "description" text NOT NULL DEFAULT '',
+      "document" text NOT NULL,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_application_user" ON "applications" ("user_id");
+    CREATE INDEX IF NOT EXISTS "idx_application_project" ON "applications" ("project_id");
+    CREATE INDEX IF NOT EXISTS "idx_application_updated" ON "applications" ("updated_at");
+
+    CREATE TABLE IF NOT EXISTS "application_versions" (
+      "id" text PRIMARY KEY NOT NULL,
+      "application_id" text NOT NULL,
+      "version" integer NOT NULL,
+      "document" text NOT NULL,
+      "capabilities" text NOT NULL,
+      "workflow_graphs" text,
+      "released" integer NOT NULL DEFAULT 0,
+      "created_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_application_version_app" ON "application_versions" ("application_id");
+    CREATE INDEX IF NOT EXISTS "idx_application_version_released" ON "application_versions" ("released");
+
+    CREATE TABLE IF NOT EXISTS "application_budgets" (
+      "application_id" text PRIMARY KEY NOT NULL,
+      "period" text NOT NULL DEFAULT 'month',
+      "max_usd" real,
+      "max_invocations" integer,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS "application_invocations" (
+      "id" text PRIMARY KEY NOT NULL,
+      "application_id" text NOT NULL,
+      "version" integer,
+      "invocation_id" text NOT NULL,
+      "operation_id" text NOT NULL DEFAULT '',
+      "estimated_usd" real NOT NULL DEFAULT 0,
+      "actual_usd" real,
+      "status" text NOT NULL DEFAULT 'running',
+      "created_at" text NOT NULL,
+      "settled_at" text
+    );
+    CREATE INDEX IF NOT EXISTS "idx_application_invocation_app" ON "application_invocations" ("application_id");
+    CREATE INDEX IF NOT EXISTS "idx_application_invocation_created" ON "application_invocations" ("created_at");
+    CREATE INDEX IF NOT EXISTS "idx_application_invocation_invocation" ON "application_invocations" ("invocation_id");
+
+    CREATE TABLE IF NOT EXISTS "scripts" (
+      "id" text PRIMARY KEY NOT NULL,
+      "user_id" text NOT NULL,
+      "project_id" text NOT NULL,
+      "name" text NOT NULL,
+      "document" text NOT NULL,
+      "timeline_id" text,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_script_user" ON "scripts" ("user_id");
+    CREATE INDEX IF NOT EXISTS "idx_script_project" ON "scripts" ("project_id");
+    CREATE INDEX IF NOT EXISTS "idx_script_updated" ON "scripts" ("updated_at");
+
+    CREATE TABLE IF NOT EXISTS "nodetool_thread_memories" (
+      "id" text PRIMARY KEY NOT NULL,
+      "user_id" text NOT NULL,
+      "thread_id" text NOT NULL,
+      "kind" text NOT NULL DEFAULT 'note',
+      "title" text NOT NULL DEFAULT '',
+      "content" text NOT NULL DEFAULT '',
+      "resources" text,
+      "metadata" text,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_thread_memory_thread_created" ON "nodetool_thread_memories" ("thread_id", "created_at");
+    CREATE INDEX IF NOT EXISTS "idx_thread_memory_user" ON "nodetool_thread_memories" ("user_id");
   `;
 }
 

@@ -129,7 +129,6 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = React.memo(({
     [foregroundRgb, backgroundRgb]
   );
 
-  // Color blindness simulations
   const colorBlindnessTypes = useMemo(
     () => [
       {
@@ -168,7 +167,6 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = React.memo(({
 
   return (
     <Box css={styles(theme)}>
-      {/* Preview Section */}
       <div className="preview-section">
         <div
           className="preview-box"
@@ -189,7 +187,6 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = React.memo(({
         </div>
       </div>
 
-      {/* Contrast Ratio */}
       <div>
         <Text
           className="contrast-ratio"
@@ -211,7 +208,6 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = React.memo(({
         </Caption>
       </div>
 
-      {/* WCAG Compliance Grid */}
       <div className="compliance-grid">
         <div className="compliance-item">
           <ComplianceIcon passed={compliance.aa} />
@@ -231,7 +227,6 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = React.memo(({
         </div>
       </div>
 
-      {/* Color Blindness Simulation */}
       <div className="color-blindness-section">
         <Text className="color-blindness-title">
           Color Blindness Preview

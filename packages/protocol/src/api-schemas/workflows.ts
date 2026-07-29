@@ -137,9 +137,113 @@ export const workflowResponse = z.object({
   required_providers: z.unknown().nullable(),
   required_models: z.unknown().nullable(),
   html_app: z.string().nullable(),
+  app_doc: z.record(z.string(), z.unknown()).nullable().optional(),
   etag: z.string().nullable()
 });
 export type WorkflowResponse = z.infer<typeof workflowResponse>;
+
+// ── SDK workflow interface v1 ──────────────────────────────────────────────
+
+export const workflowInterfaceType = dynamicOutputTypeMetadata;
+
+export const workflowInterfaceDiagnostic = z.object({
+  severity: z.enum(["warning", "error"]),
+  code: z.string(),
+  message: z.string(),
+  node_id: z.string().optional(),
+  pin_name: z.string().optional()
+});
+
+const workflowInterfacePin = z.object({
+  node_id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  type: workflowInterfaceType
+});
+
+export const workflowInterfaceInputPin = workflowInterfacePin.extend({
+  required: z.boolean(),
+  default: z.json(),
+  min: z.number().optional(),
+  max: z.number().optional()
+});
+
+export const workflowInterfaceOutputPin = workflowInterfacePin.extend({
+  stream: z.boolean()
+});
+
+export const workflowInterfaceV1 = z.object({
+  version: z.literal(1),
+  workflow_id: z.string(),
+  etag: z.string().nullable(),
+  source: z.literal("server"),
+  inputs: z.array(workflowInterfaceInputPin),
+  outputs: z.array(workflowInterfaceOutputPin),
+  diagnostics: z.array(workflowInterfaceDiagnostic)
+});
+export type WorkflowInterfaceV1Response = z.infer<typeof workflowInterfaceV1>;
+
+export const workflowInterfaceInput = z.object({
+  id: z.string().min(1),
+  version: z.literal(1)
+});
+export type WorkflowInterfaceInput = z.infer<typeof workflowInterfaceInput>;
+
+export const workflowInterfacesInput = z.object({
+  ids: z
+    .array(z.string().min(1))
+    .min(1)
+    .max(100)
+    .refine((ids) => new Set(ids).size === ids.length, {
+      message: "Workflow ids must be unique"
+    }),
+  version: z.literal(1)
+});
+export type WorkflowInterfacesInput = z.infer<typeof workflowInterfacesInput>;
+
+export const workflowInterfaceError = z.object({
+  workflow_id: z.string(),
+  code: z.enum(["workflow_not_found", "invalid_graph"]),
+  message: z.string()
+});
+export type WorkflowInterfaceError = z.infer<typeof workflowInterfaceError>;
+
+export const workflowInterfacesOutput = z.object({
+  interfaces: z.array(workflowInterfaceV1),
+  errors: z.array(workflowInterfaceError)
+});
+export type WorkflowInterfacesOutput = z.infer<typeof workflowInterfacesOutput>;
+
+export const sdkWorkflowSummariesInput = z.object({
+  limit: z.number().int().min(1).max(100).default(50),
+  cursor: z.string().optional()
+});
+export type SdkWorkflowSummariesInput = z.infer<
+  typeof sdkWorkflowSummariesInput
+>;
+
+export const sdkWorkflowSummary = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  revision: z.string(),
+  /**
+   * Revision of the node registry used to derive workflow interfaces. A
+   * client must refresh a cached interface when either this value or the
+   * workflow revision changes.
+   */
+  registry_revision: z.number().int().nonnegative().nullable(),
+  run_mode: z.string().nullable()
+});
+export type SdkWorkflowSummary = z.infer<typeof sdkWorkflowSummary>;
+
+export const sdkWorkflowSummariesOutput = z.object({
+  workflows: z.array(sdkWorkflowSummary),
+  next: z.string().nullable()
+});
+export type SdkWorkflowSummariesOutput = z.infer<
+  typeof sdkWorkflowSummariesOutput
+>;
 
 // ── list (GET /api/workflows) ─────────────────────────────────────────────────
 
@@ -192,7 +296,8 @@ export const workflowBody = z.object({
   settings: z.record(z.string(), z.unknown()).nullable().optional(),
   run_mode: z.string().nullable().optional(),
   workspace_id: z.string().nullable().optional(),
-  html_app: z.string().nullable().optional()
+  html_app: z.string().nullable().optional(),
+  app_doc: z.record(z.string(), z.unknown()).nullable().optional()
 });
 export type WorkflowBody = z.infer<typeof workflowBody>;
 
@@ -436,3 +541,101 @@ export const terminalOutputsOutput = z.object({
   outputs: z.array(terminalOutputItem)
 });
 export type TerminalOutputsOutput = z.infer<typeof terminalOutputsOutput>;
+
+// ── sharing ──────────────────────────────────────────────────────────────────
+// Private sharing: the owner mints role-scoped share links; any authenticated
+// user who redeems one becomes a collaborator ("viewer" opens and runs,
+// "editor" also modifies). See packages/models workflow-collaborator/share.
+
+export const collaboratorRoleSchema = z.enum(["viewer", "editor"]);
+export type CollaboratorRoleValue = z.infer<typeof collaboratorRoleSchema>;
+
+export const collaboratorItem = z.object({
+  workflow_id: z.string(),
+  user_id: z.string(),
+  role: collaboratorRoleSchema,
+  invited_by: z.string(),
+  created_at: z.string().nullable().optional()
+});
+export type CollaboratorItem = z.infer<typeof collaboratorItem>;
+
+export const shareItem = z.object({
+  id: z.string(),
+  workflow_id: z.string(),
+  token: z.string(),
+  role: collaboratorRoleSchema,
+  created_at: z.string().nullable().optional(),
+  revoked_at: z.string().nullable().optional()
+});
+export type ShareItem = z.infer<typeof shareItem>;
+
+export const sharingGetInput = z.object({ id: z.string().min(1) });
+export type SharingGetInput = z.infer<typeof sharingGetInput>;
+
+export const sharingGetOutput = z.object({
+  collaborators: z.array(collaboratorItem),
+  shares: z.array(shareItem)
+});
+export type SharingGetOutput = z.infer<typeof sharingGetOutput>;
+
+export const sharingCreateLinkInput = z.object({
+  id: z.string().min(1),
+  role: collaboratorRoleSchema
+});
+export type SharingCreateLinkInput = z.infer<typeof sharingCreateLinkInput>;
+
+export const sharingRevokeLinkInput = z.object({
+  id: z.string().min(1),
+  share_id: z.string().min(1)
+});
+export type SharingRevokeLinkInput = z.infer<typeof sharingRevokeLinkInput>;
+
+export const sharingSetRoleInput = z.object({
+  id: z.string().min(1),
+  user_id: z.string().min(1),
+  role: collaboratorRoleSchema
+});
+export type SharingSetRoleInput = z.infer<typeof sharingSetRoleInput>;
+
+export const sharingRemoveCollaboratorInput = z.object({
+  id: z.string().min(1),
+  user_id: z.string().min(1)
+});
+export type SharingRemoveCollaboratorInput = z.infer<
+  typeof sharingRemoveCollaboratorInput
+>;
+
+export const sharingOkOutput = z.object({ ok: z.literal(true) });
+export type SharingOkOutput = z.infer<typeof sharingOkOutput>;
+
+export const sharingAcceptInput = z.object({ token: z.string().min(1) });
+export type SharingAcceptInput = z.infer<typeof sharingAcceptInput>;
+
+export const sharingAcceptOutput = z.object({
+  workflow: workflowResponse,
+  role: collaboratorRoleSchema
+});
+export type SharingAcceptOutput = z.infer<typeof sharingAcceptOutput>;
+
+export const myRoleInput = z.object({ id: z.string().min(1) });
+export type MyRoleInput = z.infer<typeof myRoleInput>;
+
+export const myRoleOutput = z.object({
+  role: z.enum(["owner", "editor", "viewer"]).nullable()
+});
+export type MyRoleOutput = z.infer<typeof myRoleOutput>;
+
+export const sharedWithMeInput = z.object({
+  limit: z.number().int().min(1).max(200).default(100)
+});
+export type SharedWithMeInput = z.infer<typeof sharedWithMeInput>;
+
+export const sharedWorkflowItem = workflowResponse.extend({
+  shared_role: collaboratorRoleSchema
+});
+export type SharedWorkflowItem = z.infer<typeof sharedWorkflowItem>;
+
+export const sharedWithMeOutput = z.object({
+  workflows: z.array(sharedWorkflowItem)
+});
+export type SharedWithMeOutput = z.infer<typeof sharedWithMeOutput>;

@@ -17,6 +17,38 @@ vi.mock("@nodetool-ai/models", () => ({
 vi.mock("@nodetool-ai/runtime", () => {
   class FakeProvider {
     constructor(public readonly id: string) {}
+    getCapabilities() {
+      return ["text_generation", "image_generation"];
+    }
+    async getAvailableLanguageModels() {
+      return [{ id: `${this.id}-chat`, name: "Chat", provider: this.id }];
+    }
+    async getAvailableImageModels() {
+      return [
+        {
+          id: `${this.id}-image`,
+          name: "Image",
+          provider: this.id,
+          supportedTasks: ["text_to_image"],
+          aspectRatios: ["1:1"]
+        }
+      ];
+    }
+    async getAvailableTTSModels() {
+      return [];
+    }
+    async getAvailableASRModels() {
+      return [];
+    }
+    async getAvailableVideoModels() {
+      return [];
+    }
+    async getAvailableEmbeddingModels() {
+      return [];
+    }
+    async hasToolSupport() {
+      return true;
+    }
     async generateMessage() {
       return { role: "assistant", content: "" };
     }
@@ -333,6 +365,13 @@ describe("createProvider", () => {
     expect((provider as unknown as { id: string }).id).toBe("ollama");
   });
 
+  it("rejects unknown ids when strict provider resolution is requested", async () => {
+    const { createProviderStrict } = await import("../src/providers.js");
+    await expect(createProviderStrict("unknown-provider")).rejects.toThrow(
+      'Unknown provider "unknown-provider"'
+    );
+  });
+
   it("is case-insensitive for provider id", async () => {
     vi.stubEnv("OPENAI_API_KEY", "test-openai");
     const { createProvider } = await import("../src/providers.js");
@@ -362,6 +401,58 @@ describe("createProvider", () => {
     const { createProvider } = await import("../src/providers.js");
     const provider = await createProvider("mlx");
     expect((provider as unknown as { id: string }).id).toBe("mlx");
+  });
+});
+
+describe("direct provider model commands", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.unstubAllEnvs();
+    for (const key of ALL_HOSTED_KEYS) vi.stubEnv(key, "");
+  });
+
+  it("lists configured providers without an API client", async () => {
+    vi.stubEnv("GEMINI_API_KEY", "test-gemini");
+    const { listConfiguredProviderInfo } = await import("../src/providers.js");
+
+    const providers = await listConfiguredProviderInfo();
+
+    expect(providers).toContainEqual({
+      provider: "gemini",
+      capabilities: ["text_generation", "image_generation"]
+    });
+  });
+
+  it("lists language models directly with tool support metadata", async () => {
+    vi.stubEnv("GEMINI_API_KEY", "test-gemini");
+    const { listProviderModels } = await import("../src/providers.js");
+
+    const models = await listProviderModels("gemini", "llm");
+
+    expect(models).toEqual([
+      expect.objectContaining({
+        id: "gemini-chat",
+        provider: "gemini",
+        type: "language_model",
+        supports_tools: true
+      })
+    ]);
+  });
+
+  it("preserves media capability metadata", async () => {
+    vi.stubEnv("GEMINI_API_KEY", "test-gemini");
+    const { listProviderModels } = await import("../src/providers.js");
+
+    const models = await listProviderModels("gemini", "image");
+
+    expect(models).toEqual([
+      expect.objectContaining({
+        id: "gemini-image",
+        type: "image_model",
+        supported_tasks: ["text_to_image"],
+        aspect_ratios: ["1:1"]
+      })
+    ]);
   });
 });
 

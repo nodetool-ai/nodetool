@@ -36,7 +36,7 @@ jest.mock("../getGroupBounds", () => ({
 import { useNodes } from "../../../contexts/NodeContext";
 import { getGroupBounds } from "../getGroupBounds";
 
-const mockUseNodes = useNodes as jest.MockedFunction<typeof useNodes>;
+const mockUseNodes = useNodes as unknown as jest.Mock;
 const mockGetGroupBounds = getGroupBounds as jest.MockedFunction<typeof getGroupBounds>;
 
 describe("useAddToGroup", () => {
@@ -62,9 +62,9 @@ describe("useAddToGroup", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseNodes.mockReturnValue({
-      updateNode: mockUpdateNode
-    });
+    mockUseNodes.mockImplementation((selector: (s: unknown) => unknown) =>
+      selector({ updateNode: mockUpdateNode })
+    );
     mockGetGroupBounds.mockReturnValue({ width: 300, height: 200, offsetX: 0, offsetY: 0 });
     mockGetState.mockReturnValue({ nodes: [] });
   });

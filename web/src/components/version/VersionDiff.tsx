@@ -1,6 +1,4 @@
 /**
- * VersionDiff Component
- *
  * Visualizes the differences between two workflow versions.
  */
 
@@ -23,14 +21,12 @@ import {
   AccordionSummary,
   AccordionDetails
 } from "../ui_primitives";
-import {
-  Add as AddIcon,
-  Remove as RemoveIcon,
-  Edit as EditIcon,
-  ExpandMore as ExpandMoreIcon,
-  Timeline as TimelineIcon,
-  LinkOff as LinkOffIcon
-} from "@mui/icons-material";
+import AddIcon from "@mui/icons-material/Add";
+import RemoveIcon from "@mui/icons-material/Remove";
+import EditIcon from "@mui/icons-material/Edit";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import TimelineIcon from "@mui/icons-material/Timeline";
+import LinkOffIcon from "@mui/icons-material/LinkOff";
 import { GraphDiff, NodeChange, PropertyChange } from "../../utils/graphDiff";
 
 interface VersionDiffProps {
@@ -215,7 +211,6 @@ export const VersionDiff: React.FC<VersionDiffProps> = ({
         Changes: v{oldVersionNumber} → v{newVersionNumber}
       </Text>
 
-      {/* Added Nodes */}
       {diff.addedNodes.length > 0 && (
         <Box sx={{ mb: 2 }}>
           <Caption
@@ -232,7 +227,6 @@ export const VersionDiff: React.FC<VersionDiffProps> = ({
         </Box>
       )}
 
-      {/* Removed Nodes */}
       {diff.removedNodes.length > 0 && (
         <Box sx={{ mb: 2 }}>
           <Caption
@@ -249,7 +243,6 @@ export const VersionDiff: React.FC<VersionDiffProps> = ({
         </Box>
       )}
 
-      {/* Modified Nodes */}
       {diff.modifiedNodes.length > 0 && (
         <Box sx={{ mb: 2 }}>
           <Caption
@@ -264,7 +257,6 @@ export const VersionDiff: React.FC<VersionDiffProps> = ({
         </Box>
       )}
 
-      {/* Edge Changes */}
       {(diff.addedEdges.length > 0 || diff.removedEdges.length > 0) && (
         <>
           <Divider sx={{ my: 1 }} />

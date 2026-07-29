@@ -1,6 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import { VLLMProvider } from "../../src/providers/vllm-provider.js";
 import type { Message } from "../../src/providers/types.js";
+import {
+  chatJsonResponse,
+  mockChatFetch
+} from "./helpers/compat-fetch.js";
 
 describe("VLLMProvider", () => {
   it("throws if baseURL is not provided", () => {
@@ -143,24 +147,24 @@ describe("VLLMProvider", () => {
   });
 
   it("generates non-streaming message", async () => {
-    const create = vi.fn().mockResolvedValue({
-      choices: [
-        {
-          message: {
-            content: "vllm response",
-            tool_calls: null
+    const fetchMock = mockChatFetch(
+      chatJsonResponse({
+        choices: [
+          {
+            message: {
+              content: "vllm response",
+              tool_calls: null
+            }
           }
-        }
-      ]
-    });
+        ]
+      })
+    );
 
     const provider = new VLLMProvider(
       {},
       {
         baseURL: "http://localhost:8000",
-        client: {
-          chat: { completions: { create } }
-        } as any
+        fetchFn: fetchMock as unknown as typeof fetch
       }
     );
 

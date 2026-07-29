@@ -127,25 +127,4 @@ describe('settings module', () => {
     const result = await readSettingsAsync();
     expect(result).toEqual({ foo: 'async' });
   });
-
-  test('model service startup settings default from MODEL_BACKEND', async () => {
-    const { updateSettings, getModelServiceStartupSettings } = await import('../settings');
-    updateSettings({ MODEL_BACKEND: 'llama_cpp' });
-    const startup = getModelServiceStartupSettings();
-    expect(startup).toEqual({
-      startLlamaCppOnStartup: true,
-    });
-  });
-
-  test('updateModelServiceStartupSettings persists explicit startup settings', async () => {
-    const { updateModelServiceStartupSettings, readSettings } = await import('../settings');
-    const updated = updateModelServiceStartupSettings({
-      startLlamaCppOnStartup: true,
-    });
-    expect(updated).toEqual({
-      startLlamaCppOnStartup: true,
-    });
-    const settings = readSettings();
-    expect(settings.START_LLAMA_CPP_ON_STARTUP).toBe(true);
-  });
 });

@@ -7,6 +7,7 @@
 import type { Edge, GraphData, NodeDescriptor } from "@nodetool-ai/protocol";
 import { isControlEdge, TypeMetadata } from "@nodetool-ai/protocol";
 import { Graph } from "./graph.js";
+import { getDynamicSlotTypeString } from "./dynamic-slots.js";
 
 /**
  * Find a node by ID or throw.
@@ -33,7 +34,11 @@ export function getNodeInputTypes(
 
   for (const edge of graph.findIncomingEdges(nodeId)) {
     const sourceNode = graph.findNode(edge.source);
-    if (sourceNode && sourceNode.outputs) {
+    if (
+      sourceNode &&
+      sourceNode.outputs &&
+      Object.hasOwn(sourceNode.outputs, edge.sourceHandle)
+    ) {
       result[edge.targetHandle] = sourceNode.outputs[edge.sourceHandle];
     } else {
       result[edge.targetHandle] = undefined;
@@ -133,27 +138,32 @@ function getOutputTypeString(
   node: NodeDescriptor | undefined,
   handle: string
 ): string | undefined {
-  if (!node) return undefined;
-  return node.outputs?.[handle];
+  if (!node || !node.outputs) return undefined;
+  return Object.hasOwn(node.outputs, handle) ? node.outputs[handle] : undefined;
 }
 
 /**
  * Look up the declared type string of a node's input (property) handle.
  *
- * Checks propertyTypes first (the authoritative map after graph load),
- * then falls back to a property value carrying an explicit `type` field for
+ * Checks propertyTypes first (the authoritative map after graph load), then
+ * a declared dynamic slot (`dynamic_inputs`), then falls back to a property
+ * value carrying an explicit `type` field for
  * backwards compatibility with raw graph payloads. Plain string property
  * values are runtime data (saved literals), never type names — treating
  * them as types made bypass rewrites drop edges as "incompatible"
  * (mirrors Graph.validateEdgeTypes).
  */
-function getInputTypeString(
+export function getInputTypeString(
   node: NodeDescriptor | undefined,
   handle: string
 ): string | undefined {
   if (!node) return undefined;
   const fromPropertyTypes = node.propertyTypes?.[handle];
   if (fromPropertyTypes) return fromPropertyTypes;
+  // A declared dynamic slot is typed; an undeclared one stays undefined so
+  // typesCompatible() keeps treating it as `any`.
+  const fromSlot = getDynamicSlotTypeString(node, handle);
+  if (fromSlot) return fromSlot;
   const props = node.properties as Record<string, unknown> | undefined;
   if (props) {
     const val = props[handle];

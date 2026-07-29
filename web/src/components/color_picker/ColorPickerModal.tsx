@@ -5,7 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Caption, Tooltip, FlexRow, FlexColumn, EditorButton, TabGroup, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { Text, Caption, Tooltip, FlexRow, FlexColumn, EditorButton, TabGroup, BORDER_RADIUS, SPACING, getSpacingPx, activateOnKey } from "../ui_primitives";
 import type { TabItem } from "../ui_primitives";
 import { CloseButton } from "../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
@@ -149,6 +149,36 @@ const styles = (theme: Theme) =>
     },
     ".footer-actions": {
       gap: getSpacingPx(SPACING.md)
+    },
+    // The 320px picker column left a phone-width dialog nothing for the tabs
+    // beside it. Stack the two sections and scroll the body instead.
+    [theme.breakpoints.down("sm")]: {
+      ".modal-content": {
+        width: "100%",
+        maxHeight: "100%",
+        borderRadius: 0,
+        border: "none"
+      },
+      ".modal-body": {
+        flexDirection: "column",
+        overflow: "auto"
+      },
+      ".picker-section": {
+        flex: "0 0 auto",
+        width: "100%",
+        borderRight: "none",
+        borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
+        padding: getSpacingPx(SPACING.lg),
+        overflow: "visible"
+      },
+      ".tabs-section": {
+        flex: "0 0 auto",
+        overflow: "visible"
+      },
+      ".tab-content": {
+        padding: getSpacingPx(SPACING.lg),
+        overflow: "visible"
+      }
     }
   });
 
@@ -183,7 +213,6 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
       }))
     );
 
-  // Internal state
   const [color, setColor] = useState(initialColor || "#ff0000");
   const [alpha, setAlpha] = useState(initialAlpha);
   const [colorMode, setColorMode] = useState<ColorMode>(preferredColorMode);
@@ -202,21 +231,17 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
     ]
   });
 
-  // Convert hex to HSB for the picker
   const hsb = useMemo(() => {
     const rgb = hexToRgb(color);
     return rgbToHsb(rgb);
   }, [color]);
 
-  // Handle escape key
   useCombo(["escape"], onClose);
 
-  // Update parent when color changes
   useEffect(() => {
     onChange(color, alpha);
   }, [color, alpha, onChange]);
 
-  // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (copiedTimeoutRef.current) {
@@ -225,7 +250,6 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
     };
   }, []);
 
-  // Handle saturation/brightness change
   const handleSaturationChange = useCallback(
     (s: number, b: number) => {
       const rgb = hsbToRgb({ h: hsb.h, s, b });
@@ -234,7 +258,6 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
     [hsb.h]
   );
 
-  // Handle hue change
   const handleHueChange = useCallback(
     (h: number) => {
       const rgb = hsbToRgb({ h, s: hsb.s, b: hsb.b });
@@ -243,18 +266,15 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
     [hsb.s, hsb.b]
   );
 
-  // Handle alpha change
   const handleAlphaChange = useCallback((a: number) => {
     setAlpha(a);
   }, []);
 
-  // Handle color input change
   const handleInputChange = useCallback((hex: string, a: number) => {
     setColor(hex);
     setAlpha(a);
   }, []);
 
-  // Handle color mode change
   const handleModeChange = useCallback(
     (mode: ColorMode) => {
       setColorMode(mode);
@@ -263,17 +283,14 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
     [setPreferredColorMode]
   );
 
-  // Handle color selection from swatches/harmonies
   const handleColorSelect = useCallback((newColor: string) => {
     setColor(newColor);
   }, []);
 
-  // Handle eyedropper color pick
   const handleEyedropperPick = useCallback((pickedColor: string) => {
     setColor(pickedColor);
   }, []);
 
-  // Copy color to clipboard
   const copyColor = useCallback(
     async (format: string) => {
       let textToCopy = "";
@@ -315,12 +332,10 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
         return;
       }
 
-      // Clear previous timeout if exists
       if (copiedTimeoutRef.current) {
         clearTimeout(copiedTimeoutRef.current);
       }
 
-      // Set new timeout and store reference
       copiedTimeoutRef.current = setTimeout(() => {
         setCopiedFormat(null);
         copiedTimeoutRef.current = null;
@@ -329,20 +344,17 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
     [color, alpha, addNotification]
   );
 
-  // Handle apply (save to recent and close)
   const handleApply = useCallback(() => {
     addRecentColor(color);
     onClose();
   }, [addRecentColor, color, onClose]);
 
-  // Get text color for preview
   const textColor = useMemo(() => {
     const rgb = hexToRgb(color);
     const contrast = getContrastingTextColor(rgb);
     return rgbToHex(contrast);
   }, [color]);
 
-  // Overlay click handler
   const handleOverlayClick = useCallback(
     (e: React.MouseEvent) => {
       if (e.target === e.currentTarget) {
@@ -377,7 +389,6 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
         fullHeight
       >
         <FlexColumn className="modal-content" onClick={(e) => e.stopPropagation()}>
-          {/* Header */}
           <FlexRow className="modal-header" align="center" justify="space-between" fullWidth>
             <Text className="modal-title">Color Picker</Text>
             <FlexRow className="header-actions" align="center">
@@ -390,11 +401,8 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
             </FlexRow>
           </FlexRow>
 
-          {/* Body */}
           <FlexRow className="modal-body" fullWidth>
-            {/* Left: Main Picker */}
             <FlexColumn className="picker-section">
-              {/* Saturation/Brightness Picker */}
               <SaturationPicker
                 hue={hsb.h}
                 saturation={hsb.s}
@@ -402,20 +410,16 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
                 onChange={handleSaturationChange}
               />
 
-              {/* Hue Slider */}
               <HueSlider hue={hsb.h} onChange={handleHueChange} />
 
-              {/* Alpha Slider */}
               <AlphaSlider color={color} alpha={alpha} onChange={handleAlphaChange} />
 
-              {/* Color Mode Selector */}
               <ColorModeSelector
                 mode={colorMode}
                 onChange={handleModeChange}
                 showAllModes={true}
               />
 
-              {/* Color Inputs */}
               <ColorInputs
                 color={color}
                 alpha={alpha}
@@ -423,14 +427,17 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
                 onChange={handleInputChange}
               />
 
-              {/* Color Preview */}
               <FlexRow className="color-preview" align="center">
                 <Tooltip title="Click to copy HEX">
                   <FlexRow
                     className="preview-swatch"
                     align="center"
                     justify="center"
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Copy hex value"
                     onClick={handleCopyHex}
+                    onKeyDown={activateOnKey(handleCopyHex)}
                   >
                     <div className="preview-swatch-bg" />
                     <div
@@ -453,7 +460,6 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
               </FlexRow>
             </FlexColumn>
 
-            {/* Right: Tabs Section */}
             <FlexColumn className="tabs-section">
               <TabGroup
                 tabs={tabs}
@@ -492,7 +498,6 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
             </FlexColumn>
           </FlexRow>
 
-          {/* Footer */}
           <FlexRow className="modal-footer" align="center" justify="space-between" fullWidth>
             <Caption color="secondary">
               Press Esc to close

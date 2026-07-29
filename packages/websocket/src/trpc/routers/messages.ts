@@ -1,17 +1,12 @@
 /**
  * Messages router — migrated from REST `/api/messages*`.
  *
- * Handlers previously lived inline in http-api.ts (`handleMessagesRoot`,
- * `handleMessageById`). The logic is ported verbatim here; helpers that
- * were useful only to those handlers (`toMessageResponse`, `MessageCreateBody`)
- * move with them.
- *
  * User ownership is enforced in every procedure — a message whose `user_id`
  * doesn't match `ctx.userId` is indistinguishable from a missing one (both
  * throw NOT_FOUND) to avoid leaking existence.
  */
 
-import { Message, Thread } from "@nodetool-ai/models";
+import { Message } from "@nodetool-ai/models";
 import type { Message as MessageModel } from "@nodetool-ai/models";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
@@ -21,11 +16,6 @@ import { resolveContentUrls } from "../../resolve-media-urls.js";
 import {
   listInput,
   listOutput,
-  createInput,
-  messageResponse,
-  getInput,
-  deleteInput,
-  deleteOutput,
   type MessageResponse
 } from "@nodetool-ai/protocol/api-schemas/messages.js";
 
@@ -38,7 +28,8 @@ function toMessageResponse(msg: MessageModel): MessageResponse {
     role: msg.role,
     name: msg.name ?? null,
     content: resolveContentUrls(
-      msg.content as string | unknown[] | Record<string, unknown> | null
+      msg.content as string | unknown[] | Record<string, unknown> | null,
+      msg.user_id
     ),
     tool_calls: msg.tool_calls,
     tool_call_id: msg.tool_call_id ?? null,
@@ -77,57 +68,5 @@ export const messagesRouter = router({
         messages: msgs.map((m) => toMessageResponse(m)),
         next: cursor || null
       };
-    }),
-
-  create: protectedProcedure
-    .input(createInput)
-    .output(messageResponse)
-    .mutation(async ({ ctx, input }) => {
-      let threadId = input.thread_id;
-      if (!threadId) {
-        const thread = (await Thread.create({
-          user_id: ctx.userId,
-          workflow_id: input.workflow_id ?? null,
-          title: "New Thread"
-        })) as unknown as { id: string };
-        threadId = thread.id;
-      }
-      const contentStr =
-        typeof input.content === "string"
-          ? input.content
-          : JSON.stringify(input.content ?? null);
-      const msg = (await Message.create({
-        user_id: ctx.userId,
-        thread_id: threadId,
-        workflow_id: input.workflow_id ?? null,
-        role: input.role,
-        name: input.name ?? null,
-        content: contentStr,
-        tool_calls: input.tool_calls ?? null
-      })) as MessageModel;
-      return toMessageResponse(msg);
-    }),
-
-  get: protectedProcedure
-    .input(getInput)
-    .output(messageResponse)
-    .query(async ({ ctx, input }) => {
-      const msg = (await Message.get(input.id)) as MessageModel | null;
-      if (!msg || msg.user_id !== ctx.userId) {
-        throwApiError(ApiErrorCode.NOT_FOUND, "Message not found");
-      }
-      return toMessageResponse(msg);
-    }),
-
-  delete: protectedProcedure
-    .input(deleteInput)
-    .output(deleteOutput)
-    .mutation(async ({ ctx, input }) => {
-      const msg = (await Message.get(input.id)) as MessageModel | null;
-      if (!msg || msg.user_id !== ctx.userId) {
-        throwApiError(ApiErrorCode.NOT_FOUND, "Message not found");
-      }
-      await msg.delete();
-      return { ok: true as const };
     })
 });

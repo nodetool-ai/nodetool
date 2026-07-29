@@ -43,6 +43,59 @@ describe("CalculatorTool", () => {
       });
       expect(result).toEqual({ result: 19 });
     });
+
+    it("respects operator precedence (* before +)", async () => {
+      const result = await tool.process(ctx, { expression: "2 + 3 * 4" });
+      expect(result).toEqual({ result: 14 });
+    });
+
+    it("respects modulo", async () => {
+      const result = await tool.process(ctx, { expression: "10 % 3" });
+      expect(result).toEqual({ result: 1 });
+    });
+
+    it("evaluates exponentiation right-associatively", async () => {
+      // 2 ** (3 ** 2) = 2 ** 9 = 512, not (2 ** 3) ** 2 = 64.
+      const result = await tool.process(ctx, { expression: "2 ** 3 ** 2" });
+      expect(result).toEqual({ result: 512 });
+    });
+
+    it("gives ** higher precedence than unary minus", async () => {
+      // Matches conventional math notation: -2**2 === -(2**2) === -4.
+      const result = await tool.process(ctx, { expression: "-2 ** 2" });
+      expect(result).toEqual({ result: -4 });
+    });
+
+    it("evaluates unary minus and plus, including doubled signs", async () => {
+      expect(await tool.process(ctx, { expression: "-5" })).toEqual({
+        result: -5
+      });
+      expect(await tool.process(ctx, { expression: "--5" })).toEqual({
+        result: 5
+      });
+      expect(await tool.process(ctx, { expression: "3 - -2" })).toEqual({
+        result: 5
+      });
+    });
+
+    it("evaluates numeric literals with scientific notation and leading dot", async () => {
+      expect(await tool.process(ctx, { expression: "1e3" })).toEqual({
+        result: 1000
+      });
+      expect(await tool.process(ctx, { expression: "1.5e2" })).toEqual({
+        result: 150
+      });
+      expect(await tool.process(ctx, { expression: ".5 + .25" })).toEqual({
+        result: 0.75
+      });
+    });
+
+    it("evaluates nested function calls and comma-separated args", async () => {
+      const result = await tool.process(ctx, {
+        expression: "max(1, min(9, 5), pow(2, 3))"
+      });
+      expect(result).toEqual({ result: 8 });
+    });
   });
 
   describe("math functions", () => {

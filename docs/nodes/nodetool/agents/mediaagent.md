@@ -11,8 +11,8 @@ namespace: "nodetool.agents"
 
 ## Description
 
-Prompt-driven media skill for model-based audio/video reasoning.
-    skills, media, audio, video, agent
+Analyze audio and video with a model from a prompt.
+    agent, media, audio, video, analysis
 
 ## Properties
 

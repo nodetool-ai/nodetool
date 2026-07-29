@@ -6,7 +6,8 @@ import {
   MOTION,
   Accordion,
   AccordionSummary,
-  AccordionDetails
+  AccordionDetails,
+  Z_INDEX
 } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import React, { useCallback, useState, memo, useMemo, useEffect } from "react";
@@ -95,6 +96,11 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[900]
     },
     ".expand-gutter": {
+      // Button reset — keep the original gutter look.
+      background: "none",
+      border: "none",
+      padding: 0,
+      cursor: "pointer",
       position: "absolute",
       left: "-22px",
       top: 1,
@@ -105,7 +111,7 @@ const styles = (theme: Theme) =>
       width: EXPAND_ICON_SIZE_PX + "px",
       height: "100%",
       color: theme.vars.palette.grey[200],
-      zIndex: 2,
+      zIndex: Z_INDEX.raised,
       pointerEvents: "auto"
     },
     ".expand-gutter svg": {
@@ -347,9 +353,11 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
                 isSelected={!workflowFilter && selectedFolderIds.includes(folder.id)}
               >
                 {!isRoot && (
-                  <span
+                  <button
+                    type="button"
                     className="expand-gutter"
-                    aria-hidden="true"
+                    aria-label={`Toggle ${folder.name} subfolders`}
+                    aria-expanded={expandedFolderIds.has(folder.id)}
                     onClick={(e) => {
                       e.stopPropagation();
                       e.preventDefault();
@@ -357,7 +365,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
                     }}
                   >
                     <ExpandMoreIcon />
-                  </span>
+                  </button>
                 )}
               </FolderItem>
             </div>

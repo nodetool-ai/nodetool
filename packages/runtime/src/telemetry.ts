@@ -31,6 +31,7 @@ const log = createLogger("nodetool.runtime.telemetry");
 
 let _tracer: Tracer | null = null;
 let _initialized = false;
+let _sdk: { shutdown: () => Promise<void> } | null = null;
 
 export interface TelemetryOptions {
   /** Override the service name (defaults to OTEL_SERVICE_NAME or "nodetool"). */
@@ -155,6 +156,7 @@ export async function initTelemetry(
   // is safe across versions and avoids racing the first spans on any
   // version that does init asynchronously.
   await sdk.start();
+  _sdk = sdk;
   _tracer = otelApi.trace.getTracer("nodetool", "0.1.0");
   _initialized = true;
 
@@ -173,10 +175,34 @@ export function getTracer(): Tracer | null {
 }
 
 /**
+ * Flush and shut down the OpenTelemetry SDK. Must be awaited before a
+ * short-lived process exits — the OTLP/Traceloop sink uses a BatchSpanProcessor
+ * that only ships buffered spans on a timer or an explicit shutdown, so without
+ * this a CLI that finishes before the batch delay delivers zero traces.
+ */
+export async function shutdownTelemetry(): Promise<void> {
+  const sdk = _sdk;
+  _sdk = null;
+  _tracer = null;
+  _initialized = false;
+  if (sdk) {
+    try {
+      await sdk.shutdown();
+    } catch (err) {
+      log.warn(
+        "Telemetry shutdown failed",
+        err instanceof Error ? err : new Error(String(err))
+      );
+    }
+  }
+}
+
+/**
  * Reset the telemetry singleton. Test-only — production code should call
  * `initTelemetry()` exactly once at startup.
  */
 export function _resetTelemetryForTest(): void {
   _tracer = null;
   _initialized = false;
+  _sdk = null;
 }

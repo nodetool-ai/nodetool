@@ -1,17 +1,11 @@
-import {
-  S3Client,
-  PutObjectCommand,
-  GetObjectCommand,
-  HeadObjectCommand,
-  DeleteObjectCommand,
-  ListObjectsV2Command,
-  type ListObjectsV2CommandOutput
-} from "@aws-sdk/client-s3";
+import { S3Client, type S3Api } from "./s3/client.js";
 import type {
   StorageAdapter,
   StorageEntry,
   StorageListResult,
-  StorageStat
+  StorageStat,
+  UploadTarget,
+  UploadUrlOptions
 } from "./storage-adapter.js";
 import { assertUploadWithinLimit } from "./storage-limits.js";
 import { joinStorageKey, normalizeStorageKey } from "./storage-keys.js";
@@ -22,44 +16,18 @@ export interface S3StorageAdapterOptions {
   endpoint?: string;
   prefix?: string;
   /** Optional pre-built client (used by tests). */
-  client?: S3Client;
-}
-
-/** Total upload attempts (1 initial + 2 retries) for transient S3 errors. */
-const UPLOAD_MAX_ATTEMPTS = 3;
-
-const delay = (ms: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, ms));
-
-/**
- * Whether an S3 error is worth retrying: network/connection errors (no HTTP
- * status), throttling, and 5xx server errors. Client errors (4xx other than
- * 429) are permanent and surfaced immediately.
- */
-function isRetryableS3Error(err: unknown): boolean {
-  const e = err as {
-    name?: string;
-    $retryable?: unknown;
-    $metadata?: { httpStatusCode?: number };
-  };
-  if (e?.$retryable) return true;
-  const status = e?.$metadata?.httpStatusCode;
-  if (typeof status === "number") {
-    return status === 429 || status >= 500;
-  }
-  const name = e?.name ?? "";
-  return /Throttl|Timeout|NetworkingError|ECONN|EPIPE|ETIMEDOUT/i.test(name);
+  client?: S3Api;
 }
 
 /**
- * S3-backed storage adapter using `@aws-sdk/client-s3`.
+ * S3-backed storage adapter using the in-house SigV4 S3 client.
  *
  * URI scheme: `s3://<bucket>/<key>`.
  */
 export class S3StorageAdapter implements StorageAdapter {
   readonly bucket: string;
   readonly prefix: string | null;
-  private client: S3Client | null;
+  private client: S3Api | null;
   private readonly region: string;
   private readonly endpoint: string | undefined;
 
@@ -74,15 +42,30 @@ export class S3StorageAdapter implements StorageAdapter {
     this.client = opts.client ?? null;
   }
 
-  private getClient(): S3Client {
+  private getClient(): S3Api {
     if (this.client) return this.client;
-    const config: Record<string, unknown> = { region: this.region };
-    if (this.endpoint) {
-      config.endpoint = this.endpoint;
-      config.forcePathStyle = true;
-    }
-    this.client = new S3Client(config);
+    this.client = new S3Client({
+      region: this.region,
+      ...(this.endpoint
+        ? { endpoint: this.endpoint, forcePathStyle: true }
+        : {})
+    });
     return this.client;
+  }
+
+  /**
+   * Strip the adapter's bucket-side prefix from a raw S3 key, returning the key
+   * relative to the adapter's logical root. A literal string strip — not a
+   * RegExp — so a prefix containing regex metacharacters (`.`, `+`, `[`, …)
+   * strips correctly instead of being interpreted as a pattern.
+   */
+  private stripPrefix(rawKey: string): string {
+    if (!this.prefix) return rawKey;
+    if (rawKey.startsWith(`${this.prefix}/`)) {
+      return rawKey.slice(this.prefix.length + 1);
+    }
+    if (rawKey === this.prefix) return "";
+    return rawKey;
   }
 
   private parseUri(uri: string): { bucket: string; key: string } | null {
@@ -105,35 +88,23 @@ export class S3StorageAdapter implements StorageAdapter {
   ): Promise<string> {
     assertUploadWithinLimit(key, data.byteLength);
     const objectKey = joinStorageKey(this.prefix ?? undefined, key);
-    const client = this.getClient();
-    const command = new PutObjectCommand({
-      Bucket: this.bucket,
-      Key: objectKey,
-      Body: data,
-      ...(contentType ? { ContentType: contentType } : {})
-    });
-
-    let lastError: unknown;
-    for (let attempt = 1; attempt <= UPLOAD_MAX_ATTEMPTS; attempt++) {
-      try {
-        await client.send(command);
-        return `s3://${this.bucket}/${objectKey}`;
-      } catch (err) {
-        lastError = err;
-        if (attempt < UPLOAD_MAX_ATTEMPTS && isRetryableS3Error(err)) {
-          // Exponential backoff: 100ms, 200ms.
-          await delay(100 * 2 ** (attempt - 1));
-          continue;
-        }
-        break;
-      }
+    // Transient-failure retries live in S3Client; no second retry layer here.
+    try {
+      await this.getClient().putObject({
+        bucket: this.bucket,
+        key: objectKey,
+        body: data,
+        ...(contentType ? { contentType } : {})
+      });
+    } catch (err) {
+      throw new Error(
+        `S3 upload failed for s3://${this.bucket}/${objectKey}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+        { cause: err }
+      );
     }
-    throw new Error(
-      `S3 upload failed for s3://${this.bucket}/${objectKey} after ${UPLOAD_MAX_ATTEMPTS} attempt(s): ${
-        lastError instanceof Error ? lastError.message : String(lastError)
-      }`,
-      { cause: lastError }
-    );
+    return `s3://${this.bucket}/${objectKey}`;
   }
 
   uriForKey(key: string): string {
@@ -145,35 +116,11 @@ export class S3StorageAdapter implements StorageAdapter {
     const parsed = this.parseUri(uri);
     if (!parsed || parsed.bucket !== this.bucket) return null;
     try {
-      const response = await this.getClient().send(
-        new GetObjectCommand({ Bucket: parsed.bucket, Key: parsed.key })
-      );
-      const body = response.Body as
-        | { transformToByteArray?: () => Promise<Uint8Array> }
-        | AsyncIterable<Uint8Array>
-        | null
-        | undefined;
-      if (!body) return null;
-      if (
-        typeof (body as { transformToByteArray?: unknown })
-          .transformToByteArray === "function"
-      ) {
-        return await (
-          body as { transformToByteArray: () => Promise<Uint8Array> }
-        ).transformToByteArray();
-      }
-      const chunks: Uint8Array[] = [];
-      for await (const chunk of body as AsyncIterable<Uint8Array>) {
-        chunks.push(chunk);
-      }
-      const total = chunks.reduce((n, c) => n + c.length, 0);
-      const out = new Uint8Array(total);
-      let offset = 0;
-      for (const c of chunks) {
-        out.set(c, offset);
-        offset += c.length;
-      }
-      return out;
+      const { body } = await this.getClient().getObject({
+        bucket: parsed.bucket,
+        key: parsed.key
+      });
+      return body;
     } catch {
       return null;
     }
@@ -183,9 +130,10 @@ export class S3StorageAdapter implements StorageAdapter {
     const parsed = this.parseUri(uri);
     if (!parsed || parsed.bucket !== this.bucket) return false;
     try {
-      await this.getClient().send(
-        new HeadObjectCommand({ Bucket: parsed.bucket, Key: parsed.key })
-      );
+      await this.getClient().headObject({
+        bucket: parsed.bucket,
+        key: parsed.key
+      });
       return true;
     } catch {
       return false;
@@ -209,39 +157,31 @@ export class S3StorageAdapter implements StorageAdapter {
     const commonPrefixes: string[] = [];
 
     let continuationToken: string | undefined = undefined;
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const response: ListObjectsV2CommandOutput = await this.getClient().send(
-        new ListObjectsV2Command({
-          Bucket: this.bucket,
-          Prefix: s3PrefixWithSlash || undefined,
-          Delimiter: delimiter,
-          ContinuationToken: continuationToken
-        })
-      );
-      for (const obj of response.Contents ?? []) {
-        if (!obj.Key) continue;
+    for (;;) {
+      const response = await this.getClient().listObjectsV2({
+        bucket: this.bucket,
+        ...(s3PrefixWithSlash ? { prefix: s3PrefixWithSlash } : {}),
+        ...(delimiter ? { delimiter } : {}),
+        ...(continuationToken ? { continuationToken } : {})
+      });
+      for (const obj of response.contents) {
+        if (!obj.key) continue;
         // Strip the bucket-side prefix so callers see keys relative to the
         // adapter's logical root.
-        const key = this.prefix
-          ? obj.Key.replace(new RegExp(`^${this.prefix}/?`), "")
-          : obj.Key;
+        const key = this.stripPrefix(obj.key);
         entries.push({
           key,
-          uri: `s3://${this.bucket}/${obj.Key}`,
-          size: obj.Size ?? 0,
-          modifiedAt: obj.LastModified?.getTime() ?? 0
+          uri: `s3://${this.bucket}/${obj.key}`,
+          size: obj.size,
+          modifiedAt: obj.lastModified?.getTime() ?? 0
         });
       }
-      for (const cp of response.CommonPrefixes ?? []) {
-        if (!cp.Prefix) continue;
-        const stripped = this.prefix
-          ? cp.Prefix.replace(new RegExp(`^${this.prefix}/?`), "")
-          : cp.Prefix;
-        commonPrefixes.push(stripped);
+      for (const cp of response.commonPrefixes) {
+        if (!cp) continue;
+        commonPrefixes.push(this.stripPrefix(cp));
       }
-      if (!response.IsTruncated || !response.NextContinuationToken) break;
-      continuationToken = response.NextContinuationToken;
+      if (!response.isTruncated || !response.nextContinuationToken) break;
+      continuationToken = response.nextContinuationToken;
     }
 
     return {
@@ -256,16 +196,18 @@ export class S3StorageAdapter implements StorageAdapter {
     try {
       // Check existence first so we can return a meaningful boolean. S3
       // DeleteObject is otherwise idempotent and never errors on missing.
-      await this.getClient().send(
-        new HeadObjectCommand({ Bucket: parsed.bucket, Key: parsed.key })
-      );
+      await this.getClient().headObject({
+        bucket: parsed.bucket,
+        key: parsed.key
+      });
     } catch {
       return false;
     }
     try {
-      await this.getClient().send(
-        new DeleteObjectCommand({ Bucket: parsed.bucket, Key: parsed.key })
-      );
+      await this.getClient().deleteObject({
+        bucket: parsed.bucket,
+        key: parsed.key
+      });
       return true;
     } catch {
       return false;
@@ -276,20 +218,47 @@ export class S3StorageAdapter implements StorageAdapter {
     const parsed = this.parseUri(uri);
     if (!parsed || parsed.bucket !== this.bucket) return null;
     try {
-      const response = await this.getClient().send(
-        new HeadObjectCommand({ Bucket: parsed.bucket, Key: parsed.key })
-      );
-      const stripped = this.prefix
-        ? parsed.key.replace(new RegExp(`^${this.prefix}/?`), "")
-        : parsed.key;
+      const response = await this.getClient().headObject({
+        bucket: parsed.bucket,
+        key: parsed.key
+      });
       return {
-        key: stripped,
-        size: response.ContentLength ?? 0,
-        modifiedAt: response.LastModified?.getTime() ?? 0,
-        ...(response.ContentType ? { contentType: response.ContentType } : {})
+        key: this.stripPrefix(parsed.key),
+        size: response.contentLength,
+        modifiedAt: response.lastModified?.getTime() ?? 0,
+        ...(response.contentType ? { contentType: response.contentType } : {})
       };
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Presigned PUT for `key`, so a client uploads straight to S3. Returns
+   * `null` when the injected client can't presign (test fakes). The URL
+   * authorises a write to this one key; it does not bound the body, so the
+   * caller must verify size and type after the upload lands.
+   */
+  async createUploadUrl(
+    key: string,
+    opts: UploadUrlOptions = {}
+  ): Promise<UploadTarget | null> {
+    const client = this.getClient();
+    if (!client.presignPutObject) return null;
+    const objectKey = joinStorageKey(this.prefix ?? undefined, key);
+    const expiresIn = Math.min(opts.expiresIn ?? 3600, 604800);
+    const url = await client.presignPutObject({
+      bucket: this.bucket,
+      key: objectKey,
+      expiresIn
+    });
+    const headers: Record<string, string> = {};
+    if (opts.contentType) headers["content-type"] = opts.contentType;
+    return {
+      url,
+      method: "PUT",
+      headers,
+      expiresAt: Date.now() + expiresIn * 1000
+    };
   }
 }

@@ -6,7 +6,7 @@
  */
 
 import React, { memo, useMemo } from "react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 
 import NodeInputs from "./NodeInputs";
 import { Property, NodeMetadata } from "../../stores/ApiTypes";

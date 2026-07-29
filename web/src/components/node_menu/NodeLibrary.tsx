@@ -19,6 +19,7 @@ import NodeLibraryRow from "./NodeLibraryRow";
 import NodeInfo from "./NodeInfo";
 import useMetadataStore from "../../stores/MetadataStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import { serializeDragData } from "../../lib/dragdrop";
@@ -108,7 +109,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: 2,
+        padding: getSpacingPx(SPACING.micro),
         border: "none",
         background: "transparent",
         borderRadius: BORDER_RADIUS.sm,
@@ -304,9 +305,11 @@ interface NodeLibraryProps {
 const NodeLibrary = memo<NodeLibraryProps>(
   ({ activeSubcategory, onSubcategoryChange, isMobile = false }) => {
     const theme = useTheme();
+    const cssStyles = useMemo(() => styles(theme, isMobile), [theme, isMobile]);
     const [query, setQuery] = useState("");
     const [hoveredType, setHoveredType] = useState<string | null>(null);
     const searchRef = useRef<HTMLInputElement>(null);
+    const autoFocusEnabled = useAutoFocusEnabled();
     const scrollRef = useRef<HTMLDivElement>(null);
 
     const category =
@@ -319,9 +322,12 @@ const NodeLibrary = memo<NodeLibraryProps>(
     const clearDrag = useDragDropStore((s) => s.clearDrag);
     const recentNodes = useRecentNodesStore((s) => s.recentNodes);
 
+    // Skipped on touch, where the virtual keyboard would cover the library.
     useEffect(() => {
-      searchRef.current?.focus();
-    }, []);
+      if (autoFocusEnabled) {
+        searchRef.current?.focus();
+      }
+    }, [autoFocusEnabled]);
 
     const allNodes = useMemo(
       () => Object.values(metadataRecord),
@@ -408,7 +414,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
     const handleListLeave = useCallback(() => setHoveredType(null), []);
 
     return (
-      <div css={styles(theme, isMobile)} className="nl-root">
+      <div css={cssStyles} className="nl-root">
         <div className="nl-header">
           <Text className="nl-title" component="h2">
             Node library

@@ -15,7 +15,6 @@ import ImageIcon from "@mui/icons-material/Image";
 
 import { CheckerDropzone, NodeSlider, BORDER_RADIUS } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
-import ImageView from "../../node/ImageView";
 import ImageRefPreview from "../../node/ImageRefPreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
@@ -109,10 +108,10 @@ const extractImageRef = (
   }
   const v = value as Record<string, unknown>;
   return {
-    uri: typeof v.uri === "string" ? (v.uri as string) : undefined,
+    uri: typeof v.uri === "string" ? v.uri : undefined,
     data: v.data,
-    width: typeof v.width === "number" ? (v.width as number) : undefined,
-    height: typeof v.height === "number" ? (v.height as number) : undefined
+    width: typeof v.width === "number" ? v.width : undefined,
+    height: typeof v.height === "number" ? v.height : undefined
   };
 };
 

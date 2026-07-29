@@ -39,25 +39,20 @@ export const addWiggleMovement = (x: number, y: number): void => {
     lastPoint.y === y &&
     now - lastPoint.timestamp < 10
   ) {
-    // Within 10ms
-    return; // Skip this duplicate point
+    return;
   }
 
-  // Add new point
   wiggleHistory.push(newPoint);
 
-  // Remove points older than time window
   wiggleHistory = wiggleHistory.filter(
     (point) => now - point.timestamp <= WIGGLE_TIME_WINDOW
   );
 
-  // Check if we have enough movements
   if (wiggleHistory.length < WIGGLE_MIN_MOVEMENTS) {
     isCurrentlyWiggling = false;
     return;
   }
 
-  // Calculate direction changes
   let directionChanges = 0;
 
   for (let i = 2; i < wiggleHistory.length; i++) {
@@ -65,20 +60,16 @@ export const addWiggleMovement = (x: number, y: number): void => {
     const curr = wiggleHistory[i - 1];
     const next = wiggleHistory[i];
 
-    // Calculate movement vectors
     const vec1 = { x: curr.x - prev.x, y: curr.y - prev.y };
     const vec2 = { x: next.x - curr.x, y: next.y - curr.y };
 
-    // Calculate distances
     const dist1 = Math.sqrt(vec1.x * vec1.x + vec1.y * vec1.y);
     const dist2 = Math.sqrt(vec2.x * vec2.x + vec2.y * vec2.y);
 
-    // Only count significant movements
     if (
       dist1 > WIGGLE_DISTANCE_THRESHOLD &&
       dist2 > WIGGLE_DISTANCE_THRESHOLD
     ) {
-      // Calculate dot product to detect direction change
       const dotProduct = vec1.x * vec2.x + vec1.y * vec2.y;
       const magnitude1 = Math.sqrt(vec1.x * vec1.x + vec1.y * vec1.y);
       const magnitude2 = Math.sqrt(vec2.x * vec2.x + vec2.y * vec2.y);
@@ -94,14 +85,12 @@ export const addWiggleMovement = (x: number, y: number): void => {
     }
   }
 
-  // Determine if wiggling
   isCurrentlyWiggling = directionChanges >= WIGGLE_DIRECTION_CHANGES_REQUIRED;
 };
 
-// Check if currently wiggling
 export const isWiggling = (): boolean => isCurrentlyWiggling;
 
-// Reset wiggle detection (call when drag starts)
+/** Call when a drag starts. */
 export const resetWiggleDetection = (): void => {
   wiggleHistory = [];
   isCurrentlyWiggling = false;

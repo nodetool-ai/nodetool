@@ -1,4 +1,4 @@
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import type {
   SketchDocumentLike,
   LayerWorkflowBinding
@@ -72,6 +72,7 @@ export class ImageDocument extends DBModel {
   declare document: string;
   declare thumbnail_asset_id: string | null;
   declare created_at: string;
+  declare revision: number;
   declare updated_at: string;
 
   constructor(data: Record<string, unknown>) {
@@ -121,11 +122,14 @@ export class ImageDocument extends DBModel {
     });
     this.thumbnail_asset_id ??= null;
     this.created_at ??= now;
+    this.revision ??= 0;
     this.updated_at ??= now;
   }
 
   override beforeSave(): void {
-    this.updated_at = new Date().toISOString();
+    this.updated_at = nextUpdatedAtAfter(this.updated_at);
+    // Resource refs carry this; every write must move it forward.
+    this.revision = (this.revision ?? 0) + 1;
     assertValidDocumentData(JSON.parse(this.document) as ImageDocumentData);
   }
 
@@ -212,6 +216,50 @@ export class ImageDocument extends DBModel {
     return doc;
   }
 
+  /**
+   * Atomic compare-and-swap for a client-driven save that may touch scalar
+   * fields and/or the serialized document in one write. Applies only when the
+   * row's `updated_at` still equals `expectedUpdatedAt`; returns null on
+   * conflict so the caller can report it instead of clobbering a concurrent
+   * change (the TOCTOU that `updateDoc` + a manual updated_at check left open).
+   */
+  static async updateFieldsIfUnchanged(
+    id: string,
+    expectedUpdatedAt: string,
+    fields: Partial<{
+      name: string;
+      width: number;
+      height: number;
+      background_color: string;
+      workflow_id: string | null;
+      document: string;
+      thumbnail_asset_id: string | null;
+    }>
+  ): Promise<ImageDocument | null> {
+    if (fields.document !== undefined) {
+      assertValidDocumentData(JSON.parse(fields.document) as ImageDocumentData);
+    }
+    const db = getDb();
+    const now = nextUpdatedAtAfter(expectedUpdatedAt);
+    const rows = await db
+      .update(imageDocuments)
+      .set({ ...fields, revision: sql`${imageDocuments.revision} + 1`, updated_at: now })
+      .where(
+        and(
+          eq(imageDocuments.id, id),
+          eq(imageDocuments.updated_at, expectedUpdatedAt)
+        )
+      )
+      .returning();
+
+    const row = rows[0] as Record<string, unknown> | undefined;
+    if (!row) return null;
+
+    const updated = new ImageDocument(row);
+    ModelObserver.notify(updated, ModelChangeEvent.UPDATED);
+    return updated;
+  }
+
   static async updateDocumentDataIfUnchanged(
     id: string,
     expectedUpdatedAt: string,
@@ -224,6 +272,7 @@ export class ImageDocument extends DBModel {
       .update(imageDocuments)
       .set({
         document: JSON.stringify(data),
+        revision: sql`${imageDocuments.revision} + 1`,
         updated_at: now
       })
       .where(

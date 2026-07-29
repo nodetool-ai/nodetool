@@ -19,7 +19,7 @@ const integrations = [
     category: "Language Models",
     icon: Bot,
     color: "text-blue-400",
-    items: ["OpenAI GPT-5.5", "Claude Opus 4.8", "Gemini 3 Pro", "Ollama", "Llama", "Mistral", "Qwen"],
+    items: ["OpenAI GPT-5.6", "Claude Opus 5", "Gemini 3.5 Flash", "Ollama", "Llama", "Mistral", "Qwen"],
   },
   {
     category: "Image Generation",
@@ -52,13 +52,7 @@ const nodeCategories = [
   { name: "Utils", count: "60+", icon: Search },
 ];
 
-interface DeveloperIntegrationsSectionProps {
-  reducedMotion: boolean;
-}
-
-export default function DeveloperIntegrationsSection({
-  reducedMotion,
-}: DeveloperIntegrationsSectionProps) {
+export default function DeveloperIntegrationsSection() {
   return (
     <section
       id="integrations"
@@ -69,38 +63,38 @@ export default function DeveloperIntegrationsSection({
         {/* Section Header */}
         <div className="text-center mb-16">
           <motion.span
-            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
             className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-1.5 text-sm font-medium text-emerald-300 ring-1 ring-inset ring-emerald-500/20 mb-4"
           >
             Integrations
           </motion.span>
           <motion.h2
             id="integrations-title"
-            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="text-3xl sm:text-4xl font-bold text-white"
           >
             Every model. Your keys.
           </motion.h2>
           <motion.p
-            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 max-w-2xl mx-auto"
           >
-            340+ built-in nodes spanning every major provider and modality. BYOK across the board.
+            340+ built-in nodes covering every major provider and media type. Bring your own keys across the board.
           </motion.p>
         </div>
 
         {/* Node Categories Stats */}
         <motion.div
-          initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           className="grid grid-cols-4 sm:grid-cols-8 gap-4 mb-16"
@@ -108,7 +102,7 @@ export default function DeveloperIntegrationsSection({
           {nodeCategories.map((cat, idx) => (
             <motion.div
               key={cat.name}
-              initial={reducedMotion ? {} : { opacity: 0, scale: 0.9 }}
+              initial={false}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.3, delay: idx * 0.05 }}
@@ -126,10 +120,10 @@ export default function DeveloperIntegrationsSection({
           {integrations.map((integration, idx) => (
             <motion.div
               key={integration.category}
-              initial={reducedMotion ? {} : { opacity: 0, y: 30 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: idx * 0.1 }}
+              transition={{ duration: 0.25, delay: idx * 0.05 }}
               className="rounded-2xl bg-slate-800/40 p-6 ring-1 ring-slate-700/50"
             >
               <div className="flex items-center gap-3 mb-4">
@@ -153,17 +147,17 @@ export default function DeveloperIntegrationsSection({
 
         {/* Open Source CTA */}
         <motion.div
-          initial={reducedMotion ? {} : { opacity: 0, y: 30 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.25 }}
           className="mt-16 text-center rounded-2xl bg-gradient-to-br from-violet-900/20 to-teal-900/20 p-10 ring-1 ring-violet-500/20"
         >
           <h3 className="text-2xl font-bold text-white mb-4">
             100% open source
           </h3>
           <p className="text-slate-400 max-w-xl mx-auto mb-6">
-            NodeTool is AGPL-3.0. Fork it, audit it, self-host it. No vendor lock-in,
+            NodeTool is AGPL-3.0. Fork it, audit it, self-host it. No lock-in,
             no usage limits — bring your own keys to every provider and pay providers directly.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

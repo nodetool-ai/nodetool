@@ -394,7 +394,7 @@ describe("useEditorCommands", () => {
       canvasActions: {
         handleZoomIn: jest.fn(),
         handleZoomOut: jest.fn(),
-        handleZoomReset: jest.fn(),
+        handleZoomFit: jest.fn(),
         handleExportPng: jest.fn(),
         handleClearLayer: jest.fn(),
         handleFillLayerWithColor: jest.fn(),

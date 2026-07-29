@@ -103,7 +103,7 @@ describe("RightPanelStore", () => {
       });
 
       const { panel } = useRightPanelStore.getState();
-      expect(panel.panelSize).toBe(250);
+      expect(panel.panelSize).toBe(130);
       expect(panel.isVisible).toBe(true);
     });
   });
@@ -120,7 +120,7 @@ describe("RightPanelStore", () => {
 
       const { panel } = useRightPanelStore.getState();
       expect(panel.isVisible).toBe(true);
-      expect(panel.panelSize).toBe(250);
+      expect(panel.panelSize).toBe(130);
     });
 
     it("keeps the current size when reopening with a usable size", () => {

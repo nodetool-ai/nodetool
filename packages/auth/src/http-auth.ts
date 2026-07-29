@@ -53,7 +53,6 @@ export async function requireAuth(
   request: Request,
   options: HttpAuthOptions
 ): Promise<Response | null> {
-  // Check public paths
   if (options.publicPaths) {
     const url = new URL(request.url);
     if (options.publicPaths.includes(url.pathname)) {

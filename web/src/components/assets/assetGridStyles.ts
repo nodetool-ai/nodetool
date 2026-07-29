@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
 
 export const assetGridStyles = (theme: Theme) => {
   return css({
@@ -33,7 +33,7 @@ export const assetGridStyles = (theme: Theme) => {
       display: "flex",
       flexDirection: "column",
       gap: "0.25em",
-      zIndex: 5000,
+      zIndex: Z_INDEX.overlay,
       padding: "0.5em",
       borderTop: `2px solid ${theme.vars.palette.divider}`,
       backgroundColor: theme.vars.palette.grey[800]
@@ -56,6 +56,8 @@ export const assetGridStyles = (theme: Theme) => {
       userSelect: "none"
     },
     ".selected-asset-info": {
+      display: "flex",
+      alignItems: "center",
       fontSize: `${theme.vars.fontSizeSmall} !important`,
       color: theme.vars.palette.grey[400],
       minHeight: "25px",
@@ -75,7 +77,7 @@ export const assetGridStyles = (theme: Theme) => {
       alignItems: "center",
       padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
       marginLeft: 0,
-      borderRadius: 5
+      borderRadius: BORDER_RADIUS.sm
     },
     ".folder-icon": {
       marginRight: "0.1em",
@@ -170,7 +172,7 @@ export const assetGridStyles = (theme: Theme) => {
         height: "30%",
         maxHeight: "100px",
         backgroundColor: theme.vars.palette.grey[300],
-        borderRadius: "1px",
+        borderRadius: BORDER_RADIUS.xs,
         opacity: 0.6,
         transition: `${MOTION.background}, ${MOTION.opacity}`
       },
@@ -190,7 +192,7 @@ export const assetGridStyles = (theme: Theme) => {
         maxWidth: "100px",
         height: "2px",
         backgroundColor: theme.vars.palette.grey[300],
-        borderRadius: "1px",
+        borderRadius: BORDER_RADIUS.xs,
         opacity: 0.6,
         transition: `${MOTION.background}, ${MOTION.opacity}`
       },

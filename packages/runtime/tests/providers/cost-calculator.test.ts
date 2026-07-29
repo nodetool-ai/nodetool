@@ -86,6 +86,15 @@ describe("CostCalculator.calculate – token pricing via genai-prices (USD)", ()
     expect(cost).toBeGreaterThan(0);
   });
 
+  it("prices Moonshot/Kimi models (provider id maps to genai-prices 'moonshotai')", () => {
+    const cost = CostCalculator.calculate(
+      "kimi-k2.5",
+      { inputTokens: 1_000_000, outputTokens: 1_000_000 },
+      "moonshot"
+    );
+    expect(cost).toBeGreaterThan(0);
+  });
+
   it("prices embeddings", () => {
     const cost = CostCalculator.calculate(
       "text-embedding-3-small",

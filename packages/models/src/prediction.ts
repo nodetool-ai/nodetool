@@ -10,8 +10,6 @@ import { getDb } from "./db.js";
 import { predictions } from "./schema/predictions.js";
 import { workflows } from "./schema/workflows.js";
 
-// ── Aggregate result types ──────────────────────────────────────────
-
 export interface AggregateResult {
   user_id: string;
   provider?: string | null;
@@ -187,12 +185,20 @@ export class Prediction extends DBModel {
       startKey?: string;
     } = {}
   ): Promise<[Prediction[], string]> {
-    const { limit = 50, provider, model } = opts;
+    const { limit = 50, provider, model, startKey } = opts;
     const db = getDb();
 
     const conditions = [eq(predictions.user_id, userId)];
     if (provider) conditions.push(eq(predictions.provider, provider));
     if (model) conditions.push(eq(predictions.model, model));
+    // Seek past the cursor row so costs.list "load more" advances instead of
+    // re-returning the same first page forever.
+    if (startKey) {
+      const cursorRow = await Prediction.get<Prediction>(startKey);
+      if (cursorRow && cursorRow.user_id === userId && cursorRow.created_at) {
+        conditions.push(lt(predictions.created_at, cursorRow.created_at));
+      }
+    }
 
     const rows = await db
       .select()

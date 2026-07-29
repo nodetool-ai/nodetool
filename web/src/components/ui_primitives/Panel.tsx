@@ -8,6 +8,7 @@
 import React, { useCallback, useRef } from "react";
 import { Box, BoxProps, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { snapSpacing } from "./spacing";
 
 export interface PanelProps extends BoxProps {
   /** Panel title */
@@ -36,7 +37,7 @@ const PADDING_VARIANTS = {
   none: 0,
   compact: 1,
   normal: 2,
-  comfortable: 2.5,
+  comfortable: 3,
   spacious: 3
 };
 
@@ -86,8 +87,8 @@ export const Panel: React.FC<PanelProps> = ({
   headerAction,
   footer,
   padding = "normal",
-  bordered = false,
-  background = "default",
+  bordered = true,
+  background = "paper",
   collapsible = false,
   collapsed = false,
   onToggleCollapse,
@@ -120,7 +121,6 @@ export const Panel: React.FC<PanelProps> = ({
 
   const hasHeader = title || subtitle || headerAction;
 
-  // Handle keyboard events for collapsible panel (Enter and Space keys)
   const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
     if (collapsible && (event.key === "Enter" || event.key === " ")) {
       event.preventDefault();
@@ -133,7 +133,7 @@ export const Panel: React.FC<PanelProps> = ({
       sx={{
         backgroundColor: getBackgroundColor(),
         border: bordered ? `1px solid ${theme.vars.palette.divider}` : undefined,
-        borderRadius: theme.shape.borderRadius,
+        borderRadius: theme.rounded.md,
         overflow: "hidden",
         ...sx
       }}
@@ -149,7 +149,7 @@ export const Panel: React.FC<PanelProps> = ({
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: theme.spacing(paddingValue, paddingValue, paddingValue / 2, paddingValue),
+            padding: theme.spacing(paddingValue, paddingValue, snapSpacing(paddingValue / 2), paddingValue),
             borderBottom: collapsed ? undefined : `1px solid ${theme.vars.palette.divider}`,
             cursor: collapsible ? "pointer" : undefined,
             ...(collapsible && {
@@ -213,7 +213,6 @@ export const Panel: React.FC<PanelProps> = ({
           <Box
             id={contentId}
             role={collapsible ? "region" : undefined}
-            aria-labelledby={collapsible && hasHeader ? undefined : undefined}
             sx={{ padding: theme.spacing(paddingValue) }}
           >
             {children}
@@ -222,7 +221,7 @@ export const Panel: React.FC<PanelProps> = ({
           {footer && (
             <Box
               sx={{
-                padding: theme.spacing(paddingValue / 2, paddingValue, paddingValue, paddingValue),
+                padding: theme.spacing(snapSpacing(paddingValue / 2), paddingValue, paddingValue, paddingValue),
                 borderTop: `1px solid ${theme.vars.palette.divider}`
               }}
             >

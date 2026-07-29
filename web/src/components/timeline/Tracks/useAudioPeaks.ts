@@ -29,10 +29,11 @@ let sharedCtx: AudioContext | null = null;
 
 function getDecodeContext(): AudioContext | null {
   if (typeof window === "undefined") return null;
-  const Ctor =
-    (window as unknown as { AudioContext?: typeof AudioContext }).AudioContext ??
-    (window as unknown as { webkitAudioContext?: typeof AudioContext })
-      .webkitAudioContext;
+  const Ctor: typeof AudioContext | undefined =
+    window.AudioContext ??
+    ("webkitAudioContext" in window
+      ? (window.webkitAudioContext as typeof AudioContext)
+      : undefined);
   if (!Ctor) return null;
   if (!sharedCtx) {
     sharedCtx = new Ctor();

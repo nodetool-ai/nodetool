@@ -2,6 +2,7 @@
 import React from "react";
 import Image from "next/image";
 import { track } from "../lib/analytics";
+import { footerCompareLinks } from "../data/competitorEntries";
 
 /**
  * Single shared site footer used by every route (P3/C4). Gives consistent
@@ -19,6 +20,8 @@ const COLUMNS: Col[] = [
     links: [
       { name: "Studio", href: "/studio" },
       { name: "Cloud", href: "/cloud" },
+      { name: "Templates", href: "/templates" },
+      { name: "Tasks", href: "/tasks" },
       { name: "Pricing", href: "/pricing" },
     ],
   },
@@ -29,18 +32,14 @@ const COLUMNS: Col[] = [
       { name: "Agents", href: "/agents" },
       { name: "Developers", href: "/developers" },
       { name: "Marketing", href: "/marketing" },
+      { name: "Local-first", href: "/solutions/local-first" },
+      { name: "Researchers", href: "/solutions/researchers" },
+      { name: "All solutions", href: "/solutions" },
     ],
   },
   {
     title: "Compare",
-    links: [
-      { name: "vs ComfyUI", href: "/vs/comfyui" },
-      { name: "vs Weavy", href: "/vs/weavy" },
-      { name: "vs Langflow", href: "/vs/langflow" },
-      { name: "vs n8n", href: "/vs/n8n" },
-      { name: "vs Flowise", href: "/vs/flowise" },
-      { name: "vs Dify", href: "/vs/dify" },
-    ],
+    links: footerCompareLinks,
   },
   {
     title: "Resources",
@@ -69,7 +68,7 @@ export default function SiteFooter() {
           <div className="col-span-2 sm:col-span-3 lg:col-span-1">
             <a href="/" className="inline-flex items-center gap-2 focus-ring rounded" aria-label="NodeTool home">
               <Image
-                src="/logo_small.png"
+                src="/logo_small.webp"
                 alt=""
                 width={32}
                 height={32}

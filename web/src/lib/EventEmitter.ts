@@ -4,16 +4,22 @@
  *
  * `Events` may be either an interface mapping event-name → listener-signature
  * (for typed emitters like `EventEmitter<AgentSocketEvents>`) or left as the
- * default for untyped string events. `extends object` lets interfaces satisfy
- * the constraint without requiring an explicit index signature.
+ * default for untyped string events. The self-referential
+ * `Record<keyof Events, …>` constraint lets an interface satisfy it without
+ * declaring an index signature.
  */
 
-type AnyListener = (...args: any[]) => void;
-type DefaultEventMap = Record<string, AnyListener>;
+// Parameters are contravariant, so `never[]` accepts every listener signature
+// without `any`'s erasure. Not callable — `asCallable` widens it to do that.
+type ListenerConstraint = (...args: never[]) => void;
 
-type ListenerOf<Events, K extends keyof Events> = Events[K] extends AnyListener
-  ? Events[K]
-  : AnyListener;
+type UntypedListener = (...args: unknown[]) => void;
+type DefaultEventMap = Record<string, UntypedListener>;
+
+// The Map's value type can't say "listeners under key K take K's arguments",
+// so calling one is the single unchecked step in this file.
+const asCallable = (listener: ListenerConstraint): UntypedListener =>
+  listener as unknown as UntypedListener;
 
 type ArgsOf<Events, K extends keyof Events> = Events[K] extends (
   ...args: infer A
@@ -21,10 +27,14 @@ type ArgsOf<Events, K extends keyof Events> = Events[K] extends (
   ? A
   : unknown[];
 
-export class EventEmitter<Events extends object = DefaultEventMap> {
-  private readonly _listeners: Map<keyof Events, Set<AnyListener>> = new Map();
+export class EventEmitter<
+  Events extends Record<keyof Events, ListenerConstraint> = DefaultEventMap
+> {
+  private readonly _listeners: Map<keyof Events, Set<ListenerConstraint>> =
+    new Map();
 
-  on<K extends keyof Events>(event: K, listener: ListenerOf<Events, K>): this {
+  // Erased so `once` can store its own wrapper, which has no `Events[K]` name.
+  private addStored(event: keyof Events, listener: ListenerConstraint): this {
     let set = this._listeners.get(event);
     if (!set) {
       set = new Set();
@@ -34,7 +44,7 @@ export class EventEmitter<Events extends object = DefaultEventMap> {
     return this;
   }
 
-  off<K extends keyof Events>(event: K, listener: ListenerOf<Events, K>): this {
+  private removeStored(event: keyof Events, listener: ListenerConstraint): this {
     const set = this._listeners.get(event);
     if (set) {
       set.delete(listener);
@@ -45,17 +55,19 @@ export class EventEmitter<Events extends object = DefaultEventMap> {
     return this;
   }
 
-  addListener<K extends keyof Events>(
-    event: K,
-    listener: ListenerOf<Events, K>
-  ): this {
+  on<K extends keyof Events>(event: K, listener: Events[K]): this {
+    return this.addStored(event, listener);
+  }
+
+  off<K extends keyof Events>(event: K, listener: Events[K]): this {
+    return this.removeStored(event, listener);
+  }
+
+  addListener<K extends keyof Events>(event: K, listener: Events[K]): this {
     return this.on(event, listener);
   }
 
-  removeListener<K extends keyof Events>(
-    event: K,
-    listener: ListenerOf<Events, K>
-  ): this {
+  removeListener<K extends keyof Events>(event: K, listener: Events[K]): this {
     return this.off(event, listener);
   }
 
@@ -68,15 +80,12 @@ export class EventEmitter<Events extends object = DefaultEventMap> {
     return this;
   }
 
-  once<K extends keyof Events>(
-    event: K,
-    listener: ListenerOf<Events, K>
-  ): this {
-    const wrapper = ((...args: unknown[]) => {
-      this.off(event, wrapper as ListenerOf<Events, K>);
-      (listener as AnyListener)(...args);
-    }) as ListenerOf<Events, K>;
-    return this.on(event, wrapper);
+  once<K extends keyof Events>(event: K, listener: Events[K]): this {
+    const wrapper: ListenerConstraint = (...args) => {
+      this.removeStored(event, wrapper);
+      asCallable(listener)(...args);
+    };
+    return this.addStored(event, wrapper);
   }
 
   emit<K extends keyof Events>(event: K, ...args: ArgsOf<Events, K>): boolean {
@@ -87,7 +96,7 @@ export class EventEmitter<Events extends object = DefaultEventMap> {
     // Snapshot before iterating so listeners that mutate the set don't
     // skip or revisit other listeners during this dispatch.
     for (const listener of [...set]) {
-      listener(...args);
+      asCallable(listener)(...args);
     }
     return true;
   }

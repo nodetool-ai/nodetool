@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Image to Video Animation",
   "tool_name": null,
-  "description": "Generate a high-quality still from text, then animate it into a short cinematic clip.",
+  "description": "Generate a high-quality still from text, then animate it into a short cinematic clip. Uses Veo 3.1 for the animation step, which costs more per run than image-only templates.",
   "tags": [
     "image",
     "video",
@@ -63,6 +63,14 @@
         "sourceHandle": "output",
         "target": "2",
         "targetHandle": "negative_prompt"
+      },
+      {
+        "id": "edge-output-animation",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "output-animation",
+        "targetHandle": "value",
+        "ui_properties": null
       }
     ],
     "nodes": [
@@ -70,7 +78,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎬 Image to Video Animation\n\nGenerate a still from a scene prompt, then animate it into a short cinematic clip.\n\n**Pipeline:** scene prompt → Text-to-Image → build motion prompt → Image-to-Video\n\n**Try this:** edit the scene, motion, or duration prompts. Pick image and video models first."
+          "comment": "# 🎬 Image to Video Animation\n\nGenerate a still from a scene prompt, then animate it into a short cinematic clip.\n\n**Pipeline:** scene prompt → Text-to-Image → build motion prompt → Image-to-Video\n\n**Try this:** edit the scene, motion, or duration prompts.\n\n**Cost note:** the animation step uses Veo 3.1, a paid per-second video model — each run costs noticeably more than an image-only template."
         },
         "ui_properties": {
           "selected": false,
@@ -91,13 +99,19 @@
         "id": "2",
         "type": "nodetool.video.ImageToVideo",
         "data": {
-          "model": {},
+          "model": {
+            "type": "video_model",
+            "provider": "gemini",
+            "id": "veo-3.1-generate-preview",
+            "name": "Veo 3.1 Preview",
+            "path": null,
+            "supported_tasks": []
+          },
+          "negative_prompt": "",
           "aspect_ratio": "16:9",
           "resolution": "1080p",
-          "num_frames": 120,
-          "guidance_scale": 8,
-          "num_inference_steps": 28,
-          "seed": -1
+          "duration": 8,
+          "timeout_seconds": 0
         },
         "ui_properties": {
           "position": {
@@ -117,7 +131,14 @@
         "id": "3",
         "type": "nodetool.image.TextToImage",
         "data": {
-          "model": {},
+          "model": {
+            "type": "image_model",
+            "provider": "huggingface_fal_ai",
+            "id": "fal-ai/flux/schnell",
+            "name": "FLUX.1 Schnell",
+            "path": null,
+            "supported_tasks": []
+          },
           "negative_prompt": "",
           "width": 1280,
           "height": 720,
@@ -165,7 +186,7 @@
         "id": "5",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "Transform the reference frame into a cinematic ocean scene. Scene: {{ scene }}. Motion: {{ motion }}. Duration: {{ duration }}. Keep the animation cohesive, with gentle camera movement and atmospheric particles."
+          "prompt": "Animate the reference still into a short cinematic clip.\n\nScene: {{ scene }}\nMotion: {{ motion }}\nPacing: {{ duration }}\n\nPreserve the subject, framing, and composition of the reference frame exactly. Add only camera movement and atmospheric motion consistent with the scene and motion described above. Keep the animation smooth and physically plausible for the full duration."
         },
         "ui_properties": {
           "position": {
@@ -231,7 +252,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "negative_prompt",
-          "value": "no watermarks, no text overlays, maintain realistic wave motion",
+          "value": "no watermarks, no text overlays, no jump cuts, no warped anatomy",
           "description": "Elements to avoid in the generated video"
         },
         "ui_properties": {
@@ -246,6 +267,20 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "output-animation",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "animation"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1320,
+            "y": 165
+          },
+          "selectable": true
+        }
       }
     ]
   },

@@ -23,7 +23,8 @@ export enum TaskUpdateEvent {
   EnteredConclusionStage = "entered_conclusion_stage",
   StepCompleted = "step_completed",
   StepFailed = "step_failed",
-  TaskCompleted = "task_completed"
+  TaskCompleted = "task_completed",
+  TaskFailed = "task_failed"
 }
 
 export type Severity = "info" | "warning" | "error";
@@ -132,6 +133,13 @@ export interface JobUpdate {
    * fields on the offending nodes instead of showing a node-level banner.
    */
   validation_issues?: ValidationIssue[] | null;
+  /**
+   * Machine-readable reason for a `failed` status, when one exists. Set to
+   * `BUDGET_EXCEEDED` when an app's spend budget refused the run — a websocket
+   * client has no other way to tell that apart from a node crash, since both
+   * arrive as `failed` with prose in `error`. Absent for ordinary failures.
+   */
+  error_code?: string | null;
 }
 
 export interface ValidationIssue {
@@ -175,6 +183,14 @@ export interface NodeUpdate {
   /** Actual provider charge for the last completed run (when reported by the node). */
   provider_cost?: ProviderCost | null;
   workflow_id?: string | null;
+  /**
+   * Run identity. Stamped downstream by the relay (the unified websocket runner
+   * and the browser runner), not by the kernel actor, so it is optional on the
+   * wire. Consumers that can see more than one run at a time — mini apps, a
+   * second tab, the editor running the same workflow — key off this to keep
+   * runs from contaminating each other.
+   */
+  job_id?: string | null;
 }
 
 /**
@@ -219,6 +235,8 @@ export interface NodeProgress {
   total: number;
   chunk?: string;
   workflow_id?: string | null;
+  /** Run identity, stamped downstream by the relay. See {@link NodeUpdate.job_id}. */
+  job_id?: string | null;
 }
 
 export interface EdgeUpdate {
@@ -250,6 +268,8 @@ export interface OutputUpdate {
   /** NEW (optional). Marks the final chunk of an append stream. */
   done?: boolean;
   workflow_id?: string | null;
+  /** Run identity, stamped downstream by the relay. See {@link NodeUpdate.job_id}. */
+  job_id?: string | null;
 }
 
 export interface SaveUpdate {
@@ -388,6 +408,12 @@ export interface Chunk {
   node_id?: string | null;
   thread_id?: string | null;
   workflow_id?: string | null;
+  /**
+   * Run identity, stamped downstream by the relay for workflow-sourced chunks.
+   * Absent on chat chunks, which are scoped by `thread_id` instead.
+   * See {@link NodeUpdate.job_id}.
+   */
+  job_id?: string | null;
   content_type?: ContentType;
   /**
    * Text chunks and externally-sourced audio carry a string (base64 for
@@ -524,10 +550,16 @@ export type UnifiedCommandType =
   | "stop"
   | "list_workflows"
   | "get_workflow"
+  | "list_workflow_summaries"
+  | "get_workflow_interface"
+  | "get_workflow_interfaces"
   | "list_assets"
   | "get_asset"
   | "list_nodes"
   | "get_node"
+  | "get_node_type_inventory"
+  | "get_capabilities"
+  | "preflight_workflow"
   | "generate_media"
   | "transcribe_audio";
 
@@ -543,10 +575,16 @@ export type UnifiedCommandType =
 export type RpcCommandType =
   | "list_workflows"
   | "get_workflow"
+  | "list_workflow_summaries"
+  | "get_workflow_interface"
+  | "get_workflow_interfaces"
   | "list_assets"
   | "get_asset"
   | "list_nodes"
   | "get_node"
+  | "get_node_type_inventory"
+  | "get_capabilities"
+  | "preflight_workflow"
   | "generate_media"
   | "transcribe_audio";
 
@@ -578,6 +616,21 @@ export interface ListWorkflowsRequest {
 
 export interface GetWorkflowRequest {
   id: string;
+}
+
+export interface ListWorkflowSummariesRequest {
+  limit?: number;
+  cursor?: string;
+}
+
+export interface GetWorkflowInterfaceRequest {
+  id: string;
+  version: 1;
+}
+
+export interface GetWorkflowInterfacesRequest {
+  ids: string[];
+  version: 1;
 }
 
 export interface ListAssetsRequest {
@@ -643,6 +696,7 @@ export interface GenerateMediaResponse {
 export interface RpcErrorPayload {
   code: string;
   message: string;
+  retryable: boolean;
   apiCode?: string | null;
   trpcCode?: string;
 }

@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/vectorstore",
-  "version": "0.7.0-rc.29",
+  "version": "0.7.0-rc.32",
   "type": "module",
   "engines": {
     "node": ">=22.0.0 <23.0.0"
@@ -17,7 +17,6 @@
   "dependencies": {
     "@nodetool-ai/config": "*",
     "@nodetool-ai/models": "*",
-    "@supabase/supabase-js": "^2.98.0",
     "better-sqlite3": "^12.8.0",
     "sqlite-vec": "^0.1.7-alpha.2"
   },
@@ -51,5 +50,17 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "vector-store",
+    "rag",
+    "embeddings",
+    "sqlite-vec",
+    "semantic-search"
   ]
 }

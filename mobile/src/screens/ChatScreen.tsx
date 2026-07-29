@@ -19,6 +19,9 @@ import { ChatView } from '../components/chat';
 import { useChatStore } from '../stores/ChatStore';
 import { useTheme } from '../hooks/useTheme';
 import { useShallow } from 'zustand/react/shallow';
+import type { Message } from '../types/chat';
+
+const EMPTY_MESSAGES: Message[] = [];
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Chat'>;
 
@@ -48,7 +51,6 @@ export default function ChatScreen({ navigation, route }: Props) {
   const connect = useChatStore(state => state.connect);
   const createNewThread = useChatStore(state => state.createNewThread);
   const loadThreadFromServer = useChatStore(state => state.loadThreadFromServer);
-  const getCurrentMessages = useChatStore(state => state.getCurrentMessages);
   const sendMessage = useChatStore(state => state.sendMessage);
   const stopGeneration = useChatStore(state => state.stopGeneration);
   const setAgentMode = useChatStore(state => state.setAgentMode);
@@ -58,7 +60,9 @@ export default function ChatScreen({ navigation, route }: Props) {
 
   const { colors, mode } = useTheme();
 
-  const messages = getCurrentMessages();
+  const messages = useChatStore(
+    state => state.messageCache[state.currentThreadId ?? ''] ?? EMPTY_MESSAGES
+  );
   const requestedThreadId = route.params?.threadId;
 
   useEffect(() => {

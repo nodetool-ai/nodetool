@@ -15,6 +15,7 @@ import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import CleaningServicesIcon from "@mui/icons-material/CleaningServices";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
+import EditNoteIcon from "@mui/icons-material/EditNote";
 import { useShallow } from "zustand/react/shallow";
 
 import {
@@ -34,9 +35,8 @@ import { useTimelineTranscriptStore } from "../../stores/timeline/TimelineTransc
 import { buildTranscriptDoc, isTranscriptClip } from "../../stores/timeline/transcriptOps";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useAssetStore } from "../../stores/AssetStore";
+import { useExtractScript } from "../../hooks/script/useExtractScript";
 import { TranscriptEditor } from "./transcript/TranscriptEditor";
-
-// ── Panel ────────────────────────────────────────────────────────────────────
 
 export const TranscriptPanel: React.FC = memo(() => {
   // Only the transcript/caption-bearing subset — untouched clips (B-roll,
@@ -47,8 +47,10 @@ export const TranscriptPanel: React.FC = memo(() => {
 
   const removeFillers = useTimelineTranscriptStore((s) => s.removeFillers);
   const importMedia = useTimelineTranscriptStore((s) => s.importMedia);
+  const sequenceId = useTimelineStore((s) => s.sequenceId);
   const createAsset = useAssetStore((s) => s.createAsset);
   const addNotification = useNotificationStore((s) => s.addNotification);
+  const { extract, extracting } = useExtractScript();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
@@ -83,9 +85,26 @@ export const TranscriptPanel: React.FC = memo(() => {
     [createAsset, importMedia, addNotification]
   );
 
+  const onExtractScript = useCallback(async () => {
+    if (!sequenceId) return;
+    try {
+      await extract(sequenceId);
+    } catch (err) {
+      addNotification({
+        content: `Extract as script failed: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+        type: "error",
+        alert: true
+      });
+    }
+  }, [extract, sequenceId, addNotification]);
+
   return (
     <Panel
       data-testid="transcript-panel"
+      background="default"
+      bordered={false}
       sx={{
         height: "100%",
         minHeight: 0,
@@ -145,6 +164,21 @@ export const TranscriptPanel: React.FC = memo(() => {
               disabled={importing}
               onClick={() => fileInputRef.current?.click()}
             />
+            {sequenceId && segments.length > 0 ? (
+              <ToolbarIconButton
+                icon={
+                  extracting ? (
+                    <LoadingSpinner size={14} />
+                  ) : (
+                    <EditNoteIcon fontSize="small" />
+                  )
+                }
+                tooltip="Extract this transcript as an editable script"
+                aria-label="Extract as script"
+                disabled={extracting}
+                onClick={() => void onExtractScript()}
+              />
+            ) : null}
           </FlexRow>
         </FlexRow>
 

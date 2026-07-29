@@ -182,6 +182,24 @@ export class PythonStdioBridge extends PythonBridgeBase {
         if (settled) return;
         settled = true;
         clearTimeout(startupTimer);
+        // Tear down this candidate so a timed-out or failed spawn doesn't leak:
+        // its stdout handler would keep appending to the SHARED _readBuffer
+        // (desyncing the next candidate's frame stream) and the heavy worker
+        // (mid torch/CUDA import) would stay alive forever.
+        proc.stdout?.removeAllListeners();
+        proc.stderr?.removeAllListeners();
+        proc.stdin?.removeAllListeners();
+        proc.stdin?.on("error", () => {});
+        try {
+          proc.kill();
+        } catch {
+          // already dead
+        }
+        if (this._process === proc) {
+          this._process = null;
+          this._connected = false;
+        }
+        this._readBuffer = Buffer.alloc(0);
         reject(error);
       };
 
@@ -214,6 +232,22 @@ export class PythonStdioBridge extends PythonBridgeBase {
 
       proc.on("error", (err) => {
         if (!ready) settleError(err);
+      });
+
+      // stdin is a separate stream (EventEmitter) from the ChildProcess, so
+      // proc.on("error") does NOT cover write failures. Without this listener a
+      // broken-pipe write (EPIPE/ECONNRESET while the worker is exiting) emits
+      // an unhandled 'error' that crashes the whole Node backend. Fail the
+      // in-flight requests instead.
+      proc.stdin!.on("error", (err) => {
+        this._connected = false;
+        if (!ready) {
+          settleError(err);
+        } else {
+          this._rejectAllPending(
+            new Error(`Python worker stdin error: ${err.message}`)
+          );
+        }
       });
 
       proc.on("exit", (code) => {
@@ -315,8 +349,19 @@ export class PythonStdioBridge extends PythonBridgeBase {
     }
     const header = Buffer.alloc(4);
     header.writeUInt32BE(payload.length, 0);
-    this._process.stdin.write(header);
-    this._process.stdin.write(payload);
+    // Writing to a broken pipe can throw synchronously (or emit 'error'); turn
+    // it into a rejected request rather than an uncaught exception.
+    try {
+      this._process.stdin.write(header);
+      this._process.stdin.write(payload);
+    } catch (err) {
+      this._connected = false;
+      throw new Error(
+        `Failed to write to Python worker stdin: ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      );
+    }
   }
 
   // ── Shutdown ───────────────────────────────────────────────────────

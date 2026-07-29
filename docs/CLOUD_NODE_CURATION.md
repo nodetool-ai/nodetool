@@ -104,22 +104,25 @@ llama.cpp, vLLM, Hugging Face local, Transformers.js).
 | `nodetool.generators`  | Data/List/StructuredOutput/Chart/SVG gen      |
 | `nodetool.agents`      | AI agents (creative subset — see denylist)    |
 
-`nodetool.text` and `nodetool.code` are **not** kept whole — only a curated
-slice of each is admitted via `CLOUD_NODE_ALLOWLIST`:
+`nodetool.text` is kept whole (the full creative-text toolkit — prompt
+building, composition, regex, case/whitespace utilities, token counting,
+embeddings, predicates, and `AutomaticSpeechRecognition`), **except** its
+host-filesystem nodes, which are dropped via `CLOUD_NODE_DENYLIST`:
+
+| Denied from `nodetool.text` | Why                                          |
+| --------------------------- | -------------------------------------------- |
+| `LoadTextFolder`, `LoadTextAssets` | Read arbitrary host paths              |
+| `SaveText`, `SaveTextFile`  | `fs.writeFile` to an unsandboxed host path   |
+
+`nodetool.code` is **not** kept whole — only the sandboxed node is admitted via
+`CLOUD_NODE_ALLOWLIST`:
 
 | From `nodetool.code`   | Kept node                                     |
 | ---------------------- | --------------------------------------------- |
 | `Code`                 | Sandboxed (vm) JavaScript only                |
 
-| From `nodetool.text`   | Kept nodes                                                  |
-| ---------------------- | ---------------------------------------------------------- |
-| Prompt building        | `Prompt`, `Template`, `FormatText`                          |
-| Composition            | `Concat`, `Join`, `Collect`, `Replace`, `ToString`          |
-| Light parsing/IO       | `Split`, `Slice`, `Chunk`, `Extract`, `ParseJSON`, `ExtractJSON`, `SaveText` |
-
-Everything else in `nodetool.text` (regex, case/whitespace utilities, token
-counting, embeddings, predicates, file I/O) and `nodetool.code` (Python/Bash/
-Ruby/Lua subprocess + Docker runners) is dropped.
+The rest of `nodetool.code` (Python/Bash/Ruby/Lua subprocess + Docker runners)
+is dropped.
 
 ### Creative media toolkit
 
@@ -168,9 +171,10 @@ cloud profile drops:
 ## Maintenance
 
 - Re-add a whole capability → add a namespace to `CLOUD_NODE_NAMESPACES`.
-- Re-add a single node from a trimmed namespace (text/code) → add its node type
-  to `CLOUD_NODE_ALLOWLIST`.
-- Hide a single node from a kept namespace → add its node type to
-  `CLOUD_NODE_DENYLIST`.
+- Re-add a single node from a trimmed namespace (e.g. `nodetool.code`) → add its
+  node type to `CLOUD_NODE_ALLOWLIST`.
+- Hide a single node from a kept namespace (e.g. a file-I/O node in
+  `nodetool.text`, or a developer agent in `nodetool.agents`) → add its node
+  type to `CLOUD_NODE_DENYLIST`.
 - Add/remove a provider → edit `CLOUD_PROVIDER_IDS` (and, for whole provider
   packs, `CLOUD_BUILTIN_PACK_IDS`).

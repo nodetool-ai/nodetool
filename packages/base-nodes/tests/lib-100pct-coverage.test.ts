@@ -157,77 +157,30 @@ function makeNode<T>(Cls: new () => T, props: Record<string, unknown>): T {
   return node;
 }
 
-// ── lib-supabase: mock createClient for success paths ──────────
+// ── lib-supabase: stub fetch for success paths ──────────
 
-// We mock at the module level since supabase exports are non-configurable
-const mockFromChain: Record<string, any> = {};
-const mockRpc = vi.fn();
-const mockCreateClient = vi.fn().mockReturnValue({
-  from: vi.fn().mockReturnValue(mockFromChain),
-  rpc: mockRpc
-});
-
-vi.mock("@supabase/supabase-js", async (importOriginal) => {
-  const actual = (await importOriginal()) as Record<string, unknown>;
-  return {
-    ...actual,
-    createClient: (...args: any[]) => mockCreateClient(...args)
-  };
-});
+// The supabase nodes issue PostgREST requests directly over fetch, so these
+// tests stub the global fetch with canned PostgREST-shaped responses.
+function stubPostgrest(status: number, body?: unknown) {
+  const impl = vi.fn(
+    async () =>
+      new Response(body === undefined ? null : JSON.stringify(body), {
+        status,
+        headers: { "Content-Type": "application/json" }
+      })
+  );
+  vi.stubGlobal("fetch", impl);
+  return impl;
+}
 
 describe("lib-supabase success paths (mocked)", () => {
-  // Build a chainable query mock
-  function chainable(resolvedValue: { data: unknown; error: unknown }) {
-    const q: Record<string, unknown> = {};
-    const methods = [
-      "select",
-      "eq",
-      "neq",
-      "gt",
-      "gte",
-      "lt",
-      "lte",
-      "in",
-      "like",
-      "contains",
-      "order",
-      "limit",
-      "insert",
-      "update",
-      "upsert",
-      "delete"
-    ];
-    for (const m of methods) {
-      q[m] = vi.fn().mockReturnValue(q);
-    }
-    // Make the object thenable to resolve when awaited
-    q.then = (resolve: (v: unknown) => void) => {
-      resolve(resolvedValue);
-      return q;
-    };
-    return q;
-  }
-
-  beforeEach(() => {
-    // Reset the chain object
-    const q = chainable({ data: [], error: null });
-    Object.assign(mockFromChain, q);
-    mockCreateClient.mockReturnValue({
-      from: vi.fn().mockReturnValue(mockFromChain),
-      rpc: mockRpc
-    });
-  });
-
   afterEach(() => {
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
   it("Select succeeds with all filter operators", async () => {
-    const mockQ = chainable({ data: [{ id: 1 }], error: null });
-    mockCreateClient.mockReturnValue({
-      from: vi.fn().mockReturnValue(mockQ),
-      rpc: mockRpc
-    });
+    stubPostgrest(200, [{ id: 1 }]);
 
     const result = await makeNode(SelectLibNode, {
       supabase_url: "https://test.supabase.co",
@@ -253,10 +206,7 @@ describe("lib-supabase success paths (mocked)", () => {
   });
 
   it("Select with unsupported filter throws", async () => {
-    mockCreateClient.mockReturnValue({
-      from: vi.fn().mockReturnValue(chainable({ data: [], error: null })),
-      rpc: mockRpc
-    });
+    stubPostgrest(200, []);
 
     await expect(
       makeNode(SelectLibNode, {
@@ -269,19 +219,7 @@ describe("lib-supabase success paths (mocked)", () => {
   });
 
   it("Select with error response throws", async () => {
-    const q: Record<string, unknown> = {};
-    const methods = ["select", "eq", "order", "limit"];
-    for (const m of methods) {
-      q[m] = vi.fn().mockReturnValue(q);
-    }
-    q.then = (resolve: (v: unknown) => void) => {
-      resolve({ data: null, error: { message: "test error" } });
-      return q;
-    };
-    mockCreateClient.mockReturnValue({
-      from: vi.fn().mockReturnValue(q),
-      rpc: mockRpc
-    });
+    stubPostgrest(400, { message: "test error" });
 
     await expect(
       makeNode(SelectLibNode, {
@@ -293,11 +231,7 @@ describe("lib-supabase success paths (mocked)", () => {
   });
 
   it("Insert succeeds and returns rows", async () => {
-    const mockQ = chainable({ data: [{ id: 1, a: 1 }], error: null });
-    mockCreateClient.mockReturnValue({
-      from: vi.fn().mockReturnValue(mockQ),
-      rpc: mockRpc
-    });
+    stubPostgrest(201, [{ id: 1, a: 1 }]);
 
     const result = await makeNode(SupabaseInsertLibNode, {
       supabase_url: "https://test.supabase.co",
@@ -310,11 +244,7 @@ describe("lib-supabase success paths (mocked)", () => {
   });
 
   it("Insert succeeds with return_rows=false", async () => {
-    const mockQ = chainable({ data: null, error: null });
-    mockCreateClient.mockReturnValue({
-      from: vi.fn().mockReturnValue(mockQ),
-      rpc: mockRpc
-    });
+    stubPostgrest(201);
 
     const result = await makeNode(SupabaseInsertLibNode, {
       supabase_url: "https://test.supabase.co",
@@ -327,17 +257,7 @@ describe("lib-supabase success paths (mocked)", () => {
   });
 
   it("Insert with error response throws", async () => {
-    const q: Record<string, unknown> = {};
-    q.insert = vi.fn().mockReturnValue(q);
-    q.select = vi.fn().mockReturnValue(q);
-    q.then = (resolve: (v: unknown) => void) => {
-      resolve({ data: null, error: { message: "insert failed" } });
-      return q;
-    };
-    mockCreateClient.mockReturnValue({
-      from: vi.fn().mockReturnValue(q),
-      rpc: mockRpc
-    });
+    stubPostgrest(400, { message: "insert failed" });
 
     await expect(
       makeNode(SupabaseInsertLibNode, {
@@ -350,11 +270,7 @@ describe("lib-supabase success paths (mocked)", () => {
   });
 
   it("Update succeeds with filters and return_rows", async () => {
-    const mockQ = chainable({ data: [{ id: 1, x: 2 }], error: null });
-    mockCreateClient.mockReturnValue({
-      from: vi.fn().mockReturnValue(mockQ),
-      rpc: mockRpc
-    });
+    stubPostgrest(200, [{ id: 1, x: 2 }]);
 
     const result = await makeNode(SupabaseUpdateLibNode, {
       supabase_url: "https://test.supabase.co",
@@ -368,11 +284,7 @@ describe("lib-supabase success paths (mocked)", () => {
   });
 
   it("Update succeeds with return_rows=false", async () => {
-    const mockQ = chainable({ data: null, error: null });
-    mockCreateClient.mockReturnValue({
-      from: vi.fn().mockReturnValue(mockQ),
-      rpc: mockRpc
-    });
+    stubPostgrest(204);
 
     const result = await makeNode(SupabaseUpdateLibNode, {
       supabase_url: "https://test.supabase.co",
@@ -386,17 +298,7 @@ describe("lib-supabase success paths (mocked)", () => {
   });
 
   it("Update with error response throws", async () => {
-    const q: Record<string, unknown> = {};
-    q.update = vi.fn().mockReturnValue(q);
-    q.select = vi.fn().mockReturnValue(q);
-    q.then = (resolve: (v: unknown) => void) => {
-      resolve({ data: null, error: { message: "update failed" } });
-      return q;
-    };
-    mockCreateClient.mockReturnValue({
-      from: vi.fn().mockReturnValue(q),
-      rpc: mockRpc
-    });
+    stubPostgrest(400, { message: "update failed" });
 
     await expect(
       makeNode(SupabaseUpdateLibNode, {
@@ -409,11 +311,7 @@ describe("lib-supabase success paths (mocked)", () => {
   });
 
   it("Delete succeeds", async () => {
-    const mockQ = chainable({ data: null, error: null });
-    mockCreateClient.mockReturnValue({
-      from: vi.fn().mockReturnValue(mockQ),
-      rpc: mockRpc
-    });
+    stubPostgrest(204);
 
     const result = await makeNode(SupabaseDeleteLibNode, {
       supabase_url: "https://test.supabase.co",
@@ -425,17 +323,7 @@ describe("lib-supabase success paths (mocked)", () => {
   });
 
   it("Delete with error response throws", async () => {
-    const q: Record<string, unknown> = {};
-    q.delete = vi.fn().mockReturnValue(q);
-    q.eq = vi.fn().mockReturnValue(q);
-    q.then = (resolve: (v: unknown) => void) => {
-      resolve({ data: null, error: { message: "delete failed" } });
-      return q;
-    };
-    mockCreateClient.mockReturnValue({
-      from: vi.fn().mockReturnValue(q),
-      rpc: mockRpc
-    });
+    stubPostgrest(400, { message: "delete failed" });
 
     await expect(
       makeNode(SupabaseDeleteLibNode, {
@@ -448,11 +336,7 @@ describe("lib-supabase success paths (mocked)", () => {
   });
 
   it("Upsert succeeds with return_rows", async () => {
-    const mockQ = chainable({ data: [{ id: 1 }], error: null });
-    mockCreateClient.mockReturnValue({
-      from: vi.fn().mockReturnValue(mockQ),
-      rpc: mockRpc
-    });
+    stubPostgrest(200, [{ id: 1 }]);
 
     const result = await makeNode(SupabaseUpsertLibNode, {
       supabase_url: "https://test.supabase.co",
@@ -465,11 +349,7 @@ describe("lib-supabase success paths (mocked)", () => {
   });
 
   it("Upsert succeeds with return_rows=false", async () => {
-    const mockQ = chainable({ data: null, error: null });
-    mockCreateClient.mockReturnValue({
-      from: vi.fn().mockReturnValue(mockQ),
-      rpc: mockRpc
-    });
+    stubPostgrest(201);
 
     const result = await makeNode(SupabaseUpsertLibNode, {
       supabase_url: "https://test.supabase.co",
@@ -482,17 +362,7 @@ describe("lib-supabase success paths (mocked)", () => {
   });
 
   it("Upsert with error response throws", async () => {
-    const q: Record<string, unknown> = {};
-    q.upsert = vi.fn().mockReturnValue(q);
-    q.select = vi.fn().mockReturnValue(q);
-    q.then = (resolve: (v: unknown) => void) => {
-      resolve({ data: null, error: { message: "upsert failed" } });
-      return q;
-    };
-    mockCreateClient.mockReturnValue({
-      from: vi.fn().mockReturnValue(q),
-      rpc: mockRpc
-    });
+    stubPostgrest(400, { message: "upsert failed" });
 
     await expect(
       makeNode(SupabaseUpsertLibNode, {
@@ -505,10 +375,7 @@ describe("lib-supabase success paths (mocked)", () => {
   });
 
   it("RPC succeeds", async () => {
-    mockCreateClient.mockReturnValue({
-      from: vi.fn(),
-      rpc: vi.fn().mockResolvedValue({ data: { result: 42 }, error: null })
-    });
+    stubPostgrest(200, { result: 42 });
 
     const result = await makeNode(SupabaseRPCLibNode, {
       supabase_url: "https://test.supabase.co",
@@ -520,12 +387,7 @@ describe("lib-supabase success paths (mocked)", () => {
   });
 
   it("RPC with error response throws", async () => {
-    mockCreateClient.mockReturnValue({
-      from: vi.fn(),
-      rpc: vi
-        .fn()
-        .mockResolvedValue({ data: null, error: { message: "rpc failed" } })
-    });
+    stubPostgrest(400, { message: "rpc failed" });
 
     await expect(
       makeNode(SupabaseRPCLibNode, {

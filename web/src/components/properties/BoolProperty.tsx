@@ -1,10 +1,11 @@
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import { memo, useCallback } from "react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { NodeSwitch } from "../editor_ui";
+import { BORDER_RADIUS } from "../ui_primitives";
 
-const BoolProperty = (props: PropertyProps) => {
+const BoolProperty = (props: PropertyProps<boolean>) => {
   const { property, value, changed, onChange } = props;
   const id = `switch-${property.name}-${props.propertyIndex}`;
 
@@ -22,7 +23,7 @@ const BoolProperty = (props: PropertyProps) => {
         display: "flex",
         flexDirection: "column",
         alignItems: "flex-start",
-        borderRadius: ".2em",
+        borderRadius: BORDER_RADIUS.xs,
       }}
     >
       <PropertyLabel

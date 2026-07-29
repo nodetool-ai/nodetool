@@ -71,7 +71,7 @@ const AlphaSlider: React.FC<AlphaSliderProps> = memo(({
       if (!container) { return; }
 
       const rect = container.getBoundingClientRect();
-      
+
       let percentage: number;
       if (orientation === "horizontal") {
         percentage = (clientX - rect.left) / rect.width;
@@ -79,7 +79,6 @@ const AlphaSlider: React.FC<AlphaSliderProps> = memo(({
         percentage = 1 - (clientY - rect.top) / rect.height;
       }
 
-      // Clamp alpha to 0-1
       const newAlpha = Math.max(0, Math.min(1, percentage));
       onChange(Math.round(newAlpha * 100) / 100);
     },
@@ -106,7 +105,6 @@ const AlphaSlider: React.FC<AlphaSliderProps> = memo(({
     isDragging.current = false;
   }, []);
 
-  // Handle touch events
   const handleTouchStart = useCallback(
     (e: React.TouchEvent) => {
       isDragging.current = true;
@@ -125,7 +123,6 @@ const AlphaSlider: React.FC<AlphaSliderProps> = memo(({
     [updateAlpha]
   );
 
-  // Global mouse up listener
   useEffect(() => {
     const handleGlobalMouseUp = () => {
       isDragging.current = false;
@@ -140,12 +137,10 @@ const AlphaSlider: React.FC<AlphaSliderProps> = memo(({
     };
   }, []);
 
-  // Calculate cursor position
   const cursorPosition = orientation === "horizontal"
     ? `${alpha * 100}%`
     : `${(1 - alpha) * 100}%`;
 
-  // Create gradient background
   const gradientStyle = orientation === "horizontal"
     ? {
         background: `linear-gradient(to right, transparent, ${color})`

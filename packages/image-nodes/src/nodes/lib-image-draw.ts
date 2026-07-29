@@ -1,6 +1,6 @@
 /// <reference lib="dom" />
 import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
-import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
+import type { NodeClass } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   NODE_AND_BROWSER_PLATFORMS,
@@ -12,8 +12,10 @@ import { sourcesSolidV1, sourcesGaussianNoiseV1 } from "@nodetool-ai/gpu/pool";
 import { pickImage } from "./lib-image-utils.js";
 import {
   colorValueToVec4,
+  num,
   premultiplyVec4,
-  runShaderNode
+  runShaderNode,
+  type Desc
 } from "./lib-shader-utils.js";
 import {
   loadImageBytes,
@@ -23,15 +25,24 @@ import {
   SHARP_UNAVAILABLE_MESSAGE
 } from "./image-io.js";
 
-type Desc = {
-  nodeType: string;
-  title: string;
-  description: string;
-  inlineFields: string[];
-  inputFields:  string[];
-  outputs: Record<string, string>;
-  properties: Array<{ name: string; options: PropOptions }>;
-};
+// Clamp a requested output dimension to [1, max]. Guards the low end, the NaN
+// case (via num) and the high end so a programmatic graph can't request an
+// arbitrarily large texture. `max` mirrors the prop metadata's documented max.
+function clampDim(value: unknown, fallback: number, max: number): number {
+  return Math.min(max, Math.max(1, Math.round(num(value, fallback))));
+}
+
+// Escape a value for interpolation into an XML/SVG attribute or text node.
+// Escaping the quotes as well as &<> prevents a value from terminating the
+// attribute string and injecting arbitrary markup into the SVG handed to sharp.
+export function escapeXmlAttr(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
+}
 
 // Background (GPU), GaussianNoise (GPU) and RenderText (Canvas in the browser /
 // sharp on Node) all run client-side. The Mask compositor still relies on sharp
@@ -77,8 +88,8 @@ function createDrawNode(desc: Desc): NodeClass {
       const t = desc.nodeType;
 
       if (t === "lib.image.draw.Background") {
-        const width = Math.max(1, Number((this as any).width ?? 512));
-        const height = Math.max(1, Number((this as any).height ?? 512));
+        const width = clampDim((this as any).width, 512, 4096);
+        const height = clampDim((this as any).height, 512, 4096);
         // Source module — no input texture, just the host-specified output dims.
         const [r, g, b, a] = premultiplyVec4(
           colorValueToVec4((this as any).color ?? "#FFFFFF", [1, 1, 1, 1])
@@ -95,15 +106,22 @@ function createDrawNode(desc: Desc): NodeClass {
       }
 
       if (t === "lib.image.draw.GaussianNoise") {
-        const w = Math.max(1, Number((this as any).width ?? 512));
-        const h = Math.max(1, Number((this as any).height ?? 512));
-        const mean = Number((this as any).mean ?? 0);
-        const stddev = Number((this as any).stddev ?? 1);
-        // A fresh seed per run reproduces the old Math.random() variation.
+        const w = clampDim((this as any).width, 512, 1024);
+        const h = clampDim((this as any).height, 512, 1024);
+        const mean = num((this as any).mean, 0);
+        const stddev = num((this as any).stddev, 1);
+        // seed < 0 (the -1 default) → fresh random seed each run, reproducing
+        // the old Math.random() variation. A pinned seed ≥ 0 makes the noise
+        // reproducible across runs.
+        const requestedSeed = Math.floor(num((this as any).seed, -1));
+        const seed =
+          requestedSeed < 0
+            ? Math.floor(Math.random() * 100000)
+            : requestedSeed;
         return {
           output: await runShaderNode(
             sourcesGaussianNoiseV1,
-            { mean, stddev, seed: Math.floor(Math.random() * 100000) },
+            { mean, stddev, seed },
             null,
             { outputWidth: w, outputHeight: h },
             context
@@ -125,21 +143,13 @@ function createDrawNode(desc: Desc): NodeClass {
       if (t === "lib.image.Mask") {
         const sharp = await loadSharp();
         if (!sharp) throw new Error(SHARP_UNAVAILABLE_MESSAGE);
+        const self = this as unknown as Record<string, unknown>;
         const fg = await loadImageBytes(
-          (this as any).foreground ??
-            (this as unknown as Record<string, unknown>).foreground ??
-            (this as any).image2 ??
-            (this as unknown as Record<string, unknown>).image2 ??
-            (this as any).image1 ??
-            (this as unknown as Record<string, unknown>).image1,
+          self.foreground ?? self.image2 ?? self.image1,
           context
         );
         if (fg.length) {
-          const mask = await loadImageBytes(
-            (this as any).mask ??
-              (this as unknown as Record<string, unknown>).mask,
-            context
-          );
+          const mask = await loadImageBytes(self.mask, context);
           const baseMeta = await sharp(baseBytes, { failOn: "none" }).metadata();
           const width = Math.max(1, baseMeta.width ?? 1);
           const height = Math.max(1, baseMeta.height ?? 1);
@@ -183,9 +193,9 @@ function createDrawNode(desc: Desc): NodeClass {
         if (!text) {
           return { output: toBase64Ref(baseBytes, baseObj) };
         }
-        const x = Number((this as any).x ?? 0);
-        const y = Number((this as any).y ?? 0);
-        const size = Number((this as any).size ?? 12);
+        const x = num((this as any).x, 0);
+        const y = num((this as any).y, 0);
+        const size = Math.min(512, Math.max(1, num((this as any).size, 12)));
         const colorVal = (this as any).color ?? "#000000";
         const color =
           colorVal &&
@@ -229,14 +239,13 @@ function createDrawNode(desc: Desc): NodeClass {
         if (!sharp) throw new Error(SHARP_UNAVAILABLE_MESSAGE);
         const textAnchor =
           align === "center" ? "middle" : align === "right" ? "end" : "start";
-        const escapedText = text
-          .replaceAll("&", "&amp;")
-          .replaceAll("<", "&lt;")
-          .replaceAll(">", "&gt;");
+        const escapedText = escapeXmlAttr(text);
         const md = await sharp(baseBytes).metadata();
         const svgWidth = md.width ?? 512;
         const svgHeight = md.height ?? 512;
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}"><text x="${x}" y="${y + size}" font-size="${size}" fill="${color}" font-family="${fontFamily}" text-anchor="${textAnchor}">${escapedText}</text></svg>`;
+        // Every interpolated attribute is escaped — a quote in color/font would
+        // otherwise break out of the attribute and inject SVG markup into sharp.
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}"><text x="${x}" y="${y + size}" font-size="${size}" fill="${escapeXmlAttr(color)}" font-family="${escapeXmlAttr(fontFamily)}" text-anchor="${escapeXmlAttr(textAnchor)}">${escapedText}</text></svg>`;
         const out = await sharp(baseBytes)
           .composite([{ input: Buffer.from(svg) }])
           .png()
@@ -347,6 +356,17 @@ const DESCRIPTORS: readonly Desc[] = [
           min: 1,
           max: 1024
         }
+      },
+      {
+        name: "seed",
+        options: {
+          type: "int",
+          default: -1,
+          title: "Seed",
+          description:
+            "Random seed for reproducibility (-1 for a fresh random seed each run).",
+          min: -1
+        }
       }
     ]
   },
@@ -354,7 +374,7 @@ const DESCRIPTORS: readonly Desc[] = [
     nodeType: "lib.image.draw.RenderText",
     title: "Render Text",
     description:
-      'This node allows you to add text to images using system fonts or web fonts.\n    text, font, label, title, watermark, caption, image, overlay, google fonts\n\n    This node takes text, font updates, coordinates (where to place the text), and an image to work with.\n    A user can use the Render Text Node to add a label or title to an image, watermark an image,\n    or place a caption directly on an image.\n\n    The Render Text Node offers customizable options, including the ability to choose the text\'s font,\n    size, color, and alignment (left, center, or right). Text placement can also be defined,\n    providing flexibility to place the text wherever you see fit.\n\n    ### Font Sources\n\n    The node supports three font sources:\n\n    1. **System Fonts** (default): Use fonts installed on the system\n       - `FontRef(name="Arial")` - Uses local Arial font\n\n    2. **Google Fonts**: Automatically download and cache fonts from Google Fonts\n       - `FontRef(name="Roboto", source=FontSource.GOOGLE_FONTS)`\n       - `FontRef(name="Open Sans", source=FontSource.GOOGLE_FONTS, weight="bold")`\n       - Supports 50+ popular fonts including Roboto, Open Sans, Lato, Montserrat, Poppins, etc.\n\n    3. **Custom URL**: Download fonts from any URL\n       - `FontRef(name="CustomFont", source=FontSource.URL, url="https://example.com/font.ttf")`\n\n    #### Applications\n    - Labeling images in an image gallery or database.\n    - Watermarking images for copyright protection.\n    - Adding custom captions to photographs.\n    - Creating instructional images to guide the reader\'s view.\n    - Using premium Google Fonts for professional typography.',
+      "Draw text onto an image using a system-available font family.\n    text, font, label, title, watermark, caption, image, overlay\n\n    This node takes text, a font family name, coordinates (where to place the\n    text), and an image to work with. Use it to add a label or title to an\n    image, watermark an image, or place a caption directly on an image.\n\n    You can set the font family name, size, color, and alignment (left, center,\n    or right), and position the text anywhere on the image.\n\n    ### Fonts\n\n    Only the font's `name` is used, as a font-family name resolved against the\n    fonts available to the renderer (Canvas2D in the browser, sharp/librsvg on\n    the server). If the named family isn't available, the renderer falls back to\n    a default. The node does not download fonts, so the font's `source`, `url`,\n    and `weight` fields are ignored.\n\n    #### Applications\n    - Labeling images in an image gallery or database.\n    - Watermarking images for copyright protection.\n    - Adding custom captions to photographs.\n    - Creating instructional images to guide the reader's view.",
     inlineFields: ["text"],
     inputFields:  ["image"],
     outputs: {
@@ -383,7 +403,7 @@ const DESCRIPTORS: readonly Desc[] = [
           },
           title: "Font",
           description:
-            "The font to use. Supports system fonts, Google Fonts, and custom URLs."
+            "The font family to use, resolved by name against the fonts available to the renderer. Only the font name is used; source, url, and weight are ignored."
         }
       },
       {

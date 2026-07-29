@@ -1,5 +1,16 @@
 import type { OutputUpdate } from "./ApiTypes";
 
+/**
+ * Narrows a loose WebSocket message to {@link OutputUpdate} after verifying
+ * the discriminator.  Replaces the `msg as unknown as OutputUpdate` casts
+ * that were scattered across hooks/stores.
+ */
+export function isOutputUpdate(
+  msg: { type: string }
+): msg is OutputUpdate {
+  return msg.type === "output_update";
+}
+
 const RICH_OUTPUT_TYPES = new Set([
   "image",
   "audio",

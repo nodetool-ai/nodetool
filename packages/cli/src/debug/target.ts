@@ -14,9 +14,12 @@ export interface ResolvedTarget {
   graph: DebugGraph;
   /** Params discovered in a file's `params` field, merged under caller params. */
   fileParams: Record<string, unknown>;
+  /** The workflow's app-builder document (`app_doc`), when present. */
+  appDoc: unknown;
 }
 
-function looksLikeFile(ref: string): boolean {
+/** A path-shaped ref, as opposed to a database id. */
+export function looksLikeFile(ref: string): boolean {
   return (
     ref.endsWith(".json") ||
     ref.endsWith(".ts") ||
@@ -26,8 +29,35 @@ function looksLikeFile(ref: string): boolean {
   );
 }
 
+/** A DSL ref, which has to be executed rather than read. */
+export function looksLikeDsl(ref: string): boolean {
+  return ref.endsWith(".ts") || ref.endsWith(".tsx");
+}
+
+/**
+ * Read a file target's JSON: a `.json` file straight off disk, or the JSON a
+ * DSL file prints when executed.
+ */
+export async function readFileTarget(
+  ref: string
+): Promise<{ raw: unknown; source: "json" | "dsl" }> {
+  if (looksLikeDsl(ref)) {
+    // DSL file: execute via tsx and capture the emitted JSON workflow.
+    // execFileSync, not execSync: the path goes through argv, so quotes or
+    // `$(...)` in a file name stay a file name instead of becoming shell.
+    const { execFileSync } = await import("node:child_process");
+    const output = execFileSync("npx", ["tsx", resolve(ref)], {
+      encoding: "utf8",
+      cwd: dirname(resolve(ref)),
+      timeout: 30000
+    });
+    return { raw: JSON.parse(output.trim()), source: "dsl" };
+  }
+  return { raw: JSON.parse(readFileSync(ref, "utf8")), source: "json" };
+}
+
 /** Convert ReactFlow `node.data` to kernel `node.properties` in place. */
-function normalizeGraph(graph: DebugGraph): DebugGraph {
+export function normalizeGraph(graph: DebugGraph): DebugGraph {
   return {
     nodes: (graph.nodes ?? []).map((n) => {
       if (n.properties === undefined && n.data !== undefined) {
@@ -48,28 +78,17 @@ function normalizeGraph(graph: DebugGraph): DebugGraph {
  */
 export async function resolveTarget(
   ref: string,
-  loadFromDb: (id: string) => Promise<{ graph: DebugGraph } | null>
+  loadFromDb: (id: string) => Promise<{ graph: DebugGraph; app_doc?: unknown } | null>
 ): Promise<ResolvedTarget> {
-  let raw: { graph?: DebugGraph; nodes?: unknown[]; edges?: unknown[]; id?: string; workflow_id?: string; params?: Record<string, unknown> };
+  let raw: { graph?: DebugGraph; nodes?: unknown[]; edges?: unknown[]; id?: string; workflow_id?: string; params?: Record<string, unknown>; app_doc?: unknown };
   let source: DebugTargetInfo["source"];
   let workflowId: string | null;
   const fileParams: Record<string, unknown> = {};
 
   if (looksLikeFile(ref)) {
-    if (ref.endsWith(".ts") || ref.endsWith(".tsx")) {
-      // DSL file: execute via tsx and capture the emitted JSON workflow.
-      const { execSync } = await import("node:child_process");
-      const output = execSync(`npx tsx "${resolve(ref)}"`, {
-        encoding: "utf8",
-        cwd: dirname(resolve(ref)),
-        timeout: 30000
-      });
-      raw = JSON.parse(output.trim());
-      source = "dsl";
-    } else {
-      raw = JSON.parse(readFileSync(ref, "utf8"));
-      source = "json";
-    }
+    const file = await readFileTarget(ref);
+    raw = file.raw as typeof raw;
+    source = file.source;
     workflowId = raw.workflow_id ?? raw.id ?? null;
     if (raw.params) Object.assign(fileParams, raw.params);
   } else {
@@ -95,6 +114,7 @@ export async function resolveTarget(
       edgeCount: graph.edges.length
     },
     graph,
-    fileParams
+    fileParams,
+    appDoc: raw.app_doc ?? null
   };
 }

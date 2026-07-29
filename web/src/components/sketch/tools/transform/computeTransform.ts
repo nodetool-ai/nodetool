@@ -1,12 +1,7 @@
 /**
- * computeTransform – Pure transform computation for scale, rotate, and
- * move gestures.
- *
- * Extracted from TransformTool.ts so the tool file owns interaction flow
- * (hit testing, drag state, pointer events), not geometry policy.
- *
- * All functions are pure: they take the drag state and return a new
- * LayerTransform without side effects.
+ * computeTransform – Pure transform computation for scale, rotate, and move
+ * gestures. All functions take the drag state and return a new LayerTransform
+ * without side effects.
  *
  * @module tools/transform/computeTransform
  */
@@ -18,14 +13,11 @@ import type {
   TransformMode,
   Quad,
   SingleQuadMode,
-  SingleQuadTransform,
-  AffineTransform
+  SingleQuadTransform
 } from "../../types";
 import {
-  IDENTITY_AFFINE,
   cloneTransform,
   isAffineTransform,
-  isQuadTransform,
   makeAffineTransform,
   makeSingleQuadTransform
 } from "../../types";

@@ -39,11 +39,17 @@ const PackageRail = ({
   <FlexColumn
     gap={0.75}
     sx={(theme) => ({
-      width: 250,
+      // Phone width: the rail sits above the list as a full-width header
+      // instead of taking 250px of a 375px viewport.
+      width: { xs: "100%", sm: 250 },
       flexShrink: 0,
-      height: "100%",
+      height: { xs: "auto", sm: "100%" },
       p: 1.75,
-      borderRight: `1px solid ${theme.vars.palette.divider}`,
+      borderRight: { xs: "none", sm: `1px solid ${theme.vars.palette.divider}` },
+      borderBottom: {
+        xs: `1px solid ${theme.vars.palette.divider}`,
+        sm: "none"
+      },
       backgroundColor:
         theme.vars.palette.c_app_header ?? theme.vars.palette.background.default
     })}
@@ -66,6 +72,7 @@ const PackageRail = ({
       color="secondary"
       weight={600}
       sx={{
+        display: { xs: "none", sm: "block" },
         textTransform: "uppercase",
         letterSpacing: "0.09em",
         px: 1.25,
@@ -76,79 +83,93 @@ const PackageRail = ({
       Browse
     </Text>
 
-    {categories.map((c) => {
-      const active = c.id === activeCat;
-      return (
-        <Box
-          key={c.id}
-          component="button"
-          type="button"
-          onClick={() => onCat(c.id)}
-          aria-current={active ? "true" : undefined}
-          sx={(theme) => ({
-            position: "relative",
-            display: "flex",
-            alignItems: "center",
-            gap: 1.25,
-            width: "100%",
-            textAlign: "left",
-            padding: theme.spacing(SPACING.md, SPACING.lg, SPACING.md, SPACING.xl),
-            borderRadius: BORDER_RADIUS.lg,
-            border: "none",
-            cursor: "pointer",
-            backgroundColor: active
-              ? theme.vars.palette.action.selected
-              : "transparent",
-            transition: `background-color ${MOTION.fast}`,
-            "&:hover": {
+    {/* Column of categories on desktop, one scrollable row on a phone. */}
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: { xs: "row", sm: "column" },
+        gap: 0.75,
+        minWidth: 0,
+        overflowX: { xs: "auto", sm: "visible" },
+        pt: { xs: 1, sm: 0 }
+      }}
+    >
+      {categories.map((c) => {
+        const active = c.id === activeCat;
+        return (
+          <Box
+            key={c.id}
+            component="button"
+            type="button"
+            onClick={() => onCat(c.id)}
+            aria-current={active ? "true" : undefined}
+            sx={(theme) => ({
+              position: "relative",
+              display: "flex",
+              alignItems: "center",
+              gap: 1.25,
+              width: { xs: "auto", sm: "100%" },
+              flexShrink: 0,
+              whiteSpace: "nowrap",
+              textAlign: "left",
+              padding: theme.spacing(SPACING.md, SPACING.lg, SPACING.md, SPACING.xl),
+              borderRadius: BORDER_RADIUS.lg,
+              border: "none",
+              cursor: "pointer",
               backgroundColor: active
                 ? theme.vars.palette.action.selected
-                : theme.vars.palette.action.hover
-            },
-            "&:focus-visible": {
-              outline: `2px solid ${theme.vars.palette.primary.main}`,
-              outlineOffset: "-2px"
-            }
-          })}
-        >
-          {active && (
-            <Box
-              aria-hidden
-              sx={(theme) => ({
-                position: "absolute",
-                left: 4,
-                top: 9,
-                bottom: 9,
-                width: 3,
-                borderRadius: BORDER_RADIUS.sm,
-                backgroundColor: theme.vars.palette.primary.main
-              })}
-            />
-          )}
-          <Text
-            size="small"
-            sx={{ color: active ? "text.primary" : "text.secondary" }}
-          >
-            {c.label}
-          </Text>
-          <Box
-            sx={(theme) => ({
-              marginLeft: "auto",
-              fontFamily: theme.fontFamily2,
-              fontSize: "var(--fontSizeSmaller)",
-              fontWeight: 500,
-              color: theme.vars.palette.text.secondary,
-              backgroundColor: theme.vars.palette.action.selected,
-              py: SPACING.micro,
-              px: SPACING.md,
-              borderRadius: BORDER_RADIUS.sm
+                : "transparent",
+              transition: `background-color ${MOTION.fast}`,
+              "&:hover": {
+                backgroundColor: active
+                  ? theme.vars.palette.action.selected
+                  : theme.vars.palette.action.hover
+              },
+              "&:focus-visible": {
+                outline: `2px solid ${theme.vars.palette.primary.main}`,
+                outlineOffset: "-2px"
+              }
             })}
           >
-            {c.count}
+            {active && (
+              <Box
+                aria-hidden
+                sx={(theme) => ({
+                  position: "absolute",
+                  left: 4,
+                  top: 9,
+                  bottom: 9,
+                  width: 3,
+                  borderRadius: BORDER_RADIUS.sm,
+                  backgroundColor: theme.vars.palette.primary.main
+                })}
+              />
+            )}
+            <Text
+              size="small"
+              sx={{ color: active ? "text.primary" : "text.secondary" }}
+            >
+              {c.label}
+            </Text>
+            <Box
+              sx={(theme) => ({
+                marginLeft: { xs: 0, sm: "auto" },
+                fontFamily: theme.fontFamily2,
+                fontSize: "var(--fontSizeSmaller)",
+                fontWeight: 500,
+                color: theme.vars.palette.text.secondary,
+                backgroundColor: theme.vars.palette.action.selected,
+                py: SPACING.micro,
+                px: SPACING.md,
+                borderRadius: BORDER_RADIUS.sm
+              })}
+            >
+              {c.count}
+            </Box>
           </Box>
-        </Box>
-      );
-    })}
+        );
+      })}
+    </Box>
 
     <FlexRow sx={{ flex: 1 }} />
 
@@ -156,6 +177,7 @@ const PackageRail = ({
       size="small"
       color="secondary"
       sx={(theme) => ({
+        display: { xs: "none", sm: "block" },
         lineHeight: 1.5,
         p: 1.25,
         borderTop: `1px solid ${theme.vars.palette.divider}`

@@ -1,8 +1,9 @@
 import { FsSafeError, root, type Root } from "@openclaw/fs-safe";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
 import type { AbstractStorage } from "./abstract-storage.js";
-import { normalizeStorageKey } from "./storage-keys.js";
+import { isWithinRoot, normalizeStorageKey } from "./storage-keys.js";
 import { assertUploadWithinLimit } from "./storage-limits.js";
 
 /**
@@ -66,12 +67,29 @@ export class FileStorage implements AbstractStorage {
 
   getUrl(key: string): string {
     const rel = normalizeStorageKey(key);
-    return `file://${path.resolve(this.baseDir, rel)}`;
+    return pathToFileURL(path.resolve(this.baseDir, rel)).toString();
   }
 
   async exists(key: string): Promise<boolean> {
     const r = await this.getRoot();
     const rel = normalizeStorageKey(key);
-    return r.exists(rel);
+    if (process.platform !== "win32") {
+      return r.exists(rel);
+    }
+
+    // @openclaw/fs-safe's pinned stat helper is not available on Windows.
+    // Resolve through the safe root, then reproduce its relevant alias checks.
+    try {
+      const resolved = await r.resolve(rel);
+      const base = path.resolve(this.baseDir);
+      if (!isWithinRoot(base, resolved)) return false;
+      const info = await fs.lstat(resolved);
+      if (info.isSymbolicLink() || (info.isFile() && info.nlink > 1)) {
+        return false;
+      }
+      return isWithinRoot(base, await fs.realpath(resolved));
+    } catch {
+      return false;
+    }
   }
 }

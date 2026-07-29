@@ -1,11 +1,10 @@
 import { components } from '../api';
 import type {
-  ASRModel as AppASRModel,
-  ImageModel as AppImageModel,
-  LanguageModel as AppLanguageModel,
-  ProviderInfo as AppProviderInfo,
-  TTSModel as AppTTSModel,
-  VideoModel as AppVideoModel,
+  ApplicationListItem,
+  ApplicationReleaseResponse,
+  ApplicationResponse,
+} from '@nodetool-ai/protocol/api-schemas/applications.js';
+import type {
   Workflow as AppWorkflow,
 } from '../types/ApiTypes';
 import { useAuthStore } from '../stores/AuthStore';
@@ -64,6 +63,11 @@ export type AssetSearchResult = components["schemas"]["AssetSearchResult"];
 export type AssetWithPath = components["schemas"]["AssetWithPath"];
 export type JobResponse = components["schemas"]["JobResponse"];
 export type JobListResponse = components["schemas"]["JobListResponse"];
+export type {
+  ApplicationListItem,
+  ApplicationReleaseResponse,
+  ApplicationResponse,
+};
 
 // ── Types for tRPC-migrated domains ───────────────────────────────────────────
 // These shapes match the tRPC output schemas exactly and replace the openapi-
@@ -81,26 +85,11 @@ export interface SecretResponse {
   value?: string;
 }
 
-export interface SecretsListResponse {
-  secrets: SecretResponse[];
-  next_key: string | null;
-}
-
-export interface SecretUpdateRequest {
-  value: string;
-  description?: string | null;
-}
-
 export interface CollectionResponse {
   name: string;
   count: number;
   metadata?: Record<string, string | number | boolean>;
   workflow_name?: string | null;
-}
-
-export interface CollectionList {
-  collections: CollectionResponse[];
-  count: number;
 }
 
 export interface CollectionCreate {
@@ -144,21 +133,35 @@ export interface WorkflowGraphInput {
 // `description`, `graph`, and `*_schema` fields), so callers pass that wire shape
 // here. Accept it structurally and coerce `description` to the non-null string the
 // app's `Workflow` type guarantees.
-export function normalizeWorkflow(workflow: Record<string, unknown>): AppWorkflow {
+interface TRPCWorkflowResponse {
+  id: string;
+  name: string;
+  description?: string | null;
+  [key: string]: unknown;
+}
+
+export function normalizeWorkflow(workflow: TRPCWorkflowResponse): AppWorkflow {
   return {
     ...workflow,
-    description: (workflow.description as string | null | undefined) ?? '',
+    description: workflow.description ?? '',
   } as AppWorkflow;
 }
 
+interface TRPCModelResponse {
+  id: string;
+  name: string;
+  type?: string | null;
+  [key: string]: unknown;
+}
+
 export function normalizeModels<T extends { id: string; name: string }>(
-  models: ReadonlyArray<Record<string, unknown>>,
+  models: ReadonlyArray<TRPCModelResponse>,
   provider: string
 ): T[] {
   return models.map((model) => ({
     ...model,
     provider,
-    type: (model.type as string | null | undefined) ?? null,
+    type: model.type ?? null,
   })) as unknown as T[];
 }
 
@@ -248,83 +251,50 @@ class ApiService {
     return {
       ...result,
       workflows: result.workflows.map((workflow) =>
-        normalizeWorkflow(workflow as unknown as Record<string, unknown>)
+        normalizeWorkflow(workflow)
       ),
     };
   }
 
-  async getWorkflow(id: string) {
-    const trpc = createMobileTRPCClient();
-    const workflow = await trpc.workflows.get.query({ id });
-    return normalizeWorkflow(workflow as unknown as Record<string, unknown>);
-  }
-
-  async runWorkflow(id: string, params: Record<string, unknown>) {
-    const trpc = createMobileTRPCClient();
-    return trpc.workflows.run.mutate({ id, params });
-  }
-
-  async getProviders(): Promise<AppProviderInfo[]> {
-    const trpc = createMobileTRPCClient();
-    return trpc.models.providers.query() as Promise<AppProviderInfo[]>;
-  }
-
-  async getProvidersByCapability(capability: string) {
-    const all = await this.getProviders();
-    return all.filter((p) => p.capabilities?.includes(capability));
-  }
-
-  async getLanguageModelProviders() {
-    return this.getProvidersByCapability('generate_message');
-  }
-
-  async getLanguageModels(provider: string): Promise<AppLanguageModel[]> {
-    const trpc = createMobileTRPCClient();
-    const models = await trpc.models.llmByProvider.query({ provider });
-    return normalizeModels<AppLanguageModel>(
-      models as unknown as Array<Record<string, unknown>>,
-      provider
-    );
-  }
-
-  async getImageModels(provider: string): Promise<AppImageModel[]> {
-    const trpc = createMobileTRPCClient();
-    const models = await trpc.models.imageByProvider.query({ provider });
-    return normalizeModels<AppImageModel>(
-      models as unknown as Array<Record<string, unknown>>,
-      provider
-    );
-  }
-
-  async getTTSModels(provider: string): Promise<AppTTSModel[]> {
-    const trpc = createMobileTRPCClient();
-    const models = await trpc.models.ttsByProvider.query({ provider });
-    return normalizeModels<AppTTSModel>(
-      models as unknown as Array<Record<string, unknown>>,
-      provider
-    );
-  }
-
-  async getASRModels(provider: string): Promise<AppASRModel[]> {
-    const trpc = createMobileTRPCClient();
-    const models = await trpc.models.asrByProvider.query({ provider });
-    return normalizeModels<AppASRModel>(
-      models as unknown as Array<Record<string, unknown>>,
-      provider
-    );
-  }
-
-  async getVideoModels(provider: string): Promise<AppVideoModel[]> {
-    const trpc = createMobileTRPCClient();
-    const models = await trpc.models.videoByProvider.query({ provider });
-    return normalizeModels<AppVideoModel>(
-      models as unknown as Array<Record<string, unknown>>,
-      provider
-    );
-  }
-
   async getNodeMetadata() {
-    return this.request<components["schemas"]["NodeMetadata"][]>('/api/nodes/metadata');
+    // `fields` defaults to "summary" server-side, which omits properties and
+    // outputs. The chain editor needs both, so ask for the full records.
+    return this.request<components["schemas"]["NodeMetadata"][]>(
+      '/api/nodes/metadata?fields=full'
+    );
+  }
+
+  /**
+   * Applications — mini apps as their own resource.
+   *
+   * The web client reaches these through tRPC; mobile has no applications
+   * router, so it uses the REST door onto the same service. Both serialize
+   * identically, so the protocol response types describe either one.
+   */
+  async listApplications(projectId?: string): Promise<ApplicationListItem[]> {
+    const query = projectId
+      ? `?project_id=${encodeURIComponent(projectId)}`
+      : '';
+    return this.request<ApplicationListItem[]>(`/api/applications${query}`);
+  }
+
+  async getApplication(id: string): Promise<ApplicationResponse> {
+    return this.request<ApplicationResponse>(
+      `/api/applications/${encodeURIComponent(id)}`
+    );
+  }
+
+  /**
+   * The released snapshot of an app, or null when nothing is published yet.
+   * It carries the graph each operation was pinned to at publish time, which
+   * is what lets a published app run without fetching its workflows.
+   */
+  async getReleasedApplicationDocument(
+    id: string
+  ): Promise<ApplicationReleaseResponse | null> {
+    return this.request<ApplicationReleaseResponse | null>(
+      `/api/applications/${encodeURIComponent(id)}/released-document`
+    );
   }
 
   async saveWorkflow(workflow: {
@@ -357,58 +327,6 @@ class ApiService {
       graph: workflow.graph,
       ...(workflow.access ? { access: workflow.access } : {}),
     });
-  }
-
-  async listAssets(params: {
-    parent_id?: string | null;
-    content_type?: string | null;
-    cursor?: string | null;
-    page_size?: number | null;
-  } = {}): Promise<AssetList> {
-    const trpc = createMobileTRPCClient();
-    return trpc.assets.list.query({
-      ...(params.parent_id != null ? { parent_id: params.parent_id } : {}),
-      ...(params.content_type != null ? { content_type: params.content_type } : {}),
-      ...(params.cursor ? { cursor: params.cursor } : {}),
-      ...(params.page_size !== undefined && params.page_size !== null
-        ? { page_size: params.page_size }
-        : {}),
-    }) as Promise<AssetList>;
-  }
-
-  async getAsset(id: string): Promise<Asset> {
-    const trpc = createMobileTRPCClient();
-    return trpc.assets.get.query({ id }) as Promise<Asset>;
-  }
-
-  async searchAssets(params: {
-    query: string;
-    content_type?: string | null;
-    page_size?: number | null;
-    cursor?: string | null;
-  }): Promise<AssetSearchResult> {
-    const trpc = createMobileTRPCClient();
-    return trpc.assets.search.query({
-      query: params.query,
-      ...(params.content_type != null ? { content_type: params.content_type } : {}),
-      ...(params.page_size !== undefined && params.page_size !== null
-        ? { page_size: params.page_size }
-        : {}),
-      ...(params.cursor ? { cursor: params.cursor } : {}),
-    }) as unknown as Promise<AssetSearchResult>;
-  }
-
-  async updateAsset(id: string, update: AssetUpdateRequest): Promise<Asset> {
-    const trpc = createMobileTRPCClient();
-    return trpc.assets.update.mutate({
-      id,
-      ...(update.name != null ? { name: update.name } : {}),
-      ...(update.parent_id != null ? { parent_id: update.parent_id } : {}),
-      ...(update.content_type != null ? { content_type: update.content_type } : {}),
-      ...(update.data !== undefined ? { data: update.data } : {}),
-      ...(update.metadata != null ? { metadata: update.metadata } : {}),
-      ...(update.size != null ? { size: update.size } : {}),
-    }) as Promise<Asset>;
   }
 
   async uploadAsset(params: {
@@ -446,14 +364,18 @@ class ApiService {
     return (await response.json()) as Asset;
   }
 
-  async deleteAsset(id: string): Promise<void> {
-    const trpc = createMobileTRPCClient();
-    await trpc.assets.delete.mutate({ id });
-  }
-
   resolveUrl(urlOrPath: string | null | undefined): string | null {
     if (!urlOrPath) {return null;}
-    if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
+    // Workflow outputs and node properties reference stored assets by URN.
+    // React Native's image loader has no handler for the scheme, so map it to
+    // the HTTP endpoint (same mapping as web's resolveUri).
+    if (urlOrPath.startsWith('asset://')) {
+      const assetId = urlOrPath.slice('asset://'.length);
+      return `${getSharedApiHost()}/api/storage/${assetId}`;
+    }
+    // Anything else already carrying a scheme (http, https, file, data,
+    // content, blob) is fetchable as-is; only bare paths get the API host.
+    if (/^[a-z][a-z0-9+.-]*:/i.test(urlOrPath)) {
       return urlOrPath;
     }
     return `${getSharedApiHost()}${urlOrPath.startsWith('/') ? '' : '/'}${urlOrPath}`;
@@ -465,106 +387,9 @@ class ApiService {
     return `${url}${path}`;
   }
 
-  // ---------------------- Secrets (tRPC) ----------------------
-
-  async listSecrets(): Promise<SecretsListResponse> {
-    const trpc = createMobileTRPCClient();
-    return trpc.settings.secrets.list.query();
-  }
-
-  async getSecret(key: string, decrypt = false): Promise<SecretResponse> {
-    const trpc = createMobileTRPCClient();
-    return trpc.settings.secrets.get.query({ key, decrypt });
-  }
-
-  async updateSecret(key: string, update: SecretUpdateRequest): Promise<SecretResponse> {
-    const trpc = createMobileTRPCClient();
-    return trpc.settings.secrets.upsert.mutate({
-      key,
-      value: update.value,
-      ...(update.description !== undefined ? { description: update.description ?? undefined } : {}),
-    });
-  }
-
-  async deleteSecret(key: string): Promise<void> {
-    const trpc = createMobileTRPCClient();
-    await trpc.settings.secrets.delete.mutate({ key });
-  }
-
-  // ---------------------- Collections (tRPC) ----------------------
-
-  async listCollections(): Promise<CollectionList> {
-    const trpc = createMobileTRPCClient();
-    return trpc.collections.list.query();
-  }
-
-  async getCollection(name: string): Promise<CollectionResponse> {
-    const trpc = createMobileTRPCClient();
-    return trpc.collections.get.query({ name });
-  }
-
-  async createCollection(body: CollectionCreate): Promise<CollectionResponse> {
-    const trpc = createMobileTRPCClient();
-    return trpc.collections.create.mutate({
-      name: body.name,
-      ...(body.embedding_model ? { embedding_model: body.embedding_model } : {}),
-      ...(body.embedding_provider ? { embedding_provider: body.embedding_provider } : {}),
-    });
-  }
-
-  async deleteCollection(name: string): Promise<void> {
-    const trpc = createMobileTRPCClient();
-    await trpc.collections.delete.mutate({ name });
-  }
-
-  // ---------------------- Jobs ----------------------
-
-  async listJobs(params: {
-    workflow_id?: string | null;
-    limit?: number;
-    start_key?: string | null;
-  } = {}): Promise<JobListResponse> {
-    const trpc = createMobileTRPCClient();
-    return trpc.jobs.list.query({
-      ...(params.workflow_id ? { workflow_id: params.workflow_id } : {}),
-      ...(params.limit !== undefined ? { limit: params.limit } : {}),
-      ...(params.start_key ? { start_key: params.start_key } : {}),
-    }) as Promise<JobListResponse>;
-  }
-
-  async getJob(jobId: string): Promise<JobResponse> {
-    const trpc = createMobileTRPCClient();
-    return trpc.jobs.get.query({ id: jobId }) as Promise<JobResponse>;
-  }
-
-  async cancelJob(jobId: string): Promise<void> {
-    const trpc = createMobileTRPCClient();
-    await trpc.jobs.cancel.mutate({ id: jobId });
-  }
-
-  // ---------------------- Threads (tRPC) ----------------------
-
-  async listThreads(params: {
-    cursor?: string | null;
-    limit?: number;
-    reverse?: boolean;
-  } = {}): Promise<ThreadList> {
-    const trpc = createMobileTRPCClient();
-    return trpc.threads.list.query({
-      ...(params.cursor ? { cursor: params.cursor } : {}),
-      ...(params.limit !== undefined ? { limit: params.limit } : {}),
-      ...(params.reverse !== undefined ? { reverse: params.reverse } : {}),
-    });
-  }
-
   async getThread(threadId: string): Promise<Thread> {
     const trpc = createMobileTRPCClient();
     return trpc.threads.get.query({ id: threadId });
-  }
-
-  async deleteThread(threadId: string): Promise<void> {
-    const trpc = createMobileTRPCClient();
-    await trpc.threads.delete.mutate({ id: threadId });
   }
 }
 

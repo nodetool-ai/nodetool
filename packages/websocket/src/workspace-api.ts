@@ -7,7 +7,7 @@
  */
 
 import { readFile } from "node:fs/promises";
-import { resolve, join, basename } from "node:path";
+import { resolve, join, basename, sep, relative, isAbsolute } from "node:path";
 import { Workspace } from "@nodetool-ai/models";
 import type { HttpApiOptions } from "./http-api.js";
 
@@ -102,8 +102,15 @@ export async function handleWorkspaceRequest(
   const workspacePath = resolve(workspace.path);
   const resolvedFile = resolve(join(workspacePath, filePath));
 
-  // Path traversal check
-  if (!resolvedFile.startsWith(workspacePath)) {
+  // Path traversal check via path.relative, which stays correct even when the
+  // workspace is a filesystem root (`workspacePath + sep` would be `//`): the
+  // file must resolve inside the workspace, so the relative path must not be
+  // empty-escaping upward (`..`) nor absolute (different Windows drive). A
+  // sibling sharing the name prefix — workspace `/data/ws`, path
+  // `../ws-secrets/key.txt` → `/data/ws-secrets/key.txt` — yields `../ws-secrets/…`
+  // and is rejected; the exact root yields `""` and is allowed.
+  const rel = relative(workspacePath, resolvedFile);
+  if (rel === ".." || rel.startsWith(".." + sep) || isAbsolute(rel)) {
     return errorResponse(403, "Path traversal not allowed");
   }
 

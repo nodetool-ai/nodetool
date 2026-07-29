@@ -8,6 +8,7 @@ import mockTheme from "../../../__mocks__/themeMock";
 jest.mock("../../ui_primitives", () => ({
   MOTION: jest.requireActual("../../ui_primitives/tokens").MOTION,
   BORDER_RADIUS: jest.requireActual("../../ui_primitives/tokens").BORDER_RADIUS,
+  Z_INDEX: jest.requireActual("../../ui_primitives/tokens").Z_INDEX,
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }));
 
@@ -19,9 +20,31 @@ jest.mock("../../../stores/KeyPressedStore", () => ({
 const renderWithTheme = (ui: React.ReactElement) =>
   render(<ThemeProvider theme={mockTheme}>{ui}</ThemeProvider>);
 
+
+// `useAutoFocusEnabled` reads `(pointer: coarse)`; jsdom has no matchMedia.
+const mockMatchMedia = (coarse: boolean) => {
+  window.matchMedia = jest.fn().mockImplementation((query: string) => ({
+    matches: query.includes("pointer: coarse") ? coarse : false,
+    media: query,
+    onchange: null,
+    addListener: jest.fn(),
+    removeListener: jest.fn(),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn()
+  })) as unknown as typeof window.matchMedia;
+};
+
 describe("SearchInput", () => {
+  const originalMatchMedia = window.matchMedia;
+
+  beforeEach(() => {
+    mockMatchMedia(false);
+  });
+
   afterEach(() => {
     jest.useRealTimers();
+    window.matchMedia = originalMatchMedia;
   });
 
   it("lets the local draft lead while typing and debounces onSearchChange", () => {
@@ -94,5 +117,23 @@ describe("SearchInput", () => {
     fireEvent.click(screen.getByTestId("search-clear-btn"));
     expect(input.value).toBe("");
     expect(onSearchChange).toHaveBeenLastCalledWith("");
+  });
+
+  it("skips the mount focus on a coarse pointer", () => {
+    mockMatchMedia(true);
+    renderWithTheme(
+      <SearchInput onSearchChange={jest.fn()} searchTerm="" focusSearchInput />
+    );
+
+    expect(screen.getByTestId("search-input-field")).not.toHaveFocus();
+  });
+
+  it("focuses on mount on a fine pointer", () => {
+    mockMatchMedia(false);
+    renderWithTheme(
+      <SearchInput onSearchChange={jest.fn()} searchTerm="" focusSearchInput />
+    );
+
+    expect(screen.getByTestId("search-input-field")).toHaveFocus();
   });
 });

@@ -22,7 +22,6 @@ describe("security index exports", () => {
     expect(mod.setMasterKeyPersistent).toBeDefined();
     expect(mod.deleteMasterKey).toBeDefined();
     expect(mod.isUsingEnvKey).toBeDefined();
-    expect(mod.isUsingAwsKey).toBeDefined();
     expect(mod.setKeytarLoader).toBeDefined();
     expect(mod.resetKeytarLoader).toBeDefined();
   });

@@ -1,6 +1,15 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 
-const CLOUD = ["openai", "anthropic", "gemini", "groq", "mistral", "xai", "fal_ai", "kie"];
+const CLOUD = [
+  "openai",
+  "anthropic",
+  "gemini",
+  "groq",
+  "mistral",
+  "xai",
+  "fal_ai",
+  "kie"
+];
 const OUT_OF_SCOPE = [
   "replicate",
   "together",

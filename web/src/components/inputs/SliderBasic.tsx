@@ -1,9 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import {
-  SliderProps
-} from "@mui/material";
+import type { SliderProps } from "../ui_primitives";
 import {
   Tooltip,
   SPACING,
@@ -20,14 +18,14 @@ const sliderBasicStyles = (theme: Theme) =>
     },
     ".MuiSlider-rail": {
       backgroundColor: theme.vars.palette.grey[500],
-      borderRadius: "0px",
+      borderRadius: 0,
       height: "5px"
     },
     ".MuiSlider-track": {
       height: "5px",
       opacity: "1",
       left: "0",
-      borderRadius: "0px"
+      borderRadius: 0
     },
     ".MuiSlider-thumb": {
       backgroundColor: theme.vars.palette.grey[200],

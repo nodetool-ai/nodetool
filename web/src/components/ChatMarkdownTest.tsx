@@ -7,8 +7,6 @@ import { Box, Text, Caption, TabGroup, TabPanel } from "./ui_primitives";
 import ChatMarkdown from "./chat/message/ChatMarkdown";
 import { createStyles } from "./chat/thread/ChatThreadView.styles";
 
-// ─── Sample Markdown Content ─────────────────────────────────────────────────
-
 const WIDE_TABLE = `
 Here is a table with many columns that might push the layout wide:
 
@@ -159,7 +157,6 @@ const ChatMarkdownTest: React.FC = () => {
       >
         {label}
       </Caption>
-      {/* Simulate the chat message list container */}
       <div css={chatStyles.chatMessagesList} className="chat-messages-list">
         <div
           className={`chat-message ${role}`}
@@ -187,7 +184,7 @@ const ChatMarkdownTest: React.FC = () => {
   return (
     <div css={pageStyles(theme)}>
       <div css={containerStyles}>
-        <Text size="bigger" weight={600} sx={{ mb: 2 }}>
+        <Text size="big" weight={600} sx={{ mb: 2 }}>
           Chat Markdown Test
         </Text>
         <Text size="small" color="secondary" sx={{ mb: 2 }}>

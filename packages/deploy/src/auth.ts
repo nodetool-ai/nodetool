@@ -76,19 +76,16 @@ export function saveAuthConfig(config: Record<string, unknown>): void {
  * @returns The authentication token string.
  */
 export function getServerAuthToken(): string {
-  // Check environment variable first
   const envToken = process.env["SERVER_AUTH_TOKEN"];
   if (envToken) {
     return envToken;
   }
 
-  // Load from deployment config
   const config = loadAuthConfig();
   if (typeof config["server_auth_token"] === "string") {
     return config["server_auth_token"];
   }
 
-  // Auto-generate new token
   const newToken = generateSecureToken();
   config["server_auth_token"] = newToken;
   saveAuthConfig(config);

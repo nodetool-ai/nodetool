@@ -382,6 +382,77 @@ describe("NodeActor – controlled mode", () => {
     expect(calls[0]).toEqual({ x: 100, threshold: 0.5 });
     expect(sentOutputs).toHaveLength(1);
   });
+
+  // #4: an upstream that closes a data handle without ever emitting must not
+  // deadlock the controlled-node wait. The controller stays open (sendControlEvent
+  // shape), so the old for-await over iterAnyWithEnvelope never ended and the run
+  // hung. The vitest timeout guards the regression.
+  it(
+    "processes a control event after an upstream closes a data handle without emitting, while the controller stays open (#4)",
+    async () => {
+      const node = makeNode({ is_controlled: true });
+      const inbox = new NodeInbox();
+      inbox.addUpstream("__control__", 1);
+      inbox.addUpstream("x", 1);
+
+      const { executor, calls } = trackingExecutor(() => ({ out: 1 }));
+      const { actor, sentOutputs } = createActor(node, inbox, executor);
+
+      const runP = actor.run();
+      // Let the actor reach the data wait (x open, nothing buffered).
+      await new Promise((r) => setTimeout(r, 5));
+
+      // Upstream for x closes without emitting; controller is still open.
+      inbox.markSourceDone("x");
+      await inbox.put("__control__", {
+        event_type: "run" as const,
+        properties: { threshold: 0.5 }
+      });
+
+      // The run event is processed with x absent (node defaults apply).
+      await new Promise((r) => setTimeout(r, 5));
+      expect(calls).toEqual([{ threshold: 0.5 }]);
+      expect(sentOutputs).toHaveLength(1);
+
+      // Close the controller to let the actor finish.
+      await inbox.put("__control__", { event_type: "stop" as const });
+      inbox.markSourceDone("__control__");
+      await runP;
+    },
+    2000
+  );
+
+  it(
+    "still caches data that arrives while blocked before the control event (#4)",
+    async () => {
+      const node = makeNode({ is_controlled: true });
+      const inbox = new NodeInbox();
+      inbox.addUpstream("__control__", 1);
+      inbox.addUpstream("x", 1);
+
+      const { executor, calls } = trackingExecutor((inputs) => ({
+        out: inputs.x
+      }));
+      const { actor } = createActor(node, inbox, executor);
+
+      const runP = actor.run();
+      await new Promise((r) => setTimeout(r, 5));
+
+      // Data arrives after the actor is already blocked in the wait.
+      await inbox.put("x", 42);
+      await inbox.put("__control__", {
+        event_type: "run" as const,
+        properties: {}
+      });
+      await inbox.put("__control__", { event_type: "stop" as const });
+      inbox.markSourceDone("x");
+      inbox.markSourceDone("__control__");
+      await runP;
+
+      expect(calls).toEqual([{ x: 42 }]);
+    },
+    2000
+  );
 });
 
 describe("NodeActor – error handling", () => {

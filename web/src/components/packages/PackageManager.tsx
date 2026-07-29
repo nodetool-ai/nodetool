@@ -8,7 +8,7 @@
  * category. Data and derivation live in {@link usePackageManager}. Rendered
  * full-screen by {@link PackagesPage} (title/back live in the page hero).
  */
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 
@@ -38,6 +38,33 @@ import {
 const DEFAULT_CAT: Record<PMTab, string> = {
   software: "all",
   packs: "included"
+};
+
+/** Persist the active tab + category so reopening the Package Manager lands
+ *  where the user left off. */
+const STORAGE_KEY = "nodetool.packageManager.location";
+
+const loadLocation = (): { tab: PMTab; cat: string } => {
+  const fallback = { tab: "packs" as PMTab, cat: "included" };
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw) as { tab?: PMTab; cat?: string };
+    if (parsed.tab === "software" || parsed.tab === "packs") {
+      return { tab: parsed.tab, cat: parsed.cat ?? DEFAULT_CAT[parsed.tab] };
+    }
+  } catch {
+    // Corrupt/blocked storage — fall back to the default landing spot.
+  }
+  return fallback;
+};
+
+const saveLocation = (tab: PMTab, cat: string) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ tab, cat }));
+  } catch {
+    // Storage unavailable (private mode / quota) — persistence is optional.
+  }
 };
 
 /**
@@ -155,30 +182,61 @@ const PackageRowItem = memo(function PackageRowItem({ row }: { row: PMRow }) {
 });
 
 function PackageManager() {
-  const [tab, setTab] = useState<PMTab>("packs");
-  const [cat, setCat] = useState<string>("included");
+  const [{ tab, cat }, setLocation] = useState(loadLocation);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState("all");
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const model = usePackageManager({ tab, cat, q, filter });
 
+  useEffect(() => {
+    saveLocation(tab, cat);
+  }, [tab, cat]);
+
   const handleTab = useCallback((next: PMTab) => {
-    setTab(next);
-    setCat(DEFAULT_CAT[next]);
+    setLocation({ tab: next, cat: DEFAULT_CAT[next] });
     setFilter("all");
     setQ("");
   }, []);
 
   const handleCat = useCallback((id: string) => {
-    setCat(id);
+    setLocation((prev) => ({ ...prev, cat: id }));
     setFilter("all");
   }, []);
 
   const showSearch = !model.isThirdParty && !model.notice;
   const showChips = showSearch && model.chips.length > 0;
 
+  // "/" focuses the search box (unless the user is already typing somewhere).
+  useEffect(() => {
+    if (!showSearch) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = document.activeElement;
+      const typing =
+        el instanceof HTMLElement &&
+        (el.tagName === "INPUT" ||
+          el.tagName === "TEXTAREA" ||
+          el.isContentEditable);
+      if (typing) return;
+      e.preventDefault();
+      searchRef.current?.focus();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showSearch]);
+
   return (
-    <FlexRow sx={{ width: "100%", height: "100%", minHeight: 0 }}>
+    <Box
+      sx={{
+        display: "flex",
+        // The rail stacks above the list on a phone (see PackageRail).
+        flexDirection: { xs: "column", sm: "row" },
+        width: "100%",
+        height: "100%",
+        minHeight: 0
+      }}
+    >
       <PackageRail
         tab={tab}
         onTab={handleTab}
@@ -188,8 +246,10 @@ function PackageManager() {
       />
 
       <FlexColumn sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>
-        {/* Right header */}
-        <FlexColumn gap={0} sx={{ flexShrink: 0, pt: 2.75, px: 3.75 }}>
+        <FlexColumn
+          gap={0}
+          sx={{ flexShrink: 0, pt: 2.75, px: { xs: 1.75, sm: 3.75 } }}
+        >
           {model.isSoftware && (
             <FlexRow
               gap={1.75}
@@ -252,14 +312,29 @@ function PackageManager() {
               </Text>
             </FlexColumn>
             {showSearch && (
-              <Box sx={{ width: 250, flexShrink: 0 }}>
-                <SearchInput
-                  value={q}
-                  onChange={setQ}
-                  placeholder="Search…"
-                  showClear
-                />
-              </Box>
+              <FlexRow gap={1.5} align="center" sx={{ flexShrink: 0 }}>
+                {model.bulkUpdate && (
+                  <EditorButton
+                    variant="contained"
+                    density="compact"
+                    disabled={model.bulkUpdate.busy}
+                    onClick={model.bulkUpdate.onUpdateAll}
+                  >
+                    {model.bulkUpdate.busy
+                      ? "Updating…"
+                      : `Update all (${model.bulkUpdate.count})`}
+                  </EditorButton>
+                )}
+                <Box sx={{ width: { xs: "100%", sm: 250 } }}>
+                  <SearchInput
+                    ref={searchRef}
+                    value={q}
+                    onChange={setQ}
+                    placeholder="Search…  (press /)"
+                    showClear
+                  />
+                </Box>
+              </FlexRow>
             )}
           </FlexRow>
 
@@ -287,7 +362,6 @@ function PackageManager() {
           />
         </FlexColumn>
 
-        {/* Right scroll */}
         <FlexColumn
           gap={2}
           sx={{ flex: 1, minHeight: 0, overflowY: "auto", pt: 2, px: 3.75, pb: 4 }}
@@ -349,7 +423,7 @@ function PackageManager() {
           )}
         </FlexColumn>
       </FlexColumn>
-    </FlexRow>
+    </Box>
   );
 }
 

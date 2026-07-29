@@ -180,12 +180,13 @@ The inference produces:
 
 ## Integration Points
 
-### Mini Apps
+### App Builder
 
-The hooks can be used in mini apps to provide better output type information:
+The hooks can be used in App Builder result widgets to provide better output
+type information:
 
 ```typescript
-// In MiniAppResults or similar component
+// In a result-rendering component
 const { hasTypedOutputs, outputTypes } = useTypedWorkflowOutputs(workflow.graph);
 
 // Display typed output information

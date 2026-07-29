@@ -9,7 +9,11 @@ jest.mock("../../ui_primitives", () => {
 jest.mock("../../../stores/ContextMenuStore", () => ({
   __esModule: true,
   default: (selector: (state: { openContextMenu: jest.Mock }) => unknown) =>
-    selector({ openContextMenu: jest.fn() })
+    selector({ openContextMenu: jest.fn() }),
+  useContextMenuActions: () => ({
+    openContextMenu: jest.fn(),
+    closeContextMenu: jest.fn()
+  })
 }));
 
 jest.mock("../../../stores/LogStore", () => {
@@ -40,7 +44,15 @@ jest.mock("../../../contexts/NodeContext", () => ({
       workflow: { id: "wf-1" },
       findNode: () => undefined
     })
-  )
+  ),
+  useNodeStoreRef: jest.fn(() => ({
+    getState: () => ({
+      getSelectedNodes: () => [],
+      findNode: () => undefined,
+      updateNodeData: mockUpdateNodeData,
+      updateNode: mockUpdateNode
+    })
+  }))
 }));
 
 jest.mock("../../../config/IconForType", () => ({

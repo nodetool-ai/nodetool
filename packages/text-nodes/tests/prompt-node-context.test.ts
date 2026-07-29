@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ProcessingContext } from "@nodetool-ai/runtime";
-import { PromptNode } from "@nodetool-ai/text-nodes";
+import { PromptNode, TemplateTextNode } from "@nodetool-ai/text-nodes";
 
 function ctxWith(name: string, value: unknown): ProcessingContext {
   const ctx = new ProcessingContext({ jobId: "prompt-context-test" });
@@ -62,5 +62,85 @@ describe("PromptNode variable channels", () => {
     node.assign({ prompt: "{{ missing }}" });
 
     expect((await node.process()).output).toBe("{{ missing }}");
+  });
+});
+
+describe("PromptNode asset variables", () => {
+  it("expands an asset-ref dynamic input into its asset:// token", async () => {
+    const node = new PromptNode();
+    node.assign({ prompt: "Describe {{ img }}" });
+    node.setDynamic("img", { type: "image", uri: "asset://abc.png" });
+
+    expect((await node.process()).output).toBe("Describe asset://abc.png");
+  });
+
+  it("builds a token from an asset_id-only ref", async () => {
+    const node = new PromptNode();
+    node.assign({ prompt: "{{ img }}" });
+    node.setDynamic("img", { type: "image", asset_id: "xyz" });
+
+    expect((await node.process()).output).toBe("asset://xyz.png");
+  });
+
+  it("expands an asset delivered over a variable channel", async () => {
+    const ctx = new ProcessingContext({ jobId: "prompt-asset-channel" });
+    ctx.registerChannelWriters("clip", 1);
+    ctx.getChannel("clip").send({ type: "audio", uri: "asset://a.mp3" });
+
+    const node = new PromptNode();
+    node.assign({ prompt: "Transcribe {{ clip }}" });
+
+    expect((await node.process(ctx)).output).toBe("Transcribe asset://a.mp3");
+  });
+
+  it("leaves plain-string variables untouched", async () => {
+    const node = new PromptNode();
+    node.assign({ prompt: "{{ subject }}" });
+    node.setDynamic("subject", "a dragon");
+
+    expect((await node.process()).output).toBe("a dragon");
+  });
+});
+
+describe("PromptNode variable pass-through", () => {
+  it("forwards each variable on an output handle of the same name", async () => {
+    const image = { type: "image", uri: "asset://abc.png" };
+    const node = new PromptNode();
+    node.assign({ prompt: "Describe {{ img }} for {{ who }}" });
+    node.setDynamic("img", image);
+    node.setDynamic("who", "kids");
+
+    const result = await node.process();
+
+    expect(result.output).toBe("Describe asset://abc.png for kids");
+    // The pass-through carries the raw ref, not the asset:// token.
+    expect(result.img).toEqual(image);
+    expect(result.who).toBe("kids");
+  });
+
+  it("forwards a value resolved from a variable channel", async () => {
+    const ctx = ctxWith("subject", "a dragon");
+    const node = new PromptNode();
+    node.assign({ prompt: "Describe {{ subject }}" });
+
+    expect((await node.process(ctx)).subject).toBe("a dragon");
+  });
+
+  it("does not let a variable named output shadow the rendered text", async () => {
+    const node = new PromptNode();
+    node.assign({ prompt: "{{ output }}!" });
+    node.setDynamic("output", "hello");
+
+    expect((await node.process()).output).toBe("hello!");
+  });
+});
+
+describe("TemplateTextNode asset variables", () => {
+  it("expands an asset-ref variable into its asset:// token", async () => {
+    const node = new TemplateTextNode();
+    node.assign({ string: "look at {{ img }}" });
+    node.setDynamic("img", { type: "image", asset_id: "xyz" });
+
+    expect((await node.process()).output).toBe("look at asset://xyz.png");
   });
 });

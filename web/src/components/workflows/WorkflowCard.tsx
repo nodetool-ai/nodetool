@@ -10,7 +10,9 @@ import {
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
-  Fade
+  Fade,
+  Z_INDEX,
+  activateOnKey
 } from "../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
@@ -19,6 +21,7 @@ import { memo, useCallback, useMemo } from "react";
 import { Workflow } from "../../stores/ApiTypes";
 import { BASE_URL } from "../../stores/BASE_URL";
 import { getNodeDisplayName, getNodeNamespace } from "../../utils/nodeDisplay";
+import { WorkflowTriggerIndicator } from "./WorkflowTriggerIndicator";
 
 interface WorkflowCardProps {
   workflow: Workflow;
@@ -62,7 +65,7 @@ const cardStyles = (theme: Theme) =>
     cursor: "pointer",
     background: theme.vars.palette.grey[900],
     border: `1px solid ${theme.vars.palette.grey[800]}`,
-    transition: `transform 0.2s ease, ${MOTION.border}, ${MOTION.shadow}`,
+    transition: `transform ${MOTION.normal}, ${MOTION.border}, ${MOTION.shadow}`,
     "&:hover": {
       transform: "translateY(-2px)",
       borderColor: theme.vars.palette.primary.main,
@@ -84,7 +87,7 @@ const cardStyles = (theme: Theme) =>
       justifyContent: "center",
       backgroundColor: theme.vars.palette.c_scrim_strong,
       backdropFilter: "blur(4px)",
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       borderRadius: BORDER_RADIUS.lg
     },
     ".loading-text": {
@@ -134,6 +137,16 @@ const cardStyles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.xs,
       textTransform: "uppercase"
     },
+    ".trigger-badge": {
+      position: "absolute",
+      bottom: getSpacingPx(SPACING.md),
+      left: getSpacingPx(SPACING.md),
+      backgroundColor: theme.vars.palette.c_scrim,
+      backdropFilter: "blur(4px)",
+      borderRadius: BORDER_RADIUS.pill,
+      padding: getSpacingPx(SPACING.xs),
+      zIndex: Z_INDEX.base + 5
+    },
     ".matched-nodes": {
       position: "absolute",
       top: "8px",
@@ -142,7 +155,7 @@ const cardStyles = (theme: Theme) =>
       flexDirection: "column",
       gap: getSpacingPx(SPACING.xs),
       maxWidth: "calc(100% - 80px)",
-      zIndex: 5
+      zIndex: Z_INDEX.base + 5
     },
     ".matched-item": {
       fontSize: "var(--fontSizeSmaller)",
@@ -182,8 +195,10 @@ const cardStyles = (theme: Theme) =>
       overflow: "hidden",
       textOverflow: "ellipsis",
       // Lock to one line of height so the flex parent can't clip the
-      // descender of the line and swallow the ellipsis.
-      maxHeight: "calc(0.9rem * 1.25)",
+      // descender of the line and swallow the ellipsis. Use em (the element's
+      // own font-size) so the cap tracks --fontSizeNormal; a hardcoded rem
+      // smaller than the actual line height clips the whole title away.
+      maxHeight: "1.25em",
       margin: 0
     },
     ".card-description": {
@@ -196,8 +211,10 @@ const cardStyles = (theme: Theme) =>
       overflow: "hidden",
       textOverflow: "ellipsis",
       // Lock the visible description to N full lines so the parent flex
-      // container can't shave the bottom of the last line.
-      maxHeight: "calc(0.75rem * 1.4 * 3)",
+      // container can't shave the bottom of the last line. em tracks the
+      // element's own font-size (--fontSizeSmall); a hardcoded rem below the
+      // real line height clips text.
+      maxHeight: "calc(1.4em * 3)",
       margin: 0
     },
     ".chips-container": {
@@ -310,7 +327,11 @@ const WorkflowCard = ({
       <Box
         css={cardStyles(theme)}
         className={isLoading ? "loading" : ""}
+        role="button"
+        tabIndex={0}
+        aria-label={workflow.name}
         onClick={handleClick}
+        onKeyDown={activateOnKey(handleClick)}
       >
         {isLoading && (
           <Fade in={true}>
@@ -339,6 +360,10 @@ const WorkflowCard = ({
           {packageBadge && (
             <Text className="package-badge">{packageBadge}</Text>
           )}
+          <WorkflowTriggerIndicator
+            workflowId={workflow.id}
+            className="trigger-badge"
+          />
           {nodesOnlySearch && matchedNodes.length > 0 && (
             <Box className="matched-nodes">
               {matchedNodes.slice(0, 3).map((match) => (
@@ -371,7 +396,7 @@ const WorkflowCard = ({
               className="card-description"
               style={{
                 WebkitLineClamp: descriptionLines,
-                maxHeight: `calc(0.75rem * 1.4 * ${descriptionLines})`
+                maxHeight: `calc(1.4em * ${descriptionLines})`
               }}
             >
               {workflow.description}

@@ -1,8 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
+  assetRefToPromptToken,
   classifyAssetToken,
   classifyTextToken,
   expandAssetReferences,
+  expandEntityRefs,
   findAssetRefs,
   findImageAssetRefs,
   findTextAssetRefs,
@@ -54,6 +56,15 @@ describe("classifyAssetToken", () => {
     expect(classifyAssetToken("asset://doc.txt")).toBeNull();
     expect(classifyAssetToken("asset://noext")).toBeNull();
     expect(classifyAssetToken("https://x/a.png")).toBeNull();
+  });
+
+  it("returns null for prototype-key extensions (no inherited-key match)", () => {
+    // Regression: `ext in MAP` matched Object.prototype keys, returning a
+    // non-string mime (object/function) for these tokens.
+    expect(classifyAssetToken("asset://a.__proto__")).toBeNull();
+    expect(classifyAssetToken("asset://a.constructor")).toBeNull();
+    expect(classifyAssetToken("asset://a.toString")).toBeNull();
+    expect(classifyTextToken("asset://a.hasOwnProperty")).toBeNull();
   });
 });
 
@@ -112,6 +123,16 @@ describe("inlineTextAssetRefs", () => {
       textContext({})
     );
     expect(out).toBe("look asset://a.png here");
+  });
+
+  it("inlines a resolved-but-empty text asset as empty (not the literal token)", async () => {
+    // Regression: a 0-byte asset resolves successfully and must expand to "",
+    // never fall back to leaking the raw asset:// token into the prompt.
+    const out = await inlineTextAssetRefs(
+      "summarize this: asset://empty.txt",
+      textContext({ "asset://empty.txt": "" })
+    );
+    expect(out).toBe("summarize this: ");
   });
 });
 
@@ -438,5 +459,200 @@ describe("mapPromptAssetsToInputs — folder mentions", () => {
     );
     expect(overrides.image).toBeUndefined();
     expect(overrides.prompt).toBe("use now");
+  });
+});
+
+/** Context whose getAssetInfo serves the given entity-tagged assets by id. */
+const entityContext = (
+  byId: Record<
+    string,
+    {
+      content_type: string;
+      name: string;
+      metadata: Record<string, unknown> | null;
+    }
+  >,
+  resolveBytes = false
+) =>
+  ({
+    getAssetInfo: async (assetId: string) => {
+      const info = byId[assetId];
+      return info ? { id: assetId, ...info } : null;
+    },
+    resolveAssetBytes: async () =>
+      resolveBytes ? { bytes: new Uint8Array([1, 2, 3]) } : { bytes: null }
+  }) as never;
+
+const marta = {
+  content_type: "image/png",
+  name: "marta.png",
+  metadata: {
+    nodetool_entity: {
+      kind: "character",
+      name: "Marta",
+      descriptor: "red-haired detective in a beige trench coat"
+    }
+  }
+};
+
+describe("expandEntityRefs", () => {
+  it("inlines the name and appends descriptor + reference image token", async () => {
+    const out = await expandEntityRefs(
+      "A shot of entity://e1 walking away.",
+      entityContext({ e1: marta }),
+      true
+    );
+    expect(out).toBe(
+      "A shot of Marta walking away.\n\n" +
+        "Consistency references:\n" +
+        "- Marta: red-haired detective in a beige trench coat\n" +
+        "asset://e1.png"
+    );
+  });
+
+  it("omits the image token when the caller does not accept images", async () => {
+    const out = await expandEntityRefs(
+      "entity://e1 at dusk",
+      entityContext({ e1: marta }),
+      false
+    );
+    expect(out).toBe(
+      "Marta at dusk\n\nConsistency references:\n" +
+        "- Marta: red-haired detective in a beige trench coat"
+    );
+  });
+
+  it("contributes a repeated entity's descriptor and image only once", async () => {
+    const out = await expandEntityRefs(
+      "entity://e1 waves at entity://e1",
+      entityContext({ e1: marta }),
+      true
+    );
+    expect(out).toBe(
+      "Marta waves at Marta\n\nConsistency references:\n" +
+        "- Marta: red-haired detective in a beige trench coat\n" +
+        "asset://e1.png"
+    );
+  });
+
+  it("drops tokens that resolve to no entity", async () => {
+    const out = await expandEntityRefs(
+      "see entity://missing here",
+      entityContext({}),
+      true
+    );
+    expect(out).toBe("see here");
+  });
+
+  it("returns text untouched when no entity token is present", async () => {
+    const out = await expandEntityRefs("plain prompt", undefined, true);
+    expect(out).toBe("plain prompt");
+  });
+});
+
+describe("mapPromptAssetsToInputs entity mentions", () => {
+  it("routes the entity's reference image into an empty image input", async () => {
+    const overrides = await mapPromptAssetsToInputs(
+      [{ name: "prompt", value: "portrait of entity://e1" }],
+      [{ name: "image", kind: "image", hasSource: false }],
+      entityContext({ e1: marta }, true)
+    );
+    expect((overrides.image as InjectedAssetRef).uri).toBe("asset://e1.png");
+    expect(overrides.prompt).toBe(
+      "portrait of Marta\n\nConsistency references:\n" +
+        "- Marta: red-haired detective in a beige trench coat\nimage"
+    );
+  });
+
+  it("inlines only the descriptor for a node without media inputs", async () => {
+    const overrides = await mapPromptAssetsToInputs(
+      [{ name: "prompt", value: "describe entity://e1" }],
+      [],
+      entityContext({ e1: marta })
+    );
+    expect(overrides.prompt).toBe(
+      "describe Marta\n\nConsistency references:\n" +
+        "- Marta: red-haired detective in a beige trench coat"
+    );
+  });
+});
+
+describe("assetRefToPromptToken", () => {
+  it("returns null for non-ref values", () => {
+    expect(assetRefToPromptToken("plain string")).toBeNull();
+    expect(assetRefToPromptToken(42)).toBeNull();
+    expect(assetRefToPromptToken(null)).toBeNull();
+    expect(assetRefToPromptToken(undefined)).toBeNull();
+    expect(assetRefToPromptToken({})).toBeNull();
+    expect(assetRefToPromptToken({ foo: "bar" })).toBeNull();
+  });
+
+  it("keeps an asset:// uri that already carries an extension", () => {
+    expect(
+      assetRefToPromptToken({ type: "image", uri: "asset://abc.png" })
+    ).toBe("asset://abc.png");
+  });
+
+  it("strips a query/hash off an asset:// uri", () => {
+    expect(
+      assetRefToPromptToken({ type: "image", uri: "asset://abc.png?v=2#x" })
+    ).toBe("asset://abc.png");
+  });
+
+  it("appends an extension to a bare asset:// uri from the mime", () => {
+    expect(
+      assetRefToPromptToken({
+        type: "image",
+        uri: "asset://abc",
+        mimeType: "image/jpeg"
+      })
+    ).toBe("asset://abc.jpeg");
+  });
+
+  it("builds a token from asset_id + type default when no uri", () => {
+    expect(assetRefToPromptToken({ type: "image", asset_id: "xyz" })).toBe(
+      "asset://xyz.png"
+    );
+    expect(assetRefToPromptToken({ type: "audio", asset_id: "aud" })).toBe(
+      "asset://aud.mp3"
+    );
+    expect(assetRefToPromptToken({ type: "video", asset_id: "vid" })).toBe(
+      "asset://vid.mp4"
+    );
+  });
+
+  it("prefers the ref mime over the type default", () => {
+    expect(
+      assetRefToPromptToken({
+        type: "image",
+        asset_id: "xyz",
+        mimeType: "image/webp"
+      })
+    ).toBe("asset://xyz.webp");
+  });
+
+  it("resolves a text-document mime to its extension", () => {
+    expect(
+      assetRefToPromptToken({
+        type: "document",
+        asset_id: "doc",
+        content_type: "text/markdown"
+      })
+    ).toBe("asset://doc.md");
+  });
+
+  it("passes a non-asset uri through verbatim", () => {
+    expect(
+      assetRefToPromptToken({ type: "image", uri: "https://x/y.png" })
+    ).toBe("https://x/y.png");
+  });
+
+  it("produces a token that expandAssetReferences then routes as an image", () => {
+    const token = assetRefToPromptToken({ type: "image", asset_id: "xyz" });
+    const parts = expandAssetReferences(`look at ${token}`);
+    expect(parts).toEqual([
+      { type: "text", text: "look at " },
+      { type: "image_url", image: { uri: "asset://xyz.png", mimeType: "image/png" } }
+    ]);
   });
 });

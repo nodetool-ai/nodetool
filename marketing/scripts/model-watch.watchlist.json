@@ -1,0 +1,12 @@
+{
+  "note": "Model ids the watcher should stay quiet about. A provider constantly ships models NodeTool has no /models page for; once a maintainer decides an id does NOT warrant a page, list it here and it stops showing up as 'new'. `all` is applied to every provider; `providers.<id>` scopes an id to one provider. Matching is exact (case-insensitive) against the model id returned by `generate <provider> --list-models --json`.",
+  "all": [],
+  "providers": {
+    "fal_ai": [],
+    "replicate": [],
+    "kie": [],
+    "together": [],
+    "atlascloud": [],
+    "topaz": []
+  }
+}

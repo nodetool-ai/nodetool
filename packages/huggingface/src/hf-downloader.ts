@@ -44,10 +44,6 @@ export interface AsyncHfDownloadOptions {
 // Cache root helpers
 // ---------------------------------------------------------------------------
 
-function expandTilde(p: string): string {
-  return expandLeadingTildePath(p);
-}
-
 /**
  * Resolve the HuggingFace hub cache root directory.
  *
@@ -55,7 +51,7 @@ function expandTilde(p: string): string {
  * expanding a leading `~` (which the upstream library does not do).
  */
 export function hfCacheRoot(): string {
-  return expandTilde(getHFHubCachePath());
+  return expandLeadingTildePath(getHFHubCachePath());
 }
 
 /**

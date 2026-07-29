@@ -5,16 +5,18 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../__mocks__/themeMock";
 import WelcomePlaceholder from "../WelcomePlaceholder";
 import { useLanguageModelProviders } from "../../../../hooks/useProviders";
-
-const mockNavigate = jest.fn();
-jest.mock("react-router-dom", () => ({
-  ...jest.requireActual("react-router-dom"),
-  useNavigate: () => mockNavigate
-}));
+import { openProviderOnboarding } from "../../../../stores/ProviderOnboardingStore";
 
 jest.mock("../../../../hooks/useProviders", () => ({
   useLanguageModelProviders: jest.fn()
 }));
+
+jest.mock("../../../../stores/ProviderOnboardingStore", () => ({
+  openProviderOnboarding: jest.fn()
+}));
+
+const mockOpenProviderOnboarding =
+  openProviderOnboarding as jest.MockedFunction<typeof openProviderOnboarding>;
 
 const mockUseLanguageModelProviders =
   useLanguageModelProviders as jest.MockedFunction<
@@ -51,9 +53,11 @@ describe("WelcomePlaceholder", () => {
     expect(screen.getByText("Gemini")).toBeInTheDocument();
 
     fireEvent.click(
-      screen.getByRole("button", { name: /Add API keys in Settings/i })
+      screen.getByRole("button", { name: /Connect a provider/i })
     );
-    expect(mockNavigate).toHaveBeenCalledWith("/settings?tab=1");
+    expect(mockOpenProviderOnboarding).toHaveBeenCalledWith(
+      expect.objectContaining({ capability: "generate_message" })
+    );
   });
 
   it("shows prompt suggestions once a provider is configured", () => {

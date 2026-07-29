@@ -4,9 +4,11 @@
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { NodeRegistry, NodeMetadata } from "@nodetool-ai/node-sdk";
+import { slotTypeToString } from "@nodetool-ai/node-sdk";
 import { TypeMetadata } from "@nodetool-ai/protocol";
 import { Tool } from "./base-tool.js";
-import { AGENT_STEP_NODE_TYPE, type GraphBuilder } from "../graph-builder.js";
+import { type GraphBuilder } from "../graph-builder.js";
+import { toSlotTypeRecord } from "../dynamic-slots.js";
 
 /** Render a node's TypeMetadata into the string form TypeMetadata.fromString parses. */
 function typeMetaToString(
@@ -97,37 +99,73 @@ export class AddEdgeTool extends Tool {
 
     let sourceType: string | undefined;
     let targetType: string | undefined;
+    /** Type metadata of the source output, reused to declare a new slot. */
+    let sourceTypeMeta: NodeMetadata["outputs"][number]["type"] | undefined;
+    /** Set when the edge lands on a dynamic input with no declaration yet. */
+    let undeclaredDynamicSlot = false;
+
+    // A reserved handle like `__value__` is used by dynamic nodes and never
+    // appears in static metadata.
+    const isReservedHandle = (h: string): boolean =>
+      h.startsWith("__") && h.endsWith("__");
 
     const sourceNode = this.builder.getNode(source);
-    if (sourceNode && sourceNode.type !== AGENT_STEP_NODE_TYPE) {
+    if (sourceNode) {
       const meta = this.registry.getMetadata(sourceNode.type);
       if (meta) {
         const output = meta.outputs.find(
           (o: NodeMetadata["outputs"][number]) => o.name === sourceHandle
         );
-        if (meta.outputs.length > 0 && !output) {
+        // Dynamic-output nodes accept handles absent from static metadata;
+        // mirror validateGraph and don't reject those (leave the type
+        // undefined so the compatibility check is skipped).
+        if (
+          meta.outputs.length > 0 &&
+          !output &&
+          !meta.supports_dynamic_outputs &&
+          !isReservedHandle(sourceHandle)
+        ) {
           validationErrors.push(
             `Source node '${source}' (${sourceNode.type}) has no output '${sourceHandle}'. Available: ${meta.outputs.map((o: { name: string }) => o.name).join(", ")}`
           );
         } else if (output) {
           sourceType = typeMetaToString(output.type);
+          sourceTypeMeta = output.type;
         }
       }
     }
 
     const targetNode = this.builder.getNode(target);
-    if (targetNode && targetNode.type !== AGENT_STEP_NODE_TYPE) {
+    if (targetNode) {
       const meta = this.registry.getMetadata(targetNode.type);
       if (meta) {
         const input = meta.properties.find(
           (p: NodeMetadata["properties"][number]) => p.name === targetHandle
         );
-        if (meta.properties.length > 0 && !input) {
+        // Dynamic-input nodes accept handles absent from static metadata.
+        if (
+          meta.properties.length > 0 &&
+          !input &&
+          meta.supports_dynamic_inputs !== true &&
+          !isReservedHandle(targetHandle)
+        ) {
           validationErrors.push(
             `Target node '${target}' (${targetNode.type}) has no input '${targetHandle}'. Available: ${meta.properties.map((p: { name: string }) => p.name).join(", ")}`
           );
         } else if (input) {
           targetType = typeMetaToString(input.type);
+        } else if (
+          meta.supports_dynamic_inputs === true &&
+          !isReservedHandle(targetHandle)
+        ) {
+          // Dynamic slot. A declared one is type-checked like any other input;
+          // an undeclared one stays permissive and gets declared below from the
+          // source output's type.
+          const declared = slotTypeToString(
+            targetNode.dynamic_inputs?.[targetHandle]
+          );
+          if (declared) targetType = declared;
+          else undeclaredDynamicSlot = true;
         }
       }
     }
@@ -135,7 +173,7 @@ export class AddEdgeTool extends Tool {
     // Type compatibility: catch e.g. a string output wired into a boolean
     // condition during planning, instead of only at runtime where the agent
     // can no longer self-correct. Skips unknown/any types and dynamic
-    // (AgentStep) endpoints, so it never blocks on missing metadata.
+    // endpoints, so it never blocks on missing metadata.
     if (
       validationErrors.length === 0 &&
       !edgeTypesCompatible(sourceType, targetType)
@@ -161,8 +199,20 @@ export class AddEdgeTool extends Tool {
       return { status: "error", errors };
     }
 
+    // Give the new slot the source output's type, so later edges and inline
+    // values on the same handle are checked instead of silently accepted.
+    // Untypable sources leave the slot undeclared, i.e. `any` as before.
+    let declaredType: string | undefined;
+    if (undeclaredDynamicSlot && sourceTypeMeta && sourceType) {
+      this.builder.declareDynamicInput(target, targetHandle, {
+        type: toSlotTypeRecord(sourceTypeMeta)
+      });
+      declaredType = sourceType;
+    }
+
     return {
       status: "edge_added",
+      ...(declaredType ? { declared_dynamic_input: declaredType } : {}),
       from: `${source}.${sourceHandle}`,
       to: `${target}.${targetHandle}`,
       total_edges: this.builder.edgeCount

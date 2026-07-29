@@ -15,7 +15,10 @@ import type {
   ProviderId,
   ProviderSession,
   ProviderStreamItem,
+  ProviderThinkingConfig,
+  ProviderEffort,
   ProviderTool,
+  ProviderToolResult,
   EncodedAudioResult,
   TextToMusicParams,
   RelightImageParams,
@@ -31,7 +34,11 @@ import type {
   VideoModel,
   VideoToVideoParams
 } from "./types.js";
-import { isProviderSessionUpdate, isProviderMessageEvent } from "./types.js";
+import {
+  isProviderSessionUpdate,
+  isProviderMessageEvent,
+  isProviderToolErrorResult
+} from "./types.js";
 import { CostCalculator } from "./cost-calculator.js";
 import type { UsageInfo } from "./cost-calculator.js";
 import { getTracer } from "../telemetry.js";
@@ -47,9 +54,11 @@ import {
   type LlmUsage
 } from "../tracing-helpers.js";
 import { logProviderRequestFailure } from "./provider-request-log.js";
+import { annotateProviderError } from "./provider-error.js";
+import { applyEntityReferences } from "./entity-references.js";
 import type { Span } from "@opentelemetry/api";
 import { SpanStatusCode } from "@opentelemetry/api";
-import { createLogger, getAssetFilePath } from "@nodetool-ai/config";
+import { createLogger, getDefaultAssetsPath } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.runtime.provider");
 
@@ -225,6 +234,41 @@ export abstract class BaseProvider {
   private _cost = 0;
   private _emitMessage: ((msg: unknown) => void) | null = null;
 
+  /**
+   * Whether this provider runs its own agent loop with a built-in tool-search
+   * facility (the Claude Agent SDK defers tool schemas and exposes `ToolSearch`
+   * natively). When `true`, the harness passes the full toolbelt and does NOT
+   * register its own `ToolSearch`. When `false` (the default, stateless
+   * providers), the harness keeps a resident core, defers the rest, and adds
+   * its own `ToolSearch`.
+   */
+  get usesNativeToolSearch(): boolean {
+    return false;
+  }
+
+  /**
+   * Whether this provider has a built-in, server-side web search it runs
+   * itself (e.g. Anthropic's `web_search_20250305` server tool, the Claude
+   * Agent SDK's `WebSearch`). When `true`, a tool named
+   * {@link WEB_SEARCH_TOOL_NAME} is fulfilled by the provider natively rather
+   * than the SerpAPI-backed `WebSearchTool`. Default `false` (use the fallback).
+   */
+  get supportsNativeWebSearch(): boolean {
+    return false;
+  }
+
+  /**
+   * Whether this provider has a built-in, server-side image generator (e.g.
+   * the OpenAI Responses `image_generation` tool). When `true`, a tool named
+   * {@link IMAGE_GENERATION_TOOL_NAME} is rendered as the provider's native
+   * tool — its result arrives as image content on the assistant message, not
+   * as a function-call round-trip. Default `false` (use the fallback function
+   * tool).
+   */
+  get supportsNativeImageGeneration(): boolean {
+    return false;
+  }
+
   setMessageEmitter(fn: (msg: unknown) => void): void {
     this._emitMessage = fn;
   }
@@ -271,11 +315,18 @@ export abstract class BaseProvider {
       const fn = self[name];
       if (typeof fn !== "function" || fn === proto[name]) continue;
       const original = fn as (...args: unknown[]) => Promise<unknown>;
-      self[name] = (...args: unknown[]): Promise<unknown> =>
+      self[name] = (...rawArgs: unknown[]): Promise<unknown> =>
         withModalityCapture(async (alreadyActive) => {
+          // Central entity expansion: descriptors into the prompt, reference
+          // images onto the source list, before the concrete provider runs.
+          const args = applyEntityReferences(name, rawArgs);
           try {
             return await original.apply(this, args);
           } catch (err) {
+            annotateProviderError(err, {
+              provider: this.provider,
+              model: extractModelId(args)
+            });
             if (!alreadyActive) {
               logProviderRequestFailure({
                 provider: this.provider,
@@ -307,7 +358,7 @@ export abstract class BaseProvider {
    * Explicit capability declaration. Returns `null` by default, in which case
    * {@link getCapabilities} derives capabilities by reflecting on which
    * optional methods the concrete class overrides. Providers may override this
-   * to declare their capabilities directly — a robust alternative to method
+   * to declare their capabilities directly — an alternative to method
    * reflection when methods are wrapped, bound, or composed via mixins.
    */
   protected declaredCapabilities(): ProviderCapability[] | null {
@@ -350,12 +401,25 @@ export abstract class BaseProvider {
   }
 
   trackUsage(model: string, usage: UsageInfo): number {
-    const cost = CostCalculator.calculate(model, usage, this.provider);
+    // Accounting must never break a generation that already ran (and was
+    // already billed by the provider): fall back to zero cost, keep the token
+    // counts.
+    let cost = 0;
+    try {
+      cost = CostCalculator.calculate(model, usage, this.provider);
+    } catch (error) {
+      log.warn("Cost calculation failed; recording usage with zero cost", {
+        model,
+        provider: this.provider,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
     this._cost += cost;
     setLastUsage({
       inputTokens: usage.inputTokens ?? 0,
       outputTokens: usage.outputTokens ?? 0,
       cachedInputTokens: usage.cachedTokens,
+      cacheWriteTokens: usage.cacheWriteTokens,
       cost
     });
     log.debug("Cost tracked", { model, cost, total: this._cost });
@@ -449,6 +513,8 @@ export abstract class BaseProvider {
     topP?: number;
     presencePenalty?: number;
     frequencyPenalty?: number;
+    thinking?: ProviderThinkingConfig;
+    effort?: ProviderEffort;
     /** Optional thread/conversation identifier for session-based providers. */
     threadId?: string | null;
     /**
@@ -483,6 +549,8 @@ export abstract class BaseProvider {
     topP?: number;
     presencePenalty?: number;
     frequencyPenalty?: number;
+    thinking?: ProviderThinkingConfig;
+    effort?: ProviderEffort;
     audio?: Record<string, unknown>;
     /** Optional thread/conversation identifier for session-based providers. */
     threadId?: string | null;
@@ -569,12 +637,20 @@ export abstract class BaseProvider {
       });
       return result;
     } catch (err) {
+      annotateProviderError(err, {
+        provider: this.provider,
+        model: args.model
+      });
       error = String(err);
       logProviderRequestFailure({
         provider: this.provider,
         model: args.model,
         request: requestPayload,
-        nodetoolArgs: { model: args.model, messages: args.messages, tools: args.tools },
+        nodetoolArgs: {
+          model: args.model,
+          messages: args.messages,
+          tools: args.tools
+        },
         error: err
       });
       throw err;
@@ -607,7 +683,13 @@ export abstract class BaseProvider {
 
   private applyLlmRequestAttributes(
     span: Span,
-    args: { messages: unknown[]; model: string; tools?: unknown[]; maxTokens?: number; temperature?: number },
+    args: {
+      messages: unknown[];
+      model: string;
+      tools?: unknown[];
+      maxTokens?: number;
+      temperature?: number;
+    },
     streaming: boolean
   ): void {
     span.setAttributes({
@@ -688,6 +770,10 @@ export abstract class BaseProvider {
         model: args.model
       });
     } catch (err) {
+      annotateProviderError(err, {
+        provider: this.provider,
+        model: args.model
+      });
       error = String(err);
       logProviderRequestFailure({
         provider: this.provider,
@@ -706,8 +792,13 @@ export abstract class BaseProvider {
       // called return()), give the underlying generator a chance to close
       // so _tracedStream's finally runs and the LLM stream span ends.
       if (!exhausted) {
-        await runInSlot(() =>
-          source.return?.(undefined as never) ?? Promise.resolve({ done: true, value: undefined } as IteratorResult<ProviderStreamItem>)
+        await runInSlot(
+          () =>
+            source.return?.(undefined as never) ??
+            Promise.resolve({
+              done: true,
+              value: undefined
+            } as IteratorResult<ProviderStreamItem>)
         ).catch(() => {});
       }
       const usage = getUsage();
@@ -759,7 +850,7 @@ export abstract class BaseProvider {
        * vision-capable providers. The harness owns tool resolution, gating, and
        * side effects; the provider only orchestrates.
        */
-      executeTool?: (toolCall: ToolCall) => Promise<string | MessageContent[]>;
+      executeTool?: (toolCall: ToolCall) => Promise<ProviderToolResult>;
       /** Cap on tool-calling rounds before stopping. Defaults to 25. */
       maxIterations?: number;
       /**
@@ -800,6 +891,9 @@ export abstract class BaseProvider {
             name,
             args: toolArgs
           });
+          if (isProviderToolErrorResult(result)) {
+            return toolResultToText(result.content);
+          }
           return typeof result === "string" ? result : toolResultToText(result);
         }
       : turnArgs.onToolCall;
@@ -807,7 +901,11 @@ export abstract class BaseProvider {
     for (let iteration = 0; iteration < maxIterations; iteration++) {
       if (turnArgs.signal?.aborted) return;
       let assistantText = "";
+      let finalizedAssistant: Message | undefined;
       const pending: ToolCall[] = [];
+      // The round's `done: true` chunk, withheld until we know if it ends the
+      // turn. Discarded when tools are pending — the next round supplies its own.
+      let terminalChunk: ProviderStreamItem | undefined;
 
       for await (const item of this.generateMessagesTraced({
         ...turnArgs,
@@ -815,7 +913,14 @@ export abstract class BaseProvider {
         onToolCall
       })) {
         if (turnArgs.signal?.aborted) break;
-        if (isProviderSessionUpdate(item) || isProviderMessageEvent(item)) {
+        if (isProviderMessageEvent(item)) {
+          if (item.message.role === "assistant") {
+            finalizedAssistant = item.message;
+          }
+          yield item;
+          continue;
+        }
+        if (isProviderSessionUpdate(item)) {
           yield item;
           continue;
         }
@@ -824,14 +929,45 @@ export abstract class BaseProvider {
           yield item;
           continue;
         }
-        const chunk = item as { content?: unknown; thinking?: boolean };
-        if (typeof chunk.content === "string" && !chunk.thinking) {
+        const chunk = item as {
+          content?: unknown;
+          content_type?: string;
+          thinking?: boolean;
+          done?: boolean;
+        };
+        // Only text belongs in the assistant message. Audio/image chunks carry
+        // base64 in the same `content` field; concatenating those produced
+        // assistant messages full of binary garbage.
+        const isTextChunk =
+          chunk.content_type === undefined || chunk.content_type === "text";
+        if (
+          typeof chunk.content === "string" &&
+          !chunk.thinking &&
+          isTextChunk
+        ) {
           assistantText += chunk.content;
+        }
+        // `done: true` closes the provider's *completion*, which is not the same
+        // as the end of the turn — every provider emits one per tool-calling
+        // round. Forwarding them made consumers (the chat composer's Stop
+        // button) treat each round as the end of the turn. Hold the terminal
+        // chunk until we know whether tools are pending; release it below only
+        // when this round really is the last one.
+        if (chunk.done === true) {
+          terminalChunk = item;
+          continue;
         }
         yield item;
       }
 
       if (pending.length === 0) {
+        if (terminalChunk !== undefined) {
+          yield terminalChunk;
+        }
+        if (finalizedAssistant) {
+          messages.push(finalizedAssistant);
+          return;
+        }
         const assistantMsg: Message = {
           role: "assistant",
           content: assistantText || null
@@ -851,37 +987,66 @@ export abstract class BaseProvider {
       // Carry Gemini thought-signature parts forward so multi-turn function
       // calling keeps working — the loop owns the message now, so a tool call
       // that arrived with raw parts can't stash them on the message itself.
-      const rawParts = pending.find((tc) => tc._rawGeminiParts)?._rawGeminiParts;
+      const rawParts = pending.find(
+        (tc) => tc._rawGeminiParts
+      )?._rawGeminiParts;
       if (rawParts) {
         assistantMsg._rawGeminiParts = rawParts;
+      }
+      const thinkingBlocks = pending.find(
+        (tc) => tc._anthropicThinkingBlocks
+      )?._anthropicThinkingBlocks;
+      if (thinkingBlocks) {
+        assistantMsg._anthropicThinkingBlocks = thinkingBlocks;
       }
       messages.push(assistantMsg);
       yield { type: "message", message: assistantMsg };
 
       // Dispatch order: a tool's own `execute` (provider-driven) wins; else the
       // harness-supplied `executeTool` callback; else the tool is unavailable.
-      const runTool = async (
-        tc: ToolCall
-      ): Promise<string | MessageContent[]> => {
+      const runTool = async (tc: ToolCall): Promise<ProviderToolResult> => {
         const tool = toolMap.get(tc.name);
-        if (tool?.execute) return tool.execute(tc.args ?? {}, tc.id);
-        if (executeTool) return executeTool(tc);
-        return `Tool "${tc.name}" is not available`;
+        try {
+          if (tool?.execute) return await tool.execute(tc.args ?? {}, tc.id);
+          if (executeTool) return await executeTool(tc);
+          return `Tool "${tc.name}" is not available`;
+        } catch (err) {
+          // A throwing tool must not destroy the whole assistant turn: turn the
+          // failure into an error result so the model still receives output for
+          // every tool call (and sibling results are preserved). Without this,
+          // Promise.all in the parallel path would reject before any result is
+          // emitted, discarding the turn.
+          const message = err instanceof Error ? err.message : String(err);
+          return {
+            content: `Error executing tool "${tc.name}": ${message}`,
+            isError: true
+          };
+        }
       };
 
       // A tool flagged `terminal` ends the loop once its turn's results are
       // emitted (e.g. a finish/submit tool).
       let terminated = false;
+      const imageMessages: Message[] = [];
 
       const emitToolResult = function* (
         tc: ToolCall,
-        content: string | MessageContent[]
+        result: ProviderToolResult
       ): Generator<ProviderStreamItem> {
+        let content: string | MessageContent[];
+        let isError = false;
+        if (isProviderToolErrorResult(result)) {
+          content = result.content;
+          isError = true;
+        } else {
+          content = result;
+        }
         const { toolContent, imageMessage } = splitToolResultImages(content);
         const toolMsg: Message = {
           role: "tool",
           toolCallId: tc.id,
-          content: toolContent
+          content: toolContent,
+          ...(isError ? { isError: true } : {})
         };
         messages.push(toolMsg);
         yield { type: "message", message: toolMsg };
@@ -890,7 +1055,7 @@ export abstract class BaseProvider {
           // providers can't render an image in a tool-result message). It is
           // in-flight only — pushed to the loop's messages but never yielded,
           // so it is never persisted or echoed, keeping saved history cheap.
-          messages.push(imageMessage);
+          imageMessages.push(imageMessage);
         }
       };
 
@@ -906,6 +1071,7 @@ export abstract class BaseProvider {
           }
         }
       } else {
+        if (turnArgs.signal?.aborted) return;
         const results = await Promise.all(
           pending.map(async (tc) => ({ tc, content: await runTool(tc) }))
         );
@@ -914,6 +1080,8 @@ export abstract class BaseProvider {
           if (toolMap.get(tc.name)?.terminal) terminated = true;
         }
       }
+
+      messages.push(...imageMessages);
 
       // A terminal tool ran this turn — stop after emitting its results.
       if (terminated) return;
@@ -1200,7 +1368,9 @@ export abstract class BaseProvider {
    */
   isRateLimitError(error: unknown): boolean {
     const msg = error instanceof Error ? error.message : String(error);
-    return /429|rate.?limit|too many requests/i.test(msg);
+    // Match 429 as a standalone token, not as digits inside a larger number
+    // (e.g. "request 4290", a byte count, or a model id like "gpt-4-0429").
+    return /\b429\b|rate.?limit|too many requests/i.test(msg);
   }
 
   /**
@@ -1209,7 +1379,10 @@ export abstract class BaseProvider {
    */
   isAuthError(error: unknown): boolean {
     const msg = error instanceof Error ? error.message : String(error);
-    return /401|403|unauthorized|forbidden|invalid.*api.*key|authentication/i.test(
+    // Match 401/403 as standalone tokens, not as digits inside a larger number
+    // (e.g. "model gpt-4-0403 not found") which would misclassify unrelated
+    // errors as auth failures and skip a retry that should have happened.
+    return /\b401\b|\b403\b|unauthorized|forbidden|invalid.*api.*key|authentication/i.test(
       msg
     );
   }
@@ -1243,48 +1416,75 @@ export abstract class BaseProvider {
   /**
    * Resolve a URI to a `data:` URI that providers can consume directly.
    *
-   * - `file://...`        → read from disk, return `data:<mime>;base64,…`
+   * - `file://...`        → read an asset file, return `data:<mime>;base64,…`
    * - `/api/storage/<k>`  → read from getDefaultAssetsPath()/<k> (legacy fallback)
    * - Everything else     → returned unchanged (http/https/data: pass through)
    */
   protected async resolveUri(uri: string): Promise<string> {
     const { importNodeBuiltin } = await import("@nodetool-ai/config");
-    const fsP = await importNodeBuiltin<typeof import("node:fs/promises")>(
-      "node:fs/promises"
-    );
+    const fsP =
+      await importNodeBuiltin<typeof import("node:fs/promises")>(
+        "node:fs/promises"
+      );
     if (!fsP) {
       throw new Error(
         "resolveUri requires node:fs/promises (Node-only feature)"
       );
     }
+    const pathMod =
+      await importNodeBuiltin<typeof import("node:path")>("node:path");
+    if (!pathMod) {
+      throw new Error("resolveUri requires node:path (Node-only feature)");
+    }
+
+    const getAssetsRoot = () => fsP.realpath(getDefaultAssetsPath());
+    const readAssetFile = async (filePath: string): Promise<Uint8Array> => {
+      const assetsRoot = await getAssetsRoot();
+      const assertContained = (candidate: string) => {
+        const relative = pathMod.relative(assetsRoot, candidate);
+        if (relative.startsWith("..") || pathMod.isAbsolute(relative)) {
+          throw new Error("Asset URI resolves outside the asset directory");
+        }
+      };
+      const requestedPath = pathMod.resolve(filePath);
+      assertContained(requestedPath);
+      const realPath = await fsP.realpath(requestedPath);
+      assertContained(realPath);
+      return (await fsP.readFile(realPath)) as Uint8Array;
+    };
 
     if (uri.startsWith("file://")) {
-      try {
-        const urlMod = await importNodeBuiltin<typeof import("node:url")>(
-          "node:url"
-        );
-        if (!urlMod) {
-          throw new Error("resolveUri file:// requires node:url");
-        }
-        const filePath = urlMod.fileURLToPath(uri);
-        const bytes = (await fsP.readFile(filePath)) as Uint8Array;
-        const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
-        const mime = EXT_TO_MIME[ext] ?? "application/octet-stream";
-        return `data:${mime};base64,${Buffer.from(bytes).toString("base64")}`;
-      } catch {
-        return uri;
+      const urlMod =
+        await importNodeBuiltin<typeof import("node:url")>("node:url");
+      if (!urlMod) {
+        throw new Error("resolveUri file:// requires node:url");
       }
+      const filePath = urlMod.fileURLToPath(uri);
+      const bytes = await readAssetFile(filePath);
+      const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
+      const mime = EXT_TO_MIME[ext] ?? "application/octet-stream";
+      return `data:${mime};base64,${Buffer.from(bytes).toString("base64")}`;
     }
 
     // Legacy: old messages stored with browser-facing /api/storage/ path
     if (uri.startsWith("/api/storage/")) {
       const key = uri.slice("/api/storage/".length);
       try {
-        const bytes = (await fsP.readFile(getAssetFilePath(key))) as Uint8Array;
+        const assetsRoot = await getAssetsRoot();
+        const decodedKey = decodeURIComponent(key);
+        const bytes = await readAssetFile(
+          pathMod.resolve(assetsRoot, decodedKey.replace(/^\/+/, ""))
+        );
         const ext = key.split(".").pop()?.toLowerCase() ?? "";
         const mime = EXT_TO_MIME[ext] ?? "application/octet-stream";
         return `data:${mime};base64,${Buffer.from(bytes).toString("base64")}`;
-      } catch {
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message === "Asset URI resolves outside the asset directory"
+        ) {
+          throw error;
+        }
         // Remote deployment: file not local, fall back to absolute HTTP
         return `http://127.0.0.1:${process.env.PORT ?? 7777}${uri}`;
       }
@@ -1367,6 +1567,10 @@ async function* wrapModalityGenerator(
       yield result.value;
     }
   } catch (err) {
+    annotateProviderError(err, {
+      provider: provider.provider,
+      model: extractModelId(args)
+    });
     logProviderRequestFailure({
       provider: provider.provider,
       model: extractModelId(args),
@@ -1404,9 +1608,16 @@ function applyUsageAttributes(span: Span, usage: LlmUsage | null): void {
 }
 
 const EXT_TO_MIME: Record<string, string> = {
-  jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
-  gif: "image/gif", webp: "image/webp", svg: "image/svg+xml",
-  mp4: "video/mp4", webm: "video/webm",
-  mp3: "audio/mpeg", wav: "audio/wav", ogg: "audio/ogg",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  gif: "image/gif",
+  webp: "image/webp",
+  svg: "image/svg+xml",
+  mp4: "video/mp4",
+  webm: "video/webm",
+  mp3: "audio/mpeg",
+  wav: "audio/wav",
+  ogg: "audio/ogg",
   pdf: "application/pdf"
 };

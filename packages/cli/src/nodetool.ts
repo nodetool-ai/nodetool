@@ -22,11 +22,23 @@ import { createInterface } from "node:readline";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import { workflowToDsl } from "@nodetool-ai/dsl";
-import { initDb, Workflow, Secret, getSecret } from "@nodetool-ai/models";
+import {
+  initDb,
+  Workflow,
+  Job,
+  Asset,
+  Secret,
+  getSecret
+} from "@nodetool-ai/models";
+import { readCachedHfModels, searchCachedHfModels } from "@nodetool-ai/huggingface";
 import { initMasterKey } from "@nodetool-ai/security";
 import { getDefaultDbPath, getDefaultAssetsPath } from "@nodetool-ai/config";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
-import { hydrateGraphNodeFlags, NodeRegistry } from "@nodetool-ai/node-sdk";
+import {
+  hydrateGraphNodeFlags,
+  isEditorOnlyType,
+  NodeRegistry
+} from "@nodetool-ai/node-sdk";
 import type { GraphData } from "@nodetool-ai/protocol";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
@@ -43,6 +55,8 @@ import {
   connectPythonBridgeForGraph,
   resolvePythonNodeExecutor
 } from "@nodetool-ai/runtime";
+import type { AssetOutputMode } from "@nodetool-ai/runtime";
+import { mkdirSync } from "node:fs";
 import { registerPackageCommands } from "./commands/package.js";
 import { registerDeployCommands } from "./commands/deploy.js";
 import { registerHfCommands } from "./commands/models-hf.js";
@@ -51,10 +65,23 @@ import { registerRecommendedCommand } from "./commands/models-recommended.js";
 import { registerAgentCommands } from "./commands/agent.js";
 import { registerDbCommands } from "./commands/db.js";
 import { registerDebugCommands } from "./commands/debug.js";
+import { registerAppCommands } from "./commands/app.js";
+import { registerAppsCommands } from "./commands/apps.js";
 import { registerValidateCommand } from "./commands/validate.js";
 import { registerNodeCommands } from "./commands/node.js";
 import { registerGenerateCommand } from "./commands/generate.js";
+import { registerEvalCommand } from "./commands/eval.js";
 import { registerAffectedCommand } from "./commands/affected.js";
+import { registerCollectionCommands } from "./commands/collections.js";
+import { registerCostsCommands } from "./commands/costs.js";
+import { registerAuthCommands } from "./commands/auth.js";
+import {
+  listAllModels,
+  listConfiguredProviderInfo,
+  listOllamaModels,
+  listProviderModels,
+  type ProviderModelKind
+} from "./providers.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -62,6 +89,18 @@ const __dirname = dirname(__filename);
 // ---------------------------------------------------------------------------
 // DB setup (for secrets commands)
 // ---------------------------------------------------------------------------
+
+// The local single-user id every direct-DB command runs as, matching the
+// `workflows run` / `secrets` commands and the stdio MCP server.
+const LOCAL_USER_ID = "1";
+
+// Open the local SQLite database for a read-only command. Unlike setupDb() this
+// skips master-key unlocking (no secret decryption needed to list/read rows),
+// so it never emits a keychain warning. Idempotent — initDb() is a no-op once
+// a connection is open.
+function ensureDb(): void {
+  initDb(getDefaultDbPath());
+}
 
 async function setupDb(): Promise<void> {
   initDb(getDefaultDbPath());
@@ -152,6 +191,40 @@ function makeAssetFetcher(
     const res = await fetch(url);
     if (!res.ok) return null;
     return new Uint8Array(await res.arrayBuffer());
+  };
+}
+
+// Resolve asset bytes from the local assets directory, so the export commands
+// work by id without a running server. `asset://<key>` is tried verbatim as a
+// storage key first (that's how import-bundle writes refs), then via the DB
+// record to derive `<id>.<ext>` from the content type. Remote http(s) refs
+// still fetch over the network.
+async function makeLocalAssetFetcher(): Promise<
+  (ref: string) => Promise<Uint8Array | null>
+> {
+  const { getAssetFileName } = await import("@nodetool-ai/websocket");
+  const storage = new FileStorageAdapter(getDefaultAssetsPath());
+  return async (ref: string): Promise<Uint8Array | null> => {
+    if (ref.startsWith("asset://")) {
+      const raw = ref.slice("asset://".length);
+      const direct = await storage.retrieve(`/api/storage/${raw}`);
+      if (direct) return direct;
+      const bareId = raw.replace(/\.[^.]+$/, "");
+      const asset = await Asset.find(LOCAL_USER_ID, bareId);
+      if (!asset) return null;
+      const key = getAssetFileName(asset.id, asset.content_type);
+      return storage.retrieve(`/api/storage/${key}`);
+    }
+    if (ref.includes("/api/storage/")) {
+      const local = await storage.retrieve(ref);
+      if (local) return local;
+    }
+    if (/^https?:\/\//.test(ref)) {
+      const res = await fetch(ref);
+      if (!res.ok) return null;
+      return new Uint8Array(await res.arrayBuffer());
+    }
+    return null;
   };
 }
 
@@ -386,21 +459,27 @@ const workflows = program
 
 workflows
   .command("list")
-  .description("List workflows")
+  .description("List workflows (reads the local database; --api-url for remote)")
   .option(
     "--api-url <url>",
-    "API base URL",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+    "Query a remote server instead of the local database",
+    process.env["NODETOOL_API_URL"]
   )
   .option("--limit <n>", "Max results", "100")
   .option("--json", "Output as JSON")
   .action(async (opts) => {
     try {
-      const client = createApiClient(opts.apiUrl);
-      const data = await client.workflows.list.query({
-        limit: Number.parseInt(opts.limit, 10)
-      });
-      const rows = data.workflows as Record<string, unknown>[];
+      const limit = Number.parseInt(opts.limit, 10);
+      let rows: Record<string, unknown>[];
+      if (opts.apiUrl) {
+        const client = createApiClient(opts.apiUrl);
+        const data = await client.workflows.list.query({ limit });
+        rows = data.workflows as Record<string, unknown>[];
+      } else {
+        ensureDb();
+        const [items] = await Workflow.paginate(LOCAL_USER_ID, { limit });
+        rows = items.map((w) => ({ ...w }));
+      }
       if (opts.json) {
         asJson(rows);
         return;
@@ -420,22 +499,32 @@ workflows
 
 workflows
   .command("get <workflow_id>")
-  .description("Get a workflow by ID")
+  .description("Get a workflow by ID (reads the local database; --api-url for remote)")
   .option(
     "--api-url <url>",
-    "API base URL",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+    "Query a remote server instead of the local database",
+    process.env["NODETOOL_API_URL"]
   )
   .option("--json", "Output as JSON")
   .action(async (workflowId, opts) => {
     try {
-      const client = createApiClient(opts.apiUrl);
-      const data = await client.workflows.get.query({ id: workflowId });
+      let data: Record<string, unknown>;
+      if (opts.apiUrl) {
+        const client = createApiClient(opts.apiUrl);
+        data = (await client.workflows.get.query({
+          id: workflowId
+        })) as unknown as Record<string, unknown>;
+      } else {
+        ensureDb();
+        const wf = await Workflow.find(LOCAL_USER_ID, workflowId);
+        if (!wf) throw new Error(`Workflow not found: ${workflowId}`);
+        data = { ...wf };
+      }
       if (opts.json) {
         asJson(data);
         return;
       }
-      const w = data as unknown as Record<string, unknown>;
+      const w = data;
       printTable([
         {
           id: w["id"],
@@ -455,8 +544,25 @@ workflows
   .description("Run a workflow by ID, JSON file, or TypeScript DSL file")
   .option("--params <json>", "JSON params string")
   .option("--json", "Output as JSON")
+  .option(
+    "--asset-output-mode <mode>",
+    "How media outputs are materialized: native | raw | data_uri | workspace | storage_url | temp_url",
+    "native"
+  )
+  .option(
+    "--workspace <dir>",
+    "Workspace directory for workspace-mode asset output (default: ./nodetool-output)"
+  )
   .action(
-    async (idOrFile: string, opts: { params?: string; json?: boolean }) => {
+    async (
+      idOrFile: string,
+      opts: {
+        params?: string;
+        json?: boolean;
+        assetOutputMode?: string;
+        workspace?: string;
+      }
+    ) => {
       try {
         await setupDb();
         let graph: { nodes: any[]; edges: any[] };
@@ -476,8 +582,8 @@ workflows
           let raw: any;
           if (idOrFile.endsWith(".ts") || idOrFile.endsWith(".tsx")) {
             // Execute DSL file via tsx and capture JSON output
-            const { execSync } = await import("node:child_process");
-            const output = execSync(`npx tsx "${resolve(idOrFile)}"`, {
+            const { execFileSync } = await import("node:child_process");
+            const output = execFileSync("npx", ["tsx", resolve(idOrFile)], {
               encoding: "utf8",
               cwd: dirname(resolve(idOrFile)),
               timeout: 30000
@@ -491,7 +597,6 @@ workflows
           workflowId = raw.workflow_id ?? raw.id ?? null;
           if (raw.params) Object.assign(params, raw.params);
         } else {
-          // Load from database
           const wf = await Workflow.get(idOrFile);
           if (!wf) throw new Error(`Workflow not found: ${idOrFile}`);
           graph = (wf as any).graph;
@@ -502,6 +607,16 @@ workflows
           throw new Error("Invalid workflow: missing nodes or edges");
         }
 
+        // Drop editor-only nodes (Comment, Group, Reroute). They are
+        // annotations the editor draws and carry no executable class, so
+        // resolveExecutor below would reject them as "Unknown node type" and
+        // fail the whole run — which is what happened to every shipped example
+        // containing a Comment. The headless job runner and `nodetool debug`
+        // already filter them at their own entry points.
+        graph.nodes = graph.nodes.filter(
+          (n: Record<string, unknown>) => !isEditorOnlyType(String(n.type ?? ""))
+        );
+
         // Normalize graph: convert node.data → node.properties (kernel format)
         graph.nodes = graph.nodes.map((n: Record<string, unknown>) => {
           if (n.properties === undefined && n.data !== undefined) {
@@ -511,7 +626,6 @@ workflows
           return n;
         });
 
-        // Set up node registry
         const registry = new NodeRegistry();
         registerBaseNodes(registry);
         registerElevenLabsNodes(registry);
@@ -522,7 +636,6 @@ workflows
         registerReveNodes(registry);
         registerHuggingFaceNodes(registry);
 
-        // Create processing context with secret resolver
         const jobId = `job-${Date.now()}`;
         // Resolve asset URIs (e.g. /api/storage/<key>) against the local
         // assets directory, so workflows referencing stored assets run the
@@ -535,16 +648,96 @@ workflows
         const workspaceDir = workflowId
           ? await resolveWorkflowWorkspace(workflowId, "1")
           : null;
+        const ASSET_OUTPUT_MODES = [
+          "native",
+          "raw",
+          "data_uri",
+          "workspace",
+          "storage_url",
+          "temp_url"
+        ] as const;
+        const assetOutputMode = (opts.assetOutputMode ??
+          "native") as AssetOutputMode;
+        if (
+          !(ASSET_OUTPUT_MODES as readonly string[]).includes(assetOutputMode)
+        ) {
+          throw new Error(
+            `Unknown --asset-output-mode "${assetOutputMode}". ` +
+              `Expected one of: ${ASSET_OUTPUT_MODES.join(", ")}`
+          );
+        }
+
+        // `workspace` mode writes each output into <workspace>/assets, so it
+        // needs a directory even when the run has no saved workflow (a JSON or
+        // DSL file target). Fall back to ./nodetool-output so a bare
+        // `workflows run file.json --asset-output-mode workspace` produces
+        // files in the current directory rather than failing.
+        const effectiveWorkspaceDir =
+          opts.workspace ??
+          workspaceDir ??
+          (assetOutputMode === "workspace"
+            ? resolve(process.cwd(), "nodetool-output")
+            : null);
+        if (effectiveWorkspaceDir) {
+          mkdirSync(effectiveWorkspaceDir, { recursive: true });
+        }
+
+        const assetStorage = new FileStorageAdapter(getDefaultAssetsPath());
         const context = new ProcessingContext({
           jobId,
           workflowId,
           userId: "1",
           secretResolver: getSecret,
-          storage: new FileStorageAdapter(getDefaultAssetsPath()),
-          workspaceDir,
-          workspaceStorage: workspaceDir
-            ? new FileStorageAdapter(workspaceDir)
+          storage: assetStorage,
+          assetOutputMode,
+          workspaceDir: effectiveWorkspaceDir,
+          workspaceStorage: effectiveWorkspaceDir
+            ? new FileStorageAdapter(effectiveWorkspaceDir)
             : null
+        });
+
+        // Persist assets to the local DB + asset store. Without this, any node
+        // that saves an asset fails with "ProcessingContext model interface
+        // 'createAsset' is not configured" — the server wires this in
+        // createRuntimeContext(), the CLI previously wired nothing.
+        const MIME_TO_EXT: Record<string, string> = {
+          "image/png": "png",
+          "image/jpeg": "jpg",
+          "image/webp": "webp",
+          "image/gif": "gif",
+          "audio/mpeg": "mp3",
+          "audio/wav": "wav",
+          "audio/ogg": "ogg",
+          "video/mp4": "mp4",
+          "video/webm": "webm",
+          "application/pdf": "pdf",
+          "text/plain": "txt",
+          "text/html": "html",
+          "model/gltf-binary": "glb"
+        };
+        context.setModelInterfaces({
+          createAsset: async (args) => {
+            const asset = new Asset({
+              user_id: args.userId,
+              workflow_id: args.workflowId ?? null,
+              node_id: args.nodeId ?? null,
+              job_id: args.jobId ?? null,
+              name: args.name,
+              content_type: args.contentType,
+              parent_id: args.parentId ?? null
+            });
+            if (args.content) {
+              const ext = MIME_TO_EXT[args.contentType] ?? "bin";
+              await assetStorage.store(
+                `${asset.user_id}/${asset.id}.${ext}`,
+                args.content,
+                args.contentType
+              );
+              asset.size = args.content.length;
+            }
+            await asset.save();
+            return asset;
+          }
         });
 
         // Connect a Python worker bridge when the graph has non-TS (Python)
@@ -555,7 +748,6 @@ workflows
           (t) => registry.has(t)
         );
 
-        // Run workflow
         const runner = new WorkflowRunner(jobId, {
           resolveExecutor: (node: { id: string; type: string }) => {
             if (registry.has(node.type)) return registry.resolve(node);
@@ -614,15 +806,15 @@ workflows
 
 workflows
   .command("export-dsl <workflow_id_or_file>")
-  .description("Export a workflow as TypeScript DSL code")
+  .description("Export a workflow as TypeScript DSL code (local DB by id; --api-url for remote)")
   .option(
     "--api-url <url>",
-    "API base URL",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+    "Fetch the workflow from a remote server instead of the local database",
+    process.env["NODETOOL_API_URL"]
   )
   .option("-o, --output <file>", "Write the exported DSL to a file")
   .action(
-    async (idOrFile: string, opts: { apiUrl: string; output?: string }) => {
+    async (idOrFile: string, opts: { apiUrl?: string; output?: string }) => {
       try {
         let source: string;
 
@@ -643,11 +835,22 @@ workflows
           source = workflowToDsl(graph, {
             workflowName: typeof raw.name === "string" ? raw.name : null
           });
-        } else {
+        } else if (opts.apiUrl) {
           source = await apiGetText(
             opts.apiUrl,
             `/api/workflows/${idOrFile}/dsl-export`
           );
+        } else {
+          ensureDb();
+          const wf = await Workflow.find(LOCAL_USER_ID, idOrFile);
+          if (!wf) throw new Error(`Workflow not found: ${idOrFile}`);
+          const graph = wf.getGraph() as unknown as {
+            nodes: Record<string, unknown>[];
+            edges: Record<string, unknown>[];
+          };
+          source = workflowToDsl(graph, {
+            workflowName: typeof wf.name === "string" ? wf.name : null
+          });
         }
 
         if (opts.output) {
@@ -673,8 +876,8 @@ workflows
   )
   .option(
     "--api-url <url>",
-    "API base URL (used to fetch the workflow and asset bytes by id)",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+    "Fetch the workflow and asset bytes from a remote server instead of the local DB/assets",
+    process.env["NODETOOL_API_URL"]
   )
   .option("--package <name>", "Owning package", "nodetool-base")
   .option(
@@ -694,7 +897,7 @@ workflows
     async (
       idOrFile: string,
       opts: {
-        apiUrl: string;
+        apiUrl?: string;
         package: string;
         assetsDir?: string;
         examplesDir?: string;
@@ -731,7 +934,7 @@ workflows
             ? raw.tags.filter((t): t is string => typeof t === "string")
             : [];
           graph = (raw.graph ?? raw) as typeof graph;
-        } else {
+        } else if (opts.apiUrl) {
           const client = createApiClient(opts.apiUrl);
           const wf = (await client.workflows.get.query({
             id: idOrFile
@@ -742,6 +945,16 @@ workflows
             ? wf.tags.filter((t): t is string => typeof t === "string")
             : [];
           graph = wf.graph as typeof graph;
+        } else {
+          ensureDb();
+          const wf = await Workflow.find(LOCAL_USER_ID, idOrFile);
+          if (!wf) throw new Error(`Workflow not found: ${idOrFile}`);
+          name = typeof wf.name === "string" ? wf.name : "workflow";
+          description = typeof wf.description === "string" ? wf.description : "";
+          tags = Array.isArray(wf.tags)
+            ? wf.tags.filter((t): t is string => typeof t === "string")
+            : [];
+          graph = wf.getGraph() as unknown as typeof graph;
         }
 
         if (!graph?.nodes) {
@@ -758,8 +971,9 @@ workflows
         const assetsRoot = opts.assetsDir ?? join(baseNodesDir, "assets");
         const examplesDir = opts.examplesDir ?? join(baseNodesDir, "examples");
 
-        const apiUrl = opts.apiUrl.replace(/\/+$/, "");
-        const fetchAssetBytes = makeAssetFetcher(apiUrl);
+        const fetchAssetBytes = opts.apiUrl
+          ? makeAssetFetcher(opts.apiUrl.replace(/\/+$/, ""))
+          : await makeLocalAssetFetcher();
 
         const result = await materializeWorkflowConstantAssets(graph, {
           packageName: opts.package,
@@ -816,8 +1030,8 @@ workflows
   )
   .option(
     "--api-url <url>",
-    "API base URL (used to fetch the workflow and asset bytes by id)",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+    "Fetch the workflow and asset bytes from a remote server instead of the local DB/assets",
+    process.env["NODETOOL_API_URL"]
   )
   .option("-o, --output <file>", "Output path (default: <name>.nodetool)")
   .option(
@@ -827,7 +1041,7 @@ workflows
   .action(
     async (
       idsOrFiles: string[],
-      opts: { apiUrl: string; output?: string; includeRemote?: boolean }
+      opts: { apiUrl?: string; output?: string; includeRemote?: boolean }
     ) => {
       try {
         const { readFileSync } = await import("node:fs");
@@ -854,18 +1068,30 @@ workflows
           graph: (raw.graph ?? raw) as BundleWf["graph"]
         });
 
-        const apiUrl = opts.apiUrl.replace(/\/+$/, "");
+        const useServer = Boolean(opts.apiUrl);
+        const apiUrl = opts.apiUrl?.replace(/\/+$/, "") ?? "";
+        if (!useServer) ensureDb();
         const workflowsToPack: BundleWf[] = [];
         for (const idOrFile of idsOrFiles) {
           const isFile =
             idOrFile.endsWith(".json") ||
             idOrFile.includes("/") ||
             idOrFile.includes("\\");
-          const raw = isFile
-            ? (JSON.parse(readFileSync(idOrFile, "utf8")) as Record<string, unknown>)
-            : ((await createApiClient(apiUrl).workflows.get.query({
-                id: idOrFile
-              })) as Record<string, unknown>);
+          let raw: Record<string, unknown>;
+          if (isFile) {
+            raw = JSON.parse(readFileSync(idOrFile, "utf8")) as Record<
+              string,
+              unknown
+            >;
+          } else if (useServer) {
+            raw = (await createApiClient(apiUrl).workflows.get.query({
+              id: idOrFile
+            })) as Record<string, unknown>;
+          } else {
+            const found = await Workflow.find(LOCAL_USER_ID, idOrFile);
+            if (!found) throw new Error(`Workflow not found: ${idOrFile}`);
+            raw = { ...found, graph: found.getGraph() };
+          }
           const wf = toBundleWf(raw);
           if (!wf.graph?.nodes) {
             throw new Error(`Workflow '${idOrFile}' has no graph to export`);
@@ -875,7 +1101,9 @@ workflows
 
         const { bytes, manifest, skipped } = await packWorkflowsBundle({
           workflows: workflowsToPack,
-          fetchAssetBytes: makeAssetFetcher(apiUrl),
+          fetchAssetBytes: useServer
+            ? makeAssetFetcher(apiUrl)
+            : await makeLocalAssetFetcher(),
           nodetoolVersion: cliVersion(),
           ...(opts.includeRemote ? { includeRemote: true } : {})
         });
@@ -978,23 +1206,34 @@ const jobs = program.command("jobs").description("Job management");
 
 jobs
   .command("list")
-  .description("List jobs")
+  .description("List jobs (reads the local database; --api-url for remote)")
   .option(
     "--api-url <url>",
-    "API base URL",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+    "Query a remote server instead of the local database",
+    process.env["NODETOOL_API_URL"]
   )
   .option("--workflow-id <id>", "Filter by workflow ID")
   .option("--limit <n>", "Max results", "100")
   .option("--json", "Output as JSON")
   .action(async (opts) => {
     try {
-      const client = createApiClient(opts.apiUrl);
-      const data = await client.jobs.list.query({
-        limit: Number.parseInt(opts.limit, 10),
-        ...(opts.workflowId ? { workflow_id: opts.workflowId } : {})
-      });
-      const rows = data.jobs as Record<string, unknown>[];
+      const limit = Number.parseInt(opts.limit, 10);
+      let rows: Record<string, unknown>[];
+      if (opts.apiUrl) {
+        const client = createApiClient(opts.apiUrl);
+        const data = await client.jobs.list.query({
+          limit,
+          ...(opts.workflowId ? { workflow_id: opts.workflowId } : {})
+        });
+        rows = data.jobs as Record<string, unknown>[];
+      } else {
+        ensureDb();
+        const [items] = await Job.paginate(LOCAL_USER_ID, {
+          limit,
+          ...(opts.workflowId ? { workflowId: opts.workflowId } : {})
+        });
+        rows = items.map((j) => ({ ...j }));
+      }
       if (opts.json) {
         asJson(rows);
         return;
@@ -1016,22 +1255,32 @@ jobs
 
 jobs
   .command("get <job_id>")
-  .description("Get a job by ID")
+  .description("Get a job by ID (reads the local database; --api-url for remote)")
   .option(
     "--api-url <url>",
-    "API base URL",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+    "Query a remote server instead of the local database",
+    process.env["NODETOOL_API_URL"]
   )
   .option("--json", "Output as JSON")
   .action(async (jobId, opts) => {
     try {
-      const client = createApiClient(opts.apiUrl);
-      const data = await client.jobs.get.query({ id: jobId });
+      let data: Record<string, unknown>;
+      if (opts.apiUrl) {
+        const client = createApiClient(opts.apiUrl);
+        data = (await client.jobs.get.query({
+          id: jobId
+        })) as unknown as Record<string, unknown>;
+      } else {
+        ensureDb();
+        const job = await Job.find(LOCAL_USER_ID, jobId);
+        if (!job) throw new Error(`Job not found: ${jobId}`);
+        data = { ...job };
+      }
       if (opts.json) {
         asJson(data);
         return;
       }
-      const j = data as unknown as Record<string, unknown>;
+      const j = data;
       printTable([
         {
           id: j["id"],
@@ -1055,11 +1304,11 @@ const assets = program.command("assets").description("Asset management");
 
 assets
   .command("list")
-  .description("List assets")
+  .description("List assets (reads the local database; --api-url for remote)")
   .option(
     "--api-url <url>",
-    "API base URL",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+    "Query a remote server instead of the local database",
+    process.env["NODETOOL_API_URL"]
   )
   .option("--query <q>", "Search query")
   .option("--content-type <type>", "Filter by content type")
@@ -1067,14 +1316,25 @@ assets
   .option("--json", "Output as JSON")
   .action(async (opts) => {
     try {
-      const client = createApiClient(opts.apiUrl);
-      const data = await client.assets.list.query({
-        page_size: Number.parseInt(opts.limit, 10),
-        ...(opts.contentType ? { content_type: opts.contentType } : {})
-      });
-      // Note: --query isn't forwarded because assets.list has no server-side
-      // search; keep local filtering until the tRPC schema exposes one.
-      let rows = data.assets as Record<string, unknown>[];
+      const limit = Number.parseInt(opts.limit, 10);
+      let rows: Record<string, unknown>[];
+      if (opts.apiUrl) {
+        const client = createApiClient(opts.apiUrl);
+        const data = await client.assets.list.query({
+          page_size: limit,
+          ...(opts.contentType ? { content_type: opts.contentType } : {})
+        });
+        rows = data.assets as Record<string, unknown>[];
+      } else {
+        ensureDb();
+        const [items] = await Asset.paginate(LOCAL_USER_ID, {
+          limit,
+          ...(opts.contentType ? { contentType: opts.contentType } : {})
+        });
+        rows = items.map((a) => ({ ...a }));
+      }
+      // --query has no server-side search; filter by name in memory (matches
+      // the direct path too, which paginates without a search term).
       if (opts.query) {
         const q = String(opts.query).toLowerCase();
         rows = rows.filter((r) =>
@@ -1101,22 +1361,32 @@ assets
 
 assets
   .command("get <asset_id>")
-  .description("Get an asset by ID")
+  .description("Get an asset by ID (reads the local database; --api-url for remote)")
   .option(
     "--api-url <url>",
-    "API base URL",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+    "Query a remote server instead of the local database",
+    process.env["NODETOOL_API_URL"]
   )
   .option("--json", "Output as JSON")
   .action(async (assetId, opts) => {
     try {
-      const client = createApiClient(opts.apiUrl);
-      const data = await client.assets.get.query({ id: assetId });
+      let data: Record<string, unknown>;
+      if (opts.apiUrl) {
+        const client = createApiClient(opts.apiUrl);
+        data = (await client.assets.get.query({
+          id: assetId
+        })) as unknown as Record<string, unknown>;
+      } else {
+        ensureDb();
+        const asset = await Asset.find(LOCAL_USER_ID, assetId);
+        if (!asset) throw new Error(`Asset not found: ${assetId}`);
+        data = { ...asset };
+      }
       if (opts.json) {
         asJson(data);
         return;
       }
-      const a = data as unknown as Record<string, unknown>;
+      const a = data;
       printTable([
         {
           id: a["id"],
@@ -1139,18 +1409,14 @@ assets
 const models = program.command("models").description("Model management");
 
 const modelKinds = ["llm", "image", "tts", "asr", "video", "embedding"] as const;
-type ModelKind = (typeof modelKinds)[number];
 
-const byProviderRoute: Record<ModelKind, string> = {
-  llm: "llmByProvider",
-  image: "imageByProvider",
-  tts: "ttsByProvider",
-  asr: "asrByProvider",
-  video: "videoByProvider",
-  embedding: "embeddingByProvider"
-};
-
-function modelRow(m: Record<string, unknown>): Record<string, unknown> {
+function modelRow(m: {
+  id?: unknown;
+  name?: unknown;
+  provider?: unknown;
+  type?: unknown;
+  repo_id?: unknown;
+}): Record<string, unknown> {
   return {
     id: m["id"],
     name: m["name"],
@@ -1162,18 +1428,28 @@ function modelRow(m: Record<string, unknown>): Record<string, unknown> {
 
 models
   .command("list")
-  .description("List all models (recommended + provider + HF cached)")
+  .description(
+    "List all models (recommended + provider + HF cached); local by default, --api-url for remote"
+  )
   .option(
     "--api-url <url>",
-    "API base URL",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+    "Query a remote server instead of local providers/cache",
+    process.env["NODETOOL_API_URL"]
   )
   .option("--json", "Output as JSON")
   .action(async (opts) => {
     try {
-      const client = createApiClient(opts.apiUrl);
-      const data = await client.models.all.query();
-      const rows = data as unknown as Record<string, unknown>[];
+      let rows: Record<string, unknown>[];
+      if (opts.apiUrl) {
+        const client = createApiClient(opts.apiUrl);
+        rows = (await client.models.all.query()) as unknown as Record<
+          string,
+          unknown
+        >[];
+      } else {
+        await setupDb();
+        rows = (await listAllModels()) as unknown as Record<string, unknown>[];
+      }
       if (opts.json) {
         asJson(rows);
         return;
@@ -1188,16 +1464,11 @@ models
 models
   .command("providers")
   .description("List configured providers and their capabilities")
-  .option(
-    "--api-url <url>",
-    "API base URL",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
-  )
   .option("--json", "Output as JSON")
   .action(async (opts) => {
+    await setupDb();
     try {
-      const client = createApiClient(opts.apiUrl);
-      const data = await client.models.providers.query();
+      const data = await listConfiguredProviderInfo();
       if (opts.json) {
         asJson(data);
         return;
@@ -1219,23 +1490,34 @@ registerHfCommands(models);
 
 models
   .command("ollama")
-  .description("List Ollama models")
+  .description("List Ollama models (queries the local daemon; --api-url for remote)")
   .option(
     "--api-url <url>",
-    "API base URL",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+    "Query a remote server instead of the local Ollama daemon",
+    process.env["NODETOOL_API_URL"]
   )
   .option("--json", "Output as JSON")
   .action(async (opts) => {
     try {
-      const client = createApiClient(opts.apiUrl);
-      const data = await client.models.ollama.query();
-      const rows = data as unknown as Record<string, unknown>[];
+      let rows: Record<string, unknown>[];
+      if (opts.apiUrl) {
+        const client = createApiClient(opts.apiUrl);
+        rows = (await client.models.ollama.query()) as unknown as Record<
+          string,
+          unknown
+        >[];
+      } else {
+        await setupDb();
+        rows = (await listOllamaModels()) as unknown as Record<
+          string,
+          unknown
+        >[];
+      }
       if (opts.json) {
         asJson(rows);
         return;
       }
-      printTable(rows);
+      printTable(rows.map(modelRow));
     } catch (e) {
       console.error(String(e));
       process.exit(1);
@@ -1244,26 +1526,46 @@ models
 
 models
   .command("huggingface")
-  .description("List HuggingFace cached models")
+  .description("List HuggingFace cached models (scans the local cache; --api-url for remote)")
   .option(
     "--api-url <url>",
-    "API base URL",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+    "Query a remote server instead of the local HuggingFace cache",
+    process.env["NODETOOL_API_URL"]
   )
   .option("--query <q>", "Search query")
   .option("--type <t>", "Filter by HF model type")
   .option("--json", "Output as JSON")
   .action(async (opts) => {
     try {
-      const client = createApiClient(opts.apiUrl);
-      const data =
-        opts.query || opts.type
-          ? await client.models.huggingfaceSearch.query({
-              ...(opts.query ? { query: String(opts.query) } : {}),
-              ...(opts.type ? { type: String(opts.type) } : {})
-            })
-          : await client.models.huggingfaceList.query();
-      const rows = data as unknown as Record<string, unknown>[];
+      let rows: Record<string, unknown>[];
+      if (opts.apiUrl) {
+        const client = createApiClient(opts.apiUrl);
+        rows =
+          opts.query || opts.type
+            ? ((await client.models.huggingfaceSearch.query({
+                ...(opts.query ? { query: String(opts.query) } : {}),
+                ...(opts.type ? { type: String(opts.type) } : {})
+              })) as unknown as Record<string, unknown>[])
+            : ((await client.models.huggingfaceList.query()) as unknown as Record<
+                string,
+                unknown
+              >[]);
+      } else if (opts.query || opts.type) {
+        // Wrap a bare query in wildcards so it matches as a substring, the same
+        // normalization the server's huggingfaceSearch applies.
+        const rawQuery = opts.query ? String(opts.query) : undefined;
+        const query =
+          rawQuery && !rawQuery.includes("*") ? `*${rawQuery}*` : rawQuery;
+        rows = (await searchCachedHfModels(
+          query ? [query] : undefined,
+          opts.type ? [String(opts.type)] : undefined
+        )) as unknown as Record<string, unknown>[];
+      } else {
+        rows = (await readCachedHfModels()) as unknown as Record<
+          string,
+          unknown
+        >[];
+      }
       if (opts.json) {
         asJson(rows);
         return;
@@ -1280,36 +1582,62 @@ models
   .description(
     `List models for a provider. --kind one of: ${modelKinds.join(", ")}`
   )
-  .option(
-    "--api-url <url>",
-    "API base URL",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
-  )
   .option("--kind <kind>", "Model kind", "llm")
   .option("--json", "Output as JSON")
   .action(async (provider, opts) => {
-    const kind = opts.kind as ModelKind;
+    const kind = opts.kind as ProviderModelKind;
     if (!modelKinds.includes(kind)) {
       console.error(
         `Invalid --kind '${opts.kind}'. Must be one of: ${modelKinds.join(", ")}`
       );
       process.exit(1);
     }
+    await setupDb();
     try {
-      const client = createApiClient(opts.apiUrl);
-      const route = byProviderRoute[kind];
-      const data = await (
-        client.models as unknown as Record<
-          string,
-          { query: (input: { provider: string }) => Promise<unknown[]> }
-        >
-      )[route]!.query({ provider });
-      const rows = data as Record<string, unknown>[];
+      const rows = await listProviderModels(provider, kind);
       if (opts.json) {
         asJson(rows);
         return;
       }
       printTable(rows.map(modelRow));
+    } catch (e) {
+      console.error(String(e));
+      process.exit(1);
+    }
+  });
+
+// ---------------------------------------------------------------------------
+// storage
+// ---------------------------------------------------------------------------
+
+const storage = program
+  .command("storage")
+  .description("Maintain the asset storage backend");
+
+storage
+  .command("migrate-keys")
+  .description(
+    "Move asset objects under their owner's prefix (<userId>/<assetId>.<ext>)"
+  )
+  .option("--dry-run", "Report what would move without writing anything")
+  .option("--user-id <id>", "Migrate only this user's objects")
+  .option("--json", "Output the report as JSON")
+  .action(async (opts) => {
+    await setupDb();
+    const { migrateStorageKeys, formatMigrateKeysReport } = await import(
+      "./commands/storage.js"
+    );
+    try {
+      const report = await migrateStorageKeys({
+        dryRun: Boolean(opts.dryRun),
+        ...(opts.userId ? { userId: opts.userId } : {})
+      });
+      if (opts.json) {
+        console.log(JSON.stringify(report, null, 2));
+      } else {
+        console.log(formatMigrateKeysReport(report, Boolean(opts.dryRun)));
+      }
+      if (report.failed > 0) process.exit(1);
     } catch (e) {
       console.error(String(e));
       process.exit(1);
@@ -1791,6 +2119,48 @@ mcp
     console.log();
   });
 
+mcp
+  .command("serve")
+  .description(
+    "Run the NodeTool MCP server over stdio for an external agent " +
+      "(Claude Code, Codex, …). All logging goes to stderr; stdout is the " +
+      "MCP protocol channel."
+  )
+  .action(async () => {
+    try {
+      await setupDb();
+
+      // A local TS-node registry powers list_nodes / search_nodes /
+      // validate_workflow without spinning up a Python worker.
+      const registry = new NodeRegistry();
+      registerBaseNodes(registry);
+      registerElevenLabsNodes(registry);
+      registerMinimaxNodes(registry);
+      registerTransformersJsNodes(registry);
+      registerFalNodes(registry);
+      registerReplicateNodes(registry);
+      registerReveNodes(registry);
+      registerHuggingFaceNodes(registry);
+
+      const { createMcpServer, createMcpStdioTransport } = await import(
+        "@nodetool-ai/websocket"
+      );
+      // stdio serves exactly one local user; "1" is the local single-user id.
+      const server = createMcpServer({
+        registry,
+        agentToolsScope: { userId: "1", source: "stdio-local" }
+      });
+      const transport = createMcpStdioTransport();
+      await server.connect(transport);
+      process.stderr.write("NodeTool MCP server ready on stdio.\n");
+      // The stdio transport keeps the event loop alive until the client
+      // closes the connection.
+    } catch (e) {
+      console.error(String(e));
+      process.exit(1);
+    }
+  });
+
 // ---------------------------------------------------------------------------
 // package
 // ---------------------------------------------------------------------------
@@ -1806,10 +2176,16 @@ registerDeployCommands(program);
 registerAgentCommands(program);
 registerDbCommands(program);
 registerDebugCommands(program);
+registerAppCommands(program);
+registerAppsCommands(program);
 registerValidateCommand(program);
 registerNodeCommands(program);
 registerGenerateCommand(program);
+registerEvalCommand(program);
 registerAffectedCommand(program);
+registerCollectionCommands(program);
+registerCostsCommands(program);
+registerAuthCommands(program);
 
 // ---------------------------------------------------------------------------
 

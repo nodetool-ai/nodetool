@@ -8,12 +8,6 @@ interface ColorModeSelectorProps {
   showAllModes?: boolean;
 }
 
-/**
- * ColorModeSelector
- *
- * A tab selector for choosing color input modes (hex, rgb, hsl, etc.).
- * Uses the TabGroup primitive for consistent tab rendering.
- */
 const ColorModeSelector: React.FC<ColorModeSelectorProps> = memo(({
   mode,
   onChange,

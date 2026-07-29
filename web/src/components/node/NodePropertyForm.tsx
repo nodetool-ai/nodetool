@@ -11,10 +11,10 @@ import {
   DialogContent,
   DialogActions
 } from "../ui_primitives";
-import { Add } from "@mui/icons-material";
-import { useState, useCallback, memo } from "react";
+import Add from "@mui/icons-material/Add";
+import { useState, useCallback, memo, useId } from "react";
 import { useTheme } from "@mui/material/styles";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { useDynamicOutput } from "../../hooks/nodes/useDynamicOutput";
 import { TypeMetadata } from "../../stores/ApiTypes";
 import { validateIdentifierName } from "../../utils/identifierValidation";
@@ -25,7 +25,6 @@ interface NodePropertyFormProps {
   isDynamic: boolean;
   supportsDynamicOutputs: boolean;
   dynamicOutputs: Record<string, TypeMetadata>;
-  // onAddProperty retained for compatibility but unused; dynamic inputs are created via connections
   onAddProperty: (propertyName: string) => void;
   nodeType?: string;
 }
@@ -40,6 +39,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
 }) => {
   const theme = useTheme();
   const { handleAddOutput } = useDynamicOutput(id, dynamicOutputs);
+  const inputDialogTitleId = useId();
   const [showOutputDialog, setShowOutputDialog] = useState(false);
   const [showInputDialog, setShowInputDialog] = useState(false);
   const [newInputName, setNewInputName] = useState("");
@@ -76,8 +76,6 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
     setShowInputDialog(false);
   }, [newInputName, onAddProperty]);
 
-  // Dynamic property creation is handled by dropping a connection onto the node
-
   return (
     <div
       className="node-property-form"
@@ -86,7 +84,6 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
         position: "relative"
       })}
     >
-      {/* Add dynamic input property (+) when node is dynamic */}
       {isDynamic && (
         <FlexRow
           align="center"
@@ -142,6 +139,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
         onClose={handleHideInputDialog}
         maxWidth="xs"
         fullWidth
+        aria-labelledby={inputDialogTitleId}
         sx={{
           "& .MuiDialog-paper": {
             borderRadius: BORDER_RADIUS.xl,
@@ -149,7 +147,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
           }
         }}
       >
-        <DialogTitle>Add Input</DialogTitle>
+        <DialogTitle id={inputDialogTitleId}>Add Input</DialogTitle>
         <DialogContent>
           <FlexRow css={css({ gap: 8, marginTop: 8 })}>
             <TextField

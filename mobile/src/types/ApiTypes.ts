@@ -12,34 +12,13 @@ import type {
   // Graph & Node types
   Node,
   Edge,
-  // Media refs
-  ImageRef,
-  AudioRef,
-  VideoRef,
-  TextRef,
-  DataframeRef,
-  ColumnDef,
-  DocumentRef,
-  FolderRef,
-  FontRef,
-  AssetRef,
-  WorkflowRef,
-  NodeRef,
-  NPArray,
-  SVGElement,
-  PlotlyConfig,
-  Datetime,
-  CalendarEvent,
   // Asset types
   Asset,
-  AssetList,
-  AssetUpdateRequest,
   // Workflow types
   Workflow,
   WorkflowGraph,
   // Thread & Message types
   Thread,
-  ThreadList,
   Message,
   MessageContent,
   // Node Metadata types
@@ -47,28 +26,12 @@ import type {
   Property,
   OutputSlot,
   NodeMetadata as _NodeMetadata,
-  IndexResponse,
   // Job types
-  JobResponse,
-  JobListResponse,
   RunJobRequest,
-  ResourceLimits,
   // Model types
-  Provider,
   ProviderInfo,
   LanguageModel,
-  ImageModel,
-  TTSModel,
-  ASRModel,
-  VideoModel,
   ModelPack,
-  // System types
-  SystemStats,
-  SecretResponse,
-  // File/Workspace types
-  CollectionResponse,
-  CollectionList,
-  CollectionCreate,
   // WebSocket message types
   NodeUpdate,
   OutputUpdate,
@@ -84,60 +47,24 @@ import type {
 // Graph & Node
 export type { Node, Edge };
 
-// Media refs
-export type {
-  ImageRef,
-  AudioRef,
-  VideoRef,
-  TextRef,
-  DataframeRef,
-  ColumnDef,
-  DocumentRef,
-  FolderRef,
-  FontRef,
-  AssetRef,
-  WorkflowRef,
-  NodeRef,
-  NPArray,
-  SVGElement,
-  PlotlyConfig,
-  Datetime,
-  CalendarEvent,
-};
-
 // Asset
-export type { Asset, AssetList, AssetUpdateRequest };
+export type { Asset };
 
 // Workflow
 export type { Workflow, WorkflowGraph };
 
 // Thread & Message
-export type { Thread, ThreadList, Message, MessageContent };
+export type { Thread, Message, MessageContent };
 
 // Node Metadata
-export type { Property, OutputSlot, IndexResponse };
+export type { Property, OutputSlot };
 export type { PropertyTypeMetadata };
 
 // Job
-export type { JobResponse, JobListResponse, RunJobRequest, ResourceLimits };
+export type { RunJobRequest };
 
 // Models
-export type {
-  Provider,
-  ProviderInfo,
-  LanguageModel,
-  ImageModel,
-  TTSModel,
-  ASRModel,
-  VideoModel,
-  ModelPack,
-};
-
-// System
-export type { SystemStats, SecretResponse };
-
-// Files & Workspace
-export type { CollectionResponse, CollectionList, CollectionCreate };
+export type { ProviderInfo, LanguageModel };
 
 // WebSocket message types
 export type {
@@ -164,18 +91,3 @@ export interface NodeMetadata extends _NodeMetadata {
   };
   model_packs?: ModelPack[];
 }
-
-export interface AssetWithPath extends Asset {
-  folder_name: string;
-  folder_path: string;
-  folder_id: string;
-}
-
-export interface AssetSearchResult {
-  assets: AssetWithPath[];
-  next_cursor?: string;
-  total_count: number;
-  is_global_search: boolean;
-}
-
-

@@ -255,7 +255,6 @@ const modelListItemStyles = (theme: Theme) =>
           color: "var(--c_file)"
         }
       },
-      //
       ".model-item": {
         padding: 0,
         borderBottom: `1px solid ${theme.vars.palette.divider}`,

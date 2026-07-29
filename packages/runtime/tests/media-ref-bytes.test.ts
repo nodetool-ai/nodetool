@@ -41,6 +41,30 @@ describe("loadMediaRefBytes", () => {
     expect(bytes).toBeNull();
   });
 
+  it("keeps the full payload when it contains commas (#11)", async () => {
+    // Regression: split(",", 2) truncated everything after the second comma,
+    // corrupting SVG/CSV/text data URIs.
+    const svg = '<svg><path d="M0,0 L10,10"/></svg>';
+    const bytes = await loadMediaRefBytes({
+      type: "image",
+      uri: `data:image/svg+xml,${svg}`,
+      data: ""
+    });
+    expect(bytes).toEqual(new TextEncoder().encode(svg));
+  });
+
+  it("returns null (no throw) on a malformed percent-escape (#12)", async () => {
+    // Regression: decodeURIComponent threw URIError uncaught, aborting byte
+    // resolution instead of returning null.
+    await expect(
+      loadMediaRefBytes({
+        type: "image",
+        uri: "data:text/plain,100%discount",
+        data: ""
+      })
+    ).resolves.toBeNull();
+  });
+
   it("resolves storage via asset_id when uri is stale", async () => {
     const ctx = {
       storage: {
@@ -77,6 +101,43 @@ describe("loadMediaRefBytes", () => {
 
     expect(bytes).toEqual(new Uint8Array([7, 8, 9]));
     expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://abc-123.png");
+  });
+
+  it("resolves an asset_id-only ref (empty uri) via resolveAssetBytes", async () => {
+    // Regression: the early `if (!uri) return null` bailed before the asset_id
+    // fallback, so `{ asset_id, uri: "" }` never resolved.
+    const ctx = {
+      resolveAssetBytes: vi.fn(async () => ({
+        bytes: new Uint8Array([10, 11, 12]),
+        attempts: []
+      }))
+    } as unknown as ProcessingContext;
+
+    const bytes = await loadMediaRefBytes(
+      { type: "image", uri: "", asset_id: "abc" },
+      ctx
+    );
+
+    expect(bytes).toEqual(new Uint8Array([10, 11, 12]));
+    expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://abc");
+  });
+
+  it("resolves an asset_id-only ref via storage candidates", async () => {
+    const ctx = {
+      resolveAssetBytes: vi.fn(async () => ({ bytes: null, attempts: [] })),
+      storage: {
+        retrieve: vi.fn(async (uri: string) =>
+          uri === "/api/storage/abc.png" ? new Uint8Array([13, 14, 15]) : null
+        )
+      }
+    } as unknown as ProcessingContext;
+
+    const bytes = await loadMediaRefBytes(
+      { type: "image", asset_id: "abc" },
+      ctx
+    );
+
+    expect(bytes).toEqual(new Uint8Array([13, 14, 15]));
   });
 });
 

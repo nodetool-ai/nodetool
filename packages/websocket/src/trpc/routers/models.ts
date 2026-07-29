@@ -27,12 +27,10 @@ import {
   searchCachedHfModels,
   getModelsByHfType,
   filterModelsByHfType,
-  deleteCachedHfModel,
-  getHuggingfaceFileInfos
+  deleteCachedHfModel
 } from "@nodetool-ai/huggingface";
 import {
   getTransformersJsCacheDir,
-  isRepoCached,
   recommendedFor,
   scanTransformersJsCache,
   TJS_MODEL_TYPES,
@@ -43,9 +41,8 @@ import { MODEL_SEARCH_KINDS } from "@nodetool-ai/protocol";
 import { access, readdir } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import { homedir } from "node:os";
-import { basename, join } from "node:path";
+import { basename, join, resolve, sep } from "node:path";
 import { z } from "zod";
-import { getSecret } from "@nodetool-ai/models";
 
 // ── Local schemas (mirrored in packages/protocol/src/api-schemas/models.ts) ──
 
@@ -98,25 +95,6 @@ const recommendedInput = z.object({
   check_servers: z.boolean().optional().default(false)
 });
 
-const hfCacheCheckInput = z.object({
-  repo_id: z.string().min(1),
-  allow_pattern: z
-    .union([z.string(), z.array(z.string())])
-    .nullable()
-    .optional(),
-  ignore_pattern: z
-    .union([z.string(), z.array(z.string())])
-    .nullable()
-    .optional()
-});
-
-const hfCacheCheckOutput = z.object({
-  repo_id: z.string(),
-  all_present: z.boolean(),
-  total_files: z.number(),
-  missing: z.array(z.string())
-});
-
 const hfFastCacheStatusItem = z.object({
   key: z.string(),
   repo_id: z.string(),
@@ -138,37 +116,6 @@ const hfFastCacheStatusOutput = z.array(
   z.object({
     key: z.string(),
     downloaded: z.boolean()
-  })
-);
-
-const tryCacheFilesInput = z.array(
-  z.object({
-    repo_id: z.string().optional(),
-    path: z.string().optional()
-  })
-);
-
-const tryCacheFilesOutput = z.array(
-  z.object({
-    repo_id: z.string(),
-    path: z.string(),
-    downloaded: z.boolean()
-  })
-);
-
-const tryCacheReposInput = z.array(z.string());
-
-const tryCacheReposOutput = z.array(
-  z.object({
-    repo_id: z.string(),
-    downloaded: z.boolean()
-  })
-);
-
-const hfFileInfoInput = z.array(
-  z.object({
-    repo_id: z.string(),
-    path: z.string()
   })
 );
 
@@ -287,14 +234,34 @@ function normalizePatterns(
   return cleaned.length > 0 ? cleaned : null;
 }
 
-function wildcardToRegExp(pattern: string): RegExp {
-  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&");
-  const regex = `^${escaped.replaceAll("*", ".*").replaceAll("?", ".")}$`;
-  return new RegExp(regex);
-}
-
-function matchesPattern(value: string, pattern: string): boolean {
-  return wildcardToRegExp(pattern).test(value);
+// Linear (two-pointer) glob matcher. `*` matches any run of characters, `?`
+// matches a single character; all other characters are literal. This avoids
+// the catastrophic backtracking of a naive `*` -> `.*` regex compiled from
+// client-supplied patterns (ReDoS), while matching the same glob semantics.
+// Exported for regression tests.
+export function matchesPattern(value: string, pattern: string): boolean {
+  let v = 0;
+  let p = 0;
+  let starIdx = -1;
+  let matchIdx = 0;
+  while (v < value.length) {
+    if (p < pattern.length && (pattern[p] === "?" || pattern[p] === value[v])) {
+      v++;
+      p++;
+    } else if (p < pattern.length && pattern[p] === "*") {
+      starIdx = p;
+      matchIdx = v;
+      p++;
+    } else if (starIdx !== -1) {
+      p = starIdx + 1;
+      matchIdx++;
+      v = matchIdx;
+    } else {
+      return false;
+    }
+  }
+  while (p < pattern.length && pattern[p] === "*") p++;
+  return p === pattern.length;
 }
 
 function isIgnored(path: string, ignorePatterns: string[] | null): boolean {
@@ -341,6 +308,23 @@ async function pathExists(path: string): Promise<boolean> {
   }
 }
 
+// Joins a client-supplied relative path under `baseDir` and rejects any result
+// that escapes the base directory (via `..` segments or an absolute path).
+// Returns null when the path would escape — callers treat that as "not found"
+// so a traversal attempt can't be used as a filesystem existence oracle.
+// Exported for regression tests.
+export function safeJoinWithin(
+  baseDir: string,
+  relativePath: string
+): string | null {
+  const resolvedBase = resolve(baseDir);
+  const full = resolve(resolvedBase, relativePath);
+  if (full !== resolvedBase && !full.startsWith(resolvedBase + sep)) {
+    return null;
+  }
+  return full;
+}
+
 async function listSnapshotDirs(repoId: string): Promise<string[]> {
   const snapshotsRoot = join(
     getHfCacheRoot(),
@@ -360,9 +344,10 @@ async function repoFileInCache(
 ): Promise<boolean> {
   const snapshotDirs = await listSnapshotDirs(repoId);
   const checks = await Promise.all(
-    snapshotDirs.map((snapshotDir) =>
-      pathExists(join(snapshotDir, relativePath))
-    )
+    snapshotDirs.map((snapshotDir) => {
+      const full = safeJoinWithin(snapshotDir, relativePath);
+      return full ? pathExists(full) : Promise.resolve(false);
+    })
   );
   return checks.some((exists) => exists);
 }
@@ -393,10 +378,6 @@ async function listRepoCachedFiles(repoId: string): Promise<string[]> {
   return [...collected];
 }
 
-async function hasCachedFiles(repoId: string): Promise<boolean> {
-  return (await listRepoCachedFiles(repoId)).length > 0;
-}
-
 async function isLlamaCppModelCached(
   repoId: string,
   filePath: string
@@ -414,10 +395,13 @@ async function isLlamaCppModelCached(
   const snapshots = await readdir(repoDir, { withFileTypes: true });
   for (const snapshot of snapshots) {
     if (!snapshot.isDirectory()) continue;
-    if (await pathExists(join(repoDir, snapshot.name, filePath))) {
+    const snapshotDir = join(repoDir, snapshot.name);
+    const full = safeJoinWithin(snapshotDir, filePath);
+    if (full && (await pathExists(full))) {
       return true;
     }
-    if (await pathExists(join(repoDir, snapshot.name, basename(filePath)))) {
+    // basename() strips any traversal segments, so this join stays contained.
+    if (await pathExists(join(snapshotDir, basename(filePath)))) {
       return true;
     }
   }
@@ -538,7 +522,9 @@ async function isServerReachable(url: string): Promise<boolean> {
   }
 }
 
-async function getServerAvailability(): Promise<Record<string, boolean>> {
+async function getServerAvailability(
+  userId: string
+): Promise<Record<string, boolean>> {
   if (isProduction()) {
     return { ollama: false, llama_cpp: false, lmstudio: false, vllm: false };
   }
@@ -546,7 +532,7 @@ async function getServerAvailability(): Promise<Record<string, boolean>> {
   // Resolve URLs the same way getProvider() does: secret store → env →
   // default. Otherwise a user-set URL in Settings → API Keys wouldn't filter
   // the recommended-models list correctly.
-  const getSecret = secretResolverFor("1");
+  const getSecret = secretResolverFor(userId);
   const resolve = async (key: string, fallback: string): Promise<string> => {
     const fromStore = await getSecret(key);
     return (fromStore || process.env[key] || fallback).replace(/\/+$/, "");
@@ -573,26 +559,31 @@ async function getServerAvailability(): Promise<Record<string, boolean>> {
 
 async function serverAllowsModel(
   model: RecommendedUnifiedModel,
-  servers: Record<string, boolean>
+  servers: Record<string, boolean>,
+  userId: string
 ): Promise<boolean> {
   if (model.provider === "ollama") return servers.ollama ?? false;
   if (model.provider === "llama_cpp") return servers.llama_cpp ?? false;
   if (model.provider === "lmstudio") return servers.lmstudio ?? false;
   if (model.provider === "vllm") return servers.vllm ?? false;
   if (model.provider)
-    return await isProviderConfigured(model.provider, secretResolverFor("1"));
+    return await isProviderConfigured(
+      model.provider,
+      secretResolverFor(userId)
+    );
   return true;
 }
 
 async function getRecommendedModels(
-  checkServers: boolean
+  checkServers: boolean,
+  userId: string
 ): Promise<UnifiedModel[]> {
   const models = [...RECOMMENDED_MODELS];
   if (!checkServers) return models;
-  const servers = await getServerAvailability();
+  const servers = await getServerAvailability(userId);
   const filtered: UnifiedModel[] = [];
   for (const model of models) {
-    if (await serverAllowsModel(model, servers)) {
+    if (await serverAllowsModel(model, servers, userId)) {
       filtered.push(model);
     }
   }
@@ -843,36 +834,6 @@ async function getAllModels(userId: string): Promise<UnifiedModel[]> {
   return dedupeModels(all);
 }
 
-async function checkHfCache(body: {
-  repo_id: string;
-  allow_pattern?: string | string[] | null;
-  ignore_pattern?: string | string[] | null;
-}) {
-  const allowPatterns = normalizePatterns(body.allow_pattern);
-  const ignorePatterns = normalizePatterns(body.ignore_pattern);
-  const files = await listRepoCachedFiles(body.repo_id);
-
-  const missing: string[] = [];
-  if (allowPatterns) {
-    for (const pattern of allowPatterns) {
-      const matched = files.some(
-        (path) =>
-          matchesPattern(path, pattern) && !isIgnored(path, ignorePatterns)
-      );
-      if (!matched) {
-        missing.push(pattern);
-      }
-    }
-  }
-
-  return {
-    repo_id: body.repo_id,
-    all_present: missing.length === 0,
-    total_files: files.length,
-    missing
-  };
-}
-
 // ── availableForKind helpers ───────────────────────────────────────
 
 const availableForKindInput = z.object({
@@ -1006,73 +967,28 @@ export const modelsRouter = router({
    */
   recommended: protectedProcedure
     .input(recommendedInput)
-    .query(async ({ input }) => {
-      return getRecommendedModels(input.check_servers ?? false);
+    .query(async ({ input, ctx }) => {
+      return getRecommendedModels(input.check_servers ?? false, ctx.userId);
     }),
 
-  /**
-   * Recommended image models (all tasks).
-   */
-  recommendedImage: protectedProcedure
-    .query(() => selectRecommended("image")),
-
-  /**
-   * Recommended text-to-image models.
-   */
   recommendedImageTextToImage: protectedProcedure
     .query(() => selectRecommended("image", "text_to_image")),
 
-  /**
-   * Recommended image-to-image models.
-   */
   recommendedImageImageToImage: protectedProcedure
     .query(() => selectRecommended("image", "image_to_image")),
 
-  /**
-   * Recommended language models (all tasks).
-   */
-  recommendedLanguage: protectedProcedure
-    .query(() => selectRecommended("language")),
-
-  /**
-   * Recommended text-generation models.
-   */
-  recommendedLanguageTextGeneration: protectedProcedure
-    .query(() => selectRecommended("language", "text_generation")),
-
-  /**
-   * Recommended embedding models.
-   */
   recommendedLanguageEmbedding: protectedProcedure
     .query(() => selectRecommended("language", "embedding")),
 
-  /**
-   * Recommended ASR models.
-   */
   recommendedAsr: protectedProcedure
     .query(() => selectRecommended("asr")),
 
-  /**
-   * Recommended TTS models.
-   */
   recommendedTts: protectedProcedure
     .query(() => selectRecommended("tts")),
 
-  /**
-   * Recommended music-generation models.
-   */
-  recommendedMusic: protectedProcedure
-    .query(() => selectRecommended("music")),
-
-  /**
-   * Recommended text-to-video models.
-   */
   recommendedVideoTextToVideo: protectedProcedure
     .query(() => selectRecommended("video", "text_to_video")),
 
-  /**
-   * Recommended image-to-video models.
-   */
   recommendedVideoImageToVideo: protectedProcedure
     .query(() => selectRecommended("video", "image_to_video")),
 
@@ -1211,35 +1127,13 @@ export const modelsRouter = router({
     }),
 
   /**
-   * Transformers.js cached models (everything in the configured cache dir).
-   */
-  transformersJsList: protectedProcedure
-    .output(modelsListOutput)
-    .query(async () => {
-      if (isProduction()) return [];
-      try {
-        const cached = await scanTransformersJsCache(getTransformersJsCacheDir());
-        return cached.map((c) =>
-          tjsRefToUnified(
-            { repo_id: c.repo_id },
-            "tjs.cached",
-            true,
-            c.size_bytes
-          )
-        );
-      } catch {
-        return [];
-      }
-    }),
-
-  /**
    * Transformers.js models for a given `tjs.<task>` type.
    *
    * Merges the curated recommended list with anything already present in the
    * Transformers.js cache directory. Recommended entries always appear,
    * marked `downloaded` based on cache presence; off-list cached repos that
    * happen to be recommended under another type are NOT shown here (they only
-   * show up under their own type or via `transformersJsList`).
+   * show up under their own type).
    */
   transformersJsByType: protectedProcedure
     .input(tjsByTypeInput)
@@ -1319,24 +1213,6 @@ export const modelsRouter = router({
       );
     }),
 
-  /**
-   * Check whether a single Transformers.js repo is present in the cache.
-   */
-  transformersJsIsCached: protectedProcedure
-    .input(z.object({ repo_id: z.string().min(1) }))
-    .output(z.boolean())
-    .query(async ({ input }) => {
-      if (isProduction()) return false;
-      try {
-        return await isRepoCached(getTransformersJsCacheDir(), input.repo_id);
-      } catch {
-        return false;
-      }
-    }),
-
-  /**
-   * Ollama models.
-   */
   ollama: protectedProcedure
     .output(ollamaModelsOutput)
     .query(async ({ ctx }) =>
@@ -1353,9 +1229,6 @@ export const modelsRouter = router({
       )
     ),
 
-  /**
-   * LLM models by provider.
-   */
   llmByProvider: protectedProcedure
     .input(providerInput)
     .output(modelsListOutput)
@@ -1386,8 +1259,58 @@ export const modelsRouter = router({
     ),
 
   /**
-   * Image models by provider.
+   * Aspect ratios / resolutions / (video) durations a given model supports.
+   * Empty arrays are intentional — the client falls back to the full static
+   * lists when a model declares no constraints.
    */
+  mediaOptions: protectedProcedure
+    .input(
+      z.object({
+        provider: z.string().min(1),
+        model: z.string().min(1),
+        task: z.enum(["image", "video"])
+      })
+    )
+    .output(
+      z.object({
+        aspectRatios: z.array(z.string()),
+        resolutions: z.array(z.string()),
+        durations: z.array(z.number()).nullish()
+      })
+    )
+    .query(async ({ ctx, input }) =>
+      safeProviderCall(
+        "mediaOptions",
+        { provider: input.provider, task: input.task, userId: ctx.userId },
+        async () => {
+          const instance = await instantiateProvider(
+            input.provider as ProviderId,
+            ctx.userId
+          );
+          if (!instance) {
+            return { aspectRatios: [], resolutions: [], durations: null };
+          }
+          if (input.task === "image") {
+            const models = await instance.getAvailableImageModels();
+            const m = models.find((x) => x.id === input.model);
+            return {
+              aspectRatios: m?.aspectRatios ?? [],
+              resolutions: m?.resolutions ?? [],
+              durations: null
+            };
+          }
+          const models = await instance.getAvailableVideoModels();
+          const m = models.find((x) => x.id === input.model);
+          return {
+            aspectRatios: m?.aspectRatios ?? [],
+            resolutions: m?.resolutions ?? [],
+            durations: m?.durations ?? null
+          };
+        },
+        { aspectRatios: [], resolutions: [], durations: null }
+      )
+    ),
+
   imageByProvider: protectedProcedure
     .input(providerInput)
     .output(modelsListOutput)
@@ -1408,9 +1331,6 @@ export const modelsRouter = router({
       )
     ),
 
-  /**
-   * All TTS models across all providers.
-   */
   tts: protectedProcedure.query(async ({ ctx }) => {
     const availableIds = await getAvailableProviderIds(ctx.userId);
     const results = await Promise.all(
@@ -1431,9 +1351,6 @@ export const modelsRouter = router({
     return results.flat();
   }),
 
-  /**
-   * TTS models by provider.
-   */
   ttsByProvider: protectedProcedure
     .input(providerInput)
     .output(modelsListOutput)
@@ -1454,9 +1371,6 @@ export const modelsRouter = router({
       )
     ),
 
-  /**
-   * All music-generation models across all providers.
-   */
   music: protectedProcedure.query(async ({ ctx }) => {
     const availableIds = await getAvailableProviderIds(ctx.userId);
     const results = await Promise.all(
@@ -1477,9 +1391,6 @@ export const modelsRouter = router({
     return results.flat();
   }),
 
-  /**
-   * Music-generation models by provider.
-   */
   musicByProvider: protectedProcedure
     .input(providerInput)
     .output(modelsListOutput)
@@ -1500,9 +1411,6 @@ export const modelsRouter = router({
       )
     ),
 
-  /**
-   * All ASR models across all providers.
-   */
   asr: protectedProcedure.query(async ({ ctx }) => {
     const availableIds = await getAvailableProviderIds(ctx.userId);
     const results = await Promise.all(
@@ -1523,9 +1431,6 @@ export const modelsRouter = router({
     return results.flat();
   }),
 
-  /**
-   * ASR models by provider.
-   */
   asrByProvider: protectedProcedure
     .input(providerInput)
     .output(modelsListOutput)
@@ -1546,9 +1451,6 @@ export const modelsRouter = router({
       )
     ),
 
-  /**
-   * All video models across all providers.
-   */
   video: protectedProcedure.query(async ({ ctx }) => {
     const availableIds = await getAvailableProviderIds(ctx.userId);
     const results = await Promise.all(
@@ -1569,9 +1471,6 @@ export const modelsRouter = router({
     return results.flat();
   }),
 
-  /**
-   * Video models by provider.
-   */
   videoByProvider: protectedProcedure
     .input(providerInput)
     .output(modelsListOutput)
@@ -1592,9 +1491,6 @@ export const modelsRouter = router({
       )
     ),
 
-  /**
-   * Embedding models by provider.
-   */
   embeddingByProvider: protectedProcedure
     .input(providerInput)
     .output(modelsListOutput)
@@ -1614,57 +1510,6 @@ export const modelsRouter = router({
         []
       )
     ),
-
-  /**
-   * Ollama model info (stub).
-   */
-  ollamaModelInfo: protectedProcedure.output(z.null()).query(() => null),
-
-  /**
-   * Check whether specific files exist in the HuggingFace cache.
-   */
-  huggingfaceTryCacheFiles: protectedProcedure
-    .input(tryCacheFilesInput)
-    .output(tryCacheFilesOutput)
-    .mutation(async ({ input }) => {
-      return Promise.all(
-        input.map(async (entry) => {
-          const repoId = entry.repo_id ?? "";
-          const repoPath = entry.path ?? "";
-          return {
-            repo_id: repoId,
-            path: repoPath,
-            downloaded:
-              repoId.length > 0 && repoPath.length > 0
-                ? await repoFileInCache(repoId, repoPath)
-                : false
-          };
-        })
-      );
-    }),
-
-  /**
-   * Check whether repos have cached files.
-   */
-  huggingfaceTryCacheRepos: protectedProcedure
-    .input(tryCacheReposInput)
-    .output(tryCacheReposOutput)
-    .mutation(async ({ input }) => {
-      return Promise.all(
-        input.map(async (repoId) => ({
-          repo_id: repoId,
-          downloaded: await hasCachedFiles(repoId)
-        }))
-      );
-    }),
-
-  /**
-   * Detailed check whether specific patterns exist in the HuggingFace cache.
-   */
-  huggingfaceCheckCache: protectedProcedure
-    .input(hfCacheCheckInput)
-    .output(hfCacheCheckOutput)
-    .mutation(async ({ input }) => checkHfCache(input)),
 
   /**
    * Fast batch cache status check for multiple models.
@@ -1721,25 +1566,5 @@ export const modelsRouter = router({
       status: "unavailable",
       message:
         "Streaming Ollama model pulls are not available in the TS standalone server. Use the Ollama API directly or the Python backend."
-    })),
-
-  /**
-   * Get HuggingFace file info (size, sha256, etc.).
-   */
-  huggingfaceFileInfo: protectedProcedure
-    .input(hfFileInfoInput)
-    .output(z.array(z.record(z.string(), z.unknown())))
-    .mutation(async ({ input }) => {
-      if (isProduction()) return [];
-      try {
-        const token = (await getSecret("HF_TOKEN", "1")) ?? undefined;
-        const infos = await getHuggingfaceFileInfos(
-          input.map((i) => ({ repo_id: i.repo_id, path: i.path })),
-          token
-        );
-        return infos as unknown as Record<string, unknown>[];
-      } catch {
-        return [];
-      }
-    })
+    }))
 });

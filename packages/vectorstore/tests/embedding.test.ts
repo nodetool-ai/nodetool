@@ -49,18 +49,18 @@ describe("getProviderEmbeddingFunction", () => {
     expect(ef).toBeInstanceOf(MistralEmbeddingFunction);
   });
 
-  it("returns GeminiEmbeddingFunction for text-embedding-004", () => {
+  it("routes the legacy text-embedding-004 model to Gemini", () => {
     const ef = getProviderEmbeddingFunction("text-embedding-004");
     expect(ef).toBeInstanceOf(GeminiEmbeddingFunction);
   });
 
-  it("returns GeminiEmbeddingFunction for text-embedding-004 variant models", () => {
+  it("routes legacy text-embedding-004 variants to Gemini", () => {
     const ef = getProviderEmbeddingFunction("text-embedding-004-preview");
     expect(ef).toBeInstanceOf(GeminiEmbeddingFunction);
   });
 
   it("returns GeminiEmbeddingFunction for gemini-embedding-* models", () => {
-    const ef = getProviderEmbeddingFunction("gemini-embedding-exp-03-07");
+    const ef = getProviderEmbeddingFunction("gemini-embedding-2");
     expect(ef).toBeInstanceOf(GeminiEmbeddingFunction);
   });
 
@@ -275,6 +275,9 @@ describe("GeminiEmbeddingFunction", () => {
     expect(callCount).toBe(2);
     expect(result).toHaveLength(2);
     expect(result[0]).toEqual([0.1, 0.2, 0.3]);
+    expect(fetchFn.mock.calls[0][0]).toContain(
+      "/models/gemini-embedding-2:embedContent"
+    );
   });
 
   it("throws when API key is not configured", async () => {

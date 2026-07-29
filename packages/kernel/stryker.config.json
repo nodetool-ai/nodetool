@@ -12,9 +12,9 @@
     "related": false
   },
   "thresholds": {
-    "high": 80,
-    "low": 60,
-    "break": 55
+    "high": 95,
+    "low": 88,
+    "break": 85
   },
   "timeoutMS": 60000,
   "concurrency": 4

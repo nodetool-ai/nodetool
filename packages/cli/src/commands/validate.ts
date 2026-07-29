@@ -55,7 +55,7 @@ export function registerValidateCommand(program: Command): void {
         if (opts.json) {
           console.log(JSON.stringify({ target, report }, null, 2));
         } else {
-          printValidation(report);
+          console.log(renderValidation(report).join("\n"));
         }
 
         const failed =
@@ -69,24 +69,63 @@ export function registerValidateCommand(program: Command): void {
     });
 }
 
-function printValidation(report: GraphValidationReport): void {
+/**
+ * One line per issue code, printed as a legend under the issues so the report
+ * explains itself without a trip to the docs.
+ */
+const CODE_LEGEND: Readonly<Record<string, string>> = {
+  unknown_node: "node type is not in the registry",
+  duplicate_id: "two nodes share an id",
+  property: "property is missing, empty, or the wrong shape",
+  dangling_edge: "edge references a node the graph does not contain",
+  unknown_handle: "edge references a handle the node does not have",
+  type_mismatch: "the two ends of an edge carry different types",
+  fan_in: "several edges target one input that takes a single value",
+  untyped_dynamic_slot:
+    "edge targets a dynamic input with no declared type, so the connection is not type-checked — expected on workflows saved before typed slots, one per dynamic edge; informational, never a failure",
+  dynamic_type_mismatch:
+    "inline value of a dynamic input does not match the type the slot declares"
+};
+
+/**
+ * Human-readable report: headline, one line per issue, then a legend for the
+ * codes that occurred. Pure so it can be asserted on directly.
+ */
+export function renderValidation(report: GraphValidationReport): string[] {
   const mark = report.ok ? (report.counts.warnings ? "⚠️" : "✅") : "❌";
-  console.log(`\n${mark} ${validationHeadline(report)}`);
-  if (report.issues.length > 0) {
-    console.log();
-    for (const issue of report.issues) {
-      console.log(`  ${formatIssue(issue)}`);
+  const lines = ["", `${mark} ${validationHeadline(report)}`];
+  if (report.issues.length === 0) return lines;
+
+  lines.push("");
+  for (const issue of report.issues) {
+    lines.push(`  ${formatIssue(issue)}`);
+  }
+
+  const codes = [...new Set(report.issues.map((i) => i.code))]
+    .filter((code) => code in CODE_LEGEND)
+    .sort();
+  if (codes.length > 0) {
+    lines.push("", "  Codes:");
+    for (const code of codes) {
+      lines.push(`    ${code} — ${CODE_LEGEND[code]}`);
     }
   }
+
+  return lines;
 }
 
 function formatIssue(issue: GraphValidationIssue): string {
-  const tag = issue.severity === "error" ? "error" : "warn ";
+  const tag =
+    issue.severity === "error"
+      ? "error"
+      : issue.severity === "info"
+        ? "info "
+        : "warn ";
   const where =
     issue.nodeId != null
       ? ` [${issue.nodeType ?? "node"} ${issue.nodeId}]`
       : issue.edgeId != null
         ? ` [edge ${issue.edgeId}]`
         : "";
-  return `${tag} ${issue.message}${where}`;
+  return `${tag} ${issue.message}${where} (${issue.code})`;
 }

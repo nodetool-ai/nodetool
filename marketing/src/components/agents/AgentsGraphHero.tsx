@@ -93,9 +93,9 @@ export default function AgentsGraphHero() {
                 {/* Header Section */}
                 <div className="mx-auto max-w-3xl text-center mb-24">
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={false}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5 }}
+                        transition={{ duration: 0.25 }}
                     >
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-rose-500/10 border border-rose-500/20 mb-6">
                             <Sparkles className="w-4 h-4 text-rose-300" />
@@ -130,7 +130,7 @@ export default function AgentsGraphHero() {
                         <div className="mt-8 flex items-center justify-center gap-6 text-sm text-slate-400 font-medium">
                             <span className="flex items-center gap-2"><Command className="w-4 h-4" /> Open Source</span>
                             <span className="w-1 h-1 rounded-full bg-slate-700" />
-                            <span>BYOK — pay providers direct</span>
+                            <span>Your own keys, paid straight to the provider</span>
                             <span className="w-1 h-1 rounded-full bg-slate-700" />
                             <span>Watch every step</span>
                         </div>
@@ -345,7 +345,7 @@ function ConnectionLine({ from, to, containerWidth }: { from: NodeData; to: Node
                 strokeWidth="3"
                 strokeLinecap="round"
                 vectorEffect="non-scaling-stroke"
-                initial={{ strokeDasharray: "0 1", pathLength: 0.3, strokeDashoffset: 0, opacity: 0 }}
+                initial={false}
                 animate={{
                     pathLength: [0.1, 0.3, 0.1], // Pulse length
                     strokeDashoffset: [0, -1], // Moves forward along the path
@@ -383,9 +383,9 @@ function Node({ data, index }: { data: NodeData, index: number }) {
 
     return (
         <motion.div
-            initial={{ opacity: 0, scale: 0.8, z: 0 }}
+            initial={false}
             animate={{ opacity: 1, scale: 1, z: 20 }}
-            transition={{ delay: 0.2 + (index * 0.1), duration: 0.5 }}
+            transition={{ delay: 0.05 + (index * 0.05), duration: 0.25 }}
             style={{
                 left: `${data.x}%`,
                 top: `${data.y}%`,

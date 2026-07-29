@@ -18,11 +18,6 @@ export interface DynamicFalSchemaContentProps {
   result?: unknown;
 }
 
-/**
- * Custom content for the FalAI node.
- * Keeps all FAL-specific UI in one place: Load schema, inputs/outputs,
- * and space for future FAL extras (credits, docs link, etc.).
- */
 export const DynamicFalSchemaContent: React.FC<DynamicFalSchemaContentProps> =
   memo(
     ({
@@ -123,7 +118,6 @@ export const DynamicFalSchemaContent: React.FC<DynamicFalSchemaContentProps> =
           {status === "running" && (
             <NodeProgress id={id} workflowId={workflowId} />
           )}
-          {/* FAL-specific footer: credits, model name when loaded */}
           <Box
             sx={{
               flexShrink: 0,

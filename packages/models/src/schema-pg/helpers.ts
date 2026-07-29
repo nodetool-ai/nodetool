@@ -2,8 +2,8 @@ import { customType } from "drizzle-orm/pg-core";
 
 /**
  * Custom Drizzle column type that stores JSON as TEXT in PostgreSQL.
- * Uses TEXT (not JSONB) to match the SQLite schema exactly, making cross-dialect
- * data migration straightforward. Handles serialization/deserialization automatically.
+ * Uses TEXT (not JSONB) to match the SQLite schema exactly, so cross-dialect
+ * data migration is straightforward.
  */
 export const jsonText = <T>() =>
   customType<{ data: T; driverData: string }>({

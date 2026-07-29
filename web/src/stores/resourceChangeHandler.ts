@@ -130,7 +130,6 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
     return;
   }
 
-  // Get the query keys associated with this resource type
   const queryKeys = RESOURCE_TYPE_TO_QUERY_KEYS[resource_type];
 
   if (queryKeys === undefined) {

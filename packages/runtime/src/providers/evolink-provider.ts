@@ -1,6 +1,10 @@
-import OpenAI from "openai";
 import { createLogger } from "@nodetool-ai/config";
-import { OpenAIProvider } from "./openai-provider.js";
+import { safeFetch } from "./safe-url.js";
+import { detectImageMime } from "./image-mime.js";
+import {
+  OpenAICompatProvider,
+  type OpenAICompatProviderOptions
+} from "./openai-compat-provider.js";
 import type {
   ASRModel,
   EmbeddingModel,
@@ -18,18 +22,12 @@ const log = createLogger("nodetool.runtime.providers.evolink");
 
 // Evolink fronts two hosts: a synchronous OpenAI/Anthropic-compatible gateway
 // for text models, and an asynchronous, task-based gateway for media. The
-// chat path keeps using the OpenAI SDK against the gateway; image/video calls
+// chat path speaks Chat Completions against the gateway; image/video calls
 // submit a task and poll for the result on the media host.
 const EVOLINK_CHAT_BASE_URL = "https://direct.evolink.ai/v1";
 const EVOLINK_MEDIA_BASE_URL = "https://api.evolink.ai";
 const EVOLINK_FILE_UPLOAD_URL =
   "https://files-api.evolink.ai/api/v1/files/upload/base64";
-
-interface EvolinkProviderOptions {
-  client?: OpenAI;
-  clientFactory?: (apiKey: string) => OpenAI;
-  fetchFn?: typeof fetch;
-}
 
 interface EvolinkTaskStatus {
   status?: string;
@@ -114,13 +112,13 @@ const EVOLINK_VIDEO_MODELS: VideoModel[] = [
 ].map((m) => ({ ...m, provider: "evolink" as const }));
 
 /**
- * Evolink provider. Uses the OpenAI SDK against Evolink's
+ * Evolink provider. Speaks the OpenAI Chat Completions dialect against Evolink's
  * OpenAI-compatible gateway at https://direct.evolink.ai/v1 for chat (which
  * fronts GPT, Claude, Gemini, DeepSeek and other models behind a single API
  * key), and Evolink's asynchronous task API at https://api.evolink.ai for
  * image and video generation.
  */
-export class EvolinkProvider extends OpenAIProvider {
+export class EvolinkProvider extends OpenAICompatProvider {
   static override requiredSecrets(): string[] {
     return ["EVOLINK_API_KEY"];
   }
@@ -129,7 +127,7 @@ export class EvolinkProvider extends OpenAIProvider {
 
   constructor(
     secrets: { EVOLINK_API_KEY?: string },
-    options: EvolinkProviderOptions = {}
+    options: OpenAICompatProviderOptions = {}
   ) {
     const apiKey = secrets.EVOLINK_API_KEY;
     if (!apiKey) {
@@ -139,19 +137,12 @@ export class EvolinkProvider extends OpenAIProvider {
     const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
 
     super(
-      { OPENAI_API_KEY: apiKey },
       {
         providerId: "evolink",
-        client: options.client,
-        clientFactory:
-          options.clientFactory ??
-          ((key) =>
-            new OpenAI({
-              apiKey: key,
-              baseURL: EVOLINK_CHAT_BASE_URL
-            })),
-        fetchFn
-      }
+        apiKey,
+        baseURL: EVOLINK_CHAT_BASE_URL
+      },
+      { ...options, fetchFn }
     );
 
     this._evolinkFetch = fetchFn;
@@ -354,7 +345,9 @@ export class EvolinkProvider extends OpenAIProvider {
   /** Upload raw image bytes and return a hosted URL Evolink can reference. */
   private async uploadImage(
     image: Uint8Array,
-    mimeType = "image/png"
+    // Sniff the container by default so a JPEG/WebP source isn't mislabeled as
+    // PNG (which a strict file store would reject or store with a wrong type).
+    mimeType = detectImageMime(image)
   ): Promise<string> {
     const base64 = Buffer.from(image).toString("base64");
     const response = await this._evolinkFetch(EVOLINK_FILE_UPLOAD_URL, {
@@ -458,7 +451,9 @@ export class EvolinkProvider extends OpenAIProvider {
   }
 
   private async downloadResult(url: string): Promise<Uint8Array> {
-    const response = await this._evolinkFetch(url);
+    // url is task-result-body-controlled — gate it through safeFetch (SSRF)
+    // while still using the injected fetch impl for testability.
+    const response = await safeFetch(url, undefined, 5, this._evolinkFetch);
     if (!response.ok) {
       throw new Error(`Failed to download Evolink result: ${response.status}`);
     }

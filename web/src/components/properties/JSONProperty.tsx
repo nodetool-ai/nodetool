@@ -4,9 +4,9 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type * as monaco from "monaco-editor";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { useTheme } from "@mui/material/styles";
-import { CopyButton, LoadingSpinner, ToolbarIconButton, SPACING, BORDER_RADIUS, getSpacingPx } from "../ui_primitives";
+import { CopyButton, LoadingSpinner, ToolbarIconButton, SPACING, BORDER_RADIUS, Z_INDEX, getSpacingPx } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import TextEditorModal from "./TextEditorModal";
 import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
@@ -158,7 +158,7 @@ const JSONProperty = (props: PropertyProps) => {
           right: 0,
           top: "-3px",
           opacity: 0.8,
-          zIndex: 10
+          zIndex: Z_INDEX.dropdown
         },
         ".json-action-buttons .MuiIconButton-root": {
           margin: `0 0 0 ${theme.spacing(SPACING.sm)}`,

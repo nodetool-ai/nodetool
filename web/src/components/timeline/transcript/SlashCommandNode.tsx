@@ -16,7 +16,6 @@ import { styled } from "@mui/material/styles";
 import {
   DecoratorNode,
   $getNodeByKey,
-  type LexicalNode,
   type NodeKey,
   type SerializedLexicalNode
 } from "lexical";
@@ -28,7 +27,7 @@ import {
 } from "../../../stores/timeline/TimelineInstance";
 import type { TimelineStoreApi } from "../../../stores/timeline/TimelineStore";
 import type { TimelinePlaybackStoreApi } from "../../../stores/timeline/TimelinePlaybackStore";
-import { FONT_SIZE_SANS, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
+import { FONT_SIZE_SANS, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
 
 // ── Commands ──────────────────────────────────────────────────────────────────
 
@@ -91,7 +90,7 @@ const Host = styled("span")(({ theme }) => ({
     position: "absolute",
     top: "calc(100% + 4px)",
     left: 0,
-    zIndex: 20,
+    zIndex: Z_INDEX.sticky,
     margin: 0,
     padding: getSpacingPx(SPACING.xs),
     listStyle: "none",
@@ -104,7 +103,7 @@ const Host = styled("span")(({ theme }) => ({
   "& .slash-item": {
     display: "flex",
     flexDirection: "column",
-    gap: getSpacingPx(SPACING.micro), // was 1px
+    gap: getSpacingPx(SPACING.micro),
     padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`,
     borderRadius: BORDER_RADIUS.md,
     cursor: "pointer"
@@ -274,7 +273,3 @@ export class SlashCommandNode extends DecoratorNode<React.ReactElement> {
 
 export const $createSlashCommandNode = (): SlashCommandNode =>
   new SlashCommandNode();
-
-export const $isSlashCommandNode = (
-  node: LexicalNode | null | undefined
-): node is SlashCommandNode => node instanceof SlashCommandNode;

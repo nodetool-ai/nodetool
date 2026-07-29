@@ -181,9 +181,6 @@ describe('GraphEditorStore', () => {
 
       useGraphEditorStore.getState().toggleExpanded(id);
       expect(useGraphEditorStore.getState().chain[0].expanded).toBe(true);
-
-      useGraphEditorStore.getState().collapseAll();
-      expect(useGraphEditorStore.getState().chain[0].expanded).toBe(false);
     });
   });
 
@@ -213,9 +210,5 @@ describe('GraphEditorStore', () => {
       expect(state.workflowName).toBe('Fresh');
     });
 
-    it('setWorkflowName updates the name', () => {
-      useGraphEditorStore.getState().setWorkflowName('Renamed');
-      expect(useGraphEditorStore.getState().workflowName).toBe('Renamed');
-    });
   });
 });

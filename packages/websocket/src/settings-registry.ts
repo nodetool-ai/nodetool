@@ -6,8 +6,6 @@
 
 import { Setting } from "@nodetool-ai/models";
 
-// ── Types ──────────────────────────────────────────────────────────
-
 export interface SettingWithValue {
   package_name: string;
   env_var: string;
@@ -26,8 +24,6 @@ export interface SettingDefinition {
   enum?: string[];
   isSecret?: boolean;
 }
-
-// ── Registry ───────────────────────────────────────────────────────
 
 const registry: SettingDefinition[] = [];
 
@@ -162,6 +158,17 @@ s(
   "Context window size (in tokens) for llama.cpp models. Defaults to 128000."
 );
 s(
+  "NODE_LLAMA_CPP_MODELS_DIR",
+  "NodeLlamaCpp",
+  "Directory containing local GGUF model files for in-process llama.cpp inference. Defaults to the platform llama.cpp cache directory."
+);
+s(
+  "NODE_LLAMA_CPP_GPU_BACKEND",
+  "NodeLlamaCpp",
+  "GPU backend for in-process llama.cpp inference. 'auto' lets node-llama-cpp detect the best backend.",
+  ["auto", "metal", "cuda", "vulkan", "cpu"]
+);
+s(
   "LMSTUDIO_API_URL",
   "LMStudio",
   "Base URL for the LM Studio OpenAI-compatible server (e.g., http://localhost:1234)"
@@ -281,7 +288,7 @@ sec(
 sec(
   "KIMI_API_KEY",
   "Kimi",
-  "Kimi (Moonshot) API key for accessing Kimi models via the Claude-compatible endpoint. Get yours at https://platform.moonshot.cn/console/api-keys"
+  "Kimi (Moonshot) API key for accessing Kimi models via the OpenAI-compatible endpoint. Get yours at https://platform.moonshot.ai/console/api-keys"
 );
 sec(
   "MINIMAX_API_KEY",
@@ -394,7 +401,7 @@ sec(
 sec(
   "ATLASCLOUD_API_KEY",
   "AtlasCloud",
-  "AtlasCloud.ai API key for hosted image (GPT Image 2, Nano Banana) and video (Seedance 2.0) models. Get yours at https://www.atlascloud.ai/"
+  "AtlasCloud.ai API key for chat models (DeepSeek, Qwen, GPT, Claude, Gemini) plus hosted image (GPT Image, Nano Banana, Seedream) and video (Seedance, Veo, Kling, Wan) generation. Get yours at https://www.atlascloud.ai/"
 );
 sec("MESHY_API_KEY", "Meshy", "Meshy AI API key for 3D model generation. Get yours at https://app.meshy.ai/settings/api-keys");
 sec("RODIN_API_KEY", "Rodin", "Rodin AI API key for 3D model generation. Get yours at https://hyperhuman.deemos.com/");

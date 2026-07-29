@@ -11,8 +11,8 @@ namespace: "nodetool.agents"
 
 ## Description
 
-Download videos from YouTube/Bilibili/Twitter and other sites via yt-dlp.
-    skills, media, yt-dlp, downloader, youtube, bilibili, twitter
+Download videos from YouTube, Bilibili, Twitter, and other sites.
+    agent, media, yt-dlp, downloader, youtube, video
 
 ## Properties
 

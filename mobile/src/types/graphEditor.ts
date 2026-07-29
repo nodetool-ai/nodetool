@@ -9,11 +9,9 @@
 import type {
   Node,
   Edge,
-  Workflow,
   WorkflowGraph,
   NodeMetadata,
   Property,
-  OutputSlot,
   PropertyTypeMetadata,
 } from "./ApiTypes";
 

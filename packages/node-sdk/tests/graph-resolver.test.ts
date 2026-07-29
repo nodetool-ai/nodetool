@@ -61,7 +61,12 @@ describe("createGraphNodeTypeResolver", () => {
       supportsDynamicInputs: false,
       descriptorDefaults: {
         name: "Strict Node",
+        // Behavior flags are always explicit booleans so a stale saved `true`
+        // is corrected by the registry (Graph.loadFromDict uses `??`).
+        is_streaming_input: false,
         is_streaming_output: true,
+        is_controlled: false,
+        is_join_node: false,
         input_mode: "buffered",
         output_correlation: {
           output: { kind: "single", source: "__execution__" }
@@ -125,7 +130,10 @@ describe("createGraphNodeTypeResolver", () => {
     const resolved = await resolver.resolveNodeType("test.zip.Node");
     expect(resolved?.descriptorDefaults).toEqual({
       name: "Zip Node",
+      is_streaming_input: false,
       is_streaming_output: true,
+      is_controlled: false,
+      is_join_node: false,
       input_mode: "buffered",
       output_correlation: {
         output: { kind: "single", source: "__execution__" }

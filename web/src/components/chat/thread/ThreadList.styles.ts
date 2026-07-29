@@ -1,7 +1,7 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { scrollbarStyles, MOTION } from "../../ui_primitives/tokens";
-import { SPACING, getSpacingPx } from "../../ui_primitives/spacing";
+import { scrollbarStyles, MOTION, BORDER_RADIUS } from "../../ui_primitives";
+import { SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
 
 export const createStyles = (theme: Theme) =>
   css({
@@ -28,7 +28,7 @@ export const createStyles = (theme: Theme) =>
       gap: theme.spacing(1),
       padding: "0.4em 0.75em 0.3em",
       marginTop: "1em",
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.grey[400],
       textTransform: "uppercase",
       letterSpacing: "0.08em",
@@ -50,7 +50,7 @@ export const createStyles = (theme: Theme) =>
       width: "100%",
       cursor: "pointer",
       transition: `${MOTION.background}, opacity ${MOTION.normal}, transform ${MOTION.normal}, max-height ${MOTION.normal}`,
-      borderRadius: 5,
+      borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
       outline: "none",
       backgroundColor: "transparent",
@@ -101,7 +101,7 @@ export const createStyles = (theme: Theme) =>
 
     ".thread-time": {
       flexShrink: 0,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       lineHeight: 1.2,
       color: theme.vars.palette.grey[500],
       whiteSpace: "nowrap",
@@ -116,7 +116,7 @@ export const createStyles = (theme: Theme) =>
       right: "0.35em",
       top: "50%",
       transform: "translateY(-50%)",
-      zIndex: 1
+      zIndex: Z_INDEX.raised
     },
 
     ".delete-button": {
@@ -133,5 +133,13 @@ export const createStyles = (theme: Theme) =>
       },
 
       svg: { fontSize: "1.2em" }
+    },
+
+    // Without hover the delete button never appears, yet it still sits on top
+    // of the timestamp and swallows taps near the right edge of a row. Show it
+    // and drop the timestamp, matching what hovering does on a mouse.
+    "@media (hover: none)": {
+      ".delete-button": { opacity: 1 },
+      ".thread-time": { opacity: 0 }
     }
   });

@@ -20,9 +20,7 @@ function makeAbsoluteUrl(url: string): string {
   return `${window.location.origin}${url.startsWith("/") ? "" : "/"}${url}`;
 }
 
-/**
- * Determines the appropriate clipboard operation based on asset content type
- */
+/** The clipboard operation appropriate for an asset content type. */
 export function getClipboardType(
   contentType: string
 ): "image" | "text" | "html" | "unsupported" {
@@ -107,15 +105,12 @@ async function copyImageToClipboard(url: string): Promise<void> {
   try {
     let dataUrl = url;
 
-    // Only fetch if it's not already a data URL
     if (!url.startsWith("data:")) {
-      // Make URL absolute for fetch to work
       const absoluteUrl = makeAbsoluteUrl(url);
-      // Fetch the image as a blob to avoid CORS issues
+      // Fetch as a blob to avoid CORS issues.
       const response = await fetch(absoluteUrl);
       const blob = await response.blob();
 
-      // Convert blob to data URL
       dataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result as string);
@@ -147,9 +142,6 @@ async function copyImageToClipboard(url: string): Promise<void> {
   }
 }
 
-/**
- * Copies HTML content to clipboard
- */
 async function copyHtmlToClipboard(
   url: string,
   _assetName?: string
@@ -213,17 +205,11 @@ async function copyTextToClipboard(
   }
 }
 
-/**
- * Helper to check if clipboard operations are supported for a given content type
- */
 export function isClipboardSupported(contentType: string): boolean {
   const type = getClipboardType(contentType);
   return type !== "unsupported";
 }
 
-/**
- * Gets a user-friendly message about clipboard support for a content type
- */
 export function getClipboardSupportMessage(contentType: string): string {
   const type = getClipboardType(contentType);
 

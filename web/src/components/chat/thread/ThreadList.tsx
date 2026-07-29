@@ -25,12 +25,12 @@ const ThreadList: React.FC<ThreadListProps> = ({
   currentThreadId,
   onSelectThread,
   onDeleteThread,
-  getThreadPreview
+  getThreadPreview,
+  isFiltered = false
 }) => {
   const theme = useTheme<Theme>();
   const componentStyles = createStyles(theme);
 
-  // Memoize list elements to avoid rebuilding on every render
   const listElements = useMemo(() => {
     const elements: React.ReactNode[] = [];
 
@@ -95,7 +95,7 @@ const ThreadList: React.FC<ThreadListProps> = ({
     <div className="thread-list-container" css={componentStyles}>
       <ul className="thread-list">
         {!threads || Object.keys(threads).length === 0 || listElements.length === 0 ? (
-          <EmptyThreadList />
+          <EmptyThreadList isFiltered={isFiltered} />
         ) : (
           listElements
         )}

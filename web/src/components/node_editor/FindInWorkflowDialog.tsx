@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useEffect, useRef, useCallback } from "react";
+import { memo, useEffect, useMemo, useRef, useCallback } from "react";
 
 import {
   Text,
@@ -20,7 +20,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ClearIcon from "@mui/icons-material/Clear";
-import { CloseButton } from "../ui_primitives/CloseButton";
+import { CloseButton } from "../ui_primitives";
 import { useFindInWorkflow } from "../../hooks/useFindInWorkflow";
 
 const styles = (theme: Theme) =>
@@ -31,7 +31,7 @@ const styles = (theme: Theme) =>
       right: "20px",
       width: "300px",
       maxHeight: "400px",
-      zIndex: 20000,
+      zIndex: theme.zIndex.floatingPanel,
       display: "flex",
       flexDirection: "column",
       backgroundColor: theme.vars.palette.background.paper,
@@ -197,6 +197,7 @@ interface FindInWorkflowDialogProps {
 const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
   ({ workflowId: _workflowId }: FindInWorkflowDialogProps) => {
     const theme = useTheme();
+    const cssStyles = useMemo(() => styles(theme), [theme]);
     const inputRef = useRef<HTMLInputElement>(null);
     const listRef = useRef<HTMLUListElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -268,9 +269,10 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
 
         if (event.key === "Enter") {
           event.preventDefault();
-          if (results.length > 0) {
-            goToSelected();
-            closeFind();
+          if (event.shiftKey) {
+            navigatePrevious();
+          } else {
+            navigateNext();
           }
           return;
         }
@@ -287,7 +289,7 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
           return;
         }
 
-        if (event.key === "F" && (event.ctrlKey || event.metaKey)) {
+        if (event.key.toLowerCase() === "f" && (event.ctrlKey || event.metaKey)) {
           event.preventDefault();
           return;
         }
@@ -342,7 +344,7 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
       <Box
         ref={containerRef}
         className="find-dialog-container"
-        css={styles(theme)}
+        css={cssStyles}
       >
         <Box className="find-header">
           <Box className="search-icon-wrapper">
@@ -359,7 +361,12 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
               onChange={handleInputChange}
             />
             {searchTerm && (
-              <button type="button" className="clear-button" onClick={handleClear}>
+              <button
+                type="button"
+                className="clear-button"
+                aria-label="Clear search"
+                onClick={handleClear}
+              >
                 <ClearIcon fontSize="small" />
               </button>
             )}
@@ -371,6 +378,7 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
               onClick={navigatePrevious}
               disabled={results.length === 0}
               title="Previous (Shift+Enter)"
+              aria-label="Previous match"
             >
               <ArrowUpwardIcon fontSize="small" />
             </button>
@@ -380,6 +388,7 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
               onClick={navigateNext}
               disabled={results.length === 0}
               title="Next (Enter)"
+              aria-label="Next match"
             >
               <ArrowDownwardIcon fontSize="small" />
             </button>

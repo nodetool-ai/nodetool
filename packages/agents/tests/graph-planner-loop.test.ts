@@ -5,7 +5,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { GraphPlanner } from "../src/graph-planner.js";
-import { AGENT_STEP_NODE_TYPE } from "../src/graph-builder.js";
+import { AGENT_NODE_TYPE } from "../src/graph-builder.js";
 import type {
   BaseProvider,
   ProcessingContext,
@@ -16,9 +16,9 @@ import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { GraphData, ProcessingMessage } from "@nodetool-ai/protocol";
 import { createMockContext } from "./_helpers/mock-context.js";
 
-// AgentStep nodes skip registry validation, so a stub registry is enough.
+// The planner only needs `has`/`getMetadata`, so a stub registry is enough.
 const stubRegistry = {
-  has: () => false,
+  has: (type: string) => type === AGENT_NODE_TYPE,
   getMetadata: () => undefined,
   listMetadata: () => []
 } as unknown as NodeRegistry;
@@ -83,15 +83,13 @@ describe("GraphPlanner — provider-driven tool loop", () => {
   it("builds a graph when the provider runs its own tool loop (agent SDK)", async () => {
     const provider = createSdkLoopProvider([
       {
-        id: "tc_add",
-        name: "add_node",
+        id: "tc_submit",
+        name: "submit_graph",
         args: {
-          id: "step1",
-          type: AGENT_STEP_NODE_TYPE,
-          properties: { instructions: "Summarize the input" }
+          code: `node("${AGENT_NODE_TYPE}", { prompt: "Summarize the input" }, "step1");
+return graph();`
         }
-      },
-      { id: "tc_finish", name: "finish_graph", args: { title: "G" } }
+      }
     ]);
 
     const planner = new GraphPlanner({
@@ -106,6 +104,7 @@ describe("GraphPlanner — provider-driven tool loop", () => {
 
     expect(graph).not.toBeNull();
     expect(graph!.nodes).toHaveLength(1);
-    expect(graph!.nodes[0].type).toBe(AGENT_STEP_NODE_TYPE);
+    expect(graph!.nodes[0].id).toBe("step1");
+    expect(graph!.nodes[0].type).toBe(AGENT_NODE_TYPE);
   });
 });

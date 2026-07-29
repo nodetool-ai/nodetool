@@ -1,8 +1,9 @@
 /**
- * Universal Code Node — sandboxed JavaScript execution via vm module.
+ * Universal Code Node — sandboxed JavaScript execution via QuickJS WASM.
  *
- * Runs user code in an isolated vm context with standard JavaScript plus
- * fetch(), workspace, getSecret(), uuid(), and sleep() APIs.
+ * Runs user code in an isolated QuickJS WebAssembly guest (see
+ * `@nodetool-ai/agents/js-sandbox`) with standard JavaScript plus fetch(),
+ * workspace, getSecret(), uuid(), and sleep() APIs.
  * Dynamic inputs are injected as global variables in the sandbox.
  *
  * Example:

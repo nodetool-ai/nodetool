@@ -20,6 +20,7 @@ import type {
   ProviderStreamItem
 } from "@nodetool-ai/runtime";
 import { memoryKeys, withAgentSpanGen } from "@nodetool-ai/runtime";
+import { linkAbort } from "./utils/link-abort.js";
 import { createLogger } from "@nodetool-ai/config";
 import {
   TaskUpdateEvent,
@@ -38,7 +39,7 @@ import {
 import { ControlNodeTool } from "./tools/control-tool.js";
 import { FinishStepTool } from "./tools/finish-step-tool.js";
 import { getMemoryTools } from "./tools/memory-tools.js";
-import { MAX_TOOL_RESULT_CHARS } from "./constants.js";
+import { truncateToolResult } from "./constants.js";
 
 const log = createLogger("nodetool.agents.step-executor");
 
@@ -247,12 +248,14 @@ function validateAndSanitizeSchema(
 
 function removeThinkTags(text: string | null | undefined): string {
   if (!text) return "";
+  // Only strip well-formed PAIRED reasoning blocks (each opener with its own
+  // matching close, non-greedy). The previous open-ended `/<think>[\s\S]*/`
+  // deleted everything after the first literal "<think>", silently truncating
+  // legit answers that merely mention the substring; and it hardcoded <think>
+  // as the opener, so <redacted_thinking> blocks leaked through.
   return text
-    .replace(
-      /<think>[\s\S]*?<\/(?:redacted_thinking|think)>/g,
-      ""
-    )
-    .replace(/<think>[\s\S]*/g, "")
+    .replace(/<think>[\s\S]*?<\/think>/g, "")
+    .replace(/<redacted_thinking>[\s\S]*?<\/redacted_thinking>/g, "")
     .trim();
 }
 
@@ -312,6 +315,12 @@ export interface StepExecutorOptions {
   tools?: Tool[];
   systemPrompt?: string;
   maxIterations?: number;
+  /**
+   * Cap on output tokens per provider turn. Forwarded to `generateLoop`;
+   * undefined lets the provider use its own default. Plan-mode Agent nodes
+   * thread the node's `max_tokens` here for parity with loop mode.
+   */
+  maxTokens?: number;
   useFinishTask?: boolean;
   threadId?: string;
   /**
@@ -323,6 +332,8 @@ export interface StepExecutorOptions {
    * `step:<id>` keys — callers should not duplicate them here.
    */
   upstreamMemoryKeys?: string[];
+  /** External cancellation. Aborts the provider loop mid-flight. */
+  signal?: AbortSignal;
 }
 
 export class StepExecutor {
@@ -335,7 +346,9 @@ export class StepExecutor {
   private context: ProcessingContext;
   private systemPrompt: string;
   private maxIterations: number;
+  private maxTokens?: number;
   private useFinishTask: boolean;
+  private signal?: AbortSignal;
   private result: unknown = null;
   private finishStepTool: FinishStepTool | null = null;
   private resultSchema: Record<string, unknown> | null = null;
@@ -358,11 +371,12 @@ export class StepExecutor {
     this.model = opts.model;
     this.tools = opts.tools ? [...opts.tools] : [];
     this.maxIterations = opts.maxIterations ?? DEFAULT_MAX_ITERATIONS;
+    this.maxTokens = opts.maxTokens;
     this.useFinishTask = opts.useFinishTask ?? false;
     this.threadId = opts.threadId;
     this.upstreamMemoryKeys = opts.upstreamMemoryKeys ?? [];
+    this.signal = opts.signal;
 
-    // Load and sanitize the output schema
     this.resultSchema = this.loadResultSchema();
 
     // Auto-attach memory tools so the step can list / read / write
@@ -374,13 +388,11 @@ export class StepExecutor {
       }
     }
 
-    // Setup finish_step tool if we have a schema
     if (this.resultSchema) {
       this.finishStepTool = new FinishStepTool(this.resultSchema);
       this.tools.push(this.finishStepTool);
     }
 
-    // Build the system prompt from templates
     this.systemPrompt = this.buildSystemPrompt(opts.systemPrompt);
   }
 
@@ -460,7 +472,10 @@ export class StepExecutor {
       if (Array.isArray(requiredKeys)) {
         const obj = normalized as Record<string, unknown>;
         for (const key of requiredKeys) {
-          if (!((key as string) in obj)) {
+          // `requiredKeys` is LLM/planner-authored; use Object.hasOwn so a
+          // required key like "toString"/"constructor" can't be satisfied by
+          // the prototype chain when the model never produced it.
+          if (!Object.hasOwn(obj, key as string)) {
             return [false, `Missing required key: ${key}`, normalized];
           }
         }
@@ -474,7 +489,9 @@ export class StepExecutor {
     }
     if (
       expectedType === "object" &&
-      (typeof normalized !== "object" || normalized === null)
+      (typeof normalized !== "object" ||
+        normalized === null ||
+        Array.isArray(normalized))
     ) {
       return [false, `Expected object, got ${typeof normalized}`, normalized];
     }
@@ -575,13 +592,7 @@ export class StepExecutor {
     try {
       const normalized = normalizeToolResult(toolResult);
       const serialized = JSON.stringify(normalized);
-      if (serialized.length > MAX_TOOL_RESULT_CHARS) {
-        return (
-          serialized.slice(0, MAX_TOOL_RESULT_CHARS) +
-          "... [truncated to maintain context size]"
-        );
-      }
-      return serialized;
+      return truncateToolResult(serialized);
     } catch (e) {
       return JSON.stringify({
         error: `Failed to serialize tool result: ${e}`,
@@ -814,7 +825,6 @@ export class StepExecutor {
     return parts.join("\n");
   }
 
-
   /**
    * Execute the step, yielding ProcessingMessages as progress updates.
    */
@@ -841,14 +851,11 @@ export class StepExecutor {
       instructions: this.step.instructions.slice(0, 60)
     });
 
-    // Initialize history with system prompt
     this.history.push({ role: "system" as const, content: this.systemPrompt });
 
-    // Build user message with instructions and dependency results
     const userContent = this.buildUserMessage();
     this.history.push({ role: "user" as const, content: userContent });
 
-    // Yield task update: step started
     this.step.startTime = Date.now();
 
     yield {
@@ -871,8 +878,14 @@ export class StepExecutor {
     // `terminal` flag can't express that, so the AbortController stops the loop
     // on a valid completion instead.
     const abort = new AbortController();
+    // External cancellation (user pressed Stop) fires the same controller.
+    const unlinkAbort = linkAbort(abort, this.signal);
     const uiEvents: ProcessingMessage[] = [];
     let lastAssistant: Message | null = null;
+    // Captures a real exception thrown by the provider loop (401, rate limit,
+    // network, tool-schema error) so the failure path reports the actual cause
+    // instead of misattributing it to iteration exhaustion.
+    let generationError: Error | null = null;
 
     const emitCompletion = (normalizedResult: unknown): void => {
       this.storeCompletionResult(normalizedResult);
@@ -895,7 +908,27 @@ export class StepExecutor {
     const finishStepExecute = async (
       args: Record<string, unknown>
     ): Promise<string | MessageContent[]> => {
-      const resultPayload = args?.["result"] ?? args;
+      const rawResult = args?.["result"];
+      // Fall back to the whole args object when `result` is absent, but strip
+      // the injected `_message` protocol field so it can't leak into the result.
+      let resultPayload: unknown =
+        rawResult !== undefined && rawResult !== null
+          ? rawResult
+          : Tool.stripMessage(args ?? {});
+      // Array-output steps are wrapped as `{ result: { items: <array> } }` for
+      // the tool parameter schema (OpenAI requires an object top-level). Unwrap
+      // `{ items: [...] }` back to the array before validating against the
+      // original array schema. Gate on the declared schema type so a legitimate
+      // object result with an `items` key is not misinterpreted.
+      if (
+        this.resultSchema?.["type"] === "array" &&
+        resultPayload !== null &&
+        typeof resultPayload === "object" &&
+        !Array.isArray(resultPayload) &&
+        Array.isArray((resultPayload as Record<string, unknown>)["items"])
+      ) {
+        resultPayload = (resultPayload as Record<string, unknown>)["items"];
+      }
       if (resultPayload === undefined || resultPayload === null) {
         return '{"error": "Missing result in finish_step call"}';
       }
@@ -996,6 +1029,7 @@ export class StepExecutor {
         tools: providerTools.length > 0 ? providerTools : undefined,
         threadId: this.threadId,
         maxIterations: this.maxIterations,
+        maxTokens: this.maxTokens,
         sequentialTools: true,
         signal: abort.signal
       });
@@ -1037,10 +1071,13 @@ export class StepExecutor {
         yield* drainUi();
       }
     } catch (e) {
+      generationError = e instanceof Error ? e : new Error(String(e));
       log.error("Step generation failed", {
         stepId: this.step.id,
-        error: String(e)
+        error: generationError.message
       });
+    } finally {
+      unlinkAbort();
     }
 
     yield* drainUi();
@@ -1055,14 +1092,18 @@ export class StepExecutor {
       }
     }
 
-    // If we exhausted iterations without completing, yield a failure event
-    // and a step_result so downstream steps see an explicit error rather than undefined.
+    // If we didn't complete, yield a failure event and a step_result so
+    // downstream steps see an explicit error rather than undefined. When the
+    // provider loop threw, report the real cause; otherwise the step genuinely
+    // ran out of iterations (or an unstructured step produced no final text).
     if (!this.step.completed) {
       this.step.completed = true;
       this.step.endTime = Date.now();
 
       const errorResult = {
-        error: `Step failed: exceeded ${this.maxIterations} iterations without completion`
+        error: generationError
+          ? `Step failed: ${generationError.message}`
+          : `Step failed: exceeded ${this.maxIterations} iterations without completion`
       };
       this.result = errorResult;
       this.context.memory.set({

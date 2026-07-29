@@ -1,0 +1,789 @@
+{
+  "slug": "concept-studio",
+  "name": "Concept Studio",
+  "emoji": "🖌️",
+  "description": "The creative iteration loop: fan a brief into concept art, mix animals into creatures, then run the picked image through a keyless filter chain.",
+  "tagline": "Generate a gallery, pick one, polish it.",
+  "note": "🎨 Generating needs OpenAI and FAL keys. Polishing is GPU-only and runs with no keys.",
+  "featured": true,
+  "image": "/app-preview/img/concept-studio.jpg",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {
+          "title": "Concept Studio"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "🖌️ Concept Studio",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "Generate a gallery, pick one, polish it."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "🎨 Generating needs OpenAI and FAL keys. Polishing is GPU-only and runs with no keys."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-concept-art",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-concept-art",
+                  "title": "Concept art",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-concepts-creative-brief",
+                        "binding": "op:concepts/in:10",
+                        "label": "Creative brief",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "in-concepts-art-style",
+                        "binding": "op:concepts/in:11",
+                        "label": "Art style",
+                        "options": [
+                          {
+                            "value": "Painterly digital concept art, dramatic cinematic lighting, rich saturated color, visible brushwork, AAA game key art"
+                          },
+                          {
+                            "value": "Ink and wash, monochrome, loose gestural linework"
+                          },
+                          {
+                            "value": "Photobash realism, moody atmospheric haze, volumetric light"
+                          },
+                          {
+                            "value": "Flat vector, bold shapes, limited palette"
+                          },
+                          {
+                            "value": "Anime background art, soft gradients, golden-hour light"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-concepts-mood-keywords",
+                        "binding": "op:concepts/in:12",
+                        "label": "Mood keywords",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-concepts-variations",
+                        "binding": "op:concepts/in:num_variations",
+                        "label": "How many variations?",
+                        "min": 1,
+                        "max": 8,
+                        "step": 1,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-concepts",
+                        "label": "Generate concept art",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "concepts",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-concept-art-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-concepts",
+                        "binding": "op:concepts/exec#progress",
+                        "label": "Rendering variations…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-concepts-concept-art",
+                        "text": "Concept art",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-concepts-concept-art",
+                        "binding": "op:concepts/out:concept_art_output",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-creatures",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-creatures",
+                  "title": "Creatures",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-creatures-animals",
+                        "binding": "op:creatures/in:2f773f4f-c863-4215-bb89-e8cc09e95472",
+                        "label": "Mix these animals",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "in-creatures-style",
+                        "binding": "op:creatures/in:input-style",
+                        "label": "Style",
+                        "options": [
+                          {
+                            "value": "Classic anime cel-shaded"
+                          },
+                          {
+                            "value": "Glossy 3D render"
+                          },
+                          {
+                            "value": "Painterly watercolor"
+                          },
+                          {
+                            "value": "Retro 16-bit pixel art"
+                          },
+                          {
+                            "value": "Holographic foil trading card"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-creatures",
+                        "label": "Create my creatures",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "creatures",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-creatures-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-creatures",
+                        "binding": "op:creatures/exec#progress",
+                        "label": "Designing your creatures…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-creatures-pokemon",
+                        "text": "Your creatures",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-creatures-pokemon",
+                        "binding": "op:creatures/out:output-pokemon",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-polish-the-pick",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-polish-the-pick",
+                  "title": "Polish the pick",
+                  "content": [
+                    {
+                      "type": "ImageInput",
+                      "props": {
+                        "id": "in-picked",
+                        "binding": "var:picked",
+                        "label": "The image you picked",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-polish-denoise-node-radius",
+                        "binding": "op:polish/prop:denoise-node#radius",
+                        "label": "Denoise",
+                        "min": 0,
+                        "max": 16,
+                        "step": 0.5,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "operationId": "polish",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-polish-tone-node-brightness",
+                        "binding": "op:polish/prop:tone-node#brightness",
+                        "label": "Brightness",
+                        "min": -1,
+                        "max": 1,
+                        "step": 0.05,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "operationId": "polish",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-polish-tone-node-contrast",
+                        "binding": "op:polish/prop:tone-node#contrast",
+                        "label": "Contrast",
+                        "min": 0,
+                        "max": 4,
+                        "step": 0.05,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "operationId": "polish",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-polish-color-node-saturation",
+                        "binding": "op:polish/prop:color-node#saturation",
+                        "label": "Saturation",
+                        "min": 0,
+                        "max": 4,
+                        "step": 0.05,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "operationId": "polish",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-polish-sharpen-node-amount",
+                        "binding": "op:polish/prop:sharpen-node#amount",
+                        "label": "Sharpen",
+                        "min": 0,
+                        "max": 4,
+                        "step": 0.05,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "operationId": "polish",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-polish",
+                        "label": "Polish it",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "polish",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-polish-the-pick-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-polish",
+                        "binding": "op:polish/exec#progress",
+                        "label": "Polishing…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-polish-enhanced-image",
+                        "text": "Polished",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-polish-enhanced-image",
+                        "binding": "op:polish/out:output-enhanced-image",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "concepts",
+        "name": "Concepts",
+        "workflowId": "concepts",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      },
+      {
+        "id": "creatures",
+        "name": "Creatures",
+        "workflowId": "creatures",
+        "inputs": {},
+        "outputs": {},
+        "policy": "replace"
+      },
+      {
+        "id": "polish",
+        "name": "Polish",
+        "workflowId": "enhance",
+        "inputs": {
+          "0c458df1-e2b2-4662-a9aa-00f2ceaae799": {
+            "from": "variable",
+            "variableId": "picked"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "picked",
+        "name": "Picked image",
+        "type": {
+          "type": "image",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "concepts",
+      "name": "Concept Art Iteration Board",
+      "graph": {
+        "nodes": [
+          {
+            "id": "10",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "creative_brief",
+              "value": "An ancient forest guardian: a towering tree-spirit, bark-skinned and moss-cloaked, watching over an enchanted grove. Fantasy RPG character concept.",
+              "description": "The subject to explore, in a sentence or two."
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 50,
+                "y": 50
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "1️⃣ Brief",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "11",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "art_style",
+              "value": "Painterly digital concept art, dramatic cinematic lighting, rich saturated color, visible brushwork, AAA game key art",
+              "description": "Art style and medium applied to every variation."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 50,
+                "y": 330
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "2️⃣ Style",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "12",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "mood_keywords",
+              "value": "mysterious, ancient, powerful, serene, sacred",
+              "description": "Comma-separated mood and atmosphere words."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 50,
+                "y": 610
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "3️⃣ Mood",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "concept_art_output",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "Concept Art"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 2440,
+                "y": 95
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "Concept Art",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "num_variations",
+            "type": "nodetool.input.IntegerInput",
+            "data": {
+              "name": "variations",
+              "value": 4,
+              "description": "How many concept-art variations to generate in one run.",
+              "min": 2,
+              "max": 8
+            },
+            "ui_properties": {
+              "position": {
+                "x": 50,
+                "y": 830
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "4️⃣ Variations",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "creatures",
+      "name": "Pokemon Maker",
+      "graph": {
+        "nodes": [
+          {
+            "id": "2f773f4f-c863-4215-bb89-e8cc09e95472",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "animals",
+              "description": "Which real animals should the creatures be built from? List two or three, comma-separated — mixing distant species gives the most striking hybrids.",
+              "value": "lion, eagle, koi fish"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 291,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 220,
+              "title": "1️⃣ Animal inspiration",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "input-style",
+            "type": "nodetool.input.SelectInput",
+            "data": {
+              "name": "style",
+              "description": "The art style every creature in the batch is rendered in.",
+              "value": "Classic anime cel-shaded",
+              "options": [
+                "Classic anime cel-shaded",
+                "Glossy 3D render",
+                "Painterly watercolor",
+                "Retro 16-bit pixel art",
+                "Holographic foil trading card"
+              ],
+              "enum_type_name": ""
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 291,
+                "y": 300
+              },
+              "zIndex": 0,
+              "width": 220,
+              "title": "1️⃣ Art style",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-pokemon",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "pokemon"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1783,
+                "y": 149
+              },
+              "selectable": true,
+              "title": "Creature gallery"
+            }
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "enhance",
+      "name": "Image Enhance",
+      "graph": {
+        "nodes": [
+          {
+            "id": "0c458df1-e2b2-4662-a9aa-00f2ceaae799",
+            "type": "nodetool.input.ImageInput",
+            "data": {
+              "value": {
+                "type": "image",
+                "asset_id": "31cadd9e065711f1818000006beef284",
+                "uri": "/api/storage/31cadd9e065711f1818000006beef284.png"
+              },
+              "name": "image",
+              "description": "The photo to enhance. Ships with a demo image so Run works immediately — drop in your own JPEG or PNG to edit it."
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 1,
+                "y": 71
+              },
+              "zIndex": 0,
+              "width": 260,
+              "selectable": true,
+              "bypassed": false,
+              "title": "1️⃣ Source photo"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-enhanced-image",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "enhanced_image"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1420,
+                "y": 100
+              },
+              "selectable": true,
+              "title": "Enhanced image"
+            }
+          }
+        ],
+        "edges": []
+      }
+    }
+  ],
+  "values": {
+    "op:concepts/in:10": "An ancient forest guardian: a towering tree-spirit, bark-skinned and moss-cloaked, watching over an enchanted grove. Fantasy RPG character concept.",
+    "op:concepts/in:11": "Painterly digital concept art, dramatic cinematic lighting, rich saturated color, visible brushwork, AAA game key art",
+    "op:concepts/in:12": "mysterious, ancient, powerful, serene, sacred",
+    "op:concepts/in:num_variations": 4,
+    "op:concepts/out:concept_art_output": {
+      "$demo": "image"
+    },
+    "op:creatures/in:2f773f4f-c863-4215-bb89-e8cc09e95472": "lion, eagle, koi fish",
+    "op:creatures/in:input-style": "Classic anime cel-shaded",
+    "op:creatures/out:output-pokemon": {
+      "$demo": "image"
+    },
+    "op:polish/prop:denoise-node#radius": 0,
+    "op:polish/prop:tone-node#brightness": 0.05,
+    "op:polish/prop:tone-node#contrast": 1.15,
+    "op:polish/prop:color-node#saturation": 1.2,
+    "op:polish/prop:sharpen-node#amount": 1,
+    "op:polish/out:output-enhanced-image": {
+      "$demo": "image"
+    }
+  }
+}

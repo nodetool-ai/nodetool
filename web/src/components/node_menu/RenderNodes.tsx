@@ -10,7 +10,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import NodeItem from "./NodeItem";
 import SearchResultsPanel from "./SearchResultsPanel";
 import { Text } from "../ui_primitives";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import ApiKeyValidation from "../node/ApiKeyValidation";
 import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
 import { serializeDragData } from "../../lib/dragdrop";
@@ -24,7 +24,6 @@ interface RenderNodesProps {
   showFavoriteButton?: boolean;
 }
 
-// Stable utility functions - defined outside component to avoid recreation
 const groupNodes = (nodes: NodeMetadata[]) => {
   const groups: { [key: string]: NodeMetadata[] } = {};
   nodes.forEach((node) => {
@@ -44,6 +43,18 @@ const getServiceFromNamespace = (namespace: string): string => {
 const NODE_ROW_HEIGHT = 32;
 const NAMESPACE_ROW_HEIGHT = 28;
 const API_VALIDATION_ROW_HEIGHT = 36;
+
+const NODES_CONTAINER_STYLE: React.CSSProperties = { height: "100%", overflow: "hidden" };
+const SCROLL_CONTAINER_STYLE: React.CSSProperties = {
+  height: "100%",
+  width: "100%",
+  overflowY: "auto",
+  overflowX: "hidden"
+};
+const VIRTUAL_LIST_STYLE: React.CSSProperties = {
+  width: "100%",
+  position: "relative"
+};
 
 type FlatRow =
   | {
@@ -87,14 +98,11 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
   const handleDragStart = useCallback(
     (node: NodeMetadata, event: React.DragEvent<HTMLDivElement>) => {
       setDragToCreate(true);
-      // Use unified drag serialization
       serializeDragData(
         { type: "create-node", payload: node },
         event.dataTransfer
       );
       event.dataTransfer.effectAllowed = "move";
-
-      // Update global drag state
       setActiveDrag({ type: "create-node", payload: node });
     },
     [setDragToCreate, setActiveDrag]
@@ -102,7 +110,6 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
 
   const selectedPath = useNodeMenuStore((state) => state.selectedPath.join("."));
 
-  // Memoize grouped nodes to prevent recalculation on every render
   const groupedNodes = useMemo(() => {
     return groupNodes(nodes);
   }, [nodes]);
@@ -205,28 +212,20 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     getItemKey: (index) => virtualRows[index]?.key ?? index,
   });
 
-  const style = { height: "100%", overflow: "hidden" };
-
   return (
-    <div className="nodes" style={style}>
+    <div className="nodes" style={NODES_CONTAINER_STYLE}>
       {nodes.length > 0 ? (
         searchNodes ? (
           <SearchResultsPanel searchNodes={searchNodes} />
         ) : (
           <div
             ref={scrollRef}
-            style={{
-              height: "100%",
-              width: "100%",
-              overflowY: "auto",
-              overflowX: "hidden",
-            }}
+            style={SCROLL_CONTAINER_STYLE}
           >
             <div
               style={{
-                height: virtualizer.getTotalSize(),
-                width: "100%",
-                position: "relative",
+                ...VIRTUAL_LIST_STYLE,
+                height: virtualizer.getTotalSize()
               }}
             >
               {virtualizer.getVirtualItems().map((vi) => {

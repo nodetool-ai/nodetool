@@ -10,15 +10,15 @@ export default function ModelManagerSection() {
     <section
       id="models"
       aria-labelledby="model-manager-title"
-      className="relative py-24 overflow-hidden"
+      className="relative py-24 overflow-clip-safe"
     >
       {/* Background Glow */}
       <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[600px] h-[600px] bg-blue-900/20 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="mb-16 text-center max-w-3xl mx-auto">
+        <div className="scroll-fade mb-16 text-center max-w-3xl mx-auto">
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={false}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             className="inline-flex items-center justify-center p-3 mb-6 rounded-2xl bg-blue-500/10 border border-blue-500/20 shadow-lg shadow-blue-500/10"
@@ -28,10 +28,10 @@ export default function ModelManagerSection() {
 
           <motion.h2
             id="model-manager-title"
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
             Hello <br />
@@ -41,24 +41,24 @@ export default function ModelManagerSection() {
           </motion.h2>
 
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Search, download, and manage model weights directly from the Hub.
+            Search, download, and manage models straight from Hugging Face.
             <br />
             Organize your local library without leaving the app.
           </motion.p>
         </div>
 
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
-          className="relative mx-auto max-w-5xl"
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="scroll-fade relative mx-auto max-w-5xl"
         >
           <Tilt3D>
             <div className="relative rounded-xl border border-white/[0.04] bg-slate-900/50 backdrop-blur-xl shadow-2xl overflow-hidden group">
@@ -76,7 +76,7 @@ export default function ModelManagerSection() {
               </div>
 
               <Image
-                src="/screen_model_manager.png"
+                src="/screen_model_manager.webp"
                 alt="Model manager interface showing Hugging Face integration"
                 width={2000}
                 height={1361}

@@ -4,13 +4,12 @@
  * Port of Python's `nodetool.models.workflow`.
  */
 
-import { eq, and, desc, or, isNull, lt, type SQL } from "drizzle-orm";
+import { eq, and, desc, or, isNull, lt, inArray, type SQL } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { workflows } from "./schema/workflows.js";
+import { WorkflowCollaborator } from "./workflow-collaborator.js";
 import type { WorkflowRunMode } from "@nodetool-ai/protocol/api-schemas/workflows.js";
-
-// ── Types ────────────────────────────────────────────────────────────
 
 export type AccessLevel = "private" | "public";
 export type { WorkflowRunMode };
@@ -18,6 +17,14 @@ export type { WorkflowRunMode };
 export interface WorkflowGraph {
   nodes: Record<string, unknown>[];
   edges: Record<string, unknown>[];
+}
+
+export interface WorkflowSummary {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly updated_at: string;
+  readonly run_mode: string | null;
 }
 
 function ensureSqlCondition(condition: SQL<unknown> | undefined): SQL<unknown> {
@@ -45,6 +52,7 @@ export class Workflow extends DBModel {
   declare run_mode: string | null;
   declare workspace_id: string | null;
   declare html_app: string | null;
+  declare app_doc: Record<string, unknown> | null;
   declare receive_clipboard: boolean | null;
   declare access: AccessLevel;
   declare created_at: string;
@@ -67,6 +75,7 @@ export class Workflow extends DBModel {
     this.run_mode ??= "workflow";
     this.workspace_id ??= null;
     this.html_app ??= null;
+    this.app_doc ??= null;
     this.access ??= "private";
     this.created_at ??= now;
     this.updated_at ??= now;
@@ -81,8 +90,6 @@ export class Workflow extends DBModel {
   override beforeSave(): void {
     this.updated_at = new Date().toISOString();
   }
-
-  // ── Graph helpers ─────────────────────────────────────────────────
 
   hasTriggerNodes(): boolean {
     if (!this.graph || !this.graph.nodes) return false;
@@ -107,9 +114,11 @@ export class Workflow extends DBModel {
     return this.getGraph();
   }
 
-  // ── Static queries ───────────────────────────────────────────────
-
-  /** Find a workflow by id, respecting ownership or public access. */
+  /**
+   * Find a workflow by id, respecting ownership, public access, or a
+   * collaborator grant (private sharing). This is the read-access gate for
+   * every "fetch someone's workflow" path.
+   */
   static async find(
     userId: string,
     workflowId: string
@@ -117,10 +126,11 @@ export class Workflow extends DBModel {
     const wf = await Workflow.get<Workflow>(workflowId);
     if (!wf) return null;
     if (wf.user_id === userId || wf.access === "public") return wf;
+    const grant = await WorkflowCollaborator.findFor(workflowId, userId);
+    if (grant) return wf;
     return null;
   }
 
-  /** Paginate workflows for a user. */
   static async paginate(
     userId: string,
     opts: {
@@ -176,7 +186,6 @@ export class Workflow extends DBModel {
       items = items.filter(
         (w: Workflow) => Array.isArray(w.tags) && w.tags.includes(tag)
       );
-      // Apply limit after tag filter
       const capped = items.slice(0, limit + 1);
       if (capped.length <= limit) return [capped, ""];
       capped.pop();
@@ -190,7 +199,93 @@ export class Workflow extends DBModel {
     return [items, cursor];
   }
 
-  /** Paginate public workflows only. */
+  /**
+   * Lists workflow identity fields without selecting or parsing graph JSON.
+   * `updated_at` is the lightweight discovery revision; the authoritative
+   * graph-derived etag is returned by the workflow-interface endpoint.
+   */
+  static async paginateSummaries(
+    userId: string,
+    opts: { limit?: number; startKey?: string } = {}
+  ): Promise<[WorkflowSummary[], string]> {
+    const { limit = 50, startKey } = opts;
+    const db = getDb();
+    const conditions = [eq(workflows.user_id, userId)];
+
+    if (startKey) {
+      const [cursor] = await db
+        .select({ id: workflows.id, updated_at: workflows.updated_at })
+        .from(workflows)
+        .where(
+          and(eq(workflows.id, startKey), eq(workflows.user_id, userId))
+        )
+        .limit(1);
+      if (cursor) {
+        conditions.push(
+          ensureSqlCondition(
+            or(
+              lt(workflows.updated_at, cursor.updated_at),
+              and(
+                eq(workflows.updated_at, cursor.updated_at),
+                lt(workflows.id, cursor.id)
+              )
+            )
+          )
+        );
+      }
+    }
+
+    conditions.push(
+      ensureSqlCondition(
+        or(
+          eq(workflows.run_mode, "workflow"),
+          eq(workflows.run_mode, "layer"),
+          eq(workflows.run_mode, "clip"),
+          isNull(workflows.run_mode)
+        )
+      )
+    );
+
+    const rows = await db
+      .select({
+        id: workflows.id,
+        name: workflows.name,
+        description: workflows.description,
+        updated_at: workflows.updated_at,
+        run_mode: workflows.run_mode
+      })
+      .from(workflows)
+      .where(and(...conditions))
+      .orderBy(desc(workflows.updated_at), desc(workflows.id))
+      .limit(limit + 1);
+
+    const hasNext = rows.length > limit;
+    const selectedRows = hasNext ? rows.slice(0, limit) : rows;
+    const items = selectedRows.map((row) => ({
+      ...row,
+      description: row.description ?? ""
+    }));
+    return [items, hasNext ? (items.at(-1)?.id ?? "") : ""];
+  }
+
+  /** Loads a bounded set of workflows in one query, keyed by workflow id. */
+  static async getManyByIds(
+    workflowIds: readonly string[]
+  ): Promise<Map<string, Workflow>> {
+    if (workflowIds.length === 0) return new Map();
+    const db = getDb();
+    const rows = await db
+      .select()
+      .from(workflows)
+      .where(inArray(workflows.id, [...workflowIds]));
+    const result = new Map<string, Workflow>();
+    for (const row of rows) {
+      const workflow = new Workflow(row as Record<string, unknown>);
+      result.set(workflow.id, workflow);
+    }
+    return result;
+  }
+
   static async paginatePublic(
     opts: { limit?: number; startKey?: string } = {}
   ): Promise<[Workflow[], string]> {
@@ -219,7 +314,6 @@ export class Workflow extends DBModel {
     return [items, cursor];
   }
 
-  /** Paginate workflows that are configured as tools. */
   static async paginateTools(
     userId: string,
     opts: { limit?: number; startKey?: string } = {}
@@ -256,7 +350,6 @@ export class Workflow extends DBModel {
     return [tools, cursor];
   }
 
-  /** Create a Workflow instance from a plain dictionary. */
   static fromDict(data: Record<string, unknown>): Workflow {
     return new Workflow({
       id: (data.id as string) ?? "",
@@ -278,11 +371,11 @@ export class Workflow extends DBModel {
       },
       run_mode: (data.run_mode as string) ?? null,
       workspace_id: (data.workspace_id as string) ?? null,
-      html_app: (data.html_app as string) ?? null
+      html_app: (data.html_app as string) ?? null,
+      app_doc: (data.app_doc as Record<string, unknown>) ?? null
     });
   }
 
-  /** Find a workflow by tool name for a given user. */
   static async findByToolName(
     userId: string,
     toolName: string

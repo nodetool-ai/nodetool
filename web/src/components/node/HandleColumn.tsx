@@ -17,8 +17,10 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { Property, Edge } from "../../stores/ApiTypes";
+import { Property } from "../../stores/ApiTypes";
+import type { Edge } from "@xyflow/react";
 import HandleOnlyField from "./HandleOnlyField";
+import { Z_INDEX } from "../ui_primitives";
 
 const HANDLE_ROW_HEIGHT = 18;
 
@@ -30,7 +32,7 @@ const styles = (theme: Theme) =>
       left: 0,
       width: 0,
       pointerEvents: "none",
-      zIndex: 3,
+      zIndex: Z_INDEX.raised,
       display: "flex",
       flexDirection: "column",
       justifyContent: "flex-start",

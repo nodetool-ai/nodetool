@@ -4,7 +4,7 @@ import Select from "../inputs/Select";
 import DictTable, { DictDataType } from "../node/DataTable/DictTable";
 import PropertyLabel from "../node/PropertyLabel";
 import { SPACING, getSpacingPx } from "../ui_primitives";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 
 const detectTypeFromDict = (dict: unknown) => {
   if (!Array.isArray(dict) || dict.length === 0) {

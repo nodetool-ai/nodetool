@@ -1,7 +1,8 @@
 /**
- * Mutation-hardening for the Moonshot (Kimi) provider — an Anthropic-SDK
- * subclass pointed at Moonshot's Claude-compatible endpoint. Pins the
- * whitespace-key rejection and the default client baseURL. See MUTATION_TESTING.md.
+ * Mutation-hardening for the Moonshot (Kimi) provider — an OpenAI-compat
+ * subclass pointed at Moonshot's OpenAI-compatible endpoint. Pins the
+ * whitespace-key rejection, key trimming, and the default client baseURL.
+ * See MUTATION_TESTING.md.
  */
 import { describe, it, expect } from "vitest";
 import { MoonshotProvider } from "../../src/providers/moonshot-provider.js";
@@ -13,8 +14,13 @@ describe("MoonshotProvider hardening", () => {
     );
   });
 
-  it("builds an Anthropic client at the Moonshot base URL by default", () => {
+  it("trims surrounding whitespace off the API key", () => {
+    const p = new MoonshotProvider({ KIMI_API_KEY: "  k  " });
+    expect(p.apiKey).toBe("k");
+  });
+
+  it("builds an OpenAI SDK client at the Moonshot base URL by default", () => {
     const p = new MoonshotProvider({ KIMI_API_KEY: "k" });
-    expect(p.getClient().baseURL).toBe("https://api.kimi.com/coding");
+    expect(p.getClient().baseURL).toBe("https://api.moonshot.ai/v1");
   });
 });

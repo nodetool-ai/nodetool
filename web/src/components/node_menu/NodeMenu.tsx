@@ -4,21 +4,15 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useEffect, useState, useCallback } from "react";
 
-// mui
-
-// components
 import TypeFilterChips from "./TypeFilterChips";
 import NamespaceList from "./NamespaceList";
-// store
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import useNodeMenuStore, {
   type NodeMenuStore
 } from "../../stores/NodeMenuStore";
 
-// utils
 import { useDraggable } from "../../hooks/useDraggable";
 import { useResizable } from "../../hooks/useResizable";
-// theme
 import useNamespaceTree from "../../hooks/useNamespaceTree";
 import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
@@ -30,6 +24,7 @@ import {
   BORDER_RADIUS,
   MOTION,
   SPACING,
+  Z_INDEX,
   getSpacingPx
 } from "../ui_primitives";
 import { useShallow } from "zustand/react/shallow";
@@ -44,8 +39,7 @@ const treeStyles = (theme: Theme) =>
       left: 0,
       position: "absolute",
       overflow: "hidden",
-      zIndex: 20000,
-      // Glassmorphism container
+      zIndex: theme.zIndex.floatingPanel,
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: BORDER_RADIUS.xxl,
       boxShadow: "0 24px 48px rgba(0, 0, 0, 0.05), 0 8px 16px rgba(0,0,0,0.02)",
@@ -72,7 +66,7 @@ const treeStyles = (theme: Theme) =>
     // Resize handles (top-left anchored): right edge, bottom edge, corner.
     ".nm-resize": {
       position: "absolute",
-      zIndex: 30,
+      zIndex: Z_INDEX.sticky,
       touchAction: "none"
     },
     ".nm-resize-right": {
@@ -102,7 +96,6 @@ const treeStyles = (theme: Theme) =>
       width: "100%",
       maxHeight: "77vh",
       flexGrow: 1
-      // Removed inner shadow to keep it clean
     },
     ".search-input-container": {
       minWidth: 0,

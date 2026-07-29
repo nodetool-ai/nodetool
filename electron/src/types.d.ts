@@ -30,8 +30,6 @@ declare global {
       restartServer: () => Promise<void>;
       onServerLog: (callback: (message: string) => void) => () => void;
 
-      restartLlamaServer: () => Promise<void>;
-
       getLogs: () => Promise<string[]>;
       clearLogs: () => Promise<void>;
 
@@ -49,7 +47,6 @@ declare global {
         getState: () => Promise<ServerState>;
         start: () => Promise<void>;
         restart: () => Promise<void>;
-        restartLlama: () => Promise<void>;
         onStarted: (callback: () => void) => () => void;
         onLog: (callback: (message: string) => void) => () => void;
         onError: (callback: (data: { message: string }) => void) => () => void;
@@ -169,7 +166,6 @@ declare global {
           packages: PythonPackages,
           modelBackend?: ModelBackend,
           installLlamaCpp?: boolean,
-          startLlamaCppOnStartup?: boolean,
         ) => Promise<void>;
         onLocationPrompt: (
           callback: (data: InstallLocationData) => void,
@@ -234,10 +230,6 @@ declare global {
         getSystemInfo: () => Promise<SystemInfo>;
         getAutoUpdates: () => Promise<boolean>;
         setAutoUpdates: (enabled: boolean) => Promise<void>;
-        getModelServicesStartup: () => Promise<ModelServicesStartupSettings>;
-        setModelServicesStartup: (
-          update: ModelServicesStartupSettingsUpdate,
-        ) => Promise<ModelServicesStartupSettings>;
         openSettings: () => Promise<void>;
       };
 
@@ -300,8 +292,6 @@ export interface SystemInfo {
   // Feature availability
   cudaAvailable: boolean;
   cudaVersion: string | null;
-  llamaServerInstalled: boolean;
-  llamaServerVersion: string | null;
 }
 
 export interface JSONSchema {
@@ -522,7 +512,6 @@ export enum IpcChannels {
   SELECT_CUSTOM_LOCATION = "select-custom-location",
   START_SERVER = "start-server",
   RESTART_SERVER = "restart-server",
-  RESTART_LLAMA_SERVER = "restart-llama-server",
   RUN_APP = "run-app",
   BOOT_MESSAGE = "boot-message",
   SERVER_STARTED = "server-started",
@@ -595,8 +584,6 @@ export enum IpcChannels {
   SETTINGS_SET_AUTO_UPDATES = "settings-set-auto-updates",
   SETTINGS_GET_UPDATE_CHANNEL = "settings-get-update-channel",
   SETTINGS_SET_UPDATE_CHANNEL = "settings-set-update-channel",
-  SETTINGS_GET_MODEL_SERVICES_STARTUP = "settings-get-model-services-startup",
-  SETTINGS_SET_MODEL_SERVICES_STARTUP = "settings-set-model-services-startup",
   SHOW_SETTINGS = "show-settings",
   // Vault channels (switchable, isolated data stores)
   VAULT_LIST = "vault-list",
@@ -622,16 +609,31 @@ export enum IpcChannels {
   LOCALHOST_PROXY_WS_CLOSE = "localhost-proxy-ws-close",
   LOCALHOST_PROXY_WS_EVENT = "localhost-proxy-ws-event",
   FRONTEND_LOG = "frontend-log",
+  // MCP bundle (.mcpb) install for Claude Desktop
+  MCP_INSTALL_BUNDLE = "mcp-install-bundle",
 }
 
 export type ModelBackend = "ollama" | "llama_cpp" | "none";
+
+/** Result of handing the bundled `.mcpb` to the OS for Claude Desktop. */
+export interface McpBundleInstallResult {
+  /** The bundle existed and was either opened or revealed. */
+  ok: boolean;
+  /** Opened with the default handler (Claude Desktop install dialog). */
+  opened: boolean;
+  /** Revealed in the file manager as a drag-and-drop fallback. */
+  revealed: boolean;
+  /** Absolute path to the bundle. */
+  path: string;
+  /** Present when the bundle was missing or had no default handler. */
+  error?: string;
+}
 
 export interface InstallToLocationData {
   location: string;
   packages: PythonPackages;
   modelBackend?: ModelBackend;
   installLlamaCpp?: boolean;
-  startLlamaCppOnStartup?: boolean;
 }
 
 export interface FileExplorerPathRequest {
@@ -684,7 +686,6 @@ export interface IpcRequest {
   [IpcChannels.SELECT_CUSTOM_LOCATION]: void;
   [IpcChannels.START_SERVER]: void;
   [IpcChannels.RESTART_SERVER]: void;
-  [IpcChannels.RESTART_LLAMA_SERVER]: void;
   [IpcChannels.RUN_APP]: string;
   [IpcChannels.INSTALL_UPDATE]: void;
   [IpcChannels.WINDOW_CLOSE]: void;
@@ -763,8 +764,6 @@ export interface IpcRequest {
   [IpcChannels.SETTINGS_SET_AUTO_UPDATES]: boolean;
   [IpcChannels.SETTINGS_GET_UPDATE_CHANNEL]: void;
   [IpcChannels.SETTINGS_SET_UPDATE_CHANNEL]: UpdateChannel;
-  [IpcChannels.SETTINGS_GET_MODEL_SERVICES_STARTUP]: void;
-  [IpcChannels.SETTINGS_SET_MODEL_SERVICES_STARTUP]: ModelServicesStartupSettingsUpdate;
   [IpcChannels.SHOW_SETTINGS]: void;
   // Vaults
   [IpcChannels.VAULT_LIST]: void;
@@ -789,18 +788,11 @@ export interface IpcRequest {
   [IpcChannels.LOCALHOST_PROXY_WS_SEND]: LocalhostProxyWsSendRequest;
   [IpcChannels.LOCALHOST_PROXY_WS_CLOSE]: LocalhostProxyWsCloseRequest;
   [IpcChannels.FRONTEND_LOG]: FrontendLogRequest;
+  [IpcChannels.MCP_INSTALL_BUNDLE]: void;
 }
 
 export type WindowCloseAction = "ask" | "quit" | "background";
 export type UpdateChannel = "latest" | "nightly";
-
-export interface ModelServicesStartupSettings {
-  startLlamaCppOnStartup: boolean;
-}
-
-export interface ModelServicesStartupSettingsUpdate {
-  startLlamaCppOnStartup?: boolean;
-}
 
 export interface IpcResponse {
   [IpcChannels.GET_SERVER_STATE]: ServerState;
@@ -812,7 +804,6 @@ export interface IpcResponse {
   [IpcChannels.SELECT_CUSTOM_LOCATION]: string | null;
   [IpcChannels.START_SERVER]: void;
   [IpcChannels.RESTART_SERVER]: void;
-  [IpcChannels.RESTART_LLAMA_SERVER]: void;
   [IpcChannels.RUN_APP]: void;
   [IpcChannels.INSTALL_UPDATE]: void;
   [IpcChannels.WINDOW_CLOSE]: void;
@@ -873,8 +864,6 @@ export interface IpcResponse {
   [IpcChannels.SETTINGS_SET_AUTO_UPDATES]: void;
   [IpcChannels.SETTINGS_GET_UPDATE_CHANNEL]: UpdateChannel;
   [IpcChannels.SETTINGS_SET_UPDATE_CHANNEL]: UpdateChannel;
-  [IpcChannels.SETTINGS_GET_MODEL_SERVICES_STARTUP]: ModelServicesStartupSettings;
-  [IpcChannels.SETTINGS_SET_MODEL_SERVICES_STARTUP]: ModelServicesStartupSettings;
   [IpcChannels.SHOW_SETTINGS]: void;
   // Vaults
   [IpcChannels.VAULT_LIST]: VaultListResult;
@@ -899,6 +888,7 @@ export interface IpcResponse {
   [IpcChannels.LOCALHOST_PROXY_WS_SEND]: void;
   [IpcChannels.LOCALHOST_PROXY_WS_CLOSE]: void;
   [IpcChannels.FRONTEND_LOG]: void;
+  [IpcChannels.MCP_INSTALL_BUNDLE]: McpBundleInstallResult;
 }
 
 // Event types for each IPC channel
@@ -1031,6 +1021,7 @@ export type RuntimePackageId =
   | "yt-dlp"
   | "transformers-js"
   | "tensorflow-js"
+  | "node-llama-cpp"
   | "tmux"
   | "claude"
   | "claude-agent-sdk";

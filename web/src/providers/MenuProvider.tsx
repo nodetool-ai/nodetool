@@ -22,15 +22,12 @@ interface MenuContextType {
 export const MenuContext = createContext<MenuContextType | null>(null);
 
 export const MenuProvider = ({ children }: { children: ReactNode }) => {
-  // Create a ref to store all handlers
   const handlers = useRef<Set<MenuEventHandler>>(new Set());
 
-  // Single global event handler that dispatches to all registered handlers
   const globalHandler = useCallback((data: MenuEventData) => {
     handlers.current.forEach((handler) => handler(data));
   }, []);
 
-  // Set up the global handler on mount
   useEffect(() => {
     if (window.api) {
       window.api.onMenuEvent(globalHandler);
@@ -38,12 +35,10 @@ export const MenuProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [globalHandler]);
 
-  // Allow components to subscribe to menu events
   const registerHandler = useCallback((handler: MenuEventHandler) => {
     handlers.current.add(handler);
   }, []);
 
-  // Remove a previously registered handler
   const unregisterHandler = useCallback((handler: MenuEventHandler) => {
     handlers.current.delete(handler);
   }, []);

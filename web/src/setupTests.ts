@@ -39,3 +39,26 @@ if (typeof (globalThis as { ResizeObserver?: unknown }).ResizeObserver === "unde
     StubResizeObserver as unknown as typeof ResizeObserver;
 }
 
+// jsdom does not implement pointer capture; stub it with per-element tracking so
+// components using setPointerCapture (e.g. <OnScreenKeyboard />) work in tests.
+if (
+  typeof Element !== "undefined" &&
+  typeof Element.prototype.setPointerCapture !== "function"
+) {
+  const captured = new WeakMap<Element, Set<number>>();
+  Element.prototype.setPointerCapture = function (pointerId: number): void {
+    let ids = captured.get(this);
+    if (!ids) {
+      ids = new Set();
+      captured.set(this, ids);
+    }
+    ids.add(pointerId);
+  };
+  Element.prototype.releasePointerCapture = function (pointerId: number): void {
+    captured.get(this)?.delete(pointerId);
+  };
+  Element.prototype.hasPointerCapture = function (pointerId: number): boolean {
+    return captured.get(this)?.has(pointerId) ?? false;
+  };
+}
+

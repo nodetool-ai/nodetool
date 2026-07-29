@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import React, { useState, useEffect, useRef, memo, useCallback, useMemo } from "react";
 import { Label, BORDER_RADIUS } from "../ui_primitives";
 import { ColumnDef } from "../../stores/ApiTypes";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import Column from "./Column";
 
 const styles = (theme: Theme) =>
@@ -155,6 +155,7 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
   onChange
 }: ColumnsManagerProps) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const [localColumns, setLocalColumns] = useState(columns);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -234,7 +235,7 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
   );
 
   return (
-    <div css={styles(theme)}>
+    <div css={cssStyles}>
       <div className="labels">
         <Label className="label-name">Name</Label>
         <Label className="label-datatype">Data Type</Label>

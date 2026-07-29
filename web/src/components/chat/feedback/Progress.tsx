@@ -1,5 +1,5 @@
 import React, { useMemo, useRef } from "react";
-import { ProgressBar } from "../../ui_primitives/ProgressBar";
+import { ProgressBar } from "../../ui_primitives";
 
 interface ProgressProps {
   progress: number;

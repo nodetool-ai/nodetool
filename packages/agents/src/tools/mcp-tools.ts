@@ -25,6 +25,9 @@ import {
   EmbedTextTool
 } from "./media-tools.js";
 import { SaveAssetTool, ReadAssetTool } from "./asset-tools.js";
+import type { ProcessingMessage } from "@nodetool-ai/protocol";
+import { GraphPlanner } from "../graph-planner.js";
+import { TOOL_CALL_ID_FIELD } from "./subtask-fields.js";
 
 const DEFAULT_API_URL = "http://localhost:7777";
 
@@ -39,7 +42,173 @@ function getHeaders(context: ProcessingContext): Record<string, string> {
   if (context.userId) {
     headers["X-User-Id"] = context.userId;
   }
+  if (context.authToken) {
+    headers["Authorization"] = `Bearer ${context.authToken}`;
+  }
   return headers;
+}
+
+// Column/row spacing for the auto-layout. 280 is NodeTool's default node
+// width, so a 320 column gap leaves ~40px between stages.
+const LAYOUT_COL_GAP = 320;
+const LAYOUT_ROW_GAP = 220;
+
+/**
+ * Assign a grid position to every node from the graph's dataflow: columns are
+ * topological depth (longest path from a root), rows are order within a
+ * column. A left-to-right layered layout — the same shape NodeTool graphs are
+ * authored in — without a full layout engine (no `elkjs` in the backend).
+ */
+function computeAutoLayout(
+  nodeIds: string[],
+  edges: Array<Record<string, unknown>>
+): Map<string, { x: number; y: number }> {
+  const ids = new Set(nodeIds);
+  const outgoing = new Map<string, string[]>();
+  const indegree = new Map<string, number>();
+  for (const id of nodeIds) {
+    outgoing.set(id, []);
+    indegree.set(id, 0);
+  }
+  for (const edge of edges) {
+    const source = edge["source"] == null ? "" : String(edge["source"]);
+    const target = edge["target"] == null ? "" : String(edge["target"]);
+    if (source === target || !ids.has(source) || !ids.has(target)) continue;
+    outgoing.get(source)!.push(target);
+    indegree.set(target, (indegree.get(target) ?? 0) + 1);
+  }
+
+  // Longest-path layering via Kahn's topological order: each node lands one
+  // column past its deepest upstream. Roots (no incoming edge) sit in column 0.
+  const column = new Map<string, number>();
+  const remaining = new Map(indegree);
+  const queue: string[] = [];
+  for (const id of nodeIds) {
+    column.set(id, 0);
+    if ((indegree.get(id) ?? 0) === 0) queue.push(id);
+  }
+  const ordered: string[] = [];
+  for (let head = 0; head < queue.length; head++) {
+    const id = queue[head];
+    ordered.push(id);
+    for (const target of outgoing.get(id) ?? []) {
+      column.set(target, Math.max(column.get(target)!, column.get(id)! + 1));
+      remaining.set(target, remaining.get(target)! - 1);
+      if (remaining.get(target) === 0) queue.push(target);
+    }
+  }
+  // A cycle leaves nodes that never reach indegree 0; keep them in column 0 and
+  // append in original order so they still get a slot.
+  const placed = new Set(ordered);
+  for (const id of nodeIds) if (!placed.has(id)) ordered.push(id);
+
+  const rowByColumn = new Map<number, number>();
+  const positions = new Map<string, { x: number; y: number }>();
+  for (const id of ordered) {
+    const col = column.get(id) ?? 0;
+    const row = rowByColumn.get(col) ?? 0;
+    rowByColumn.set(col, row + 1);
+    positions.set(id, { x: col * LAYOUT_COL_GAP, y: row * LAYOUT_ROW_GAP });
+  }
+  return positions;
+}
+
+/**
+ * Set `ui_properties.position` on every node from {@link computeAutoLayout},
+ * overriding any caller-supplied coordinates (create_workflow always
+ * auto-lays-out) while preserving other `ui_properties` fields (title, color).
+ */
+function withAutoLayout(nodes: unknown, edges: unknown): unknown {
+  if (!Array.isArray(nodes)) return nodes;
+  const isRecord = (v: unknown): v is Record<string, unknown> =>
+    !!v && typeof v === "object" && !Array.isArray(v);
+  const edgeList = Array.isArray(edges) ? edges.filter(isRecord) : [];
+  const ids = nodes
+    .filter(isRecord)
+    .map((node) => String(node["id"] ?? ""));
+  const positions = computeAutoLayout(ids, edgeList);
+  return nodes.map((node) => {
+    if (!isRecord(node)) return node;
+    const id = String(node["id"] ?? "");
+    const ui = isRecord(node["ui_properties"]) ? node["ui_properties"] : {};
+    return {
+      ...node,
+      ui_properties: {
+        zIndex: 0,
+        width: 280,
+        selectable: true,
+        ...ui,
+        position: positions.get(id) ?? { x: 0, y: 0 }
+      }
+    };
+  });
+}
+
+/**
+ * Normalize an agent-authored graph into the *stored* workflow shape.
+ *
+ * Two representations exist. The kernel (and `GraphPlanner`/`GraphBuilder`)
+ * puts a node's property bag under `properties`; the persisted/editor shape
+ * puts it flat under `data`, with layout under `ui_properties`. Saving kernel
+ * shape runs fine — `normalizeGraph` in the websocket runner maps `data` →
+ * `properties` on the way to the kernel and leaves an existing `properties`
+ * alone — but the editor reads `node.data`, so such a workflow opens with
+ * every node blank. The planner emits no layout at all, so the nodes would
+ * also pile at the origin.
+ *
+ * This is the boundary where both conversions happen — `create_workflow` is
+ * the only tool that persists a graph, so it maps `properties` → `data` and
+ * always auto-lays-out the result.
+ */
+function normalizeWorkflowGraph(graph: unknown): unknown {
+  if (!graph || typeof graph !== "object" || Array.isArray(graph)) return graph;
+  const record = graph as Record<string, unknown>;
+  const rawNodes = record["nodes"];
+  const rawEdges = record["edges"];
+
+  const normalizeNode = (value: unknown, fallbackId?: string): unknown => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return value;
+    }
+    const node = value as Record<string, unknown>;
+    // `properties` and `parameters` are dropped from the spread so the stored
+    // node carries the bag once, under `data`. `ui_properties` stays in `rest`
+    // and is filled in by `withAutoLayout` below.
+    const { node_type, parameters, properties, ...rest } = node;
+    const data = properties ?? parameters ?? node["data"];
+    return {
+      ...rest,
+      id: node["id"] ?? fallbackId,
+      type: node["type"] ?? node_type,
+      ...(data === undefined ? {} : { data })
+    };
+  };
+
+  const nodes = Array.isArray(rawNodes)
+    ? rawNodes.map((node) => normalizeNode(node))
+    : rawNodes && typeof rawNodes === "object"
+      ? Object.entries(rawNodes as Record<string, unknown>).map(([id, node]) =>
+          normalizeNode(node, id)
+        )
+      : rawNodes;
+
+  const edges = Array.isArray(rawEdges)
+    ? rawEdges.map((value, index) => {
+        if (!value || typeof value !== "object" || Array.isArray(value)) {
+          return value;
+        }
+        const edge = value as Record<string, unknown>;
+        const { source_output, target_input, ...rest } = edge;
+        return {
+          ...rest,
+          id: edge["id"] ?? `edge-${index}`,
+          sourceHandle: edge["sourceHandle"] ?? source_output ?? "output",
+          targetHandle: edge["targetHandle"] ?? target_input
+        };
+      })
+    : rawEdges;
+
+  return { ...record, nodes: withAutoLayout(nodes, edges), edges };
 }
 
 async function apiGet(
@@ -85,10 +254,35 @@ async function apiPost(
 // Workflow Tools
 // ============================================================================
 
+/** Project a workflow record to a light summary — never the full graph. */
+function lightWorkflow(w: unknown): unknown {
+  if (!w || typeof w !== "object") return w;
+  const r = w as Record<string, unknown>;
+  return {
+    id: r["id"],
+    name: r["name"],
+    description: r["description"] ?? null,
+    tags: r["tags"] ?? null
+  };
+}
+
+/** Strip embedded graphs from a `/api/workflows` list response (array or
+ *  `{ workflows: [...] }`), keeping pagination fields intact. */
+function lightWorkflowList(resp: unknown): unknown {
+  if (Array.isArray(resp)) return resp.map(lightWorkflow);
+  if (resp && typeof resp === "object") {
+    const r = resp as Record<string, unknown>;
+    if (Array.isArray(r["workflows"])) {
+      return { ...r, workflows: r["workflows"].map(lightWorkflow) };
+    }
+  }
+  return resp;
+}
+
 export class ListWorkflowsTool extends Tool {
   readonly name = "list_workflows";
   readonly description =
-    "List workflows with flexible filtering and search options. Returns user workflows, example workflows, or both.";
+    "List workflows (id, name, description, tags only — no graph). Returns user workflows, example workflows, or both. Use get_workflow for the full graph of a specific workflow.";
   readonly jsonSchema = {
     type: "object" as const,
     properties: {
@@ -120,15 +314,16 @@ export class ListWorkflowsTool extends Tool {
     const limit = Number(params["limit"] ?? 100);
 
     if (workflowType === "example" || workflowType === "all") {
-      const examples = await apiGet(context, "/api/workflows/examples", {
-        limit,
-        query
-      });
+      const examples = lightWorkflowList(
+        await apiGet(context, "/api/workflows/examples", { limit, query })
+      );
       if (workflowType === "example") return examples;
-      const user = await apiGet(context, "/api/workflows/", { limit });
+      const user = lightWorkflowList(
+        await apiGet(context, "/api/workflows/", { limit })
+      );
       return { examples, user };
     }
-    return apiGet(context, "/api/workflows/", { limit });
+    return lightWorkflowList(await apiGet(context, "/api/workflows/", { limit }));
   }
 
   userMessage(params: Record<string, unknown>): string {
@@ -176,7 +371,8 @@ export class CreateWorkflowTool extends Tool {
       name: { type: "string" as const, description: "The workflow name" },
       graph: {
         type: "object" as const,
-        description: "Workflow graph structure with nodes and edges"
+        description:
+          "Workflow graph with nodes and edges. Nodes may be an array of {id, type, properties} or an object keyed by node id with {node_type, parameters}. Edges use source, target, targetHandle/target_input, and optional sourceHandle/source_output (defaults to output)."
       },
       description: {
         type: "string" as const,
@@ -200,9 +396,9 @@ export class CreateWorkflowTool extends Tool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    return apiPost(context, "/api/workflows/", {
+    return apiPost(context, "/api/workflows", {
       name: params["name"],
-      graph: params["graph"],
+      graph: normalizeWorkflowGraph(params["graph"]),
       description: params["description"],
       tags: params["tags"],
       access: params["access"] ?? "private"
@@ -395,6 +591,142 @@ export class ValidateWorkflowTool extends Tool {
     return params["workflow_id"]
       ? `Validating workflow ${params["workflow_id"]}`
       : "Validating workflow graph";
+  }
+}
+
+export interface PlanWorkflowGraphToolOptions {
+  provider: BaseProvider;
+  model: string;
+  registry: NodeRegistry;
+  /** Configured providers by id — enables the planner's `find_model` tool. */
+  providers?: Record<string, BaseProvider>;
+  /**
+   * Forwards planner progress events (planning_update, tool_call_update,
+   * chunk) to the client. Events arrive tagged with `parent_tool_call_id`
+   * so the UI can nest them under this tool's call card.
+   */
+  forwardMessage?: (msg: ProcessingMessage) => Promise<void> | void;
+  /**
+   * Resolves the abort signal for the *current* chat turn. Read lazily on each
+   * call: the tool outlives a single turn, and each turn installs a fresh
+   * controller, so a captured signal would go stale after the first Stop.
+   */
+  signal?: () => AbortSignal | undefined;
+}
+
+export class PlanWorkflowGraphTool extends Tool {
+  readonly name = "plan_workflow_graph";
+  readonly needsToolCallId = true;
+  readonly description =
+    "Build a complete workflow graph ({nodes, edges}) from a natural-language " +
+    "objective using the backend GraphPlanner: it searches the node registry, " +
+    "inspects node metadata, and wires a validated DAG node-by-node. Returns " +
+    "the graph without saving or running it — pass the result to " +
+    "`create_workflow` to save, then `run_workflow` to execute.";
+  readonly jsonSchema = {
+    type: "object" as const,
+    properties: {
+      objective: {
+        type: "string" as const,
+        description:
+          "Natural-language description of what the workflow should do."
+      },
+      inputs: {
+        type: "object" as const,
+        description:
+          "Runtime parameters the workflow should accept, keyed by input " +
+          "name with example values. Each becomes an input node in the graph."
+      }
+    },
+    required: ["objective"]
+  };
+
+  constructor(private readonly opts: PlanWorkflowGraphToolOptions) {
+    super();
+  }
+
+  async process(
+    context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    const objective =
+      typeof params["objective"] === "string" ? params["objective"].trim() : "";
+    if (!objective) {
+      return {
+        error: "`objective` is required and must be a non-empty string."
+      };
+    }
+    const parentToolCallId =
+      typeof params[TOOL_CALL_ID_FIELD] === "string"
+        ? (params[TOOL_CALL_ID_FIELD] as string)
+        : null;
+
+    const signal = this.opts.signal?.();
+    if (signal?.aborted) {
+      return { error: "Graph planning was cancelled." };
+    }
+
+    const planner = new GraphPlanner({
+      provider: this.opts.provider,
+      model: this.opts.model,
+      registry: this.opts.registry,
+      tools: [],
+      inputs: (params["inputs"] as Record<string, unknown>) ?? {},
+      providers: this.opts.providers,
+      signal
+    });
+
+    const gen = planner.plan(objective, context);
+    let next = await gen.next();
+    while (!next.done) {
+      // The planner's own abort stops its LLM loop, but a tool call already
+      // in flight still resolves — stop driving the generator so a Stop ends
+      // the turn promptly instead of after the current round.
+      if (signal?.aborted) {
+        await gen.return(null);
+        return { error: "Graph planning was cancelled." };
+      }
+      if (this.opts.forwardMessage) {
+        const tagged = {
+          ...(next.value as unknown as Record<string, unknown>),
+          parent_tool_call_id: parentToolCallId
+        } as unknown as ProcessingMessage;
+        try {
+          await this.opts.forwardMessage(tagged);
+        } catch {
+          // A broken forwarder must not kill planning — the model still gets
+          // the graph via the tool return below.
+        }
+      }
+      next = await gen.next();
+    }
+
+    if (signal?.aborted) {
+      return { error: "Graph planning was cancelled." };
+    }
+
+    const graph = next.value;
+    if (!graph) {
+      return {
+        error:
+          "GraphPlanner failed to build a graph after multiple attempts. " +
+          "Refine the objective (name concrete inputs/outputs) and retry."
+      };
+    }
+
+    return {
+      graph,
+      node_count: graph.nodes.length,
+      edge_count: graph.edges.length
+    };
+  }
+
+  userMessage(params: Record<string, unknown>): string {
+    const objective =
+      typeof params["objective"] === "string"
+        ? params["objective"].slice(0, 80)
+        : "workflow";
+    return `Planning workflow graph: ${objective}`;
   }
 }
 

@@ -220,7 +220,7 @@ const WaveformView = memo(function WaveformView({
     const tickInterval = chooseTickInterval(pixelsPerSecond);
     ctx.strokeStyle = rulerLineColor;
     ctx.fillStyle = rulerColor;
-    ctx.font = `${theme.fontSizeTiny} ${theme.fontFamily2}`;
+    ctx.font = `${theme.fontSizeSmaller} ${theme.fontFamily2}`;
     ctx.textBaseline = "top";
     ctx.beginPath();
     ctx.moveTo(0, RULER_HEIGHT - 0.5);
@@ -288,7 +288,7 @@ const WaveformView = memo(function WaveformView({
     midColor,
     rulerColor,
     rulerLineColor,
-    theme.fontSizeTiny,
+    theme.fontSizeSmaller,
     theme.fontFamily2
   ]);
 

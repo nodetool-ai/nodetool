@@ -12,6 +12,23 @@
 
 export type MediaType = "image" | "video";
 
+/**
+ * Structured, engine-specific params carried on a manifest row. Optional: a
+ * plain single-model seed leaves it undefined. The Model Duel wrapper
+ * (`--duel <modelA>,<modelB>`) sets `duelId`/`duelPair` so PR-4's pair pages can
+ * group by `duelPair` and join a model-A row to its model-B counterpart by the
+ * shared `duelId` (same prompt, both models).
+ */
+export interface ShowcaseParams {
+  /**
+   * Shared across BOTH models' rows for one duel prompt — the join key PR-4
+   * uses to line up a matched pair. Stable across re-runs.
+   */
+  duelId: string;
+  /** Canonical pair slug (model slugs sorted), e.g. "flux-dev-vs-flux-schnell". */
+  duelPair: string;
+}
+
 export interface ShowcaseRecord {
   /** Stable id — first 16 hex chars of `hash`. Names the asset file too. */
   id: string;
@@ -50,4 +67,6 @@ export interface ShowcaseRecord {
   costUsd: number;
   /** ISO timestamp the row was written. */
   createdAt: string;
+  /** Engine-specific params. Duel rows carry `duelId`/`duelPair`; else absent. */
+  params?: ShowcaseParams;
 }

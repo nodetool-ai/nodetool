@@ -3,6 +3,7 @@ import { useShallow } from "zustand/react/shallow";
 import useResultsStore from "../../stores/ResultsStore";
 import { useWorkflowAssetStore } from "../../stores/WorkflowAssetStore";
 import { useNodes } from "../../contexts/NodeContext";
+import type { Asset } from "../../stores/ApiTypes";
 import {
   assetToGeneration,
   mergeGenerations,
@@ -13,6 +14,17 @@ import {
   type Generation,
   type RunGroup
 } from "../../utils/nodeGenerations";
+
+export interface UseNodeGenerationsResult {
+  generations: Generation[];
+  current: Generation | undefined;
+  select: (id: string) => void;
+  runs: RunGroup[];
+  currentRun: RunGroup | undefined;
+  selectedIds: string[];
+  toggleSelected: (id: string) => void;
+  setSelected: (ids: string[]) => void;
+}
 
 /** Stable empty array for the multi-select set so an unset node never re-renders
  *  consumers on identity churn. */
@@ -27,13 +39,26 @@ const STABLE_EMPTY: string[] = [];
  * (`selected_generations`) fed downstream as a list, independent of the focused
  * `current` selection.
  */
-export const useNodeGenerations = (workflowId: string, nodeId: string) => {
-  const assets = useWorkflowAssetStore(
-    useShallow(
-      (s) =>
-        s.assetsByWorkflow[workflowId]?.filter((a) => a.node_id === nodeId) ?? []
-    )
-  );
+export const useNodeGenerations = (workflowId: string, nodeId: string): UseNodeGenerationsResult => {
+  const nodeAssetsSelector = useMemo(() => {
+    let lastSource: Asset[] | undefined;
+    let lastResult: Asset[] = [];
+    return (s: { assetsByWorkflow: Record<string, Asset[]> }) => {
+      const source = s.assetsByWorkflow[workflowId];
+      if (source === lastSource) return lastResult;
+      lastSource = source;
+      const next = source?.filter((a) => a.node_id === nodeId) ?? [];
+      if (
+        next.length === lastResult.length &&
+        next.every((a, i) => a === lastResult[i])
+      ) {
+        return lastResult;
+      }
+      lastResult = next;
+      return lastResult;
+    };
+  }, [workflowId, nodeId]);
+  const assets = useWorkflowAssetStore(nodeAssetsSelector);
   const live = useResultsStore(
     useShallow((s) => s.liveGenerations[`${workflowId}:${nodeId}`] ?? [])
   );

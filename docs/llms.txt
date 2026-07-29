@@ -14,12 +14,14 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [Why NodeTool]({{ site.url }}/comparisons): How NodeTool compares to ComfyUI, n8n, LangChain, etc.
 - [Installation]({{ site.url }}/installation): Install NodeTool Studio on macOS, Windows, or Linux.
 - [Quick Start]({{ site.url }}/getting-started): Install, run a template, edit and iterate.
+- [Agents and Automation]({{ site.url }}/agents/): Install, discover node schemas, validate and run workflows programmatically.
 
 ## Core Concepts
 
 - [Key Concepts]({{ site.url }}/key-concepts): Canvas, nodes, edges, workflows, agents, providers.
 - [Workflows]({{ site.url }}/workflow-editor): Building, running, and managing workflow graphs.
 - [Nodes]({{ site.url }}/nodes/): Catalog of available nodes by category.
+- [Node catalog]({{ site.url }}/nodes/catalog.json): Machine-readable node types, inputs, outputs, and documentation URLs.
 - [Agents]({{ site.url }}/global-chat-agents): Planning agents, tools, multi-step execution.
 - [Models]({{ site.url }}/models-and-providers): Local and cloud model providers.
 - [Glossary]({{ site.url }}/glossary): Terminology used across NodeTool.
@@ -34,7 +36,14 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [Debugging]({{ site.url }}/workflow-debugging): Inspect runs, errors, logs.
 - [Sketch Editor]({{ site.url }}/sketch-editor): Mask, paint, layer, and generate images inline.
 - [Templates Gallery]({{ site.url }}/templates-gallery): Browse and open starter workflows.
-- [VibeCoding]({{ site.url }}/vibecoding): Generate workflows from natural language.
+- [App Builder]({{ site.url }}/app-builder): Design a Mini App's interface and bind it to workflows.
+
+## Mini Apps
+
+- [Mini Apps]({{ site.url }}/mini-apps): What Mini Apps solve, where they live, and how the document, bindings, and runtime work.
+- [Building Mini Apps]({{ site.url }}/mini-apps-guide): Recipes for generators, streaming apps, galleries, live tuning, and review flows.
+- [Mini App Reference]({{ site.url }}/mini-apps-reference): Widgets, binding grammar, actions, conditions, and the document schema.
+- [Mini Apps on Mobile]({{ site.url }}/mini-apps-mobile): Opening and running an app from the phone, and what the native runtime does differently.
 
 ## Chat & Agents
 
@@ -49,6 +58,7 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [Local vs Cloud]({{ site.url }}/models): When to use which.
 - [Provider Reference]({{ site.url }}/providers): Per-provider configuration.
 - [HuggingFace]({{ site.url }}/huggingface): Models from the Hub.
+- [ComfyUI]({{ site.url }}/comfyui): Run ComfyUI workflows directly or over a GPU worker.
 - [Models Manager]({{ site.url }}/models-manager): Download and manage local models.
 
 ## Examples

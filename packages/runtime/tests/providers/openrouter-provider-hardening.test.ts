@@ -7,6 +7,11 @@
 import { describe, it, expect, vi } from "vitest";
 import { OpenRouterProvider } from "../../src/providers/openrouter-provider.js";
 import type { Message, TextToImageParams } from "../../src/providers/types.js";
+import {
+  chatJsonResponse,
+  mockChatFetch,
+  requestBodyOf
+} from "./helpers/compat-fetch.js";
 
 const make = (opts?: object) =>
   new OpenRouterProvider({ OPENROUTER_API_KEY: "k" }, opts as never);
@@ -40,15 +45,21 @@ describe("OpenRouterProvider hardening", () => {
     // A model that does NOT start with "o" (so OpenAIProvider's own converter is
     // inert) but contains "o1" — only OpenRouter's convertSystem handles it.
     const captureSent = async (model: string, content: unknown) => {
-      const create = vi.fn().mockResolvedValue({
-        choices: [{ message: { content: "ok", tool_calls: null } }]
-      });
-      const p = make({ client: { chat: { completions: { create } } } });
+      const fetchMock = mockChatFetch(
+        chatJsonResponse({
+          choices: [{ message: { content: "ok", tool_calls: null } }]
+        })
+      );
+      const p = make({ fetchFn: fetchMock });
       await p.generateMessage({
         messages: [{ role: "system", content } as Message],
         model
       });
-      return create.mock.calls[0][0].messages[0];
+      const sent = requestBodyOf(fetchMock).messages as Array<{
+        role: string;
+        content: string;
+      }>;
+      return sent[0];
     };
 
     it("converts a system message for a non-'o' model containing o1", async () => {
@@ -73,10 +84,12 @@ describe("OpenRouterProvider hardening", () => {
     });
 
     it("converts ONLY system messages, leaving user messages intact", async () => {
-      const create = vi.fn().mockResolvedValue({
-        choices: [{ message: { content: "ok", tool_calls: null } }]
-      });
-      const p = make({ client: { chat: { completions: { create } } } });
+      const fetchMock = mockChatFetch(
+        chatJsonResponse({
+          choices: [{ message: { content: "ok", tool_calls: null } }]
+        })
+      );
+      const p = make({ fetchFn: fetchMock });
       await p.generateMessage({
         messages: [
           { role: "system", content: "sys" } as Message,
@@ -84,7 +97,10 @@ describe("OpenRouterProvider hardening", () => {
         ],
         model: "grok-o1"
       });
-      const sent = create.mock.calls[0][0].messages;
+      const sent = requestBodyOf(fetchMock).messages as Array<{
+        role: string;
+        content: string;
+      }>;
       expect(sent[0].role).toBe("user");
       expect(sent[0].content).toBe("Instructions: sys");
       expect(sent[1].role).toBe("user");

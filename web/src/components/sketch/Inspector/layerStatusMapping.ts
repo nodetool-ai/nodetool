@@ -5,7 +5,7 @@
  */
 
 import type { LayerStatus } from "@nodetool-ai/image-editor";
-import type { StatusType } from "../../ui_primitives/StatusIndicator";
+import type { StatusType } from "../../ui_primitives";
 
 export interface LayerStatusVisual {
   status: StatusType;

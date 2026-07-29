@@ -3,6 +3,7 @@ import { BASE_URL } from "../../stores/BASE_URL";
 import type { Asset } from "../../stores/ApiTypes";
 import type { AssetUpdate } from "../../stores/AssetStore";
 import { buildSeededImageDocument } from "./buildSeededImageDocument";
+import { newDocumentId } from "../../lib/newDocumentId";
 
 /** Sketch documents are scoped to a project; assets aren't, so use the default. */
 const SKETCH_PROJECT_ID = "default";
@@ -13,12 +14,41 @@ export function readSketchDocumentId(asset: Asset): string | null {
   return typeof id === "string" && id.length > 0 ? id : null;
 }
 
-/** Resolve an asset to a fetchable image URL for measuring its dimensions. */
+/** Common image content types → file extension for building storage keys. */
+const IMAGE_MIME_EXTENSION: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/jpg": "jpg",
+  "image/webp": "webp",
+  "image/gif": "gif",
+  "image/bmp": "bmp",
+  "image/svg+xml": "svg"
+};
+
+/** Best-effort file extension for an asset, from its name or content type. */
+function assetExtension(asset: Asset): string | null {
+  const name = (asset.name ?? "").split(/[?#]/)[0];
+  const dot = name.lastIndexOf(".");
+  if (dot > 0 && dot < name.length - 1) {
+    return name.slice(dot + 1).toLowerCase();
+  }
+  const contentType = asset.content_type?.toLowerCase();
+  return (contentType && IMAGE_MIME_EXTENSION[contentType]) || null;
+}
+
+/**
+ * Resolve an asset to a fetchable image URL for measuring its dimensions. The
+ * storage route serves files by name, so the fallback key needs an extension —
+ * a bare `/api/storage/<id>` (no extension) 404s. Derive one from the asset's
+ * name or content type the same way `assetLayerUri` lifts the key from a URL.
+ */
 function assetImageUrl(asset: Asset): string {
   const direct = asset.get_url ?? asset.thumb_url;
   if (direct && /^(https?:|data:|blob:)/.test(direct)) return direct;
   if (direct?.startsWith("/")) return `${BASE_URL}${direct}`;
-  return `${BASE_URL}/api/storage/${asset.id}`;
+  const ext = assetExtension(asset);
+  const key = ext ? `${asset.id}.${ext}` : asset.id;
+  return `${BASE_URL}/api/storage/${key}`;
 }
 
 /**
@@ -49,7 +79,8 @@ function loadImageSize(
     img.crossOrigin = "anonymous";
     img.onload = () =>
       resolve({ width: img.naturalWidth, height: img.naturalHeight });
-    img.onerror = () => reject(new Error("Failed to load image"));
+    img.onerror = () =>
+      reject(new Error(`Failed to load image for measurement: ${url}`));
     img.src = url;
   });
 }
@@ -71,6 +102,7 @@ export async function ensureSketchDocumentForAsset(
   const { width, height } = await loadImageSize(assetImageUrl(asset));
 
   const created = await trpcClient.sketch.create.mutate({
+    id: newDocumentId(),
     name: asset.name || "Untitled",
     projectId: SKETCH_PROJECT_ID,
     width,

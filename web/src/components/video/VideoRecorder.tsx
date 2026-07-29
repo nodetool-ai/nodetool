@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { EditorButton, Text, LoadingSpinner, Box, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { EditorButton, Text, LoadingSpinner, Box, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
 import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
 import {
   VideoRecorderProps,
@@ -84,7 +84,7 @@ const VideoRecorder = (props: VideoRecorderProps) => {
       ".device-list": {
         position: "relative",
         maxWidth: "200px",
-        fontSize: theme.fontSizeTiny,
+        fontSize: theme.fontSizeSmaller,
         color: theme.vars.palette.grey[200]
       },
       ".device-select": {
@@ -124,7 +124,7 @@ const VideoRecorder = (props: VideoRecorderProps) => {
       },
       "& .error": {
         color: theme.vars.palette.error.main,
-        fontSize: theme.fontSizeTiny,
+        fontSize: theme.fontSizeSmaller,
         lineHeight: "1.1em"
       }
     });
@@ -197,14 +197,10 @@ const VideoRecorder = (props: VideoRecorderProps) => {
         <div className="device-list" style={{ margin: theme.spacing(1.5) }}>
           {videoInputDevices.length > 0 ? (
             <>
-              <Text
-                size="bigger"
-                sx={{
-                  fontSize: "var(--fontSizeSmaller)",
-                  margin: "0 0 .5em 0",
-                  color: "var(--palette-grey-100)"
-                }}
-              >
+              <Text size="smaller" weight={600} sx={{
+                margin: "0 0 .5em 0",
+                color: "var(--palette-grey-100)"
+              }}>
                 Camera
               </Text>
               <div
@@ -231,8 +227,8 @@ const VideoRecorder = (props: VideoRecorderProps) => {
                 backgroundColor: "var(--palette-warning-main)",
                 color: "var(--palette-grey-900)",
                 padding: ".2em 0.5em",
-                borderRadius: "0.2em",
-                zIndex: 100,
+                borderRadius: BORDER_RADIUS.xs,
+                zIndex: Z_INDEX.overlay,
                 top: "0.5em",
                 left: "0.5em"
               }}
@@ -243,14 +239,10 @@ const VideoRecorder = (props: VideoRecorderProps) => {
 
           {audioInputDevices.length > 0 && (
             <>
-              <Text
-                size="bigger"
-                sx={{
-                  fontSize: "var(--fontSizeSmaller)",
-                  margin: "1em 0 .5em 0",
-                  color: "var(--palette-grey-100)"
-                }}
-              >
+              <Text size="smaller" weight={600} sx={{
+                margin: "1em 0 .5em 0",
+                color: "var(--palette-grey-100)"
+              }}>
                 Microphone
               </Text>
               <div

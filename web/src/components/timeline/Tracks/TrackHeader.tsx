@@ -36,18 +36,13 @@ import {
   computeReorderedTrackIds,
   type TrackDropPosition
 } from "./trackReorder";
-import { Tooltip, MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT, SPACING, getSpacingPx } from "../../ui_primitives";
-import {
-  DEFAULT_TRACK_HEIGHT_PX as SHARED_DEFAULT_TRACK_HEIGHT_PX,
-  FX_PANEL_HEIGHT_PX
-} from "./trackHeight";
+import { Tooltip, MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT, SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
+import { DEFAULT_TRACK_HEIGHT_PX as SHARED_DEFAULT_TRACK_HEIGHT_PX } from "./trackHeight";
 import {
   trackTypeMeta,
   trackTypeAccent
 } from "./trackVisuals";
 import ConfirmDialog from "../../dialogs/ConfirmDialog";
-
-// ── Constants ──────────────────────────────────────────────────────────────
 
 export const TRACK_HEADER_WIDTH_PX = 192;
 /**
@@ -55,13 +50,11 @@ export const TRACK_HEADER_WIDTH_PX = 192;
  * types ("asset" / "selectedAssetIds") so the lane/empty-area asset-drop
  * handlers never react to a track being reordered.
  */
-export const TRACK_DRAG_MIME = "application/x-nodetool-timeline-track";
+const TRACK_DRAG_MIME = "application/x-nodetool-timeline-track";
 const MIN_TRACK_HEIGHT_PX = 48;
 const MAX_TRACK_HEIGHT_PX = 300;
 const DEFAULT_TRACK_HEIGHT_PX = SHARED_DEFAULT_TRACK_HEIGHT_PX;
 const RESIZE_HANDLE_HEIGHT_PX = 6;
-
-// ── Styles ─────────────────────────────────────────────────────────────────
 
 const headerStyles = (theme: Theme, heightPx: number) =>
   css({
@@ -119,7 +112,7 @@ const dropIndicatorStyles = (theme: Theme, edge: TrackDropPosition) =>
     [edge === "before" ? "top" : "bottom"]: 0,
     height: 2,
     backgroundColor: theme.vars.palette.primary.main,
-    zIndex: 3,
+    zIndex: Z_INDEX.base + 3,
     pointerEvents: "none"
   });
 
@@ -244,8 +237,6 @@ const resizeHandleStyles = (theme: Theme) =>
     }
   });
 
-// ── Component ──────────────────────────────────────────────────────────────
-
 export interface TrackHeaderProps {
   track: TimelineTrack;
   /** Pre-computed 1-based index within the track's type group. */
@@ -268,8 +259,6 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
   const meta = trackTypeMeta(track.type);
   const accent = trackTypeAccent(theme, track.type);
   const TypeIcon = meta.Icon;
-
-  // ── Inline name edit ────────────────────────────────────────────────────
 
   const [editingName, setEditingName] = useState(false);
   const [localName, setLocalName] = useState(track.name);
@@ -306,8 +295,6 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
     },
     [commitName, track.name]
   );
-
-  // ── Height resize handle ────────────────────────────────────────────────
 
   const dragStartYRef = useRef(0);
   const dragStartHeightRef = useRef(heightPx);
@@ -364,8 +351,6 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
   const hasActiveEffects =
     track.effects?.some((e) => e.enabled) ?? false;
 
-  // ── Inline FX panel toggle ──────────────────────────────────────────────
-
   const fxExpanded = useTimelineUIStore(
     (s) => s.expandedFxTrackId === track.id
   );
@@ -374,9 +359,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
     toggleExpandedFx(track.id);
   }, [toggleExpandedFx, track.id]);
 
-  // ── Drag-reorder ──────────────────────────────────────────────────────────
-  //
-  // The grip is the HTML5 drag source; the whole header is the drop target.
+  // Drag-reorder: the grip is the HTML5 drag source; the whole header is the drop target.
   // Reordering is constrained to same-type tracks (see trackReorder). The drop
   // target / indicator state lives in the UI store so sibling headers can show
   // the insertion line; the per-header selector returns the edge only for the

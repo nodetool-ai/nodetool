@@ -16,13 +16,25 @@
  * selection membership (id selector), and msPerPx.
  */
 
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import LoopOutlinedIcon from "@mui/icons-material/LoopOutlined";
 
-import type { TimelineClip, TimelineTrack, ClipStatus } from "@nodetool-ai/timeline";
+import type {
+  TimelineClip,
+  TimelineTrack,
+  ClipStatus
+} from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { findClipById } from "../../../stores/timeline/clipLookup";
 import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
@@ -34,16 +46,21 @@ import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlayb
 import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { getAssetUrl } from "../../../utils/assetHelpers";
-import useErrorStore, { hasNodeError, nodeErrorToDisplayString } from "../../../stores/ErrorStore";
+import useErrorStore, {
+  hasNodeError,
+  nodeErrorToDisplayString
+} from "../../../stores/ErrorStore";
 import { type NodeKey } from "../../../stores/nodeKey";
 import {
   StatusIndicator,
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
-  MagicGenerationFill
+  MagicGenerationFill,
+  Toast,
+  Z_INDEX
 } from "../../ui_primitives";
-import type { StatusType } from "../../ui_primitives/StatusIndicator";
+import type { StatusType } from "../../ui_primitives";
 import { deriveClipStatus } from "../status/clipStatusReducer";
 import type { ClipErrorState } from "../status/clipStatusReducer";
 import { useClipThumbnails } from "./useClipThumbnails";
@@ -52,6 +69,9 @@ import { samplePeaksWindow } from "./audioPeaks";
 import { isCompatibleWithTrack } from "../dnd/assetToClipAdapter";
 import { clipSurfaceTint, clipBorderTint } from "./trackVisuals";
 import { ClipContextMenu } from "./ClipContextMenu";
+import { ReplaceOutputDialog } from "./ReplaceOutputDialog";
+import { deriveClipAnimationMarkers } from "./clipAnimationMarkers";
+import { openPersistedFold } from "../Inspector/usePersistedFold";
 
 /** Clip-side wrapper: TimelineClip.mediaType also includes "overlay";
  *  treat those as video-track-compatible. */
@@ -59,13 +79,15 @@ function isClipCompatibleWithTrack(
   clipMediaType: TimelineClip["mediaType"],
   trackType: TimelineTrack["type"]
 ): boolean {
-  if (clipMediaType === "overlay") {
+  if (
+    clipMediaType === "overlay" ||
+    clipMediaType === "text" ||
+    clipMediaType === "shape"
+  ) {
     return trackType === "video" || trackType === "overlay";
   }
   return isCompatibleWithTrack(clipMediaType, trackType);
 }
-
-// ── Constants ──────────────────────────────────────────────────────────────
 
 const TRIM_HANDLE_WIDTH_PX = 8;
 const MIN_CLIP_WIDTH_PX = 4;
@@ -73,9 +95,11 @@ const CLIP_RADIUS_PX = parseFloat(BORDER_RADIUS.md);
 /** Width below which we suppress secondary chrome (duration label). */
 const COMPACT_THRESHOLD_PX = 96;
 
-// ── Status mapping (PRD §5.5) ──────────────────────────────────────────────
-
-const CLIP_STATUS_MAP: Record<ClipStatus, { status: StatusType; label: string; pulse: boolean }> = {
+// Status mapping (PRD §5.5)
+const CLIP_STATUS_MAP: Record<
+  ClipStatus,
+  { status: StatusType; label: string; pulse: boolean }
+> = {
   draft: { status: "default", label: "Draft", pulse: false },
   queued: { status: "pending", label: "Queued", pulse: false },
   generating: { status: "pending", label: "Generating", pulse: true },
@@ -85,8 +109,6 @@ const CLIP_STATUS_MAP: Record<ClipStatus, { status: StatusType; label: string; p
   locked: { status: "info", label: "Locked", pulse: false },
   missing: { status: "error", label: "Missing", pulse: false }
 };
-
-// ── Styles ─────────────────────────────────────────────────────────────────
 
 const clipStyles = (
   theme: Theme,
@@ -132,7 +154,7 @@ const clipHeaderRowStyles = css({
   gap: getSpacingPx(SPACING.sm),
   padding: `0 ${getSpacingPx(SPACING.md)}`,
   pointerEvents: "none",
-  zIndex: 4
+  zIndex: Z_INDEX.base + 4
 });
 
 const clipDotStyles = (accent: string) =>
@@ -205,7 +227,7 @@ const generatingOverlayStyles = css({
   position: "absolute",
   inset: 0,
   pointerEvents: "none",
-  zIndex: 3,
+  zIndex: Z_INDEX.base + 3,
   overflow: "hidden",
   borderRadius: CLIP_RADIUS_PX
 });
@@ -266,7 +288,8 @@ const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
       successColor
     } = drawInputsRef.current;
 
-    const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+    const dpr =
+      typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
     const cssWidth = Math.max(1, Math.floor(wPx));
     const cssHeight = canvas.clientHeight || 32;
     canvas.width = cssWidth * dpr;
@@ -310,7 +333,7 @@ const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
     // Decide whether anything beyond a sub-pixel width change actually
     // happened. Width changes during a drag are gated to whole pixels (the
     // canvas can't show finer detail); other inputs force a redraw.
-    const inputsKey = `${durationMs}|${inPointMs}|${outPointMs}|${peaks ? peaks.length : 0}`;
+    const inputsKey = `${durationMs}|${inPointMs}|${outPointMs}|${url || ""}`;
     const otherInputsChanged = inputsKey !== lastInputsKeyRef.current;
     const widthChanged =
       Math.abs(Math.floor(widthPx) - lastDrawnWidthRef.current) >= 1;
@@ -329,7 +352,7 @@ const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
         rafIdRef.current = null;
       }
     };
-  }, [peaks, durationMs, inPointMs, outPointMs, widthPx, draw]);
+  }, [peaks, durationMs, inPointMs, outPointMs, widthPx, url, draw]);
 
   return <canvas ref={canvasRef} css={waveformStyles} aria-hidden />;
 };
@@ -346,11 +369,7 @@ const filmstripCellStyles = css({
   opacity: 0.78
 });
 
-const trimHandleStyles = (
-  theme: Theme,
-  edge: "start" | "end",
-  locked: boolean
-) =>
+const trimHandleStyles = (edge: "start" | "end", locked: boolean) =>
   css({
     position: "absolute",
     top: 0,
@@ -362,14 +381,14 @@ const trimHandleStyles = (
     "&:hover": {
       backgroundColor: locked ? undefined : "var(--palette-c_overlay_strong)"
     },
-    zIndex: 2
+    zIndex: Z_INDEX.base + 2
   });
 
 const statusBadgeStyles = css({
   position: "absolute",
   bottom: 4,
   right: 6,
-  zIndex: 3,
+  zIndex: Z_INDEX.base + 3,
   pointerEvents: "none"
 });
 
@@ -377,7 +396,7 @@ const lockIconStyles = css({
   position: "absolute",
   bottom: 4,
   left: 8,
-  zIndex: 3,
+  zIndex: Z_INDEX.base + 3,
   pointerEvents: "none",
   opacity: 0.85,
   fontSize: 12,
@@ -385,15 +404,47 @@ const lockIconStyles = css({
   alignItems: "center"
 });
 
-// ── Component ──────────────────────────────────────────────────────────────
+const animationZoneStyles = (theme: Theme, edge: "in" | "out") =>
+  css({
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    padding: 0,
+    border: 0,
+    cursor: "pointer",
+    zIndex: Z_INDEX.base + 1,
+    backgroundColor:
+      edge === "in"
+        ? `rgba(${theme.vars.palette.primary.mainChannel} / 0.2)`
+        : `rgba(${theme.vars.palette.secondary.mainChannel} / 0.2)`,
+    clipPath:
+      edge === "in"
+        ? "polygon(0 0, 100% 0, 75% 100%, 0 100%)"
+        : "polygon(0 0, 100% 0, 100% 100%, 25% 100%)"
+  });
+
+const animationLoopIconStyles = (theme: Theme) =>
+  css({
+    position: "absolute",
+    left: "50%",
+    bottom: 4,
+    transform: "translateX(-50%)",
+    color: theme.vars.palette.text.secondary,
+    padding: 0,
+    border: 0,
+    background: "none",
+    cursor: "pointer",
+    zIndex: Z_INDEX.base + 2,
+    display: "inline-flex",
+    opacity: 0.85,
+    "& svg": { fontSize: 12 }
+  });
 
 export interface ClipProps {
   clipId: string;
 }
 
 export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
-  const theme = useTheme();
-
   // Selector: only this clip's fields. findClipById is O(1) via a WeakMap
   // index keyed on `clips` identity, shared across every mounted Clip — vs.
   // O(n) per clip per store publish (O(n²) aggregate during a drag).
@@ -444,14 +495,14 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     };
   }, [clip?.mediaType, clip?.currentAssetId, getAssetFromStore]);
 
-  const { durationMs: decodedAudioDurationMs } = useAudioPeaks(resolvedAudioUrl);
+  const { durationMs: decodedAudioDurationMs } =
+    useAudioPeaks(resolvedAudioUrl);
   const audioSourceDurationMs =
     clip?.mediaType === "audio" && decodedAudioDurationMs
       ? decodedAudioDurationMs
       : undefined;
 
-  // ── Derived status (PRD §5.5) ────────────────────────────────────────────
-
+  // Derived status (PRD §5.5).
   // Node-level errors from ErrorStore. Error keys are now scoped per run
   // (`${wf}:${jobId}:${node}`), so restrict the scan to the workflow's focused
   // run; with no focused run there's no error to surface.
@@ -478,7 +529,8 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     return null;
   });
   const errorState: ClipErrorState | null = useMemo(
-    () => (errorMessage !== null ? { hasError: true, message: errorMessage } : null),
+    () =>
+      errorMessage !== null ? { hasError: true, message: errorMessage } : null,
     [errorMessage]
   );
 
@@ -494,16 +546,12 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     return deriveClipStatus(clip, errorState, true);
   }, [clip, errorState]);
 
-  // ── Undo batching ───────────────────────────────────────────────────────
-  //
-  // Drag/trim gestures mutate the store on every pointermove. To collapse a
+  // Undo batching: drag/trim gestures mutate the store on every pointermove. To collapse a
   // whole gesture into a single undo entry we begin a batch on pointerdown,
   // mark() after each mutation (which pauses history once the pre-gesture
   // state has actually been checkpointed), and end() on pointerup. While
-  // paused, zundo records nothing — so one undo step reverts the entire drag.
+  // paused, the temporal middleware records nothing — so one undo step reverts the entire drag.
   const history = useTimelineHistoryBatch();
-
-  // ── Drag (move) ─────────────────────────────────────────────────────────
 
   const dragStartXRef = useRef(0);
   const dragStartMsRef = useRef(0);
@@ -694,8 +742,6 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     ]
   );
 
-  // ── Context menu (Delete / Unlink) ──────────────────────────────────────
-
   const [contextMenuPos, setContextMenuPos] = useState<{
     x: number;
     y: number;
@@ -716,13 +762,19 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   // Stable handler props for the memoized ClipBody — inline arrows here would
   // create a fresh function each render and defeat the React.memo on ClipBody.
   const handleCloseContextMenu = useCallback(() => setContextMenuPos(null), []);
-  const handleUnlink = useCallback(() => unlinkClip(clipId), [unlinkClip, clipId]);
+  // Raised by context-menu actions; they must outlive the menu's unmount.
+  const [replaceAssetId, setReplaceAssetId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const handleCloseReplace = useCallback(() => setReplaceAssetId(null), []);
+  const handleClearError = useCallback(() => setActionError(null), []);
+  const handleUnlink = useCallback(
+    () => unlinkClip(clipId),
+    [unlinkClip, clipId]
+  );
   const handleDelete = useCallback(
     () => deleteSelected(new Set([clipId])),
     [deleteSelected, clipId]
   );
-
-  // ── Click (selection) ───────────────────────────────────────────────────
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -750,8 +802,6 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     },
     [clipId, selectClip]
   );
-
-  // ── Trim start ──────────────────────────────────────────────────────────
 
   // Gesture-ownership flags: each trim handle's move handler only runs when
   // *its own* pointerdown started the gesture. Without this, dragging another
@@ -808,8 +858,6 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     },
     [clip, msPerPx, trimClipStart, history]
   );
-
-  // ── Trim end ────────────────────────────────────────────────────────────
 
   const trimEndRef = useRef({ startX: 0, startMs: 0, startDuration: 0 });
 
@@ -879,10 +927,12 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   const statusInfo = CLIP_STATUS_MAP[derivedStatus];
 
   return (
+    <>
     <ClipBody
       clip={clip}
       leftPx={leftPx}
       widthPx={widthPx}
+      msPerPx={msPerPx}
       isSelected={isSelected}
       derivedStatus={derivedStatus}
       statusInfo={statusInfo}
@@ -896,11 +946,35 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       handleTrimEndPointerMove={handleTrimEndPointerMove}
       handleTrimPointerEnd={handleTrimPointerEnd}
       cutMode={activeTool === "cut"}
-      contextMenuPos={contextMenuPos}
-      onCloseContextMenu={handleCloseContextMenu}
-      onUnlink={handleUnlink}
-      onDelete={handleDelete}
     />
+    {contextMenuPos && (
+      <ClipContextMenu
+        clipId={clipId}
+        position={contextMenuPos}
+        isLinked={Boolean(clip.linkId)}
+        onUnlink={handleUnlink}
+        onDelete={handleDelete}
+        onClose={handleCloseContextMenu}
+        onRequestReplace={setReplaceAssetId}
+        onError={setActionError}
+      />
+    )}
+    {replaceAssetId !== null && (
+      <ReplaceOutputDialog
+        clipId={clipId}
+        initialAssetId={replaceAssetId}
+        onClose={handleCloseReplace}
+      />
+    )}
+    <Toast
+      open={actionError !== null}
+      message={actionError ?? ""}
+      severity="error"
+      onClose={handleClearError}
+      vertical="top"
+      horizontal="center"
+    />
+    </>
   );
 });
 
@@ -908,9 +982,10 @@ interface ClipBodyProps {
   clip: TimelineClip;
   leftPx: number;
   widthPx: number;
+  msPerPx: number;
   isSelected: boolean;
   derivedStatus: ClipStatus;
-  statusInfo: typeof CLIP_STATUS_MAP[ClipStatus];
+  statusInfo: (typeof CLIP_STATUS_MAP)[ClipStatus];
   handleDragPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleClick: (e: React.MouseEvent<HTMLDivElement>) => void;
   handleKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
@@ -921,274 +996,312 @@ interface ClipBodyProps {
   handleTrimEndPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTrimPointerEnd: () => void;
   cutMode: boolean;
-  contextMenuPos: { x: number; y: number } | null;
-  onCloseContextMenu: () => void;
-  onUnlink: () => void;
-  onDelete: () => void;
 }
 
-const ClipBody: React.FC<ClipBodyProps> = memo(({
-  clip,
-  leftPx,
-  widthPx,
-  isSelected,
-  derivedStatus,
-  statusInfo,
-  handleDragPointerDown,
-  handleClick,
-  handleKeyDown,
-  handleContextMenu,
-  handleTrimStartPointerDown,
-  handleTrimStartPointerMove,
-  handleTrimEndPointerDown,
-  handleTrimEndPointerMove,
-  handleTrimPointerEnd,
-  cutMode,
-  contextMenuPos,
-  onCloseContextMenu,
-  onUnlink,
-  onDelete
-}) => {
-  const theme = useTheme();
-  const clipId = clip.id;
+const ClipBody: React.FC<ClipBodyProps> = memo(
+  ({
+    clip,
+    leftPx,
+    widthPx,
+    msPerPx,
+    isSelected,
+    derivedStatus,
+    statusInfo,
+    handleDragPointerDown,
+    handleClick,
+    handleKeyDown,
+    handleContextMenu,
+    handleTrimStartPointerDown,
+    handleTrimStartPointerMove,
+    handleTrimEndPointerDown,
+    handleTrimEndPointerMove,
+    handleTrimPointerEnd,
+    cutMode
+  }) => {
+    const theme = useTheme();
+    const clipId = clip.id;
 
-  // Resolve asset URL for thumbnail extraction. Only video clips trigger
-  // a fetch — image clips are handled below with a single backgroundImage.
-  const assetIdForThumb =
-    clip.mediaType === "video" || clip.mediaType === "overlay"
-      ? clip.currentAssetId
-      : undefined;
-  const imageAssetId =
-    clip.mediaType === "image" ? clip.currentAssetId : undefined;
-  const audioAssetId =
-    clip.mediaType === "audio" ? clip.currentAssetId : undefined;
+    // Resolve asset URL for thumbnail extraction. Only video clips trigger
+    // a fetch — image clips are handled below with a single backgroundImage.
+    const assetIdForThumb =
+      clip.mediaType === "video" || clip.mediaType === "overlay"
+        ? clip.currentAssetId
+        : undefined;
+    const imageAssetId =
+      clip.mediaType === "image" ? clip.currentAssetId : undefined;
+    const audioAssetId =
+      clip.mediaType === "audio" ? clip.currentAssetId : undefined;
 
-  const getAsset = useAssetStore((s) => s.get);
-  const [videoUrl, setVideoUrl] = useState<string | undefined>(undefined);
-  const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
-  const [audioUrl, setAudioUrl] = useState<string | undefined>(undefined);
+    const getAsset = useAssetStore((s) => s.get);
+    const [videoUrl, setVideoUrl] = useState<string | undefined>(undefined);
+    const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
+    const [audioUrl, setAudioUrl] = useState<string | undefined>(undefined);
 
-  useEffect(() => {
-    let cancelled = false;
-    if (!assetIdForThumb) {
-      setVideoUrl(undefined);
-      return;
-    }
-    getAsset(assetIdForThumb)
-      .then((asset) => {
-        if (!cancelled) setVideoUrl(getAssetUrl(asset) ?? undefined);
-      })
-      .catch(() => {
-        // Asset unavailable — leave url undefined; clip renders without filmstrip.
-      });
-    return () => {
-      cancelled = true;
+    useEffect(() => {
+      let cancelled = false;
+      if (!assetIdForThumb) {
+        setVideoUrl(undefined);
+        return;
+      }
+      getAsset(assetIdForThumb)
+        .then((asset) => {
+          if (!cancelled) setVideoUrl(getAssetUrl(asset) ?? undefined);
+        })
+        .catch(() => {
+          // Asset unavailable — leave url undefined; clip renders without filmstrip.
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [assetIdForThumb, getAsset]);
+
+    useEffect(() => {
+      let cancelled = false;
+      if (!imageAssetId) {
+        setImageUrl(undefined);
+        return;
+      }
+      getAsset(imageAssetId)
+        .then((asset) => {
+          if (!cancelled) setImageUrl(getAssetUrl(asset) ?? undefined);
+        })
+        .catch(() => {
+          // ignored
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [imageAssetId, getAsset]);
+
+    useEffect(() => {
+      let cancelled = false;
+      if (!audioAssetId) {
+        setAudioUrl(undefined);
+        return;
+      }
+      getAsset(audioAssetId)
+        .then((asset) => {
+          if (!cancelled) setAudioUrl(getAssetUrl(asset) ?? undefined);
+        })
+        .catch(() => {
+          // Asset unavailable — leave url undefined; clip renders without waveform.
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [audioAssetId, getAsset]);
+
+    const thumbnails = useClipThumbnails(videoUrl);
+    // openreel uses ~60px per cell; matches their visual density.
+    const cellCount = Math.max(1, Math.floor(widthPx / 60));
+
+    const filmstripCells = useMemo(() => {
+      if (!thumbnails || thumbnails.length === 0) return null;
+      const cells: { url: string }[] = [];
+      for (let i = 0; i < cellCount; i++) {
+        const progress = cellCount === 1 ? 0 : i / (cellCount - 1);
+        const idx = Math.min(
+          Math.floor(progress * thumbnails.length),
+          thumbnails.length - 1
+        );
+        cells.push({ url: thumbnails[idx].dataUrl });
+      }
+      return cells;
+    }, [thumbnails, cellCount]);
+
+    const accent = (() => {
+      switch (clip.mediaType) {
+        case "audio":
+          return theme.vars.palette.success.main;
+        case "overlay":
+        case "text":
+        case "shape":
+          return theme.vars.palette.secondary.main;
+        case "image":
+        case "video":
+        default:
+          return theme.vars.palette.info.main;
+      }
+    })();
+
+    const showDuration = widthPx >= COMPACT_THRESHOLD_PX;
+    const durationLabel = formatClipDuration(clip.durationMs);
+    const animationMarkers = deriveClipAnimationMarkers(
+      clip.animations,
+      msPerPx,
+      widthPx
+    );
+    const handleAnimationMarkerClick = (event: React.MouseEvent) => {
+      event.stopPropagation();
+      useTimelineUIStore.getState().selectClip(clipId);
+      openPersistedFold("animate");
     };
-  }, [assetIdForThumb, getAsset]);
 
-  useEffect(() => {
-    let cancelled = false;
-    if (!imageAssetId) {
-      setImageUrl(undefined);
-      return;
-    }
-    getAsset(imageAssetId)
-      .then((asset) => {
-        if (!cancelled) setImageUrl(getAssetUrl(asset) ?? undefined);
-      })
-      .catch(() => {
-        // ignored
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [imageAssetId, getAsset]);
+    const positionStyle = useMemo(
+      () => ({
+        left: leftPx,
+        width: widthPx,
+        cursor: cutMode ? ("crosshair" as const) : undefined
+      }),
+      [leftPx, widthPx, cutMode]
+    );
 
-  useEffect(() => {
-    let cancelled = false;
-    if (!audioAssetId) {
-      setAudioUrl(undefined);
-      return;
-    }
-    getAsset(audioAssetId)
-      .then((asset) => {
-        if (!cancelled) setAudioUrl(getAssetUrl(asset) ?? undefined);
-      })
-      .catch(() => {
-        // Asset unavailable — leave url undefined; clip renders without waveform.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [audioAssetId, getAsset]);
+    const imageStyle = useMemo(
+      () =>
+        imageUrl
+          ? {
+              backgroundImage: `url(${imageUrl})`,
+              backgroundSize: "cover" as const,
+              backgroundPosition: "center" as const,
+              opacity: 0.78
+            }
+          : undefined,
+      [imageUrl]
+    );
 
-  const thumbnails = useClipThumbnails(videoUrl);
-  // openreel uses ~60px per cell; matches their visual density.
-  const cellCount = Math.max(1, Math.floor(widthPx / 60));
-
-  const filmstripCells = useMemo(() => {
-    if (!thumbnails || thumbnails.length === 0) return null;
-    const cells: { url: string }[] = [];
-    for (let i = 0; i < cellCount; i++) {
-      const progress = cellCount === 1 ? 0 : i / (cellCount - 1);
-      const idx = Math.min(
-        Math.floor(progress * thumbnails.length),
-        thumbnails.length - 1
-      );
-      cells.push({ url: thumbnails[idx].dataUrl });
-    }
-    return cells;
-  }, [thumbnails, cellCount]);
-
-  const accent = (() => {
-    switch (clip.mediaType) {
-      case "audio":
-        return theme.vars.palette.success.main;
-      case "overlay":
-        return theme.vars.palette.secondary.main;
-      case "image":
-      case "video":
-      default:
-        return theme.vars.palette.info.main;
-    }
-  })();
-
-  const showDuration = widthPx >= COMPACT_THRESHOLD_PX;
-  const durationLabel = formatClipDuration(clip.durationMs);
-
-  const positionStyle = useMemo(
-    () => ({
-      left: leftPx,
-      width: widthPx,
-      cursor: cutMode ? ("crosshair" as const) : undefined
-    }),
-    [leftPx, widthPx, cutMode]
-  );
-
-  const imageStyle = useMemo(
-    () =>
-      imageUrl
-        ? {
-            backgroundImage: `url(${imageUrl})`,
-            backgroundSize: "cover" as const,
-            backgroundPosition: "center" as const,
-            opacity: 0.78
-          }
-        : undefined,
-    [imageUrl]
-  );
-
-  return (
-    <div
-      css={clipStyles(theme, isSelected, clip.locked, clip.mediaType)}
-      style={positionStyle}
-      onPointerDown={handleDragPointerDown}
-      onClick={handleClick}
-      onKeyDown={handleKeyDown}
-      onContextMenu={handleContextMenu}
-      data-testid={`clip-${clipId}`}
-      aria-selected={isSelected}
-      role="option"
-      tabIndex={0}
-      aria-label={clip.name || `Clip ${clip.id}`}
-    >
-      {filmstripCells && (
-        <div css={filmstripStyles}>
-          {filmstripCells.map((cell, i) => (
-            <div
-              key={i}
-              css={filmstripCellStyles}
-              style={{ backgroundImage: `url(${cell.url})` }}
-            />
-          ))}
-        </div>
-      )}
-
-      {imageUrl && <div css={filmstripStyles} style={imageStyle} />}
-
-      {clip.mediaType === "audio" && (
-        <WaveformCanvas
-          url={audioUrl}
-          inPointMs={clip.inPointMs ?? 0}
-          outPointMs={(clip.inPointMs ?? 0) + clip.durationMs}
-          widthPx={widthPx}
-        />
-      )}
-
-      {/* Header strip: type dot · name · duration */}
-      <div css={clipHeaderRowStyles}>
-        <span css={clipDotStyles(accent)} aria-hidden />
-        <span css={clipNameStyles(theme)}>{clip.name}</span>
-        {showDuration && (
-          <span css={clipDurationStyles(theme)}>{durationLabel}</span>
-        )}
-      </div>
-
+    return (
       <div
-        css={trimHandleStyles(theme, "start", clip.locked)}
-        onPointerDown={handleTrimStartPointerDown}
-        onPointerMove={handleTrimStartPointerMove}
-        onPointerUp={handleTrimPointerEnd}
-        onPointerCancel={handleTrimPointerEnd}
-        aria-label="Trim clip start"
-        data-testid={`clip-trim-start-${clipId}`}
-      />
-
-      <div
-        css={trimHandleStyles(theme, "end", clip.locked)}
-        onPointerDown={handleTrimEndPointerDown}
-        onPointerMove={handleTrimEndPointerMove}
-        onPointerUp={handleTrimPointerEnd}
-        onPointerCancel={handleTrimPointerEnd}
-        aria-label="Trim clip end"
-        data-testid={`clip-trim-end-${clipId}`}
-      />
-
-      {clip.locked && (
-        <div css={lockIconStyles}>
-          <LockOutlinedIcon sx={{ fontSize: 12 }} aria-label="Clip locked" />
-        </div>
-      )}
-
-      {(derivedStatus === "queued" || derivedStatus === "generating") && (
-        <div
-          css={generatingOverlayStyles}
-          aria-hidden
-          data-testid={`clip-generating-${clipId}`}
-        >
-          <MagicGenerationFill />
-        </div>
-      )}
-
-      {/* The badge surfaces lifecycle state for generated clips. Once a
-       *  clip has settled into "generated" it doesn't need a permanent green
-       *  dot, and imported clips have no lifecycle at all — so we render
-       *  only while something interesting is happening. */}
-      {clip.sourceType === "generated" &&
-        derivedStatus !== "draft" &&
-        derivedStatus !== "generated" && (
-          <div css={statusBadgeStyles}>
-            <StatusIndicator
-              status={statusInfo.status}
-              pulse={statusInfo.pulse}
-              tooltip={statusInfo.label}
-              size="small"
-            />
+        css={clipStyles(theme, isSelected, clip.locked, clip.mediaType)}
+        style={positionStyle}
+        onPointerDown={handleDragPointerDown}
+        onClick={handleClick}
+        onKeyDown={handleKeyDown}
+        onContextMenu={handleContextMenu}
+        data-testid={`clip-${clipId}`}
+        aria-selected={isSelected}
+        role="option"
+        tabIndex={0}
+        aria-label={clip.name || `Clip ${clip.id}`}
+      >
+        {filmstripCells && (
+          <div css={filmstripStyles}>
+            {filmstripCells.map((cell, i) => (
+              <div
+                key={i}
+                css={filmstripCellStyles}
+                style={{ backgroundImage: `url(${cell.url})` }}
+              />
+            ))}
           </div>
         )}
 
-      {contextMenuPos && (
-        <ClipContextMenu
-          position={contextMenuPos}
-          isLinked={Boolean(clip.linkId)}
-          onUnlink={onUnlink}
-          onDelete={onDelete}
-          onClose={onCloseContextMenu}
+        {imageUrl && <div css={filmstripStyles} style={imageStyle} />}
+
+        {clip.mediaType === "audio" && (
+          <WaveformCanvas
+            url={audioUrl}
+            inPointMs={clip.inPointMs ?? 0}
+            outPointMs={(clip.inPointMs ?? 0) + clip.durationMs}
+            widthPx={widthPx}
+          />
+        )}
+
+        {animationMarkers.inZone && (
+          <button
+            type="button"
+            css={animationZoneStyles(theme, "in")}
+            style={{
+              left: animationMarkers.inZone.offsetPx,
+              width: animationMarkers.inZone.widthPx
+            }}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={handleAnimationMarkerClick}
+            aria-label="Open entrance animation controls"
+          />
+        )}
+
+        {animationMarkers.outZone && (
+          <button
+            type="button"
+            css={animationZoneStyles(theme, "out")}
+            style={{
+              right: animationMarkers.outZone.offsetPx,
+              width: animationMarkers.outZone.widthPx
+            }}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={handleAnimationMarkerClick}
+            aria-label="Open exit animation controls"
+          />
+        )}
+
+        {animationMarkers.hasLoopOrEmphasis && (
+          <button
+            type="button"
+            css={animationLoopIconStyles(theme)}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={handleAnimationMarkerClick}
+            aria-label="Open loop and emphasis animation controls"
+          >
+            <LoopOutlinedIcon />
+          </button>
+        )}
+
+        {/* Header strip: type dot · name · duration */}
+        <div css={clipHeaderRowStyles}>
+          <span css={clipDotStyles(accent)} aria-hidden />
+          <span css={clipNameStyles(theme)}>{clip.name}</span>
+          {showDuration && (
+            <span css={clipDurationStyles(theme)}>{durationLabel}</span>
+          )}
+        </div>
+
+        <div
+          css={trimHandleStyles("start", clip.locked)}
+          onPointerDown={handleTrimStartPointerDown}
+          onPointerMove={handleTrimStartPointerMove}
+          onPointerUp={handleTrimPointerEnd}
+          onPointerCancel={handleTrimPointerEnd}
+          aria-label="Trim clip start"
+          data-testid={`clip-trim-start-${clipId}`}
         />
-      )}
-    </div>
-  );
-});
+
+        <div
+          css={trimHandleStyles("end", clip.locked)}
+          onPointerDown={handleTrimEndPointerDown}
+          onPointerMove={handleTrimEndPointerMove}
+          onPointerUp={handleTrimPointerEnd}
+          onPointerCancel={handleTrimPointerEnd}
+          aria-label="Trim clip end"
+          data-testid={`clip-trim-end-${clipId}`}
+        />
+
+        {clip.locked && (
+          <div css={lockIconStyles}>
+            <LockOutlinedIcon sx={{ fontSize: 12 }} aria-label="Clip locked" />
+          </div>
+        )}
+
+        {(derivedStatus === "queued" || derivedStatus === "generating") && (
+          <div
+            css={generatingOverlayStyles}
+            aria-hidden
+            data-testid={`clip-generating-${clipId}`}
+          >
+            <MagicGenerationFill />
+          </div>
+        )}
+
+        {/* The badge surfaces lifecycle state for generated clips. Once a
+         *  clip has settled into "generated" it doesn't need a permanent green
+         *  dot, and imported clips have no lifecycle at all — so we render
+         *  only while something interesting is happening. */}
+        {clip.sourceType === "generated" &&
+          derivedStatus !== "draft" &&
+          derivedStatus !== "generated" && (
+            <div css={statusBadgeStyles}>
+              <StatusIndicator
+                status={statusInfo.status}
+                pulse={statusInfo.pulse}
+                tooltip={statusInfo.label}
+                size="small"
+              />
+            </div>
+          )}
+
+      </div>
+    );
+  }
+);
 ClipBody.displayName = "ClipBody";
 
 /** "4.6s" for sub-minute, "1:23" for ≥1 min. Shown when clip width ≥ compact threshold. */

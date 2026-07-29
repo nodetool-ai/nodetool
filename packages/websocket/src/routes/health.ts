@@ -6,7 +6,6 @@ import { pingDb } from "@nodetool-ai/models";
 
 const serverStartTime = Date.now();
 
-// Read version from package.json
 export function getVersion(): string {
   try {
     const packageJsonPath = resolve(

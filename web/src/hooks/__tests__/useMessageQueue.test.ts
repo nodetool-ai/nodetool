@@ -297,7 +297,7 @@ describe("useMessageQueue", () => {
 
   describe("sendQueuedNow", () => {
     it("sends queued message immediately and calls onStop", () => {
-      const { result, rerender } = renderHook(
+      const { result } = renderHook(
         ({ isLoading, isStreaming }) =>
           useMessageQueue({
             isLoading,
@@ -322,10 +322,6 @@ describe("useMessageQueue", () => {
 
       expect(mockOnStop).toHaveBeenCalled();
       expect(result.current.queuedMessage).toBeNull();
-
-      // Simulate the streaming state changing to stopped
-      rerender({ isLoading: false, isStreaming: false });
-
       expect(mockOnSendMessage).toHaveBeenCalledWith(content, "test message");
     });
 

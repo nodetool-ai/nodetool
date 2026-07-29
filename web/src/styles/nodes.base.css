@@ -21,8 +21,9 @@
   border-radius: var(--rounded-node);
   background-color: transparent;
   transform-origin: center center;
-  transition: background-color 0.08s ease, box-shadow 0.18s ease-in-out,
-    outline-color 0.18s ease;
+  transition: background-color var(--motion-fast) ease,
+    box-shadow var(--motion-normal) ease-in-out,
+    outline-color var(--motion-normal) ease;
 }
 
 /* Tween the node's `transform` only when the user is NOT actively
@@ -31,8 +32,9 @@
    cursor (React Flow adds the `dragging` class for the duration of
    the drag gesture, so the selector below stops matching mid-drag). */
 .react-flow__node:not(.dragging) {
-  transition: background-color 0.08s ease, box-shadow 0.18s ease-in-out,
-    transform 0.18s ease, outline-color 0.18s ease;
+  transition: background-color var(--motion-fast) ease,
+    box-shadow var(--motion-normal) ease-in-out,
+    transform var(--motion-normal) ease, outline-color var(--motion-normal) ease;
 }
 
 /* When a NodesSelection rectangle is being dragged, ReactFlow moves all selected
@@ -41,8 +43,9 @@
    animate 180ms behind the cursor.  The JS drag handlers add/remove the
    `nodesselection-dragging` class on the .react-flow container to signal this. */
 .react-flow.nodesselection-dragging .react-flow__node.selected {
-  transition: background-color 0.08s ease, box-shadow 0.18s ease-in-out,
-    outline-color 0.18s ease;
+  transition: background-color var(--motion-fast) ease,
+    box-shadow var(--motion-normal) ease-in-out,
+    outline-color var(--motion-normal) ease;
 }
 
 /* A corner resize that repositions the node (every corner but bottom-right)
@@ -51,8 +54,9 @@
    origin ~180ms behind — the node visibly lags out of place and snaps back on
    release. The media-aspect resize handle adds `node-resizing` for the gesture. */
 .react-flow.node-resizing .react-flow__node {
-  transition: background-color 0.08s ease, box-shadow 0.18s ease-in-out,
-    outline-color 0.18s ease;
+  transition: background-color var(--motion-fast) ease,
+    box-shadow var(--motion-normal) ease-in-out,
+    outline-color var(--motion-normal) ease;
 }
 
 .node-drag-handle {
@@ -149,7 +153,7 @@
 
 .react-flow__node-toolbar button {
   opacity: 0.7;
-  transition: opacity 0.2s;
+  transition: opacity var(--motion-normal);
 }
 .react-flow__node-toolbar button:hover {
   opacity: 1;

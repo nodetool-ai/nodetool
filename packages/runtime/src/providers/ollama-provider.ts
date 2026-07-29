@@ -26,6 +26,16 @@ type OllamaToolCall = {
   };
 };
 
+/**
+ * Token counts Ollama reports on the final `/api/chat` object (and on the
+ * non-streaming response). Cost is zero for a local model, the token counts
+ * are not.
+ */
+type OllamaUsageFields = {
+  prompt_eval_count?: number;
+  eval_count?: number;
+};
+
 type OllamaChatMessage = {
   role?: string;
   content?: string;
@@ -210,13 +220,23 @@ export class OllamaProvider extends BaseProvider {
       let argMatch: RegExpExecArray | null;
       while ((argMatch = argPattern.exec(argsStr)) !== null) {
         const key = argMatch[1];
+        // A quoted value ('…' or "…") is explicitly a string — never coerce it.
+        const quoted = argMatch[2] !== undefined || argMatch[3] !== undefined;
         const value = argMatch[2] ?? argMatch[3] ?? argMatch[4];
-        // Try to parse as number or boolean
-        if (value === "true") args[key] = true;
-        else if (value === "false") args[key] = false;
-        else if (!isNaN(Number(value)) && value !== "")
+        if (quoted) {
+          args[key] = value;
+        } else if (value === "true") {
+          args[key] = true;
+        } else if (value === "false") {
+          args[key] = false;
+        } else if (/^-?(?:0|[1-9]\d*)(?:\.\d+)?$/.test(value)) {
+          // Only coerce STRICT decimal integers/floats. Leading-zero ("01234"),
+          // exponent ("1e5"), hex ("0x10") and "Infinity" forms stay strings so
+          // numeric-looking identifiers aren't corrupted.
           args[key] = Number(value);
-        else args[key] = value;
+        } else {
+          args[key] = value;
+        }
       }
 
       // Include a per-call index so repeated calls to the same tool within one
@@ -277,7 +297,15 @@ export class OllamaProvider extends BaseProvider {
     if (message.role === "assistant") {
       const out: Record<string, unknown> = {
         role: "assistant",
-        content: typeof message.content === "string" ? message.content : ""
+        // Flatten array-typed content like the system/user branches do; the
+        // previous `: ""` silently erased a prior assistant turn stored as text
+        // parts, dropping it from the replayed context.
+        content:
+          typeof message.content === "string"
+            ? message.content
+            : Array.isArray(message.content)
+              ? asTextParts(message.content)
+              : ""
       };
 
       const toolCalls = message.toolCalls ?? [];
@@ -314,7 +342,9 @@ export class OllamaProvider extends BaseProvider {
     const text = asTextParts(parts);
     const images = await Promise.all(
       parts
-        .filter((part): part is MessageImageContent => part.type === "image_url")
+        .filter(
+          (part): part is MessageImageContent => part.type === "image_url"
+        )
         .map((part) => this.imageToBase64(part.image))
     );
 
@@ -341,12 +371,14 @@ export class OllamaProvider extends BaseProvider {
 
   private async postJson<T>(
     path: string,
-    body: Record<string, unknown>
+    body: Record<string, unknown>,
+    signal?: AbortSignal
   ): Promise<T> {
     const response = await this._fetch(`${this.apiUrl}${path}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal
     });
     if (!response.ok) {
       throw new Error(`Ollama API request failed (${response.status})`);
@@ -397,21 +429,49 @@ export class OllamaProvider extends BaseProvider {
       .filter((tc): tc is ToolCall => tc !== null);
   }
 
+  /**
+   * Record the token counts Ollama reports on its final chat object. Local
+   * models cost nothing, but the counts still belong in `llm_call` events and
+   * `llm.chat`/`llm.stream` spans.
+   */
+  private trackOllamaUsage(model: string, payload: OllamaUsageFields): void {
+    const inputTokens = payload.prompt_eval_count ?? 0;
+    const outputTokens = payload.eval_count ?? 0;
+    if (inputTokens === 0 && outputTokens === 0) return;
+    this.trackUsage(model, { inputTokens, outputTokens });
+  }
+
   private async buildChatRequest(args: {
     messages: Message[];
     model: string;
     tools?: ProviderTool[];
     maxTokens?: number;
+    temperature?: number;
+    topP?: number;
+    presencePenalty?: number;
+    frequencyPenalty?: number;
   }): Promise<Record<string, unknown>> {
+    // Ollama has one `repeat_penalty` knob rather than OpenAI's separate
+    // presence/frequency penalties; prefer the explicit frequency penalty and
+    // fall back to the presence penalty. Ollama's neutral value is 1.0 while
+    // OpenAI's is 0.0, so shift by one.
+    const repeatPenaltySource = args.frequencyPenalty ?? args.presencePenalty;
+    const options: Record<string, unknown> = {
+      num_predict: args.maxTokens ?? 8192
+    };
+    if (args.temperature != null) options.temperature = args.temperature;
+    if (args.topP != null) options.top_p = args.topP;
+    if (repeatPenaltySource != null) {
+      options.repeat_penalty = 1 + repeatPenaltySource;
+    }
+
     const request: Record<string, unknown> = {
       model: args.model,
       messages: await Promise.all(
         args.messages.map((m) => this.convertMessage(m))
       ),
       keep_alive: this.keepAlive,
-      options: {
-        num_predict: args.maxTokens ?? 8192
-      }
+      options
     };
 
     if (
@@ -433,6 +493,7 @@ export class OllamaProvider extends BaseProvider {
     topP?: number;
     presencePenalty?: number;
     frequencyPenalty?: number;
+    signal?: AbortSignal;
   }): Promise<Message> {
     const tools = args.tools ?? [];
     const useToolEmulation =
@@ -450,31 +511,44 @@ export class OllamaProvider extends BaseProvider {
       messages,
       model: args.model,
       tools: requestTools,
-      maxTokens: args.maxTokens
+      maxTokens: args.maxTokens,
+      temperature: args.temperature,
+      topP: args.topP,
+      presencePenalty: args.presencePenalty,
+      frequencyPenalty: args.frequencyPenalty
     });
     request.stream = false;
 
     log.debug("Ollama request", { model: args.model });
 
     this.recordRequestPayload(request);
-    const response = await this.postJson<{ message?: OllamaChatMessage }>(
-      "/api/chat",
-      request
-    );
+    const response = await this.postJson<
+      { message?: OllamaChatMessage } & OllamaUsageFields
+    >("/api/chat", request, args.signal);
+    this.trackOllamaUsage(args.model, response);
     const message = response.message ?? {};
     const content = typeof message.content === "string" ? message.content : "";
 
     let toolCalls: ToolCall[];
+    let finalContent = content;
     if (useToolEmulation) {
-      const [emulatedCalls] = this._parseEmulatedToolCalls(content, tools);
+      // Use the CLEANED content — the parser strips the literal call syntax.
+      // Returning the raw content left `get_weather(city='Paris')` both as a
+      // structured tool call AND as prose, which re-enters history and confuses
+      // the model on later turns.
+      const [emulatedCalls, cleaned] = this._parseEmulatedToolCalls(
+        content,
+        tools
+      );
       toolCalls = emulatedCalls;
+      if (emulatedCalls.length > 0) finalContent = cleaned;
     } else {
       toolCalls = this.toToolCalls(message.tool_calls);
     }
 
     return {
       role: "assistant",
-      content,
+      content: finalContent,
       toolCalls
     };
   }
@@ -497,7 +571,9 @@ export class OllamaProvider extends BaseProvider {
       if (msg.role === "system" && !systemFound) {
         systemFound = true;
         const existingContent =
-          typeof msg.content === "string" ? msg.content : "";
+          typeof msg.content === "string"
+            ? msg.content
+            : asTextParts(msg.content ?? []);
         result.push({ ...msg, content: existingContent + emulationSuffix });
       } else if (msg.role === "tool") {
         // Convert tool result to user message
@@ -532,6 +608,7 @@ export class OllamaProvider extends BaseProvider {
     presencePenalty?: number;
     frequencyPenalty?: number;
     audio?: Record<string, unknown>;
+    signal?: AbortSignal;
   }): AsyncGenerator<ProviderStreamItem> {
     const tools = args.tools ?? [];
     const useToolEmulation =
@@ -549,7 +626,11 @@ export class OllamaProvider extends BaseProvider {
       messages,
       model: args.model,
       tools: requestTools,
-      maxTokens: args.maxTokens
+      maxTokens: args.maxTokens,
+      temperature: args.temperature,
+      topP: args.topP,
+      presencePenalty: args.presencePenalty,
+      frequencyPenalty: args.frequencyPenalty
     });
     request.stream = true;
 
@@ -559,7 +640,8 @@ export class OllamaProvider extends BaseProvider {
     const response = await this._fetch(`${this.apiUrl}/api/chat`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(request)
+      body: JSON.stringify(request),
+      signal: args.signal
     });
 
     if (!response.ok || !response.body) {
@@ -587,7 +669,8 @@ export class OllamaProvider extends BaseProvider {
           const event = JSON.parse(line) as {
             message?: OllamaChatMessage;
             done?: boolean;
-          };
+          } & OllamaUsageFields;
+          if (event.done) this.trackOllamaUsage(args.model, event);
           const message = event.message ?? {};
 
           // Reasoning models stream their chain of thought in `thinking` while
@@ -611,11 +694,43 @@ export class OllamaProvider extends BaseProvider {
 
           const content =
             typeof message.content === "string" ? message.content : "";
-          if (useToolEmulation) {
-            accumulatedText += content;
-          }
 
-          if (content.length > 0 || event.done) {
+          if (useToolEmulation) {
+            // Buffer content instead of streaming it verbatim: the emulated
+            // tool-call syntax (e.g. `get_weather(city='Paris')`) must be
+            // stripped from the visible text before it re-enters history, and
+            // that can only happen once the full response is assembled. Mirrors
+            // the non-streaming generateMessage path, which had this fix (#1)
+            // while the streaming path leaked the raw call syntax as prose.
+            accumulatedText += content;
+            if (event.done) {
+              const [emulatedCalls, cleaned] = this._parseEmulatedToolCalls(
+                accumulatedText,
+                tools
+              );
+              const finalContent =
+                emulatedCalls.length > 0 ? cleaned : accumulatedText;
+              if (finalContent.length > 0) {
+                const contentChunk: Chunk = {
+                  type: "chunk",
+                  content: finalContent,
+                  done: false
+                };
+                yield contentChunk;
+              }
+              // Tool calls before the terminal chunk so consumers that finalize
+              // on `done: true` don't drop them.
+              for (const tc of emulatedCalls) {
+                yield tc;
+              }
+              const doneChunk: Chunk = {
+                type: "chunk",
+                content: "",
+                done: true
+              };
+              yield doneChunk;
+            }
+          } else if (content.length > 0 || event.done) {
             const chunk: Chunk = {
               type: "chunk",
               content,
@@ -623,20 +738,12 @@ export class OllamaProvider extends BaseProvider {
             };
             yield chunk;
           }
-
-          // When done and using emulation, parse accumulated text for tool calls
-          if (event.done && useToolEmulation) {
-            const [emulatedCalls] = this._parseEmulatedToolCalls(
-              accumulatedText,
-              tools
-            );
-            for (const tc of emulatedCalls) {
-              yield tc;
-            }
-          }
         }
       }
     } finally {
+      // Stop the underlying connection if the consumer bails early (abort /
+      // break); releasing the lock alone leaves the HTTP body undrained.
+      await reader.cancel().catch(() => undefined);
       reader.releaseLock();
     }
   }

@@ -80,14 +80,24 @@ export function isAbsoluteFilePath(uri: string): boolean {
 
 /** Decode a `data:` URI's payload, honoring the `;base64` header flag. */
 function decodeDataUri(uri: string): Uint8Array | null {
-  const parts = uri.split(",", 2);
-  if (parts.length !== 2) {
+  // Split on the FIRST comma only: the header ends there and everything after
+  // is payload. `split(",", 2)` would discard payload past a second comma,
+  // corrupting non-base64 data (SVG path data, CSV, text) that contains commas.
+  const comma = uri.indexOf(",");
+  if (comma < 0) {
     return null;
   }
-  const [header, data] = parts;
-  return header.includes(";base64")
-    ? decodeBase64(data)
-    : encodeUtf8(decodeURIComponent(data));
+  const header = uri.slice(0, comma);
+  const data = uri.slice(comma + 1);
+  try {
+    // decodeURIComponent throws URIError on a malformed percent-escape; the
+    // resolver contract is null-on-failure, so never let that escape.
+    return header.includes(";base64")
+      ? decodeBase64(data)
+      : encodeUtf8(decodeURIComponent(data));
+  } catch {
+    return null;
+  }
 }
 
 async function readUriBytes(uri: string): Promise<Uint8Array | null> {
@@ -135,12 +145,24 @@ export async function loadMediaRefBytes(
   }
 
   const uri = value.uri;
-  if (!uri) {
+  if (!uri && !value.asset_id) {
     return null;
   }
 
-  if ((uri.startsWith("asset://") || isPackageAssetUri(uri)) && context) {
+  if (uri && (uri.startsWith("asset://") || isPackageAssetUri(uri)) && context) {
     const { bytes } = await context.resolveAssetBytes(uri);
+    if (bytes) {
+      return bytes;
+    }
+  }
+
+  // No usable uri but an asset_id is present: resolve the asset directly by id.
+  // The early-return above only bails when both uri and asset_id are absent, so
+  // an empty-uri ref like `{ asset_id, uri: "" }` still reaches this path.
+  if (!uri && value.asset_id && context) {
+    const { bytes } = await context.resolveAssetBytes(
+      `asset://${value.asset_id}`
+    );
     if (bytes) {
       return bytes;
     }
@@ -148,7 +170,9 @@ export async function loadMediaRefBytes(
 
   if (context?.storage) {
     const candidates = new Set<string>();
-    candidates.add(uri);
+    if (uri) {
+      candidates.add(uri);
+    }
 
     if (value.asset_id) {
       const refType = (value.type ?? "").toLowerCase();
@@ -164,6 +188,10 @@ export async function loadMediaRefBytes(
         return stored;
       }
     }
+  }
+
+  if (!uri) {
+    return null;
   }
 
   const fromUri = await readUriBytes(uri);

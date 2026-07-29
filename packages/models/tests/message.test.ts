@@ -131,6 +131,49 @@ describe("Message model", () => {
     expect(cursor).toBeTruthy();
   });
 
+  it("advances past the cursor instead of repeating the first page", async () => {
+    // Regression: startKey was ignored, so following the returned cursor
+    // re-fetched the same first page forever.
+    for (let i = 0; i < 5; i++) {
+      await createMessage("u1", "t1", { content: `Msg ${i}` });
+      await new Promise((r) => setTimeout(r, 2));
+    }
+
+    const [page1, cursor1] = await Message.paginate("t1", { limit: 2 });
+    expect(page1.map((m) => m.content)).toEqual(["Msg 0", "Msg 1"]);
+    expect(cursor1).toBeTruthy();
+
+    const [page2, cursor2] = await Message.paginate("t1", {
+      limit: 2,
+      startKey: cursor1
+    });
+    expect(page2.map((m) => m.content)).toEqual(["Msg 2", "Msg 3"]);
+
+    const [page3] = await Message.paginate("t1", {
+      limit: 2,
+      startKey: cursor2
+    });
+    expect(page3.map((m) => m.content)).toEqual(["Msg 4"]);
+  });
+
+  it("advances past the cursor in reverse ordering too", async () => {
+    for (let i = 0; i < 4; i++) {
+      await createMessage("u1", "t1", { content: `Msg ${i}` });
+      await new Promise((r) => setTimeout(r, 2));
+    }
+    const [page1, cursor1] = await Message.paginate("t1", {
+      limit: 2,
+      reverse: true
+    });
+    expect(page1.map((m) => m.content)).toEqual(["Msg 3", "Msg 2"]);
+    const [page2] = await Message.paginate("t1", {
+      limit: 2,
+      reverse: true,
+      startKey: cursor1
+    });
+    expect(page2.map((m) => m.content)).toEqual(["Msg 1", "Msg 0"]);
+  });
+
   it("returns empty for thread with no messages", async () => {
     const [messages, cursor] = await Message.paginate("t1");
     expect(messages).toHaveLength(0);

@@ -365,6 +365,120 @@ export const config: ModuleConfig = {
         "Professional applications",
         "Rapid prototyping"
       ]
+    },
+    "async/tts-pro/v1.0": {
+      className: "AsyncTtsProV10",
+      docstring:
+        "Generate professional-quality voiceovers in seconds with Async TTS Pro model text-based control over pauses, emphasis, and timing. Voice ids can be found at https://async.com/developer/voice-library",
+      tags: ["generation", "text-to-speech", "tts", "voice", "async", "pro"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/bytedance/seed-speech/tts/v2": {
+      className: "BytedanceSeedSpeechTtsV2",
+      docstring:
+        "Seed Speech developed by ByteDance, is a family of large-scale text-to-speech models capable of synthesizing speech that is virtually indistinguishable from human speech.",
+      tags: [
+        "generation",
+        "text-to-speech",
+        "tts",
+        "voice",
+        "bytedance",
+        "seed",
+        "speech"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/inworld-tts": {
+      className: "InworldTts",
+      docstring: "Text to Speech Endpoint for Inworld's TTS-1.5 Max.",
+      tags: ["generation", "text-to-speech", "tts", "voice", "inworld"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/minimax/speech-2.8-hd": {
+      className: "MinimaxSpeech28Hd",
+      docstring:
+        "Generate speech from text prompts and different voices using the MiniMax Speech-2.8 HD model, which leverages advanced AI techniques to create high-quality text-to-speech.",
+      tags: [
+        "generation",
+        "text-to-speech",
+        "tts",
+        "voice",
+        "minimax",
+        "speech",
+        "hd"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/minimax/speech-2.8-turbo": {
+      className: "MinimaxSpeech28Turbo",
+      docstring:
+        "Generate speech from text prompts and different voices using the MiniMax Speech-2.8 Turbo model, which leverages advanced AI techniques to create high-quality text-to-speech.",
+      tags: [
+        "generation",
+        "text-to-speech",
+        "tts",
+        "voice",
+        "minimax",
+        "speech",
+        "turbo"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/zonos2": {
+      className: "Zonos2",
+      docstring:
+        "Zonos2 is a text-to-speech model that clones a voice from a short sample and speaks naturally across many languages.",
+      tags: ["generation", "text-to-speech", "tts", "voice", "zonos2"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "xai/tts/v1": {
+      className: "XaiTtsV1",
+      docstring:
+        "Generate speech with expressive and realistic voices from xAI",
+      tags: ["generation", "text-to-speech", "tts", "voice", "xai"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
     }
   }
 };

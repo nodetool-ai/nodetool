@@ -1,20 +1,70 @@
 /**
  * FinishGraphTool -- planner tool that validates and finalizes the graph.
  *
- * Called by the LLM when it's done building the graph. Runs full validation
- * (cycle detection, connectivity) and produces the GraphData.
+ * Called by the LLM when it's done building the graph. Runs structural
+ * validation (cycle detection, connectivity) plus — when a registry is
+ * supplied — the node-sdk's static `validateGraph` (missing required
+ * properties, unknown handles, type mismatches), so property-level breakage
+ * surfaces while the model can still fix it instead of at runtime.
  */
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { GraphData } from "@nodetool-ai/protocol";
+import {
+  validateGraph,
+  type GraphValidationRegistry,
+  type NodeMetadata
+} from "@nodetool-ai/node-sdk";
 import { Tool } from "./base-tool.js";
-import type { GraphBuilder } from "../graph-builder.js";
+import { type GraphBuilder } from "../graph-builder.js";
+import { declareDynamicSlotsFromEdges } from "../dynamic-slots.js";
 
 const FINISH_GRAPH_INPUT_SCHEMA = {
   type: "object" as const,
   properties: {},
   required: [] as string[]
 };
+
+/**
+ * Wrap the planner's registry for `validateGraph`.
+ *
+ * Two planner-specific relaxations:
+ *
+ * - Metadata-only (Python) node types count as known rather than unknown,
+ *   mirroring the check `add_node` applies at add time.
+ * - Unselected models are not errors. The planner is told to omit `model` so
+ *   the run's configured provider+model gets stamped in at execution time; an
+ *   empty model is the intended output, not a defect. Left in, this check
+ *   would reject the shape the planner is asked to produce and push it into
+ *   pinning a model it has no basis to choose.
+ */
+export function metadataAwareRegistry(
+  registry: GraphValidationRegistry
+): GraphValidationRegistry {
+  return {
+    has: (nodeType: string) =>
+      registry.has(nodeType) || registry.getMetadata(nodeType) != null,
+    getMetadata: (nodeType: string): NodeMetadata | undefined =>
+      registry.getMetadata(nodeType),
+    validateNode: (descriptor, connectedHandles) =>
+      registry
+        .validateNode(descriptor, connectedHandles)
+        .filter((issue) => issue.code !== "unset_model")
+  };
+}
+
+/** True when the registry implements the full validation surface (stubs and mocks often don't). */
+export function supportsDeepValidation(
+  registry: unknown
+): registry is GraphValidationRegistry {
+  const r = registry as Partial<GraphValidationRegistry> | null | undefined;
+  return (
+    !!r &&
+    typeof r.has === "function" &&
+    typeof r.getMetadata === "function" &&
+    typeof r.validateNode === "function"
+  );
+}
 
 export class FinishGraphTool extends Tool {
   readonly name = "finish_graph";
@@ -29,7 +79,10 @@ export class FinishGraphTool extends Tool {
     return this._graph;
   }
 
-  constructor(private readonly builder: GraphBuilder) {
+  constructor(
+    private readonly builder: GraphBuilder,
+    private readonly registry?: unknown
+  ) {
     super();
   }
 
@@ -38,10 +91,27 @@ export class FinishGraphTool extends Tool {
     _params: Record<string, unknown>
   ): Promise<unknown> {
     const errors = this.builder.validate();
+    const warnings: string[] = [];
+
+    if (errors.length === 0 && supportsDeepValidation(this.registry)) {
+      // Safety net for builders fed outside `add_edge`: type any dynamic input
+      // slot an edge lands on from the source output.
+      declareDynamicSlotsFromEdges(this.builder, this.registry);
+      const report = validateGraph(
+        this.builder.snapshot(),
+        metadataAwareRegistry(this.registry)
+      );
+      for (const issue of report.issues) {
+        if (issue.severity === "error") errors.push(issue.message);
+        else warnings.push(issue.message);
+      }
+    }
+
     if (errors.length > 0) {
       return {
         status: "validation_failed",
-        errors
+        errors,
+        ...(warnings.length > 0 ? { warnings } : {})
       };
     }
 
@@ -50,7 +120,8 @@ export class FinishGraphTool extends Tool {
     return {
       status: "graph_finalized",
       nodes: this._graph.nodes.length,
-      edges: this._graph.edges.length
+      edges: this._graph.edges.length,
+      ...(warnings.length > 0 ? { warnings } : {})
     };
   }
 

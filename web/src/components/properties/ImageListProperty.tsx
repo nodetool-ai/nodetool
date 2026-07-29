@@ -6,8 +6,8 @@ import PropertyLabel from "../node/PropertyLabel";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Tooltip, CloseButton, MOTION, SPACING, BORDER_RADIUS, getSpacingPx } from "../ui_primitives";
-import isEqual from "fast-deep-equal";
+import { Tooltip, CloseButton, MOTION, SPACING, BORDER_RADIUS, Z_INDEX, getSpacingPx } from "../ui_primitives";
+import isEqual from "../../utils/isEqual";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import ImageDimensions from "../node/ImageDimensions";
 import { isElectron } from "../../utils/browser";
@@ -18,6 +18,7 @@ import {
 } from "../../lib/dragdrop";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useUpstreamValue } from "../../hooks/nodes/useNodeIO";
+import { resolveUri } from "../../utils/imageUtils";
 
 interface ImageItem {
   uri: string;
@@ -86,7 +87,7 @@ const styles = (theme: Theme) =>
       padding: getSpacingPx(SPACING.micro),
       width: "20px",
       height: "20px",
-      zIndex: 2,
+      zIndex: Z_INDEX.raised,
       "&:hover": {
         backgroundColor: theme.vars.palette.error.main,
         color: theme.vars.palette.common.white
@@ -143,7 +144,6 @@ const flattenImageItems = (items: unknown): ImageItem[] => {
     return [];
   }
   if (!Array.isArray(items)) {
-    // Single item - check if it has the right shape
     if (typeof items === "object" && items !== null && "uri" in items) {
       return [items as ImageItem];
     }
@@ -153,7 +153,6 @@ const flattenImageItems = (items: unknown): ImageItem[] => {
   const result: ImageItem[] = [];
   for (const item of items) {
     if (Array.isArray(item)) {
-      // Nested array - recursively flatten
       result.push(...flattenImageItems(item));
     } else if (typeof item === "object" && item !== null && "uri" in item) {
       result.push(item as ImageItem);
@@ -168,7 +167,6 @@ const ImageListProperty = (props: PropertyProps) => {
   const id = `image-list-${props.property.name}-${props.propertyIndex}`;
   const { uploadAsset } = useAssetUpload();
 
-  // Use selectors for asset grid store to avoid full store subscriptions
   const filteredAssets = useAssetGridStore((state) => state.filteredAssets);
   const globalSearchResults = useAssetGridStore((state) => state.globalSearchResults);
   const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
@@ -221,7 +219,6 @@ const ImageListProperty = (props: PropertyProps) => {
     [images, props]
   );
 
-  // Memoize remove handlers for each image to prevent re-renders
   const removeHandlers = useMemo(() => {
     const handlers: Record<number, () => void> = {};
     for (let i = 0; i < images.length; i++) {
@@ -243,7 +240,6 @@ const ImageListProperty = (props: PropertyProps) => {
     }
   }, []);
 
-  // Memoize load handlers for each image to prevent re-renders
   const loadHandlers = useMemo(() => {
     const handlers: Record<string, () => void> = {};
     for (const image of images) {
@@ -474,7 +470,7 @@ const ImageListProperty = (props: PropertyProps) => {
               <div key={image.uri} className="image-item">
                 <div className="image-content">
                   <img
-                    src={image.uri}
+                    src={resolveUri(image.uri)}
                     alt={`Item ${index + 1}`}
                     draggable={false}
                   />
@@ -531,7 +527,7 @@ const ImageListProperty = (props: PropertyProps) => {
                       imageRefs.current[image.uri] = el;
                     }
                   }}
-                  src={image.uri}
+                  src={resolveUri(image.uri)}
                   alt={`Item ${index + 1}`}
                   draggable={false}
                   onLoad={loadHandlers[image.uri]}

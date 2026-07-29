@@ -15,7 +15,7 @@ import type { StoreApi } from "zustand";
 
 import { createErrorMessage } from "../utils/errorHandling";
 
-export interface RuntimePackageStatus {
+interface RuntimePackageStatus {
   id: string;
   name: string;
   description: string;

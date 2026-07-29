@@ -7,9 +7,6 @@
  *
  * This utility centralizes that logic so each tool no longer carries its
  * own copy of the pixel-level alpha restoration loop.
- *
- * Phase 1 goal: route fill/clone/blur/adjustments through shared session
- * boundaries even when their internal implementation stays CPU-backed.
  */
 
 /**

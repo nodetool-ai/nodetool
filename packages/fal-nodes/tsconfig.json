@@ -3,11 +3,16 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
+    // The generated unit-pricing catalog is imported as a module (see
+    // src/unit-pricing-catalog.ts); JSON import attributes need node18+.
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "noUnusedLocals": false,
     "noUnusedParameters": false
   },
   "include": [
-    "src"
+    "src",
+    "src/generated/*-unit-pricing.json"
   ],
   "exclude": [
     "dist",

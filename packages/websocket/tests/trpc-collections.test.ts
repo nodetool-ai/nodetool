@@ -114,38 +114,6 @@ describe("collections router", () => {
     });
   });
 
-  describe("get", () => {
-    it("returns collection details", async () => {
-      const col = makeCollection({
-        name: "my-col",
-        metadata: { embedding_model: "text-embedding-3-small" },
-        count: 42
-      });
-      mockedProvider.mockReturnValue({
-        getCollection: vi.fn().mockResolvedValue(col)
-      });
-
-      const caller = createCaller(makeCtx());
-      const result = await caller.collections.get({ name: "my-col" });
-      expect(result).toEqual({
-        name: "my-col",
-        metadata: { embedding_model: "text-embedding-3-small" },
-        count: 42
-      });
-    });
-
-    it("throws NOT_FOUND when the collection does not exist", async () => {
-      mockedProvider.mockReturnValue({
-        getCollection: vi.fn().mockRejectedValue(new CollectionNotFoundError("missing"))
-      });
-
-      const caller = createCaller(makeCtx());
-      await expect(
-        caller.collections.get({ name: "missing" })
-      ).rejects.toMatchObject({ code: "NOT_FOUND" });
-    });
-  });
-
   describe("create", () => {
     it("creates a collection with embedding metadata", async () => {
       const col = makeCollection({
@@ -168,6 +136,7 @@ describe("collections router", () => {
       expect(createCollection).toHaveBeenCalledWith({
         name: "new-col",
         metadata: {
+          owner_user_id: "user-1",
           embedding_model: "text-embedding-3-small",
           embedding_provider: "openai"
         }
@@ -191,7 +160,7 @@ describe("collections router", () => {
       await caller.collections.create({ name: "bare" });
       expect(createCollection).toHaveBeenCalledWith({
         name: "bare",
-        metadata: {}
+        metadata: { owner_user_id: "user-1" }
       });
     });
   });
@@ -204,7 +173,10 @@ describe("collections router", () => {
         count: 3
       });
       mockedProvider.mockReturnValue({
-        getCollection: vi.fn().mockResolvedValue(col)
+        getCollection: vi.fn(async ({ name }: { name: string }) => {
+          if (name === "old-name") return col;
+          throw new CollectionNotFoundError(name);
+        })
       });
 
       const caller = createCaller(makeCtx());
@@ -261,7 +233,12 @@ describe("collections router", () => {
   describe("delete", () => {
     it("deletes a collection and returns confirmation", async () => {
       const deleteCollection = vi.fn().mockResolvedValue(undefined);
-      mockedProvider.mockReturnValue({ deleteCollection });
+      mockedProvider.mockReturnValue({
+        deleteCollection,
+        getCollection: vi
+          .fn()
+          .mockResolvedValue(makeCollection({ name: "doomed" }))
+      });
 
       const caller = createCaller(makeCtx());
       const result = await caller.collections.delete({ name: "doomed" });
@@ -272,7 +249,10 @@ describe("collections router", () => {
 
     it("throws NOT_FOUND when the collection is missing", async () => {
       mockedProvider.mockReturnValue({
-        deleteCollection: vi.fn().mockRejectedValue(new CollectionNotFoundError("missing"))
+        deleteCollection: vi.fn().mockResolvedValue(undefined),
+        getCollection: vi
+          .fn()
+          .mockRejectedValue(new CollectionNotFoundError("missing"))
       });
 
       const caller = createCaller(makeCtx());
@@ -281,53 +261,159 @@ describe("collections router", () => {
       ).rejects.toMatchObject({ code: "NOT_FOUND" });
     });
   });
-
-  describe("query", () => {
-    it("performs a query and assembles the wire shape", async () => {
+  // ── Ownership isolation ───────────────────────────────────────────
+  // Collections live in one global namespace in every provider, so these
+  // rules are the only thing separating tenants. See lib/collection-access.ts.
+  describe("ownership", () => {
+    /** A provider whose single collection belongs to someone else. */
+    function providerOwnedBy(owner: string, name = "theirs") {
       const col = makeCollection({
-        name: "col",
-        queryResult: [
-          { id: "doc1", document: "content 1", metadata: { source: "a.txt" }, uri: null, distance: 0.1 },
-          { id: "doc2", document: "content 2", metadata: { source: "b.txt" }, uri: null, distance: 0.2 }
-        ]
+        name,
+        metadata: { owner_user_id: owner, secret: "value" },
+        count: 42
       });
+      const deleteCollection = vi.fn().mockResolvedValue(undefined);
       mockedProvider.mockReturnValue({
-        getCollection: vi.fn().mockResolvedValue(col)
+        listCollections: vi
+          .fn()
+          .mockResolvedValue([{ name, metadata: { owner_user_id: owner } }]),
+        getCollection: vi.fn().mockResolvedValue(col),
+        deleteCollection
       });
+      return { col, deleteCollection };
+    }
 
-      const caller = createCaller(makeCtx());
-      const result = await caller.collections.query({
-        name: "col",
-        query_texts: ["search me"],
-        n_results: 5
-      });
-
-      expect(col.query).toHaveBeenCalledWith({ text: "search me", topK: 5 });
-      expect(result.ids).toEqual([["doc1", "doc2"]]);
-      expect(result.documents).toEqual([["content 1", "content 2"]]);
-      expect(result.distances).toEqual([[0.1, 0.2]]);
+    it("omits another user's collection from the listing", async () => {
+      providerOwnedBy("user-2");
+      const result = await createCaller(makeCtx()).collections.list();
+      expect(result.collections).toEqual([]);
+      expect(result.count).toBe(0);
     });
 
-    it("defaults n_results to 10", async () => {
-      const col = makeCollection({ name: "col" });
-      mockedProvider.mockReturnValue({
-        getCollection: vi.fn().mockResolvedValue(col)
-      });
-
-      const caller = createCaller(makeCtx());
-      await caller.collections.query({ name: "col", query_texts: ["hi"] });
-      expect(col.query).toHaveBeenCalledWith({ text: "hi", topK: 10 });
+    it("still lists the caller's own collections", async () => {
+      providerOwnedBy("user-1", "mine");
+      const result = await createCaller(makeCtx()).collections.list();
+      expect(result.collections.map((c) => c.name)).toEqual(["mine"]);
     });
 
-    it("throws NOT_FOUND when the collection is missing", async () => {
+    it("still lists unowned legacy collections", async () => {
+      const col = makeCollection({ name: "legacy", metadata: {} });
       mockedProvider.mockReturnValue({
-        getCollection: vi.fn().mockRejectedValue(new CollectionNotFoundError("missing"))
+        listCollections: vi
+          .fn()
+          .mockResolvedValue([{ name: "legacy", metadata: {} }]),
+        getCollection: vi.fn().mockResolvedValue(col)
       });
+      const result = await createCaller(makeCtx()).collections.list();
+      expect(result.collections.map((c) => c.name)).toEqual(["legacy"]);
+    });
 
-      const caller = createCaller(makeCtx());
+    it("answers NOT_FOUND — not FORBIDDEN — when updating another user's collection", async () => {
+      // FORBIDDEN would confirm the name exists and let a caller enumerate
+      // other users' collections by probing.
+      const { col } = providerOwnedBy("user-2");
       await expect(
-        caller.collections.query({ name: "missing", query_texts: ["x"] })
+        createCaller(makeCtx()).collections.update({
+          name: "theirs",
+          metadata: { a: "1" }
+        })
       ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      expect(col.modify).not.toHaveBeenCalled();
+    });
+
+    it("refuses to delete another user's collection", async () => {
+      const { deleteCollection } = providerOwnedBy("user-2");
+      await expect(
+        createCaller(makeCtx()).collections.delete({ name: "theirs" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      expect(deleteCollection).not.toHaveBeenCalled();
+    });
+
+    it("ignores a client attempt to rewrite owner_user_id", async () => {
+      const col = makeCollection({
+        name: "mine",
+        metadata: { owner_user_id: "user-1" }
+      });
+      mockedProvider.mockReturnValue({
+        getCollection: vi.fn().mockResolvedValue(col)
+      });
+
+      await createCaller(makeCtx()).collections.update({
+        name: "mine",
+        metadata: { owner_user_id: "user-2", note: "hi" }
+      });
+
+      expect(col.modify).toHaveBeenCalledWith({
+        name: "mine",
+        metadata: { owner_user_id: "user-1", note: "hi" }
+      });
+    });
+
+    it("leaves an unowned collection unowned after an update", async () => {
+      // Claiming it for the first editor would lock out everyone else who had
+      // been sharing it.
+      const col = makeCollection({ name: "legacy", metadata: { a: "1" } });
+      mockedProvider.mockReturnValue({
+        getCollection: vi.fn().mockResolvedValue(col)
+      });
+
+      await createCaller(makeCtx()).collections.update({
+        name: "legacy",
+        metadata: { b: "2" }
+      });
+
+      expect(col.modify).toHaveBeenCalledWith({
+        name: "legacy",
+        metadata: { a: "1", b: "2" }
+      });
+    });
+  });
+
+  describe("input validation", () => {
+    it("rejects a name containing a path separator", async () => {
+      mockedProvider.mockReturnValue({ createCollection: vi.fn() });
+      await expect(
+        createCaller(makeCtx()).collections.create({ name: "a/b" })
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    });
+
+    it("rejects an over-long name", async () => {
+      mockedProvider.mockReturnValue({ createCollection: vi.fn() });
+      await expect(
+        createCaller(makeCtx()).collections.create({ name: "x".repeat(129) })
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    });
+
+    it("reports a duplicate name as ALREADY_EXISTS, not a driver error", async () => {
+      mockedProvider.mockReturnValue({
+        createCollection: vi
+          .fn()
+          .mockRejectedValue(
+            new Error("UNIQUE constraint failed: vec_collections.name")
+          ),
+        getCollection: vi
+          .fn()
+          .mockResolvedValue(makeCollection({ name: "dupe" }))
+      });
+
+      await expect(
+        createCaller(makeCtx()).collections.create({ name: "dupe" })
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+    });
+
+    it("refuses to rename onto an existing collection", async () => {
+      const col = makeCollection({ name: "mine", metadata: {} });
+      mockedProvider.mockReturnValue({
+        getCollection: vi.fn().mockResolvedValue(col)
+      });
+
+      await expect(
+        createCaller(makeCtx()).collections.update({
+          name: "mine",
+          rename: "taken"
+        })
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+      expect(col.modify).not.toHaveBeenCalled();
     });
   });
 });

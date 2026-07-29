@@ -7,11 +7,11 @@ import { Text, ToolbarIconButton, MOTION } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import SliderBasic from "../inputs/SliderBasic";
 import LoopIcon from "@mui/icons-material/Loop";
-import { PlaybackButton } from "../ui_primitives/PlaybackButton";
+import { PlaybackButton } from "../ui_primitives";
 import OffIcon from "@mui/icons-material/VolumeOff";
 import UpIcon from "@mui/icons-material/VolumeUp";
 import DownloadIcon from "@mui/icons-material/Download";
-import { ActionButtonGroup } from "../ui_primitives/ActionButtonGroup";
+import { ActionButtonGroup } from "../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 
 interface AudioControlsProps {
@@ -79,7 +79,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall
     },
     ".tiny": {
-      fontSize: theme.fontSizeTiny
+      fontSize: theme.fontSizeSmaller
     },
     ".zoom": {
       display: "flex",
@@ -133,7 +133,6 @@ async function download(filename: string, assetUrl: string) {
   }
 
   try {
-    // fetch file from server
     const response = await fetch(assetUrl);
 
     if (!response.ok) {
@@ -141,10 +140,8 @@ async function download(filename: string, assetUrl: string) {
       return;
     }
 
-    // create a blob from the response
     const blob = await response.blob();
 
-    // create a download link and click it
     const blobUrl = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = blobUrl;
@@ -152,7 +149,6 @@ async function download(filename: string, assetUrl: string) {
     document.body.appendChild(link);
     link.click();
 
-    // clean up
     document.body.removeChild(link);
     window.URL.revokeObjectURL(blobUrl);
   } catch (error) {

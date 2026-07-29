@@ -15,9 +15,11 @@ import {
 } from "../../utils/templateCategories";
 import WorkflowCard from "../workflows/WorkflowCard";
 import {
+  EmptyState,
   LoadingSpinner,
   MOTION,
   BORDER_RADIUS,
+  SPACING,
   getSpacingPx
 } from "../ui_primitives";
 import {
@@ -31,19 +33,19 @@ const MAX_VISIBLE = 8;
 
 const styles = (theme: Theme) =>
   css({
-    paddingTop: 8,
+    paddingTop: getSpacingPx(SPACING.md),
     ".cats": {
       display: "flex",
-      gap: 8,
+      gap: getSpacingPx(SPACING.md),
       flexWrap: "wrap",
-      marginBottom: 8
+      marginBottom: getSpacingPx(SPACING.md)
     },
     ".cat": {
       display: "inline-flex",
       alignItems: "center",
-      gap: `${theme.spacing(0.75)}`,
+      gap: `${theme.spacing(SPACING.xs)}`,
       height: 30,
-      padding: `0 ${theme.spacing(1.75)}`,
+      padding: `0 ${theme.spacing(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.pill,
       fontSize: "var(--fontSizeSmall)",
       background: "transparent",
@@ -71,7 +73,7 @@ const styles = (theme: Theme) =>
     ".tpl-grid": {
       display: "grid",
       gridTemplateColumns: "repeat(4, 1fr)",
-      gap: 8,
+      gap: getSpacingPx(SPACING.md),
       [theme.breakpoints.down("lg")]: {
         gridTemplateColumns: "repeat(3, 1fr)"
       },
@@ -97,8 +99,8 @@ const fullPageStyles = css({
   flex: 1,
   minHeight: 0,
   overflowY: "auto",
-  paddingTop: 24,
-  paddingBottom: 32
+  paddingTop: getSpacingPx(SPACING.xxl),
+  paddingBottom: getSpacingPx(SPACING.xxxl)
 });
 
 interface DashboardTemplatesProps {
@@ -142,7 +144,7 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
     return () => window.removeEventListener("keydown", handleKey);
   }, []);
 
-  const { data, isLoading } = useQuery<WorkflowListType>({
+  const { data, isLoading, isError, refetch } = useQuery<WorkflowListType>({
     queryKey: ["templates"],
     queryFn: loadTemplates
   });
@@ -251,8 +253,41 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
           <div className="tpl-loading">
             <LoadingSpinner size="medium" text="Loading templates" />
           </div>
+        ) : isError ? (
+          <div className="tpl-empty">
+            <EmptyState
+              variant="error"
+              title="Couldn't load templates"
+              description="Try again in a moment."
+              actionText="Retry"
+              onAction={() => refetch()}
+            />
+          </div>
         ) : visible.length === 0 ? (
-          <div className="tpl-empty">No templates match your search.</div>
+          <div className="tpl-empty">
+            {query.trim() ? (
+              <EmptyState
+                variant="no-results"
+                title="No templates match your search"
+                description="Try a different search term."
+                actionText="Clear search"
+                onAction={() => setQuery("")}
+              />
+            ) : category !== "all" ? (
+              <EmptyState
+                variant="no-results"
+                title="No templates in this category"
+                actionText="Show all templates"
+                onAction={() => setCategory("all")}
+              />
+            ) : (
+              <EmptyState
+                variant="no-data"
+                title="No templates available"
+                description="Templates will appear here when available."
+              />
+            )}
+          </div>
         ) : (
           <div className="tpl-grid">
             {visible.map((workflow: Workflow) => {

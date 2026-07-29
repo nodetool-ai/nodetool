@@ -29,7 +29,12 @@ const randomUUID = (): string => {
     .toString(36)
     .slice(2, 10)}`;
 };
-import type { Message, ProviderStreamItem, ProviderTool } from "./types.js";
+import type {
+  Message,
+  ProviderStreamItem,
+  ProviderTool,
+  ToolCall
+} from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Script types
@@ -84,12 +89,19 @@ export class ScriptedProvider extends BaseProvider {
     maxTokens?: number;
   }): Promise<Message> {
     let content = "";
+    const toolCalls: ToolCall[] = [];
     for await (const item of this.generateMessages(args)) {
       if ("type" in item && (item as { type: string }).type === "chunk") {
         content += (item as { content?: string }).content ?? "";
+      } else if ("id" in item && "name" in item && "args" in item) {
+        toolCalls.push(item);
       }
     }
-    return { role: "assistant", content: content || "Done." };
+    return {
+      role: "assistant",
+      content: content || (toolCalls.length === 0 ? "Done." : null),
+      toolCalls: toolCalls.length > 0 ? toolCalls : undefined
+    };
   }
 
   async *generateMessages(args: {
@@ -107,12 +119,12 @@ export class ScriptedProvider extends BaseProvider {
     const script = this.scripts[idx];
     const items = script(args.messages, tools);
 
-    for (const item of items) {
+    for (const [index, item] of items.entries()) {
       if (item.type === "chunk") {
         yield {
           type: "chunk",
           content: item.content,
-          done: item.done ?? true,
+          done: item.done ?? index === items.length - 1,
           content_type: "text"
         } as Chunk;
       } else {
@@ -234,6 +246,31 @@ export function autoScript(opts: {
 }): ScriptFn {
   return (messages, tools) => {
     const toolNames = new Set(tools.map((t) => t.name));
+
+    // Generator tool loops (ListGenerator's `add_item`, DataGenerator's
+    // `add_row`): the node calls the provider repeatedly, feeding tool results
+    // back, and gives up if the first call emits no tool calls. Emit a burst of
+    // generator calls on the first invocation, then stop once our own tool
+    // results appear in history so the node's loop terminates.
+    for (const genTool of ["add_item", "add_row"] as const) {
+      if (!toolNames.has(genTool)) continue;
+      const alreadyEmitted = messages.some(
+        (m) =>
+          m.role === "assistant" &&
+          (m.toolCalls ?? []).some((tc) => tc.name === genTool)
+      );
+      if (alreadyEmitted) {
+        return [{ type: "chunk", content: "Done.", done: true }];
+      }
+      return Array.from({ length: 3 }, (_unused, i) => ({
+        type: "tool_call" as const,
+        name: genTool,
+        args:
+          genTool === "add_item"
+            ? { item: `fake item ${i + 1}` }
+            : { row: { id: i + 1, value: `fake row ${i + 1}` } }
+      }));
+    }
 
     // Incremental planner: add_task + finish_plan
     if (

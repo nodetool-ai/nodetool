@@ -16,21 +16,17 @@ interface UseMessageQueueOptions {
 
 interface UseMessageQueueReturn {
   queuedMessage: QueuedMessage | null;
-  sendMessage: (content: MessageContent[], prompt: string) => void;
+  /**
+   * Send or queue a message. Returns `true` when the message was sent or
+   * queued, `false` when it was dropped because one is already queued (so the
+   * caller can keep the prompt/attachments instead of clearing them).
+   */
+  sendMessage: (content: MessageContent[], prompt: string) => boolean;
   cancelQueued: () => void;
   sendQueuedNow: () => void;
 }
 
-/**
- * Hook for managing message queuing in chat interfaces.
- *
- * @example
- * const { queuedMessage, sendMessage, cancelQueued } = useMessageQueue({
- *   isLoading,
- *   isStreaming,
- *   onSendMessage
- * });
- */
+/** Manage message queuing in chat interfaces. */
 export function useMessageQueue({
   isLoading,
   isStreaming,
@@ -40,9 +36,7 @@ export function useMessageQueue({
 }: UseMessageQueueOptions): UseMessageQueueReturn {
   const [queuedMessage, setQueuedMessage] = useState<QueuedMessage | null>(null);
   const sendMessageRef = useRef(onSendMessage);
-  const pendingSendRef = useRef<QueuedMessage | null>(null);
 
-  // Keep the onSendMessage ref up to date
   useEffect(() => {
     sendMessageRef.current = onSendMessage;
   }, [onSendMessage]);
@@ -61,41 +55,32 @@ export function useMessageQueue({
   );
 
   const sendMessage = useCallback(
-    (content: MessageContent[], messagePrompt: string) => {
-      // Don't allow queuing if there's already a queued message
+    (content: MessageContent[], messagePrompt: string): boolean => {
+      // A queued message is already pending; drop this one and report it so
+      // the caller does not clear the prompt/attachments it still holds.
       if (queuedMessage) {
-        return;
+        return false;
       }
 
       if (!isLoading && !isStreaming) {
-        // Send immediately
         sendMessageNow(content, messagePrompt);
       } else {
-        // Queue the message
         setQueuedMessage({
           content,
           prompt: messagePrompt
         });
       }
+      return true;
     },
     [isLoading, isStreaming, queuedMessage, sendMessageNow]
   );
 
   // Send queued message when streaming/loading stops
   useEffect(() => {
-    if (!isLoading && !isStreaming) {
-      // Handle pending message from interrupt (sendQueuedNow)
-      if (pendingSendRef.current) {
-        const messageToSend = pendingSendRef.current;
-        pendingSendRef.current = null;
-        sendMessageNow(messageToSend.content, messageToSend.prompt);
-      }
-      // Handle normal queued message
-      else if (queuedMessage) {
-        const messageToSend = queuedMessage;
-        setQueuedMessage(null); // Clear first to prevent re-firing
-        sendMessageNow(messageToSend.content, messageToSend.prompt);
-      }
+    if (!isLoading && !isStreaming && queuedMessage) {
+      const messageToSend = queuedMessage;
+      setQueuedMessage(null);
+      sendMessageNow(messageToSend.content, messageToSend.prompt);
     }
   }, [isLoading, isStreaming, queuedMessage, sendMessageNow]);
 
@@ -105,14 +90,12 @@ export function useMessageQueue({
 
   const sendQueuedNow = useCallback(() => {
     if (queuedMessage && onStop) {
-      // Capture message and clear queue BEFORE stopping to prevent useEffect race
       const messageToSend = queuedMessage;
       setQueuedMessage(null);
-      // Store in pendingSendRef to be sent when stream stops
-      pendingSendRef.current = messageToSend;
       onStop();
+      sendMessageNow(messageToSend.content, messageToSend.prompt);
     }
-  }, [queuedMessage, onStop]);
+  }, [queuedMessage, onStop, sendMessageNow]);
 
   return {
     queuedMessage,

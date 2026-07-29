@@ -4,7 +4,7 @@ import { memo, useCallback, useState, useMemo } from "react";
 import Select from "../inputs/Select";
 import PropertyLabel from "../node/PropertyLabel";
 import { SPACING, getSpacingPx } from "../ui_primitives";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 
 const detectTypeFromList = (list: unknown[]) => {
   if (list.length === 0) {

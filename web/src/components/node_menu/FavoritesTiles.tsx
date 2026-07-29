@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type { CSSProperties, DragEvent as ReactDragEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { EmptyState, Tooltip, Text, ToolbarIconButton, thinScrollbarStyles, Box, MOTION, BORDER_RADIUS, FONT_WEIGHT, SPACING, getSpacingPx } from "../ui_primitives";
@@ -16,6 +16,7 @@ import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
+import ConfirmDialog from "../dialogs/ConfirmDialog";
 
 const tooltipHintStyle: CSSProperties = {
   fontSize: "var(--fontSizeSmaller)",
@@ -123,6 +124,10 @@ const tileStyles = (theme: Theme) =>
     },
     ".favorite-tile:hover .unfavorite-btn": {
       opacity: 1
+    },
+    // Touch devices have no hover; keep the unfavorite button reachable.
+    "@media (pointer: coarse)": {
+      ".unfavorite-btn": { opacity: 1 }
     }
   });
 
@@ -254,6 +259,8 @@ const FavoritesTiles = memo(function FavoritesTiles({
     [removeFavorite, addNotification]
   );
 
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+
   const handleClearFavorites = useCallback(() => {
     clearFavorites();
   }, [clearFavorites]);
@@ -306,7 +313,7 @@ const FavoritesTiles = memo(function FavoritesTiles({
             tooltipPlacement="top"
             size="small"
             className="clear-button"
-            onClick={handleClearFavorites}
+            onClick={() => setClearConfirmOpen(true)}
             aria-label="Clear all favorites"
           />
         </div>
@@ -366,6 +373,17 @@ const FavoritesTiles = memo(function FavoritesTiles({
           );
         })}
       </div>
+      <ConfirmDialog
+        open={clearConfirmOpen}
+        onClose={() => setClearConfirmOpen(false)}
+        onConfirm={handleClearFavorites}
+        title="Clear all favorites?"
+        content={`This removes all ${favorites.length} favorite nodes. This cannot be undone.`}
+        confirmText="Clear favorites"
+        cancelText="Cancel"
+        notificationMessage="Favorites cleared"
+        notificationType="success"
+      />
     </Box>
   );
 });

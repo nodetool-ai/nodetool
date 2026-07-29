@@ -24,11 +24,9 @@ import { getWorkflowRunnerStore } from "../../../stores/WorkflowRunner";
 import { useJobAssets } from "../../../serverState/useJobAssets";
 import { trpcClient } from "../../../trpc/client";
 import { useQueryClient } from "@tanstack/react-query";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../../utils/isEqual";
+import { notifyMutationError } from "../../../utils/notifyMutationError";
 
-/**
- * Format a duration in milliseconds to a human-readable string
- */
 const formatDuration = (ms: number): string => {
   if (ms < 0) {
     return "0ms";
@@ -49,9 +47,6 @@ const formatDuration = (ms: number): string => {
   return `${hours}h ${minutes}m`;
 };
 
-/**
- * Format elapsed time since job started
- */
 const formatElapsedTime = (startedAt: string | null | undefined): string => {
   if (!startedAt) {
     return "Not started";
@@ -64,9 +59,6 @@ const formatElapsedTime = (startedAt: string | null | undefined): string => {
   return formatDuration(elapsed);
 };
 
-/**
- * Calculate job duration from started_at to finished_at
- */
 const getJobDuration = (
   startedAt: string | null | undefined,
   finishedAt: string | null | undefined
@@ -189,10 +181,28 @@ const AssetThumb = memo(function AssetThumb({ asset }: { asset: Asset }) {
     [asset.get_url]
   );
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key !== "Enter" && e.key !== " ") {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      if (asset.get_url) {
+        window.open(asset.get_url, "_blank", "noopener,noreferrer");
+      }
+    },
+    [asset.get_url]
+  );
+
   return (
     <Tooltip title={asset.name || asset.content_type}>
       <Box
+        role="button"
+        tabIndex={0}
+        aria-label="Open job output"
         onClick={handleOpen}
+        onKeyDown={handleKeyDown}
         sx={{
           width: TILE_SIZE,
           height: TILE_SIZE,
@@ -217,9 +227,7 @@ const AssetThumb = memo(function AssetThumb({ asset }: { asset: Asset }) {
             sx={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
         ) : (
-          <Text size="tinyer" color="secondary" truncate sx={{ px: 0.5 }}>
-            {asset.content_type?.split("/")[1] || "file"}
-          </Text>
+          <Text size="smaller" color="secondary" truncate sx={{ px: 0.5 }}>{asset.content_type?.split("/")[1] || "file"}</Text>
         )}
       </Box>
     </Tooltip>
@@ -250,7 +258,20 @@ const JobItem = ({ job }: { job: Job }) => {
     return () => clearInterval(interval);
   }, [job.started_at, job.status]);
 
-  const handleClick = () => navigate(`/editor/${job.workflow_id}`);
+  const handleClick = useCallback(
+    () => navigate(`/editor/${job.workflow_id}`),
+    [navigate, job.workflow_id]
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        handleClick();
+      }
+    },
+    [handleClick]
+  );
 
   const handleStop = useCallback(
     async (e: React.MouseEvent) => {
@@ -271,9 +292,8 @@ const JobItem = ({ job }: { job: Job }) => {
           runnerState.cancel();
         }
       } catch (err) {
-        console.error("Failed to cancel job:", err);
+        notifyMutationError("cancel the job", err);
       } finally {
-        // Refresh the jobs list to show updated status
         queryClient.invalidateQueries({ queryKey: ["jobs"] });
         setCancelling(false);
       }
@@ -334,7 +354,10 @@ const JobItem = ({ job }: { job: Job }) => {
     <FlexRow
       align="center"
       gap={1}
+      role="button"
+      tabIndex={0}
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
       sx={{
         px: 1,
         py: 1,
@@ -353,19 +376,12 @@ const JobItem = ({ job }: { job: Job }) => {
             {workflowName}
           </Text>
           <Tooltip title={job.id}>
-            <Text
-              size="tiny"
-              color="secondary"
-              family="secondary"
-              sx={{ flex: "0 0 auto" }}
-            >
-              {shortId}
-            </Text>
+            <Text size="smaller" color="secondary"
+            family="secondary"
+            sx={{ flex: "0 0 auto" }}>{shortId}</Text>
           </Tooltip>
         </FlexRow>
-        <Text size="tiny" color={isError ? "error" : "secondary"} truncate>
-          {metaText}
-        </Text>
+        <Text size="smaller" color={isError ? "error" : "secondary"} truncate>{metaText}</Text>
       </FlexColumn>
       {/* All outputs, shown inline across the available width. */}
       <FlexRow
@@ -404,9 +420,8 @@ const JobItem = ({ job }: { job: Job }) => {
   );
 };
 
-const MemoizedJobItem = memo(JobItem, (prevProps, nextProps) => {
-  // Custom comparison for Job props - only re-render if job data changes
-  return isEqual(prevProps.job, nextProps.job);
-});
+const MemoizedJobItem = memo(JobItem, (prevProps, nextProps) =>
+  isEqual(prevProps.job, nextProps.job)
+);
 
 export default MemoizedJobItem;

@@ -52,7 +52,6 @@ const SaturationPicker = memo(function SaturationPicker({
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
 
-  // Draw the saturation/brightness gradient
   const drawGradient = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) { return; }
@@ -63,10 +62,8 @@ const SaturationPicker = memo(function SaturationPicker({
     const width = canvas.width;
     const height = canvas.height;
 
-    // Clear canvas
     ctx.clearRect(0, 0, width, height);
 
-    // Get the base color at full saturation and brightness
     const baseRgb = hsbToRgb({ h: hue, s: 100, b: 100 });
     const baseColor = rgbToHex(baseRgb);
 
@@ -85,12 +82,10 @@ const SaturationPicker = memo(function SaturationPicker({
     ctx.fillRect(0, 0, width, height);
   }, [hue]);
 
-  // Draw gradient when hue changes
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) { return; }
 
-    // Set canvas size to match display size
     const rect = canvas.getBoundingClientRect();
     canvas.width = rect.width * window.devicePixelRatio;
     canvas.height = rect.height * window.devicePixelRatio;
@@ -98,7 +93,6 @@ const SaturationPicker = memo(function SaturationPicker({
     drawGradient();
   }, [hue, drawGradient]);
 
-  // Handle resize
   useEffect(() => {
     const handleResize = () => {
       const canvas = canvasRef.current;
@@ -121,12 +115,10 @@ const SaturationPicker = memo(function SaturationPicker({
       if (!container) { return; }
 
       const rect = container.getBoundingClientRect();
-      
-      // Calculate position as percentage
+
       let x = ((clientX - rect.left) / rect.width) * 100;
       let y = ((clientY - rect.top) / rect.height) * 100;
 
-      // Clamp values
       x = Math.max(0, Math.min(100, x));
       y = Math.max(0, Math.min(100, y));
 
@@ -156,7 +148,6 @@ const SaturationPicker = memo(function SaturationPicker({
     isDragging.current = false;
   }, []);
 
-  // Handle touch events
   const handleTouchStart = useCallback(
     (e: React.TouchEvent) => {
       isDragging.current = true;
@@ -175,7 +166,6 @@ const SaturationPicker = memo(function SaturationPicker({
     [updateColor]
   );
 
-  // Global mouse up listener
   useEffect(() => {
     const handleGlobalMouseUp = () => {
       isDragging.current = false;
@@ -190,11 +180,9 @@ const SaturationPicker = memo(function SaturationPicker({
     };
   }, []);
 
-  // Calculate cursor position
   const cursorX = `${saturation}%`;
   const cursorY = `${100 - brightness}%`;
 
-  // Get cursor color for border contrast
   const cursorRgb = hsbToRgb({ h: hue, s: saturation, b: brightness });
   const cursorHex = rgbToHex(cursorRgb);
 

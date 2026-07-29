@@ -75,6 +75,13 @@ jest.mock("../../properties/TTSModelSelect", () => ({
     React.createElement("div", { "data-testid": "tts-model-select" }, "TTS")
 }));
 
+// The "Save as Asset" folder chooser uses useFolderTree (TanStack Query); no-op
+// it for the same no-QueryClientProvider reason as above.
+jest.mock("../../assets/SaveToFolderMenu", () => ({
+  __esModule: true,
+  default: () => null
+}));
+
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   useTimeline,

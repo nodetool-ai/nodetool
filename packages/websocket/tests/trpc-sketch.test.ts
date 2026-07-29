@@ -56,6 +56,27 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     static listByProject = vi.fn();
     static updateDoc = vi.fn();
     static mutateDocumentData = vi.fn();
+
+    // Atomic CAS helper for sketch.update. Plain static method (not a vi.fn so
+    // `vi.resetAllMocks()` can't strip its body) that routes its write through
+    // `updateDoc`, keeping existing `ID.updateDoc.mock.calls` assertions valid.
+    static async updateFieldsIfUnchanged(
+      id: string,
+      _expectedUpdatedAt: string,
+      fields: Record<string, unknown>
+    ): Promise<StubImageDocument | null> {
+      const doc = (await StubImageDocument.findById(
+        id
+      )) as StubImageDocument | null;
+      if (!doc) return null;
+      Object.assign(doc, fields);
+      if (fields.background_color !== undefined) {
+        (doc as { background_color: unknown }).background_color =
+          fields.background_color;
+      }
+      await StubImageDocument.updateDoc(id, fields);
+      return doc;
+    }
   }
   return {
     ...actual,
@@ -196,6 +217,37 @@ describe("sketch router", () => {
       });
       expect(out.document.sketch.history).toEqual([]);
       expect(out.document.sketch.historyIndex).toBe(-1);
+    });
+
+    it("honors a client-supplied id", async () => {
+      ID.findById.mockResolvedValue(null);
+      const caller = createCaller(makeCtx());
+      const out = await caller.sketch.create({
+        id: "client-minted-id",
+        name: "New",
+        projectId: "p-1"
+      });
+      expect(out.id).toBe("client-minted-id");
+    });
+
+    it("is idempotent — a repeated create returns the existing document", async () => {
+      ID.findById.mockResolvedValue(makeDoc({ id: "dupe", name: "Original" }));
+      const caller = createCaller(makeCtx());
+      const out = await caller.sketch.create({
+        id: "dupe",
+        name: "Should be ignored",
+        projectId: "p-1"
+      });
+      expect(out.id).toBe("dupe");
+      expect(out.name).toBe("Original");
+    });
+
+    it("hides another user's document behind a 404 rather than overwriting it", async () => {
+      ID.findById.mockResolvedValue(makeDoc({ id: "theirs", user_id: "someone-else" }));
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.sketch.create({ id: "theirs", name: "Mine", projectId: "p-1" })
+      ).rejects.toThrow();
     });
   });
 
@@ -568,26 +620,6 @@ describe("sketch router", () => {
           sourceWorkflowId: "source-wf"
         })
       ).rejects.toThrow();
-    });
-
-    it("delete removes only the binding", async () => {
-      ID.findById.mockResolvedValue(
-        makeDoc({ document: JSON.stringify(layerDoc) })
-      );
-      ID.updateDoc.mockResolvedValue(undefined);
-
-      const caller = createCaller(makeCtx());
-      const out = await caller.sketch.layers.delete({
-        id: "doc-1",
-        layerId: "layer-1"
-      });
-
-      expect(out.ok).toBe(true);
-      const updateArgs = ID.updateDoc.mock.calls[0];
-      const persisted = JSON.parse(
-        updateArgs?.[1]?.document as string
-      ) as ImageDocumentData;
-      expect(persisted.layerBindings).toHaveLength(0);
     });
 
     it("duplicate copies overrides and shares the workflow", async () => {

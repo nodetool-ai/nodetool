@@ -272,7 +272,7 @@ describe("SaveImageFileImageNode — overwrite=false", () => {
     const node1 = new SaveImageFileImageNode();
     node1.assign({ image: imgRef, folder: dir, filename: "test.png", overwrite: false });
     const result1 = await node1.process();
-    const path1 = result1.output as string;
+    const path1 = result1.path as string;
     expect(path1).toContain("test.png");
     expect(path1).not.toContain("_1");
 
@@ -280,7 +280,7 @@ describe("SaveImageFileImageNode — overwrite=false", () => {
     const node2 = new SaveImageFileImageNode();
     node2.assign({ image: imgRef, folder: dir, filename: "test.png", overwrite: false });
     const result2 = await node2.process();
-    const path2 = result2.output as string;
+    const path2 = result2.path as string;
 
     // The second file must have a different name (e.g. test_1.png)
     expect(path2).not.toBe(path1);
@@ -305,7 +305,7 @@ describe("SaveImageFileImageNode — overwrite=false", () => {
     const result2 = await node2.process();
 
     // Both should return the same path
-    expect(result1.output).toBe(result2.output);
+    expect(result1.path).toBe(result2.path);
   });
 });
 

@@ -2,7 +2,6 @@ import React, { memo } from "react";
 import MarkdownRenderer from "../../../utils/MarkdownRenderer";
 import { isLikelyMarkdown } from "./markdown.helpers";
 
-// Memoize the style object to prevent recreation on every render
 const MARKDOWN_TEXT_STYLE = {
   padding: "0 0.5em",
   whiteSpace: "pre-wrap" as const,

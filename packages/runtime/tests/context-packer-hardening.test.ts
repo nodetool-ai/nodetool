@@ -28,6 +28,19 @@ function expectKeepDrop(msg: Message, cost: number): void {
 }
 
 describe("estimateMessageTokens — content kinds", () => {
+  it("counts tool-call names and arguments when content is null", () => {
+    const name = "search";
+    const args = { query: "the quick brown fox ".repeat(40) };
+    const message: Message = {
+      role: "assistant",
+      content: null,
+      toolCalls: [{ id: "call-1", name, args }]
+    };
+    const cost = 1 + countTokens(name) + countTokens(JSON.stringify(args));
+
+    expectKeepDrop(message, cost);
+  });
+
   it("treats null/undefined content as 1 token (no crash)", () => {
     expect(packContext([user(null)], "", 1).messages).toHaveLength(1);
     expect(

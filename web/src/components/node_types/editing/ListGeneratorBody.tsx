@@ -32,11 +32,11 @@ import type { Theme } from "@mui/material/styles";
 
 import {
   CopyButton,
-  FlexColumn,
   FlexRow,
   LoadingSpinner,
   BORDER_RADIUS,
   MOTION,
+  reducedMotion,
   FONT_WEIGHT,
   SPACING,
   thinScrollbarStyles
@@ -135,6 +135,7 @@ const styles = (theme: Theme) =>
       cursor: "pointer",
       userSelect: "none",
       transition: MOTION.background,
+      ...reducedMotion({ transition: MOTION.none }),
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover
       }
@@ -167,16 +168,22 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       opacity: 0,
-      transition: MOTION.opacity
+      transition: MOTION.opacity,
+      ...reducedMotion({ transition: MOTION.none })
     },
     ".list-head:hover .list-actions, .list-head:focus-within .list-actions": {
       opacity: 1
+    },
+    // Touch devices have no hover; keep the list actions reachable.
+    "@media (pointer: coarse)": {
+      ".list-actions": { opacity: 1 }
     },
     ".list-chevron": {
       flexShrink: 0,
       fontSize: theme.fontSizeNormal,
       color: theme.vars.palette.text.secondary,
-      transition: MOTION.transform
+      transition: MOTION.transform,
+      ...reducedMotion({ transition: MOTION.none })
     },
     ".list-chevron.expanded": {
       transform: "rotate(90deg)"
@@ -199,6 +206,9 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.disabled,
       fontSize: theme.fontSizeSmaller,
       padding: theme.spacing(SPACING.lg)
+    },
+    ".outputs-row": {
+      flex: "0 0 auto"
     }
   });
 
@@ -254,7 +264,7 @@ const ListGeneratorBodyInner: React.FC<BespokeBodyProps> = ({
   }, [items.length]);
 
   return (
-    <div css={styles(theme)} className="nodrag">
+    <div css={styles(theme)} className="nodrag" data-bespoke-body="ListGenerator">
       {inputProperties.length > 0 && (
         <HandleColumn id={id} properties={inputProperties} layout="stacked" />
       )}
@@ -323,9 +333,9 @@ const ListGeneratorBodyInner: React.FC<BespokeBodyProps> = ({
       )}
 
       {!isOutputNode && (
-        <FlexColumn gap={0}>
+        <div className="outputs-row">
           <NodeOutputs id={id} outputs={nodeMetadata.outputs} />
-        </FlexColumn>
+        </div>
       )}
       {isRunning && (
         <FlexRow>

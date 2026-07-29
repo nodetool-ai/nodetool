@@ -1,8 +1,16 @@
 import { Asset } from "../../stores/ApiTypes";
-import { SPACING, getSpacingPx } from "../../components/ui_primitives";
+import {
+  BORDER_RADIUS,
+  FONT_WEIGHT,
+  SPACING,
+  Z_INDEX,
+  getSpacingPx
+} from "../../components/ui_primitives";
 
-// Helper to get z-index for stack
 const getZIndex = (index: number, total: number) => total - index;
+
+// Above every tier on the shared Z_INDEX scale, so it keeps its own value.
+const DRAG_IMAGE_Z_INDEX = 9999;
 
 /**
  * Creates a custom drag image element for assets
@@ -18,39 +26,33 @@ export function createAssetDragImage(
 ): HTMLElement {
   const container = document.createElement("div");
 
-  // Base container style - needs to be off-screen usually
+  // Rendered off-screen so it can be handed to setDragImage.
   container.style.cssText = `
     position: absolute;
     top: -9999px;
     left: -9999px;
     width: 240px;
-    z-index: 9999;
+    z-index: ${DRAG_IMAGE_Z_INDEX};
     font-family: Inter, sans-serif;
     pointer-events: none;
   `;
 
-  // Determine items to show in stack
-  // Always show primary asset first
   const stackAssets: (Asset | null)[] = [primaryAsset];
 
-  // Add other assets if available, up to 2 more
   if (otherAssets.length > 0) {
-    // Filter out the primary asset if it's in the list
     const others = otherAssets
       .filter((a) => a.id !== primaryAsset.id)
       .slice(0, 2);
     stackAssets.push(...others);
   }
 
-  // Fill with nulls if we need more items to represent the count (visual stack effect), max 3 total
+  // Pad with nulls so the stack visually represents the count (max 3 cards).
   while (stackAssets.length < Math.min(totalCount, 3)) {
     stackAssets.push(null);
   }
 
-  // Render stack
   stackAssets.forEach((asset, index) => {
     const item = document.createElement("div");
-    // Offset each card slightly down and right
     const offset = index * 4;
     const scale = 1 - index * 0.04;
 
@@ -62,7 +64,7 @@ export function createAssetDragImage(
       height: 64px;
       background: var(--palette-background-paper);
       border: 1px solid var(--palette-divider);
-      border-radius: 8px;
+      border-radius: ${BORDER_RADIUS.lg};
       display: flex;
       align-items: center;
       padding: ${getSpacingPx(SPACING.md)};
@@ -73,9 +75,7 @@ export function createAssetDragImage(
       transform-origin: top left;
     `;
 
-    // Content for this card
     if (asset) {
-      // Icon/Thumbnail
       const isImage = asset.content_type?.startsWith("image/") && asset.get_url;
 
       if (isImage && asset.get_url) {
@@ -85,19 +85,18 @@ export function createAssetDragImage(
           width: 48px;
           height: 48px;
           object-fit: cover;
-          border-radius: 4px;
+          border-radius: ${BORDER_RADIUS.sm};
           margin-right: ${getSpacingPx(SPACING.lg)};
           flex-shrink: 0;
           background-color: var(--palette-background-default);
         `;
         item.appendChild(img);
       } else {
-        // Generic File Icon
         const iconDiv = document.createElement("div");
         iconDiv.style.cssText = `
           width: 48px;
           height: 48px;
-          border-radius: 4px;
+          border-radius: ${BORDER_RADIUS.sm};
           margin-right: ${getSpacingPx(SPACING.lg)};
           flex-shrink: 0;
           background-color: var(--palette-grey-800);
@@ -105,17 +104,15 @@ export function createAssetDragImage(
           align-items: center;
           justify-content: center;
           color: var(--palette-text-secondary);
-          font-weight: 600;
+          font-weight: ${FONT_WEIGHT.semibold};
           font-size: var(--fontSizeSmaller);
           text-transform: uppercase;
         `;
-        // Extension
         const ext = asset.name.split(".").pop()?.substring(0, 4) || "FILE";
         iconDiv.textContent = ext;
         item.appendChild(iconDiv);
       }
 
-      // Info
       const infoDiv = document.createElement("div");
       infoDiv.style.cssText = `
         flex: 1;
@@ -130,7 +127,7 @@ export function createAssetDragImage(
       name.style.cssText = `
         color: var(--palette-text-primary);
         font-size: var(--fontSizeSmall);
-        font-weight: 500;
+        font-weight: ${FONT_WEIGHT.medium};
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -151,14 +148,12 @@ export function createAssetDragImage(
 
       item.appendChild(infoDiv);
     } else {
-      // Placeholder card (looks like back of a card or generic)
       item.style.background = "var(--palette-background-default)";
     }
 
     container.appendChild(item);
   });
 
-  // Badge if more than 1
   if (totalCount > 1) {
     const badge = document.createElement("div");
     badge.textContent = String(totalCount);
@@ -168,14 +163,14 @@ export function createAssetDragImage(
       right: -8px;
       background-color: var(--palette-primary-main);
       color: var(--palette-primary-contrastText);
-      border-radius: 12px;
+      border-radius: ${BORDER_RADIUS.xl};
       padding: ${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)};
       min-width: 20px;
       text-align: center;
       font-size: var(--fontSizeSmall);
-      font-weight: bold;
+      font-weight: ${FONT_WEIGHT.semibold};
       border: 2px solid var(--palette-background-paper);
-      z-index: 1000;
+      z-index: ${Z_INDEX.overlay};
       box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     `;
     container.appendChild(badge);

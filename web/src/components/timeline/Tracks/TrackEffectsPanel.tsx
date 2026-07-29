@@ -62,8 +62,6 @@ import {
 } from "../../ui_primitives";
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 
-// ── Styles ──────────────────────────────────────────────────────────────────
-
 const containerStyles = (theme: Theme) =>
   css({
     width: "100%",
@@ -90,8 +88,6 @@ const deviceRackStyles = (theme: Theme) =>
     overflowX: "auto",
     overflowY: "hidden"
   });
-
-// Per-effect-type card width (Ableton-style fixed-width "devices").
 
 const effectCardStyles = (
   theme: Theme,
@@ -176,7 +172,7 @@ const addButtonStyles = (theme: Theme) =>
     border: "none",
     padding: theme.spacing(0.5, 1),
     borderRadius: BORDER_RADIUS.xs,
-    fontSize: theme.typography.caption.fontSize,
+    fontSize: FONT_SIZE_SANS.caption,
     cursor: "pointer",
     display: "inline-flex",
     alignItems: "center",
@@ -196,7 +192,7 @@ const paramLabelStyles = (theme: Theme) =>
   css({
     width: 70,
     flexShrink: 0,
-    fontSize: theme.typography.caption.fontSize,
+    fontSize: FONT_SIZE_SANS.caption,
     color: theme.vars.palette.text.secondary
   });
 
@@ -206,13 +202,9 @@ const paramValueStyles = (theme: Theme) =>
     flexShrink: 0,
     textAlign: "right",
     fontVariantNumeric: "tabular-nums",
-    fontSize: theme.typography.caption.fontSize,
+    fontSize: FONT_SIZE_SANS.caption,
     color: theme.vars.palette.text.primary
   });
-
-// ── Effect labels ───────────────────────────────────────────────────────────
-
-// ── Parameter row ───────────────────────────────────────────────────────────
 
 interface ParamRowProps {
   label: string;
@@ -312,8 +304,6 @@ const ParamRow: React.FC<ParamRowProps> = memo(
 );
 ParamRow.displayName = "ParamRow";
 
-// ── Per-effect editors ──────────────────────────────────────────────────────
-
 interface EffectEditorProps<E extends TrackEffect> {
   effect: E;
   onPatch: (patch: Partial<E>) => void;
@@ -338,8 +328,7 @@ const GainEditor: React.FC<EffectEditorProps<TrackGainEffect>> = ({
   />
 );
 
-// ── 3-Band EQ visualizer (Logic-style) ──────────────────────────────────────
-
+// 3-Band EQ visualizer (Logic-style)
 const EQ_FS = 48000;
 const EQ_F_MIN = 20;
 const EQ_F_MAX = 20000;
@@ -473,7 +462,7 @@ const bandReadoutStyles = (theme: Theme, color: string) =>
     borderRadius: BORDER_RADIUS.xs,
     padding: theme.spacing(0.5, 1),
     background: theme.vars.palette.background.paper,
-    fontSize: theme.typography.caption.fontSize,
+    fontSize: FONT_SIZE_SANS.caption,
     display: "flex",
     flexDirection: "column",
     gap: 2
@@ -897,7 +886,7 @@ const Eq3Editor: React.FC<EffectEditorProps<TrackEq3Effect>> = ({
         </div>
       </FlexRow>
       <Tooltip title="Drag handles to set frequency & gain. Scroll on the mid handle to change Q.">
-        <Text size="tiny" color="secondary">
+        <Text size="smaller" color="secondary">
           Drag bands · scroll mid for Q
         </Text>
       </Tooltip>
@@ -948,8 +937,7 @@ const FilterEditor: React.FC<EffectEditorProps<TrackFilterEffect>> = ({
   </FlexColumn>
 );
 
-// ── Compressor visualizer (Logic-style transfer curve) ──────────────────────
-
+// Compressor visualizer (Logic-style transfer curve)
 const COMP_DB_MIN = -60;
 const COMP_DB_MAX = 0;
 const COMP_GRAPH_SIZE = 180;
@@ -1498,15 +1486,13 @@ const CompressorEditor: React.FC<EffectEditorProps<TrackCompressorEffect>> = ({
         />
       </FlexColumn>
       <Tooltip title="Drag T to set threshold, R to set ratio. Scroll on T to change knee width.">
-        <Text size="tiny" color="secondary">
+        <Text size="smaller" color="secondary">
           Drag T = threshold · R = ratio · scroll T = knee
         </Text>
       </Tooltip>
     </FlexColumn>
   );
 };
-
-// ── Video effect editors ────────────────────────────────────────────────────
 
 const ColorCorrectionEditor: React.FC<
   EffectEditorProps<TrackColorCorrectionEffect>
@@ -1749,7 +1735,7 @@ const ChromaKeyEditor: React.FC<
       <FlexRow gap={1} align="center">
         <span
           css={{
-            fontSize: theme.typography.caption.fontSize,
+            fontSize: FONT_SIZE_SANS.caption,
             color: theme.vars.palette.text.secondary,
             width: 70
           }}
@@ -1766,7 +1752,7 @@ const ChromaKeyEditor: React.FC<
         />
         <span
           css={{
-            fontSize: theme.typography.caption.fontSize,
+            fontSize: FONT_SIZE_SANS.caption,
             color: theme.vars.palette.text.primary,
             fontVariantNumeric: "tabular-nums"
           }}
@@ -1807,8 +1793,6 @@ const ChromaKeyEditor: React.FC<
     </FlexColumn>
   );
 };
-
-// ── Effect card ─────────────────────────────────────────────────────────────
 
 interface EffectCardProps {
   trackId: string;
@@ -2009,8 +1993,6 @@ const EffectCard: React.FC<EffectCardProps> = memo(
   }
 );
 EffectCard.displayName = "EffectCard";
-
-// ── Panel ───────────────────────────────────────────────────────────────────
 
 export interface TrackEffectsPanelProps {
   trackId: string;

@@ -7,7 +7,7 @@ import {
   hasOutputHandle,
   hasInputHandle,
 } from "../handleUtils";
-import { NodeData } from "../../stores/NodeData";
+import { DynamicSlotDeclaration, NodeData } from "../../stores/NodeData";
 import {
   NodeMetadata,
   OutputSlot,
@@ -107,7 +107,7 @@ const createMockNode = (
   id: string = "test-node",
   dynamicOutputs: Record<string, TypeMetadata> = {},
   dynamicProperties: Record<string, any> = {},
-  dynamicInputs: Record<string, TypeMetadata> = {}
+  dynamicInputs: Record<string, DynamicSlotDeclaration> = {}
 ): Node<NodeData> => ({
   id,
   type: "test.node",
@@ -269,7 +269,7 @@ describe("handleUtils", () => {
         "test",
         {},
         { layer_in_Base: "" },
-        { layer_in_Base: mockDynamicTypeMetadata }
+        { layer_in_Base: { type: mockDynamicTypeMetadata } }
       );
       const handle = findInputHandle(node, "layer_in_Base", mockNodeMetadata);
 
@@ -406,8 +406,8 @@ describe("handleUtils", () => {
         dynamic2: "value2"
       };
       const dynamicInputs = {
-        dynamic1: mockDynamicTypeMetadata,
-        dynamic2: mockDynamicTypeMetadata
+        dynamic1: { type: mockDynamicTypeMetadata },
+        dynamic2: { type: mockDynamicTypeMetadata }
       };
       const node = createMockNode("test", {}, dynamicProperties, dynamicInputs);
       const handles = getAllInputHandles(node, mockDynamicNodeMetadata);
@@ -466,7 +466,7 @@ describe("handleUtils", () => {
           layer_out_preview: "stale output value"
         },
         {
-          layer_in_source: mockDynamicTypeMetadata
+          layer_in_source: { type: mockDynamicTypeMetadata }
         }
       );
 
@@ -504,7 +504,7 @@ describe("handleUtils", () => {
         "test",
         {},
         { layer_in_Base: "" },
-        { layer_in_Base: mockDynamicTypeMetadata }
+        { layer_in_Base: { type: mockDynamicTypeMetadata } }
       );
       const handles = getAllInputHandles(node, mockNodeMetadata);
       expect(handles.map((h) => h.name)).toContain("layer_in_Base");
@@ -546,7 +546,7 @@ describe("handleUtils", () => {
 
     it("should return true for existing dynamic input handles on dynamic nodes", () => {
       const dynamicProperties = { dynamic_input: "test_value" };
-      const dynamicInputs = { dynamic_input: mockDynamicTypeMetadata };
+      const dynamicInputs = { dynamic_input: { type: mockDynamicTypeMetadata } };
       const node = createMockNode("test", {}, dynamicProperties, dynamicInputs);
       expect(
         hasInputHandle(node, "dynamic_input", mockDynamicNodeMetadata)
@@ -611,5 +611,58 @@ describe("handleUtils", () => {
         false
       );
     });
+  });
+});
+
+describe("typed dynamic slots", () => {
+  const imageSlot = {
+    type: {
+      type: "image",
+      optional: false,
+      values: null,
+      type_args: [],
+      type_name: null
+    }
+  };
+
+  it("findInputHandle uses the declared slot type", () => {
+    const node = createMockNode("n", {}, { picture: null }, { picture: imageSlot });
+    const handle = findInputHandle(node, "picture", mockDynamicNodeMetadata);
+
+    expect(handle?.isDynamic).toBe(true);
+    expect(handle?.type.type).toBe("image");
+  });
+
+  it("findInputHandle falls back to `any` for an undeclared slot", () => {
+    const node = createMockNode("n", {}, { legacy: "" });
+    const handle = findInputHandle(node, "legacy", mockDynamicNodeMetadata);
+
+    expect(handle?.type.type).toBe("any");
+  });
+
+  it("getAllInputHandles mixes typed and untyped slots", () => {
+    const node = createMockNode(
+      "n",
+      {},
+      { picture: null, legacy: "" },
+      { picture: imageSlot }
+    );
+    const handles = getAllInputHandles(node, mockDynamicNodeMetadata);
+
+    expect(handles.find((h) => h.name === "picture")?.type.type).toBe("image");
+    expect(handles.find((h) => h.name === "legacy")?.type.type).toBe("any");
+  });
+
+  it("accepts a legacy flat declaration", () => {
+    const node = createMockNode(
+      "n",
+      {},
+      { picture: null },
+      { picture: { type: "image", optional: false, type_args: [] } as never }
+    );
+
+    expect(findInputHandle(node, "picture", mockDynamicNodeMetadata)?.type.type).toBe(
+      "image"
+    );
   });
 });

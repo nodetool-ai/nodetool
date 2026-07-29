@@ -125,7 +125,6 @@ export class RealtimeSpeechToTextNode extends BaseNode {
     outputs: StreamingOutputs,
     context?: ProcessingContext
   ): Promise<void> {
-    // Get API key from context or env
     let apiKey = "";
     if (context && typeof (context as any).getSecret === "function") {
       apiKey = (await (context as any).getSecret("ELEVENLABS_API_KEY")) || "";
@@ -271,7 +270,6 @@ export class RealtimeSpeechToTextNode extends BaseNode {
       if (typeof chunk === "string") {
         audioB64 = chunk;
       } else {
-        // Detect sample rate from first chunk's metadata
         if (!sampleRateDetected && chunk.content_metadata) {
           const meta = chunk.content_metadata as Record<string, unknown>;
           if (typeof meta.sample_rate === "number" && meta.sample_rate > 0) {
@@ -332,7 +330,6 @@ export class RealtimeSpeechToTextNode extends BaseNode {
 
     await consumerPromise;
 
-    // Emit final done chunk
     await outputs.emit("chunk", {
       type: "chunk",
       content: "",

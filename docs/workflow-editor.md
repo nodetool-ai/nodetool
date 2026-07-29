@@ -12,13 +12,21 @@ The canvas: place nodes, connect ports, run, debug. Covers basic navigation thro
 
 ---
 
+## Where this fits
+
+The workflow editor is NodeTool's automation layer. A workflow reads **assets**, calls models, and writes new assets — which flow on into the **Sketch Editor** and **Video Editor** for hand editing, come back as fresh assets, or ship to non-technical users as a **Mini-App**. Every surface shares this graph's outputs through one asset store and the same model/provider system.
+
+See [Key Concepts → How everything fits together](key-concepts.md#how-everything-fits-together) for the full loop.
+
+---
+
 ## Editor Layout
 
 | Area | Where | What It Does |
 |------|-------|--------------|
 | **Canvas** | Center | Place and connect nodes |
-| **Side Panels** | Left/Right | Workflows, assets, settings |
-| **Toolbar** | Bottom | Run, save, layout controls |
+| **Side Panels** | Left | Workflows, nodes, assets, timelines, sketches, favorites |
+| **Composer** | Bottom | Chat, run, save, auto-layout |
 
 ---
 
@@ -63,8 +71,6 @@ Each node does one thing.
 
 ### Node Structure
 
-![Node Anatomy](assets/screenshots/editor-node-canvas.png)
-
 - **Header** (top) - Name, drag to move
 - **Inputs** (left circles) - Data in
 - **Outputs** (right circles) - Data out
@@ -99,15 +105,6 @@ Good for:
 - **A/B testing** - Toggle effects
 
 Re-enable: Right-click → **Enable Node**
-
-### Result Overlays
-
-Nodes show outputs on canvas:
-
-- **Images** - Thumbnail preview
-- **Text** - Text snippet
-- **Audio** - Waveform
-- **Progress** - Live status
 
 ---
 
@@ -159,35 +156,6 @@ When you drag a connection and release on **empty space**, the **Connection Menu
 - **Node borders** indicate status (running, complete, error)
 - **Edge animations** show data flowing between nodes
 
-### Pausing and Resuming
-
-You can temporarily pause a running workflow:
-
-| Action | Button | Description |
-|--------|--------|-------------|
-| **Pause** | ⏸ (blue) | Temporarily stops execution - workflow state is preserved |
-| **Resume** | ▶ (blue) | Continues from where it paused |
-
-The pause button appears in the floating toolbar while a workflow is running.
-
-### Suspended Workflows
-
-Some nodes (like the **WaitNode**) can suspend a workflow to wait for external input:
-
-| State | Button | Description |
-|-------|--------|-------------|
-| **Suspended** | ▶ (purple) | Workflow is waiting for input - click to resume |
-
-When a workflow is suspended:
-- A notification shows why the workflow is waiting
-- The purple Resume button appears in the toolbar
-- Click Resume to continue the workflow with any required data
-- The workflow can be stopped (cancelled) if no longer needed
-
-Suspended workflows are useful for:
-- **Human-in-the-loop** approvals
-- **Waiting for external data** or API responses
-- **Checkpoint-based processing** where you review intermediate results
 
 ### Stopping a Run
 
@@ -195,15 +163,6 @@ Suspended workflows are useful for:
 |--------|-----|
 | Button | Click **Stop** (enabled when running, paused, or suspended) |
 | Keyboard | `Esc` |
-
-### Missing Models
-
-![Missing Model Indicator](assets/screenshots/recommended-models.png)
-
-If a node needs an AI model you haven't installed:
-1. Click the **"Missing Model"** indicator on the node
-2. The **Recommended Models** dialog opens
-3. Click to install – runs in background while you work
 
 ---
 
@@ -231,23 +190,12 @@ Select multiple nodes and press `Ctrl/⌘ + G` to group them. Groups:
 
 ---
 
-## Panels and Tabs
-
-### Multiple Workflows
-
-![Workflow Tabs](assets/screenshots/editor-tabs-bar.png)
-
-- Open multiple workflows in **tabs** at the top
-- Switch with `Ctrl/⌘ + 1-9` or click the tab
-- Drag tabs to reorder
-
 ### Left Panel
 
 Access these views by clicking icons on the left rail: **Nodes**, **Workflows**, **Sketches**, **Timelines**, **Settings**, **History**, **Favorites**, **Assets**, and **Agent**. See [Editor Panels → Left Panel](editor-panels.md#left-panel) for details on each.
 
 ### Right Panel (Inspector)
 
-Press `i` to toggle the **Inspector** panel, which shows:
 - Detailed properties for selected nodes
 - Input/output documentation
 - Validation errors and warnings
@@ -270,13 +218,24 @@ Press `Space` to open, then:
 - **Move**: Drag the menu to reposition it
 - **Close**: `Esc` or click outside
 
+### Quick Add
+
+`Ctrl/⌘ + Shift + A` skips the browsing and goes straight to a search box — type a node name, hit Enter, and it lands on the canvas.
+
+![Quick add node](assets/screenshots/editor-quick-add-node.png)
+
+### Find in Workflow
+
+`Ctrl/⌘ + F` searches the workflow you already have: node names, types, and property values. Matches highlight on the canvas and the view pans to the one you pick.
+
+![Find in workflow](assets/screenshots/editor-find-in-workflow.png)
+
 ### Node Documentation
 
 Get help on any node:
 
 1. **In the Node Menu**: Hover over a node to see its description
-2. **On the canvas**: Hover over the `?` icon at the bottom-right of any node
-3. **Inspector**: Select a node and view full documentation in the right panel
+2. **Inspector**: Select a node and view full documentation in the right panel
 
 ---
 
@@ -301,6 +260,8 @@ NodeTool includes professional editing tools for creative work.
 
 ### Sketch Editor
 
+![Sketch Editor](assets/screenshots/sketch-editor.png)
+
 Open a blank canvas from **+ New → New image** in the workspace tab bar, or edit an existing image asset, to use the full layered editor:
 
 - **Layers**: Blend modes, per-layer opacity, lock, and visibility
@@ -311,11 +272,29 @@ Open a blank canvas from **+ New → New image** in the workspace tab bar, or ed
 
 > **📖 Full Guide:** See [Sketch Editor](sketch-editor.md) for complete documentation with tool reference, shortcuts, and workflows.
 
+### Text and Code Editor
+
+![Text and code editor](assets/screenshots/text-code-editor.png)
+
+Long string properties open in a full editor with syntax highlighting, line numbers, and search — the same surface used for code nodes.
+
+### DataFrame Editor
+
+![DataFrame editor](assets/screenshots/dataframe-editor.png)
+
+Tabular values are edited as a spreadsheet: add and remove rows and columns, retype cells, and sort.
+
+### Image Comparer
+
+![Image comparer](assets/screenshots/image-compare.png)
+
+Preview nodes that hold a before/after pair render a slider you drag across the two images.
+
 ### Color Picker
 
 ![Color Picker Modal](assets/screenshots/color-picker.png)
 
-The professional color picker appears when selecting colors in properties:
+The color picker appears when selecting colors in properties:
 
 - **Visual Selection**: Saturation/brightness picker with hue slider
 - **Multiple Formats**: Enter values as HEX, RGB, or HSL

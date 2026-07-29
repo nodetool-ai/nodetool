@@ -1,26 +1,21 @@
-/** Workflow Execution Module */
-
 import { clipboard, nativeImage } from "electron";
 import { Workflow, Node } from "./types";
 import { logMessage } from "./logger";
 import { createWorkflowRunner } from "./WorkflowRunner";
 import { createWorkflowWindow } from "./workflowWindow";
 
-/** Retrieves nodes of a specific input type from the workflow */
 function getInputNodes(workflow: Workflow, type: string): Node[] {
   return workflow.graph.nodes.filter(
     (node) => node.type === `nodetool.input.${type}`
   );
 }
 
-/** Retrieves all output nodes from the workflow */
 function getOutputNodes(workflow: Workflow): Node[] {
   return workflow.graph.nodes.filter((node) =>
     node.type.startsWith(`nodetool.output`)
   );
 }
 
-/** Attempts to read an image from the clipboard and prepare it for workflow input */
 function tryReadClipboardImage(workflow: Workflow): Record<string, unknown> {
   const params: Record<string, unknown> = {};
   const image = clipboard.readImage();
@@ -45,11 +40,6 @@ function tryReadClipboardImage(workflow: Workflow): Record<string, unknown> {
   return params;
 }
 
-/**
- * Attempts to read text from the clipboard and prepare it for workflow input
- * @param {Workflow} workflow - The workflow to process
- * @returns {Record<string, unknown>} Object containing text parameters if found, empty object otherwise
- */
 function tryReadClipboardText(workflow: Workflow): Record<string, unknown> {
   const params: Record<string, unknown> = {};
   const clipboardText = clipboard.readText();
@@ -68,11 +58,6 @@ function tryReadClipboardText(workflow: Workflow): Record<string, unknown> {
   return params;
 }
 
-/**
- * Writes the workflow results to the system clipboard
- * @param {Workflow} workflow - The workflow containing output configuration
- * @param {unknown[]} results - Array of workflow results
- */
 function writeResultToClipboard(workflow: Workflow, results: unknown[]) {
   if (results.length > 0) {
     const outputNode = getOutputNodes(workflow)[0];
@@ -91,11 +76,7 @@ function writeResultToClipboard(workflow: Workflow, results: unknown[]) {
   }
 }
 
-/**
- * Executes a workflow either in headless mode or with UI
- * @param {Workflow} workflow - The workflow to execute
- * @returns {Promise<void>}
- */
+/** Executes a workflow either in headless mode or with UI. */
 export async function runWorkflow(workflow: Workflow): Promise<void> {
   logMessage(
     `Starting workflow execution: ${workflow.name} (ID: ${workflow.id})`

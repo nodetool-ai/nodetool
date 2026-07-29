@@ -43,7 +43,7 @@ const DB_TO_LIN = (db: number): number => Math.pow(10, db / 20);
 const BUFFER_CACHE_MAX = 16;
 
 export class AudioGraph {
-  private ctx: AudioContext | null = null;
+  private ctx: BaseAudioContext | null = null;
   private masterGain: GainNode | null = null;
   private trackChains = new Map<string, TrackChainState>();
   private clipGains = new Map<string, GainNode>();
@@ -51,17 +51,10 @@ export class AudioGraph {
   private bufferCache = new Map<string, AudioBuffer>();
   private loadingPromises = new Map<string, Promise<AudioBuffer | null>>();
 
-  /**
-   * Optional pre-supplied context. The live preview leaves this undefined and
-   * lazily creates a real-time `AudioContext`; the offline renderer injects an
-   * `OfflineAudioContext` so the exact same scheduling + DSP graph mixes down
-   * the exported audio. Both are `BaseAudioContext`s for every node-creation
-   * call AudioGraph makes, so it is typed as `AudioContext` for the live path.
-   */
-  constructor(private readonly injectedContext?: AudioContext) {}
+  constructor(private readonly injectedContext?: BaseAudioContext) {}
 
   /** Must be called from a user-gesture handler — triggers the autoplay policy. */
-  getContext(): AudioContext {
+  getContext(): BaseAudioContext {
     if (!this.ctx) {
       this.ctx = this.injectedContext ?? new AudioContext();
       this.masterGain = this.ctx.createGain();
@@ -70,7 +63,7 @@ export class AudioGraph {
     return this.ctx;
   }
 
-  get context(): AudioContext | null {
+  get context(): BaseAudioContext | null {
     return this.ctx;
   }
 
@@ -385,7 +378,8 @@ export class AudioGraph {
     clips: ScheduledAudioClip[],
     tracks: TimelineTrack[],
     currentTimeMs: number,
-    shouldCancel?: () => boolean
+    shouldCancel?: () => boolean,
+    globalRate = 1
   ): Promise<void> {
     const activeIds = new Set(clips.map((c) => c.clip.id));
 
@@ -407,7 +401,7 @@ export class AudioGraph {
       }
     }
 
-    await this.addClips(clips, tracks, currentTimeMs, shouldCancel);
+    await this.addClips(clips, tracks, currentTimeMs, shouldCancel, globalRate);
   }
 
   /**
@@ -421,9 +415,16 @@ export class AudioGraph {
     clips: ScheduledAudioClip[],
     tracks: TimelineTrack[],
     currentTimeMs: number,
-    shouldCancel?: () => boolean
+    shouldCancel?: () => boolean,
+    globalRate = 1
   ): Promise<void> {
     const ctx = this.getContext();
+    // Global timeline speed (1 = normal). One wall-clock second covers
+    // `g` timeline seconds, so every wall-clock duration below (lead,
+    // remaining, fades) is divided by `g`, and the source's playbackRate is
+    // multiplied by it. Source-space offsets/durations are unaffected — a
+    // faster timeline reads the same buffer span, just quicker.
+    const g = Math.max(0.0001, globalRate);
     this.updateTracks(tracks);
 
     const bufferPromises = clips.map(async ({ clip, assetUrl }) => {
@@ -442,7 +443,7 @@ export class AudioGraph {
     }
     const bufferMap = new Map(loadedBuffers.map((b) => [b.clipId, b.buffer]));
 
-    for (const { clip, assetUrl } of clips) {
+    for (const { clip } of clips) {
       if (this.clipSources.has(clip.id)) {
         continue;
       }
@@ -463,7 +464,7 @@ export class AudioGraph {
 
       const src = ctx.createBufferSource();
       src.buffer = buffer;
-      src.playbackRate.value = rate;
+      src.playbackRate.value = rate * g;
 
       const volumeLinear = clip.volumeDb
         ? Math.pow(10, clip.volumeDb / 20)
@@ -480,7 +481,7 @@ export class AudioGraph {
       // *buffer* seconds, while clip.startMs / durationMs / inPointMs are
       // *timeline* milliseconds. With playbackRate = r, 1 timeline second
       // consumes r buffer seconds, so we multiply by `rate`.
-      const clipLeadSec = Math.max(0, (clip.startMs - currentTimeMs) / 1000);
+      const clipLeadSec = Math.max(0, (clip.startMs - currentTimeMs) / 1000) / g;
       const intoClipTimelineSec =
         Math.max(0, currentTimeMs - clip.startMs) / 1000;
       const bufferOffsetSec =
@@ -491,7 +492,10 @@ export class AudioGraph {
       const bufferDurationSec = remainingTimelineSec * rate;
       const startAt = now + clipLeadSec;
       // Wall-clock time at which playback ends — used to schedule fade-out.
-      const clipEndAt = startAt + remainingTimelineSec;
+      // The clip spans `remainingTimelineSec` timeline seconds, played back in
+      // `remainingTimelineSec / g` wall-clock seconds at global rate `g`.
+      const remainingWallSec = remainingTimelineSec / g;
+      const clipEndAt = startAt + remainingWallSec;
 
       if (clip.fadeInMs && clip.fadeInMs > 0) {
         const fadeEndMs = clip.startMs + clip.fadeInMs;
@@ -499,7 +503,7 @@ export class AudioGraph {
           // Ramp from the interpolated in-progress gain to full volume.
           const offsetInFadeMs = Math.max(0, currentTimeMs - clip.startMs);
           const startGain = volumeLinear * (offsetInFadeMs / clip.fadeInMs);
-          const remainingSec = (fadeEndMs - Math.max(currentTimeMs, clip.startMs)) / 1000;
+          const remainingSec = (fadeEndMs - Math.max(currentTimeMs, clip.startMs)) / 1000 / g;
           clipGain.gain.setValueAtTime(startGain, startAt);
           clipGain.gain.linearRampToValueAtTime(volumeLinear, startAt + remainingSec);
         } else {
@@ -508,7 +512,7 @@ export class AudioGraph {
       }
 
       if (clip.fadeOutMs && clip.fadeOutMs > 0) {
-        const fadeSec = clip.fadeOutMs / 1000;
+        const fadeSec = clip.fadeOutMs / 1000 / g;
         const fadeOutStartAt = Math.max(startAt, clipEndAt - fadeSec);
         if (fadeOutStartAt < clipEndAt) {
           clipGain.gain.setValueAtTime(volumeLinear, fadeOutStartAt);
@@ -552,14 +556,11 @@ export class AudioGraph {
   }
 
   suspend(): void {
-    // No-op on an OfflineAudioContext (no parameterless suspend).
-    const c = this.ctx as Partial<AudioContext> | null;
-    if (c && typeof c.suspend === "function") void c.suspend();
+    if (this.ctx instanceof AudioContext) void this.ctx.suspend();
   }
 
   resume(): void {
-    const c = this.ctx as Partial<AudioContext> | null;
-    if (c && typeof c.resume === "function") void c.resume();
+    if (this.ctx instanceof AudioContext) void this.ctx.resume();
   }
 
   dispose(): void {
@@ -581,9 +582,7 @@ export class AudioGraph {
       }
     }
     this.trackChains.clear();
-    // OfflineAudioContext has no close(); only close a real-time context.
-    const c = this.ctx as Partial<AudioContext> | null;
-    if (c && typeof c.close === "function") void c.close();
+    if (this.ctx instanceof AudioContext) void this.ctx.close();
     this.ctx = null;
     this.masterGain = null;
   }

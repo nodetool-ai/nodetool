@@ -1,14 +1,7 @@
 /**
  * Sketch Editor — Layer Geometry (canonical bounds & corners)
  *
- * One module, one return shape, one rule per bounds concept. Replaces the
- * eight overlapping bounds helpers that previously lived in `painting/`:
- *   - `getEffectiveRasterBounds`, `getEffectiveLayerRasterBounds`,
- *     `getLayerRasterBounds`, `getCanvasRasterBounds`,
- *     `resolveGizmoBounds`, `getCompositeOffset`,
- *     `getTransformedExtents`, `getTransformedCorners`,
- *     `getTransformedCenter`, `resolveLayerGeometry`, `buildLayerMatrix`,
- *     `getLayerCompositeOffset`, `getLayerGizmoBounds`.
+ * One module, one return shape, one rule per bounds concept.
  *
  * Two **distinct** bounds concepts intentionally remain (renderer vs. gizmo):
  *

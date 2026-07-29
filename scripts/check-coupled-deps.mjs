@@ -21,6 +21,26 @@ const FAMILIES = [
   {
     name: "lexical",
     test: (dep) => dep === "lexical" || dep.startsWith("@lexical/"),
+    remedy: "Align every member to one range, then run `npm install`.",
+  },
+  // react-native and the @react-native/* packages are published in lockstep at
+  // one version, and react-native declares exact peer ranges on its siblings
+  // (`peerOptional @react-native/jest-preset@"0.85.3"`). Drift is unresolvable,
+  // not merely risky: run 30246386256 died in `npm ci` after Dependabot bumped
+  // @react-native/jest-preset to 0.86.1 alone. Because these are 0.x, such a
+  // bump reads as semver-minor while being an ecosystem-major, so the
+  // major-only Dependabot ignore did not stop it (see .github/dependabot.yml).
+  //
+  // Scope note: this is the RN *core* family only. Community packages named
+  // `react-native-*` (screens, safe-area-context, …) version independently and
+  // must NOT be swept in here.
+  {
+    name: "react-native",
+    test: (dep) => dep === "react-native" || dep.startsWith("@react-native/"),
+    remedy:
+      "Pin every member to the exact version the Expo SDK ships, then run\n" +
+      "`npm install --prefix mobile`. These move only during an SDK upgrade\n" +
+      "(`npx expo install --fix`), never one package at a time.",
   },
 ];
 
@@ -75,22 +95,22 @@ for (const manifestPath of await manifestPaths()) {
 const violations = [];
 for (const family of FAMILIES) {
   const byRange = seen.get(family.name);
-  if (byRange.size > 1) violations.push({ family: family.name, byRange });
+  if (byRange.size > 1) violations.push({ family, byRange });
 }
 
 if (violations.length > 0) {
   console.error("Coupled dependency families with mismatched versions:\n");
   for (const { family, byRange } of violations) {
-    console.error(`  ${family}:`);
+    console.error(`  ${family.name}:`);
     for (const [range, members] of byRange) {
       const detail = members.map((m) => `${m.dep} (${m.manifest})`).join(", ");
       console.error(`    ${range}: ${detail}`);
     }
+    console.error(`\n  ${family.remedy.replaceAll("\n", "\n  ")}\n`);
   }
   console.error(
-    "\nMembers of a coupled family share internal APIs and must move together.\n" +
-      "Align every member to a single version range, then run `npm install`.\n" +
-      "See the lexical revert (commit 2796c017)."
+    "Members of a coupled family share internal APIs — and, for react-native,\n" +
+      "exact peer ranges — so they must move together."
   );
   process.exit(1);
 }

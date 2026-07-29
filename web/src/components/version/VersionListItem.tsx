@@ -1,18 +1,14 @@
 /**
- * VersionListItem Component
- *
- * Displays a single version entry in the version history list.
- * Compact row layout (git-log style) with hover-reveal actions.
+ * A single version entry in the version history list — a compact git-log-style
+ * row with hover-reveal actions.
  */
 
 import React, { useCallback } from "react";
-import {
-  Restore as RestoreIcon,
-  Compare as CompareIcon
-} from "@mui/icons-material";
+import RestoreIcon from "@mui/icons-material/Restore";
+import CompareIcon from "@mui/icons-material/Compare";
 import { Caption, Chip, DeleteButton, LoadingSpinner, Text, Tooltip, ToolbarIconButton, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
 import { SaveType } from "../../stores/VersionHistoryStore";
-import { formatDistanceToNow, format } from "date-fns";
+import { formatDistanceToNow, format } from "../../utils/dateFormat";
 import { WorkflowVersion } from "../../stores/ApiTypes";
 import { WorkflowMiniPreview } from "./WorkflowMiniPreview";
 
@@ -141,7 +137,6 @@ const VersionListItem = React.memo(function VersionListItem({
         }
       }}
     >
-      {/* Mini preview thumbnail */}
       <div style={{ flexShrink: 0 }}>
         <WorkflowMiniPreview
           workflow={version}
@@ -150,7 +145,6 @@ const VersionListItem = React.memo(function VersionListItem({
         />
       </div>
 
-      {/* Version info */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: getSpacingPx(SPACING.sm) }}>
           <Text size="small" weight={600}>
@@ -172,16 +166,16 @@ const VersionListItem = React.memo(function VersionListItem({
         <div style={{ display: "flex", alignItems: "center", gap: getSpacingPx(SPACING.xs) }}>
           <Tooltip title={fullDate}>
             <span>
-              <Caption size="tiny" color="muted">{timeAgo}</Caption>
+              <Caption size="smaller" color="muted">{timeAgo}</Caption>
             </span>
           </Tooltip>
-          <Caption size="tiny" color="muted">
+          <Caption size="smaller" color="muted">
             {" · "}{formatBytes(version.size_bytes)}
           </Caption>
         </div>
         {version.description && (
           <Caption
-            size="tiny"
+            size="smaller"
             color="muted"
             sx={{
               overflow: "hidden",
@@ -196,7 +190,6 @@ const VersionListItem = React.memo(function VersionListItem({
         )}
       </div>
 
-      {/* Actions - visible on hover via CSS */}
       <div
         className="version-item-actions"
         style={{
@@ -235,7 +228,6 @@ const VersionListItem = React.memo(function VersionListItem({
         )}
       </div>
 
-      {/* CSS for hover-reveal actions */}
       <style>{`
         .version-list-item .version-item-actions {
           opacity: 0;

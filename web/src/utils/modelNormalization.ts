@@ -34,8 +34,6 @@ const bucketSizeByB = (b?: number) => {
   return "70B+";
 };
 
-// removed context and quant/modality normalization for now per request
-
 export function normalizeModelMeta(m: ModelSelectorModel): NormalizedModelMeta {
   const text = `${m.name ?? ""} ${m.id ?? ""}`.toLowerCase();
 
@@ -56,8 +54,6 @@ export function normalizeModelMeta(m: ModelSelectorModel): NormalizedModelMeta {
       ? parseFloat(sizeMatch[1]) / 1000
       : parseFloat(sizeMatch[1])
     : undefined;
-
-  // context, modality, quant removed
 
   const familyMatch = text.match(
     /\b(llama|mistral|mixtral|qwen|gemma|phi|yi|deepseek|qwq|granite)\b/
@@ -88,7 +84,6 @@ export function applyAdvancedModelFilters<TModel extends ModelSelectorModel>(
 ): TModel[] {
   const { selectedTypes, sizeBucket, families } = filters;
 
-  // If no filters are applied, return all models
   if (
     selectedTypes.length === 0 &&
     sizeBucket === null &&
@@ -100,7 +95,6 @@ export function applyAdvancedModelFilters<TModel extends ModelSelectorModel>(
   return models.filter((model) => {
     const meta = normalizeModelMeta(model);
 
-    // Check type tags
     if (selectedTypes.length > 0) {
       const hasMatchingType = selectedTypes.some((t) =>
         meta.typeTags.includes(t)
@@ -108,12 +102,10 @@ export function applyAdvancedModelFilters<TModel extends ModelSelectorModel>(
       if (!hasMatchingType) {return false;}
     }
 
-    // Check size bucket
     if (sizeBucket !== null) {
       if (meta.sizeBucket !== sizeBucket) {return false;}
     }
 
-    // Check families
     if (families.length > 0) {
       if (!meta.family || !families.includes(meta.family)) {return false;}
     }

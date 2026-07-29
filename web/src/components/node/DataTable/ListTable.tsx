@@ -15,7 +15,7 @@ import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
 import { tableStyles } from "../../../styles/TableStyles";
 import TableActions from "./TableActions";
 import { useTheme } from "@mui/material/styles";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../../utils/isEqual";
 import type { TableData } from "./TableActions";
 
 export type ListDataType = "int" | "string" | "datetime" | "float";
@@ -49,10 +49,10 @@ const coerceValue = (value: unknown, type: ListDataType): ListCellValue => {
 
   switch (type) {
     case "int":
-      intValue = parseInt(value as string);
+      intValue = parseInt(String(value));
       return isNaN(intValue) ? 0 : intValue;
     case "float":
-      floatValue = parseFloat(value as string);
+      floatValue = parseFloat(String(value));
       return isNaN(floatValue) ? 0.0 : floatValue;
     case "datetime":
       return new Date(value as string);
@@ -136,7 +136,6 @@ const ListTable: React.FC<ListTableProps> = ({
     [data_type, editable, showSelect]
   );
 
-  // Memoize the tabulator data transformation to prevent recreation on every render
   const tabulatorData = useMemo(
     () => data.map((value, index) => ({
         rownum: index,
@@ -148,7 +147,6 @@ const ListTable: React.FC<ListTableProps> = ({
   const onCellEdited = useCallback(
     (cell: CellComponent) => {
       const { rownum, value } = cell.getData();
-      // Create new array only when necessary (on cell edit)
       const newData = data.map((row, index) =>
         index === rownum ? value : row
       );
@@ -201,8 +199,9 @@ const ListTable: React.FC<ListTableProps> = ({
   }, [tabulatorData, columns, onCellEdited, data_type]);
 
   const theme = useTheme();
+  const memoizedTableStyles = useMemo(() => tableStyles(theme), [theme]);
   return (
-    <div className="listtable nowheel nodrag" css={tableStyles(theme)}>
+    <div className="listtable nowheel nodrag" css={memoizedTableStyles}>
       <TableActions
         tabulator={tabulator}
         data={data}
@@ -221,7 +220,6 @@ const ListTable: React.FC<ListTableProps> = ({
 ListTable.displayName = "ListTable";
 
 export default memo(ListTable, (prevProps, nextProps) => {
-  // Compare primitive props
   return (
     prevProps.data_type === nextProps.data_type &&
     prevProps.editable === nextProps.editable &&

@@ -10,9 +10,6 @@ import { Tool } from "./base-tool.js";
 import type { Step, Task } from "../types.js";
 import { randomUUID } from "node:crypto";
 
-/**
- * JSON Schema for the create_task tool input.
- */
 const CREATE_TASK_INPUT_SCHEMA = {
   type: "object",
   properties: {
@@ -87,10 +84,6 @@ export class CreateTaskPlanTool extends Tool {
     return `Creating task: ${title}`;
   }
 
-  // ---------------------------------------------------------------------------
-  // Build
-  // ---------------------------------------------------------------------------
-
   private buildTask(data: Record<string, unknown>): Task {
     const title =
       typeof data["title"] === "string" ? data["title"] : "Untitled Task";
@@ -128,15 +121,10 @@ export class CreateTaskPlanTool extends Tool {
     };
   }
 
-  // ---------------------------------------------------------------------------
-  // Validation
-  // ---------------------------------------------------------------------------
-
   private validateTask(task: Task): string[] {
     const errors: string[] = [];
     const stepIds = new Set(task.steps.map((s) => s.id));
 
-    // Check dependencies
     for (const step of task.steps) {
       for (const dep of step.dependsOn) {
         if (!stepIds.has(dep) && !this.inputKeys.has(dep)) {
@@ -147,7 +135,6 @@ export class CreateTaskPlanTool extends Tool {
       }
     }
 
-    // Check for duplicate step IDs
     const seen = new Set<string>();
     for (const step of task.steps) {
       if (seen.has(step.id)) {
@@ -156,12 +143,10 @@ export class CreateTaskPlanTool extends Tool {
       seen.add(step.id);
     }
 
-    // Check for cycles
     if (!this.checkForCycles(task)) {
       errors.push("Circular dependency detected in task plan.");
     }
 
-    // Must have at least one step
     if (task.steps.length === 0) {
       errors.push("Task must contain at least one step.");
     }
@@ -195,10 +180,6 @@ export class CreateTaskPlanTool extends Tool {
     }
     return true;
   }
-
-  // ---------------------------------------------------------------------------
-  // Schema normalization
-  // ---------------------------------------------------------------------------
 
   private applySchemaOverrides(steps: Step[]): void {
     for (const step of steps) {

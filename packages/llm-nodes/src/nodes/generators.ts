@@ -491,8 +491,8 @@ export class StructuredOutputGeneratorNode extends BaseNode {
       (this as any)._dynamic_outputs
     );
     if (schema && hasProviderSupport(context, providerId, modelId)) {
-      const instructions = asText(this.instructions ?? this.instructions ?? "");
-      const extraContext = asText(this.context ?? this.context ?? "");
+      const instructions = asText(this.instructions ?? "");
+      const extraContext = asText(this.context ?? "");
       const systemPrompt = asText(this.system_prompt ?? "");
       const userText = [instructions, extraContext]
         .filter(Boolean)
@@ -549,8 +549,8 @@ export class StructuredOutputGeneratorNode extends BaseNode {
       return out;
     }
 
-    const instructions = asText(this.instructions ?? this.instructions ?? "");
-    const contextText = asText(this.context ?? this.context ?? "");
+    const instructions = asText(this.instructions ?? "");
+    const contextText = asText(this.context ?? "");
     return {
       output: {
         instructions,
@@ -637,9 +637,9 @@ export class DataGeneratorNode extends BaseNode {
   declare columns: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const prompt = asText(this.prompt ?? this.prompt ?? "");
-    const inputText = asText(this.input_text ?? this.input_text ?? "");
-    const columnsInput = this.columns ?? this.columns;
+    const prompt = asText(this.prompt ?? "");
+    const inputText = asText(this.input_text ?? "");
+    const columnsInput = this.columns;
     const columns = parseColumns(columnsInput);
     const count = parseRequestedCount(`${prompt} ${inputText}`, 5);
     const { providerId, modelId } = getModelConfig(this.serialize());
@@ -882,8 +882,8 @@ export class ChartGeneratorNode extends BaseNode {
   declare max_tokens: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const prompt = asText(this.prompt ?? this.prompt ?? "");
-    const data = this.data ?? this.data ?? { rows: [] };
+    const prompt = asText(this.prompt ?? "");
+    const data = this.data ?? { rows: [] };
     const rows = Array.isArray((data as { rows?: unknown }).rows)
       ? ((data as { rows: Row[] }).rows ?? [])
       : [];
@@ -1121,7 +1121,7 @@ export class SVGGeneratorNode extends BaseNode {
   declare max_tokens: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const prompt = asText(this.prompt ?? this.prompt ?? "");
+    const prompt = asText(this.prompt ?? "");
     const width = Number((this as any).width ?? 512) || 512;
     const height = Number((this as any).height ?? 512) || 512;
 

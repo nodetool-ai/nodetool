@@ -57,7 +57,6 @@ function validateGraph(
   const warnings: string[] = [];
   const suggestions: string[] = [];
 
-  // Build a set of connected (target, targetHandle) pairs for fast lookup
   const connectedInputs = new Set<string>();
   const nodesWithIncoming = new Set<string>();
   const nodesWithOutgoing = new Set<string>();
@@ -74,7 +73,6 @@ function validateGraph(
     const nodeType = node.type;
     if (!nodeType) {continue;}
 
-    // Look up metadata for this node type
     const meta = (nodeMetadata as Record<string, { properties?: Array<{ name: string; required: boolean; type: { type: string; optional: boolean }; default?: unknown }> }>)[nodeType];
     if (!meta || !meta.properties) {continue;}
 

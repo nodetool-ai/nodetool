@@ -95,7 +95,7 @@ const DEFAULT_EXECUTE_TIMEOUT_MS = Number(
   process.env["NODETOOL_PYTHON_EXECUTE_TIMEOUT_MS"] ?? 12 * 60 * 1000
 );
 const DEFAULT_STATUS_TIMEOUT_MS = Number(
-  process.env["NODETOOL_PYTHON_STATUS_TIMEOUT_MS"] ?? 10000
+  process.env["NODETOOL_PYTHON_STATUS_TIMEOUT_MS"] ?? 30000
 );
 const DEFAULT_DOWNLOAD_IDLE_TIMEOUT_MS = Number(
   process.env["NODETOOL_PYTHON_DOWNLOAD_IDLE_TIMEOUT_MS"] ?? 5 * 60 * 1000
@@ -304,18 +304,42 @@ export abstract class PythonBridgeBase
 
   protected async _discover(): Promise<void> {
     const requestId = randomUUID();
+    // Bound the discover RPC: _openTransport resolves as soon as the worker
+    // signals readiness, so a worker that becomes READY but never answers
+    // discover (wedged/hung post-ready init) would leave connect() pending
+    // forever. Mirror _getWorkerStatusWithTimeout's timeout handling.
+    const timeoutMs =
+      this._options.statusTimeoutMs ?? DEFAULT_STATUS_TIMEOUT_MS;
+
     return new Promise<void>((resolve, reject) => {
+      let timer: NodeJS.Timeout | undefined;
       this._pending.set(requestId, {
         resolve: () => {
+          if (timer) clearTimeout(timer);
           this._pending.delete(requestId);
           resolve();
         },
         reject: (err) => {
+          if (timer) clearTimeout(timer);
           this._pending.delete(requestId);
           reject(err);
         }
       });
-      this._send({ type: "discover", request_id: requestId, data: {} });
+      if (timeoutMs > 0) {
+        timer = setTimeout(() => {
+          this._pending.delete(requestId);
+          reject(
+            new Error(`Python worker discover timed out after ${timeoutMs}ms.`)
+          );
+        }, timeoutMs);
+      }
+      try {
+        this._send({ type: "discover", request_id: requestId, data: {} });
+      } catch (err) {
+        if (timer) clearTimeout(timer);
+        this._pending.delete(requestId);
+        reject(err instanceof Error ? err : new Error(String(err)));
+      }
     });
   }
 
@@ -444,26 +468,42 @@ export abstract class PythonBridgeBase
         }
       });
 
-    this._send({
-      type: "execute.stream",
-      request_id: requestId,
-      data: { node_type: nodeType, fields, secrets, blobs }
-    });
-
-    while (true) {
-      while (chunks.length > 0) {
-        emittedCount += 1;
-        yield chunks.shift()!;
-      }
-      if (done) break;
-      if (error) throw error;
-      await new Promise<void>((resolve) => {
-        resolveWait = resolve;
+    try {
+      this._send({
+        type: "execute.stream",
+        request_id: requestId,
+        data: { node_type: nodeType, fields, secrets, blobs }
       });
-    }
-    if (error) throw error;
-    if (emittedCount === 0 && finalResult) {
-      yield finalResult;
+
+      while (true) {
+        while (chunks.length > 0) {
+          emittedCount += 1;
+          yield chunks.shift()!;
+        }
+        if (done) break;
+        if (error) throw error;
+        await new Promise<void>((resolve) => {
+          resolveWait = resolve;
+        });
+      }
+      if (error) throw error;
+      if (emittedCount === 0 && finalResult) {
+        yield finalResult;
+      }
+    } finally {
+      // If the stream never reached its terminal frame (consumer abandoned the
+      // generator via break/return, or the initial _send threw), the worker is
+      // still producing output nobody reads. Cancel it and release pending
+      // state so chunks[] stops growing and the entries don't leak.
+      if (!done) {
+        this._pending.delete(requestId);
+        this._pendingStream.delete(requestId);
+        try {
+          this.cancel(requestId);
+        } catch {
+          // Worker may already be gone; cancel is best-effort.
+        }
+      }
     }
   }
 
@@ -487,7 +527,12 @@ export abstract class PythonBridgeBase
         reject,
         onChunk: () => {}
       });
-      this._send({ type: "worker.status", request_id: requestId, data: {} });
+      try {
+        this._send({ type: "worker.status", request_id: requestId, data: {} });
+      } catch (err) {
+        this._pendingStream.delete(requestId);
+        reject(err instanceof Error ? err : new Error(String(err)));
+      }
     });
     this._workerStatus =
       result as unknown as PythonWorkerStatus;
@@ -656,21 +701,35 @@ export abstract class PythonBridgeBase
         }
       });
 
-    this._send({
-      type: "provider.stream",
-      request_id: requestId,
-      data: { provider: providerId, messages, model, ...options }
-    });
-
-    while (true) {
-      while (chunks.length > 0) yield chunks.shift()!;
-      if (done) break;
-      if (error) throw error;
-      await new Promise<void>((resolve) => {
-        resolveWait = resolve;
+    try {
+      this._send({
+        type: "provider.stream",
+        request_id: requestId,
+        data: { provider: providerId, messages, model, ...options }
       });
+
+      while (true) {
+        while (chunks.length > 0) yield chunks.shift()!;
+        if (done) break;
+        if (error) throw error;
+        await new Promise<void>((resolve) => {
+          resolveWait = resolve;
+        });
+      }
+      if (error) throw error;
+    } finally {
+      // Cancel the worker-side stream and drop pending state if the generator
+      // is torn down before its terminal frame (consumer break/return, or a
+      // throwing initial _send).
+      if (!done) {
+        this._pendingStream.delete(requestId);
+        try {
+          this.cancel(requestId);
+        } catch {
+          // Worker may already be gone; cancel is best-effort.
+        }
+      }
     }
-    if (error) throw error;
   }
 
   async providerTextToImage(
@@ -745,21 +804,35 @@ export abstract class PythonBridgeBase
         }
       });
 
-    this._send({
-      type: "provider.tts",
-      request_id: requestId,
-      data: { provider: providerId, text, model, ...options }
-    });
-
-    while (true) {
-      while (chunks.length > 0) yield chunks.shift()!;
-      if (done) break;
-      if (error) throw error;
-      await new Promise<void>((resolve) => {
-        resolveWait = resolve;
+    try {
+      this._send({
+        type: "provider.tts",
+        request_id: requestId,
+        data: { provider: providerId, text, model, ...options }
       });
+
+      while (true) {
+        while (chunks.length > 0) yield chunks.shift()!;
+        if (done) break;
+        if (error) throw error;
+        await new Promise<void>((resolve) => {
+          resolveWait = resolve;
+        });
+      }
+      if (error) throw error;
+    } finally {
+      // Cancel the worker-side stream and drop pending state if the generator
+      // is torn down before its terminal frame (consumer break/return, or a
+      // throwing initial _send).
+      if (!done) {
+        this._pendingStream.delete(requestId);
+        try {
+          this.cancel(requestId);
+        } catch {
+          // Worker may already be gone; cancel is best-effort.
+        }
+      }
     }
-    if (error) throw error;
   }
 
   async providerASR(
@@ -927,7 +1000,14 @@ export abstract class PythonBridgeBase
    * pending-stream entry clears both pending maps; a no-op if the id is unknown.
    */
   cancelModelDownload(requestId: string): void {
-    this.cancel(requestId);
+    // Best-effort per the JSDoc: cancel() -> _send() throws when the transport
+    // is down, but this must stay a no-op so a disconnected caller isn't hit
+    // with 'Not connected' from a documented safe cancel.
+    try {
+      this.cancel(requestId);
+    } catch {
+      // Worker may already be gone; cancel is best-effort.
+    }
     const streamReq = this._pendingStream.get(requestId);
     if (streamReq) {
       streamReq.reject(
@@ -992,14 +1072,17 @@ export abstract class PythonBridgeBase
    * would hang and the pending maps would leak.
    */
   comfyExecute(
-    prompt: Record<string, unknown>,
+    workflow: Record<string, unknown>,
     options: ComfyExecuteOptions = {},
     onEvent?: (event: ComfyEvent) => void,
     requestId: string = randomUUID()
   ): Promise<ComfyExecuteResult> {
-    const data: Record<string, unknown> = { prompt };
+    // The worker's field is `workflow`, not `prompt` — see the comfy.execute
+    // request schema in nodetool-core's docs/comfy-proxy.md.
+    const data: Record<string, unknown> = { workflow };
     if (options.blobs) data.blobs = options.blobs;
     if (options.previews) data.previews = true;
+    if (options.includeTemp) data.include_temp = true;
     if (typeof options.timeout === "number") data.timeout = options.timeout;
 
     return new Promise<ComfyExecuteResult>((resolve, reject) => {
@@ -1038,7 +1121,13 @@ export abstract class PythonBridgeBase
    * {@link cancelModelDownload}.
    */
   cancelComfyExecute(requestId: string): void {
-    this.cancel(requestId);
+    // Best-effort (see cancelModelDownload): swallow a 'Not connected' from
+    // _send so a disconnected cancel stays the documented no-op.
+    try {
+      this.cancel(requestId);
+    } catch {
+      // Worker may already be gone; cancel is best-effort.
+    }
     const streamReq = this._pendingStream.get(requestId);
     if (streamReq) {
       streamReq.reject(
@@ -1064,9 +1153,10 @@ export abstract class PythonBridgeBase
     bytes: Uint8Array,
     options: Record<string, unknown> = {}
   ): Promise<Record<string, unknown>> {
+    // The worker reads the payload from `data`, not `blob`.
     return this._providerCall("comfy.upload", {
       filename,
-      blob: bytes,
+      data: bytes,
       ...options
     });
   }
@@ -1079,7 +1169,12 @@ export abstract class PythonBridgeBase
   }
 
   async comfyObjectInfo(): Promise<Record<string, unknown>> {
-    return this._providerCall("comfy.object_info", {});
+    // The worker wraps the catalog as `{object_info: {...}}`; unwrap so callers
+    // get the catalog itself, as this method's contract promises.
+    const result = await this._providerCall("comfy.object_info", {});
+    return (
+      (result.object_info as Record<string, unknown> | undefined) ?? result
+    );
   }
 
   async comfySystemStats(): Promise<Record<string, unknown>> {
@@ -1096,11 +1191,11 @@ export abstract class PythonBridgeBase
   }
 
   async comfyModelsList(folder?: string): Promise<ComfyModelInfo[]> {
-    const result = await this._providerCall(
-      "comfy.models.list",
-      folder ? { folder } : {}
-    );
-    return (result as { models?: ComfyModelInfo[] }).models ?? [];
+    const result = await this._providerCall("comfy.models.list", {});
+    const models = (result as { models?: ComfyModelInfo[] }).models ?? [];
+    // The worker always returns the whole volume — there is no `folder` filter
+    // in the comfy.models.list request schema — so narrow it here.
+    return folder ? models.filter((m) => m.folder === folder) : models;
   }
 
   async comfyModelsDownload(
@@ -1135,7 +1230,12 @@ export abstract class PythonBridgeBase
         reject,
         onChunk: () => {}
       });
-      this._send({ type, request_id: requestId, data });
+      try {
+        this._send({ type, request_id: requestId, data });
+      } catch (err) {
+        this._pendingStream.delete(requestId);
+        reject(err instanceof Error ? err : new Error(String(err)));
+      }
     });
   }
 

@@ -11,7 +11,7 @@ import { useTheme } from "@mui/material/styles";
 
 export interface CaptionProps extends Omit<TypographyProps, 'variant'> {
   /** Caption size variant */
-  size?: "small" | "smaller" | "tiny";
+  size?: "small" | "smaller";
   /** Text color variant */
   color?: "primary" | "secondary" | "error" | "warning" | "success" | "muted" | string;
   /** Italic text */
@@ -39,7 +39,7 @@ export interface CaptionProps extends Omit<TypographyProps, 'variant'> {
  * 
  * @example
  * // Muted caption
- * <Caption color="muted" size="tiny">
+ * <Caption color="muted" size="smaller">
  *   Last updated 2 hours ago
  * </Caption>
  * 
@@ -60,8 +60,7 @@ const CaptionInternal = forwardRef<HTMLElement, CaptionProps>(({
   const getFontSize = () => {
     const sizeMap = {
       small: "var(--fontSizeSmall)", // 13px — label combo
-      smaller: "var(--fontSizeSmaller)", // 11px — caption combo
-      tiny: "var(--fontSizeSmaller)" // 11px — caption combo
+      smaller: "var(--fontSizeSmaller)" // 11px — caption combo
     };
     return sizeMap[size];
   };

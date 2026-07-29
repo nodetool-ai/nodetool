@@ -11,8 +11,9 @@
 import { importHidden } from "@nodetool-ai/config";
 import { isRawRgbaImage, type ImageRef } from "@nodetool-ai/protocol";
 
-type SharpFn = typeof import("sharp");
-type SharpModule = SharpFn | { default: SharpFn };
+type SharpModuleNs = typeof import("sharp");
+type SharpFn = SharpModuleNs["default"];
+type SharpModule = SharpModuleNs | { default: SharpFn };
 
 let _sharpPromise: Promise<SharpFn | null> | null = null;
 
@@ -43,7 +44,7 @@ async function loadSharp(): Promise<SharpFn | null> {
     const attempt = (async (): Promise<SharpFn | null> => {
       const mod = await importHidden<SharpModule>("sharp");
       if (!mod) return null;
-      return (mod as { default?: SharpFn }).default ?? (mod as SharpFn);
+      return (mod as { default?: SharpFn }).default ?? (mod as unknown as SharpFn);
     })();
     _sharpPromise = attempt;
     attempt.catch(() => {
@@ -120,15 +121,25 @@ export interface ImageRegion {
  * out-of-frame region yields the overlapping area rather than an error. When
  * `sharp` is unavailable (off Node, or a broken native addon) the original
  * bytes are returned unchanged with `width`/`height` 0 — the caller still gets
- * a viewable full image, just uncropped.
+ * a viewable full image, just uncropped. In that pass-through case the returned
+ * `mimeType` is `opts.sourceMime` (the caller's known format) so the bytes are
+ * never mislabeled; it falls back to `image/png` only when the caller didn't
+ * provide one.
  */
 export async function extractImageRegion(
   bytes: Uint8Array,
-  opts: { region?: ImageRegion; maxSide?: number } = {}
+  opts: { region?: ImageRegion; maxSide?: number; sourceMime?: string } = {}
 ): Promise<{ data: Uint8Array; mimeType: string; width: number; height: number }> {
   const sharp = await loadSharp();
   if (!sharp) {
-    return { data: bytes, mimeType: "image/png", width: 0, height: 0 };
+    // No re-encode happened — keep the true source mime rather than claiming
+    // PNG for what may be JPEG/WebP/GIF bytes (which a vision provider rejects).
+    return {
+      data: bytes,
+      mimeType: opts.sourceMime || "image/png",
+      width: 0,
+      height: 0
+    };
   }
 
   let pipeline = sharp(Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength), {

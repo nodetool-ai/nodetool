@@ -24,7 +24,6 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
-import { MOTION } from "./tokens";
 
 const FEEDBACK_TIMEOUT = 2000;
 
@@ -132,7 +131,6 @@ export const CopyButton = memo(
           clearTimeout(timeoutRef.current);
         }
 
-        // Serialize value
         const textToCopy =
           typeof value === "string" ? value : JSON.stringify(value, null, 2);
 

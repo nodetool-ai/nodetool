@@ -8,6 +8,21 @@ export const videoEnhanceConfig: ModuleConfig = {
       fieldOverrides: {
         video: { propType: "video" }
       }
+    },
+    "bria/video-increase-resolution": {
+      className: "Video_Increase_Resolution",
+      returnType: "video",
+      fieldOverrides: { video_url: { propType: "video" } }
+    },
+    "bria/video-remove-background": {
+      className: "Video_Remove_Background",
+      returnType: "video",
+      fieldOverrides: { video_url: { propType: "video" } }
+    },
+    "bytedance/video-upscaler": {
+      className: "Video_Upscaler",
+      returnType: "video",
+      fieldOverrides: { video: { propType: "video" } }
     }
   }
 };

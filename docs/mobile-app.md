@@ -110,18 +110,13 @@ Chat with AI models from your mobile device.
 
 ---
 
-## Mini Apps
+## Running workflows
 
-Run your NodeTool workflows with a simplified mobile interface. There is no separate "Mini Apps" screen — the home screen is the **Workflows** list (WorkflowsListScreen), and tapping a workflow opens the graph editor (GraphEditorScreen), which hosts the Mini-App runner for that workflow.
+Mobile runs a workflow through a generated form. The home screen is the **Workflows** list (WorkflowsListScreen); tapping a workflow opens it (GraphEditorScreen) with input fields, a Run button, and results.
 
-### What Are Mini Apps?
+Mini Apps are a separate resource, authored in the desktop App Builder and stored on the server. The apps icon in the Workflows header opens the **Apps** browser, and tapping an app runs it on its own screen. See [Mini Apps on Mobile](mini-apps-mobile.md).
 
-Mini Apps are workflows converted to simple interfaces. They hide the complexity of the workflow and show only:
-- Input fields
-- Run button
-- Results
-
-### Running a Mini App
+### Running a workflow
 
 1. Open the **Workflows** list (the home screen)
 2. Tap a workflow to open it
@@ -212,7 +207,7 @@ A search box appears in either step once the list is long enough, and a back arr
 
 ## Screens
 
-The app is made up of 12 screens: Login, Workflows list, Graph editor, Settings, Chat, Language Model Selection, Assets, Asset Viewer, Secrets, Collections, Jobs, and Threads.
+The stack registers 22 screens: Login, Workflows list, Graph editor, Settings, Chat, Threads, Language Model Selection, Apps, App, Documents, Storyboard Editor, Script Editor, Timeline Viewer, Sketch Viewer, Document Viewer, Assets, Asset Viewer, Secrets, Collections, Jobs, Job Detail, and Triggers.
 
 ---
 
@@ -340,6 +335,7 @@ eas build --platform ios --profile production
 
 - [Getting Started](getting-started.md) – Desktop setup and first workflow
 - [User Interface](user-interface.md) – Full UI guide
-- [Mini Apps](user-interface.md#mini-apps) – Creating Mini Apps
+- [Mini Apps](mini-apps.md) – What apps are and how they run
+- [Mini Apps on Mobile](mini-apps-mobile.md) – Opening and running an app on the phone
 - [Chat & Agents](global-chat-agents.md) – Chat features in detail
 - [API Reference](api-reference.md) – Server API documentation

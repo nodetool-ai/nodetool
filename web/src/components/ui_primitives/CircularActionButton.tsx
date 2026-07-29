@@ -245,11 +245,9 @@ export const CircularActionButton = memo(
         }
       }, [onClick, isLoading, disabled]);
 
-      // Calculate sizes
       const finalIconSize = iconSize || size - 14;
       const finalLoadingSize = loadingSize || size - 16;
 
-      // Resolve theme colors
       const bgColor = getThemeColor(theme, backgroundColor);
       const hoverBgColor = hoverBackgroundColor
         ? getThemeColor(theme, hoverBackgroundColor)

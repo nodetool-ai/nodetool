@@ -9,10 +9,37 @@ import {
   VecRecursiveSplitAndIndexTool,
   VecMarkdownSplitAndIndexTool,
   VecBatchIndexTool,
+  splitTextRecursive,
   type VecCollection
 } from "../src/tools/vector-tools.js";
 
 const mockContext = {} as any;
+
+describe("splitTextRecursive param clamping", () => {
+  it("terminates (no infinite loop) when chunk_overlap >= chunk_size", () => {
+    // Regression: stride = chunkSize - chunkOverlap <= 0 spun forever, hanging
+    // the event loop and OOM-ing on chunks[]. Must return a bounded result fast.
+    const text = "a".repeat(2000);
+    const started = Date.now();
+    const chunks = splitTextRecursive(text, [], 1000, 1000);
+    // The key invariant: it RETURNS quickly (was an infinite hang) with a
+    // bounded number of non-empty chunks. Overlap is clamped to size-1, so the
+    // window advances by >=1 each step (many chunks, but finite).
+    expect(Date.now() - started).toBeLessThan(1000);
+    expect(chunks.length).toBeGreaterThan(0);
+    expect(chunks.length).toBeLessThanOrEqual(text.length);
+    expect(chunks.every((c) => c.length > 0)).toBe(true);
+  });
+
+  it("terminates when chunk_overlap > chunk_size and for chunk_size < 1", () => {
+    expect(() =>
+      splitTextRecursive("b".repeat(500), [], 100, 500)
+    ).not.toThrow();
+    expect(splitTextRecursive("c".repeat(50), [], 0, 0).length).toBeGreaterThan(
+      0
+    );
+  });
+});
 
 type AnyMock = ReturnType<typeof vi.fn>;
 type MockCollection = VecCollection & {

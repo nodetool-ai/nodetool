@@ -13,6 +13,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import SiteHeader from "../../components/SiteHeader";
+import CanvasScreenshot from "../../components/CanvasScreenshot";
 import SiteFooter from "../../components/SiteFooter";
 import CloudWaitlist from "../../components/CloudWaitlist";
 
@@ -55,7 +56,7 @@ const proPoints = [
   {
     icon: Zap,
     title: "Start in 30 seconds",
-    body: "Sign in, open a workflow, hit run. No installer, no native dependencies, no GPU drivers — just a browser tab.",
+    body: "Sign in, open a workflow, and press run. No installer, no drivers, nothing to set up beyond a browser tab.",
   },
   {
     icon: Globe,
@@ -65,33 +66,33 @@ const proPoints = [
   {
     icon: Users,
     title: "Built for teams",
-    body: "Share workflows, hand off prompts, collaborate on agents. One workspace, many builders.",
+    body: "Share workflows, hand over prompts, and work on agents together in one shared workspace.",
   },
   {
     icon: KeyRound,
-    title: "Bring your own keys (BYOK)",
-    body: "OpenAI, Anthropic, Gemini, Mistral, Groq, Replicate, FAL, ElevenLabs, HuggingFace — every cloud provider, billed to your account, not ours.",
+    title: "Bring your own keys",
+    body: "OpenAI, Anthropic, Gemini, Mistral, Groq, Replicate, FAL, ElevenLabs, and HuggingFace all bill your account directly, not ours.",
   },
   {
     icon: RefreshCcw,
     title: "Always on the latest version",
-    body: "We ship Cloud updates continuously — new nodes, new providers, and bug fixes, no update step on your side.",
+    body: "We release Cloud updates continuously: new building blocks, new providers, and fixes, with nothing for you to install.",
   },
   {
     icon: Cloud,
     title: "No GPU required",
-    body: "We run the runtime, the websocket server, the queues, and the storage. Heavy generative jobs go to your chosen cloud APIs.",
+    body: "We run the servers and the storage, and demanding image and video work runs at the providers you choose.",
   },
 ];
 
 const consPoints = [
   {
-    title: "Alpha — not yet GA",
-    body: "Cloud is in active alpha. Expect breaking changes, missing polish, and occasional downtime. SLAs and production guarantees come with general availability.",
+    title: "Alpha — still early",
+    body: "Cloud is in active alpha. Expect changes that break things, rough edges, and occasional downtime. Uptime and support guarantees arrive with the full release.",
   },
   {
-    title: "No local LLMs",
-    body: "Cloud doesn't run Ollama, MLX, or GGUF models — those need access to your hardware. Use Studio if you need open-weight models running locally.",
+    title: "No local models",
+    body: "Cloud cannot run Ollama or MLX models, because those need direct access to your hardware. Use Studio if you want open models running on your own machine.",
   },
   {
     title: "Needs an internet connection",
@@ -99,7 +100,7 @@ const consPoints = [
   },
   {
     title: "Your data lives with us",
-    body: "Workflows and assets are stored encrypted in our managed storage. If you need data to never leave your device, Studio is the right choice — or self-host the same open-source code.",
+    body: "Workflows and files are stored encrypted on our servers. If your data must never leave your device, choose Studio, or host the same open-source code yourself.",
   },
 ];
 
@@ -219,16 +220,16 @@ export default function CloudPage() {
                 </h1>
                 <p className="mt-6 text-lg text-slate-300 leading-relaxed max-w-xl">
                   NodeTool Cloud is the hosted version of the same open-source
-                  platform. No install, no GPU, no driver setup — just sign in
-                  and start building. Bring your own API keys for every cloud
-                  provider you want to use.
+                  app. There is nothing to install and no hardware to set up:
+                  sign in and start building. Bring your own API keys for
+                  whichever providers you want to use.
                 </p>
                 <div className="mt-6 rounded-lg border border-amber-500/30 bg-amber-500/[0.06] p-4 text-sm text-amber-100/90 max-w-xl">
                   <strong className="text-amber-200">Heads up:</strong> Cloud is
                   in <strong className="text-amber-200">alpha</strong> and not
                   yet generally available. Expect rough edges, breaking changes,
-                  and occasional downtime while we harden it. For production
-                  workloads today, use{" "}
+                  and occasional downtime while we make it solid. For real
+                  work today, use{" "}
                   <a
                     href="/studio"
                     className="underline underline-offset-2 hover:text-amber-50"
@@ -246,8 +247,8 @@ export default function CloudPage() {
                     <ArrowRight className="h-4 w-4" />
                   </a>
                   <p className="text-xs text-slate-400">
-                    Alpha preview · AGPL-3.0 source · BYOK for every provider ·
-                    Self-host any time
+                    Alpha preview · AGPL-3.0 source · Your own keys for every
+                    provider · Self-host any time
                   </p>
                   <div className="mt-5 max-w-md">
                     <p className="mb-2 text-sm text-slate-300">
@@ -276,12 +277,7 @@ export default function CloudPage() {
                   }}
                 />
                 <div className="rounded-2xl border border-slate-700/60 bg-slate-900/80 p-1.5 shadow-2xl shadow-black/60 ring-1 ring-white/5 backdrop-blur">
-                  <img
-                    src="/screen_canvas.png"
-                    alt="NodeTool Cloud workflow editor"
-                    className="block w-full rounded-xl"
-                    loading="eager"
-                  />
+                  <CanvasScreenshot alt="NodeTool Cloud workflow editor" />
                 </div>
               </div>
             </div>
@@ -307,8 +303,8 @@ export default function CloudPage() {
                 Zero setup. Anywhere. Always current.
               </h2>
               <p className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl">
-                Cloud removes the install, the GPU, and the upgrade chores —
-                while keeping you in control of your provider keys and your
+                Cloud takes away the install, the hardware, and the upgrades,
+                while leaving you in control of your provider keys and your
                 workflows.
               </p>
             </header>
@@ -345,13 +341,12 @@ export default function CloudPage() {
                     Bring your own keys
                   </div>
                   <h2 className="text-2xl md:text-3xl font-bold text-white">
-                    You pay providers directly. We never mark up tokens.
+                    You pay providers directly. We never add a markup.
                   </h2>
                   <p className="mt-3 text-slate-300 max-w-2xl">
                     Cloud connects to OpenAI, Anthropic, Gemini, Mistral, Groq,
-                    Replicate, FAL, ElevenLabs, HuggingFace, and more — using
-                    keys you provide. No hidden inference fees, no resold
-                    credits.
+                    Replicate, FAL, ElevenLabs, HuggingFace, and more, using the
+                    keys you provide. No hidden fees and no resold credits.
                   </p>
                 </div>
               </div>
@@ -428,11 +423,10 @@ export default function CloudPage() {
                 Cloud is just our hosting of open-source code.
               </h2>
               <p className="mt-4 text-slate-400 leading-relaxed">
-                Every node, every provider, every line of the runtime that
-                powers Cloud is on GitHub under AGPL-3.0. If you ever want to
-                self-host, the same Docker images, CLI, and websocket server
-                are yours to run — no vendor lock-in, no &ldquo;cloud-only&rdquo;
-                features, no closed source layer.
+                Every building block, every provider, and every line of code
+                behind Cloud is on GitHub under AGPL-3.0. If you ever want to run
+                it yourself, everything we run is yours to run too. There are no
+                cloud-only features and nothing kept closed.
               </p>
               <a
                 href="https://github.com/nodetool-ai/nodetool"

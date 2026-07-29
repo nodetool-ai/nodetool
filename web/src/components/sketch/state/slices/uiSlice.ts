@@ -17,6 +17,32 @@ export interface UiSlice {
   panelsHidden: boolean;
   togglePanelsHidden: () => void;
 
+  /**
+   * Whether the tool-settings row of the top bar is collapsed to just its
+   * "Tool <name>" header. The settings wrap onto several rows for most tools,
+   * which eats a large share of a phone-sized viewport — the header keeps a
+   * one-tap way back. Set on every mobile/desktop transition (collapsed on
+   * mobile, expanded on desktop) and toggled by the caret in the bar.
+   */
+  toolSettingsCollapsed: boolean;
+  toggleToolSettingsCollapsed: () => void;
+  setToolSettingsCollapsed: (collapsed: boolean) => void;
+
+  /** Whether the AI assistant chat panel is open (right side of the editor). */
+  assistantPanelOpen: boolean;
+  toggleAssistantPanel: () => void;
+  setAssistantPanelOpen: (open: boolean) => void;
+
+  /**
+   * Whether the mobile panels sheet (color / layers / canvas) is open. On
+   * narrow viewports the right column can't sit beside the canvas, so it moves
+   * into a bottom sheet toggled by this flag. Ignored on desktop, where the
+   * column is docked (and hidden only by the `panelsHidden` chrome toggle).
+   */
+  mobilePanelsOpen: boolean;
+  toggleMobilePanels: () => void;
+  setMobilePanelsOpen: (open: boolean) => void;
+
   /** Cleared whenever a single layer is chosen exclusively (normal click). */
   selectedLayerIds: string[];
   /**
@@ -64,6 +90,22 @@ export const createUiSlice: StateCreator<SketchStore, [], [], UiSlice> = (
   panelsHidden: false,
   togglePanelsHidden: () =>
     set((state) => ({ panelsHidden: !state.panelsHidden })),
+
+  toolSettingsCollapsed: false,
+  toggleToolSettingsCollapsed: () =>
+    set((state) => ({ toolSettingsCollapsed: !state.toolSettingsCollapsed })),
+  setToolSettingsCollapsed: (collapsed: boolean) =>
+    set({ toolSettingsCollapsed: collapsed }),
+
+  assistantPanelOpen: false,
+  toggleAssistantPanel: () =>
+    set((state) => ({ assistantPanelOpen: !state.assistantPanelOpen })),
+  setAssistantPanelOpen: (open: boolean) => set({ assistantPanelOpen: open }),
+
+  mobilePanelsOpen: false,
+  toggleMobilePanels: () =>
+    set((state) => ({ mobilePanelsOpen: !state.mobilePanelsOpen })),
+  setMobilePanelsOpen: (open: boolean) => set({ mobilePanelsOpen: open }),
 
   selectedLayerIds: [] as string[],
   layerShiftRangeAnchorId: null as string | null,
@@ -146,7 +188,10 @@ export const createUiSlice: StateCreator<SketchStore, [], [], UiSlice> = (
       // Written on every pointer move — skip the notify when the integer
       // position is unchanged so subscribers don't re-render per event.
       const prev = state.cursorDocPos;
-      if (prev === pos || (prev && pos && prev.x === pos.x && prev.y === pos.y)) {
+      if (
+        prev === pos ||
+        (prev && pos && prev.x === pos.x && prev.y === pos.y)
+      ) {
         return state;
       }
       return { ...state, cursorDocPos: pos };

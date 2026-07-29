@@ -21,7 +21,6 @@ export const useClipboard = (): UseClipboardResult => {
     []
   );
 
-  // Check if Electron API is available
   const hasElectronApi = useMemo(
     () => typeof window !== "undefined" && !!window.api,
     []
@@ -35,14 +34,16 @@ export const useClipboard = (): UseClipboardResult => {
 
   const validateData = useCallback((data: string): boolean => {
     try {
-      const parsedData = JSON.parse(data);
+      const parsedData: unknown = JSON.parse(data);
+      if (typeof parsedData !== "object" || parsedData === null) return false;
+      const obj = parsedData as Record<string, unknown>;
       const hasNodes =
-        Object.prototype.hasOwnProperty.call(parsedData, "nodes") &&
-        Array.isArray(parsedData.nodes) &&
-        parsedData.nodes.length > 0;
+        "nodes" in obj &&
+        Array.isArray(obj.nodes) &&
+        obj.nodes.length > 0;
       const hasValidEdges =
-        Object.prototype.hasOwnProperty.call(parsedData, "edges") &&
-        Array.isArray(parsedData.edges);
+        "edges" in obj &&
+        Array.isArray(obj.edges);
       return hasNodes && hasValidEdges;
     } catch {
       return false;
@@ -128,7 +129,6 @@ export const useClipboard = (): UseClipboardResult => {
     readClipboard,
     writeClipboard,
     isClipboardValid,
-    // Export utility function for asset-based clipboard operations
     copyAssetToClipboard
   };
 };

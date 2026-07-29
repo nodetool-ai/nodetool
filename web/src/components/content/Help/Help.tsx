@@ -26,13 +26,6 @@ import ControlsShortcutsTab from "./ControlsShortcutsTab";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { Dialog } from "../../ui_primitives";
 
-interface HelpItem {
-  text: string;
-  buttons?: string[];
-  isButtonBorderless?: boolean[];
-  details?: string;
-}
-
 interface TabPanelProps {
   children: React.ReactNode;
   index: number;
@@ -126,8 +119,7 @@ const helpStyles = (theme: Theme) =>
         fontWeight: 600
       },
       "& svg": {
-        fontSize: "var(--fontSizeBig)",
-        // color: theme.vars.palette.primary.main
+        fontSize: "var(--fontSizeBig)"
       }
     },
     ".tabpanel": {
@@ -230,11 +222,12 @@ const Help = ({
       onClose={handleClose}
       fullWidth
       maxWidth="lg"
+      aria-label="Help"
     >
         <div css={helpStyles(theme)}>
           <div className="help">
             <div className="top">
-              <Text size="bigger">Help</Text>
+              <Text size="big" >Help</Text>
               <CloseButton onClick={handleClose} />
             </div>
             <div className="tabs-row">

@@ -26,9 +26,14 @@ import type { CompositeLayer } from "../preview/gpu/types";
 import {
   clipSourceTimeSec,
   computeActiveLayers,
+  createAnimationCompileCache,
+  resolveAnimatedLayerProps,
+  resolveTextStaggerContext,
   trackZ
 } from "../preview/sceneModel";
 import { CaptionRasterizer } from "../preview/captionRender";
+import { TextRasterizer } from "../preview/textRender";
+import { ShapeRasterizer } from "../preview/shapeRender";
 import { OffscreenVideoPool } from "./OffscreenVideoPool";
 import { renderTimelineAudio } from "./renderAudio";
 
@@ -113,15 +118,8 @@ function makeImageLoader(): (url: string) => Promise<HTMLImageElement | null> {
 export async function renderTimeline(
   opts: RenderTimelineOptions
 ): Promise<RenderResult> {
-  const {
-    tracks,
-    clips,
-    fps,
-    durationMs,
-    resolveUrl,
-    signal,
-    onProgress
-  } = opts;
+  const { tracks, clips, fps, durationMs, resolveUrl, signal, onProgress } =
+    opts;
 
   if (fps <= 0) throw new Error("fps must be positive");
   if (durationMs <= 0) throw new Error("durationMs must be positive");
@@ -172,6 +170,8 @@ export async function renderTimeline(
   const { compositor, init } = await createCompositor(canvas);
   const videoPool = new OffscreenVideoPool();
   const captionRasterizer = new CaptionRasterizer();
+  const textRasterizer = new TextRasterizer();
+  const shapeRasterizer = new ShapeRasterizer();
   const loadImage = makeImageLoader();
 
   try {
@@ -225,10 +225,13 @@ export async function renderTimeline(
     // export's clip count.
     const videoClipsByEnd = clips
       .filter((c) => c.mediaType === "video" || c.mediaType === "overlay")
-      .sort(
-        (a, b) => a.startMs + a.durationMs - (b.startMs + b.durationMs)
-      );
+      .sort((a, b) => a.startMs + a.durationMs - (b.startMs + b.durationMs));
     let releasePastIndex = 0;
+
+    // Motion-design animations resolve against the sequence resolution (px),
+    // matching the live preview. The compile cache lives for the whole render.
+    const animCanvas = { width: opts.width, height: opts.height };
+    const animCache = createAnimationCompileCache();
 
     const frameDurationSec = 1 / fps;
     for (let frame = 0; frame < totalFrames; frame++) {
@@ -254,6 +257,14 @@ export async function renderTimeline(
       // (bottom-to-top) layer order.
       const resolved = await Promise.all(
         layers.map(async (layer): Promise<CompositeLayer | null> => {
+          // Same per-frame animation resolution as the live compositor, so the
+          // exported motion is 1:1 with the preview.
+          const anim = resolveAnimatedLayerProps(
+            layer,
+            timeMs,
+            animCanvas,
+            animCache
+          );
           if (layer.kind === "caption" && layer.caption) {
             const bitmap = captionRasterizer.rasterize(
               layer.caption,
@@ -264,10 +275,62 @@ export async function renderTimeline(
             return {
               id: `c:${layer.clipId}`,
               source: bitmap,
-              opacity: layer.opacity,
+              opacity: anim.opacity,
               blendMode: layer.blendMode,
               zIndex: trackZ(layer.trackIndex),
-              transform: layer.transform
+              transform: anim.transform,
+              mask: anim.mask
+            };
+          }
+
+          if (layer.kind === "text" && layer.textStyle) {
+            // Staggered per-word motion is drawn into the raster itself,
+            // through the same rasterizer the live preview uses.
+            const stagger = resolveTextStaggerContext(
+              layer.clip,
+              timeMs,
+              animCanvas,
+              animCache
+            );
+            const bitmap = textRasterizer.rasterize(
+              layer.textStyle,
+              width,
+              height,
+              stagger
+            );
+            if (!bitmap) return null;
+            return {
+              id: `t:${layer.clipId}`,
+              source: bitmap,
+              opacity: anim.opacity,
+              blendMode: layer.blendMode,
+              zIndex: trackZ(layer.trackIndex),
+              transform: anim.transform,
+              mask: anim.mask,
+              borderRadius: layer.borderRadius,
+              effects: anim.effects ?? layer.effects,
+              trackEffects: layer.trackEffects
+            };
+          }
+
+          if (layer.kind === "shape" && layer.shapeStyle) {
+            const bitmap = shapeRasterizer.rasterize(
+              layer.shapeStyle,
+              width,
+              height
+            );
+            if (!bitmap) return null;
+            return {
+              id: `s:${layer.clipId}`,
+              source: bitmap,
+              opacity: anim.opacity,
+              blendMode: layer.blendMode,
+              zIndex: trackZ(layer.trackIndex),
+              transform: anim.transform,
+              mask: anim.mask,
+              borderRadius: layer.borderRadius,
+              effects: anim.effects ?? layer.effects,
+              trackEffects: layer.trackEffects
             };
           }
 
@@ -286,12 +349,13 @@ export async function renderTimeline(
             return {
               id: `v:${layer.clipId}`,
               source: el,
-              opacity: layer.opacity,
+              opacity: anim.opacity,
               blendMode: layer.blendMode,
               zIndex: trackZ(layer.trackIndex),
-              transform: layer.transform,
+              transform: anim.transform,
+              mask: anim.mask,
               borderRadius: layer.borderRadius,
-              effects: layer.effects,
+              effects: anim.effects ?? layer.effects,
               trackEffects: layer.trackEffects
             };
           }
@@ -301,12 +365,13 @@ export async function renderTimeline(
           return {
             id: `i:${layer.clipId}`,
             source: img,
-            opacity: layer.opacity,
+            opacity: anim.opacity,
             blendMode: layer.blendMode,
             zIndex: trackZ(layer.trackIndex),
-            transform: layer.transform,
+            transform: anim.transform,
+            mask: anim.mask,
             borderRadius: layer.borderRadius,
-            effects: layer.effects,
+            effects: anim.effects ?? layer.effects,
             trackEffects: layer.trackEffects
           };
         })
@@ -331,7 +396,12 @@ export async function renderTimeline(
 
     videoSource.close();
 
-    onProgress?.({ phase: "finalizing", frame: totalFrames, totalFrames, ratio: 1 });
+    onProgress?.({
+      phase: "finalizing",
+      frame: totalFrames,
+      totalFrames,
+      ratio: 1
+    });
     await output.finalize();
 
     const buffer = output.target.buffer;
@@ -343,5 +413,7 @@ export async function renderTimeline(
     compositor.dispose();
     videoPool.dispose();
     captionRasterizer.dispose();
+    textRasterizer.dispose();
+    shapeRasterizer.dispose();
   }
 }

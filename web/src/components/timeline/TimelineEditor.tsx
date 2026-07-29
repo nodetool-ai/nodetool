@@ -41,6 +41,7 @@ import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import { TopBar } from "./TopBar";
 import { BottomStatusBar } from "./BottomStatusBar";
 import { ProjectSettingsDialog } from "./ProjectSettingsDialog";
+import SaveToFolderMenu from "../assets/SaveToFolderMenu";
 import {
   useCreateTimeline,
   useTimeline,
@@ -68,8 +69,6 @@ import { useTimelineAutosave } from "../../hooks/timeline/useTimelineAutosave";
 import { useTimelineSave } from "../../hooks/timeline/useTimelineSave";
 import { useTimelineExport } from "../../hooks/timeline/useTimelineExport";
 
-// ── Drag-handle constants ──────────────────────────────────────────────────
-
 const HANDLE_HEIGHT_PX = 6;
 const DEFAULT_TRACKS_HEIGHT_PX = 240;
 const MIN_TRACKS_HEIGHT_PX = 80;
@@ -81,8 +80,6 @@ const KEYBOARD_RESIZE_STEP_PX = 20;
  * zoom = DEFAULT_MS_PER_PX / msPerPx  →  msPerPx = DEFAULT_MS_PER_PX / zoom
  */
 const DEFAULT_MS_PER_PX = 10;
-
-// ── Styles ─────────────────────────────────────────────────────────────────
 
 const editorStyles = (theme: Theme) =>
   css({
@@ -149,8 +146,6 @@ function exportPhaseLabel(
       return "Preparing…";
   }
 }
-
-// ── Sub-region placeholder components ─────────────────────────────────────
 
 const PreviewRegion: React.FC<{
   isLoading: boolean;
@@ -325,8 +320,6 @@ const TimelineStatusBar: React.FC = memo(() => {
 });
 TimelineStatusBar.displayName = "TimelineStatusBar";
 
-// ── Main component ─────────────────────────────────────────────────────────
-
 interface TimelineEditorProps {
   /**
    * Sequence id to load. When omitted, falls back to the `:sequenceId`
@@ -343,18 +336,18 @@ interface TimelineEditorProps {
   active?: boolean;
 }
 
-const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
-  sequenceId: sequenceIdProp,
-  active = true
-}) => {
+const TimelineEditorBody: React.FC<
+  Omit<TimelineEditorProps, "active">
+> = memo(({ sequenceId: sequenceIdProp }) => {
   const { sequenceId: sequenceIdParam } = useParams<{ sequenceId: string }>();
   const sequenceId = sequenceIdProp ?? sequenceIdParam;
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const theme = useTheme();
 
-  // Register the ui_timeline_* agent tools against this instance while focused.
-  useTimelineAgentBridge(active);
+  // Register the ui_timeline_* agent tools against this instance, addressable
+  // by sequence id whether or not this editor is the focused surface.
+  useTimelineAgentBridge(sequenceId ?? null);
 
   // Data fetching ─────────────────────────────────────────────────────────
   const { data: sequence, isLoading, isError, refetch } =
@@ -381,6 +374,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   // Offline video export (frame-by-frame, 1:1 with the live preview).
   const {
     exportVideo,
+    saveAsAsset,
     cancel: cancelExport,
     clearError: clearExportError,
     isExporting,
@@ -390,6 +384,16 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   const handleExportVideo = useCallback(() => {
     void exportVideo(sequence?.name);
   }, [exportVideo, sequence?.name]);
+
+  // "Save as Asset" — anchor the folder chooser to the TopBar button, then
+  // render the timeline into a new asset in the chosen folder.
+  const [saveAssetAnchor, setSaveAssetAnchor] = useState<HTMLElement | null>(
+    null
+  );
+  const handleSaveToAssets = useCallback(
+    (anchorEl: HTMLElement) => setSaveAssetAnchor(anchorEl),
+    []
+  );
 
   // Project settings dialog (canvas size + fps) ────────────────────────────
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -573,8 +577,15 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
         isExporting={isExporting}
         onSave={sequenceUnavailable ? undefined : handleSave}
         isSaving={isSaving}
+        onSaveToAssets={sequenceUnavailable ? undefined : handleSaveToAssets}
         onOpenSettings={sequenceUnavailable ? undefined : handleOpenSettings}
         activitySlot={activitySlot}
+      />
+      <SaveToFolderMenu
+        anchorEl={saveAssetAnchor}
+        open={!!saveAssetAnchor}
+        onClose={() => setSaveAssetAnchor(null)}
+        onSelectFolder={(folderId) => void saveAsAsset(folderId, sequence?.name)}
       />
 
       {/* ── Middle: assets + preview + inspector ──────────────────── */}
@@ -672,7 +683,7 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
   ...bodyProps
 }) => (
   <TimelineProvider active={active}>
-    <TimelineEditorBody active={active} {...bodyProps} />
+    <TimelineEditorBody {...bodyProps} />
   </TimelineProvider>
 );
 

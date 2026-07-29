@@ -8,6 +8,8 @@ import type {} from "./window";
 // Early polyfills / globals must come before other imports.
 import "./cryptoUUIDPolyfill";
 import "./prismGlobal";
+// Auto-reload when a lazy chunk 404s after a deploy (stale-asset recovery).
+import "./lib/preloadErrorReload";
 
 import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -51,10 +53,11 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import useAuth from "./stores/useAuth";
 import { isLocalhost } from "./lib/env";
 import { loadRuntimeConfig, isAuthRequired } from "./lib/runtimeConfig";
+import { initAnalytics } from "./lib/analytics";
 import { initSupabaseFromConfig } from "./lib/supabaseClient";
 import { initKeyListeners } from "./stores/KeyPressedStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
-import { loadMetadata } from "./serverState/useMetadata";
+import { loadMetadata, prefetchMetadata } from "./serverState/useMetadata";
 import { WorkflowManagerProvider } from "./contexts/WorkflowManagerContext";
 import KeyboardProvider from "./components/KeyboardProvider";
 import { MenuProvider } from "./providers/MenuProvider";
@@ -67,9 +70,13 @@ const RunWarningDialog = React.lazy(
 const SearchProviderSetupDialog = React.lazy(
   () => import("./components/dialogs/SearchProviderSetupDialog")
 );
+const ProviderOnboardingDialog = React.lazy(
+  () => import("./components/provider_onboarding/ProviderOnboardingDialog")
+);
 
 import { installIpcLogBridge } from "./logging/ipcLogBridge";
 import MobileClassProvider from "./components/MobileClassProvider";
+import { registerAppRouter } from "./lib/appNavigation";
 import { SkipLinks } from "./components/ui_primitives";
 
 import ChatComposerLayout from "./components/chat/containers/ChatComposerLayout";
@@ -78,8 +85,8 @@ import ChatComposerLayout from "./components/chat/containers/ChatComposerLayout"
 const GlobalChat = React.lazy(
   () => import("./components/chat/containers/GlobalChat")
 );
-const StandaloneMiniApp = React.lazy(
-  () => import("./components/miniapps/StandaloneMiniApp")
+const AcceptSharePage = React.lazy(
+  () => import("./components/workflows/AcceptSharePage")
 );
 const ModelsPage = React.lazy(
   () => import("./components/hugging_face/model_list/ModelsPage")
@@ -134,28 +141,16 @@ const SketchEditorPage = React.lazy(
 const WorkspaceShell = React.lazy(
   () => import("./components/workspace/WorkspaceShell")
 );
-import {
-  WorkflowEditorRedirect,
-  WorkflowAppRedirect
-} from "./components/workspace/RouteRedirects";
+import { WorkflowEditorRedirect } from "./components/workspace/RouteRedirects";
+const LegacyAppRedirect = React.lazy(
+  () => import("./components/applications/LegacyAppRedirect")
+);
 
-// Defer frontend tool registrations until after initial render
+// Defer frontend tool registrations until after initial render. The module list
+// lives in builtin/index.ts so this path and the agent WebSocket bridge
+// register exactly the same tools.
 const registerFrontendTools = () => {
-  Promise.all([
-    import("./lib/tools/builtin/addNode"),
-    import("./lib/tools/builtin/connectNodes"),
-    import("./lib/tools/builtin/updateNodeData"),
-    import("./lib/tools/builtin/moveNode"),
-    import("./lib/tools/builtin/setNodeTitle"),
-    import("./lib/tools/builtin/graph"),
-    import("./lib/tools/builtin/getGraph"),
-    import("./lib/tools/builtin/searchNodes"),
-    import("./lib/tools/builtin/searchModels"),
-    import("./lib/tools/builtin/deleteNode"),
-    import("./lib/tools/builtin/deleteEdge"),
-    import("./lib/tools/builtin/model3d"),
-    import("./lib/tools/builtin/timeline")
-  ]).catch((error) => {
+  import("./lib/tools/builtin").catch((error) => {
     console.error("Failed to register frontend tools:", error);
   });
 };
@@ -289,18 +284,24 @@ function getRoutes() {
       element: <Login />
     },
     {
-      path: "/apps/:workflowId?",
+      // Legacy links keyed by workflow id. An app is its own resource now, so
+      // these resolve to the app built on that workflow, or 404.
+      path: "/miniapp/:workflowId",
       element: (
         <ProtectedRoute>
-          <WorkflowAppRedirect />
+          <React.Suspense fallback={<LoadingSpinner />}>
+            <LegacyAppRedirect />
+          </React.Suspense>
         </ProtectedRoute>
       )
     },
     {
-      path: "/miniapp/:workflowId",
+      path: "/share/:token",
       element: (
         <ProtectedRoute>
-          <StandaloneMiniApp />
+          <React.Suspense fallback={<LoadingSpinner />}>
+            <AcceptSharePage />
+          </React.Suspense>
         </ProtectedRoute>
       )
     },
@@ -517,6 +518,9 @@ const handleHashRoute = () => {
 handleHashRoute();
 
 const router = createBrowserRouter(getRoutes());
+// Expose the router singleton to components rendered outside the router tree
+// (global dialogs), so they can navigate without the useNavigate hook.
+registerAppRouter(router);
 const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("Root element #root not found");
 const root = ReactDOM.createRoot(rootElement);
@@ -536,8 +540,9 @@ const MenuNavigationBridge = () => {
   return null;
 };
 
-const AppWrapper = () => {
+const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
   const [status, setStatus] = useState<string>("pending");
+  const [configLoaded, setConfigLoaded] = useState(false);
   const authState = useAuth((s) => s.state);
 
   // Allow dev-only test pages to render without backend metadata
@@ -553,6 +558,22 @@ const AppWrapper = () => {
   }, []);
 
   useEffect(() => {
+    let active = true;
+    configReady.then(() => {
+      if (active) setConfigLoaded(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, [configReady]);
+
+  useEffect(() => {
+    // The auth-mode decision below depends on runtime config; wait for it so a
+    // Supabase backend isn't hit with an unauthenticated metadata request.
+    if (!configLoaded) {
+      return;
+    }
+
     // When auth is enforced, wait until the user is logged in before fetching
     // metadata. When logged out, skip metadata so the router can render and
     // redirect to /login.
@@ -571,7 +592,7 @@ const AppWrapper = () => {
         console.error("Failed to load metadata:", error);
         setStatus("error");
       });
-  }, [authState]);
+  }, [authState, configLoaded]);
 
   const shouldRenderRouter =
     isDevTestRoute || status === "success" || status === "logged_out";
@@ -683,6 +704,7 @@ const AppWrapper = () => {
                       <DownloadManagerDialog />
                       <RunWarningDialog />
                       <SearchProviderSetupDialog />
+                      <ProviderOnboardingDialog />
                     </>
                   )}
                 </KeyboardProvider>
@@ -695,19 +717,24 @@ const AppWrapper = () => {
   );
 };
 
-// We need to make the initialization async
-const initialize = async () => {
-  // Learn auth mode and Supabase credentials from the backend before wiring up
-  // the client and auth, so the frontend reflects the server's configuration
-  // without any build-time VITE_* values.
-  const config = await loadRuntimeConfig();
-  initSupabaseFromConfig(config);
+// Start the largest boot payload (node metadata) immediately so its download
+// overlaps the runtime-config round-trip below instead of running after it.
+prefetchMetadata();
 
+// Learn auth mode and Supabase credentials from the backend before wiring up
+// the client and auth, so the frontend reflects the server's configuration
+// without any build-time VITE_* values.
+const configReady = loadRuntimeConfig().then((config) => {
+  initSupabaseFromConfig(config);
   useAuth.getState().initialize();
   initKeyListeners();
+  // Load Plausible on the production website only (never local/dev/Electron).
+  initAnalytics();
+  return config;
+});
+configReady.catch((err) => console.error(err));
 
-  // Render after initialization and prefetching
-  root.render(<AppWrapper />);
-};
-
-initialize().catch((err) => console.error(err));
+// Render the shell right away — the loading spinner appears without waiting on
+// the /api/config round-trip. AppWrapper holds back the router (and any
+// auth-mode metadata decision) until `configReady` resolves.
+root.render(<AppWrapper configReady={configReady} />);

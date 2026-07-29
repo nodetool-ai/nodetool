@@ -10,15 +10,15 @@ export default function ChatUISection() {
     <section
       id="chat"
       aria-labelledby="chat-title"
-      className="relative py-24 overflow-hidden"
+      className="relative py-24 overflow-clip-safe"
     >
       {/* Background Glow */}
       <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-900/20 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="mb-16 text-center max-w-3xl mx-auto">
+        <div className="scroll-fade mb-16 text-center max-w-3xl mx-auto">
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={false}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             className="inline-flex items-center justify-center p-3 mb-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 shadow-lg shadow-emerald-500/10"
@@ -28,10 +28,10 @@ export default function ChatUISection() {
 
           <motion.h2
             id="chat-title"
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
             Run your workflows <br />
@@ -41,22 +41,22 @@ export default function ChatUISection() {
           </motion.h2>
 
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Skip the canvas when you don&apos;t need it. Ask in plain English, the right workflow runs, results stream back inline.
+            Skip the canvas when you don&apos;t need it. Ask in plain English, the right workflow runs, and the results come back in the conversation.
           </motion.p>
         </div>
 
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
-          className="relative mx-auto max-w-5xl"
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="scroll-fade relative mx-auto max-w-5xl"
         >
           <Tilt3D>
             <div className="relative rounded-xl border border-white/10 bg-slate-900/50 backdrop-blur-xl shadow-2xl overflow-hidden group">
@@ -74,7 +74,7 @@ export default function ChatUISection() {
               </div>
 
               <Image
-                src="/screen_chat.png"
+                src="/screen_chat.webp"
                 alt="Chat UI with tools, agents and workflow integrations"
                 width={2504}
                 height={1726}

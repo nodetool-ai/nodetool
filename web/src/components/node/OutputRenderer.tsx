@@ -21,7 +21,6 @@ import {
   SVGElement,
   AssetRef
 } from "../../stores/ApiTypes";
-import AudioPlayer from "../audio/AudioPlayer";
 import ThreadMessageList from "./ThreadMessageList";
 import CalendarEventView from "./CalendarEventView";
 
@@ -39,7 +38,7 @@ import ImageView from "./ImageView";
 import AssetViewer from "../assets/AssetViewer";
 import TaskPlanView from "./TaskPlanView";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { Chunk } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 import { trpc } from "../../trpc/client";
@@ -82,6 +81,30 @@ const TRUNCATION_STYLE: React.CSSProperties = {
   fontSize: "0.85em"
 };
 
+const LIST_ITEM_SX = {
+  borderRadius: BORDER_RADIUS.sm,
+  bgcolor: "background.paper",
+  boxShadow: 1,
+  mb: 1,
+  px: 2
+} as const;
+const AUDIO_CHUNK_ITEM_SX = {
+  alignItems: "flex-start",
+  borderRadius: BORDER_RADIUS.sm,
+  bgcolor: "background.paper",
+  boxShadow: 1,
+  mb: 1,
+  px: 2,
+  display: "block"
+} as const;
+const LIST_WRAPPER_SX = { p: 1 } as const;
+const MONOSPACE_SX = {
+  fontFamily: "monospace",
+  fontSize: "var(--fontSizeNormal)"
+} as const;
+const PRE_WRAP_SX = { whiteSpace: "pre-wrap", color: "text.primary" } as const;
+const PRE_WRAP_PRIMARY_SX = { whiteSpace: "pre-wrap" } as const;
+
 import { isBitmapImage } from "@nodetool-ai/protocol";
 
 // Encodes the raw-RGBA in-flight format to a PNG data URL. Shared with the
@@ -115,6 +138,7 @@ import DataframeRenderer from "./output/DataframeRenderer";
 import { isAudioChunkLike, isTextLikeChunk } from "./outputChunkUtils";
 
 const LazyTimelineRenderer = React.lazy(() => import("../timeline/TimelineRenderer"));
+const LazyAudioPlayer = React.lazy(() => import("../audio/AudioPlayer"));
 
 // Keep this large for UX (big LLM outputs), but bounded to avoid browser OOM /
 // `RangeError: Invalid string length` when streams run away.
@@ -275,7 +299,6 @@ const concatTextChunksSafely = (
   };
 };
 
-// Custom hook for draggable scrolling
 const formatAudioChunkTimestamp = (seconds: number): string => {
   if (!Number.isFinite(seconds) || seconds < 0) {
     return "00:00.000";
@@ -321,7 +344,6 @@ const useDraggableScroll = () => {
     scrollRef.current.style.cursor = "grab";
   });
 
-  // Set up global listeners once
   useEffect(() => {
     const handleGlobalMouseMove = (e: MouseEvent) => handleMouseMoveRef.current(e);
     const handleGlobalMouseUp = () => handleMouseUpRef.current();
@@ -357,8 +379,6 @@ export type OutputRendererProps = {
   value: unknown;
   showTextActions?: boolean;
 };
-
-// all helpers/styles/hooks moved to ./output/*
 
 const OutputRenderer: React.FC<OutputRendererProps> = ({
   value,
@@ -539,8 +559,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             // Raw RGBA can't be decoded by <img>; encode to a PNG data URL.
             imageSource = rawRgbaToPngDataUrl(
               v.data,
-              v.width as number,
-              v.height as number
+              v.width,
+              v.height
             );
           } else if (typeof v.uri === "string" && v.uri !== "" && !v.uri.startsWith("memory://")) {
             imageSource = signedValueUrl;
@@ -578,12 +598,14 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
 
         return (
           <div className="audio" style={AUDIO_WRAPPER_STYLE}>
-            <AudioPlayer
-              source={audioSource}
-              mimeType={mimeType}
-              height={150}
-              waveformHeight={150}
-            />
+            <React.Suspense fallback={<LoadingSpinner size="small" text="Loading audio player" />}>
+              <LazyAudioPlayer
+                source={audioSource}
+                mimeType={mimeType}
+                height={150}
+                waveformHeight={150}
+              />
+            </React.Suspense>
           </div>
         );
       }
@@ -812,7 +834,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       case "calendar_event":
         return <CalendarEventView event={value as CalendarEvent} />;
       case "array": {
-        const arr = value as unknown[];
+        if (!Array.isArray(value)) return null;
+        const arr: unknown[] = value;
         if (arr.length > 0) {
           if (arr[0] === undefined || arr[0] === null) {
             return null;
@@ -826,24 +849,18 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 className="nodrag"
                 style={SCROLL_CONTAINER_STYLE}
               >
-                <List sx={{ p: 1 }}>
-                  {(arr as string[]).map((item) => (
+                <List sx={LIST_WRAPPER_SX}>
+                  {arr.map((item) => (
                     <ListItem
                       key={withOccurrenceSuffix(
                         stableKeyForOutputValue(item),
                         seen
                       )}
-                      sx={{
-                        borderRadius: BORDER_RADIUS.sm,
-                        bgcolor: "background.paper",
-                        boxShadow: 1,
-                        mb: 1,
-                        px: 2
-                      }}
+                      sx={LIST_ITEM_SX}
                     >
                       <ListItemText
                         primaryTypographyProps={{
-                          sx: { whiteSpace: "pre-wrap" }
+                          sx: PRE_WRAP_PRIMARY_SX
                         }}
                         primary={item}
                       />
@@ -866,14 +883,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                   ref={scrollRef}
                   onMouseDown={handleMouseDown}
                   className="nodrag"
-                  style={{
-                    height: "100%",
-                    overflow: "auto",
-                    cursor: "grab",
-                    userSelect: "none"
-                  }}
+                  style={SCROLL_CONTAINER_STYLE}
                 >
-                  <List sx={{ p: 1 }}>
+                  <List sx={LIST_WRAPPER_SX}>
                     {(arr as { timestamp: [number, number]; text: string }[]).map((chunk) => {
                       const key = withOccurrenceSuffix(
                         `audio-chunk:${chunk.timestamp[0]}:${chunk.timestamp[1]}:${hashStringBounded(chunk.text)}`,
@@ -882,27 +894,16 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                       return (
                         <ListItem
                           key={key}
-                          sx={{
-                            alignItems: "flex-start",
-                            borderRadius: BORDER_RADIUS.sm,
-                            bgcolor: "background.paper",
-                            boxShadow: 1,
-                            mb: 1,
-                            px: 2,
-                            display: "block"
-                          }}
+                          sx={AUDIO_CHUNK_ITEM_SX}
                         >
                           <ListItemText
                             primary={`${formatAudioChunkTimestamp(chunk.timestamp[0])} → ${formatAudioChunkTimestamp(chunk.timestamp[1])}`}
                             secondary={chunk.text}
                             primaryTypographyProps={{
-                              sx: {
-                                fontFamily: "monospace",
-                                fontSize: "var(--fontSizeNormal)"
-                              }
+                              sx: MONOSPACE_SX
                             }}
                             secondaryTypographyProps={{
-                              sx: { whiteSpace: "pre-wrap", color: "text.primary" }
+                              sx: PRE_WRAP_SX
                             }}
                           />
                         </ListItem>
@@ -1092,7 +1093,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         return <JSONRenderer value={v} showActions={showTextActions} />;
       default:
         if (value !== null && typeof value === "object") {
-          return <JSONRenderer value={value as Record<string, unknown>} showActions={showTextActions} />;
+          return <JSONRenderer value={value} showActions={showTextActions} />;
         }
         return (
           <TextRenderer

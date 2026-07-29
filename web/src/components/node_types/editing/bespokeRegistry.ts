@@ -1,13 +1,12 @@
 /**
- * Bespoke editing-node body registry (plan §9, Track E).
+ * Bespoke editing-node body registry.
  *
- * Registry mapping `node_type` → bespoke body component. Resolved before the
- * content-card registry in `NodeContent` body routing (§4.1):
+ * Maps `node_type` → bespoke body component. Resolved before the content-card
+ * registry in `NodeContent` body routing:
  *
  *   bespoke registry → content-card registry → generic body
  *
- * Bespoke bodies ship one at a time as Track E PRs land. Un-registered
- * nodes fall through to the next routing layer.
+ * Un-registered nodes fall through to the next routing layer.
  */
 
 import type React from "react";
@@ -138,6 +137,17 @@ export const BESPOKE_BODY_REGISTRY: Readonly<
     AUDIO_EFFECT_NODE_TYPES.map((t) => [t, SynthModuleBody] as const)
   ),
   [AUDIO_OUT_NODE_TYPE]: AudioOutBody
+};
+
+/**
+ * Default widths for bespoke bodies that are wider than the generic node.
+ * Consumed by `graphNodeToReactFlowNode` — only applied when the node has no
+ * saved width yet, so user resizes are preserved.
+ */
+export const BESPOKE_DEFAULT_WIDTHS: Readonly<Record<string, number>> = {
+  // Extract Video Frame: the transport row (time readout + step/play/mute +
+  // download) needs more than the 200px generic default to fit on one line.
+  [EXTRACT_VIDEO_FRAME_NODE_TYPE]: 320
 };
 
 /**

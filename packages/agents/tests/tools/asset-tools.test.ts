@@ -289,4 +289,54 @@ describe("SaveAssetTool + ReadAssetTool round-trip", () => {
     expect(read.success).toBe(true);
     expect(read.content).toBe("round-trip content 123");
   });
+
+  it("read_asset resolves assets saved via the createAsset path (#23)", async () => {
+    // Chat contexts define createAsset (DB-backed). Previously read_asset only
+    // probed `assets/<name>` storage keys and never found createAsset-saved
+    // assets; save_asset now mirrors the bytes to that key.
+    const storage = new InMemoryStorageAdapter();
+    const ctx = {
+      createAsset: vi.fn(async () => ({ id: "db-generated-id" })),
+      storage
+    } as unknown as ProcessingContext;
+
+    const saved = (await new SaveAssetTool().process(ctx, {
+      name: "report.md",
+      content: "# Findings",
+      content_type: "text/markdown"
+    })) as Record<string, unknown>;
+    expect(saved.asset_id).toBe("db-generated-id");
+
+    const read = (await new ReadAssetTool().process(ctx, {
+      name: "report.md"
+    })) as Record<string, unknown>;
+    expect(read.success).toBe(true);
+    expect(read.content).toBe("# Findings");
+  });
+
+  it("read_asset returns base64 (not corrupted UTF-8) for binary content (#24)", async () => {
+    const storage = new InMemoryStorageAdapter();
+    const ctx = makeContext(storage);
+
+    // Bytes that are not valid UTF-8 (a PNG signature fragment).
+    const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff, 0xfe]);
+    const b64 = Buffer.from(bytes).toString("base64");
+    await new SaveAssetTool().process(ctx, {
+      name: "cover.png",
+      content_base64: b64,
+      content_type: "image/png"
+    });
+
+    const read = (await new ReadAssetTool().process(ctx, {
+      name: "cover.png"
+    })) as Record<string, unknown>;
+
+    expect(read.success).toBe(true);
+    expect(read.binary).toBe(true);
+    // Round-trips exactly, unlike a lossy TextDecoder pass.
+    expect(read.content_base64).toBe(b64);
+    expect(Array.from(Buffer.from(read.content_base64 as string, "base64"))).toEqual(
+      Array.from(bytes)
+    );
+  });
 });

@@ -1,13 +1,20 @@
 import { useCallback, useEffect, useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 
 interface UseAssistantVisibilityOptions {
   storageKey?: string;
   defaultVisible?: boolean;
 }
 
+interface UseAssistantVisibilityResult {
+  readonly assistantVisible: boolean;
+  readonly setAssistantVisible: Dispatch<SetStateAction<boolean>>;
+  readonly toggleAssistantVisible: () => void;
+}
+
 export function useAssistantVisibility(
   options: UseAssistantVisibilityOptions = {}
-) {
+): UseAssistantVisibilityResult {
   const {
     storageKey = "textEditorModal_assistantVisible",
     defaultVisible = true

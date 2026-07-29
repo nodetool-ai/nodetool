@@ -208,7 +208,6 @@ const Alert: React.FC = memo(() => {
         timeouts.forEach(clearTimeout);
       });
       timeoutsMap.clear();
-      // Clean up the handleClose timeout
       if (handleCloseTimeoutRef.current) {
         clearTimeout(handleCloseTimeoutRef.current);
       }
@@ -249,7 +248,7 @@ const Alert: React.FC = memo(() => {
 
     setVisibleNotifications((prevNotifications) => {
       const combined = [...prevNotifications, ...newNotifications];
-      // Deduplicate notifications by id (O(N) implementation)
+      // Deduplicate by id, preserving first-seen order.
       const seenIds = new Set<string>();
       const result: Notification[] = [];
       for (const notification of combined) {
@@ -285,13 +284,11 @@ const Alert: React.FC = memo(() => {
           timeoutsRef.current.delete(notification.id);
         }, TRANSITION_DURATION);
 
-        // Track the inner timeout
         const existing = timeoutsRef.current.get(notification.id) || [];
         existing.push(removeTimeout);
         timeoutsRef.current.set(notification.id, existing);
       }, notification.timeout || NOTIFICATION_TIMEOUT_DEFAULT);
 
-      // Track the outer timeout in the ref
       const existing = timeoutsRef.current.get(notification.id) || [];
       existing.push(showTimeout);
       timeoutsRef.current.set(notification.id, existing);
@@ -308,7 +305,6 @@ const Alert: React.FC = memo(() => {
     if (handleCloseTimeoutRef.current) {
       clearTimeout(handleCloseTimeoutRef.current);
     }
-    // Track the new timeout
     handleCloseTimeoutRef.current = setTimeout(() => {
       removeNotification(id);
       setVisibleNotifications((prev) =>

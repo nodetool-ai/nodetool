@@ -23,16 +23,12 @@ import {
   colorProp,
   colorValueToVec4,
   floatProp,
+  num,
   runShaderNode,
   runRecipeNode
 } from "./lib-shader-utils.js";
 
-function num(value: unknown, fallback: number): number {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-function vec4From(value: unknown, fallback: [number, number, number, number]): ReturnType<typeof d.vec4f> {
+function straightVec4From(value: unknown, fallback: [number, number, number, number]): ReturnType<typeof d.vec4f> {
   const [r, g, b, a] = colorValueToVec4(value, fallback);
   return d.vec4f(r, g, b, a);
 }
@@ -50,7 +46,7 @@ class ColorOverlayNode extends BaseNode {
     const output = await runShaderNode(
       mixerColorOverlayV1,
       {
-        color: vec4From(props.color, [1, 0, 0, 1]),
+        color: straightVec4From(props.color, [1, 0, 0, 1]),
         amount: num(props.amount, 0.5)
       },
       props.image,
@@ -77,7 +73,7 @@ class OutlineNode extends BaseNode {
     const output = await runShaderNode(
       mixerOutlineV1,
       {
-        color: vec4From(props.color, [0, 0, 0, 1]),
+        color: straightVec4From(props.color, [0, 0, 0, 1]),
         widthPx: num(props.width, 2),
         threshold: num(props.threshold, 0.5)
       },
@@ -106,7 +102,7 @@ class DropShadowNode extends BaseNode {
     const output = await runRecipeNode(
       mixerDropShadowV1,
       {
-        color: vec4From(props.color, [0, 0, 0, 1]),
+        color: straightVec4From(props.color, [0, 0, 0, 1]),
         offsetX: num(props.offset_x, 0.02),
         offsetY: num(props.offset_y, 0.02),
         radius: num(props.radius, 8),

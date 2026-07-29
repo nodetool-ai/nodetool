@@ -107,6 +107,52 @@ describe("ImageDocument model", () => {
     ]);
   });
 
+  it("updateFieldsIfUnchanged writes scalar fields + document atomically", async () => {
+    const doc = await createDoc();
+    const originalUpdatedAt = doc.updated_at;
+
+    const data = doc.toDocumentData();
+    data.layerBindings.push(makeBinding("a"));
+    const updated = await ImageDocument.updateFieldsIfUnchanged(
+      doc.id,
+      originalUpdatedAt,
+      { name: "Renamed", document: JSON.stringify(data) }
+    );
+    expect(updated).not.toBeNull();
+    expect(updated!.name).toBe("Renamed");
+    expect(updated!.updated_at).not.toBe(originalUpdatedAt);
+    expect(
+      updated!.toDocumentData().layerBindings.map((b) => b.layerId)
+    ).toEqual(["a"]);
+  });
+
+  it("updateFieldsIfUnchanged rejects a stale write instead of clobbering", async () => {
+    const doc = await createDoc();
+    const stale = doc.updated_at;
+
+    // A concurrent save appends a layer binding and bumps updated_at.
+    const concurrentData = doc.toDocumentData();
+    concurrentData.layerBindings.push(makeBinding("from-job"));
+    const first = await ImageDocument.updateFieldsIfUnchanged(doc.id, stale, {
+      document: JSON.stringify(concurrentData)
+    });
+    expect(first).not.toBeNull();
+
+    // The editor saves its stale full snapshot (without the job's binding).
+    const staleSnapshot = makeDocument(); // empty layerBindings
+    const second = await ImageDocument.updateFieldsIfUnchanged(doc.id, stale, {
+      name: "Editor Save",
+      document: JSON.stringify(staleSnapshot)
+    });
+    expect(second).toBeNull();
+
+    // The job's binding survived — it was not clobbered.
+    const reloaded = await ImageDocument.findById(doc.id);
+    expect(
+      reloaded!.toDocumentData().layerBindings.map((b) => b.layerId)
+    ).toEqual(["from-job"]);
+  });
+
   it("mutateDocumentData retries CAS conflicts against fresh data", async () => {
     const doc = await createDoc();
     const originalUpdate = ImageDocument.updateDocumentDataIfUnchanged;

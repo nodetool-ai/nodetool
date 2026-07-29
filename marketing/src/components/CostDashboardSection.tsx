@@ -84,14 +84,14 @@ export default function CostDashboardSection() {
     <section
       id="costs"
       aria-labelledby="costs-title"
-      className="relative py-24 overflow-hidden"
+      className="relative py-24 overflow-clip-safe"
     >
       {/* Background glow, emerald to echo the "money saved" read */}
       <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-900/15 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
         {/* Header */}
-        <div className="mx-auto mb-14 max-w-3xl text-center">
+        <div className="scroll-fade mx-auto mb-14 max-w-3xl text-center">
           <h2 className="text-base font-medium leading-7 text-blue-400">
             Cost transparency
           </h2>
@@ -102,19 +102,19 @@ export default function CostDashboardSection() {
             See what every run actually costs
           </h3>
           <p className="mt-4 text-lg leading-relaxed text-slate-300">
-            NodeTool prices every node execution and rolls it up by workflow,
-            provider, or model. You bring your own keys and pay providers
-            directly, so the numbers are the real ones.
+            NodeTool records what each step costs and adds it up by workflow,
+            provider, or model. Because you use your own keys and pay providers
+            directly, these are the amounts you are actually billed.
           </p>
         </div>
 
         {/* Dashboard window */}
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
-          className="relative mx-auto max-w-5xl"
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="scroll-fade relative mx-auto max-w-5xl"
         >
           <div className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-[#0b0d12] shadow-strong">
             {/* Window chrome */}
@@ -253,12 +253,12 @@ export default function CostDashboardSection() {
                             key={i}
                             className="flex flex-1 origin-bottom flex-col-reverse overflow-hidden rounded-t-[2px]"
                             style={{ height: (total / Y_MAX) * CHART_H }}
-                            initial={{ scaleY: 0 }}
+                            initial={false}
                             whileInView={{ scaleY: 1 }}
                             viewport={{ once: true }}
                             transition={{
-                              duration: 0.5,
-                              delay: 0.2 + i * 0.012,
+                              duration: 0.25,
+                              delay: 0.05 + i * 0.012,
                               ease: [0.2, 0.8, 0.2, 1],
                             }}
                           >
@@ -342,12 +342,12 @@ export default function CostDashboardSection() {
                         <motion.div
                           className="h-full origin-left rounded-full bg-[#4d8bff]"
                           style={{ width: `${row.share}%` }}
-                          initial={{ scaleX: 0 }}
+                          initial={false}
                           whileInView={{ scaleX: 1 }}
                           viewport={{ once: true }}
                           transition={{
-                            duration: 0.6,
-                            delay: 0.3 + i * 0.06,
+                            duration: 0.3,
+                            delay: 0.08 + i * 0.06,
                             ease: [0.2, 0.8, 0.2, 1],
                           }}
                         />
@@ -370,16 +370,16 @@ export default function CostDashboardSection() {
         <div className="mx-auto mt-12 grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-3">
           {[
             {
-              title: "Per-node accounting",
-              body: "Every execution priced on its own, grouped by node, workflow, provider, or model.",
+              title: "Cost per step",
+              body: "Every run is priced on its own and can be grouped by step, workflow, provider, or model.",
             },
             {
               title: "No markup",
-              body: "Pay OpenAI, fal.ai, and the rest directly with your own keys. NodeTool takes zero cut.",
+              body: "Pay OpenAI, fal.ai, and the rest directly with your own keys. NodeTool takes no cut.",
             },
             {
               title: "Export anytime",
-              body: "Pull the full breakdown to CSV for your own books, billing, or client invoices.",
+              body: "Download the full breakdown as a spreadsheet for your own books or client invoices.",
             },
           ].map(({ title, body }) => (
             <div key={title}>

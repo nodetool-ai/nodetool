@@ -40,12 +40,10 @@ export const ActionButtons: React.FC<ActionButtonsProps> = memo(({
   isDisabled,
   hasContent
 }) => {
-  // Show stop button ONLY when generation is actively running
   const showStopButton = (isLoading || isStreaming) && onStop;
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
-  // Memoize stop handler to prevent unnecessary re-renders
   const handleStop = useCallback(() => {
     onStop?.();
   }, [onStop]);

@@ -1,7 +1,7 @@
 import { access, readdir } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import { homedir } from "node:os";
-import { basename, join } from "node:path";
+import { basename, isAbsolute, join, relative } from "node:path";
 import { getSecret as getStoredSecret } from "@nodetool-ai/models";
 import {
   getProvider,
@@ -203,10 +203,17 @@ function isDownloadedFromFiles(
 }
 
 function getHfCacheRoot(): string {
-  const cacheEnv = process.env.HUGGINGFACE_HUB_CACHE ?? process.env.HF_HOME;
-  return cacheEnv
-    ? join(cacheEnv, "hub")
-    : join(homedir(), ".cache", "huggingface", "hub");
+  // HF_HUB_CACHE (modern) and HUGGINGFACE_HUB_CACHE already point AT the hub
+  // directory that holds the `models--*` folders — they are used verbatim.
+  // Only HF_HOME needs `/hub` appended. Appending it to the hub-cache vars
+  // (the previous behavior) probed one level too deep, so every model showed as
+  // not-downloaded. Mirrors electron/src/fileExplorer.ts.
+  const hubDir =
+    process.env.HF_HUB_CACHE ?? process.env.HUGGINGFACE_HUB_CACHE;
+  if (hubDir) return hubDir;
+  const hfHome = process.env.HF_HOME;
+  if (hfHome) return join(hfHome, "hub");
+  return join(homedir(), ".cache", "huggingface", "hub");
 }
 
 function repoToCacheDir(repoId: string): string {
@@ -235,15 +242,28 @@ async function listSnapshotDirs(repoId: string): Promise<string[]> {
     .map((entry) => join(snapshotsRoot, entry.name));
 }
 
+/**
+ * Join `child` under `dir` but return null if the result escapes `dir` (a
+ * caller-supplied "../.." path). Prevents the HF/llama cache-lookup helpers from
+ * probing arbitrary host paths — a filesystem file-existence oracle otherwise.
+ */
+function safeJoinWithin(dir: string, child: string): string | null {
+  const joined = join(dir, child);
+  const rel = relative(dir, joined);
+  if (rel === "" || (!rel.startsWith("..") && !isAbsolute(rel))) return joined;
+  return null;
+}
+
 async function repoFileInCache(
   repoId: string,
   relativePath: string
 ): Promise<boolean> {
   const snapshotDirs = await listSnapshotDirs(repoId);
   const checks = await Promise.all(
-    snapshotDirs.map((snapshotDir) =>
-      pathExists(join(snapshotDir, relativePath))
-    )
+    snapshotDirs.map((snapshotDir) => {
+      const target = safeJoinWithin(snapshotDir, relativePath);
+      return target ? pathExists(target) : Promise.resolve(false);
+    })
   );
   return checks.some((exists) => exists);
 }
@@ -704,10 +724,14 @@ async function isLlamaCppModelCached(
   const checkPromises = snapshots
     .filter((snapshot) => snapshot.isDirectory())
     .map(async (snapshot) => {
-      if (await pathExists(join(repoDir, snapshot.name, filePath))) {
+      const snapshotDir = join(repoDir, snapshot.name);
+      const full = safeJoinWithin(snapshotDir, filePath);
+      if (full && (await pathExists(full))) {
         return true;
       }
-      if (await pathExists(join(repoDir, snapshot.name, basename(filePath)))) {
+      // basename() is already contained, but route it through the same guard.
+      const byBase = safeJoinWithin(snapshotDir, basename(filePath));
+      if (byBase && (await pathExists(byBase))) {
         return true;
       }
       return false;

@@ -14,6 +14,7 @@ import { AnthropicProvider } from "./anthropic-provider.js";
 import { ClaudeAgentProvider } from "./claude-agent-provider.js";
 import { GeminiProvider } from "./gemini-provider.js";
 import { LlamaProvider } from "./llama-provider.js";
+import { NodeLlamaCppProvider } from "./node-llama-cpp-provider.js";
 import { OpenAIProvider } from "./openai-provider.js";
 import { CodexProvider } from "./codex-provider.js";
 import { OllamaProvider } from "./ollama-provider.js";
@@ -48,10 +49,16 @@ import { JinaProvider } from "./jina-provider.js";
 import { FakeProvider } from "./fake-provider.js";
 export { BaseProvider, providerCapabilities } from "./base-provider.js";
 export type { ProviderCapability } from "./base-provider.js";
+export {
+  isSafePublicHttpsUrl,
+  assertSafePublicHttpsUrl,
+  safeFetch
+} from "./safe-url.js";
 export { AnthropicProvider };
 export { ClaudeAgentProvider };
 export { GeminiProvider };
 export { LlamaProvider };
+export { NodeLlamaCppProvider };
 export { OpenAIProvider };
 export { CodexProvider };
 export { OllamaProvider };
@@ -73,6 +80,13 @@ export { PythonProvider };
 export { ReplicateProvider };
 export { FalProvider };
 export { KieProvider };
+export {
+  registerWebhookWait,
+  resolveWebhook,
+  rejectWebhook,
+  hasPendingWebhook,
+  pendingCount as kieWebhookPendingCount
+} from "./kie-webhook-registry.js";
 export { ElevenLabsProvider };
 export { TopazProvider };
 export { ReveProvider };
@@ -162,11 +176,25 @@ export type {
   EmbeddingModel,
   ToolCall,
   ProviderTool,
+  ProviderToolResult,
+  ProviderToolErrorResult,
+  ProviderThinkingConfig,
+  ProviderThinkingDisplay,
+  ProviderEffort,
+  ProviderCacheControl,
+  ProviderToolCaller,
   Message,
   MessageContent,
   MessageTextContent,
   MessageImageContent,
   MessageAudioContent,
+  MessageDocumentContent,
+  MessageCitation,
+  MessageCharCitation,
+  MessagePageCitation,
+  MessageContentBlockCitation,
+  MessageWebSearchCitation,
+  MessageSearchResultCitation,
   Model3D,
   TextTo3DParams,
   ImageTo3DParams,
@@ -176,6 +204,7 @@ export type {
   InpaintingParams,
   TextToVideoParams,
   ImageToVideoParams,
+  EntityReference,
   ProviderStreamItem,
   ProviderSession,
   ProviderSessionUpdate,
@@ -186,8 +215,15 @@ export type {
   ASRResult
 } from "./types.js";
 export {
+  applyEntityReferences,
+  injectEntityDescriptors
+} from "./entity-references.js";
+export {
   isProviderSessionUpdate,
-  isProviderMessageEvent
+  isProviderMessageEvent,
+  isProviderToolErrorResult,
+  WEB_SEARCH_TOOL_NAME,
+  IMAGE_GENERATION_TOOL_NAME
 } from "./types.js";
 
 // Register hosted providers with the secret key NAME each one needs but no
@@ -235,10 +271,17 @@ registerBuiltinProvider(PROVIDER_IDS.DEEPSEEK, DeepSeekProvider, { DEEPSEEK_API_
 registerBuiltinProvider(PROVIDER_IDS.XAI, XAIProvider, { XAI_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.HUGGINGFACE, HuggingFaceProvider, { HF_TOKEN: "" });
 
-// Local-only providers — require local servers/CLIs, skip in production
+// Local-only providers — require local servers/CLIs. Gated on the cloud
+// profile (not raw NODETOOL_ENV) so self-hosted production deployments that
+// set NODETOOL_NODE_PROFILE=full can point these at sidecar containers
+// (llama.cpp, vLLM, Ollama) while the commercial cloud keeps them off.
 const _envProcess =
   typeof process !== "undefined" ? process : { env: {} as Record<string, string | undefined> };
-if (_envProcess.env["NODETOOL_ENV"] !== "production") {
+const _cloudProfile = isCloudProfileActive(
+  _envProcess.env[CLOUD_PROFILE_ENV],
+  _envProcess.env[NODE_ENV_VAR]
+);
+if (!_cloudProfile) {
   // Ollama defaults to the standard local daemon port so the provider is
   // usable out-of-the-box. The URL is registered as an optionalKwarg so it
   // re-resolves from the secret store / env on every getProvider() call —
@@ -272,6 +315,18 @@ if (_envProcess.env["NODETOOL_ENV"] !== "production") {
   registerBuiltinProvider(PROVIDER_IDS.LLAMA_CPP, LlamaProvider, {
     LLAMA_CPP_URL: ""
   });
+  // In-process llama.cpp via the native node-llama-cpp binding. No secret
+  // required; models are GGUF files under NODE_LLAMA_CPP_MODELS_DIR (defaults
+  // to the shared llama.cpp cache). Optional GPU backend override.
+  registerBuiltinProvider(
+    PROVIDER_IDS.NODE_LLAMA_CPP,
+    NodeLlamaCppProvider,
+    {},
+    {
+      NODE_LLAMA_CPP_MODELS_DIR: "",
+      NODE_LLAMA_CPP_GPU_BACKEND: ""
+    }
+  );
   // vLLM — base URL from Settings / env; optional API key defaults like LM Studio.
   registerBuiltinProvider(
     PROVIDER_IDS.VLLM,
@@ -290,17 +345,13 @@ if (
   registerBuiltinProvider(PROVIDER_IDS.FAKE, FakeProvider, {});
 }
 
-// Cloud profile (production, or NODETOOL_NODE_PROFILE=cloud): keep only the
+// Cloud profile (production default, or NODETOOL_NODE_PROFILE=cloud; disabled
+// by NODETOOL_NODE_PROFILE=full): keep only the
 // curated provider allowlist (the big LLM labs plus Fal + Kie). Pruning after
 // registration — rather than gating each register call — keeps the
 // registration block above untouched and works regardless of which providers
 // a future edit adds.
-if (
-  isCloudProfileActive(
-    _envProcess.env[CLOUD_PROFILE_ENV],
-    _envProcess.env[NODE_ENV_VAR]
-  )
-) {
+if (_cloudProfile) {
   for (const id of listBuiltinProviderIds()) {
     if (!isCloudProvider(id)) unregisterBuiltinProvider(id);
   }

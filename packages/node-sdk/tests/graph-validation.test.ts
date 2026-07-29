@@ -282,6 +282,207 @@ describe("validateGraph", () => {
     expect(report.ok).toBe(true);
   });
 
+  // ── Regressions: fan-in, dynamic outputs, dynamic-slot required ──────────
+
+  it("accepts fan-in into a dynamic slot declared as a list", () => {
+    const registry = fakeRegistry({
+      "a.A": meta("a.A", {}, { out: "str" }),
+      "a.Dyn": meta("a.Dyn", {}, {}, { supports_dynamic_inputs: true })
+    });
+    const report = validateGraph(
+      {
+        nodes: [
+          { id: "1", type: "a.A" },
+          { id: "2", type: "a.A" },
+          {
+            id: "3",
+            type: "a.Dyn",
+            dynamic_inputs: {
+              items: { type: { type: "list", type_args: [{ type: "str" }] } }
+            }
+          }
+        ],
+        edges: [
+          { id: "e1", source: "1", sourceHandle: "out", target: "3", targetHandle: "items" },
+          { id: "e2", source: "2", sourceHandle: "out", target: "3", targetHandle: "items" }
+        ]
+      },
+      registry
+    );
+    expect(report.issues.filter((i) => i.code === "fan_in")).toEqual([]);
+  });
+
+  it("still flags fan-in into a non-list dynamic slot", () => {
+    const registry = fakeRegistry({
+      "a.A": meta("a.A", {}, { out: "str" }),
+      "a.Dyn": meta("a.Dyn", {}, {}, { supports_dynamic_inputs: true })
+    });
+    const report = validateGraph(
+      {
+        nodes: [
+          { id: "1", type: "a.A" },
+          { id: "2", type: "a.A" },
+          {
+            id: "3",
+            type: "a.Dyn",
+            dynamic_inputs: { one: { type: { type: "str" } } }
+          }
+        ],
+        edges: [
+          { id: "e1", source: "1", sourceHandle: "out", target: "3", targetHandle: "one" },
+          { id: "e2", source: "2", sourceHandle: "out", target: "3", targetHandle: "one" }
+        ]
+      },
+      registry
+    );
+    expect(report.issues.some((i) => i.code === "fan_in")).toBe(true);
+  });
+
+  it("does not count control edges towards fan-in", () => {
+    const registry = fakeRegistry({
+      "a.A": meta("a.A", {}, { out: "str" }),
+      "a.Sink": meta("a.Sink", { in: "str" }, {})
+    });
+    const report = validateGraph(
+      {
+        nodes: [
+          { id: "1", type: "a.A" },
+          { id: "2", type: "a.A" },
+          { id: "3", type: "a.Sink" }
+        ],
+        edges: [
+          {
+            id: "e1",
+            source: "1",
+            sourceHandle: "out",
+            target: "3",
+            targetHandle: "__control__",
+            edge_type: "control"
+          },
+          {
+            id: "e2",
+            source: "2",
+            sourceHandle: "out",
+            target: "3",
+            targetHandle: "__control__",
+            edge_type: "control"
+          }
+        ]
+      },
+      registry
+    );
+    expect(report.issues.filter((i) => i.code === "fan_in")).toEqual([]);
+  });
+
+  it("does not count ReactFlow-shaped control edges towards fan-in", () => {
+    const registry = fakeRegistry({
+      "a.A": meta("a.A", {}, { out: "str" }),
+      "a.Sink": meta("a.Sink", { in: "str" }, {})
+    });
+    const report = validateGraph(
+      {
+        nodes: [
+          { id: "1", type: "a.A" },
+          { id: "2", type: "a.A" },
+          { id: "3", type: "a.Sink" }
+        ],
+        edges: [
+          {
+            id: "e1",
+            source: "1",
+            sourceHandle: "out",
+            target: "3",
+            targetHandle: "__control__",
+            type: "control"
+          },
+          {
+            id: "e2",
+            source: "2",
+            sourceHandle: "out",
+            target: "3",
+            targetHandle: "__control__",
+            data: { edge_type: "control" }
+          }
+        ]
+      },
+      registry
+    );
+    expect(report.issues.filter((i) => i.code === "fan_in")).toEqual([]);
+  });
+
+  it("flags an unknown output handle even when the node carries dynamic_outputs: {}", () => {
+    const registry = fakeRegistry({
+      "a.A": meta("a.A", {}, { out: "str" }),
+      "a.Sink": meta("a.Sink", { in: "str" }, {})
+    });
+    const report = validateGraph(
+      {
+        nodes: [
+          { id: "1", type: "a.A", dynamic_outputs: {} },
+          { id: "2", type: "a.Sink", dynamic_outputs: {} }
+        ],
+        edges: [
+          { id: "e1", source: "1", sourceHandle: "nope", target: "2", targetHandle: "in" }
+        ]
+      },
+      registry
+    );
+    expect(report.issues.some((i) => i.code === "unknown_handle")).toBe(true);
+  });
+
+  it("allows unknown output handles on nodes whose metadata supports dynamic outputs", () => {
+    const registry = fakeRegistry({
+      "a.A": meta("a.A", {}, { out: "str" }, { supports_dynamic_outputs: true }),
+      "a.Sink": meta("a.Sink", { in: "str" }, {})
+    });
+    const report = validateGraph(
+      {
+        nodes: [
+          { id: "1", type: "a.A", dynamic_outputs: {} },
+          { id: "2", type: "a.Sink" }
+        ],
+        edges: [
+          { id: "e1", source: "1", sourceHandle: "extra", target: "2", targetHandle: "in" }
+        ]
+      },
+      registry
+    );
+    expect(report.issues.some((i) => i.code === "unknown_handle")).toBe(false);
+  });
+
+  it("forwards dynamic_inputs/dynamic_properties to the registry validator", () => {
+    let seen: {
+      dynamic_inputs?: Record<string, unknown>;
+      dynamic_properties?: Record<string, unknown>;
+    } = {};
+    const registry: GraphValidationRegistry = {
+      has: () => true,
+      getMetadata: () => meta("a.Dyn", {}, {}, { supports_dynamic_inputs: true }),
+      validateNode: (descriptor) => {
+        seen = descriptor;
+        return [];
+      }
+    };
+    validateGraph(
+      {
+        nodes: [
+          {
+            id: "1",
+            type: "a.Dyn",
+            dynamic_inputs: { need: { type: { type: "str" }, required: true } },
+            dynamic_properties: { need: "" }
+          }
+        ],
+        edges: []
+      },
+      registry
+    );
+    expect(seen.dynamic_inputs).toEqual({
+      need: { type: { type: "str" }, required: true }
+    });
+    expect(seen.dynamic_properties).toEqual({ need: "" });
+  });
+
   it("reads properties from ReactFlow `data` shape", () => {
     const registry = fakeRegistry(
       { "a.LLM": meta("a.LLM", { prompt: "str" }, {}) },

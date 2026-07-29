@@ -91,7 +91,7 @@ const ToolApprovalCard: React.FC<ToolApprovalCardProps> = ({
           <Text size="small" weight={600} className="approval-tool">
             {formatToolName(toolName)}
           </Text>
-          <Caption size="tiny" color="secondary">
+          <Caption size="smaller" color="secondary">
             {category}
           </Caption>
         </FlexRow>

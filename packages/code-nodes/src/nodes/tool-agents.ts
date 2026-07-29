@@ -36,10 +36,6 @@ type AssetRef = {
 };
 
 // ---------------------------------------------------------------------------
-// Secret / key resolution helpers
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
 // Asset extraction helpers
 // ---------------------------------------------------------------------------
 
@@ -529,7 +525,7 @@ export class ShellAgentNode extends ToolAgentNode {
   static readonly inlineFields = [];
   static readonly inputFields: string[] = ["prompt"];
   static readonly description =
-    "Reusable prompt-driven skill backed by execute_bash.";
+    "Run shell commands to carry out a task you describe in plain language.\n    agent, shell, bash, terminal, automation";
   static readonly metadataOutputTypes = {
     text: "str"
   };
@@ -590,7 +586,7 @@ export class BrowserAgentNode extends ToolAgentNode {
   static readonly inlineFields = [];
   static readonly inputFields: string[] = ["prompt"];
   static readonly description =
-    "Prompt-driven browser skill with bounded tool validation and schema outputs.\n    Supports extraction and browser automation workflows.\n    skills, browser, scrape, extraction, automation";
+    "Browse the web to fetch pages, extract data, and automate navigation from a prompt.\n    agent, browser, web, scrape, extraction, automation";
   static readonly metadataOutputTypes = {
     text: "str"
   };
@@ -679,7 +675,7 @@ export class LiveBrowserAgentNode extends ToolAgentNode {
   static readonly inlineFields = [];
   static readonly inputFields: string[] = ["prompt"];
   static readonly description =
-    "Drives your real, logged-in Chrome via the Nodetool browser extension.\n    Automates media-generation UIs, saves generated images/videos as assets, and uploads assets into sites.\n    skills, browser, live, automation, extension, media";
+    "Control your own logged-in Chrome through the Nodetool browser extension.\n    agent, browser, live, automation, extension, media\n\n    Use cases:\n    - Automate media-generation websites\n    - Save generated images and videos as assets\n    - Upload your assets into other sites";
   static readonly metadataOutputTypes = {
     text: "str",
     chunk: "chunk"
@@ -944,7 +940,7 @@ export class SQLiteAgentNode extends ToolAgentNode {
   static readonly inlineFields = [];
   static readonly inputFields: string[] = ["prompt"];
   static readonly description =
-    "Prompt-driven SQLite skill with guarded query execution.\n    skills, data, sqlite, query";
+    "Query and analyze a SQLite database using plain-language requests.\n    agent, database, sqlite, sql, query";
   static readonly metadataOutputTypes = {
     text: "str",
     json: "dict[str, any]",
@@ -1023,7 +1019,7 @@ export class SupabaseAgentNode extends ToolAgentNode {
   static readonly inlineFields = [];
   static readonly inputFields: string[] = ["prompt"];
   static readonly description =
-    "Prompt-driven Supabase skill with guarded SELECT execution.\n    skills, data, supabase, query";
+    "Query a Supabase database with plain-language requests (read-only SELECT).\n    agent, database, supabase, sql, query";
   static readonly metadataOutputTypes = {
     text: "str",
     json: "dict[str, any]",
@@ -1086,7 +1082,7 @@ export class DocumentAgentNode extends ToolAgentNode {
   static readonly inlineFields = [];
   static readonly inputFields: string[] = ["prompt"];
   static readonly description =
-    "Prompt-driven document skill for model-based document analysis.\n    skills, document, extraction, conversion, markdown";
+    "Read, analyze, and convert documents to Markdown from a prompt.\n    agent, document, analysis, conversion, markdown";
   static readonly metadataOutputTypes = {
     text: "str",
     document: "document"
@@ -1148,7 +1144,7 @@ export class DocxAgentNode extends ToolAgentNode {
   static readonly inlineFields = [];
   static readonly inputFields: string[] = ["prompt"];
   static readonly description =
-    "Prompt-driven DOCX creation skill.\n    skills, docx, word, document creation, docx-js";
+    "Create Word (.docx) documents from a plain-language description.\n    agent, docx, word, document";
   static readonly metadataOutputTypes = {
     document: "document",
     text: "str"
@@ -1244,7 +1240,7 @@ export class EmailAgentNode extends ToolAgentNode {
   static readonly inlineFields = [];
   static readonly inputFields: string[] = ["prompt"];
   static readonly description =
-    "Prompt-driven email skill for IMAP/SMTP and message processing tasks.\n    skills, email, imap, smtp, messaging";
+    "Read, send, and process email over IMAP and SMTP from a prompt.\n    agent, email, imap, smtp, messaging";
   static readonly metadataOutputTypes = {
     text: "str"
   };
@@ -1311,7 +1307,7 @@ export class FfmpegAgentNode extends ToolAgentNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt", "audio", "video"];
   static readonly description =
-    "Prompt-driven FFmpeg skill for audio/video editing, conversion, and packaging.\n    skills, ffmpeg, media, video, audio, transcode, remux";
+    "Edit, convert, and package audio and video with FFmpeg from a prompt.\n    agent, ffmpeg, media, video, audio, convert";
   static readonly metadataOutputTypes = {
     video: "video",
     audio: "audio",
@@ -1422,7 +1418,7 @@ export class FilesystemAgentNode extends ToolAgentNode {
   static readonly inlineFields = [];
   static readonly inputFields: string[] = ["prompt"];
   static readonly description =
-    "Prompt-driven filesystem skill for file inspection and transformations.\n    skills, filesystem, files, directories, io";
+    "Inspect and transform files and folders in the workspace from a prompt.\n    agent, filesystem, files, folders, io";
   static readonly metadataOutputTypes = {
     text: "str"
   };
@@ -1485,7 +1481,7 @@ export class GitAgentNode extends ToolAgentNode {
   static readonly inlineFields = [];
   static readonly inputFields: string[] = ["prompt"];
   static readonly description =
-    "Prompt-driven Git skill for repository inspection and change management.\n    skills, git, repository, version-control";
+    "Inspect a Git repository and manage changes from a prompt.\n    agent, git, repository, version-control";
   static readonly metadataOutputTypes = {
     text: "str"
   };
@@ -1548,7 +1544,7 @@ export class HtmlAgentNode extends ToolAgentNode {
   static readonly inlineFields = [];
   static readonly inputFields: string[] = ["prompt"];
   static readonly description =
-    "Prompt-driven HTML creation skill.\n    skills, html, web, template, static-site";
+    "Build HTML pages and static sites from a plain-language description.\n    agent, html, web, template, static-site";
   static readonly metadataOutputTypes = {
     html: "html",
     text: "str"
@@ -1624,7 +1620,7 @@ export class HttpApiAgentNode extends ToolAgentNode {
   static readonly inlineFields = [];
   static readonly inputFields: string[] = ["prompt"];
   static readonly description =
-    "Prompt-driven HTTP API skill for calling REST/GraphQL endpoints.\n    skills, http, api, rest, graphql";
+    "Call REST and GraphQL APIs and handle the responses from a prompt.\n    agent, http, api, rest, graphql";
   static readonly metadataOutputTypes = {
     text: "str"
   };
@@ -1701,7 +1697,7 @@ export class ImageAgentNode extends ToolAgentNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt", "image"];
   static readonly description =
-    "Prompt-driven image skill for model-based image reasoning.\n    skills, image, agent, transform, extraction";
+    "Analyze and transform images with a vision model from a prompt.\n    agent, image, vision, transform, analysis";
   static readonly metadataOutputTypes = {
     image: "image",
     text: "str"
@@ -1777,7 +1773,7 @@ export class MediaAgentNode extends ToolAgentNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt", "audio", "video"];
   static readonly description =
-    "Prompt-driven media skill for model-based audio/video reasoning.\n    skills, media, audio, video, agent";
+    "Analyze audio and video with a model from a prompt.\n    agent, media, audio, video, analysis";
   static readonly metadataOutputTypes = {
     video: "video",
     audio: "audio",
@@ -1865,7 +1861,7 @@ export class PdfLibAgentNode extends ToolAgentNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt", "document"];
   static readonly description =
-    "Prompt-driven PDF processing skill with pdf-lib and complementary tooling.\n    skills, pdf, pdf-lib, qpdf, poppler, pdfjs, pypdfium2";
+    "Create and edit PDF files from a plain-language description.\n    agent, pdf, document, edit";
   static readonly metadataOutputTypes = {
     document: "document",
     text: "str"
@@ -1879,9 +1875,8 @@ export class PdfLibAgentNode extends ToolAgentNode {
     "- CLI tooling for performance/repair: poppler-utils (pdftotext/pdftoppm/pdfimages), qpdf.\n\n" +
     "Execution policy:\n" +
     "1) Use execute_bash for shell commands and script execution.\n" +
-    "2) Before running any Node script that imports pdf-lib, bootstrap dependency availability with:\n" +
-    "   npm -s ls pdf-lib >/dev/null 2>&1 || npm install --no-save pdf-lib\n" +
-    "   Then verify with: node -e \"require.resolve('pdf-lib')\".\n" +
+    "2) pdf-lib is preinstalled in the official container images (resolved via NODE_PATH). Before running any Node script that imports pdf-lib, verify availability with:\n" +
+    "   node -e \"require.resolve('pdf-lib')\" 2>/dev/null || npm install --no-save pdf-lib\n" +
     "3) Keep all outputs workspace-relative.\n" +
     "4) If you produce a final PDF file, call set_output_document with its path.\n" +
     "5) For extraction-only requests, return concise text and artifact locations.\n" +
@@ -1987,7 +1982,7 @@ export class PptxAgentNode extends ToolAgentNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt", "document"];
   static readonly description =
-    "Prompt-driven PowerPoint generation skill with PptxGenJS.\n    skills, pptx, powerpoint, pptxgenjs, slides";
+    "Generate PowerPoint (.pptx) slide decks from a plain-language description.\n    agent, pptx, powerpoint, slides";
   static readonly metadataOutputTypes = {
     document: "document",
     text: "str"
@@ -2093,7 +2088,7 @@ export class SpreadsheetAgentNode extends ToolAgentNode {
   static readonly inlineFields = [];
   static readonly inputFields: string[] = ["prompt"];
   static readonly description =
-    "Prompt-driven spreadsheet skill for CSV/XLSX processing.\n    skills, spreadsheet, csv, xlsx, tabular";
+    "Process and analyze CSV and Excel spreadsheets from a prompt.\n    agent, spreadsheet, csv, xlsx, tabular";
   static readonly metadataOutputTypes = {
     text: "str"
   };
@@ -2156,7 +2151,7 @@ export class VectorStoreAgentNode extends ToolAgentNode {
   static readonly inlineFields = [];
   static readonly inputFields: string[] = ["prompt"];
   static readonly description =
-    "Prompt-driven vector store skill for indexing and similarity search workflows.\n    skills, vectorstore, embeddings, rag, retrieval";
+    "Index documents and run similarity search for RAG from a prompt.\n    agent, vectorstore, embeddings, rag, retrieval";
   static readonly metadataOutputTypes = {
     text: "str"
   };
@@ -2221,7 +2216,7 @@ export class YtDlpDownloaderAgentNode extends ToolAgentNode {
   static readonly inlineFields = ["url"];
   static readonly inputFields: string[] = ["prompt"];
   static readonly description =
-    "Download videos from YouTube/Bilibili/Twitter and other sites via yt-dlp.\n    skills, media, yt-dlp, downloader, youtube, bilibili, twitter";
+    "Download videos from YouTube, Bilibili, Twitter, and other sites.\n    agent, media, yt-dlp, downloader, youtube, video";
   static readonly metadataOutputTypes = {
     video: "video",
     text: "str"

@@ -8,7 +8,7 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { CopyButton, Dialog, ToolbarIconButton, Box, BORDER_RADIUS } from "../components/ui_primitives";
+import { CopyButton, Dialog, ToolbarIconButton, Box, BORDER_RADIUS, Z_INDEX } from "../components/ui_primitives";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import { TOOLTIP_ENTER_DELAY } from "../config/constants";
@@ -66,7 +66,7 @@ const styles = (
       alignItems: "center",
       gap: 4,
       padding: 2,
-      zIndex: 2,
+      zIndex: Z_INDEX.raised + 1,
       borderRadius: BORDER_RADIUS.md,
       backgroundColor: theme.vars.palette.c_scrim_soft,
       backdropFilter: "blur(6px)"

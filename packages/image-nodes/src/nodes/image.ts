@@ -13,7 +13,6 @@ import type {
   OutputCorrelation,
   Platform
 } from "@nodetool-ai/protocol";
-import { RAW_RGBA_MIME, isRawRgbaImage } from "@nodetool-ai/protocol";
 import type { ImageRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 // Import from browser-safe subpaths (not the runtime barrel, which drags in the
@@ -50,7 +49,7 @@ import {
   mixerOverV1
 } from "@nodetool-ai/gpu/pool";
 import { IS_NODE } from "@nodetool-ai/config";
-import { runShaderNode, runRecipeNode } from "./lib-shader-utils.js";
+import { runShaderNode, runRecipeNode, colorValueToVec4, premultiplyVec4 } from "./lib-shader-utils.js";
 import {
   decodeRgba,
   rawRgbaImageRef,
@@ -447,7 +446,8 @@ export class SaveImageFileImageNode extends BaseNode {
   static readonly description =
     "Write an image to disk.\n    image, output, save, file";
   static readonly metadataOutputTypes = {
-    output: "image"
+    output: "image",
+    path: "str"
   };
   static readonly inlineFields = ["filename"];
   static readonly inputFields = ["image"];
@@ -516,8 +516,18 @@ export class SaveImageFileImageNode extends BaseNode {
       }
     }
 
-    await fs.writeFile(p, await imageBytesAsync(this.image));
-    return { output: p };
+    const bytes = await imageBytesAsync(this.image);
+    await fs.writeFile(p, bytes);
+    const meta = await metadataFor(bytes);
+    return {
+      output: imageRef(bytes, {
+        uri: `file://${p}`,
+        mimeType: inferImageMime(p, bytes),
+        width: meta.width,
+        height: meta.height
+      }),
+      path: p
+    };
   }
 }
 
@@ -876,7 +886,7 @@ export class PasteNode extends TransformImageNode {
     title: "Left",
     description: "The left coordinate.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare left: any;
 
@@ -886,7 +896,7 @@ export class PasteNode extends TransformImageNode {
     title: "Top",
     description: "The top coordinate.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare top: any;
 
@@ -1145,7 +1155,7 @@ export class ResizeNode extends TransformImageNode {
     title: "Width",
     description: "The target width.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare width: any;
 
@@ -1155,7 +1165,7 @@ export class ResizeNode extends TransformImageNode {
     title: "Height",
     description: "The target height.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare height: any;
 
@@ -1186,16 +1196,35 @@ export class ResizeNode extends TransformImageNode {
   }
 }
 
+function anchorOffset(
+  anchor: string,
+  canvasW: number,
+  canvasH: number,
+  srcW: number,
+  srcH: number
+): [number, number] {
+  let x: number;
+  let y: number;
+  if (anchor.includes("left")) x = 0;
+  else if (anchor.includes("right")) x = canvasW - srcW;
+  else x = Math.floor((canvasW - srcW) / 2);
+  if (anchor.includes("top")) y = 0;
+  else if (anchor.includes("bottom")) y = canvasH - srcH;
+  else y = Math.floor((canvasH - srcH) / 2);
+  return [x, y];
+}
+
 export class CanvasResizeNode extends TransformImageNode {
   static readonly nodeType = "nodetool.image.CanvasResize";
   static readonly title = "Canvas Resize";
   static readonly description =
-    "Expand the canvas around an image without scaling its pixels.\n    canvas, resize, pad, outpaint, expand";
+    "Expand the canvas around an image without scaling its pixels.\n    canvas, resize, pad, outpaint, expand, anchor";
   static readonly metadataOutputTypes = {
     output: "image"
   };
   static readonly inlineFields = [
     "mode",
+    "anchor",
     "width",
     "height",
     "scale",
@@ -1203,7 +1232,8 @@ export class CanvasResizeNode extends TransformImageNode {
     "top",
     "bottom",
     "left",
-    "right"
+    "right",
+    "color"
   ];
   static readonly inputFields = ["image"];
 
@@ -1229,6 +1259,26 @@ export class CanvasResizeNode extends TransformImageNode {
     description: "How to resize the canvas."
   })
   declare mode: any;
+
+  @prop({
+    type: "enum",
+    default: "center",
+    values: [
+      "top-left",
+      "top",
+      "top-right",
+      "left",
+      "center",
+      "right",
+      "bottom-left",
+      "bottom",
+      "bottom-right"
+    ],
+    title: "Anchor",
+    description:
+      "Where to place the original image on the new canvas (fixed/scale modes)."
+  })
+  declare anchor: any;
 
   @prop({
     type: "int",
@@ -1275,7 +1325,7 @@ export class CanvasResizeNode extends TransformImageNode {
     title: "Top",
     description: "Padding above the image.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare top: any;
 
@@ -1285,7 +1335,7 @@ export class CanvasResizeNode extends TransformImageNode {
     title: "Bottom",
     description: "Padding below the image.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare bottom: any;
 
@@ -1295,7 +1345,7 @@ export class CanvasResizeNode extends TransformImageNode {
     title: "Left",
     description: "Padding to the left of the image.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare left: any;
 
@@ -1305,15 +1355,24 @@ export class CanvasResizeNode extends TransformImageNode {
     title: "Right",
     description: "Padding to the right of the image.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare right: any;
+
+  @prop({
+    type: "color",
+    default: { type: "color", value: "#00000000" },
+    title: "Fill Color",
+    description: "Background color for the expanded canvas area."
+  })
+  declare color: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const image = (this.image ?? {}) as ImageRefLike;
     const { width: srcW, height: srcH } = await decodeRgba(image, context);
     if (!srcW || !srcH) return { output: image };
     const mode = String(this.mode ?? "padding");
+    const anchor = String(this.anchor ?? "center");
 
     let canvasW: number;
     let canvasH: number;
@@ -1323,14 +1382,12 @@ export class CanvasResizeNode extends TransformImageNode {
     if (mode === "fixed") {
       canvasW = Math.max(1, Math.floor(Number(this.width ?? srcW)));
       canvasH = Math.max(1, Math.floor(Number(this.height ?? srcH)));
-      offsetX = Math.floor((canvasW - srcW) / 2);
-      offsetY = Math.floor((canvasH - srcH) / 2);
+      [offsetX, offsetY] = anchorOffset(anchor, canvasW, canvasH, srcW, srcH);
     } else if (mode === "scale") {
       const scale = Number(this.scale ?? 0) > 0 ? Number(this.scale ?? 1) : 1;
       canvasW = Math.max(1, Math.round(srcW * scale));
       canvasH = Math.max(1, Math.round(srcH * scale));
-      offsetX = Math.floor((canvasW - srcW) / 2);
-      offsetY = Math.floor((canvasH - srcH) / 2);
+      [offsetX, offsetY] = anchorOffset(anchor, canvasW, canvasH, srcW, srcH);
     } else {
       const unit = String(this.padding_unit ?? "px");
       const toPx = (val: number, dim: number): number =>
@@ -1347,26 +1404,68 @@ export class CanvasResizeNode extends TransformImageNode {
       offsetY = top;
     }
 
-    // Pad placing the source at (offsetX, offsetY) in the larger canvas. The pad
-    // shader works in normalized-UV units relative to the source; output dims
-    // are derived from those (we also pass the absolute target as the host size).
+    const [cr, cg, cb, ca] = premultiplyVec4(
+      colorValueToVec4(this.color, [0, 0, 0, 0])
+    );
+    const fillColor = d.vec4f(cr, cg, cb, ca);
+
+    // When the requested canvas is smaller than the source on an axis, crop
+    // the source to fit, anchored according to the anchor setting.
+    let source: unknown = image;
+    let baseW = srcW;
+    let baseH = srcH;
+    const cropW = Math.min(srcW, canvasW);
+    const cropH = Math.min(srcH, canvasH);
+    if (cropW < srcW || cropH < srcH) {
+      const [cropOffX, cropOffY] = anchorOffset(
+        anchor,
+        srcW,
+        srcH,
+        cropW,
+        cropH
+      );
+      const cropX = cropOffX;
+      const cropY = cropOffY;
+      source = await runShaderNode(
+        transformCropV1,
+        {
+          originX: cropX / srcW,
+          originY: cropY / srcH,
+          width: cropW / srcW,
+          height: cropH / srcH
+        },
+        image,
+        { outputWidth: cropW, outputHeight: cropH },
+        context
+      );
+      baseW = cropW;
+      baseH = cropH;
+      [offsetX, offsetY] = anchorOffset(
+        anchor,
+        canvasW,
+        canvasH,
+        baseW,
+        baseH
+      );
+    }
+
     const leftPad = Math.max(0, offsetX);
     const topPad = Math.max(0, offsetY);
-    const rightPad = Math.max(0, canvasW - srcW - offsetX);
-    const bottomPad = Math.max(0, canvasH - srcH - offsetY);
+    const rightPad = Math.max(0, canvasW - baseW - offsetX);
+    const bottomPad = Math.max(0, canvasH - baseH - offsetY);
     const output = await runShaderNode(
       transformPadV1,
       {
-        left: leftPad / srcW,
-        top: topPad / srcH,
-        right: rightPad / srcW,
-        bottom: bottomPad / srcH,
-        color: d.vec4f(0, 0, 0, 0)
+        left: leftPad / baseW,
+        top: topPad / baseH,
+        right: rightPad / baseW,
+        bottom: bottomPad / baseH,
+        color: fillColor
       },
-      image,
+      source,
       {
-        outputWidth: srcW + leftPad + rightPad,
-        outputHeight: srcH + topPad + bottomPad
+        outputWidth: baseW + leftPad + rightPad,
+        outputHeight: baseH + topPad + bottomPad
       },
       context
     );
@@ -1405,7 +1504,7 @@ export class CropNode extends TransformImageNode {
     title: "Left",
     description: "The left coordinate.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare left: any;
 
@@ -1415,7 +1514,7 @@ export class CropNode extends TransformImageNode {
     title: "Top",
     description: "The top coordinate.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare top: any;
 
@@ -1425,7 +1524,7 @@ export class CropNode extends TransformImageNode {
     title: "Right",
     description: "The right coordinate.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare right: any;
 
@@ -1435,7 +1534,7 @@ export class CropNode extends TransformImageNode {
     title: "Bottom",
     description: "The bottom coordinate.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare bottom: any;
 
@@ -1501,7 +1600,7 @@ export class FitNode extends TransformImageNode {
     title: "Width",
     description: "Width to fit to.",
     min: 1,
-    max: 4096
+    max: 8192
   })
   declare width: any;
 
@@ -1511,7 +1610,7 @@ export class FitNode extends TransformImageNode {
     title: "Height",
     description: "Height to fit to.",
     min: 1,
-    max: 4096
+    max: 8192
   })
   declare height: any;
 
@@ -1583,6 +1682,15 @@ export class TextToImageNode extends BaseNode {
   declare negative_prompt: any;
 
   @prop({
+    type: "list[dict]",
+    default: [],
+    title: "Entities",
+    description:
+      "Consistency entities (characters, styles, locations) whose descriptors are injected into the prompt"
+  })
+  declare entities: any;
+
+  @prop({
     type: "str",
     default: "1:1",
     title: "Aspect Ratio",
@@ -1621,7 +1729,8 @@ export class TextToImageNode extends BaseNode {
         height,
         aspect_ratio: aspectRatio,
         resolution,
-        negative_prompt: this.negative_prompt
+        negative_prompt: this.negative_prompt,
+        entities: this.entities
       }
     })) as Uint8Array;
     const meta = await metadataFor(output);
@@ -1687,6 +1796,15 @@ export class ImageToImageNode extends BaseNode {
     description: "Text prompt describing what to avoid"
   })
   declare negative_prompt: any;
+
+  @prop({
+    type: "list[dict]",
+    default: [],
+    title: "Entities",
+    description:
+      "Consistency entities (characters, styles, locations) whose descriptors are injected into the prompt and whose reference images are appended to the input images"
+  })
+  declare entities: any;
 
   @prop({
     type: "float",
@@ -1755,7 +1873,14 @@ export class ImageToImageNode extends BaseNode {
     const bytesList = (
       await Promise.all(images.map((img) => imageBytesAsync(img, context)))
     ).filter((b) => b.length > 0);
-    if (bytesList.length === 0) {
+    // Entities may supply the source images: their reference images are
+    // appended to the list at the provider layer, so an empty wired input is
+    // fine as long as an entity carries an image.
+    const entities = Array.isArray(this.entities) ? this.entities : [];
+    const entityHasImage = entities.some(
+      (e: any) => !!e?.image || (e?.reference_images?.length ?? 0) > 0
+    );
+    if (bytesList.length === 0 && !entityHasImage) {
       throw new Error("The input image is empty.");
     }
     const aspectRatio = String(this.aspect_ratio ?? "1:1");
@@ -1773,6 +1898,7 @@ export class ImageToImageNode extends BaseNode {
         images: bytesList,
         prompt,
         negative_prompt: this.negative_prompt,
+        entities,
         target_width: width,
         target_height: height,
         aspect_ratio: aspectRatio,
@@ -1782,11 +1908,13 @@ export class ImageToImageNode extends BaseNode {
       }
     })) as Uint8Array;
     const meta = await metadataFor(output);
-    const sourceUri = images[0]?.uri ?? "";
+    // The output is freshly generated content — do not carry the source image's
+    // uri onto it (a stale uri shadows `data` wherever a uri is preferred, so
+    // the preview would render the input, not the result). Infer mime from the
+    // output bytes alone.
     return {
       output: imageRef(output, {
-        uri: sourceUri,
-        mimeType: inferImageMime(sourceUri, output),
+        mimeType: inferImageMime(undefined, output),
         width: meta.width,
         height: meta.height
       })
@@ -1860,7 +1988,7 @@ export class RotateAndFlipNode extends TransformImageNode {
     }
 
     let current: unknown = image;
-    let curW = srcW;
+    const curW = srcW;
     const curH = srcH;
 
     // Mirror first (output is same size as source).
@@ -1911,7 +2039,6 @@ export class RotateAndFlipNode extends TransformImageNode {
           { outputWidth: outW, outputHeight: outH },
           context
         );
-        curW = outW;
       }
     }
 
@@ -2283,10 +2410,10 @@ function compositorLayerState(raw: unknown): CompositorLayerState {
 /**
  * Compositor — stacks multiple image layers with per-layer opacity and
  * blend mode. Dynamic image inputs are named `image_0`, `image_1`, ...;
- * the lowest-index input is the base (canvas), subsequent layers are
- * composited on top in index order at (0, 0). Per-layer state lives in
- * the `layers` list, indexed positionally against the sorted image
- * inputs. Hidden / zero-opacity layers are skipped.
+ * the lowest-index input is the top (frontmost) layer, subsequent layers
+ * are composited behind it. Per-layer state lives in the `layers` list,
+ * indexed positionally against the sorted image inputs. Hidden /
+ * zero-opacity layers are skipped.
  *
  * Compositing runs on the GPU through the shared WebGPULayerCompositor (the
  * same engine the sketch editor and timeline preview use), via Node.js Dawn —
@@ -2413,7 +2540,7 @@ export class CompositorNode extends BaseNode {
       };
     }
 
-    // Canvas size: explicit props win; otherwise the first layer's size.
+    // Canvas size: explicit props win; otherwise the top (first) layer's size.
     const canvasWidth =
       Number(this.canvas_width) > 0
         ? Math.floor(Number(this.canvas_width))
@@ -2422,6 +2549,9 @@ export class CompositorNode extends BaseNode {
       Number(this.canvas_height) > 0
         ? Math.floor(Number(this.canvas_height))
         : decoded[0].height;
+
+    // Reverse so that image_0 (top input handle) is composited last (on top).
+    decoded.reverse();
 
     // Composite on the GPU through the shared headless layer compositor (the
     // same engine the sketch editor and timeline preview use). Node uses the

@@ -366,6 +366,106 @@ describe("toolResultToText", () => {
   });
 });
 
+describe("BaseProvider.generateLoop – turn boundary", () => {
+  /**
+   * Mirrors what every real provider does: tool calls are yielded first, then a
+   * terminal `done: true` chunk closing THAT completion. Anthropic, OpenAI,
+   * Gemini, Ollama and the rest all emit this per round, not per turn.
+   */
+  class TwoRoundProvider extends BaseProvider {
+    private called = false;
+    constructor() {
+      super("test");
+    }
+    async *generateMessages(): AsyncGenerator<ProviderStreamItem> {
+      if (!this.called) {
+        this.called = true;
+        yield { type: "chunk", content: "thinking", done: false };
+        yield { id: "call_1", name: "noop", args: {} } as ToolCall;
+        yield { type: "chunk", content: "", done: true };
+        return;
+      }
+      yield { type: "chunk", content: "answer", done: true };
+    }
+  }
+
+  it("emits done:true only once, at the end of the whole turn", async () => {
+    const provider = new TwoRoundProvider();
+    const chunks: { content?: unknown; done?: boolean }[] = [];
+    for await (const item of provider.generateLoop({
+      messages: [{ role: "user", content: "go" }],
+      model: "m",
+      executeTool: async () => "ok"
+    })) {
+      if (
+        typeof item === "object" &&
+        item !== null &&
+        (item as { type?: string }).type === "chunk"
+      ) {
+        chunks.push(item as { content?: unknown; done?: boolean });
+      }
+    }
+
+    // The mid-loop done chunk is what makes the composer flip Stop → Run while
+    // tools are still running; only the final completion may close the turn.
+    const doneChunks = chunks.filter((c) => c.done === true);
+    expect(doneChunks).toHaveLength(1);
+    expect(doneChunks[0]?.content).toBe("answer");
+  });
+
+  it("still forwards non-terminal content chunks from every round", async () => {
+    const provider = new TwoRoundProvider();
+    const text: string[] = [];
+    for await (const item of provider.generateLoop({
+      messages: [{ role: "user", content: "go" }],
+      model: "m",
+      executeTool: async () => "ok"
+    })) {
+      if (
+        typeof item === "object" &&
+        item !== null &&
+        (item as { type?: string }).type === "chunk"
+      ) {
+        const c = (item as { content?: unknown }).content;
+        if (typeof c === "string" && c) text.push(c);
+      }
+    }
+    expect(text).toEqual(["thinking", "answer"]);
+  });
+});
+
+describe("BaseProvider.generateLoop – non-text chunks", () => {
+  class AudioProvider extends BaseProvider {
+    constructor() {
+      super("test");
+    }
+    async *generateMessages(): AsyncGenerator<ProviderStreamItem> {
+      yield { type: "chunk", content: "Here it is.", done: false };
+      yield {
+        type: "chunk",
+        content: "QUJDREVG",
+        content_type: "audio",
+        done: false
+      } as ProviderStreamItem;
+      yield { type: "chunk", content: "", done: true };
+    }
+  }
+
+  it("keeps base64 audio out of the assistant message text", async () => {
+    const provider = new AudioProvider();
+    const messages: Message[] = [];
+    for await (const item of provider.generateLoop({
+      messages: [{ role: "user", content: "speak" }],
+      model: "m"
+    })) {
+      if ((item as { type?: string }).type === "message") {
+        messages.push((item as { message: Message }).message);
+      }
+    }
+    expect(messages.at(-1)?.content).toBe("Here it is.");
+  });
+});
+
 describe("BaseProvider.generateLoop – image tool results", () => {
   // Yields one tool call on the first turn, then finishes — the "real provider"
   // path that emits ToolCall items (vs. the inline onToolCall callback).
@@ -435,6 +535,120 @@ describe("BaseProvider.generateLoop – image tool results", () => {
     });
   });
 
+  it("appends all sibling tool results before image follow-up messages", async () => {
+    class TwoToolProvider extends BaseProvider {
+      secondTurnMessages: Message[] = [];
+      private called = false;
+      constructor() {
+        super("test");
+      }
+      async *generateMessages(args: { messages: Message[] }) {
+        if (!this.called) {
+          this.called = true;
+          yield { id: "image", name: "image", args: {} } as ToolCall;
+          yield { id: "text", name: "text", args: {} } as ToolCall;
+          return;
+        }
+        this.secondTurnMessages = args.messages;
+        yield { type: "chunk" as const, content: "done", done: true };
+      }
+    }
+
+    const provider = new TwoToolProvider();
+    for await (const _item of provider.generateLoop({
+      messages: [{ role: "user", content: "go" }],
+      model: "m",
+      executeTool: async (toolCall) =>
+        toolCall.id === "image"
+          ? [{ type: "image_url", image: { data: "QUJD" } }]
+          : "ok"
+    })) {
+      // drain
+    }
+
+    expect(
+      provider.secondTurnMessages.map((message) => message.role).slice(0, 5)
+    ).toEqual(["user", "assistant", "tool", "tool", "user"]);
+  });
+
+  it("does not dispatch parallel tools after the turn is aborted", async () => {
+    const controller = new AbortController();
+    let executions = 0;
+    class AbortingProvider extends BaseProvider {
+      constructor() {
+        super("test");
+      }
+      async *generateMessages() {
+        yield { id: "call", name: "write", args: {} } as ToolCall;
+        controller.abort();
+      }
+    }
+
+    for await (const _item of new AbortingProvider().generateLoop({
+      messages: [{ role: "user", content: "go" }],
+      model: "m",
+      signal: controller.signal,
+      executeTool: async () => {
+        executions++;
+        return "done";
+      }
+    })) {
+      // drain
+    }
+    expect(executions).toBe(0);
+  });
+
+  it("isolates a throwing tool in parallel execution — every tool_use gets a tool_result", async () => {
+    // Regression: Promise.all rejected on one thrown tool, discarding sibling
+    // results and leaving a dangling tool_use (rejected by the API next turn).
+    class TwoToolsProvider extends BaseProvider {
+      public secondTurnMessages: Message[] | null = null;
+      private called = false;
+      constructor() {
+        super("test");
+      }
+      async *generateMessages(args: {
+        messages: Message[];
+      }): AsyncGenerator<ProviderStreamItem> {
+        if (!this.called) {
+          this.called = true;
+          yield { id: "c1", name: "ok_tool", args: {} } as ToolCall;
+          yield { id: "c2", name: "bad_tool", args: {} } as ToolCall;
+          return;
+        }
+        this.secondTurnMessages = args.messages;
+        yield { type: "chunk", content: "done", done: true };
+      }
+    }
+    const provider = new TwoToolsProvider();
+    const events: ProviderStreamItem[] = [];
+    for await (const item of provider.generateLoop({
+      messages: [{ role: "user", content: "go" }],
+      model: "m",
+      // Not sequential ⇒ parallel Promise.all path.
+      sequentialTools: false,
+      executeTool: async (tc: ToolCall) => {
+        if (tc.name === "bad_tool") throw new Error("boom");
+        return "ok result";
+      }
+    })) {
+      events.push(item);
+    }
+
+    const toolMsgs = events.filter(
+      (e) => isProviderMessageEvent(e) && e.message.role === "tool"
+    );
+    // Both tool_use ids got a matching tool_result — no dangling tool_use.
+    expect(toolMsgs).toHaveLength(2);
+    const contents = toolMsgs.map((e) =>
+      isProviderMessageEvent(e) ? String(e.message.content) : ""
+    );
+    expect(contents).toContain("ok result");
+    expect(
+      contents.some((c) => /Error executing tool "bad_tool"/.test(c))
+    ).toBe(true);
+  });
+
   it("dispatches a ProviderTool.execute and ends on terminal:true (no executeTool)", async () => {
     // Provider yields a tool call on the first turn, then a final chunk.
     class ToolThenDoneProvider extends BaseProvider {
@@ -448,7 +662,11 @@ describe("BaseProvider.generateLoop – image tool results", () => {
       async *generateMessages(): AsyncGenerator<ProviderStreamItem> {
         this.turns++;
         if (this.turns === 1) {
-          yield { id: "call_1", name: "finish", args: { value: 42 } } as ToolCall;
+          yield {
+            id: "call_1",
+            name: "finish",
+            args: { value: 42 }
+          } as ToolCall;
           return;
         }
         // Should never run — the terminal tool ends the loop after turn 1.

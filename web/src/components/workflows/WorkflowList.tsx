@@ -12,17 +12,21 @@ import {
   WorkflowAttributes,
   WorkflowList as WorkflowListType
 } from "../../stores/ApiTypes";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { trpcClient } from "../../trpc/client";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListView from "./WorkflowListView";
+import SharedWithMeSection from "./SharedWithMeSection";
 import WorkflowFormModal from "./WorkflowFormModal";
 import { usePanelStore } from "../../stores/PanelStore";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import { useFavoriteWorkflowIds } from "../../stores/FavoriteWorkflowsStore";
 import { useSelectedTags } from "../../stores/WorkflowListViewStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import { EmptyState, FlexColumn, FlexRow, LoadingSpinner } from "../ui_primitives";
+import { workflowListQueryKey } from "../../serverState/workflowQueryKeys";
 
 const styles = (theme: Theme) =>
   css({
@@ -40,6 +44,8 @@ const styles = (theme: Theme) =>
     }
   });
 
+const WORKFLOW_LIST_PAGE_SIZE = 1000;
+
 const loadWorkflows = async (cursor?: string, limit?: number) => {
   return trpcClient.workflows.list.query({
     cursor: cursor ?? "",
@@ -49,33 +55,34 @@ const loadWorkflows = async (cursor?: string, limit?: number) => {
 
 const WorkflowList = () => {
   const theme = useTheme();
+  const memoizedStyles = useMemo(() => styles(theme), [theme]);
   const queryClient = useQueryClient();
   const [filterValue, setFilterValue] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+  const autoFocusEnabled = useAutoFocusEnabled();
 
+  // Skipped on touch, where the virtual keyboard would cover the list.
   useEffect(() => {
-    searchRef.current?.focus();
-  }, []);
+    if (autoFocusEnabled) {
+      searchRef.current?.focus();
+    }
+  }, [autoFocusEnabled]);
   const [workflowsToDelete, setWorkflowsToDelete] = useState<
     WorkflowAttributes[]
   >([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [showCheckboxes, setShowCheckboxes] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const shiftKeyPressed = useKeyPressedStore((state) => state.isKeyPressed("Shift"));
-  const controlKeyPressed = useKeyPressedStore((state) => state.isKeyPressed("Control"));
-  const shiftKeyRef = useRef(shiftKeyPressed);
-  shiftKeyRef.current = shiftKeyPressed;
-  const controlKeyRef = useRef(controlKeyPressed);
-  controlKeyRef.current = controlKeyPressed;
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
-  const pageSize = 1000;
   const [workflowToEdit, setWorkflowToEdit] = useState<Workflow | null>(null);
 
-  const { data, isLoading, error, isError } = useQuery<WorkflowListType, Error>(
+  const { data, isLoading, error, isError, refetch } = useQuery<
+    WorkflowListType,
+    Error
+  >(
     {
-      queryKey: ["workflows"],
-      queryFn: () => loadWorkflows("", pageSize),
+      queryKey: workflowListQueryKey(WORKFLOW_LIST_PAGE_SIZE),
+      queryFn: () => loadWorkflows("", WORKFLOW_LIST_PAGE_SIZE),
       staleTime: 15 * 60 * 1000,
       refetchOnWindowFocus: false,
       refetchOnMount: false,
@@ -85,6 +92,16 @@ const WorkflowList = () => {
 
   const favoriteWorkflowIds = useFavoriteWorkflowIds();
   const selectedTags = useSelectedTags();
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
+
+  // Keep the raw error out of the UI but preserve it for debugging.
+  useEffect(() => {
+    if (isError) {
+      console.error("Failed to load workflows:", error);
+    }
+  }, [isError, error]);
 
   // Derive available tags from all workflows
   const availableTags = useMemo(() => {
@@ -135,7 +152,8 @@ const WorkflowList = () => {
   const onDeselect = useCallback(
     (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (controlKeyRef.current || shiftKeyRef.current) { return; }
+      const keyState = useKeyPressedStore.getState();
+      if (keyState.isKeyPressed("Control") || keyState.isKeyPressed("Shift")) { return; }
       if (
         !target.closest(".workflow") &&
         !target.closest(".MuiDialog-root") &&
@@ -144,7 +162,7 @@ const WorkflowList = () => {
         setSelectedWorkflows([]);
       }
     },
-    [controlKeyRef, shiftKeyRef]
+    []
   );
 
   const onDelete = useCallback((workflow: Workflow) => {
@@ -158,7 +176,6 @@ const WorkflowList = () => {
   }, [onDeselect]);
 
   const navigate = useNavigate();
-  const location = useLocation();
   const copyWorkflow = useWorkflowManager((state) => state.copy);
   const createWorkflow = useWorkflowManager((state) => state.create);
   const updateWorkflow = useWorkflowManager((state) => state.updateWorkflow);
@@ -167,15 +184,10 @@ const WorkflowList = () => {
 
   const handleOpenWorkflow = useCallback(
     (workflow: Workflow) => {
-      if (location.pathname.startsWith("/apps/")) {
-        navigate("/apps/" + workflow.id);
-        usePanelStore.getState().setVisibility(false);
-      } else {
-        navigate("/editor/" + workflow.id);
-        usePanelStore.getState().setVisibility(false);
-      }
+      navigate("/editor/" + workflow.id);
+      usePanelStore.getState().setVisibility(false);
     },
-    [navigate, location.pathname]
+    [navigate]
   );
 
   // Memoize workflow name lookup map to avoid recalculating on every duplicateWorkflow call
@@ -228,15 +240,18 @@ const WorkflowList = () => {
           name: newName
         });
         // Update the cache optimistically
-        queryClient.setQueryData<WorkflowListType>(["workflows"], (old) => {
-          if (!old) { return old; }
-          return {
-            ...old,
-            workflows: old.workflows.map((w) =>
-              w.id === workflow.id ? { ...w, name: newName } : w
-            )
-          };
-        });
+        queryClient.setQueryData<WorkflowListType>(
+          workflowListQueryKey(WORKFLOW_LIST_PAGE_SIZE),
+          (old) => {
+            if (!old) { return old; }
+            return {
+              ...old,
+              workflows: old.workflows.map((w) =>
+                w.id === workflow.id ? { ...w, name: newName } : w
+              )
+            };
+          }
+        );
         // The optimistic write only updates the list query. Detail consumers
         // (`["workflow", id]`) and the workflow tools picker also surface the
         // name and must be refetched. The backend resource_change broadcast
@@ -253,9 +268,17 @@ const WorkflowList = () => {
         }
       } catch (err) {
         console.error("Failed to rename workflow:", err);
+        addNotification({
+          type: "error",
+          alert: true,
+          content: `Failed to rename "${workflow.name}".`
+        });
+        // Refetch so any optimistically displayed name reverts to the
+        // server's value.
+        queryClient.invalidateQueries({ queryKey: ["workflows"] });
       }
     },
-    [queryClient, getWorkflow, updateWorkflow]
+    [queryClient, getWorkflow, updateWorkflow, addNotification]
   );
 
   const handleToggleFavorites = useCallback(() => {
@@ -297,7 +320,7 @@ const WorkflowList = () => {
           availableTags={availableTags}
         />
       )}
-      <FlexColumn gap={0} fullHeight css={styles(theme)}>
+      <FlexColumn gap={0} fullHeight css={memoizedStyles}>
         <CategorySearchBar
           ref={searchRef}
           value={filterValue}
@@ -328,8 +351,10 @@ const WorkflowList = () => {
           <FlexColumn gap={2} justify="center" align="center" sx={{ flex: 1, px: 2 }}>
             <EmptyState
               variant="error"
-              title="Could not load workflows"
-              description={error?.message ?? "Try again later."}
+              title="Couldn't load workflows"
+              description="Try again later."
+              actionText="Retry"
+              onAction={() => refetch()}
             />
           </FlexColumn>
         ) : workflows.length === 0 ? (
@@ -375,6 +400,7 @@ const WorkflowList = () => {
             />
           </div>
         )}
+        <SharedWithMeSection />
       </FlexColumn>
     </>
   );

@@ -11,7 +11,7 @@ import {
   getBezierPath,
   type EdgeProps
 } from "@xyflow/react";
-import { Tooltip, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { Tooltip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { memo, useMemo } from "react";
 
 export function CustomEdge({
@@ -44,10 +44,8 @@ export function CustomEdge({
   const accent = sourceTypeColor || "currentColor";
   const showLabel = counter && counter > 1;
 
-  // EXPERIMENTAL: Check if edge has active data flow
   const isActive = data?.status === "message_sent";
 
-  // Memoize tooltip text to avoid recalculating on every render
   const tooltipText = useMemo(() => {
     const formatDataTypeLabel = (
       label: string | undefined,
@@ -62,7 +60,6 @@ export function CustomEdge({
     return `${counter} ${formatDataTypeLabel(dataTypeLabel, counter || 0)} streamed`;
   }, [counter, dataTypeLabel]);
 
-  // Memoize label style to avoid creating new object on each render
   const labelStyle = useMemo(
     () => ({
       position: "absolute" as const,
@@ -76,7 +73,6 @@ export function CustomEdge({
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       border: selected ? "1px solid var(--palette-background-paper)" : "none",
-      // zIndex: "99999"
       zIndex: "var(--zIndex-floating)"
     }),
     [labelX, labelY, selected]
@@ -98,7 +94,7 @@ export function CustomEdge({
       }),
       ...(isActive && {
         strokeDasharray: "14 10",
-        animation: "edgeFlow 2s linear infinite"
+        animation: `edgeFlow ${MOTION.spin} infinite`
       })
     } as React.CSSProperties;
   }, [style, isActive, selected]);

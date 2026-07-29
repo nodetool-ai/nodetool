@@ -6,11 +6,9 @@ import {
 } from "../stores/NodeStore";
 import { shallow } from "zustand/shallow";
 import { useStoreWithEqualityFn } from "zustand/traditional";
-import { TemporalState } from "zundo";
-import isEqual from "fast-deep-equal";
+import { TemporalState } from "../stores/temporal";
+import isEqual from "../utils/isEqual";
 
-
-// Extend Window interface for HMR context preservation
 declare global {
   interface Window {
     __NODE_CONTEXT__?: React.Context<NodeStore | null>;
@@ -43,8 +41,6 @@ interface NodeProviderProps {
   children: React.ReactNode;
 }
 
-// Provides the node store to child components. Displays a loading state while
-// the store is being created.
 export const NodeProvider = ({ createStore, children }: NodeProviderProps) => {
   const store = useMemo(() => createStore(), [createStore]);
   if (!store) {

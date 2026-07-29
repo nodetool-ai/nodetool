@@ -16,19 +16,23 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RootStackParamList } from '../navigation/types';
 import { type JobResponse } from '../services/api';
 import { trpc } from '../trpc/client';
 import { useTheme } from '../hooks/useTheme';
+import type { ThemeColors } from '../utils/theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Jobs'>;
+  /** Optional: arriving from a trigger card narrows the list to one workflow. */
+  route?: RouteProp<RootStackParamList, 'Jobs'>;
 };
 
-type StatusVariant = 'running' | 'completed' | 'failed' | 'cancelled' | 'queued' | 'unknown';
+export type StatusVariant = 'running' | 'completed' | 'failed' | 'cancelled' | 'queued' | 'unknown';
 
-function statusVariant(status: string | undefined): StatusVariant {
+export function statusVariant(status: string | undefined): StatusVariant {
   const s = (status || '').toLowerCase();
   if (s === 'running' || s === 'in_progress') { return 'running'; }
   if (s === 'completed' || s === 'success' || s === 'succeeded') { return 'completed'; }
@@ -38,7 +42,18 @@ function statusVariant(status: string | undefined): StatusVariant {
   return 'unknown';
 }
 
-function formatDuration(startIso: string | null | undefined, endIso: string | null | undefined): string | null {
+export function statusColorFor(colors: ThemeColors, variant: StatusVariant): string {
+  switch (variant) {
+    case 'running': return colors.info;
+    case 'completed': return colors.success;
+    case 'failed': return colors.error;
+    case 'cancelled': return colors.warning;
+    case 'queued': return colors.textSecondary;
+    default: return colors.textTertiary;
+  }
+}
+
+export function formatDuration(startIso: string | null | undefined, endIso: string | null | undefined): string | null {
   if (!startIso) { return null; }
   const start = new Date(startIso).getTime();
   if (Number.isNaN(start)) { return null; }
@@ -55,7 +70,7 @@ function formatDuration(startIso: string | null | undefined, endIso: string | nu
   return `${hours}h ${remMin}m`;
 }
 
-function formatRelative(iso: string | null | undefined): string {
+export function formatRelative(iso: string | null | undefined): string {
   if (!iso) { return ''; }
   const t = new Date(iso).getTime();
   if (Number.isNaN(t)) { return iso; }
@@ -71,7 +86,7 @@ function formatRelative(iso: string | null | undefined): string {
   return new Date(iso).toLocaleDateString();
 }
 
-export default function JobsScreen({ navigation: _navigation }: Props) {
+export default function JobsScreen({ navigation, route }: Props) {
   const { colors, shadows } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -82,7 +97,7 @@ export default function JobsScreen({ navigation: _navigation }: Props) {
     isRefetching,
     error,
     refetch,
-  } = trpc.jobs.list.useQuery({ limit: 100 });
+  } = trpc.jobs.list.useQuery({ limit: 100, workflow_id: route?.params?.workflowId });
   const jobs = useMemo(() => (jobsData?.jobs ?? []) as JobResponse[], [jobsData]);
   const loadError = error ? error.message || 'Failed to load jobs' : null;
 
@@ -115,16 +130,10 @@ export default function JobsScreen({ navigation: _navigation }: Props) {
     );
   }, [cancelJob]);
 
-  const statusColor = useCallback((variant: StatusVariant) => {
-    switch (variant) {
-      case 'running': return colors.info;
-      case 'completed': return colors.success;
-      case 'failed': return colors.error;
-      case 'cancelled': return colors.warning;
-      case 'queued': return colors.textSecondary;
-      default: return colors.textTertiary;
-    }
-  }, [colors]);
+  const statusColor = useCallback(
+    (variant: StatusVariant) => statusColorFor(colors, variant),
+    [colors],
+  );
 
   const sortedJobs = useMemo(() => {
     return [...jobs].sort((a, b) => {
@@ -142,7 +151,11 @@ export default function JobsScreen({ navigation: _navigation }: Props) {
     const workflowName = workflowNames[item.workflow_id] || `Workflow ${item.workflow_id.substring(0, 8)}`;
 
     return (
-      <View
+      <TouchableOpacity
+        onPress={() => navigation.navigate('JobDetail', { jobId: item.id })}
+        activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel={`Open job ${workflowName}`}
         style={[
           styles.card,
           shadows.small,
@@ -211,7 +224,7 @@ export default function JobsScreen({ navigation: _navigation }: Props) {
             <Text style={[styles.cancelText, { color: colors.error }]}>Cancel job</Text>
           </TouchableOpacity>
         ) : null}
-      </View>
+      </TouchableOpacity>
     );
   };
 

@@ -14,6 +14,7 @@ export const metadata: Metadata = {
     "BYOK creative AI",
     "ComfyUI alternative for creatives",
     "Weavy alternative",
+    "Figma Weave alternative",
     "AI canvas for artists",
     "Flux workflow",
     "Seedance workflow",

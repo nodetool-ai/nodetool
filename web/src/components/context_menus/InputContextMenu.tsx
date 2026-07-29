@@ -7,7 +7,6 @@ import React, {
   useState
 } from "react";
 import { shallow } from "zustand/shallow";
-//mui
 
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
@@ -23,13 +22,11 @@ import {
   TextField
 } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
-//icons
 import PushPinIcon from "@mui/icons-material/PushPin";
 import InputIcon from "@mui/icons-material/Input";
 import EditNoteIcon from "@mui/icons-material/EditNote";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
-//store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { Edge, useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -41,6 +38,7 @@ import { filterTypesByOutputType } from "../node_menu/typeFilterUtils";
 import { rankSearchNodes } from "../../utils/nodeSearch";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import NodeItem from "../node_menu/NodeItem";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 
 const NODE_ROW_HEIGHT = 28;
 
@@ -193,6 +191,7 @@ const InputContextMenu: React.FC = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const autoFocusEnabled = useAutoFocusEnabled();
   const scrollRef = useRef<HTMLDivElement>(null);
   const recentNodes = useRecentNodesStore((state) => state.recentNodes);
   const recentNodeTypes = useMemo(
@@ -803,8 +802,9 @@ const InputContextMenu: React.FC = () => {
     []
   );
 
+  // Skipped on touch, where the virtual keyboard would cover the menu.
   useEffect(() => {
-    if (!menuPosition) {
+    if (!menuPosition || !autoFocusEnabled) {
       return;
     }
     const timeout = window.setTimeout(() => {
@@ -812,7 +812,7 @@ const InputContextMenu: React.FC = () => {
       searchInputRef.current?.select();
     }, 0);
     return () => window.clearTimeout(timeout);
-  }, [menuPosition]);
+  }, [menuPosition, autoFocusEnabled]);
 
   const showStaticActions = searchTerm.trim().length === 0;
 
@@ -828,7 +828,7 @@ const InputContextMenu: React.FC = () => {
     gap: "0.5em",
     margin: 0,
     minHeight: "28px",
-    padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`, // was 1px 6px
+    padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
     textAlign: "left",
     width: "100%",
     "&:hover": { backgroundColor: theme.vars.palette.action.hover },
@@ -841,7 +841,7 @@ const InputContextMenu: React.FC = () => {
       flexShrink: 0,
       height: "18px",
       justifyContent: "center",
-      padding: getSpacingPx(SPACING.micro), // was 1px
+      padding: getSpacingPx(SPACING.micro),
       width: "18px"
     },
     ".icon-bg svg": {

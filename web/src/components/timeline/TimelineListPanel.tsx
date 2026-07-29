@@ -28,7 +28,9 @@ import {
 import { trpc } from "../../trpc/client";
 import { groupByDate } from "../../utils/groupByDate";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
+import { notifyMutationError } from "../../utils/notifyMutationError";
 import CategorySearchBar from "../node_menu/CategorySearchBar";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import {
   EmptyState,
   FlexColumn,
@@ -42,6 +44,7 @@ import {
   SPACING,
   getSpacingPx
 } from "../ui_primitives";
+import { newDocumentId } from "../../lib/newDocumentId";
 
 const styles = (theme: Theme) =>
   css({
@@ -310,6 +313,7 @@ export const CreateTimelineButton = memo(function CreateTimelineButton() {
   const handleCreate = useCallback(async () => {
     try {
       const timeline = await createTimeline.mutateAsync({
+        id: newDocumentId(),
         name: "Untitled video",
         projectId: "default"
       });
@@ -325,7 +329,7 @@ export const CreateTimelineButton = memo(function CreateTimelineButton() {
       }
       setVisibility(false);
     } catch (error) {
-      console.error("Failed to create timeline", error);
+      notifyMutationError("create the timeline", error);
     }
   }, [createTimeline, location.pathname, navigate, openTab, setVisibility]);
 
@@ -346,13 +350,16 @@ const TimelineListPanel = () => {
   const theme = useTheme();
   const [filterValue, setFilterValue] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+  const autoFocusEnabled = useAutoFocusEnabled();
   const { data, isLoading, isError, error } = useTimelines();
 
-  // Focus the filter on open so users can immediately type to search,
-  // matching the workflows list panel.
+  // Focus the filter on open so users can immediately type to search — except
+  // on touch, where the virtual keyboard would cover the list.
   useEffect(() => {
-    searchRef.current?.focus();
-  }, []);
+    if (autoFocusEnabled) {
+      searchRef.current?.focus();
+    }
+  }, [autoFocusEnabled]);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
   const setVisibility = usePanelStore((state) => state.setVisibility);
@@ -463,6 +470,7 @@ const TimelineListPanel = () => {
       try {
         const source = await utils.timeline.get.fetch({ id: item.id });
         const copy = await createTimeline.mutateAsync({
+          id: newDocumentId(),
           name: `${source.name} (copy)`.substring(0, 200),
           projectId: source.projectId,
           fps: source.fps,
@@ -480,7 +488,7 @@ const TimelineListPanel = () => {
           }
         });
       } catch (error) {
-        console.error("Failed to duplicate timeline", error);
+        notifyMutationError("duplicate the timeline", error);
       }
     },
     [utils, createTimeline, updateTimeline]

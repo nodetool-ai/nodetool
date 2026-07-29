@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import type { WorkspaceResponse } from "@nodetool-ai/protocol/api-schemas/workspace.js";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
@@ -14,7 +13,6 @@ vi.mock("@nodetool-ai/models", async (orig) => {
       ...actual.Workspace,
       find: vi.fn(),
       paginate: vi.fn(),
-      getDefault: vi.fn(),
       hasLinkedWorkflows: vi.fn(),
       unsetOtherDefaults: vi.fn(),
       create: vi.fn()
@@ -141,47 +139,6 @@ describe("workspace router", () => {
     });
   });
 
-  // ── getDefault ──────────────────────────────────────────────────
-  describe("getDefault", () => {
-    it("returns the default workspace when one exists", async () => {
-      const ws = makeWorkspace({ id: "default", is_default: true });
-      (Workspace.getDefault as ReturnType<typeof vi.fn>).mockResolvedValue(ws);
-
-      const caller = createCaller(makeCtx());
-      const result = await caller.workspace.getDefault();
-      expect(result).not.toBeNull();
-      expect((result as WorkspaceResponse).id).toBe("default");
-      expect((result as WorkspaceResponse).is_default).toBe(true);
-    });
-
-    it("returns null when no default workspace is set", async () => {
-      (Workspace.getDefault as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-      const caller = createCaller(makeCtx());
-      const result = await caller.workspace.getDefault();
-      expect(result).toBeNull();
-    });
-  });
-
-  // ── get ─────────────────────────────────────────────────────────
-  describe("get", () => {
-    it("returns a workspace by id", async () => {
-      const ws = makeWorkspace({ id: "w1" });
-      (Workspace.find as ReturnType<typeof vi.fn>).mockResolvedValue(ws);
-
-      const caller = createCaller(makeCtx());
-      const result = await caller.workspace.get({ id: "w1" });
-      expect(result.id).toBe("w1");
-    });
-
-    it("throws NOT_FOUND when workspace does not exist", async () => {
-      (Workspace.find as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-      const caller = createCaller(makeCtx());
-      await expect(
-        caller.workspace.get({ id: "missing" })
-      ).rejects.toMatchObject({ code: "NOT_FOUND" });
-    });
-  });
-
   // ── create ──────────────────────────────────────────────────────
   describe("create", () => {
     it("creates a workspace when path is valid", async () => {
@@ -276,6 +233,12 @@ describe("workspace router", () => {
     it("updates name and path", async () => {
       const ws = makeWorkspace({ id: "w1", name: "Old", path: "/old" });
       (Workspace.find as ReturnType<typeof vi.fn>).mockResolvedValue(ws);
+      // update now validates the new path exactly like create.
+      (existsSync as ReturnType<typeof vi.fn>).mockReturnValue(true);
+      (stat as ReturnType<typeof vi.fn>).mockResolvedValue({
+        isDirectory: () => true
+      });
+      (access as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
 
       const caller = createCaller(makeCtx());
       const result = await caller.workspace.update({
@@ -288,6 +251,18 @@ describe("workspace router", () => {
       expect(ws.save).toHaveBeenCalled();
       expect(result.name).toBe("New");
       expect(result.path).toBe("/new");
+    });
+
+    it("rejects a non-existent path on update (validation now enforced)", async () => {
+      const ws = makeWorkspace({ id: "w1", name: "Old", path: "/old" });
+      (Workspace.find as ReturnType<typeof vi.fn>).mockResolvedValue(ws);
+      (existsSync as ReturnType<typeof vi.fn>).mockReturnValue(false);
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workspace.update({ id: "w1", path: "/etc" })
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      expect(ws.save).not.toHaveBeenCalled();
     });
 
     it("unsets other defaults when setting is_default=true", async () => {

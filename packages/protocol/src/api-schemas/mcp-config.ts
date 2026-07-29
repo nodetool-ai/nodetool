@@ -27,7 +27,9 @@ export type StatusOutput = z.infer<typeof statusOutput>;
 // Empty `targets` array means "all targets" — matches legacy `resolveTargets`.
 export const installInput = z.object({
   targets: z.array(mcpTarget).optional(),
-  url: z.string().optional()
+  // Must be a real URL — rejects quotes/newlines/control chars that could break
+  // out of the config-file string when written (see codex TOML escaping).
+  url: z.string().url().optional()
 });
 export type InstallInput = z.infer<typeof installInput>;
 

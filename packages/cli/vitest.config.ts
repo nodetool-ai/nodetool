@@ -68,6 +68,13 @@ function nodetoolStubPlugin(): Plugin {
 
 export default defineConfig({
   plugins: [nodetoolStubPlugin()],
+  resolve: {
+    // app-runtime is dependency-free source, so tests exercise the real
+    // runtime core rather than a stub.
+    alias: {
+      "@nodetool-ai/app-runtime": resolve(__dirname, "../app-runtime/src/index.ts")
+    }
+  },
   test: {
     include: ["tests/**/*.test.ts"],
     testTimeout: 30000

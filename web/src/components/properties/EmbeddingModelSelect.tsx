@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from "react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import EmbeddingModelMenuDialog from "../model_menu/EmbeddingModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { EmbeddingModel, ModelPack, UnifiedModel } from "../../stores/ApiTypes";

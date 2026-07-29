@@ -16,12 +16,10 @@
 
 ## Master-key resolution
 
-- **A failure or empty result from an *authoritative* configured key source is
-  fatal — never fall back to generating a new key.** When
-  `AWS_SECRETS_MASTER_KEY_NAME` is set, an AWS error or empty secret must throw;
-  silently falling through to keychain key-generation makes every
-  previously-encrypted secret undecryptable. Don't swallow errors in the layer the
-  precedence logic depends on (`getFromAwsSecrets` must not try/catch-to-null).
+- **A failure from a configured key source is fatal — never fall back to
+  generating a new key.** Silently falling through to keychain key-generation
+  makes every previously-encrypted secret undecryptable. Don't swallow errors in
+  the layer the precedence logic depends on.
 - **Single-flight lazy init.** Guard generate-and-persist initialization
   (`initMasterKey`) with an in-flight promise so concurrent first-run callers share
   one key instead of each generating a different one and racing to persist.

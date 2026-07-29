@@ -2,6 +2,7 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { Platform } from "@nodetool-ai/protocol";
 import type { OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { assetRefToPromptToken } from "@nodetool-ai/runtime";
 import {
   tagAsServer,
   renderTemplate,
@@ -14,6 +15,23 @@ import {
 } from "@nodetool-ai/nodes-utils";
 
 const NODE_ONLY: readonly Platform[] = ["node"];
+
+/**
+ * Turn any asset-ref values in a template's variable bag into their
+ * `asset://<id>.<ext>` token so a wired image / audio / video / document
+ * expands like an inline `@`-mention instead of rendering as `"[object
+ * Object]"`. Non-asset values (strings, numbers, other refs) pass through
+ * untouched for the normal `String(value)` substitution.
+ */
+function tokenizeAssetVars(
+  vars: Record<string, unknown>
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(vars)) {
+    out[key] = assetRefToPromptToken(value) ?? value;
+  }
+  return out;
+}
 
 function flagsFromOpts(opts: {
   dotall?: unknown;
@@ -2217,7 +2235,6 @@ export class LoadTextFolderNode extends BaseNode {
       allPaths.push(item.path);
       yield { path: item.path, text: item.text };
     }
-    // Emit collected lists as final output
     yield { texts: allTexts, paths: allPaths };
   }
 }
@@ -2284,7 +2301,6 @@ export class LoadTextAssetsNode extends BaseNode {
       allNames.push(item.path);
       yield { text: item.text, name: item.path };
     }
-    // Emit collected lists as final output
     yield { texts: allTexts, names: allNames };
   }
 }
@@ -2567,6 +2583,10 @@ export class PromptNode extends BaseNode {
   };
 
   static readonly supportsDynamicInputs = true;
+  // Every variable is also forwarded on an output handle of the same name, so
+  // an image used as `{{ var }}` in the text can additionally be wired into a
+  // downstream node that wants the real asset (e.g. reference images).
+  static readonly supportsDynamicOutputs = true;
   static readonly inputFields: string[] = ["prompt"];
 
 
@@ -2603,7 +2623,15 @@ export class PromptNode extends BaseNode {
       await Promise.all(pending);
     }
 
-    return { output: renderTemplate(template, props) };
+    // Pass every variable through on a handle of its own name, carrying the
+    // raw value (an image ref stays an image ref — only the rendered text gets
+    // asset tokens). Keys without an outgoing edge are dropped by the runner.
+    // The rendered text is assigned last so a variable named "output" can't
+    // shadow it.
+    return {
+      ...props,
+      output: renderTemplate(template, tokenizeAssetVars(props))
+    };
   }
 }
 
@@ -2629,7 +2657,9 @@ export class TemplateTextNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     let result = String(this.string ?? "");
-    const props: Record<string, unknown> = Object.fromEntries(this.dynamicProps);
+    const props = tokenizeAssetVars(
+      Object.fromEntries(this.dynamicProps)
+    );
 
     for (const [key, value] of Object.entries(props)) {
       const strValue = String(value ?? "");

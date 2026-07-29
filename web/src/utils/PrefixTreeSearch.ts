@@ -1,15 +1,7 @@
 /**
- * PrefixTreeSearch - Optimized search using Trie data structure
- *
- * This module provides a fast prefix-based search implementation using a Trie (prefix tree).
- * It dramatically reduces search time from O(n*m) to O(m) where m is the search term length.
- *
- * Key features:
- * - O(m) search complexity for prefix matches
- * - Case-insensitive search
- * - Multi-field indexing (title, namespace, description)
- * - Scoring system for result ranking
- * - Memory-efficient storage
+ * Prefix-based node search backed by a Trie: O(m) prefix lookup (m = query
+ * length) instead of scanning all nodes. Case-insensitive, multi-field
+ * (title, namespace, description), weighted scoring.
  */
 
 import { NodeMetadata } from "../stores/ApiTypes";
@@ -59,31 +51,21 @@ const STOP_WORDS = new Set([
  */
 class TrieNode {
   children: Map<string, TrieNode> = new Map();
-  // Store node references and their search scores at this position
   nodeRefs: Map<string, { node: NodeMetadata; score: number }> = new Map();
   isEndOfWord: boolean = false;
 }
 
-/**
- * Search field configuration
- */
 export interface SearchField {
   field: "title" | "namespace" | "description" | "tags";
   weight: number; // Higher weight = better score
 }
 
-/**
- * Search options
- */
 interface PrefixSearchOptions {
   maxResults?: number;
   minScore?: number;
   fields?: ("title" | "namespace" | "description" | "tags")[];
 }
 
-/**
- * Search result with scoring information
- */
 interface PrefixSearchResult {
   node: NodeMetadata;
   score: number;
@@ -91,9 +73,6 @@ interface PrefixSearchResult {
   matchType: "prefix" | "exact" | "contains";
 }
 
-/**
- * Default search fields with weights
- */
 const DEFAULT_SEARCH_FIELDS: SearchField[] = [
   { field: "title", weight: 1.0 },
   { field: "namespace", weight: 0.8 },
@@ -101,9 +80,6 @@ const DEFAULT_SEARCH_FIELDS: SearchField[] = [
   { field: "description", weight: 0.4 }
 ];
 
-/**
- * PrefixTreeSearch - Fast prefix-based search using Trie data structure
- */
 export class PrefixTreeSearch {
   private roots: Map<string, TrieNode> = new Map();
   private fields: SearchField[];
@@ -111,15 +87,11 @@ export class PrefixTreeSearch {
 
   constructor(fields?: SearchField[]) {
     this.fields = fields || DEFAULT_SEARCH_FIELDS;
-    // Initialize a root for each field
     this.fields.forEach((field) => {
       this.roots.set(field.field, new TrieNode());
     });
   }
 
-  /**
-   * Get statistics about the indexed data
-   */
   getStats(): { nodeCount: number; fields: string[] } {
     return {
       nodeCount: this.nodeCount,
@@ -127,9 +99,6 @@ export class PrefixTreeSearch {
     };
   }
 
-  /**
-   * Index a collection of nodes for fast searching
-   */
   indexNodes(nodes: NodeMetadata[]): void {
     this.clear();
     this.nodeCount = nodes.length;
@@ -158,16 +127,12 @@ export class PrefixTreeSearch {
     });
   }
 
-  /**
-   * Extract searchable values from a node field
-   */
   private getFieldValues(
     node: NodeMetadata,
     field: "title" | "namespace" | "description" | "tags"
   ): string[] {
     switch (field) {
       case "title": {
-        // Index full title, spaceless variant, and individual non-stop words
         const titleWords = node.title
           .split(/\s+/)
           .filter((w) => w.length > 0 && !STOP_WORDS.has(w.toLowerCase()));
@@ -175,12 +140,10 @@ export class PrefixTreeSearch {
         return [node.title, noSpaces, ...titleWords];
       }
       case "namespace": {
-        // Index both full namespace and individual parts
         const parts = node.namespace.split(".");
         return [node.namespace, ...parts];
       }
       case "description":
-        // Split description into words for indexing, excluding stop words
         return node.description
           ? node.description
               .toLowerCase()
@@ -188,16 +151,13 @@ export class PrefixTreeSearch {
               .filter((word) => word.length > 2 && !STOP_WORDS.has(word))
           : [];
       case "tags":
-        // Note: tags would need to be extracted from description if available
+        // tags would need to be extracted from description if available
         return [];
       default:
         return [];
     }
   }
 
-  /**
-   * Insert a word into the Trie with associated node reference
-   */
   private insertWord(
     root: TrieNode,
     word: string,
@@ -212,7 +172,6 @@ export class PrefixTreeSearch {
 
     let current = root;
 
-    // Insert each character
     for (const char of normalized) {
       let child = current.children.get(char);
       if (!child) {
@@ -221,7 +180,6 @@ export class PrefixTreeSearch {
       }
       current = child;
 
-      // Store node reference at each position with a position-based score
       const nodeKey = node.node_type;
       const existing = current.nodeRefs.get(nodeKey);
       if (!existing || existing.score < weight) {
@@ -232,9 +190,6 @@ export class PrefixTreeSearch {
     current.isEndOfWord = true;
   }
 
-  /**
-   * Search for nodes matching a prefix
-   */
   search(
     query: string,
     options: PrefixSearchOptions = {}
@@ -252,14 +207,12 @@ export class PrefixTreeSearch {
     const normalized = query.toLowerCase().trim();
     const results = new Map<string, PrefixSearchResult>();
 
-    // Search in each specified field
     fields.forEach((field) => {
       const root = this.roots.get(field);
       if (!root) {
         return;
       }
 
-      // Find the node in the trie corresponding to the query prefix
       let current: TrieNode | null = root;
       for (const char of normalized) {
         const child: TrieNode | undefined = current.children.get(char);
@@ -270,7 +223,6 @@ export class PrefixTreeSearch {
         current = child;
       }
 
-      // If prefix found, collect all nodes under this prefix
       if (current) {
         this.collectNodes(
           current,
@@ -283,7 +235,6 @@ export class PrefixTreeSearch {
       }
     });
 
-    // Convert to array and sort by score (descending)
     const sortedResults = Array.from(results.values()).sort(
       (a, b) => b.score - a.score
     );
@@ -291,9 +242,6 @@ export class PrefixTreeSearch {
     return sortedResults.slice(0, maxResults);
   }
 
-  /**
-   * Collect all nodes under a given trie node
-   */
   private collectNodes(
     node: TrieNode,
     prefix: string,
@@ -306,7 +254,6 @@ export class PrefixTreeSearch {
       return;
     }
 
-    // Add nodes at current position
     node.nodeRefs.forEach((ref, nodeKey) => {
       if (ref.score < minScore) {
         return;
@@ -314,8 +261,6 @@ export class PrefixTreeSearch {
 
       const existing = results.get(nodeKey);
       if (!existing || existing.score < ref.score) {
-        // Determine match type: exact if this is end of indexed word and matches query length
-        // Otherwise it's a prefix match
         const matchType =
           node.isEndOfWord && ref.node.title.toLowerCase() === prefix
             ? "exact"
@@ -330,7 +275,6 @@ export class PrefixTreeSearch {
       }
     });
 
-    // Recursively collect from children
     node.children.forEach((child) => {
       if (results.size < maxResults) {
         this.collectNodes(child, prefix, field, results, minScore, maxResults);
@@ -338,10 +282,6 @@ export class PrefixTreeSearch {
     });
   }
 
-
-  /**
-   * Clear all indexed data
-   */
   clear(): void {
     this.roots.forEach((root) => {
       this.clearNode(root);
@@ -349,9 +289,6 @@ export class PrefixTreeSearch {
     this.nodeCount = 0;
   }
 
-  /**
-   * Recursively clear a trie node
-   */
   private clearNode(node: TrieNode): void {
     node.nodeRefs.clear();
     node.children.forEach((child) => this.clearNode(child));

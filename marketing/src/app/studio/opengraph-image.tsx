@@ -7,7 +7,7 @@ export const contentType = ogContentType;
 export default function Image() {
   return ogImage(
     "AI that runs on your machine",
-    "Local-first desktop app. Ollama, MLX, and GGUF models offline. BYOK.",
+    "Desktop app. Runs Ollama and MLX models offline. Your own keys.",
     { image: "screen_assets.png", accent: "emerald", eyebrow: "Studio" }
   );
 }

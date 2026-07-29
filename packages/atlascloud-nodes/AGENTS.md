@@ -29,3 +29,14 @@ Package specifics from shipped fixes:
   `array: true`.
 - **Don't expose an API option that yields an extra output** the single-output
   node can't surface (the `return_last_frame` Seedance option was dropped).
+- **The manifest is generated, not hand-edited.** `node
+  scripts/sync-atlascloud-manifest.mjs` reconciles every entry's fields against
+  the `Input` schema AtlasCloud publishes for that model (reachable from the
+  unauthenticated catalog at `GET /api/v1/models`); `--check` reports drift
+  without writing. Hand-tuned enums, wrong separators (`1024x1024` vs
+  `1024*1024`) and stale option lists are what the script exists to prevent. Add
+  a *model* by hand — the script only maintains the fields of models we ship.
+- **Chat is not a node concern.** AtlasCloud's LLMs are OpenAI-compatible at
+  `https://api.atlascloud.ai/v1` and are served by `AtlasCloudProvider` in
+  `packages/runtime`, which extends `OpenAICompatProvider`. Only the async
+  prediction API (image/video) lives in this package.

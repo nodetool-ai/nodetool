@@ -4,7 +4,7 @@ import type { Metadata, Viewport } from "next";
 export const metadata: Metadata = {
   title: "NodeTool for marketing teams | AI production at campaign scale",
   description:
-    "The open AI workspace for marketing teams: product videos, ad creative, social calendars, and brand assets from every major model, called with your own keys, on one node-based canvas. No credit markup, no vendor lock-in, output at campaign volume.",
+    "The open AI workspace for marketing teams: product videos, ad creative, social calendars, and brand assets from every major model, called with your own keys, on one node-based canvas. No marked-up credits, no lock-in, output at campaign volume.",
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
     canonical: "/marketing",
@@ -59,7 +59,7 @@ export default function MarketingLayout({
           "@type": "SoftwareApplication",
           name: "NodeTool for Marketing Teams",
           description:
-            "The open AI workspace for marketing teams: product videos, ad creative, social calendars, and brand assets from every major model, called with your own keys, on one node-based canvas. No credit markup, no vendor lock-in, output at campaign volume.",
+            "The open AI workspace for marketing teams: product videos, ad creative, social calendars, and brand assets from every major model, called with your own keys, on one node-based canvas. No marked-up credits, no lock-in, output at campaign volume.",
           applicationCategory: "MultimediaApplication",
           operatingSystem: "macOS, Windows, Linux, Web browser",
           url: "https://nodetool.ai/marketing",

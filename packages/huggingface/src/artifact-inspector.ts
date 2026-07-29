@@ -159,10 +159,9 @@ function readGgufHeader(filePath: string): Record<string, string> {
       throw new Error("Not a GGUF file");
     }
 
-    // Version (uint32 LE)
+    // Version (uint32 LE) — read to advance past it; value unused
     const versionBuf = Buffer.alloc(4);
     fs.readSync(fd, versionBuf, 0, 4, null);
-    // const version = versionBuf.readUInt32LE(0); // unused but consumed
 
     // tensor_count (uint64 LE) - skip
     const skipBuf = Buffer.alloc(8);

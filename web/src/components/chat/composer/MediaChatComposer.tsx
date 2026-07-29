@@ -21,7 +21,6 @@ import VideocamIcon from "@mui/icons-material/Videocam";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
-import SettingsIcon from "@mui/icons-material/Settings";
 import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import SpeedIcon from "@mui/icons-material/Speed";
@@ -33,19 +32,14 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import { FlexRow, Text } from "../../ui_primitives";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import useMediaGenerationStore, {
-  IMAGE_ASPECT_RATIOS,
-  IMAGE_RESOLUTIONS,
   IMAGE_VARIATIONS,
   AUDIO_FORMATS,
   AUDIO_SPEEDS,
   DEFAULT_TTS_VOICES,
-  IMAGE_EDIT_STRENGTHS,
-  INFERENCE_STEPS,
   resolveImageSize
 } from "../../../stores/MediaGenerationStore";
 import type {
   MediaMode,
-  ImageResolution,
   AudioFormat
 } from "../../../stores/MediaGenerationStore";
 import MediaControlChip from "./MediaControlChip";
@@ -59,6 +53,11 @@ import {
   clampToAllowed,
   videoModelConstraints
 } from "./videoModelOptions";
+import {
+  buildImageEditOptions,
+  buildImageModelOptions,
+  imageModelConstraints
+} from "./imageModelOptions";
 import ImageModelMenuDialog from "../../model_menu/ImageModelMenuDialog";
 import VideoModelMenuDialog from "../../model_menu/VideoModelMenuDialog";
 import LanguageModelMenuDialog from "../../model_menu/LanguageModelMenuDialog";
@@ -71,19 +70,22 @@ import type {
   TTSModel,
   VideoModel
 } from "../../../stores/ApiTypes";
+import type { Entity } from "@nodetool-ai/protocol";
 import type { MediaGenerationRequest } from "../types/media.types";
 import { assetToUri } from "../../node_types/editing/promptComposer/promptTokens";
+import { resolveAssetUri } from "../../node/output";
 import { useTextareaAssetMention } from "./useTextareaAssetMention";
 import { FilePreview } from "./FilePreview";
 import { useFileHandling } from "../hooks/useFileHandling";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
-import { useKeyPressed } from "../../../stores/KeyPressedStore";
+import { usePromptHistory } from "../hooks/usePromptHistory";
 import { useMessageQueue } from "../../../hooks/useMessageQueue";
 import { createMediaComposerStyles } from "./MediaChatComposer.styles";
 import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 import { StopGenerationButton } from "./StopGenerationButton";
 import PermissionSelector from "./PermissionSelector";
 import { useElapsedTime } from "../../../hooks/useElapsedTime";
+import { useAutoFocusEnabled } from "../../../hooks/useAutoFocusEnabled";
 
 function formatElapsed(seconds: number): string {
   if (seconds < 5) return "Starting…";
@@ -123,6 +125,9 @@ export interface MediaChatComposerProps {
   leadingActions?: React.ReactNode;
   /** Override the auto-generated, mode-aware textarea placeholder. */
   placeholder?: string;
+  /** Pure chat panel: hide the mode picker and force "chat" mode. Used by the
+   *  app builder / video / 3d editor agent panels which are hardcoded to chat. */
+  hideModePicker?: boolean;
 }
 
 /**
@@ -157,15 +162,17 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   autoFocus = true,
   trailingActions,
   leadingActions,
-  placeholder: placeholderOverride
+  placeholder: placeholderOverride,
+  hideModePicker = false
 }) => {
   const theme = useTheme();
   const styles = useMemo(() => createMediaComposerStyles(theme), [theme]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const autoFocusEnabled = useAutoFocusEnabled();
   const [prompt, setPrompt] = useState("");
 
   // Mode + media params from persistent store
-  const mode = useMediaGenerationStore((s) => s.mode);
+  const storeMode = useMediaGenerationStore((s) => s.mode);
   const setMode = useMediaGenerationStore((s) => s.setMode);
   const imageParams = useMediaGenerationStore((s) => s.image);
   const setImageParams = useMediaGenerationStore((s) => s.setImageParams);
@@ -190,11 +197,13 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   // workspace-aware Pi agent and routes sends through the agent socket.
   const globalMode = useGlobalChatStore((s) => s.mode);
   const setGlobalMode = useGlobalChatStore((s) => s.setMode);
-  const isPi = globalMode === "pi";
+
+  // Pure-chat panels force chat mode and ignore the global media/pi mode.
+  const mode = hideModePicker ? "chat" : storeMode;
+  const isPi = hideModePicker ? false : globalMode === "pi";
 
   const addRecentModel = useModelPreferencesStore((s) => s.addRecent);
 
-  // Popover anchors
   const [modeAnchor, setModeAnchor] = useState<HTMLButtonElement | null>(null);
   const [durationAnchor, setDurationAnchor] = useState<HTMLButtonElement | null>(null);
   const [resolutionAnchor, setResolutionAnchor] = useState<HTMLButtonElement | null>(null);
@@ -223,13 +232,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     useFileHandling();
   const { isDragging, handleDragOver, handleDragLeave, handleDrop } =
     useDragAndDrop(addFiles, addDroppedFiles);
-  const { shiftKeyPressed, metaKeyPressed, altKeyPressed } = useKeyPressed(
-    (state) => ({
-      shiftKeyPressed: state.isKeyPressed("shift"),
-      metaKeyPressed: state.isKeyPressed("meta"),
-      altKeyPressed: state.isKeyPressed("alt")
-    })
-  );
 
   // Typing `@` opens the asset picker; a picked asset is attached as an
   // `asset://` reference (like a drag from the asset library) rather than
@@ -249,15 +251,52 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     [addDroppedFiles]
   );
 
+  // A picked entity reads as part of the message: the hook inlines its name
+  // into the text; here its reference image is attached for consistency.
+  const handleSelectEntity = useCallback(
+    (entity: Entity) => {
+      const refUri = entity.reference_images?.[0]?.uri ?? "";
+      if (!refUri) {
+        return;
+      }
+      // Entity reference images are stored as `<id>.<ext>` keys, so the URL
+      // path carries the extension the asset URI needs.
+      const extMatch = refUri.split(/[?#]/)[0].match(/\.([A-Za-z0-9]+)$/);
+      const ext = extMatch ? extMatch[1].toLowerCase() : "";
+      addDroppedFiles([
+        {
+          id: "",
+          // The preview needs a displayable URL (data:/http(s):/`/`-prefixed);
+          // a raw `asset://…` ref renders as a generic file icon. Resolve it to
+          // the storage URL for the thumbnail while keeping the `asset://` ref
+          // in `assetUri` for the model.
+          dataUri: resolveAssetUri(refUri),
+          type: ext ? `image/${ext === "jpg" ? "jpeg" : ext}` : "image/png",
+          name: entity.name || entity.id,
+          assetUri: ext
+            ? `asset://${entity.id}.${ext}`
+            : `asset://${entity.id}`
+        }
+      ]);
+    },
+    [addDroppedFiles]
+  );
+
   const { mentionMenu, handleKeyDown: handleMentionKeyDown } =
     useTextareaAssetMention({
       textareaRef,
       value: prompt,
       setValue: setPrompt,
-      onSelectAsset: handleSelectAsset
+      onSelectAsset: handleSelectAsset,
+      onSelectEntity: handleSelectEntity
     });
 
-  // Adjust textarea height based on content
+  const {
+    record: recordHistory,
+    handleKeyDown: handleHistoryKeyDown,
+    resetNavigation: resetHistoryNavigation
+  } = usePromptHistory({ value: prompt, setValue: setPrompt, textareaRef });
+
   const adjustHeight = useCallback(() => {
     const el = textareaRef.current;
     if (!el) {
@@ -273,12 +312,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     adjustHeight();
   }, [prompt, adjustHeight]);
 
-  // Focus on mount
+  // Skipped on touch, where the virtual keyboard would cover the composer.
   useEffect(() => {
-    if (autoFocus) {
+    if (autoFocus && autoFocusEnabled) {
       textareaRef.current?.focus();
     }
-  }, [autoFocus]);
+  }, [autoFocus, autoFocusEnabled]);
 
   // Close any open model / option dialogs whenever the mode changes. The
   // image- and video-model dialogs are intentionally shared between the
@@ -401,15 +440,16 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     audioParams.format
   ]);
 
-  const { queuedMessage, sendMessage, cancelQueued } = useMessageQueue({
-    isLoading,
-    isStreaming,
-    onSendMessage: (content, promptText) => {
-      onSendMessage(content, promptText, buildMediaGeneration());
-    },
-    onStop,
-    textareaRef
-  });
+  const { queuedMessage, sendMessage, cancelQueued, sendQueuedNow } =
+    useMessageQueue({
+      isLoading,
+      isStreaming,
+      onSendMessage: (content, promptText) => {
+        onSendMessage(content, promptText, buildMediaGeneration());
+      },
+      onStop,
+      textareaRef
+    });
 
   const placeholder = useMemo(() => {
     if (placeholderOverride) {
@@ -467,18 +507,22 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     }
     const fileContents = getFileContents();
     const fullContent = [...content, ...fileContents];
-    sendMessage(fullContent, prompt);
-    setPrompt("");
-    clearFiles();
+    // Only clear the input when the message was actually sent or queued; a
+    // dropped message (one already queued) keeps its text and attachments.
+    if (sendMessage(fullContent, prompt)) {
+      recordHistory(prompt);
+      setPrompt("");
+      clearFiles();
+    }
   }, [
     prompt,
     canGenerate,
     getFileContents,
     sendMessage,
-    clearFiles
+    clearFiles,
+    recordHistory
   ]);
 
-  // Handle paste events — extract images from clipboard
   const handlePaste = useCallback(
     (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
       const items = e.clipboardData?.items;
@@ -501,24 +545,38 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      // Ignore the Enter that confirms an IME composition candidate — it fires
+      // keydown with isComposing/keyCode 229 and must neither send nor select a
+      // mention. Guard before the mention handler and the send logic.
+      if (
+        e.key === "Enter" &&
+        (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229)
+      ) {
+        return;
+      }
       // Let the asset-mention picker consume nav / select / dismiss keys first.
       if (handleMentionKeyDown(e)) {
         return;
       }
+      // Then history navigation (ArrowUp/ArrowDown) when the picker is closed.
+      if (handleHistoryKeyDown(e)) {
+        return;
+      }
       if (e.key === "Enter") {
-        if (shiftKeyPressed) {
+        // Read modifiers from the event, not the global KeyPressedStore, which
+        // is stale when the textarea was click-focused with a modifier held.
+        if (e.shiftKey) {
           return;
         }
-        if (!metaKeyPressed && !altKeyPressed) {
+        if (!e.metaKey && !e.altKey) {
           e.preventDefault();
           handleSend();
         }
       }
     },
-    [handleMentionKeyDown, shiftKeyPressed, metaKeyPressed, altKeyPressed, handleSend]
+    [handleMentionKeyDown, handleHistoryKeyDown, handleSend]
   );
 
-  // Mode icon for the mode chip
   const modeIcon = useMemo(() => {
     if (isPi) return <SmartToyOutlinedIcon fontSize="small" />;
     if (mode === "image") return <ImageIcon fontSize="small" />;
@@ -544,17 +602,26 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     return "Motion";
   }, [mode, isPi]);
 
-  // Model dialog selection callbacks
   const handlePickImageModel = useCallback(
     (model: ImageModel) => {
+      const constraints = imageModelConstraints(model);
       setImageParams({
         model: {
           type: "image_model",
           id: model.id,
           provider: model.provider,
           name: model.name || "",
-          path: model.path || ""
-        }
+          path: model.path || "",
+          ...constraints
+        },
+        resolution: clampToAllowed(
+          imageParams.resolution,
+          constraints.resolutions
+        ),
+        aspectRatio: clampToAllowed(
+          imageParams.aspectRatio,
+          constraints.aspectRatios
+        )
       });
       addRecentModel({
         provider: model.provider || "",
@@ -563,7 +630,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       });
       setImageModelOpen(false);
     },
-    [setImageParams, addRecentModel]
+    [setImageParams, addRecentModel, imageParams.resolution, imageParams.aspectRatio]
   );
 
   const handlePickVideoModel = useCallback(
@@ -599,14 +666,24 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
   const handlePickImageEditModel = useCallback(
     (model: ImageModel) => {
+      const constraints = imageModelConstraints(model);
       setImageEditParams({
         model: {
           type: "image_model",
           id: model.id,
           provider: model.provider,
           name: model.name || "",
-          path: model.path || ""
-        }
+          path: model.path || "",
+          ...constraints
+        },
+        resolution: clampToAllowed(
+          imageEditParams.resolution,
+          constraints.resolutions
+        ),
+        aspectRatio: clampToAllowed(
+          imageEditParams.aspectRatio,
+          constraints.aspectRatios
+        )
       });
       addRecentModel({
         provider: model.provider || "",
@@ -615,7 +692,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       });
       setImageModelOpen(false);
     },
-    [setImageEditParams, addRecentModel]
+    [setImageEditParams, addRecentModel, imageEditParams.resolution, imageEditParams.aspectRatio]
   );
 
   const handlePickImageToVideoModel = useCallback(
@@ -694,14 +771,24 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     aspectOptions: videoAspectOptions
   } = useMemo(() => buildVideoModelOptions(activeVideoModel), [activeVideoModel]);
 
-  const imageResolutionOptions = useMemo<MediaOption<ImageResolution>[]>(
-    () =>
-      IMAGE_RESOLUTIONS.map((r) => ({
-        id: r,
-        label: r,
-        icon: <DisplaySettingsIcon fontSize="small" />
-      })),
-    []
+  // Image option lists — derived from the selected model's manifest (shared
+  // with the sketch connected-mode prompt bar via buildImageModelOptions),
+  // falling back to the full sets when the model declares no constraints. The
+  // image-edit chip cluster has its own model, so it gets a parallel set.
+  const {
+    aspectOptions: imageAspectOptions,
+    resolutionOptions: imageResolutionOptions
+  } = useMemo(
+    () => buildImageModelOptions(imageParams.model),
+    [imageParams.model]
+  );
+
+  const {
+    aspectOptions: imageEditAspectOptions,
+    resolutionOptions: imageEditResolutionOptions
+  } = useMemo(
+    () => buildImageModelOptions(imageEditParams.model),
+    [imageEditParams.model]
   );
 
   const variationsOptions = useMemo<MediaOption<number>[]>(
@@ -747,40 +834,13 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     []
   );
 
-  const strengthOptions = useMemo<MediaOption<number>[]>(
-    () =>
-      IMAGE_EDIT_STRENGTHS.map((s) => ({
-        id: s,
-        label: s.toFixed(2),
-        description:
-          s <= 0.35 ? "subtle" : s >= 0.85 ? "strong" : "balanced",
-        icon: <TuneIcon fontSize="small" />
-      })),
-    []
-  );
-
-  const stepsOptions = useMemo<MediaOption<number>[]>(
-    () =>
-      INFERENCE_STEPS.map((n) => ({
-        id: n,
-        label: `${n}`,
-        description: n <= 15 ? "fast" : n >= 40 ? "high quality" : "balanced",
-        icon: <LayersIcon fontSize="small" />
-      })),
-    []
-  );
+  const { strengthOptions, stepsOptions } = useMemo(buildImageEditOptions, []);
 
   const chatProviderLabel = useMemo(() => {
     const m = selectedModel ?? languageModel;
     if (!m?.id) return "Select model";
     return m.name || m.id;
   }, [selectedModel, languageModel]);
-
-  const handleMoreClick = useCallback(() => {
-    // Placeholder for "More" menu — additional options (seed, negative
-    // prompt, guidance scale, etc.) will live here in a follow-up.
-    console.info("Media composer: More options (coming soon)");
-  }, []);
 
   const isBusy = isLoading || isStreaming;
   const isDisabled = disabled || isBusy;
@@ -799,7 +859,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        {(droppedFiles.length > 0 || !isMediaMode) && (
+        {droppedFiles.length > 0 && (
           <div className="media-file-preview-row">
             {droppedFiles.map((file) => (
               <FilePreview
@@ -816,7 +876,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           className="media-compose-input"
           aria-label="Message prompt"
           value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
+          onChange={(e) => {
+            resetHistoryNavigation();
+            setPrompt(e.target.value);
+          }}
           onInput={adjustHeight}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
@@ -836,10 +899,33 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
             <Text size="small" color="secondary">
               Message queued - {queuedMessage.prompt.slice(0, 60)}
             </Text>
+            {onStop && (
+              <Text
+                size="small"
+                component="button"
+                type="button"
+                sx={{
+                  ml: "auto",
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                  color: "primary.main"
+                }}
+                onClick={sendQueuedNow}
+              >
+                Send now
+              </Text>
+            )}
             <Text
               size="small"
+              component="button"
+              type="button"
               sx={{
-                ml: "auto",
+                ml: onStop ? 0 : "auto",
+                background: "none",
+                border: "none",
+                padding: 0,
                 cursor: "pointer",
                 color: "error.main"
               }}
@@ -850,35 +936,41 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           </FlexRow>
         )}
 
-        <div className="media-chip-row">
+        <div
+          className={`media-chip-row${trailingActions ? " has-trailing" : ""}`}
+        >
           {/* Leading actions (e.g. the canvas dock drag handle). */}
           {leadingActions}
-          {/* Chip cluster: mode/model chips + primary action. */}
+          {/* Chip cluster: mode/model chips. */}
           <div className="media-chip-main">
           {/* Mode selector chip */}
-          <MediaControlChip
-            icon={modeIcon}
-            label={modeLabel}
-            active={!!modeAnchor}
-            onClick={(e) => setModeAnchor(e.currentTarget)}
-            showChevron
-          />
-          <MediaModeMenu
-            anchorEl={modeAnchor}
-            open={!!modeAnchor}
-            onClose={() => setModeAnchor(null)}
-            value={mode}
-            onChange={(m: MediaMode) => {
-              setMode(m);
-              setGlobalMode("chat");
-            }}
-            showPi={piModeAvailable}
-            piSelected={isPi}
-            onSelectPi={() => {
-              setMode("chat");
-              setGlobalMode("pi");
-            }}
-          />
+          {!hideModePicker && (
+            <>
+              <MediaControlChip
+                icon={modeIcon}
+                label={modeLabel}
+                active={!!modeAnchor}
+                onClick={(e) => setModeAnchor(e.currentTarget)}
+                showChevron
+              />
+              <MediaModeMenu
+                anchorEl={modeAnchor}
+                open={!!modeAnchor}
+                onClose={() => setModeAnchor(null)}
+                value={mode}
+                onChange={(m: MediaMode) => {
+                  setMode(m);
+                  setGlobalMode("chat");
+                }}
+                showPi={piModeAvailable}
+                piSelected={isPi}
+                onSelectPi={() => {
+                  setMode("chat");
+                  setGlobalMode("pi");
+                }}
+              />
+            </>
+          )}
 
           {/* Pi mode: workspace + model pickers instead of the chat model. */}
           {isPi && <PiComposerControls disabled={isBusy} />}
@@ -894,6 +986,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 onClick={() => setLanguageModelOpen(true)}
                 showChevron={false}
                 truncate
+                maxWidth={140}
               />
               <PermissionSelector />
               {onMemoryToggle && (
@@ -968,7 +1061,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 open={!!aspectAnchor}
                 onClose={() => setAspectAnchor(null)}
                 value={imageParams.aspectRatio}
-                options={IMAGE_ASPECT_RATIOS}
+                options={imageAspectOptions}
                 onChange={(v) => setImageParams({ aspectRatio: v })}
               />
 
@@ -1058,13 +1151,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 options={videoAspectOptions}
                 onChange={(v) => setVideoParams({ aspectRatio: v })}
               />
-
-              <MediaControlChip
-                icon={<SettingsIcon fontSize="small" />}
-                label="More"
-                onClick={handleMoreClick}
-                showChevron={false}
-              />
             </>
           )}
 
@@ -1100,7 +1186,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 onClose={() => setResolutionAnchor(null)}
                 header="Image Resolution"
                 value={imageEditParams.resolution}
-                options={imageResolutionOptions}
+                options={imageEditResolutionOptions}
                 onChange={(r) => setImageEditParams({ resolution: r })}
               />
 
@@ -1116,7 +1202,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 open={!!aspectAnchor}
                 onClose={() => setAspectAnchor(null)}
                 value={imageEditParams.aspectRatio}
-                options={IMAGE_ASPECT_RATIOS}
+                options={imageEditAspectOptions}
                 onChange={(v) => setImageEditParams({ aspectRatio: v })}
               />
 
@@ -1343,35 +1429,40 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
             </>
           )}
 
-          <div className="media-chip-spacer" />
+          </div>
 
-          {/* Primary Generate/Send button, or timer + stop when busy */}
-          {isBusy ? (
-            <FlexRow gap={1} alignItems="center">
-              <Text
-                size="small"
-                sx={{
-                  color: theme.vars.palette.grey[400],
-                  fontVariantNumeric: "tabular-nums",
-                  minWidth: 48,
-                  textAlign: "right"
-                }}
+          {/* Primary Generate/Send button, or timer + stop when busy. Sits
+              between the chip cluster and the host actions rather than inside
+              the chips: on mobile the row wraps, and this lets the send button
+              join the workflow action buttons on one line instead of being
+              stranded on the chip line. */}
+          <div className="media-primary-action">
+            {isBusy ? (
+              <FlexRow gap={1} alignItems="center">
+                <Text
+                  size="small"
+                  sx={{
+                    color: theme.vars.palette.grey[400],
+                    fontVariantNumeric: "tabular-nums",
+                    minWidth: 48,
+                    textAlign: "right"
+                  }}
+                >
+                  {formatElapsed(elapsed)}
+                </Text>
+                {onStop && <StopGenerationButton onClick={onStop} />}
+              </FlexRow>
+            ) : (
+              <button
+                type="button"
+                className={`media-generate-btn${isMediaMode ? "" : " chat-send"}`}
+                onClick={handleSend}
+                disabled={isDisabled || !canGenerate}
+                aria-label={isMediaMode ? "Generate" : "Send"}
               >
-                {formatElapsed(elapsed)}
-              </Text>
-              {onStop && <StopGenerationButton onClick={onStop} />}
-            </FlexRow>
-          ) : (
-            <button
-              type="button"
-              className={`media-generate-btn${isMediaMode ? "" : " chat-send"}`}
-              onClick={handleSend}
-              disabled={isDisabled || !canGenerate}
-              aria-label={isMediaMode ? "Generate" : "Send"}
-            >
-              {isMediaMode ? "Generate" : <ArrowUpwardIcon fontSize="small" />}
-            </button>
-          )}
+                {isMediaMode ? "Generate" : <ArrowUpwardIcon fontSize="small" />}
+              </button>
+            )}
           </div>
 
           {/* Host-supplied actions at the end of the footer (e.g. the canvas

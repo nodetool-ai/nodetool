@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import ImageModelMenuDialog from "../model_menu/ImageModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type {
@@ -17,7 +17,7 @@ import ModelSelectButton from "./shared/ModelSelectButton";
 interface ImageModelSelectProps {
   onChange: (value: ImageModelValue) => void;
   value: string;
-  task?: ImageModelTask;
+  task?: ImageModelTask | ImageModelTask[];
   recommendedModels?: UnifiedModel[];
   modelPacks?: ModelPack[];
 }
@@ -33,7 +33,6 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
 
-  // Use the same hook as the dialog to fetch models
   const { models: fetchedModels } = useImageModelsByProvider();
 
   const currentSelectedModelDetails = useMemo(() => {

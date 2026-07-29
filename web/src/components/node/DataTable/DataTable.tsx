@@ -24,10 +24,10 @@ import { DataframeRef, ColumnDef } from "../../../stores/ApiTypes";
 import TableActions from "./TableActions";
 import type { TableData } from "./TableActions";
 import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
-import { format, isValid, parseISO } from "date-fns";
+import { format, isValid, parseISO } from "../../../utils/dateFormat";
 import { tableStyles } from "../../../styles/TableStyles";
 import { useTheme } from "@mui/material/styles";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../../utils/isEqual";
 
 /**
  * Union type for all possible cell values in a DataFrame column
@@ -52,11 +52,6 @@ export interface DictTableRow {
   rownum: number;
   [columnName: string]: DataframeCellValue;
 }
-
-/**
- * New data passed to onChangeRows callback (DataFrame-specific)
- */
-export type TableDataChange = DictTableRow[] | Record<string, DictTableRow>;
 
 /**
  * Tabulator filter type for column filtering
@@ -89,9 +84,9 @@ const datetimeFormatter: Formatter = (cell) => {
  */
 const coerceValue = (value: unknown, column: ColumnDef): DataframeCellValue => {
   if (column.data_type === "int") {
-    return parseInt(value as string) || 0;
+    return parseInt(String(value)) || 0;
   } else if (column.data_type === "float") {
-    return parseFloat(value as string) || 0.0;
+    return parseFloat(String(value)) || 0.0;
   } else if (column.data_type === "datetime") {
     return value as string;
   }
@@ -102,9 +97,9 @@ const coerceValue = (value: unknown, column: ColumnDef): DataframeCellValue => {
  * Coerce a row to the correct types based on column definitions
  */
 const coerceRow = (rownum: number, row: ListTableRow, columns: ColumnDef[]): DictTableRow => {
-  return columns.reduce(
+  return columns.reduce<DictTableRow>(
     (acc, col, index) => {
-      (acc as Record<string, DataframeCellValue>)[col.name] = coerceValue(row[index], col);
+      acc[col.name] = coerceValue(row[index], col);
       return acc;
     },
     { rownum }
@@ -129,6 +124,7 @@ const DataTable: React.FC<DataTableProps> = ({
   toolbarEnd
 }) => {
   const theme = useTheme();
+  const memoizedTableStyles = useMemo(() => tableStyles(theme), [theme]);
   const tableRef = useRef<HTMLDivElement>(null);
   const tabulatorRef = useRef<Tabulator | null>(null);
   const [tabulator, setTabulator] = useState<Tabulator>();
@@ -149,7 +145,6 @@ const DataTable: React.FC<DataTableProps> = ({
   // after initial mount (Tabulator already loaded data via constructor)
   const tabulatorDataRef = useRef<DictTableRow[] | null>(null);
   
-  // Update undo/redo availability
   const updateHistoryState = useCallback(() => {
     if (tabulatorRef.current && isModalMode) {
       const undoSize = tabulatorRef.current.getHistoryUndoSize();
@@ -275,7 +270,7 @@ const DataTable: React.FC<DataTableProps> = ({
           if (!row) {return { rownum: index };}
           const newRow = { ...row };
           if (index === rownum) {
-            (newRow as Record<string, DataframeCellValue>)[cell.getField() as string] = cell.getValue();
+            newRow[cell.getField()] = cell.getValue();
           }
           return newRow;
         })
@@ -292,7 +287,7 @@ const DataTable: React.FC<DataTableProps> = ({
       }, 100);
     };
 
-    tabulatorDataRef.current = data; // track what data is currently in Tabulator
+    tabulatorDataRef.current = data;
 
     const tabulatorInstance = new Tabulator(tableRef.current, {
       height: isModalMode ? "100%" : 200,
@@ -383,7 +378,7 @@ const DataTable: React.FC<DataTableProps> = ({
   }, [searchFilter, isTableReady]);
 
   return (
-    <div className="datatable nowheel nodrag" css={tableStyles(theme)}>
+    <div className="datatable nowheel nodrag" css={memoizedTableStyles}>
       <TableActions
         tabulator={tabulator}
         data={data}

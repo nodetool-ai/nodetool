@@ -297,10 +297,14 @@ export const useTimelineTranscriptStore = create<TimelineTranscriptStoreState>(
           voice: ttsVoice,
           status: "draft"
         });
+        // Insert and reflow in a single `set` so the whole beat-add commits as
+        // one undo entry — `addClip` then a separate `setTranscriptAndClips`
+        // would push two history checkpoints for what the user sees as one
+        // action.
         const store = useTimelineStore.getState();
-        store.addClip(clip);
-        const after = useTimelineStore.getState();
-        after.setTranscriptAndClips(ops.reflowGenerated(after.clips));
+        store.setTranscriptAndClips(
+          ops.reflowGenerated([...store.clips, clip])
+        );
         return id;
       },
 

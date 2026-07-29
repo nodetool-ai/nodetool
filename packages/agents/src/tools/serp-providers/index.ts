@@ -7,10 +7,6 @@
  * so that tool implementations can be provider-agnostic.
  */
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 export interface SearchResult {
   title: string;
   url: string;
@@ -25,10 +21,6 @@ export interface SearchOptions {
   engine?: string;
 }
 
-// ---------------------------------------------------------------------------
-// Provider interface
-// ---------------------------------------------------------------------------
-
 /**
  * Abstract SERP provider interface.
  *
@@ -42,10 +34,6 @@ export interface SerpProvider {
   /** Perform a web search and return the raw API response. */
   searchRaw(query: string, options?: SearchOptions): Promise<unknown>;
 }
-
-// ---------------------------------------------------------------------------
-// Provider factory
-// ---------------------------------------------------------------------------
 
 export type SerpProviderType =
   | "serpapi"
@@ -121,10 +109,6 @@ export async function createSerpProvider(
       );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Re-exports
-// ---------------------------------------------------------------------------
 
 export { SerpApiProvider } from "./serpapi-provider.js";
 export { DataForSeoProvider } from "./dataforseo-provider.js";

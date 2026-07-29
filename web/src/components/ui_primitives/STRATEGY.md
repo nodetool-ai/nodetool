@@ -417,7 +417,7 @@ Use `BORDER_RADIUS` instead of raw `"var(--rounded-*)"` strings or magic numbers
 In Emotion `css()` blocks, spread `scrollbarStyles(theme)` wherever you need the app's standard scrollbar appearance (uses the `c_scroll_thumb`/`c_scroll_bg`/`c_scroll_hover` palette tokens):
 
 ```ts
-import { scrollbarStyles } from "../ui_primitives/tokens";
+import { scrollbarStyles } from "../ui_primitives";
 
 css({
   overflowY: "auto",

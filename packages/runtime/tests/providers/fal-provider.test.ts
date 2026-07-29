@@ -236,6 +236,87 @@ describe("FalProvider", () => {
     vi.unstubAllGlobals();
   });
 
+  it("routes the source image to the primary field, not an auxiliary slot", async () => {
+    // image-apps-v2/style-transfer declares `style_reference_image_url` BEFORE
+    // `image_url`; the source must land in the primary `image_url`, never the
+    // style-reference slot.
+    const uploadMock = vi
+      .fn()
+      .mockResolvedValue("https://fal.media/files/src.png");
+    const subscribeMock = vi.fn().mockResolvedValue({
+      data: { image: { url: "https://fal.ai/result.png" } }
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: new Headers(),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(4))
+      })
+    );
+
+    const p = createProvider();
+    (p as any)._client = {
+      subscribe: subscribeMock,
+      storage: { upload: uploadMock }
+    };
+
+    await p.imageToImage([new Uint8Array([1, 2, 3, 4])], {
+      prompt: "restyle",
+      model: {
+        id: "fal-ai/image-apps-v2/style-transfer",
+        name: "Style Transfer",
+        provider: "fal_ai"
+      }
+    });
+
+    const input = subscribeMock.mock.calls[0][1].input;
+    expect(input.image_url).toBe("https://fal.media/files/src.png");
+    expect(input.style_reference_image_url).toBeUndefined();
+
+    vi.unstubAllGlobals();
+  });
+
+  it("imageToVideo puts the frame in the first-frame field, not end_image_url", async () => {
+    // luma-dream-machine/image-to-video declares `end_image_url` BEFORE
+    // `image_url`; the single input frame must land in `image_url`.
+    const uploadMock = vi
+      .fn()
+      .mockResolvedValue("https://fal.media/files/frame.png");
+    const subscribeMock = vi.fn().mockResolvedValue({
+      data: { video: { url: "https://fal.ai/result.mp4" } }
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: new Headers(),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(4))
+      })
+    );
+
+    const p = createProvider();
+    (p as any)._client = {
+      subscribe: subscribeMock,
+      storage: { upload: uploadMock }
+    };
+
+    await p.imageToVideo([new Uint8Array([1, 2, 3, 4])], {
+      prompt: "animate",
+      model: {
+        id: "fal-ai/luma-dream-machine/image-to-video",
+        name: "Luma i2v",
+        provider: "fal_ai"
+      }
+    } as any);
+
+    const input = subscribeMock.mock.calls[0][1].input;
+    expect(input.image_url).toBe("https://fal.media/files/frame.png");
+    expect(input.end_image_url).toBeUndefined();
+
+    vi.unstubAllGlobals();
+  });
+
   // --- inpaint ---
 
   it("inpaint attaches the mask to the endpoint's declared mask field", async () => {

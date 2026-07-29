@@ -40,10 +40,10 @@ jobs:
       fail-fast: ${{ inputs.fail-fast }}
       matrix:
         include:
-          # Workspace, circular-dependency, key-boundary, and coupled-dependency
-          # guards (run on source, no build).
+          # Workspace, circular-dependency, key-boundary, coupled-dependency,
+          # and lockfile-sync guards (run on source, no build).
           - check: deps
-            command: node scripts/check-workspace-deps.mjs && node scripts/check-circular-deps.mjs && node scripts/check-key-boundaries.mjs && node scripts/check-coupled-deps.mjs
+            command: node scripts/check-workspace-deps.mjs && node scripts/check-circular-deps.mjs && node scripts/check-key-boundaries.mjs && node scripts/check-coupled-deps.mjs && node scripts/check-lockfile-sync.mjs
           # oxlint + web design-token lint. Neither needs package dist.
           - check: lint
             command: npm run lint
@@ -158,6 +158,31 @@ jobs:
             mobile-deps: "true"
             extra-apt: ""
             is-test: "true"
+            fetch-depth: "1"
+          # Rot detector for the shipped example workflows: `nodetool validate`
+          # against the current node registry (unknown node types, missing
+          # required properties, unselected models, dangling/mis-typed edges).
+          # --warnings-as-errors so a warning-level drift (e.g. an unselected
+          # model) fails the gate too, not just hard errors. File targets need
+          # no DB, only the built node registry from the `build` job's dist.
+          - check: examples
+            command: npm run validate:examples
+            mobile-deps: "false"
+            extra-apt: ""
+            is-test: "false"
+            fetch-depth: "1"
+          # Stage the packaged backend and boot it. Nothing outside the release
+          # workflow used to build the bundle, so a packaging regression only
+          # surfaced once a release was cut — and the release's smoke-launch
+          # spawns the Electron main process, which survives its backend child
+          # dying. v0.7.1-nightly.20260728.713 shipped a sharp/@img major skew
+          # that killed server.mjs on import with every other check green.
+          # is-test:false — this is a release gate, not a unit suite.
+          - check: bundle
+            command: npm run backend:smoke
+            mobile-deps: "false"
+            extra-apt: ""
+            is-test: "false"
             fetch-depth: "1"
     steps:
       - name: Checkout code

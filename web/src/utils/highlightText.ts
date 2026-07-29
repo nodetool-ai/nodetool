@@ -6,7 +6,6 @@ export const escapeHtml = (text: string): string => {
   return sanitizeText(text);
 };
 
-// Convert hex color to RGB values
 export const hexToRgb = (hex: string): string | null => {
   const normalizedHex = hex.trim();
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(
@@ -41,7 +40,6 @@ export const highlightText = (
     return { html, highlightedWords };
   }
 
-  // Memoize expensive string operations
   const searchTermLower = searchTerm.toLowerCase();
   const searchTermNoSpace = searchTermLower.replace(/\s+/g, "");
 
@@ -152,7 +150,6 @@ export const highlightText = (
   return { html, highlightedWords };
 };
 
-// Helper function for bullet list formatting
 export const formatBulletList = (text: string): string => {
   const lines = text.split("\n").filter((line) => line.trim());
   return `<ul>${lines.map((line) => `<li>${line}</li>`).join("\n")}</ul>`;

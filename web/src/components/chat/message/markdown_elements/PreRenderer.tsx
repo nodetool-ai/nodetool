@@ -13,8 +13,7 @@ export const PreRenderer: React.FC<PreRendererProps> = memo(({
   children,
   ...props
 }) => {
-  // Check if the <pre> tag directly contains a single <code> element
-  // ReactMarkdown often wraps the <code> in an array, even if it's the only child of <pre>
+  // ReactMarkdown often wraps the <code> in an array, even when it's the only child of <pre>.
   let codeBlockChild: React.ReactElement | null = null;
 
   if (React.Children.count(children) === 1) {
@@ -28,9 +27,7 @@ export const PreRenderer: React.FC<PreRendererProps> = memo(({
   }
 
   if (codeBlockChild) {
-    // If it's a <pre><code> structure, render our CodeBlock with the _isFromPre flag
-    // We pass along the original props intended for the <code> element (which are in codeBlockChild.props)
-    // and add our special flag.
+    // Forward the original <code> props and flag this as coming from a <pre>.
     return (
       <CodeBlock
         {...(codeBlockChild.props as Record<string, unknown>)}
@@ -39,9 +36,6 @@ export const PreRenderer: React.FC<PreRendererProps> = memo(({
       />
     );
   } else {
-    // Otherwise, render a standard <pre> tag with its children
-    // This handles cases like <pre>Some plain text</pre> or <pre><span>Text</span><code>code</code></pre>
-    // The inner <code>, if any, will be handled by the CodeBlock component without the _isFromPre flag.
     return <pre {...props}>{children}</pre>;
   }
 });

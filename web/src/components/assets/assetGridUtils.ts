@@ -41,13 +41,11 @@ export const calculateGridDimensions = (
   const maxItemSize = minItemSize * 1.1;
   const maxColumns = 100;
 
-  // Calculate the number of columns based on the available width and minimum item size
   let columns = Math.min(
     maxColumns,
     Math.max(1, Math.floor((width + itemSpacing) / (minItemSize + itemSpacing)))
   );
 
-  // Adjust item size to fill the available space, but cap it at maxItemSize
   let itemWidth = Math.min(
     Math.floor((width - itemSpacing * (columns + 1)) / columns),
     maxItemSize

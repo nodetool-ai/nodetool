@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22.0.0 <23.0.0"
   },
-  "version": "0.7.0-rc.29",
+  "version": "0.7.0-rc.32",
   "description": "FAL AI nodes for nodetool",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@fal-ai/client": "^1.9.4",
+    "@nodetool-ai/config": "*",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/runtime": "*"
   },
@@ -30,7 +31,13 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
-    "./fal-manifest.json": "./dist/fal-manifest.json"
+    "./fal-manifest.json": "./dist/fal-manifest.json",
+    "./unit-pricing-catalog": {
+      "nodetool-dev": "./src/unit-pricing-catalog.ts",
+      "types": "./dist/unit-pricing-catalog.d.ts",
+      "import": "./dist/unit-pricing-catalog.js",
+      "default": "./dist/unit-pricing-catalog.js"
+    }
   },
   "license": "MIT",
   "repository": {
@@ -48,5 +55,21 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "ai-nodes",
+    "no-code",
+    "visual-programming",
+    "workflow-nodes",
+    "fal",
+    "fal-ai",
+    "image-generation",
+    "flux",
+    "text-to-image"
   ]
 }

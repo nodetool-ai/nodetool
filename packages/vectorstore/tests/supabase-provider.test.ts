@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   CollectionNotFoundError,
   ProviderConfigError,
   SupabaseProvider,
   UnsupportedFilterError,
-  type EmbeddingFunction
+  type EmbeddingFunction,
+  type PostgrestClientApi
 } from "../src/index.js";
 
 // ---------------------------------------------------------------------------
@@ -86,8 +86,8 @@ class FakeSupabase {
     return c;
   }
 
-  asSupabase(): SupabaseClient {
-    return this as unknown as SupabaseClient;
+  asSupabase(): PostgrestClientApi {
+    return this as unknown as PostgrestClientApi;
   }
 }
 

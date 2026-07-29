@@ -11,9 +11,8 @@ namespace: "nodetool.agents"
 
 ## Description
 
-Prompt-driven browser skill with bounded tool validation and schema outputs.
-    Supports extraction and browser automation workflows.
-    skills, browser, scrape, extraction, automation
+Browse the web to fetch pages, extract data, and automate navigation from a prompt.
+    agent, browser, web, scrape, extraction, automation
 
 ## Properties
 

@@ -25,7 +25,11 @@ export async function bridge(
       headers.set(key, value);
     }
   }
-  // Forward authenticated userId as x-user-id header for route handlers
+  // Strip any client-supplied identity header, then forward only the
+  // server-authenticated userId. x-user-id is meant to be server-set: without
+  // this, a client could inject an identity on auth-exempt/public routes (where
+  // req.userId is unset) and impersonate other users downstream.
+  headers.delete("x-user-id");
   if (req.userId != null) {
     headers.set("x-user-id", req.userId);
   }

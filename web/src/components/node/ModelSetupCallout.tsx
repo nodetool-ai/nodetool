@@ -1,13 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css, keyframes } from "@emotion/react";
-import { memo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { memo, useCallback, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import KeyRoundedIcon from "@mui/icons-material/KeyRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import { useProviders } from "../../hooks/useProviders";
+import { openProviderOnboarding } from "../../stores/ProviderOnboardingStore";
 import { Text, EditorButton, ToolbarIconButton, MOTION } from "../ui_primitives";
 
 const enter = keyframes({
@@ -71,18 +71,20 @@ interface ModelSetupCalloutProps {
  */
 const ModelSetupCallout: React.FC<ModelSetupCalloutProps> = ({ onDismiss }) => {
   const theme = useTheme();
-  const navigate = useNavigate();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const { providers, isLoading, error } = useProviders();
 
   const noProvider = !isLoading && !error && providers.length === 0;
 
   const handleAddKeys = useCallback(() => {
     onDismiss();
-    navigate("/settings?tab=1");
-  }, [onDismiss, navigate]);
+    openProviderOnboarding({
+      reason: "This node needs an AI model. Connect a provider to run it."
+    });
+  }, [onDismiss]);
 
   return (
-    <div css={styles(theme)} className="nodrag nowheel">
+    <div css={cssStyles} className="nodrag nowheel">
       <ToolbarIconButton
         className="callout-close"
         size="small"

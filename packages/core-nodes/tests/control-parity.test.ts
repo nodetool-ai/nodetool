@@ -16,6 +16,7 @@ import {
   IfNode,
   LastNode,
   RerouteNode,
+  SwitchNode,
   TakeNode,
   TakeWhileNode,
   TapNode
@@ -103,6 +104,18 @@ function outputUpdatesForNode(
         message.type === "output_update" && message.node_id === nodeId
     )
     .map((message) => message.value);
+}
+
+function generationOutputsForNode(
+  result: Awaited<ReturnType<typeof runWorkflow>>,
+  nodeId: string
+): Record<string, unknown>[] {
+  return result.messages
+    .filter(
+      (message) =>
+        message.type === "generation_complete" && message.node_id === nodeId
+    )
+    .map((message) => (message as { outputs: Record<string, unknown> }).outputs);
 }
 
 describe("control parity: If node", () => {
@@ -326,6 +339,106 @@ describe("control parity: If node", () => {
 
     expect(result.status).toBe("failed");
     expect(result.error).toMatch(/independent iteration sources/);
+  });
+
+  it("emits only the taken branch key (no message on the untaken output)", async () => {
+    const resultTrue = await runWorkflow(
+      [
+        { id: "src", type: "test.Input", name: "value" },
+        { id: "if", type: IfNode.nodeType, properties: { condition: true } }
+      ],
+      [
+        {
+          source: "src",
+          sourceHandle: "value",
+          target: "if",
+          targetHandle: "value"
+        }
+      ],
+      { value: "hello" }
+    );
+    const trueOutputs = generationOutputsForNode(resultTrue, "if");
+    expect(trueOutputs).toEqual([{ if_true: "hello" }]);
+    expect(trueOutputs[0]).not.toHaveProperty("if_false");
+
+    const resultFalse = await runWorkflow(
+      [
+        { id: "src", type: "test.Input", name: "value" },
+        { id: "if", type: IfNode.nodeType, properties: { condition: false } }
+      ],
+      [
+        {
+          source: "src",
+          sourceHandle: "value",
+          target: "if",
+          targetHandle: "value"
+        }
+      ],
+      { value: "hello" }
+    );
+    const falseOutputs = generationOutputsForNode(resultFalse, "if");
+    expect(falseOutputs).toEqual([{ if_false: "hello" }]);
+    expect(falseOutputs[0]).not.toHaveProperty("if_true");
+  });
+});
+
+describe("control parity: Switch node", () => {
+  it("matches cases by deep equality, not string coercion", async () => {
+    // 1 must NOT match "1" (the old String(x)===String(y) bug), and a matching
+    // numeric case routes to `matched` with the right index.
+    const resultNoMatch = await runWorkflow(
+      [
+        {
+          id: "sw",
+          type: SwitchNode.nodeType,
+          properties: { value: 1, cases: ["1", "2"], input: "payload" }
+        }
+      ],
+      [],
+      {}
+    );
+    const noMatch = generationOutputsForNode(resultNoMatch, "sw");
+    expect(noMatch).toEqual([{ default: "payload", index: -1 }]);
+    expect(noMatch[0]).not.toHaveProperty("matched");
+
+    const resultMatch = await runWorkflow(
+      [
+        {
+          id: "sw",
+          type: SwitchNode.nodeType,
+          properties: { value: 2, cases: [1, 2, 3], input: "payload" }
+        }
+      ],
+      [],
+      {}
+    );
+    const match = generationOutputsForNode(resultMatch, "sw");
+    expect(match).toEqual([{ matched: "payload", index: 1 }]);
+    expect(match[0]).not.toHaveProperty("default");
+  });
+
+  it("matches structurally equal object cases", async () => {
+    const result = await runWorkflow(
+      [
+        {
+          id: "sw",
+          type: SwitchNode.nodeType,
+          properties: {
+            value: { a: 1 },
+            cases: [{ a: 2 }, { a: 1 }],
+            input: "hit"
+          }
+        }
+      ],
+      [],
+      {}
+    );
+    const outputs = generationOutputsForNode(result, "sw");
+    expect(outputs).toEqual([{ matched: "hit", index: 1 }]);
+  });
+
+  it("lists cases as a wireable input field", () => {
+    expect(SwitchNode.inputFields).toContain("cases");
   });
 });
 

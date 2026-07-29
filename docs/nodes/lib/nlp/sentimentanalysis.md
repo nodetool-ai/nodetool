@@ -11,7 +11,7 @@ namespace: "lib.nlp"
 
 ## Description
 
-Analyzes sentiment of text using natural's SentimentAnalyzer.
+Analyzes sentiment of text using an AFINN-based analyzer.
     sentiment, opinion, polarity, text analysis, NLP
 
     Use cases:

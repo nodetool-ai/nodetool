@@ -32,6 +32,7 @@ import { NodeInbox, type MessageEnvelope } from "./inbox.js";
 import { NodeInputs, NodeOutputs } from "./io.js";
 import { WorkflowSuspendedError } from "./suspendable.js";
 import type { NodeAnalysis } from "./correlation-analysis.js";
+import { applyDynamicSlotTypes } from "./dynamic-slots.js";
 import {
   iterationRootId,
   projectLineageKey,
@@ -240,9 +241,7 @@ export class NodeActor {
    * output slot (`outputs.complete(slot)`). Marks the slot's downstream edges
    * done immediately, rather than waiting for the actor to finish.
    */
-  private _signalSlotEos:
-    | ((nodeId: string, slot: string) => void)
-    | undefined;
+  private _signalSlotEos: ((nodeId: string, slot: string) => void) | undefined;
 
   constructor(opts: {
     node: NodeDescriptor;
@@ -306,8 +305,34 @@ export class NodeActor {
         await this._executor.preProcess();
       }
 
-      // Determine execution mode
-      if (this.node.is_streaming_input) {
+      // Determine execution mode.
+      //
+      // Trigger entry point comes first: when this run was started by a
+      // delivered trigger event targeting this node, the node does not
+      // listen — it emits the event payload on its declared outputs via
+      // emitTriggerEvent() and completes. Runs without a trigger event
+      // (user pressed Run in the editor) fall through to the normal modes
+      // below, preserving the in-editor live-test experience.
+      const triggerEvent = this._executionContext?.triggerEvent;
+      if (
+        this.node.is_trigger &&
+        triggerEvent?.node_id === this.node.id &&
+        this._executor.emitTriggerEvent
+      ) {
+        const nodeOutputs = new NodeOutputs({
+          sendFn: async (slot: string, value: unknown) => {
+            await this._sendOutputs(this.node.id, { [slot]: value });
+          },
+          eosCallback: (slot: string) => {
+            this._signalSlotEos?.(this.node.id, slot || "output");
+          }
+        });
+        await this._executor.emitTriggerEvent(triggerEvent, nodeOutputs);
+        this._latestResult = nodeOutputs.collected();
+        // One committed result per trigger event (RFC §5 site parity with
+        // the streaming-input run() path).
+        this._emitGenerationComplete(this._latestResult);
+      } else if (this.node.is_streaming_input) {
         if (this._executor.run) {
           // Streaming input mode with run(): node drains inbox via
           // NodeInputs and pushes outputs via NodeOutputs. Passing
@@ -354,11 +379,7 @@ export class NodeActor {
                   };
                 }
               }
-              await this._sendOutputs(
-                this.node.id,
-                { [slot]: value },
-                hints
-              );
+              await this._sendOutputs(this.node.id, { [slot]: value }, hints);
             },
             emitGroupFn: async (values, opts) => {
               await this._emitGroup(values, opts?.lineage);
@@ -371,7 +392,10 @@ export class NodeActor {
               // outgoing edge for `slot` at the envelope's projected key.
               // §5. The drop signal lets downstream joins move past keys
               // that were intentionally filtered out.
-              await this._propagateLineageDone(slot, envelope.correlation_lineage);
+              await this._propagateLineageDone(
+                slot,
+                envelope.correlation_lineage
+              );
             }
           });
           await this._executor.run(
@@ -385,12 +409,32 @@ export class NodeActor {
         } else {
           // Legacy fallback: call process() once with the node's own
           // property values, matching the defaults merge every other
-          // execution path applies.
+          // execution path applies. process() reads no inbox data, so any
+          // value queued on a connected data handle is dropped. Surface that
+          // instead of completing silently: the node is misdeclared (registry
+          // says is_streaming_input, implementation has no run()). Downgraded
+          // to a warning rather than a hard error because existing fixtures
+          // rely on the fallback firing with connected inputs.
+          const droppedHandles = this.inbox
+            .handles()
+            .filter((h) => h !== "__control__");
+          if (droppedHandles.length > 0) {
+            const warning =
+              `streaming-input node ${this.node.type} has no run() ` +
+              `implementation but has connected inputs ` +
+              `(${droppedHandles.join(", ")}); data would be silently dropped`;
+            // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+            log.warn(warning, {
+              nodeId: this.node.id,
+              type: this.node.type
+            });
+            this._emitNodeStatus("warning", undefined, warning);
+          }
           const outputs = await this._executor.process(
-            {
+            this._applyDynamicSlots({
               ...(this.node.properties ?? {}),
               ...(this.node.dynamic_properties ?? {})
-            },
+            }),
             this._executionContext
           );
           this._latestResult = outputs;
@@ -403,7 +447,9 @@ export class NodeActor {
         await this._runControlled();
       } else {
         if (!this._correlation) {
-          throw new Error(`Missing correlation analysis for node "${this.node.id}"`);
+          throw new Error(
+            `Missing correlation analysis for node "${this.node.id}"`
+          );
         }
         await this._runCorrelated(this._correlation);
       }
@@ -474,11 +520,6 @@ export class NodeActor {
   }
 
   // -----------------------------------------------------------------------
-  // Execution modes
-  // -----------------------------------------------------------------------
-
-
-  // -----------------------------------------------------------------------
   // Correlated buffered scheduler (PR 3 of docs/correlation-design.md)
   // -----------------------------------------------------------------------
 
@@ -539,9 +580,7 @@ export class NodeActor {
   }
 
   private async _runCorrelatedImpl(analysis: NodeAnalysis): Promise<void> {
-    const dataHandles = this.inbox
-      .handles()
-      .filter((h) => h !== "__control__");
+    const dataHandles = this.inbox.handles().filter((h) => h !== "__control__");
 
     if (dataHandles.length === 0) {
       // Source node: fire once with empty inputs at empty scope.
@@ -591,13 +630,14 @@ export class NodeActor {
     const maxBuckets = new Map<string, Map<string, MessageEnvelope[]>>();
     const prefixSticky = new Map<string, Map<string, MessageEnvelope>>();
     const emptySticky = new Map<string, MessageEnvelope>();
+    // Handles already warned about empty-scope overwrite (§11): warn once per
+    // handle per run so an unmigrated stream collapsing to last-value-wins is
+    // visible without flooding the log.
+    const emptyStickyWarned = new Set<string>();
     // Multi-edge list inputs accumulate every envelope instead of
     // overwriting; drained as an array when the node fires.
     const emptyListEnvelopes = new Map<string, MessageEnvelope[]>();
-    const prefixListBuckets = new Map<
-      string,
-      Map<string, MessageEnvelope[]>
-    >();
+    const prefixListBuckets = new Map<string, Map<string, MessageEnvelope[]>>();
 
     const isListInput = (h: string): boolean => this._listInputHandles.has(h);
 
@@ -620,14 +660,10 @@ export class NodeActor {
         if (cls === "max") {
           const bucket = maxBuckets.get(h)!.get(key);
           if (!bucket || bucket.length === 0) {
-            // No driver value: not ready unless a non-driver max handle has
-            // sticky from a side-input semantic — which only applies when a
-            // repeating driver exists.
-            if (driverHandle && h !== driverHandle) {
-              // Side input must have produced for this exact key. v1: still
-              // wait for it to arrive.
-              return false;
-            }
+            // Not ready. v1 has no side-input sticky at max scope: a
+            // non-driver max handle must still have produced for this exact
+            // key, so the answer is `false` with or without a repeating
+            // driver.
             return false;
           }
           // Multi-edge list inputs aggregate every envelope: wait for the
@@ -653,7 +689,8 @@ export class NodeActor {
             if (this.inbox.isOpen(h)) return false;
           } else if (!emptySticky.has(h)) {
             // Allow node properties / dynamic_properties to supply defaults:
-            // _executeWithInputs already merges them. So an empty-scope
+            // _executeWithInputs already merges them (and type-checks the
+            // ones with a declared slot in dynamic_inputs). So an empty-scope
             // handle without an envelope is treated as "use the node's
             // declared default" if the handle has no open upstream.
             if (this.inbox.isOpen(h)) return false;
@@ -663,7 +700,9 @@ export class NodeActor {
       return true;
     };
 
-    const collect = (key: string): {
+    const collect = (
+      key: string
+    ): {
       values: Record<string, unknown>;
       envelopes: Map<string, MessageEnvelope>;
     } => {
@@ -681,10 +720,13 @@ export class NodeActor {
             values[h] = drained.map((e) => e.data);
             maxBuckets.get(h)!.delete(key);
           } else {
-            const env = bucket.shift()!;
+            const stickySideInput = driverHandle !== null && h !== driverHandle;
+            const env = stickySideInput ? bucket[0] : bucket.shift()!;
             envelopes.set(h, env);
             values[h] = env.data;
-            if (bucket.length === 0) maxBuckets.get(h)!.delete(key);
+            if (!stickySideInput && bucket.length === 0) {
+              maxBuckets.get(h)!.delete(key);
+            }
           }
         } else if (cls === "prefix") {
           const parentScope = handleScope.get(h)!;
@@ -813,6 +855,21 @@ export class NodeActor {
         if (isListInput(handle)) {
           emptyListEnvelopes.get(handle)!.push(envelope);
         } else {
+          if (emptySticky.has(handle) && !emptyStickyWarned.has(handle)) {
+            emptyStickyWarned.add(handle);
+            // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+            log.warn(
+              `Node "${this.node.id}" handle "${handle}" received multiple ` +
+                // Stryker disable next-line StringLiteral: diagnostic log args only
+                `values at empty scope; only the last is kept. Declare ` +
+                // Stryker disable next-line StringLiteral: diagnostic log args only
+                `output_correlation (chunk/iteration) on the upstream output ` +
+                // Stryker disable next-line StringLiteral: diagnostic log args only
+                `to preserve the stream.`,
+              // Stryker disable next-line ObjectLiteral: diagnostic log args only
+              { nodeId: this.node.id, handle }
+            );
+          }
           emptySticky.set(handle, envelope);
         }
         // Empty-scope arrival can unblock any pending max-scope key.
@@ -826,10 +883,7 @@ export class NodeActor {
     await tryFire(enumerateAllPendingKeys(maxBuckets));
 
     // If the node has no max-scope inputs (all empty / prefix), fire once.
-    if (
-      [...handleClass.values()].every((c) => c !== "max") &&
-      !fired.has("")
-    ) {
+    if ([...handleClass.values()].every((c) => c !== "max") && !fired.has("")) {
       // Build values from sticky state.
       const values: Record<string, unknown> = {};
       const envelopes = new Map<string, MessageEnvelope>();
@@ -879,6 +933,43 @@ export class NodeActor {
         this._lastEnvelopes = envelopes;
         await this._executeWithInputs(values);
         fired.add("");
+      }
+    }
+
+    // Envelopes still stranded in actor-local buckets at close are invisible to
+    // the runner's post-run pending-inbox check (they were already popped). §12.
+    // With no repeating driver a key fires at most once, so a second max-scope
+    // envelope for an already-fired key is dropped silently; a key that never
+    // reached readiness keeps its envelopes too. Warn for both so the loss is
+    // not silent. Scheduling is unchanged.
+    for (const [handle, buckets] of maxBuckets) {
+      for (const [key, bucket] of buckets) {
+        if (bucket.length === 0) continue;
+        if (fired.has(key)) {
+          // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+          log.warn(
+            `Node "${this.node.id}" dropped ${bucket.length} envelope(s) on ` +
+              // Stryker disable next-line StringLiteral: diagnostic log args only
+              `handle "${handle}" for key "${key}" already fired without a ` +
+              // Stryker disable next-line StringLiteral: diagnostic log args only
+              `repeating driver; declare output_correlation to fan out per ` +
+              // Stryker disable next-line StringLiteral: diagnostic log args only
+              `item.`,
+            // Stryker disable next-line ObjectLiteral: diagnostic log args only
+            { nodeId: this.node.id, handle, key, count: bucket.length }
+          );
+        } else {
+          // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+          log.warn(
+            `Node "${this.node.id}" left ${bucket.length} envelope(s) on ` +
+              // Stryker disable next-line StringLiteral: diagnostic log args only
+              `handle "${handle}" for key "${key}" unfired at close; its ` +
+              // Stryker disable next-line StringLiteral: diagnostic log args only
+              `inputs never completed for this key.`,
+            // Stryker disable next-line ObjectLiteral: diagnostic log args only
+            { nodeId: this.node.id, handle, key, count: bucket.length }
+          );
+        }
       }
     }
   }
@@ -964,6 +1055,18 @@ export class NodeActor {
   }
 
   /**
+   * Coerce and check every input that has a declared dynamic slot on this
+   * node (`dynamic_inputs`). Slots without a declaration are untyped and
+   * pass through untouched. Throws on a value that cannot fit its declared
+   * type; the caller's catch turns that into a node error.
+   */
+  private _applyDynamicSlots(
+    inputs: Record<string, unknown>
+  ): Record<string, unknown> {
+    return applyDynamicSlotTypes(this.node, inputs);
+  }
+
+  /**
    * Execute process or genProcess with the given inputs.
    */
   private async _executeWithInputs(
@@ -980,6 +1083,7 @@ export class NodeActor {
         ...inputs
       };
     }
+    inputs = this._applyDynamicSlots(inputs);
 
     // Inject _control_context for controller nodes (Python parity:
     // process_streaming_node_with_inputs / _is_controller / _build_control_context)
@@ -1011,7 +1115,8 @@ export class NodeActor {
         // a validation error after migration; for now we warn-and-overwrite.
         const overrides = this._mintIterationFrameOverrides(routed);
         Object.assign(this._streamingCollectedOutputs, routed);
-        if (overrides) Object.assign(this._streamingCollectedOutputs, overrides);
+        if (overrides)
+          Object.assign(this._streamingCollectedOutputs, overrides);
         const emit = overrides ? { ...routed, ...overrides } : routed;
         this._latestResult = { ...this._streamingCollectedOutputs };
         await this._sendOutputs(
@@ -1211,14 +1316,10 @@ export class NodeActor {
     // The actor doesn't know the downstream inbox map directly; the runner
     // owns _sendOutputs. We extend the routing channel by passing a sentinel
     // value with `__lineage_done__` metadata so the runner can dispatch it.
-    await this._sendOutputs(
-      this.node.id,
-      { [slot]: undefined },
-      {
-        perSlotLineage: { [slot]: lineage },
-        lineageDoneSlots: new Set([slot])
-      } as OutputRoutingHints
-    );
+    await this._sendOutputs(this.node.id, { [slot]: undefined }, {
+      perSlotLineage: { [slot]: lineage },
+      lineageDoneSlots: new Set([slot])
+    } as OutputRoutingHints);
   }
 
   /**
@@ -1290,9 +1391,7 @@ export class NodeActor {
    */
   private async _runControlled(): Promise<void> {
     // Identify data handles (non-control) that need to be populated
-    const dataHandles = this.inbox
-      .handles()
-      .filter((h) => h !== "__control__");
+    const dataHandles = this.inbox.handles().filter((h) => h !== "__control__");
 
     // Wait for all data handles to have at least one value before
     // processing the first control event. This ensures that when an
@@ -1315,12 +1414,12 @@ export class NodeActor {
         // Merge node properties as defaults (matching _executeWithInputs behavior)
         const baseProps = this.node.properties ?? {};
         const dynProps = this.node.dynamic_properties ?? {};
-        const merged = {
+        const merged = this._applyDynamicSlots({
           ...baseProps,
           ...dynProps,
           ...inputs,
           ...this._currentControlProperties
-        };
+        });
         const outputs = await this._executor.process(
           merged,
           this._executionContext
@@ -1352,22 +1451,53 @@ export class NodeActor {
       return;
     }
 
-    // Drain items until all data handles have at least one value.
-    // Control events that arrive first are held aside and re-queued after
-    // the wait: prepending them back while still iterating would make the
-    // very next tryPopAny() pop the same event again — an unbounded
-    // microtask spin that starves the event loop and blocks the upstream
-    // data put() forever.
+    // Drain items until every data handle has a value. A handle whose upstream
+    // sources have all closed with nothing buffered can never be satisfied, so
+    // drop it from `pending` and let the node's declared default apply —
+    // mirroring how `_runCorrelatedImpl` treats a closed empty-scope handle.
+    // Without this the wait blocks forever whenever an upstream completes
+    // without emitting on a data handle (filter/conditional output), stranding
+    // held control events and hanging any controller awaiting sendControlEvent.
+    //
+    // A close wakes the inbox's internal waiters but yields no envelope, so this
+    // is a manual loop over `tryPopAnyWithEnvelope()` + `waitForActivity()`
+    // rather than a for-await: the pruning below must re-run on a closure that
+    // arrives while blocked.
+    //
+    // Control events that arrive first are held aside and re-queued after the
+    // wait: prepending them back while still iterating would make the very next
+    // pop return the same event again — an unbounded microtask spin that
+    // starves the event loop and blocks the upstream data put() forever.
     const heldControlEvents: MessageEnvelope[] = [];
-    for await (const [handle, envelope] of this.inbox.iterAnyWithEnvelope()) {
-      if (handle === "__control__") {
-        heldControlEvents.push(envelope);
+    for (;;) {
+      for (const handle of [...pending]) {
+        if (!this.inbox.isOpen(handle) && !this.inbox.hasBuffered(handle)) {
+          pending.delete(handle);
+        }
+      }
+      if (pending.size === 0) break;
+
+      const popped = this.inbox.tryPopAnyWithEnvelope();
+      if (popped) {
+        const [handle, envelope] = popped;
+        if (handle === "__control__") {
+          heldControlEvents.push(envelope);
+          continue;
+        }
+        if (!this._cachedInputs) this._cachedInputs = {};
+        this._cachedInputs[handle] = envelope.data;
+        pending.delete(handle);
         continue;
       }
-      if (!this._cachedInputs) this._cachedInputs = {};
-      this._cachedInputs[handle] = envelope.data;
-      pending.delete(handle);
-      if (pending.size === 0) break;
+
+      // Nothing left to pop. A closed inbox accepts no further writes, so the
+      // still-pending handles can never be satisfied — stop waiting and let the
+      // node's declared defaults apply, mirroring the iterators' `_closed`
+      // check. Without this a cancelled run parks here forever: `closeAll()`
+      // leaves `_openCounts` untouched, so the pruning above never fires.
+      if (this.inbox.isClosed()) break;
+
+      await this.inbox.waitForActivity();
     }
     // Re-queue held control events at the front, preserving arrival order,
     // so iterInput("__control__") consumes them next.

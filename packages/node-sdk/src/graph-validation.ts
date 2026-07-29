@@ -9,7 +9,14 @@
  * Takes a {@link GraphValidationRegistry} (the slice of NodeRegistry it needs)
  * so it can be unit-tested with a fake and reused by the CLI and agent tools.
  */
+import type { DynamicSlotMeta } from "@nodetool-ai/protocol";
 import type { NodeMetadata } from "./metadata.js";
+import {
+  slotTypeToString,
+  typeMetaToString,
+  typesIncompatible,
+  valueIncompatibleWithType
+} from "./type-compat.js";
 import type { NodePropertyValidationIssue } from "./validation.js";
 
 /** A node in either kernel (`properties`) or ReactFlow (`data`) shape. */
@@ -18,6 +25,10 @@ export interface GraphValidationNode {
   type?: unknown;
   properties?: Record<string, unknown>;
   data?: Record<string, unknown>;
+  /** Inline values of dynamic input slots. */
+  dynamic_properties?: Record<string, unknown>;
+  /** Typed declarations for dynamic input slots (undeclared slot = `any`). */
+  dynamic_inputs?: Record<string, DynamicSlotMeta>;
   dynamic_outputs?: unknown;
 }
 
@@ -29,6 +40,11 @@ export interface GraphValidationEdge {
   target?: unknown;
   targetHandle?: unknown;
   target_handle?: unknown;
+  /** `"control"` marks an edge the kernel excludes from data-flow analysis. */
+  edge_type?: unknown;
+  /** ReactFlow edge kind — `"control"` there too. */
+  type?: unknown;
+  data?: Record<string, unknown>;
 }
 
 export interface GraphValidationInput {
@@ -36,11 +52,31 @@ export interface GraphValidationInput {
   edges?: GraphValidationEdge[];
 }
 
-export type GraphValidationSeverity = "error" | "warning";
+/**
+ * `info` is below the `--warnings-as-errors` ratchet: it reports something
+ * worth knowing about a graph that is not a defect. An untyped dynamic slot
+ * is the motivating case — every workflow saved before typed slots has one
+ * per dynamic edge, and none of them are broken.
+ */
+export type GraphValidationSeverity = "error" | "warning" | "info";
 
 export interface GraphValidationIssue {
   severity: GraphValidationSeverity;
-  /** Stable category: "unknown_node" | "duplicate_id" | "property" | "dangling_edge" | "unknown_handle" | "type_mismatch". */
+  /**
+   * Stable category: "unknown_node" | "duplicate_id" | "property" |
+   * "dangling_edge" | "unknown_handle" | "type_mismatch" | "fan_in" |
+   * "untyped_dynamic_slot" | "dynamic_type_mismatch".
+   *
+   * - "untyped_dynamic_slot" (info): an edge targets a dynamic input that
+   *   carries no `dynamic_inputs` declaration, so its type cannot be checked.
+   *   Legacy graphs produce one per dynamic edge; never an error, and below
+   *   the warnings-as-errors ratchet.
+   * - "dynamic_type_mismatch" (warning): an inline `dynamic_properties` value
+   *   does not match its slot's declared type.
+   * - "type_mismatch": a warning for declared properties (best-effort), an
+   *   error when the target is a *declared* dynamic slot whose type the source
+   *   output cannot satisfy.
+   */
   code: string;
   nodeId?: string;
   nodeType?: string;
@@ -52,7 +88,7 @@ export interface GraphValidationReport {
   ok: boolean;
   nodeCount: number;
   edgeCount: number;
-  counts: { errors: number; warnings: number };
+  counts: { errors: number; warnings: number; info: number };
   issues: GraphValidationIssue[];
 }
 
@@ -61,7 +97,13 @@ export interface GraphValidationRegistry {
   has(nodeType: string): boolean;
   getMetadata(nodeType: string): NodeMetadata | undefined;
   validateNode(
-    descriptor: { id: string; type: string; properties?: Record<string, unknown> },
+    descriptor: {
+      id: string;
+      type: string;
+      properties?: Record<string, unknown>;
+      dynamic_inputs?: Record<string, DynamicSlotMeta>;
+      dynamic_properties?: Record<string, unknown>;
+    },
     connectedHandles?: ReadonlySet<string>
   ): NodePropertyValidationIssue[];
 }
@@ -77,7 +119,7 @@ const EDITOR_ONLY_NODE_NAMES: ReadonlySet<string> = new Set([
   "Reroute"
 ]);
 
-function isEditorOnlyType(nodeType: string): boolean {
+export function isEditorOnlyType(nodeType: string): boolean {
   const dot = nodeType.lastIndexOf(".");
   const name = dot >= 0 ? nodeType.slice(dot + 1) : nodeType;
   return (
@@ -86,40 +128,41 @@ function isEditorOnlyType(nodeType: string): boolean {
   );
 }
 
-type TypeMeta = NodeMetadata["properties"][number]["type"];
-
-function typeMetaToString(tm: TypeMeta | undefined): string {
-  if (!tm) return "";
-  const args = (tm.type_args ?? []).map(typeMetaToString).filter(Boolean);
-  return args.length > 0 ? `${tm.type}[${args.join(", ")}]` : tm.type;
-}
-
 /** Handles like `__control__` / `__output__` are framework-internal, not props. */
 function isReservedHandle(handle: string): boolean {
   return handle.startsWith("__") && handle.endsWith("__");
 }
 
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  return value as Record<string, unknown>;
+}
+
 /**
- * Conservative type compatibility: only flag a mismatch when both sides are
- * known, concrete scalars that clearly differ. `any`/`object`/`union`/empty and
- * any generic container (type_args) are treated as compatible to avoid false
- * positives — this check only ever warns, it never blocks.
+ * Typed dynamic slot declarations of a node, from either graph shape: the
+ * kernel/runner node carries `dynamic_inputs` at the top level, a ReactFlow
+ * node carries it inside `data`.
  */
-function typesIncompatible(sourceType: string, targetType: string): boolean {
-  if (!sourceType || !targetType) return false;
-  if (sourceType === targetType) return false;
-  const permissive = new Set(["any", "object", "union", "list", "dict"]);
-  const base = (t: string): string => {
-    const i = t.indexOf("[");
-    return i >= 0 ? t.slice(0, i) : t;
-  };
-  const s = base(sourceType);
-  const t = base(targetType);
-  if (permissive.has(s) || permissive.has(t)) return false;
-  if (s !== sourceType || t !== targetType) return false; // generic container — skip
-  const numeric = new Set(["int", "float"]);
-  if (numeric.has(s) && numeric.has(t)) return false;
-  return s !== t;
+function readDynamicInputs(
+  node: GraphValidationNode
+): Record<string, DynamicSlotMeta> {
+  const own = asRecord(node.dynamic_inputs);
+  if (own) return own as Record<string, DynamicSlotMeta>;
+  const fromData = asRecord(node.data?.dynamic_inputs);
+  return (fromData ?? {}) as Record<string, DynamicSlotMeta>;
+}
+
+/** Inline dynamic slot values, from either graph shape. */
+function readDynamicProperties(
+  node: GraphValidationNode
+): Record<string, unknown> {
+  return (
+    asRecord(node.dynamic_properties) ??
+    asRecord(node.data?.dynamic_properties) ??
+    {}
+  );
 }
 
 interface NormEdge {
@@ -128,6 +171,20 @@ interface NormEdge {
   sourceHandle: string;
   target: string;
   targetHandle: string;
+  /** Control edges carry no data; the kernel's analyses skip them. */
+  isControl: boolean;
+}
+
+/**
+ * A control edge is spelled `edge_type: "control"` in the kernel/runner shape
+ * and `type: "control"` / `data.edge_type: "control"` in the ReactFlow shape.
+ */
+function isControlEdge(raw: GraphValidationEdge): boolean {
+  return (
+    raw.edge_type === "control" ||
+    raw.type === "control" ||
+    raw.data?.edge_type === "control"
+  );
 }
 
 function normalizeEdge(raw: GraphValidationEdge, index: number): NormEdge {
@@ -136,7 +193,8 @@ function normalizeEdge(raw: GraphValidationEdge, index: number): NormEdge {
     source: String(raw.source ?? ""),
     sourceHandle: String(raw.sourceHandle ?? raw.source_handle ?? ""),
     target: String(raw.target ?? ""),
-    targetHandle: String(raw.targetHandle ?? raw.target_handle ?? "")
+    targetHandle: String(raw.targetHandle ?? raw.target_handle ?? ""),
+    isControl: isControlEdge(raw)
   };
 }
 
@@ -206,7 +264,11 @@ export function validateGraph(
       {
         id,
         type,
-        properties: node.properties ?? node.data ?? {}
+        properties: node.properties ?? node.data ?? {},
+        // Without these the registry cannot reach validateDynamicSlots, so a
+        // slot declared `required` is never checked.
+        dynamic_inputs: readDynamicInputs(node),
+        dynamic_properties: readDynamicProperties(node)
       },
       connectedByNode.get(id) ?? new Set<string>()
     );
@@ -217,6 +279,47 @@ export function validateGraph(
         nodeId: id,
         nodeType: type,
         message: pi.message
+      });
+    }
+  }
+
+  // ── Fan-in: >1 edge into a handle is only legal when the handle's declared
+  // type is a list. Mirrors the kernel's correlation-analysis rule so an
+  // example that validates cannot die at run time on exactly this.
+  const fanIn = new Map<string, number>();
+  for (const e of normEdges) {
+    // Control edges carry no data — `analyzeCorrelation` filters them out
+    // before counting, so counting them here would invent errors.
+    if (e.isControl) continue;
+    if (!e.target || !e.targetHandle) continue;
+    const key = `${e.target}\u0000${e.targetHandle}`;
+    fanIn.set(key, (fanIn.get(key) ?? 0) + 1);
+  }
+  for (const [key, count] of fanIn) {
+    if (count < 2) continue;
+    const [targetId, handle] = key.split("\u0000");
+    const node = byId.get(targetId);
+    const type = String(node?.type ?? "");
+    if (!type || !registry.has(type)) continue;
+    const propType = registry
+      .getMetadata(type)
+      ?.properties?.find((prop) => prop.name === handle)?.type;
+    // A dynamic slot is not a static property. The kernel merges declared slot
+    // types into `propertyTypes` (Graph.loadFromDict), so a slot declared
+    // `list[...]` is a legal fan-in target — resolve it the same way here.
+    const typeStr =
+      typeMetaToString(propType) ||
+      slotTypeToString(node ? readDynamicInputs(node)[handle] : undefined);
+    if (!(typeStr === "list" || typeStr.startsWith("list["))) {
+      issues.push({
+        severity: "error",
+        code: "fan_in",
+        nodeId: targetId,
+        nodeType: type,
+        message:
+          `Handle "${handle}" on node "${targetId}" receives ${count} edges but its ` +
+          `type "${typeStr || "unknown"}" is not a list; the kernel's correlation ` +
+          `analysis rejects this at run time`
       });
     }
   }
@@ -251,9 +354,11 @@ export function validateGraph(
 
     if (sourceMeta && e.sourceHandle && !isReservedHandle(e.sourceHandle)) {
       const out = sourceMeta.outputs.find((o) => o.name === e.sourceHandle);
-      const supportsDynamicOut =
-        sourceNode.dynamic_outputs != null &&
-        typeof sourceNode.dynamic_outputs === "object";
+      // Metadata, not instance state: `reactFlowNodeToGraphNode` writes
+      // `dynamic_outputs: {}` on every node, so testing the instance field
+      // disabled this check for nearly every saved graph. Mirrors the target
+      // side's use of `supports_dynamic_inputs`.
+      const supportsDynamicOut = sourceMeta.supports_dynamic_outputs === true;
       if (!out && !supportsDynamicOut) {
         issues.push({
           severity: "error",
@@ -267,6 +372,10 @@ export function validateGraph(
         sourceType = typeMetaToString(out.type);
       }
     }
+
+    // True when targetType came from a declared dynamic slot: the user asked
+    // for that type explicitly, so a mismatch is an error, not a guess.
+    let typedDynamicSlot = false;
 
     if (targetMeta && e.targetHandle && !isReservedHandle(e.targetHandle)) {
       const inp = targetMeta.properties.find((p) => p.name === e.targetHandle);
@@ -282,26 +391,70 @@ export function validateGraph(
         });
       } else if (inp) {
         targetType = typeMetaToString(inp.type);
+      } else {
+        const slot = readDynamicInputs(targetNode)[e.targetHandle];
+        const slotType = slotTypeToString(slot);
+        if (slotType) {
+          targetType = slotType;
+          typedDynamicSlot = true;
+        } else {
+          issues.push({
+            severity: "info",
+            code: "untyped_dynamic_slot",
+            edgeId: e.id,
+            nodeId: e.target,
+            nodeType: String(targetNode.type ?? ""),
+            message: `Edge "${e.id}" targets dynamic input "${e.targetHandle}" on ${String(targetNode.type)}, which declares no type — the connection is not type-checked`
+          });
+        }
       }
     }
 
     if (typesIncompatible(sourceType, targetType)) {
       issues.push({
-        severity: "warning",
+        severity: typedDynamicSlot ? "error" : "warning",
         code: "type_mismatch",
         edgeId: e.id,
-        message: `Edge "${e.id}" connects ${String(sourceNode.type)}.${e.sourceHandle} (${sourceType}) → ${String(targetNode.type)}.${e.targetHandle} (${targetType}) — types may be incompatible`
+        nodeId: e.target,
+        nodeType: String(targetNode.type ?? ""),
+        message: typedDynamicSlot
+          ? `Edge "${e.id}" connects ${String(sourceNode.type)}.${e.sourceHandle} (${sourceType}) → dynamic input ${String(targetNode.type)}.${e.targetHandle}, declared as ${targetType}`
+          : `Edge "${e.id}" connects ${String(sourceNode.type)}.${e.sourceHandle} (${sourceType}) → ${String(targetNode.type)}.${e.targetHandle} (${targetType}) — types may be incompatible`
       });
     }
   }
 
+  // ── Inline dynamic values against their declared slot types ──────────────
+  for (const node of nodes) {
+    const slots = readDynamicInputs(node);
+    const slotNames = Object.keys(slots);
+    if (slotNames.length === 0) continue;
+    const id = String(node.id ?? "");
+    const values = readDynamicProperties(node);
+    const connected = connectedByNode.get(id);
+    for (const name of slotNames) {
+      if (connected?.has(name)) continue;
+      const typeStr = slotTypeToString(slots[name]);
+      if (valueIncompatibleWithType(values[name], typeStr)) {
+        issues.push({
+          severity: "warning",
+          code: "dynamic_type_mismatch",
+          nodeId: id,
+          nodeType: String(node.type ?? ""),
+          message: `Dynamic input "${name}" on node "${id}" is declared as ${typeStr} but holds a ${typeof values[name]}`
+        });
+      }
+    }
+  }
+
   const errors = issues.filter((i) => i.severity === "error").length;
-  const warnings = issues.length - errors;
+  const warnings = issues.filter((i) => i.severity === "warning").length;
+  const info = issues.filter((i) => i.severity === "info").length;
   return {
     ok: errors === 0,
     nodeCount: nodes.length,
     edgeCount: edges.length,
-    counts: { errors, warnings },
+    counts: { errors, warnings, info },
     issues
   };
 }

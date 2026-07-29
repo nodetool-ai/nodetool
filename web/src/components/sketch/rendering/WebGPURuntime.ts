@@ -153,8 +153,6 @@ export class WebGPURuntime implements SketchRuntime {
   private maskBlurUniformBuffer: GPUBuffer | null = null;
 
   // ── FX evaluation ────────────────────────────────────────────────────
-  /** Temp canvas for FX-evaluated layer content (reused across layers within a frame). */
-  private fxTempCanvas: HTMLCanvasElement | null = null;
   /** Temp GPU texture for uploading FX-evaluated layer content. */
   private fxTempTexture: GPUTexture | null = null;
 
@@ -584,13 +582,6 @@ export class WebGPURuntime implements SketchRuntime {
       { texture },
       { width: canvas.width, height: canvas.height }
     );
-  }
-
-  private syncDirtyLayers(): void {
-    for (const layerId of this.dirtyLayers) {
-      this.uploadLayerToGPU(layerId);
-    }
-    this.dirtyLayers.clear();
   }
 
   /**
@@ -1880,7 +1871,6 @@ export class WebGPURuntime implements SketchRuntime {
     this.compositor = null;
     this.fxTempTexture?.destroy();
     this.fxTempTexture = null;
-    this.fxTempCanvas = null;
     this.cpuRuntime.dispose();
     this.dirtyLayers.clear();
     this.context = null;

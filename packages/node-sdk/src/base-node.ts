@@ -1,6 +1,8 @@
 import type {
+  DynamicSlotMeta,
   InputMode,
   NodeDescriptor,
+  NodeEffect,
   OutputCorrelation,
   Platform
 } from "@nodetool-ai/protocol";
@@ -8,9 +10,12 @@ import type { NodeExecutor } from "@nodetool-ai/kernel";
 import type {
   ProcessingContext,
   StreamingInputs,
-  StreamingOutputs
+  StreamingOutputs,
+  TriggerEvent
 } from "@nodetool-ai/runtime";
 import { getDeclaredPropertiesForClass } from "./decorators.js";
+import type { TypeMetadata } from "./metadata.js";
+import { slotTypeToString } from "./type-compat.js";
 import {
   validateNodeProperties,
   type NodePropertyValidationIssue
@@ -25,7 +30,10 @@ import {
  * (e.g. a single Image into a `list[image]` slot) without a manual
  * wrapper node.
  */
-function coerceToDeclaredType(value: unknown, declaredType: string): unknown {
+export function coerceToDeclaredType(
+  value: unknown,
+  declaredType: string
+): unknown {
   if (
     value !== null &&
     value !== undefined &&
@@ -35,6 +43,39 @@ function coerceToDeclaredType(value: unknown, declaredType: string): unknown {
     return [value];
   }
   return value;
+}
+
+/**
+ * Coerce a value against a typed dynamic slot's declared type. Slots with no
+ * resolvable type string pass the value through untouched (legacy `any` slot).
+ */
+export function coerceToSlotType(
+  value: unknown,
+  slot: DynamicSlotMeta | undefined
+): unknown {
+  const declaredType = slotTypeToString(slot);
+  return declaredType ? coerceToDeclaredType(value, declaredType) : value;
+}
+
+/**
+ * Read the `_dynamic_inputs` framework property injected by the registry into
+ * a slot-declaration map. Malformed entries are dropped rather than thrown on:
+ * the map is user/graph data and a bad slot must never break node construction.
+ */
+function parseDynamicSlots(
+  raw: unknown
+): Map<string, DynamicSlotMeta> | undefined {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    return undefined;
+  }
+  const slots = new Map<string, DynamicSlotMeta>();
+  for (const [name, meta] of Object.entries(raw as Record<string, unknown>)) {
+    if (meta === null || typeof meta !== "object" || Array.isArray(meta)) {
+      continue;
+    }
+    slots.set(name, meta as DynamicSlotMeta);
+  }
+  return slots;
 }
 
 export interface DeclaredOutputTypes {
@@ -50,6 +91,17 @@ export interface NodeValidationOptions {
   connectedHandles?: ReadonlySet<string> | ReadonlyArray<string>;
   /** Node id to attach to issues. Defaults to the node's __node_id. */
   nodeId?: string;
+  /**
+   * Typed dynamic input slot declarations for this node instance
+   * (`Node.dynamic_inputs`). Slots absent from this map are untyped legacy
+   * slots and are never validated.
+   */
+  dynamicSlots?: Record<string, DynamicSlotMeta>;
+  /**
+   * Inline values of the dynamic properties (`Node.dynamic_properties`).
+   * Defaults to the dynamic entries of `properties` when omitted.
+   */
+  dynamicValues?: Record<string, unknown>;
 }
 
 export type NodeClass = {
@@ -66,15 +118,22 @@ export type NodeClass = {
   requiredSettings?: string[];
   requiredRuntimes?: string[];
   isStreamingInput: boolean;
+  isTrigger: boolean;
   alwaysEmitOutputUpdates?: boolean;
   inputMode?: InputMode;
   outputCorrelation?: Record<string, OutputCorrelation>;
   supportsDynamicInputs: boolean;
+  /**
+   * Types a user may pick for a dynamic input slot on this node. Unset means
+   * the full type palette. Surfaced as `allowed_dynamic_slot_types`.
+   */
+  allowedDynamicSlotTypes?: TypeMetadata[];
   isControlled: boolean;
   isJoinNode: boolean;
   supportsDynamicOutputs?: boolean;
   autoSaveAsset: boolean;
   cacheTtl?: number | "forever";
+  effect?: NodeEffect;
   primaryOutput?: string;
   modelPacks?: unknown[];
   /**
@@ -90,6 +149,14 @@ export type NodeClass = {
    */
   requiresGpu?: boolean;
   deprecated: boolean;
+  /**
+   * Hide from node-discovery UIs (palette, search) while keeping the node
+   * registered and runnable. Unlike `deprecated` (which down-ranks and badges
+   * a still-discoverable node), a hidden node is filtered out of the palette
+   * entirely. Used for internal nodes the user never adds by hand. Set via a
+   * `static readonly hidden = true` on the node class.
+   */
+  hidden?: boolean;
   replacedBy?: string;
   metadataOutputTypes?: DeclaredOutputTypes;
   outputTypes: DeclaredOutputTypes;
@@ -186,6 +253,16 @@ export abstract class BaseNode {
   static readonly requiredRuntimes: string[] | undefined = undefined;
   static readonly isStreamingInput: boolean = false;
   /**
+   * Marks a trigger node. Triggers compile to `trigger_registrations` on
+   * workflow activation, and when a run starts because of a delivered event
+   * (`RunJobRequest.trigger_event` targeting this node) the kernel calls
+   * {@link emitTriggerEvent} instead of the live-listening `genProcess`
+   * loop. Runs without a trigger event keep today's streaming behavior
+   * (in-editor live test). See
+   * docs/superpowers/specs/2026-07-10-trigger-wakeup-redesign.md.
+   */
+  static readonly isTrigger: boolean = false;
+  /**
    * Emit output_update for this node's handles even when they are connected
    * onward. The runner suppresses output_update for connected handles by
    * default; nodes whose updates feed a UI surface regardless of patching
@@ -197,6 +274,13 @@ export abstract class BaseNode {
     | Record<string, OutputCorrelation>
     | undefined = undefined;
   static readonly supportsDynamicInputs: boolean = false;
+  /**
+   * Restricts the types a user may pick when declaring a dynamic input slot on
+   * this node (see `Node.dynamic_inputs`). Unset means the full type palette.
+   * Emitted as `allowed_dynamic_slot_types` in node metadata.
+   */
+  static readonly allowedDynamicSlotTypes: TypeMetadata[] | undefined =
+    undefined;
   static readonly isControlled: boolean = false;
   /**
    * `Zip` and `Cross` set this to true so static correlation analysis allows
@@ -218,6 +302,19 @@ export abstract class BaseNode {
    */
   static readonly cacheTtl: number | "forever" | undefined = undefined;
   /**
+   * What running this node does to the world, which decides whether a reactive
+   * run (a slider drag, an input change in a mini app) may execute it without
+   * an explicit action:
+   *   "pure"     — output depends only on inputs; safe to re-run at any rate
+   *   "read"     — reads external state but changes nothing
+   *   "write"    — mutates state the user can observe (a file, a document)
+   *   "external" — leaves the system (sends mail, calls a paid API)
+   * Reactive runs traverse "pure" and "read" only. The default is the
+   * conservative "external", so a node nobody has classified never fires off a
+   * slider drag. `cacheTtl: "forever"` implies "pure".
+   */
+  static readonly effect: NodeEffect = "external";
+  /**
    * Names the output slot that carries this node's "primary" generation — the
    * value persisted as its saved generation and previewed by the content card.
    * Unset falls back to the first declared output. See `auto_save_asset` and the
@@ -238,6 +335,11 @@ export abstract class BaseNode {
    */
   static readonly requiresGpu: boolean | undefined = undefined;
   static readonly deprecated: boolean = false;
+  /**
+   * Hidden from node-discovery UIs but still registered/runnable (see the
+   * `hidden` field on NodeClass). Unset/false means normally discoverable.
+   */
+  static readonly hidden: boolean | undefined = undefined;
   static readonly replacedBy: string | undefined = undefined;
   static readonly metadataOutputTypes: DeclaredOutputTypes | undefined =
     undefined;
@@ -247,6 +349,14 @@ export abstract class BaseNode {
   __node_name = "";
 
   protected dynamicProps = new Map<string, unknown>();
+
+  /**
+   * Typed declarations for the dynamic slots of this node instance, injected by
+   * the registry as the `_dynamic_inputs` framework property. `dynamicProps`
+   * holds the values; this holds the types. A slot missing here is an untyped
+   * legacy slot and behaves exactly as before typed slots existed.
+   */
+  protected dynamicSlotMeta = new Map<string, DynamicSlotMeta>();
 
   /**
    * Framework-injected internals (resolved `_secrets`, the `_control_context`,
@@ -288,10 +398,25 @@ export abstract class BaseNode {
     options: NodeValidationOptions = {}
   ): NodePropertyValidationIssue[] {
     const cls = this as unknown as typeof BaseNode;
-    return validateNodeProperties(cls.getDeclaredProperties(), properties, {
+    const declared = cls.getDeclaredProperties();
+    const dynamicSlots = options.dynamicSlots;
+    let dynamicValues = options.dynamicValues;
+    if (dynamicSlots && !dynamicValues) {
+      // No explicit value bag — dynamic values ride along in `properties`.
+      const declaredNames = new Set(declared.map((p) => p.name));
+      const collected: Record<string, unknown> = {};
+      for (const key of Object.keys(dynamicSlots)) {
+        if (declaredNames.has(key)) continue;
+        collected[key] = properties[key];
+      }
+      dynamicValues = collected;
+    }
+    return validateNodeProperties(declared, properties, {
       connectedHandles: options.connectedHandles,
       nodeId: options.nodeId,
-      nodeType: cls.nodeType
+      nodeType: cls.nodeType,
+      dynamicSlots,
+      dynamicValues
     });
   }
 
@@ -314,18 +439,18 @@ export abstract class BaseNode {
         properties[name] !== undefined
       ) {
         // Explicit value provided — use it (auto-wrap scalars into list[T]).
-        (this as any)[name] = coerceToDeclaredType(
+        (this as Record<string, unknown>)[name] = coerceToDeclaredType(
           properties[name],
           options.type
         );
       } else if (
-        (this as any)[name] === undefined &&
+        (this as Record<string, unknown>)[name] === undefined &&
         Object.prototype.hasOwnProperty.call(options, "default")
       ) {
         // No value on instance yet and a default exists — apply it.
         // Deep-copy mutable defaults so instances don't share references.
         const def = options.default;
-        (this as any)[name] =
+        (this as Record<string, unknown>)[name] =
           // Stryker disable next-line ConditionalExpression,LogicalOperator: the guard only matters for object defaults (covered by the deep-copy test); for scalars the JSON round-trip is identity, so every variant still deep-copies objects and passes scalars through (equivalent).
           def !== null && typeof def === "object"
             ? JSON.parse(JSON.stringify(def))
@@ -337,6 +462,12 @@ export abstract class BaseNode {
     // are routed to `_internalProps` instead of `dynamicProps` so they never
     // leak into user-facing dynamic-input iteration or `serialize()`.
     if (ctor.supportsDynamicInputs) {
+      // Slot declarations arrive before the values are stored so the values can
+      // be coerced against their declared type in the same pass.
+      const slots = parseDynamicSlots(properties._dynamic_inputs);
+      if (slots) {
+        this.dynamicSlotMeta = slots;
+      }
       for (const [key, value] of Object.entries(properties)) {
         if (declaredNames.has(key)) continue;
         // Stryker disable next-line ConditionalExpression,LogicalOperator,StringLiteral: __node_id/__node_name are "_"-prefixed, so removing this explicit skip routes them to _internalProps anyway — never into dynamicProps or serialize() (equivalent).
@@ -344,7 +475,10 @@ export abstract class BaseNode {
         if (key.startsWith("_")) {
           this._internalProps.set(key, value);
         } else {
-          this.dynamicProps.set(key, value);
+          this.dynamicProps.set(
+            key,
+            coerceToSlotType(value, this.dynamicSlotMeta.get(key))
+          );
         }
       }
     }
@@ -355,7 +489,7 @@ export abstract class BaseNode {
     const result: Record<string, unknown> = {};
 
     for (const { name } of ctor.getDeclaredProperties()) {
-      result[name] = (this as any)[name];
+      result[name] = (this as Record<string, unknown>)[name];
     }
 
     // Include dynamic properties so round-trip serialization is lossless
@@ -376,13 +510,21 @@ export abstract class BaseNode {
     if (key.startsWith("_")) {
       this._internalProps.set(key, value);
     } else {
-      this.dynamicProps.set(key, value);
+      this.dynamicProps.set(
+        key,
+        coerceToSlotType(value, this.dynamicSlotMeta.get(key))
+      );
     }
   }
 
   getDynamic<T = unknown>(key: string): T | undefined {
     const store = key.startsWith("_") ? this._internalProps : this.dynamicProps;
     return store.get(key) as T | undefined;
+  }
+
+  /** Declared types of this instance's dynamic slots, keyed by slot name. */
+  getDynamicSlots(): ReadonlyMap<string, DynamicSlotMeta> {
+    return this.dynamicSlotMeta;
   }
 
   async initialize(): Promise<void> {}
@@ -402,7 +544,14 @@ export abstract class BaseNode {
     const ctor = this.constructor as typeof BaseNode;
     return ctor.validateProperties(this.serialize(), {
       connectedHandles: options.connectedHandles,
-      nodeId: options.nodeId ?? (this.__node_id || undefined)
+      nodeId: options.nodeId ?? (this.__node_id || undefined),
+      dynamicSlots:
+        options.dynamicSlots ??
+        (this.dynamicSlotMeta.size > 0
+          ? Object.fromEntries(this.dynamicSlotMeta)
+          : undefined),
+      dynamicValues:
+        options.dynamicValues ?? Object.fromEntries(this.dynamicProps)
     });
   }
 
@@ -427,6 +576,33 @@ export abstract class BaseNode {
     outputs: StreamingOutputs,
     context?: ProcessingContext
   ): Promise<void>;
+
+  /**
+   * Trigger entry point — called instead of `genProcess()` when the run
+   * carries a `trigger_event` for this node (see the `isTrigger` static).
+   * The default maps the keys of an object payload onto this node's
+   * declared output slots and drops everything else. Trigger subclasses
+   * override this to shape their adapter payloads (webhook envelope,
+   * synthesized tick, file-watch event) onto their specific slots.
+   */
+  async emitTriggerEvent(
+    event: TriggerEvent,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const ctor = this.constructor as typeof BaseNode;
+    const declared = ctor.metadataOutputTypes ?? ctor.getDeclaredOutputs();
+    const payload = event.payload;
+    if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
+      return;
+    }
+    for (const [key, value] of Object.entries(
+      payload as Record<string, unknown>
+    )) {
+      if (key in declared) {
+        await outputs.emit(key, value);
+      }
+    }
+  }
 
   /**
    * Resolve requiredSettings from the context's secret store. Returns an
@@ -525,7 +701,9 @@ export abstract class BaseNode {
         this.assign(properties),
       preProcess: () => this.preProcess(),
       finalize: () => this.finalize(),
-      initialize: () => this.initialize()
+      initialize: () => this.initialize(),
+      emitTriggerEvent: (event: TriggerEvent, outputs: StreamingOutputs) =>
+        this.emitTriggerEvent(event, outputs)
     };
     if (this.run) {
       executor.run = async (
@@ -561,7 +739,8 @@ export abstract class BaseNode {
       input_mode: cls.inputMode,
       output_correlation: cls.outputCorrelation,
       is_controlled: cls.isControlled,
-      is_join_node: cls.isJoinNode || undefined
+      is_join_node: cls.isJoinNode || undefined,
+      is_trigger: cls.isTrigger || undefined
     };
     if (Object.keys(propertyTypes).length > 0) {
       desc.propertyTypes = propertyTypes;

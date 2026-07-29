@@ -128,7 +128,7 @@ function GraphInner() {
         // Check for inline JSON via ?data= (base64)
         const dataParam = searchParams.get("data");
         if (dataParam) {
-          const json = JSON.parse(atob(dataParam));
+          const json: unknown = JSON.parse(atob(dataParam));
           ({ workflow } = parseWorkflowJSON(json));
         } else if (workflowId && workflowId !== "json") {
           workflow = await fetchWorkflowById(workflowId);

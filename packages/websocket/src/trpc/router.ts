@@ -6,17 +6,23 @@ import { costsRouter } from "./routers/costs.js";
 import { extensionRouter } from "./routers/extension.js";
 import { filesRouter } from "./routers/files.js";
 import { jobsRouter } from "./routers/jobs.js";
+import { triggersRouter } from "./routers/triggers.js";
 import { mcpConfigRouter } from "./routers/mcp-config.js";
 import { messagesRouter } from "./routers/messages.js";
 import { modelsRouter } from "./routers/models.js";
 import { nodesRouter } from "./routers/nodes.js";
 import { packsRouter } from "./routers/packs.js";
 import { sandboxesRouter } from "./routers/sandboxes.js";
+import { scriptsRouter } from "./routers/scripts.js";
 import { settingsRouter } from "./routers/settings.js";
-import { skillsRouter, fontsRouter } from "./routers/skills.js";
+import { fontsRouter } from "./routers/fonts.js";
 import { storageRouter } from "./routers/storage.js";
 import { threadsRouter } from "./routers/threads.js";
+import { threadMemoriesRouter } from "./routers/thread-memories.js";
 import { sketchRouter } from "./routers/sketch.js";
+import { storyboardsRouter } from "./routers/storyboards.js";
+import { applicationsRouter } from "./routers/applications.js";
+import { resourcesRouter } from "./routers/resources.js";
 import { timelineRouter } from "./routers/timeline.js";
 import { usersRouter } from "./routers/users.js";
 import { workerRouter } from "./routers/worker.js";
@@ -34,17 +40,22 @@ export const appRouter = router({
   files: filesRouter,
   fonts: fontsRouter,
   jobs: jobsRouter,
+  triggers: triggersRouter,
   mcpConfig: mcpConfigRouter,
   messages: messagesRouter,
   models: modelsRouter,
   nodes: nodesRouter,
   packs: packsRouter,
   sandboxes: sandboxesRouter,
+  scripts: scriptsRouter,
   settings: settingsRouter,
   sketch: sketchRouter,
-  skills: skillsRouter,
+  storyboards: storyboardsRouter,
+  applications: applicationsRouter,
+  resources: resourcesRouter,
   storage: storageRouter,
   threads: threadsRouter,
+  threadMemories: threadMemoriesRouter,
   timeline: timelineRouter,
   users: usersRouter,
   worker: workerRouter,

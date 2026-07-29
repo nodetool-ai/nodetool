@@ -55,7 +55,7 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   workspace_read: "read",
   workspace_list: "read",
   // --- read: web & document reads ---
-  google_search: "read",
+  web_search: "read",
   google_news: "read",
   google_images: "read",
   google_grounded_search: "read",
@@ -67,6 +67,8 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   extract_pdf_text: "read",
   extract_pdf_tables: "read",
   convert_pdf_to_markdown: "read",
+  view_image: "read",
+  list_images: "read",
   // --- read: nodetool inspection (REST + local) ---
   list_workflows: "read",
   get_workflow: "read",
@@ -99,6 +101,10 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   memory_write: "read",
   ltm_recall: "read",
   ltm_remember: "read",
+  // Thread-memory reads + asset-library discovery have no side effects.
+  thread_memory_list: "read",
+  asset_search: "read",
+  asset_list: "read",
   create_plan: "read",
   finish_plan: "read",
   create_task: "read",
@@ -107,11 +113,19 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   finish_task: "read",
   finish_step: "read",
   finish_graph: "read",
+  submit_graph: "read",
   add_node: "read",
   add_edge: "read",
   // run_subtask spawns a child loop whose own tools are gated; the call
   // itself has no side effects, so it always runs.
   run_subtask: "read",
+  // plan_workflow_graph only builds and returns a graph — saving it goes
+  // through the gated `create_workflow`.
+  plan_workflow_graph: "read",
+  // plan_orchestration_script runs its script in the QuickJS sandbox; the
+  // sub-agents it spawns get the gated parent toolset, so every side effect
+  // is still approved at the individual tool call.
+  plan_orchestration_script: "read",
   // run_search spawns a read-only child loop (read_file/glob/grep/
   // list_directory/memory_read only); the call itself has no side effects, so
   // it always runs ungated.
@@ -125,6 +139,11 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   convert_markdown_to_pdf: "write",
   convert_document: "write",
   save_asset: "write",
+  // Thread-memory mutations touch local DB state (not third-party), so they
+  // are `write` (gated in default/plan mode), not the conservative `external`.
+  thread_memory_save: "write",
+  thread_memory_update: "write",
+  thread_memory_delete: "write",
   create_workflow: "write",
   generate_image: "write",
   edit_image: "write",

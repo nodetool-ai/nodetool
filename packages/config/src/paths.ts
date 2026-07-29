@@ -188,5 +188,13 @@ export function getAssetFilePath(key: string): string {
  * backend) or proxied/redirected to cloud storage by the storage handler.
  */
 export function buildAssetUrl(key: string): string {
-  return `/api/storage/${key.replace(/^\/+/, "")}`;
+  // Encode each path segment so reserved chars (`#`, `?`, space, `%`) survive
+  // the round-trip through the decoding route (storage-api.ts decodeURIComponent
+  // and FileStorageAdapter.keyFromUri). `/` separators are preserved.
+  const encoded = key
+    .replace(/^\/+/, "")
+    .split("/")
+    .map(encodeURIComponent)
+    .join("/");
+  return `/api/storage/${encoded}`;
 }

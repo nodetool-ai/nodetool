@@ -1,18 +1,12 @@
 import { memo } from "react";
-import { LinearProgressProps } from "@mui/material";
-import { ProgressBar } from "../ui_primitives/ProgressBar";
+import type { LinearProgressProps } from "../ui_primitives";
+import { ProgressBar } from "../ui_primitives";
 
 type LinearProgressWithLabelProps = LinearProgressProps & {
     filename?: string,
     value: number
 }
 
-/**
- * Memoized linear progress component with filename and percentage display.
- * Optimized to prevent unnecessary re-renders during file upload operations.
- *
- * Now wraps the ProgressBar UI primitive.
- */
 export const LinearProgressWithLabel = memo(function LinearProgressWithLabel(props: LinearProgressWithLabelProps) {
     const { filename, value, ...rest } = props;
 

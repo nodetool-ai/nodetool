@@ -66,7 +66,6 @@ export class ControlNodeTool extends Tool {
     this.targetNodeId = targetNodeId;
     this.nodeInfo = nodeInfo;
 
-    // Build schema from the "run" action properties
     const actions = nodeInfo.control_actions ?? {};
     const runAction = actions["run"] ?? {};
     const rawProperties = runAction.properties ?? {};
@@ -83,14 +82,13 @@ export class ControlNodeTool extends Tool {
     this.jsonSchema = {
       type: "object",
       properties,
-      required: []
+      required: [],
+      additionalProperties: false
     };
 
-    // Set name from normalized node title
     const nodeTitle = nodeInfo.node_title || targetNodeId;
     this.name = sanitizeToolName(nodeTitle);
 
-    // Set description
     if (nodeInfo.node_description) {
       this.description = nodeInfo.node_description;
     } else {
@@ -103,11 +101,12 @@ export class ControlNodeTool extends Tool {
     }
   }
 
-  /**
-   * Create a control event from tool arguments.
-   */
   createControlEvent(args: Record<string, unknown>): ControlEvent {
-    return { event_type: "run", properties: args } satisfies RunEvent;
+    const allowed = this.jsonSchema["properties"] as Record<string, unknown>;
+    const properties = Object.fromEntries(
+      Object.entries(args).filter(([key]) => Object.hasOwn(allowed, key))
+    );
+    return { event_type: "run", properties } satisfies RunEvent;
   }
 
   userMessage(params: Record<string, unknown>): string {

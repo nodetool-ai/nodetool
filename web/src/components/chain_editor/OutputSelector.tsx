@@ -9,12 +9,13 @@ import {
   MOTION,
   BORDER_RADIUS,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  activateOnKey
 } from "../ui_primitives";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import CheckIcon from "@mui/icons-material/Check";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { Text } from "../ui_primitives/Text";
+import { Text } from "../ui_primitives";
 import type { OutputSlot } from "../../stores/ApiTypes";
 
 interface OutputSelectorProps {
@@ -39,6 +40,14 @@ export const OutputSelector: React.FC<OutputSelectorProps> = React.memo(function
     <>
       <Box
         onClick={(e) => setAnchorEl(e.currentTarget)}
+        onKeyDown={activateOnKey<HTMLDivElement>((e) =>
+          setAnchorEl(e.currentTarget)
+        )}
+        role="button"
+        tabIndex={0}
+        aria-haspopup="menu"
+        aria-expanded={Boolean(anchorEl)}
+        aria-label="Select output"
         sx={{
           display: "inline-flex",
           alignItems: "center",
@@ -57,9 +66,7 @@ export const OutputSelector: React.FC<OutputSelectorProps> = React.memo(function
         <Text size="smaller" weight={600} sx={{ color: theme.vars.palette.primary.main }}>
           Output: {selected?.name ?? selectedOutput}
         </Text>
-        <Text size="tiny" sx={{ color: `${theme.vars.palette.primary.main}99` }}>
-          {selected ? formatType(selected.type) : ""}
-        </Text>
+        <Text size="smaller" sx={{ color: `${theme.vars.palette.primary.main}99` }}>{selected ? formatType(selected.type) : ""}</Text>
         <ExpandMoreIcon sx={{ fontSize: 14, color: theme.vars.palette.primary.main }} />
       </Box>
 

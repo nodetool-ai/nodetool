@@ -3,7 +3,7 @@ import { persist } from "zustand/middleware";
 
 type FavoriteKey = string; // `${provider}:${id}`
 
-export type RecentEntry = {
+type RecentEntry = {
   provider: string;
   id: string;
   name: string;
@@ -145,13 +145,11 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
               : fallback.defaults
         };
       },
-      // Rehydrate Set
       onRehydrateStorage: () => (state) => {
         if (!state) {
           return;
         }
         // After JSON deserialization, favorites is an array, not a Set.
-        // Cast through unknown because the runtime shape differs from the declared type.
         const rawFavorites = state.favorites as unknown;
         state.favorites = Array.isArray(rawFavorites)
           ? new Set(rawFavorites as FavoriteKey[])

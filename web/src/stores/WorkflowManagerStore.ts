@@ -1,9 +1,5 @@
-// WorkflowManagerStore.ts
-// -----------------------------------------------
-// Zustand store for managing workflows in the app.
-// This file contains only the store creation logic, separated from the
-// React context to maintain Fast Refresh compatibility.
-// -----------------------------------------------
+// Store creation for workflow management, kept separate from the React context
+// so Fast Refresh keeps working.
 
 import { create, StoreApi, UseBoundStore } from "zustand";
 import { NodeStore, createNodeStore } from "./NodeStore";
@@ -26,6 +22,10 @@ import {
 } from "../serverState/useWorkflow";
 import { subscribeToWorkflowUpdates, unsubscribeFromWorkflowUpdates, setGetNodeStore } from "./workflowUpdates";
 import { disposeWorkflowRunnerStore, getWorkflowRunnerStore } from "./WorkflowRunner";
+import {
+  disposeAppRuntimeStore,
+  workflowInstanceId
+} from "../components/appbuilder/runtime/appRuntimeStore";
 import useResultsStore from "./ResultsStore";
 import useErrorStore from "./ErrorStore";
 import useStatusStore from "./StatusStore";
@@ -37,63 +37,37 @@ import { useWorkflowAssetStore } from "./WorkflowAssetStore";
 import { useSubgraphTabsStore } from "./SubgraphTabsStore";
 import { useCurrentWorkspaceStore } from "./CurrentWorkspaceStore";
 
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  typeof v === "object" && v !== null && !Array.isArray(v);
+
 const isWorkflowNotFoundError = (err: unknown): boolean => {
-  if (!err || typeof err !== "object") return false;
-  if ("data" in err) {
-    const { data } = err as { data: unknown };
-    if (data && typeof data === "object") {
-      if (
-        "code" in data &&
-        (data as { code: unknown }).code === "NOT_FOUND"
-      ) {
-        return true;
-      }
-      if (
-        "apiCode" in data &&
-        (data as { apiCode: unknown }).apiCode === "WORKFLOW_NOT_FOUND"
-      ) {
-        return true;
-      }
-    }
+  if (!isRecord(err)) return false;
+  if (isRecord(err.data)) {
+    if (err.data.code === "NOT_FOUND") return true;
+    if (err.data.apiCode === "WORKFLOW_NOT_FOUND") return true;
   }
-  if ("message" in err) {
-    const { message } = err as { message: unknown };
-    if (typeof message === "string") {
-      return /not found/i.test(message);
-    }
+  if (typeof err.message === "string") {
+    return /not found/i.test(err.message);
   }
   return false;
 };
 
-// -----------------------------------------------------------------
-// HELPER FUNCTIONS
-// -----------------------------------------------------------------
-
-// -----------------------------------------------------------------
-// LOCAL STORAGE UTILITIES
-// -----------------------------------------------------------------
-
-// Storage keys for persisting workflow state in localStorage.
 const STORAGE_KEYS = {
   CURRENT_WORKFLOW: "currentWorkflowId",
   OPEN_WORKFLOWS: "openWorkflows"
 } as const;
 
-// localStorage utilities with debounced writes
+// localStorage utilities with debounced writes.
 const storage = {
-  // Retrieve the current workflow ID from localStorage.
   getCurrentWorkflow: () => localStorage.getItem(STORAGE_KEYS.CURRENT_WORKFLOW),
 
-  // Retrieve the list of open workflow IDs.
   getOpenWorkflows: (): string[] =>
     JSON.parse(localStorage.getItem(STORAGE_KEYS.OPEN_WORKFLOWS) || "[]") as string[],
 
-  // Debounced setter for the current workflow ID.
   setCurrentWorkflow: debounce((workflowId: string) => {
     localStorage.setItem(STORAGE_KEYS.CURRENT_WORKFLOW, workflowId);
   }, 100),
 
-  // Debounced setter for the array of open workflows.
   setOpenWorkflows: debounce((workflowIds: string[]) => {
     localStorage.setItem(
       STORAGE_KEYS.OPEN_WORKFLOWS,
@@ -102,13 +76,8 @@ const storage = {
   }, 100)
 };
 
-// Export storage utility function for use in WorkflowManagerContext
 export const getOpenWorkflowsFromStorage = (): string[] =>
   JSON.parse(localStorage.getItem(STORAGE_KEYS.OPEN_WORKFLOWS) || "[]") as string[];
-
-// -----------------------------------------------------------------
-// HELPER FUNCTIONS
-// -----------------------------------------------------------------
 
 /**
  * Determines the next active workflow ID when a workflow is removed.
@@ -118,7 +87,7 @@ export const getOpenWorkflowsFromStorage = (): string[] =>
  * @param currentWorkflowId - The ID of the currently active workflow.
  * @returns The ID of the next workflow to be activated, or null if none are left.
  */
-export const determineNextWorkflowId = (
+const determineNextWorkflowId = (
   openWorkflows: WorkflowAttributes[],
   closingWorkflowId: string,
   currentWorkflowId: string | null
@@ -146,10 +115,6 @@ export const determineNextWorkflowId = (
 
   return nextWorkflow.id;
 };
-
-// -----------------------------------------------------------------
-// TYPES
-// -----------------------------------------------------------------
 
 export type WorkflowManagerState = {
   nodeStores: Record<string, NodeStore>;
@@ -264,10 +229,6 @@ const releasePricingUnsubs = (workflowId: string): void => {
   }
 };
 
-// -----------------------------------------------------------------
-// ZUSTAND STORE CREATION
-// -----------------------------------------------------------------
-
 /**
  * Creates a new Zustand store for managing workflows.
  * @param {QueryClient} queryClient The React Query client instance
@@ -281,10 +242,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       notifiedAutosaveVersions: {},
       currentWorkflowId: storage.getCurrentWorkflow() || null,
       queryClient: queryClient,
-
-      // ---------------------------------------------------------------------------------
-      // Workflow Creation and API methods
-      // ---------------------------------------------------------------------------------
 
       /**
        * Creates a new workflow with default properties.
@@ -339,14 +296,14 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
               id: workflow.id,
               name: workflow.name,
               access: workflow.access ?? "private",
-              graph: graph as Parameters<typeof trpcClient.workflows.update.mutate>[0]["graph"],
+              graph,
               tool_name: workflow.tool_name,
               description: workflow.description,
               tags: workflow.tags,
               package_name: workflow.package_name,
               thumbnail: workflow.thumbnail,
               thumbnail_url: workflow.thumbnail_url,
-              settings: workflow.settings as Record<string, unknown> | null | undefined,
+              settings: workflow.settings,
               run_mode: workflow.run_mode,
               workspace_id: workflow.workspace_id,
               html_app: workflow.html_app
@@ -452,14 +409,14 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           data = (await trpcClient.workflows.create.mutate({
             name: workflow.name,
             access: workflow.access ?? "private",
-            graph: graph as Parameters<typeof trpcClient.workflows.create.mutate>[0]["graph"],
+            graph,
             tool_name: workflow.tool_name,
             description: workflow.description,
             tags: workflow.tags,
             package_name: workflow.package_name,
             thumbnail: workflow.thumbnail,
             thumbnail_url: workflow.thumbnail_url,
-            settings: workflow.settings as Record<string, unknown> | null | undefined,
+            settings: workflow.settings,
             run_mode: workflow.run_mode,
             workspace_id: workflow.workspace_id,
             html_app: workflow.html_app,
@@ -522,7 +479,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       // Loads public workflows available from the API.
       loadPublic: async (_cursor?: string) => {
         const data = await trpcClient.workflows.public.list.query({ limit: 100 });
-        return data as unknown as WorkflowList;
+        return data as WorkflowList;
       },
 
       // Loads template workflows.
@@ -565,7 +522,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           thumbnail_url: workflow.thumbnail_url,
           tags: workflow.tags,
           access: "private",
-          graph: structuredClone(workflow.graph), // Deep copy graph
+          graph: structuredClone(workflow.graph),
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           settings: workflow.settings
@@ -616,7 +573,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           package_name: packageName,
           path: workflow.path,
           access: "public",
-          graph: workflow.graph as never
+          graph: workflow.graph
         });
 
         get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
@@ -626,12 +583,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         });
         get().queryClient?.invalidateQueries({ queryKey: ["workflow-tools"] });
 
-        return data as unknown as Workflow;
+        return data as Workflow;
       },
-
-      // ---------------------------------------------------------------------------------
-      // Current Workflow (loading state handled via React Query)
-      // ---------------------------------------------------------------------------------
 
       /**
        * Sets the current workflow ID and syncs it to localStorage.
@@ -653,10 +606,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         const store = get().nodeStores[workflowId];
         return store ? store.getState().getWorkflow() : undefined;
       },
-
-      // ---------------------------------------------------------------------------------
-      // Handling Open Workflows and Node Stores
-      // ---------------------------------------------------------------------------------
 
       /**
        * Adds a workflow to the store and updates open workflows.
@@ -816,6 +765,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
            }
          }
          disposeWorkflowRunnerStore(workflowId);
+         disposeAppRuntimeStore(workflowInstanceId(workflowId));
 
          // Drop per-workflow keyed entries from singleton stores so they
          // don't accumulate forever in long-lived sessions.
@@ -875,10 +825,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
        // Returns the node store for a given workflow Id.
       getNodeStore: (workflowId: string) => get().nodeStores[workflowId],
-
-      // ---------------------------------------------------------------------------------
-      // Reordering and Updating Workflows
-      // ---------------------------------------------------------------------------------
 
       /**
        * Reorders workflows in the list.

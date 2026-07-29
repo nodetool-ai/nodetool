@@ -116,35 +116,6 @@ export interface DropZoneConfig<T extends DragDataType = DragDataType> {
 }
 
 /**
- * Draggable element options
- */
-export interface DraggableOptions {
-  /** Custom drag image element or configuration */
-  dragImage?: HTMLElement | DragImageConfig;
-
-  /** Called when drag starts */
-  onDragStart?: (event: React.DragEvent) => void;
-
-  /** Called when drag ends */
-  onDragEnd?: (event: React.DragEvent) => void;
-
-  /** Disable dragging */
-  disabled?: boolean;
-
-  /** Drop effect to show */
-  effectAllowed?: DataTransfer["effectAllowed"];
-}
-
-export interface DragImageConfig {
-  /** Badge showing count */
-  count?: number;
-  /** Custom content to show */
-  content?: string;
-  /** Position offset */
-  offset?: { x: number; y: number };
-}
-
-/**
  * Global drag state exposed through store
  */
 export interface DragDropState {

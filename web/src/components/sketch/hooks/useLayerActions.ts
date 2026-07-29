@@ -8,7 +8,7 @@
 import { useCallback, type RefObject } from "react";
 import type { SketchCanvasRef } from "../SketchCanvas";
 import type { BlendMode, PushHistoryOptions, SketchDocument } from "../types";
-import { findMergeDownTargetIndex } from "../types";
+import { findLayerMoveTargetIndex, findMergeDownTargetIndex } from "../types";
 import { useSketchStore } from "../state";
 import { getMergeSelectedLayersPlan } from "../layerMergeSelection";
 
@@ -159,6 +159,30 @@ export function useLayerActions({
     (fromIndex: number, toIndex: number) => {
       reorderLayers(fromIndex, toIndex);
       pushHistory("reorder layers");
+      scheduleDisplayRedraw();
+    },
+    [pushHistory, reorderLayers, scheduleDisplayRedraw]
+  );
+
+  /**
+   * Keyboard reorder of the active layer within its sibling list. A no-op when
+   * the neighbor in the move direction is a group or lives under a different
+   * parent (see `findLayerMoveTargetIndex`), so groups stay intact.
+   */
+  const handleMoveActiveLayer = useCallback(
+    (direction: "up" | "down") => {
+      const { document: doc } = useSketchStore.getState();
+      const activeId = doc.activeLayerId;
+      if (!activeId) {
+        return;
+      }
+      const fromIndex = doc.layers.findIndex((l) => l.id === activeId);
+      const toIndex = findLayerMoveTargetIndex(doc.layers, activeId, direction);
+      if (fromIndex < 0 || toIndex < 0) {
+        return;
+      }
+      reorderLayers(fromIndex, toIndex);
+      pushHistory(direction === "up" ? "move layer up" : "move layer down");
       scheduleDisplayRedraw();
     },
     [pushHistory, reorderLayers, scheduleDisplayRedraw]
@@ -451,6 +475,7 @@ export function useLayerActions({
     handleRemoveLayer,
     handleDuplicateLayer,
     handleReorderLayers,
+    handleMoveActiveLayer,
     handleToggleVisibility,
     handleSetLayerOpacity,
     handleSetLayerBlendMode,

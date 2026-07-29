@@ -1,9 +1,4 @@
-/**
- * Docker utilities for NodeTool deployment.
- *
- * This module contains all Docker-related functionality for building, pushing,
- * and managing Docker images for NodeTool deployments.
- */
+/** Docker utilities for building, pushing, and running NodeTool images. */
 
 import { execSync, execFileSync, execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -18,13 +13,7 @@ import * as path from "node:path";
  */
 export const execFileAsync = promisify(execFile);
 
-// ---------------------------------------------------------------------------
-// Shell helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Escape a string for safe shell inclusion (single-quote wrapping).
- */
+/** Escape a string for safe shell inclusion (single-quote wrapping). */
 export function shellEscape(value: string): string {
   // Equivalent to Python shlex.quote: wrap in single quotes, escape embedded
   // single quotes with '\'' technique.
@@ -34,10 +23,6 @@ export function shellEscape(value: string): string {
   }
   return value;
 }
-
-// ---------------------------------------------------------------------------
-// Run command
-// ---------------------------------------------------------------------------
 
 /**
  * Run a command safely without shell expansion.
@@ -61,7 +46,6 @@ export function runCommand(
       if (output) console.log(output);
       return output;
     }
-    // Stream mode: print lines
     if (output) {
       for (const line of output.split("\n")) {
         console.log(line);
@@ -73,10 +57,6 @@ export function runCommand(
     throw new Error(`Command failed with return code ${code}: ${command}`);
   }
 }
-
-// ---------------------------------------------------------------------------
-// Run command (args array – no shell)
-// ---------------------------------------------------------------------------
 
 /**
  * Run a command safely using execFileSync with an argument array (no shell).
@@ -103,7 +83,6 @@ export function runCommandArgs(
       if (output) console.log(output);
       return output;
     }
-    // Stream mode: print lines
     if (output) {
       for (const line of output.split("\n")) {
         console.log(line);
@@ -118,13 +97,7 @@ export function runCommandArgs(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Docker authentication
-// ---------------------------------------------------------------------------
-
-/**
- * Check if user is authenticated with the Docker registry.
- */
+/** Check if user is authenticated with the Docker registry. */
 export function checkDockerAuth(_registry: string = "docker.io"): boolean {
   try {
     execSync("docker system info --format '{{.RegistryConfig.IndexConfigs}}'", {
@@ -157,10 +130,6 @@ export function ensureDockerAuth(registry: string = "docker.io"): void {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Image naming & tagging
-// ---------------------------------------------------------------------------
 
 /**
  * Format the image name with proper registry and username prefix.
@@ -208,10 +177,6 @@ export function generateImageTag(): string {
   return `${timestamp}-${shortHash}`;
 }
 
-// ---------------------------------------------------------------------------
-// Build Docker image
-// ---------------------------------------------------------------------------
-
 export interface BuildDockerImageOptions {
   imageName: string;
   tag: string;
@@ -237,20 +202,17 @@ export function buildDockerImage(options: BuildDockerImageOptions): boolean {
   console.log("Building Docker image");
   console.log(`Platform: ${platform}`);
 
-  // Get paths to build inputs
   const scriptDir = path.dirname(new URL(import.meta.url).pathname);
   // The Dockerfile is at the project root, which is 3 levels up
   const projectRoot = path.resolve(scriptDir, "../../..");
   const deployDockerfilePath = path.join(projectRoot, "Dockerfile");
 
-  // Create a temporary build directory
   const buildDir = fs.mkdtempSync(path.join(os.tmpdir(), "nodetool_build_"));
   console.log(`Using build directory: ${buildDir}`);
 
   try {
     fs.copyFileSync(deployDockerfilePath, path.join(buildDir, "Dockerfile"));
 
-    // Build using project root as context
     const dockerfileForBuild = path.join(buildDir, "Dockerfile");
     const buildContext = projectRoot;
 
@@ -340,18 +302,11 @@ export function buildDockerImage(options: BuildDockerImageOptions): boolean {
     console.log("Docker image built successfully");
     return imagePushed;
   } finally {
-    // Clean up temporary build directory
     fs.rmSync(buildDir, { recursive: true, force: true });
   }
 }
 
-// ---------------------------------------------------------------------------
-// Push to registry
-// ---------------------------------------------------------------------------
-
-/**
- * Push Docker image to a registry with proper authentication checks.
- */
+/** Push Docker image to a registry with proper authentication checks. */
 export function pushToRegistry(
   imageName: string,
   tag: string,
@@ -376,13 +331,7 @@ export function pushToRegistry(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Get Docker username from config
-// ---------------------------------------------------------------------------
-
-/**
- * Get Docker username from Docker's configuration file.
- */
+/** Get Docker username from Docker's configuration file. */
 export function getDockerUsernameFromConfig(
   registry: string = "docker.io"
 ): string | null {
@@ -437,10 +386,6 @@ export function getDockerUsernameFromConfig(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Run Docker image
-// ---------------------------------------------------------------------------
-
 export interface RunDockerImageOptions {
   imageName: string;
   tag: string;
@@ -455,9 +400,7 @@ export interface RunDockerImageOptions {
   extraArgs?: string[];
 }
 
-/**
- * Run a Docker image and map it to a given host port.
- */
+/** Run a Docker image and map it to a given host port. */
 export function runDockerImage(options: RunDockerImageOptions): void {
   const {
     imageName,
@@ -479,24 +422,20 @@ export function runDockerImage(options: RunDockerImageOptions): void {
   if (detach) args.push("-d");
   if (containerName) args.push("--name", containerName);
 
-  // Port mapping
   args.push("-p", `${hostPort}:${containerPort}`);
 
-  // Environment variables — passed as-is, no shell escaping needed
   if (env) {
     for (const [key, value] of Object.entries(env)) {
       args.push("-e", `${key}=${String(value)}`);
     }
   }
 
-  // Volumes
   if (volumes) {
     for (const [hostPath, containerPath] of volumes) {
       args.push("-v", `${hostPath}:${containerPath}`);
     }
   }
 
-  // GPUs
   if (gpus) {
     const gpuArg = gpus === true ? "all" : String(gpus);
     args.push("--gpus", gpuArg);
@@ -506,7 +445,6 @@ export function runDockerImage(options: RunDockerImageOptions): void {
     args.push(...extraArgs);
   }
 
-  // Image reference
   args.push(`${imageName}:${tag}`);
 
   runCommandArgs("docker", args);

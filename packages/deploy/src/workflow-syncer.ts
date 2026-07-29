@@ -59,19 +59,16 @@ export class WorkflowSyncer {
         return false;
       }
 
-      // Sync assets first
       const syncedAssets = await this.extractAndSyncAssets(workflowData);
       if (syncedAssets > 0) {
         console.log(`Synced ${syncedAssets} asset(s)`);
       }
 
-      // Download models required by the workflow
       const syncedModels = await this.extractAndDownloadModels(workflowData);
       if (syncedModels > 0) {
         console.log(`Downloaded ${syncedModels} model(s)`);
       }
 
-      // Sync workflow
       await this.client.updateWorkflow(workflowId, workflowData);
       return true;
     } catch (e) {
@@ -216,17 +213,16 @@ export class WorkflowSyncer {
 
         console.log(`  Syncing asset: ${asset.name}`);
 
-        // Check if asset already exists on remote
         try {
           await this.client.getAsset(assetId);
           console.log("    Asset already exists on remote, skipping");
           syncedCount++;
           continue;
         } catch {
-          // Asset doesn't exist, continue with sync
+          // Asset doesn't exist on remote — fall through and create it.
         }
 
-        // Create asset metadata on remote (preserve asset ID)
+        // Preserve the local asset ID on the remote.
         await this.client.createAsset({
           id: asset.id,
           userId: asset.user_id,
@@ -237,12 +233,10 @@ export class WorkflowSyncer {
           metadata: asset.metadata ?? undefined
         });
 
-        // Upload asset file if it's not a folder
         if (asset.content_type !== "folder" && asset.file_name) {
           const fileData = await storage.download(asset.file_name);
           await this.client.uploadAssetFile(asset.file_name, fileData);
 
-          // Upload thumbnail if exists
           if (asset.has_thumbnail && asset.thumb_file_name) {
             const thumbData = await storage.download(asset.thumb_file_name);
             await this.client.uploadAssetFile(asset.thumb_file_name, thumbData);

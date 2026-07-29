@@ -7,6 +7,7 @@ import { sampleCast } from "../sampleCast";
 import useStatusStore from "../../stores/StatusStore";
 import useResultsStore from "../../stores/ResultsStore";
 import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
+import useExecutionTimeStore from "../../stores/ExecutionTimeStore";
 
 const WF = "wf-demo-sample";
 const resolveAssetUrl = (f: string) => `/demo-assets/${f}`;
@@ -63,6 +64,26 @@ describe("DemoEngine", () => {
     // The sample uses an inline data URI (left untouched), proving non-asset
     // strings pass through the resolver unchanged.
     expect(result?.uri?.startsWith("data:image/svg+xml")).toBe(true);
+  });
+
+  it("stamps a stable, event-driven completed duration (no badge wiggle)", () => {
+    // The gen node runs at t=200 and completes at t=2050, so its duration is
+    // fixed at 1850ms regardless of when — or how many times — a frame replays
+    // the events. Wall-clock stamping would give a tiny, frame-varying value.
+    engine.seekToTime(2200);
+    const first = useExecutionTimeStore
+      .getState()
+      .getDuration(WF, focused(), "gen");
+    expect(first).toBe(1850);
+
+    // Re-seeking (backward then forward, as a scrubbing frame renderer does)
+    // reproduces the exact same duration — the source of the visible wiggle.
+    engine.seekToTime(100);
+    engine.seekToTime(2200);
+    const second = useExecutionTimeStore
+      .getState()
+      .getDuration(WF, focused(), "gen");
+    expect(second).toBe(1850);
   });
 
   it("is a pure function of time across a backward seek", () => {

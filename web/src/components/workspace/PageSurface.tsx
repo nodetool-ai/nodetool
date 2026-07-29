@@ -17,6 +17,7 @@ const WorkspacesPage = React.lazy(
   () => import("../workspaces/WorkspacesPage")
 );
 const SettingsPage = React.lazy(() => import("../menus/SettingsMenu"));
+const EntityLibrary = React.lazy(() => import("../entities/EntityLibrary"));
 
 const PAGE_COMPONENTS: Record<PageTabKey, React.ComponentType> = {
   tutorials: TutorialsPage,
@@ -26,6 +27,7 @@ const PAGE_COMPONENTS: Record<PageTabKey, React.ComponentType> = {
   packages: PackagesPage,
   collections: CollectionsExplorer,
   workspaces: WorkspacesPage,
+  entities: EntityLibrary,
   settings: SettingsPage
 };
 

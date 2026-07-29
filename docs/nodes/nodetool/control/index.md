@@ -3,10 +3,11 @@ layout: page
 title: "nodetool.control Nodes"
 ---
 
-This namespace contains 21 node(s).
+This namespace contains 22 node(s).
 
 ## Nodes
 
+- **[Asset Collection](assetcollection.md)**
 - **[Chunk](chunk.md)**
 - **[Collect](collect.md)**
 - **[Count](count.md)**

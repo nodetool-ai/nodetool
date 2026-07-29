@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION } from "../../ui_primitives";
+import { MOTION, Z_INDEX } from "../../ui_primitives";
 
 export const outputStyles = (theme: Theme, hasActions = true) =>
   css({
@@ -18,6 +18,10 @@ export const outputStyles = (theme: Theme, hasActions = true) =>
     },
     "&:hover .actions": {
       opacity: 1
+    },
+    // Touch devices have no hover; keep the output action buttons reachable.
+    "@media (pointer: coarse)": {
+      ".actions": { opacity: 1 }
     },
     ".content": {
       flex: 1,
@@ -58,7 +62,7 @@ export const outputStyles = (theme: Theme, hasActions = true) =>
       display: "flex",
       flexDirection: "row",
       gap: "0.5em",
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       opacity: 0,
       transition: MOTION.opacity
     },

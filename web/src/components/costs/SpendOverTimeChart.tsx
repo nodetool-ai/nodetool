@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Box, FlexRow, FlexColumn, Text, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Box, FlexRow, FlexColumn, Text, MOTION, BORDER_RADIUS, Z_INDEX } from "../ui_primitives";
 import {
   providerColor,
   providerLabel,
@@ -184,8 +184,9 @@ const SpendOverTimeChartInternal: React.FC<SpendOverTimeChartProps> = ({
             const barPx = (visibleTotal / axisMax) * PLOT_HEIGHT;
             const isHovered = hovered === index;
             return (
-              <Box
+              <FlexColumn
                 key={index}
+                justify="flex-end"
                 onMouseEnter={() => setHovered(index)}
                 onMouseLeave={() => setHovered((h) => (h === index ? null : h))}
                 sx={{
@@ -193,9 +194,6 @@ const SpendOverTimeChartInternal: React.FC<SpendOverTimeChartProps> = ({
                   flex: "1 1 0",
                   maxWidth: 34,
                   height: PLOT_HEIGHT,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "flex-end",
                   cursor: "default"
                 }}
               >
@@ -238,7 +236,7 @@ const SpendOverTimeChartInternal: React.FC<SpendOverTimeChartProps> = ({
                     isActive={isActive}
                   />
                 )}
-              </Box>
+              </FlexColumn>
             );
           })}
         </FlexRow>
@@ -298,7 +296,7 @@ const BarTooltip: React.FC<{
         bottom: "calc(100% + 8px)",
         left: "50%",
         transform: "translateX(-50%)",
-        zIndex: 5,
+        zIndex: Z_INDEX.base + 5,
         minWidth: 168,
         padding: theme.spacing(2, 3),
         borderRadius: BORDER_RADIUS.lg,

@@ -11,6 +11,7 @@ import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import CloseIcon from "@mui/icons-material/Close";
+import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 
 import {
   Text,
@@ -26,6 +27,7 @@ import useGlobalChatStore, {
   useThreadsQuery
 } from "../../stores/GlobalChatStore";
 import useCanvasChatDockStore from "../../stores/CanvasChatDockStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import { useCanvasDockResize } from "../../hooks/handlers/useCanvasDockResize";
 import ChatThreadView from "../chat/thread/ChatThreadView";
 import ThreadList from "../chat/thread/ThreadList";
@@ -64,12 +66,20 @@ const styles = (theme: Theme) =>
     ".convo-overlay-header": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(0.5),
-      padding: `${theme.spacing(0.75)} ${theme.spacing(1.5)}`,
+      gap: theme.spacing(0.75),
+      padding: `${theme.spacing(1)} ${theme.spacing(1.5)}`,
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
       flexShrink: 0,
       cursor: "grab",
       "&:active": { cursor: "grabbing" }
+    },
+
+    // The thread view paints `background.default` for the full-page chat;
+    // inside the glass overlay that reads as a mismatched slab of black, so
+    // let the overlay surface show through and tighten the vertical padding.
+    ".chat-thread-view-root": {
+      background: "transparent",
+      padding: theme.spacing(1, 0)
     },
 
     ".convo-drag-grip": {
@@ -85,6 +95,24 @@ const styles = (theme: Theme) =>
       position: "relative",
       display: "flex",
       flexDirection: "column"
+    },
+
+    // Friendly hint shown while the thread has no messages yet.
+    ".convo-empty": {
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: theme.spacing(0.5),
+      padding: theme.spacing(4),
+      textAlign: "center",
+      color: theme.vars.palette.grey[500],
+      "& > svg": {
+        fontSize: 28,
+        opacity: 0.4,
+        marginBottom: theme.spacing(1)
+      }
     },
 
     ".convo-icon-btn": {
@@ -115,7 +143,7 @@ const styles = (theme: Theme) =>
     // edges resize the whole dock width.
     ".convo-resize": {
       position: "absolute",
-      zIndex: 2,
+      zIndex: Z_INDEX.raised + 1,
       touchAction: "none"
     },
     ".convo-resize-top": {
@@ -212,29 +240,33 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
   // Keep the thread list populated for the inline threads panel.
   useThreadsQuery();
 
-  const messages = useGlobalChatStore((state) =>
-    state.currentThreadId
-      ? state.messageCache[state.currentThreadId] ?? EMPTY_MESSAGES
-      : EMPTY_MESSAGES
+  const {
+    messages,
+    rawStatus,
+    current,
+    total,
+    statusMessage,
+    runningToolCallId,
+    runningToolMessage,
+    currentPlanningUpdate,
+    currentTaskUpdate,
+    currentLogUpdate
+  } = useGlobalChatStore(
+    useShallow((state) => ({
+      messages: state.currentThreadId
+        ? state.messageCache[state.currentThreadId] ?? EMPTY_MESSAGES
+        : EMPTY_MESSAGES,
+      rawStatus: state.status,
+      current: state.progress.current,
+      total: state.progress.total,
+      statusMessage: state.statusMessage,
+      runningToolCallId: state.currentRunningToolCallId,
+      runningToolMessage: state.currentToolMessage,
+      currentPlanningUpdate: state.currentPlanningUpdate,
+      currentTaskUpdate: state.currentTaskUpdate,
+      currentLogUpdate: state.currentLogUpdate
+    }))
   );
-  const rawStatus = useGlobalChatStore((state) => state.status);
-  const { current, total } = useGlobalChatStore(
-    useShallow((state) => state.progress)
-  );
-  const statusMessage = useGlobalChatStore((state) => state.statusMessage);
-  const runningToolCallId = useGlobalChatStore(
-    (state) => state.currentRunningToolCallId
-  );
-  const runningToolMessage = useGlobalChatStore(
-    (state) => state.currentToolMessage
-  );
-  const currentPlanningUpdate = useGlobalChatStore(
-    (state) => state.currentPlanningUpdate
-  );
-  const currentTaskUpdate = useGlobalChatStore(
-    (state) => state.currentTaskUpdate
-  );
-  const currentLogUpdate = useGlobalChatStore((state) => state.currentLogUpdate);
 
   const {
     currentThreadId,
@@ -264,7 +296,11 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
 
   // ChatThreadView's status union excludes "stopping" — map it like GlobalChat.
   const status: ThreadStatus =
-    rawStatus === "stopping" ? "loading" : (rawStatus as ThreadStatus);
+    rawStatus === "stopping" ? "connected" : (rawStatus as ThreadStatus);
+
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
 
   const handleNewConversation = useCallback(async () => {
     try {
@@ -288,9 +324,13 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
     (id: string) => {
       deleteThread(id).catch((err) => {
         console.error("Failed to delete conversation:", err);
+        addNotification({
+          type: "error",
+          content: "Could not delete the conversation. Please try again."
+        });
       });
     },
-    [deleteThread]
+    [deleteThread, addNotification]
   );
 
   const handleExpand = useCallback(() => {
@@ -333,36 +373,28 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
   // persisted (`threadWorkflowId`). With no workflow bound, show everything.
   const threadsWithMessages = useMemo<Record<string, ThreadInfo>>(() => {
     const query = searchQuery.trim().toLowerCase();
-    return Object.fromEntries(
-      Object.entries(threads)
-        .filter(([id, thread]) => {
-          if (!workflowId) {
-            return true;
-          }
-          const threadWorkflow =
-            thread.workflow_id ?? threadWorkflowId[id] ?? null;
-          return threadWorkflow === workflowId;
-        })
-        .map(([id, thread]): [string, ThreadInfo] => [
-          id,
-          {
-            id: thread.id,
-            title: thread.title ?? undefined,
-            updatedAt: thread.updated_at,
-            messages: messageCache[id] || []
-          }
-        ])
-        .filter(([id, thread]) => {
-          if (!query) {
-            return true;
-          }
-          const preview = getThreadPreview(id).toLowerCase();
-          return (
-            preview.includes(query) ||
-            (thread.title || "").toLowerCase().includes(query)
-          );
-        })
-    );
+    const result: Record<string, ThreadInfo> = {};
+    for (const [id, thread] of Object.entries(threads)) {
+      if (workflowId) {
+        const threadWorkflow =
+          thread.workflow_id ?? threadWorkflowId[id] ?? null;
+        if (threadWorkflow !== workflowId) continue;
+      }
+      if (query) {
+        const preview = getThreadPreview(id).toLowerCase();
+        if (
+          !preview.includes(query) &&
+          !(thread.title || "").toLowerCase().includes(query)
+        ) continue;
+      }
+      result[id] = {
+        id: thread.id,
+        title: thread.title ?? undefined,
+        updatedAt: thread.updated_at,
+        messages: messageCache[id] || []
+      };
+    }
+    return result;
   }, [
     threads,
     threadWorkflowId,
@@ -414,7 +446,7 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
         <Text
           size="small"
           sx={{
-            color: theme.vars.palette.grey[300],
+            color: theme.vars.palette.grey[100],
             fontWeight: 600,
             overflow: "hidden",
             textOverflow: "ellipsis",
@@ -468,18 +500,35 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
         </FlexRow>
       </div>
       <div className="convo-overlay-body">
-        <ChatThreadView
-          messages={messages}
-          status={status}
-          progress={current}
-          total={total}
-          progressMessage={statusMessage}
-          runningToolCallId={runningToolCallId}
-          runningToolMessage={runningToolMessage}
-          currentPlanningUpdate={currentPlanningUpdate}
-          currentTaskUpdate={currentTaskUpdate}
-          currentLogUpdate={currentLogUpdate}
-        />
+        {messages.length === 0 &&
+        status !== "loading" &&
+        status !== "streaming" ? (
+          <div className="convo-empty">
+            <ForumOutlinedIcon />
+            <Text
+              size="small"
+              sx={{ color: theme.vars.palette.grey[200], fontWeight: 600 }}
+            >
+              Start a conversation
+            </Text>
+            <Text size="small" sx={{ color: "inherit" }}>
+              Ask about this workflow, or type @ to reference an asset.
+            </Text>
+          </div>
+        ) : (
+          <ChatThreadView
+            messages={messages}
+            status={status}
+            progress={current}
+            total={total}
+            progressMessage={statusMessage}
+            runningToolCallId={runningToolCallId}
+            runningToolMessage={runningToolMessage}
+            currentPlanningUpdate={currentPlanningUpdate}
+            currentTaskUpdate={currentTaskUpdate}
+            currentLogUpdate={currentLogUpdate}
+          />
+        )}
         {threadsOpen && (
           <div className="convo-threads-panel">
             <div className="convo-threads-head">

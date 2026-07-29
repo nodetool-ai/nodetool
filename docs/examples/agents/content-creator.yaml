@@ -27,13 +27,13 @@ system_prompt: |
 
 model:
   provider: google
-  id: gemini-2.0-flash-exp
+  id: gemini-3.5-flash
 
 planning_agent:
   enabled: true
   model:
     provider: openai
-    id: gpt-4o-mini
+    id: gpt-5-mini
 
 tools:
   - google_search

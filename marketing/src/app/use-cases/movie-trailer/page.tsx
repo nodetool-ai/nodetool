@@ -140,7 +140,7 @@ export default function MovieTrailerUseCase() {
             </a>
 
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
               className="mt-8 max-w-3xl"
@@ -163,7 +163,7 @@ export default function MovieTrailerUseCase() {
 
             {/* Hero video */}
             <motion.div
-              initial={{ opacity: 0, y: 40 }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.15 }}
               className="relative mt-12"
@@ -179,7 +179,7 @@ export default function MovieTrailerUseCase() {
               <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60 p-2 shadow-2xl backdrop-blur-sm">
                 <video
                   src="/movie_trailer_example.mp4"
-                  poster="/trailer-shot-1.png"
+                  poster="/trailer-shot-1-800.webp"
                   className="aspect-video w-full rounded-xl"
                   autoPlay
                   loop
@@ -221,7 +221,7 @@ export default function MovieTrailerUseCase() {
 
             {/* Live graph — the real workflow, rendered from the node UI components */}
             <motion.div
-              initial={{ opacity: 0, y: 24 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-80px" }}
               transition={{ duration: 0.6 }}
@@ -247,7 +247,7 @@ export default function MovieTrailerUseCase() {
               {steps.map((step, i) => (
                 <motion.div
                   key={step.title}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={false}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-60px" }}
                   transition={{ duration: 0.5, delay: i * 0.05 }}
@@ -291,7 +291,7 @@ export default function MovieTrailerUseCase() {
               {shots.map((shot, i) => (
                 <motion.div
                   key={shot.src}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={false}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-60px" }}
                   transition={{ duration: 0.5, delay: (i % 3) * 0.05 }}
@@ -323,7 +323,7 @@ export default function MovieTrailerUseCase() {
             </div>
 
             <motion.div
-              initial={{ opacity: 0, y: 24 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-80px" }}
               transition={{ duration: 0.6 }}
@@ -331,7 +331,7 @@ export default function MovieTrailerUseCase() {
             >
               <video
                 src="/movie_trailer_example.mp4"
-                poster="/trailer-shot-1.png"
+                poster="/trailer-shot-1-800.webp"
                 className="aspect-video w-full object-cover"
                 autoPlay
                 loop
@@ -363,7 +363,7 @@ export default function MovieTrailerUseCase() {
               {tweaks.map((tweak, i) => (
                 <motion.div
                   key={tweak.title}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={false}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-60px" }}
                   transition={{ duration: 0.5, delay: i * 0.05 }}

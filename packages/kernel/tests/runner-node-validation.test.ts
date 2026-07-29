@@ -43,10 +43,7 @@ describe("WorkflowRunner – pre-flight node validation", () => {
     const nodes: NodeDescriptor[] = [
       { id: "n1", type: "test.NeedsModel", name: "model_in", properties: {} }
     ];
-    const result = await runner.run(
-      { job_id: "j1" },
-      { nodes, edges: [] }
-    );
+    const result = await runner.run({ job_id: "j1" }, { nodes, edges: [] });
 
     expect(result.status).toBe("failed");
     expect(result.error).toMatch(/Graph validation failed/);
@@ -145,5 +142,34 @@ describe("WorkflowRunner – pre-flight node validation", () => {
     const tgt = seen.find((s) => s.id === "tgt")!;
     // Control edges must not be treated as data inputs for validation.
     expect(tgt.handles).toEqual([]);
+  });
+});
+
+describe("WorkflowRunner – validator sees dynamic slot declarations", () => {
+  it("passes dynamic_properties and dynamic_inputs through to validateNode", async () => {
+    const seen: NodeDescriptor[] = [];
+    const runner = makeRunner((node) => {
+      seen.push(node);
+      return [];
+    });
+
+    const nodes: NodeDescriptor[] = [
+      {
+        id: "n1",
+        type: "test.Dynamic",
+        supports_dynamic_inputs: true,
+        dynamic_properties: { pic: null },
+        dynamic_inputs: { pic: { type: { type: "image" }, required: true } }
+      }
+    ];
+
+    const result = await runner.run({ job_id: "j-dyn" }, { nodes, edges: [] });
+
+    expect(result.status).toBe("completed");
+    expect(seen).toHaveLength(1);
+    expect(seen[0].dynamic_properties).toEqual({ pic: null });
+    expect(seen[0].dynamic_inputs).toEqual({
+      pic: { type: { type: "image" }, required: true }
+    });
   });
 });

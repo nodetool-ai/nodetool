@@ -26,8 +26,6 @@ export {
   type HttpAuthOptions
 } from "./http-auth.js";
 
-// ── User type & helpers ─────────────────────────────────────────────
-
 export interface User {
   id: string;
   role?: string;

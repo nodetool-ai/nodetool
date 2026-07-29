@@ -24,6 +24,7 @@ import type {
 } from "@nodetool-ai/protocol";
 import { TypeMetadata } from "@nodetool-ai/protocol";
 
+// Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
 const log = createLogger("nodetool.kernel.runner");
 
 /** Node type that publishes to a variable channel (see runtime VariableChannel). */
@@ -61,9 +62,10 @@ import { withWorkflowSpan } from "@nodetool-ai/runtime/tracing";
 import { isControlEdge, isDataEdge } from "@nodetool-ai/protocol";
 import { Graph, GraphValidationError } from "./graph.js";
 import { rewriteBypassedNodes } from "./graph-utils.js";
+import { dynamicSlotPropertyTypes } from "./dynamic-slots.js";
 import { NodeInbox } from "./inbox.js";
 import { NodeActor, type NodeExecutor } from "./actor.js";
-import { externalEdgeId, syntheticEdgeId } from "./edge-ids.js";
+import { syntheticEdgeId } from "./edge-ids.js";
 import type { CorrelationLineage } from "@nodetool-ai/protocol";
 import {
   analyzeCorrelation,
@@ -134,6 +136,20 @@ export interface RunJobRequest {
 
   /** Optional parent workflow ID for sub-graph execution. */
   parent_id?: string;
+
+  /**
+   * Wake-up payload for a trigger-driven run. Mirrors
+   * `@nodetool-ai/protocol`'s `RunJobRequest.trigger_event`, redeclared here
+   * (like {@link NodeValidationIssue}) to avoid a circular dependency. When
+   * present, propagated onto `WorkflowRunnerOptions.executionContext` as
+   * `triggerEvent` at the start of the run so actors can read it via
+   * `ProcessingContext`.
+   */
+  trigger_event?: {
+    node_id: string;
+    payload: unknown;
+    input_id: string;
+  };
 }
 
 export interface WorkflowRunnerOptions {
@@ -201,9 +217,7 @@ function clientFacingOutputName(node: NodeDescriptor, handle: string): string {
   const t = node.type ?? "";
   const props = node.properties as Record<string, unknown> | undefined;
   const workflowKey =
-    props &&
-    typeof props.name === "string" &&
-    props.name.trim().length > 0
+    props && typeof props.name === "string" && props.name.trim().length > 0
       ? props.name.trim()
       : undefined;
 
@@ -259,6 +273,29 @@ export class WorkflowRunner {
 
   /** Cancellation flag. */
   private _cancelled = false;
+
+  /**
+   * Latch set by `cancel()` and never cleared by `_resetRunState`. A cancel
+   * that lands between construction and `run()` would otherwise be dropped —
+   * the reset clears `_cancelled` and swaps the AbortController. `_runImpl`
+   * re-applies this latch after the reset so such a run terminates as
+   * "cancelled". §17.
+   */
+  private _cancelRequested = false;
+
+  /**
+   * True while a run is in flight. A second concurrent `run()` on the same
+   * instance would clobber all shared run state, so `_runImpl` rejects it. §17.
+   */
+  private _running = false;
+
+  /**
+   * Job id used for `edge_update` emissions during a run. Captured from
+   * `request.job_id` at the start of `_runImpl` so edge updates and
+   * `job_update` messages carry the same id; before a run starts it defaults
+   * to the constructor id. §16.
+   */
+  private _effectiveJobId: string;
 
   /** Run-level cancellation signal source; aborted by `cancel()`. */
   private _abortController = new AbortController();
@@ -323,6 +360,7 @@ export class WorkflowRunner {
 
   constructor(jobId: string, options: WorkflowRunnerOptions) {
     this.jobId = jobId;
+    this._effectiveJobId = jobId;
     this._options = options;
   }
 
@@ -349,6 +387,34 @@ export class WorkflowRunner {
     }
 
     for (const node of inputNodes) {
+      // Run the node's own process() so streamed values transform exactly like
+      // start params do in _dispatchInputs (StringInput max_length,
+      // DocumentFileInput building a DocumentRef, MessageDeconstructor
+      // splitting). Otherwise the same input node behaves differently depending
+      // on whether the value arrived as a param or was streamed in. This is a
+      // live-stream path, so a process() failure throws rather than silently
+      // dropping the value.
+      const executor = this._resolveExecutor(node);
+      let nodeOutputs: Record<string, unknown>;
+      try {
+        nodeOutputs = await executor.process(
+          { value },
+          this._options.executionContext
+        );
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        throw new Error(
+          `Input node "${node.name ?? node.id}" (${node.type}) failed: ${message}`
+        );
+      }
+
+      // Same fallback semantics as _dispatchInputs: raw-value dispatch only
+      // when process() produced no defined output at all (the test-double
+      // case). Once the record carries any real output, a handle it omits
+      // stays silent rather than leaking the raw input value onto it.
+      const outputsEmpty = !Object.values(nodeOutputs).some(
+        (v) => v !== undefined
+      );
       const outgoing = this._graph
         .findOutgoingEdges(node.id)
         .filter(isDataEdge);
@@ -356,10 +422,24 @@ export class WorkflowRunner {
         if (sourceHandle && edge.sourceHandle !== sourceHandle) {
           continue;
         }
+        const hasHandleValue =
+          Object.hasOwn(nodeOutputs, edge.sourceHandle) &&
+          nodeOutputs[edge.sourceHandle] !== undefined;
+        if (!outputsEmpty && !hasHandleValue) continue;
         const targetInbox = this._inboxes.get(edge.target);
         if (!targetInbox) continue;
-        await targetInbox.put(edge.targetHandle, value, {
-          source_edge_id: externalEdgeId(inputName, edge.sourceHandle)
+        const handleValue = hasHandleValue
+          ? nodeOutputs[edge.sourceHandle]
+          : value;
+        await targetInbox.put(edge.targetHandle, handleValue, {
+          source_edge_id:
+            edge.id ??
+            syntheticEdgeId(
+              edge.source,
+              edge.sourceHandle,
+              edge.target,
+              edge.targetHandle
+            )
         });
         this._incrementEdgeCounter(edge);
       }
@@ -422,7 +502,38 @@ export class WorkflowRunner {
     request: RunJobRequest,
     graphData: HydratedGraphData
   ): Promise<RunResult> {
+    // Reject a second concurrent run before touching any shared state — a reset
+    // here would wipe the in-flight run's inboxes/outputs/messages. §17.
+    if (this._running) {
+      throw new Error(
+        `WorkflowRunner "${this.jobId}" is already running; ` +
+          "create a new runner instance per job"
+      );
+    }
+    this._running = true;
+
     this._resetRunState();
+    this._effectiveJobId = request.job_id ?? this.jobId;
+
+    // A cancel() that landed before this run started set the latch but was
+    // undone by _resetRunState (fresh controller, _cancelled cleared). Re-apply
+    // it so the run terminates as "cancelled" rather than silently ignoring the
+    // request. §17.
+    if (this._cancelRequested) {
+      this._cancelled = true;
+      this._abortController.abort();
+    }
+
+    // Publish this run's cancellation signal on the shared context so nodes
+    // reached through process()/genProcess() — which receive no NodeInputs —
+    // can abort long-running work (agent loops, provider calls) on cancel().
+    // _resetRunState mints a fresh controller per run, so this must be
+    // re-published each time rather than wired once at construction.
+    if (this._options.executionContext) {
+      this._options.executionContext.signal = this._abortController.signal;
+      this._options.executionContext.triggerEvent =
+        request.trigger_event ?? null;
+    }
 
     try {
       log.info("Workflow started", {
@@ -515,6 +626,7 @@ export class WorkflowRunner {
       // checked first, then suspend takes priority over node errors so a
       // human-in-the-loop pause isn't masked by an incidental sibling error.
       if (!this._cancelled && this._suspend) {
+        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
         log.info("Workflow suspended", {
           jobId: request.job_id,
           nodeId: this._suspend.node_id,
@@ -541,6 +653,7 @@ export class WorkflowRunner {
         const error = [...this._nodeErrors]
           .map(([nodeId, msg]) => `Node "${nodeId}" failed: ${msg}`)
           .join("; ");
+        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
         log.error("Workflow failed", { jobId: request.job_id, error });
         this._emit({
           type: "job_update",
@@ -558,6 +671,7 @@ export class WorkflowRunner {
       }
 
       const status = this._cancelled ? "cancelled" : "completed";
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.info("Workflow completed", { jobId: request.job_id, status });
 
       this._emit({
@@ -574,6 +688,7 @@ export class WorkflowRunner {
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.error("Workflow failed", { jobId: request.job_id, error: message });
       // Drain active edges on error for front-end cleanup
       this._drainActiveEdges();
@@ -602,6 +717,8 @@ export class WorkflowRunner {
         status: "failed",
         error: message
       };
+    } finally {
+      this._running = false;
     }
   }
 
@@ -625,9 +742,6 @@ export class WorkflowRunner {
   }
 
   /**
-   * Cancel the running workflow.
-   */
-  /**
    * Push property updates into a running node's executor instance (live
    * parameter changes — e.g. turning a synth knob while the patch plays).
    * Returns true when the node's executor exists and supports live updates;
@@ -645,7 +759,10 @@ export class WorkflowRunner {
   }
 
   cancel(): void {
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
     log.info("Job cancelled", { jobId: this.jobId });
+    // Latch the request so a cancel before run() survives _resetRunState. §17.
+    this._cancelRequested = true;
     this._cancelled = true;
     // Stop producing loops (generators, pacers) that never wait on inputs —
     // closing inboxes only unblocks consumers. Nodes observe this via
@@ -672,7 +789,9 @@ export class WorkflowRunner {
         this._graph.findNode(edge.target) !== undefined
     );
     if (validEdges.length < this._graph.edges.length) {
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.warn("Filtered invalid edges", {
+        // Stryker disable next-line ArithmeticOperator: diagnostic log arg only
         removed: this._graph.edges.length - validEdges.length,
         remaining: validEdges.length
       });
@@ -743,11 +862,48 @@ export class WorkflowRunner {
   // Node initialization
   // -----------------------------------------------------------------------
 
+  /**
+   * Initialize every node's executor before any actor runs.
+   *
+   * A failure here aborts the run before `_processGraph`, so the actors that
+   * would normally call `finalize()` never start. Finalize the executors that
+   * did initialize, otherwise whatever they opened (python bridge handles,
+   * provider clients, file descriptors) leaks for the lifetime of the process.
+   * The failure is also re-thrown with the offending node's identity attached —
+   * a bare "connect ECONNREFUSED" gives no clue which node to fix.
+   */
   private async _initializeGraph(): Promise<void> {
+    const initialized: NodeExecutor[] = [];
     for (const node of this._graph.nodes) {
       const executor = this._resolveExecutor(node);
-      if (executor.initialize) {
+      if (!executor.initialize) continue;
+      try {
         await executor.initialize();
+        initialized.push(executor);
+      } catch (err) {
+        await this._finalizeExecutors(initialized);
+        const message = err instanceof Error ? err.message : String(err);
+        throw new Error(
+          `Node "${node.name ?? node.id}" (${node.type}) failed to initialize: ${message}`,
+          { cause: err }
+        );
+      }
+    }
+  }
+
+  /** Finalize executors, never letting one failure hide another. */
+  private async _finalizeExecutors(
+    executors: readonly NodeExecutor[]
+  ): Promise<void> {
+    for (const executor of executors) {
+      if (!executor.finalize) continue;
+      try {
+        await executor.finalize();
+      } catch (err) {
+        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+        log.warn("Executor finalize failed during initialization rollback", {
+          error: err instanceof Error ? err.message : String(err)
+        });
       }
     }
   }
@@ -949,16 +1105,29 @@ export class WorkflowRunner {
         );
       }
 
+      // Raw-value fallback only when process() produced no defined output at
+      // all (the documented test-double case, incl. `{}`). Once the record
+      // carries any real output, a handle it legitimately omits (e.g. an input
+      // with no attachments) stays silent instead of leaking the raw input
+      // value onto that edge. §6. Keyed on `!== undefined` to match the
+      // per-handle check below. The EOS pass below still closes every edge so
+      // downstream nodes complete.
+      const outputsEmpty = !Object.values(nodeOutputs).some(
+        (v) => v !== undefined
+      );
       const outgoing = this._graph
         .findOutgoingEdges(node.id)
         .filter(isDataEdge);
       for (const edge of outgoing) {
+        const hasHandleValue =
+          Object.hasOwn(nodeOutputs, edge.sourceHandle) &&
+          nodeOutputs[edge.sourceHandle] !== undefined;
+        if (!outputsEmpty && !hasHandleValue) continue;
         const targetInbox = this._inboxes.get(edge.target);
         if (targetInbox) {
-          const handleValue =
-            nodeOutputs[edge.sourceHandle] !== undefined
-              ? nodeOutputs[edge.sourceHandle]
-              : value;
+          const handleValue = hasHandleValue
+            ? nodeOutputs[edge.sourceHandle]
+            : value;
           await targetInbox.put(edge.targetHandle, handleValue, {
             source_edge_id:
               edge.id ??
@@ -1001,6 +1170,8 @@ export class WorkflowRunner {
    */
   private async _processGraph(): Promise<void> {
     const actorPromises: Array<Promise<void>> = [];
+    /** Parallel to `actorPromises` — maps a settled index back to its node. */
+    const actorNodeIds: string[] = [];
 
     for (const node of this._graph.nodes) {
       // Skip input-only nodes that have no incoming edges
@@ -1045,8 +1216,14 @@ export class WorkflowRunner {
           this._signalSlotEos(sourceNodeId, slot)
       });
 
+      actorNodeIds.push(node.id);
       actorPromises.push(
         actor.run().then(async (result) => {
+          // Nothing will read this inbox again. Wake any upstream actor parked
+          // on a full buffer so it can finish instead of waiting forever for a
+          // consumer that is gone.
+          inbox.releaseBackpressure();
+
           if (result.error !== undefined) {
             this._nodeErrors.set(node.id, result.error);
           }
@@ -1112,8 +1289,26 @@ export class WorkflowRunner {
       );
     }
 
-    // Wait for all actors to complete
-    await Promise.all(actorPromises);
+    // Wait for every actor, including post-completion routing. `allSettled`
+    // rather than `all`: a throw in one actor's completion handler (EOS
+    // routing, channel bookkeeping, a message-transport failure) must not
+    // return the run while its siblings are still executing — orphaned actors
+    // would keep writing to inboxes and emitting messages after the runner
+    // reported a terminal status.
+    const settled = await Promise.allSettled(actorPromises);
+    for (const [index, outcome] of settled.entries()) {
+      if (outcome.status !== "rejected") continue;
+      const nodeId = actorNodeIds[index];
+      const message =
+        outcome.reason instanceof Error
+          ? outcome.reason.message
+          : String(outcome.reason);
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+      log.error("Actor completion handling failed", { nodeId, error: message });
+      if (!this._nodeErrors.has(nodeId)) {
+        this._nodeErrors.set(nodeId, message);
+      }
+    }
 
     // Backstop: release any reader still waiting on a channel (e.g. a writer
     // that errored before publishing). Non-cyclic graphs are already closed by
@@ -1124,7 +1319,9 @@ export class WorkflowRunner {
     const pendingNodes = this._checkPendingInboxWork();
     if (pendingNodes.length > 0) {
       log.warn(
+        // Stryker disable next-line StringLiteral: diagnostic log args only
         "Pending inbox work detected after all actors completed — possible data loss",
+        // Stryker disable next-line ObjectLiteral: diagnostic log args only
         {
           pendingNodes
         }
@@ -1233,8 +1430,7 @@ export class WorkflowRunner {
       if (routingHints.lineageDoneSlots?.has(edge.sourceHandle)) {
         const targetInboxDrop = this._inboxes.get(edge.target);
         if (!targetInboxDrop) continue;
-        const lineage =
-          routingHints.perSlotLineage?.[edge.sourceHandle] ?? {};
+        const lineage = routingHints.perSlotLineage?.[edge.sourceHandle] ?? {};
         const edgeId =
           edge.id ??
           syntheticEdgeId(
@@ -1264,6 +1460,7 @@ export class WorkflowRunner {
 
       const value = outputs[edge.sourceHandle];
       if (value === undefined) {
+        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
         log.debug("_sendMessages skip edge (no matching output)", {
           sourceNodeId,
           sourceHandle: edge.sourceHandle,
@@ -1274,12 +1471,14 @@ export class WorkflowRunner {
 
       const targetInbox = this._inboxes.get(edge.target);
       if (!targetInbox) {
+        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
         log.debug("_sendMessages skip edge (no target inbox)", {
           target: edge.target
         });
         continue;
       }
 
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.debug("_sendMessages delivering", {
         sourceNodeId,
         sourceHandle: edge.sourceHandle,
@@ -1470,9 +1669,14 @@ export class WorkflowRunner {
         }
       }
 
+      // This terminal update carries the exact final counter, so clear any
+      // dirty mark: otherwise _flushEdgeCounters at run end would re-emit
+      // status "active" after "completed" for an edge whose counter advanced
+      // within the throttle window just before its source finished. §1.
+      this._edgeCounterDirty.delete(edgeId);
       this._emit({
         type: "edge_update",
-        job_id: this.jobId,
+        job_id: this._effectiveJobId,
         edge_id: edgeId,
         status: "completed",
         counter: this._edgeCounters.get(edgeId) ?? null
@@ -1578,13 +1782,19 @@ export class WorkflowRunner {
       );
     }
 
+    const entry: {
+      resolve: (outputs: Record<string, unknown>) => void;
+      reject: (err: Error) => void;
+    } = { resolve: () => {}, reject: () => {} };
     const promise = new Promise<Record<string, unknown>>((resolve, reject) => {
+      entry.resolve = resolve;
+      entry.reject = reject;
       let queue = this._pendingControlResponses.get(targetNodeId);
       if (!queue) {
         queue = [];
         this._pendingControlResponses.set(targetNodeId, queue);
       }
-      queue.push({ resolve, reject });
+      queue.push(entry);
     });
 
     const event: ControlEvent = {
@@ -1592,6 +1802,26 @@ export class WorkflowRunner {
       properties
     };
     await inbox.put("__control__", event);
+
+    // The target's actor can finish between the check above and this point —
+    // its completion handler drains `_pendingControlResponses` before this
+    // waiter joined the queue, so nothing would ever settle it. Re-check after
+    // registering and reject rather than hang.
+    if (this._completedNodes.has(targetNodeId)) {
+      const queue = this._pendingControlResponses.get(targetNodeId);
+      const index = queue?.indexOf(entry) ?? -1;
+      if (queue && index >= 0) {
+        queue.splice(index, 1);
+        if (queue.length === 0) {
+          this._pendingControlResponses.delete(targetNodeId);
+        }
+        entry.reject(
+          new Error(
+            `Target node already completed and cannot handle control events: ${targetNodeId}`
+          )
+        );
+      }
+    }
 
     return promise;
   }
@@ -1628,7 +1858,7 @@ export class WorkflowRunner {
     this._edgeCounterDirty.delete(id);
     this._emit({
       type: "edge_update",
-      job_id: this.jobId,
+      job_id: this._effectiveJobId,
       edge_id: id,
       status: "active",
       counter
@@ -1644,7 +1874,7 @@ export class WorkflowRunner {
     for (const id of this._edgeCounterDirty) {
       this._emit({
         type: "edge_update",
-        job_id: this.jobId,
+        job_id: this._effectiveJobId,
         edge_id: id,
         status: "active",
         counter: this._edgeCounters.get(id) ?? null
@@ -1686,7 +1916,7 @@ export class WorkflowRunner {
         ) {
           this._emit({
             type: "edge_update",
-            job_id: this.jobId,
+            job_id: this._effectiveJobId,
             edge_id: edgeId,
             status: "drained",
             counter: this._edgeCounters.get(edgeId) ?? null
@@ -1760,8 +1990,22 @@ export class WorkflowRunner {
       this._messages.push(msg);
     }
     if (this._options.executionContext) {
-      this._options.executionContext.emit(msg);
+      // Message delivery is observation, not execution. A transport that fails
+      // mid-run (a closed WebSocket, a full queue) must not abort the workflow
+      // — `_emit` is called from EOS routing and actor completion handlers,
+      // where a throw would take down the run and orphan sibling actors.
+      try {
+        this._options.executionContext.emit(msg);
+      } catch (err) {
+        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+        log.warn("Message emit failed", {
+          jobId: this.jobId,
+          type: msg.type,
+          error: err instanceof Error ? err.message : String(err)
+        });
+      }
     }
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
     log.debug("Message emitted", { jobId: this.jobId, type: msg.type });
   }
 
@@ -1853,8 +2097,14 @@ export class WorkflowRunner {
   ): Record<string, Record<string, unknown>> {
     const result: Record<string, Record<string, unknown>> = {};
 
-    const propTypes = (node.propertyTypes ?? {}) as Record<string, string>;
     const props = (node.properties ?? {}) as Record<string, unknown>;
+    const slotTypes = dynamicSlotPropertyTypes(node.dynamic_inputs);
+    // Declared dynamic slots type their handles; the registry map wins on a
+    // name collision.
+    const propTypes: Record<string, string> = {
+      ...slotTypes,
+      ...((node.propertyTypes ?? {}) as Record<string, string>)
+    };
 
     // Build the schema from registry-declared property types so the LLM sees
     // every argument the node accepts, even when the node has no saved values.
@@ -1886,7 +2136,8 @@ export class WorkflowRunner {
         jsonType = "boolean";
       }
 
-      const meta = node.propertyMeta?.[name] as
+      const slot = node.dynamic_inputs?.[name];
+      const meta = (node.propertyMeta?.[name] ?? slot) as
         | { description?: string; min?: number; max?: number }
         | undefined;
       result[name] = {

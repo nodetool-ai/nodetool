@@ -1,6 +1,6 @@
 # KIE Nodes
 
-Dynamic node factory generating ~93 nodes from `kie-manifest.json`.
+Dynamic node factory generating ~140 nodes from `kie-manifest.json`.
 
 ## Architecture
 

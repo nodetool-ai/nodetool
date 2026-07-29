@@ -45,22 +45,15 @@ export interface StackProps extends Omit<BoxProps, 'display' | 'flexDirection'> 
  *   <TextField label="Email" />
  * </Stack>
  */
-/**
- * Generates a stable key for a React child element.
- * Uses the child's existing key if available, otherwise generates a stable unique identifier.
- */
 const getChildKey = (child: React.ReactNode, index: number): string | number => {
   if (React.isValidElement(child)) {
-    // Use child's key if it exists
     if (child.key) {
       return child.key;
     }
-    // Generate a stable key based on element type and index
     const componentType = child.type as string | (React.FC & { displayName?: string });
     const type = typeof componentType === "string" ? componentType : componentType?.displayName || componentType?.name || "component";
     return `${type}-${index}`;
   }
-  // Fallback to index for non-element children
   return index;
 };
 

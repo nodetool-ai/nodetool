@@ -17,7 +17,6 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
 import { TextInput, Text } from "../ui_primitives";
 import ExternalLink from "../common/ExternalLink";
-import type { SettingWithValue } from "../../stores/RemoteSettingStore";
 import { useTheme } from "@mui/material/styles";
 import {
   SEARCH_PROVIDER_CONFIGS as PROVIDER_CONFIGS,
@@ -26,13 +25,11 @@ import {
 } from "../../utils/searchProviders";
 
 interface SearchProviderSectionProps {
-  allSettings: SettingWithValue[];
   settingValues: Record<string, string>;
   onChange: (envVar: string, value: string) => void;
 }
 
 const SearchProviderSection = memo(function SearchProviderSection({
-  allSettings,
   settingValues,
   onChange
 }: SearchProviderSectionProps) {
@@ -41,21 +38,6 @@ const SearchProviderSection = memo(function SearchProviderSection({
     DEFAULT_SERP_PROVIDER) as SerpProviderId;
   const config = PROVIDER_CONFIGS[selectedProvider];
 
-  // Get credential fields for all providers
-  const credentialSettings = useMemo(() => {
-    const result: Record<string, SettingWithValue> = {};
-    allSettings.forEach((setting) => {
-      const allCredentialFields = Object.values(PROVIDER_CONFIGS).flatMap(
-        (p) => p.credentialFields
-      );
-      if (allCredentialFields.includes(setting.env_var)) {
-        result[setting.env_var] = setting;
-      }
-    });
-    return result;
-  }, [allSettings]);
-
-  // Check if current provider has all required credentials
   const hasAllCredentials = useMemo(() => {
     if (!config) return false;
     return config.credentialFields.every(
@@ -84,7 +66,6 @@ const SearchProviderSection = memo(function SearchProviderSection({
         Search Provider
       </Text>
 
-      {/* Provider Selector */}
       <div className="settings-item large">
         <FormControl variant="standard" fullWidth sx={{ marginBottom: "1.5em" }}>
           <InputLabel id="provider-select-label">Provider</InputLabel>
@@ -102,7 +83,6 @@ const SearchProviderSection = memo(function SearchProviderSection({
           </Select>
         </FormControl>
 
-        {/* Provider Status */}
         <FlexRow
           align="center"
           sx={{
@@ -126,12 +106,12 @@ const SearchProviderSection = memo(function SearchProviderSection({
             />
           )}
           <Text
+            size="small"
             sx={{
               color: hasAllCredentials ?
                 theme.palette.success.dark :
                 theme.palette.warning.dark,
-              margin: 0,
-              fontSize: "0.9em"
+              margin: 0
             }}
           >
             {hasAllCredentials
@@ -140,26 +120,21 @@ const SearchProviderSection = memo(function SearchProviderSection({
           </Text>
         </FlexRow>
 
-        {/* Provider Description */}
         <Text className="description">{config?.description}</Text>
       </div>
 
-      {/* Credentials Section */}
       {config && (
         <div
           style={{
             marginTop: "1.5em",
             padding: "1em",
-            backgroundColor: theme.palette.mode === "dark" ?
-              "rgba(255,255,255,0.05)" :
-              "rgba(0,0,0,0.02)",
+            backgroundColor: theme.vars.palette.c_overlay_subtle,
             borderLeft: `4px solid ${theme.palette.primary.main}`,
             borderRadius: BORDER_RADIUS.sm
           }}
         >
           <Stack spacing={1.5}>
             {config.credentialFields.map((field) => {
-              const setting = credentialSettings[field];
               const value = settingValues[field] || "";
               const isFilled = value.trim().length > 0;
 
@@ -201,7 +176,6 @@ const SearchProviderSection = memo(function SearchProviderSection({
               );
             })}
 
-            {/* Get Credentials Link */}
             <Box sx={{ marginTop: "1em" }}>
               <ExternalLink
                 href={config.getApiKeyUrl}

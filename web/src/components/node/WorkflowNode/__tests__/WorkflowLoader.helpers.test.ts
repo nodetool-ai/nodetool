@@ -43,7 +43,7 @@ describe("extractDynamicIO", () => {
     ]);
     const result = extractDynamicIO(wf);
     expect(result.dynamic_inputs).toHaveProperty("prompt");
-    expect(result.dynamic_inputs.prompt.type).toBe("str");
+    expect(result.dynamic_inputs.prompt.type.type).toBe("str");
     expect(result.dynamic_inputs.prompt.description).toBe("User prompt");
     expect(result.dynamic_properties.prompt).toBe("hello");
   });
@@ -68,8 +68,8 @@ describe("extractDynamicIO", () => {
     ]);
     const result = extractDynamicIO(wf);
     expect(Object.keys(result.dynamic_inputs)).toHaveLength(2);
-    expect(result.dynamic_inputs.temperature.type).toBe("float");
-    expect(result.dynamic_inputs.max_tokens.type).toBe("int");
+    expect(result.dynamic_inputs.temperature.type.type).toBe("float");
+    expect(result.dynamic_inputs.max_tokens.type.type).toBe("int");
     expect(result.dynamic_outputs.response.type).toBe("str");
     expect(result.dynamic_properties.temperature).toBe(0.7);
     expect(result.dynamic_properties.max_tokens).toBe(100);
@@ -81,7 +81,7 @@ describe("extractDynamicIO", () => {
     ]);
     const result = extractDynamicIO(wf);
     expect(result.dynamic_inputs).toHaveProperty("BooleanInput");
-    expect(result.dynamic_inputs.BooleanInput.type).toBe("bool");
+    expect(result.dynamic_inputs.BooleanInput.type.type).toBe("bool");
   });
 
   it("ignores nodes that are not input/output types", () => {
@@ -103,7 +103,7 @@ describe("extractDynamicIO", () => {
     ]);
     const result = extractDynamicIO(wf);
     expect(result.dynamic_inputs).toHaveProperty("audio_clip");
-    expect(result.dynamic_inputs.audio_clip.type).toBe("audio");
+    expect(result.dynamic_inputs.audio_clip.type.type).toBe("audio");
   });
 
   it("maps Output type to any", () => {

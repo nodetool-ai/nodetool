@@ -1,12 +1,17 @@
 /**
- * Storage REST API — binary PUT/GET/HEAD only.
+ * Storage REST API — binary GET/HEAD only.
  * JSON ops (list, metadata, delete) have moved to the tRPC `storage` router.
  */
 import { createReadStream } from "node:fs";
-import { mkdir, stat, writeFile } from "node:fs/promises";
+import { stat } from "node:fs/promises";
 import path, { extname } from "node:path";
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
+import { assetKeyOwner } from "@nodetool-ai/storage";
 import { resolveAllowedOrigin } from "./cors.js";
+import {
+  callerOwnsStorageKey,
+  canReadStorageKey
+} from "./lib/storage-access.js";
 
 // ── MIME types ────────────────────────────────────────────────────
 
@@ -16,12 +21,24 @@ const MIME_TYPES: Record<string, string> = {
   ".png": "image/png",
   ".gif": "image/gif",
   ".webp": "image/webp",
+  ".bmp": "image/bmp",
   ".mp4": "video/mp4",
+  ".webm": "video/webm",
   ".mp3": "audio/mpeg",
   ".wav": "audio/wav",
+  ".ogg": "audio/ogg",
+  ".aac": "audio/aac",
+  ".flac": "audio/flac",
+  ".glb": "model/gltf-binary",
   ".json": "application/json",
   ".txt": "text/plain",
-  ".pdf": "application/pdf"
+  ".pdf": "application/pdf",
+  // Serve user-authored HTML as text/plain — never image/svg+xml-style inline
+  // rendering — so a stored `.html` asset can't execute script in the app's
+  // origin. `.svg` is deliberately omitted for the same reason (falls through
+  // to application/octet-stream).
+  ".html": "text/plain",
+  ".htm": "text/plain"
 };
 
 function getMimeType(filePath: string): string {
@@ -75,6 +92,27 @@ function validateStorageKey(key: string): string | null {
   return null; // valid
 }
 
+/**
+ * The pre-prefix key an owner-prefixed asset key used to live at, or null for
+ * a key that already has no prefix.
+ */
+function legacyKeyFor(key: string): string | null {
+  const normalized = key.replace(/\\/g, "/");
+  const slash = normalized.lastIndexOf("/");
+  if (slash <= 0) return null;
+  const base = normalized.slice(slash + 1);
+  return base && base !== normalized ? base : null;
+}
+
+async function pathExists(filePath: string): Promise<boolean> {
+  try {
+    await stat(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function resolveStoragePath(rootDir: string, key: string): string {
   const normalized = key
     .replace(/\\/g, "/")
@@ -91,12 +129,21 @@ interface ParsedRange {
   end: number;
 }
 
+/**
+ * Parse a single-range `Range` header per RFC 7233. Returns:
+ *  - a `ParsedRange` (end clamped to the last byte) when satisfiable,
+ *  - `"unsatisfiable"` when the syntax is valid but the first byte is out of
+ *    bounds (caller answers 416),
+ *  - `null` when the header is unparseable/unsupported (a non-`bytes=` unit, a
+ *    multi-range list, or malformed) — the caller must IGNORE it and serve the
+ *    full 200 representation, not answer 416.
+ */
 export function parseRangeHeader(
   rangeHeader: string,
   fileSize: number
-): ParsedRange | null {
+): ParsedRange | "unsatisfiable" | null {
   const match = rangeHeader.match(/^bytes=(\d*)-(\d*)$/);
-  if (!match) return null;
+  if (!match) return null; // unparseable / multi-range / other unit → ignore
   const startStr = match[1];
   const endStr = match[2];
 
@@ -106,6 +153,7 @@ export function parseRangeHeader(
   if (startStr === "" && endStr !== "") {
     // suffix range: bytes=-500
     const suffixLength = Number.parseInt(endStr, 10);
+    if (suffixLength === 0) return "unsatisfiable"; // zero-length suffix
     start = Math.max(0, fileSize - suffixLength);
     end = fileSize - 1;
   } else if (startStr !== "" && endStr === "") {
@@ -116,10 +164,13 @@ export function parseRangeHeader(
     start = Number.parseInt(startStr, 10);
     end = Number.parseInt(endStr, 10);
   } else {
-    return null;
+    return null; // "bytes=-" — neither bound present
   }
 
-  if (start > end || end >= fileSize || start < 0) return null;
+  // A last-byte-pos past EOF is clamped to the remainder (RFC 7233 §2.1), not
+  // rejected. Only a first-byte-pos out of bounds is unsatisfiable.
+  end = Math.min(end, fileSize - 1);
+  if (start < 0 || start >= fileSize || start > end) return "unsatisfiable";
   return { start, end };
 }
 
@@ -164,7 +215,42 @@ async function handleStorageRequest(
     });
   }
 
-  const filePath = resolveStoragePath(rootDir, key);
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    // Read-only surface. PUT used to write any key, which — with a shared
+    // storage directory keyed only by asset id — let one tenant overwrite
+    // another's asset bytes. Nothing ever called it: bytes are written
+    // in-process through the storage adapter (asset upload, workflow
+    // outputs), never over HTTP. DELETE moved to tRPC `storage.delete`.
+    return new Response(JSON.stringify({ detail: "Method not allowed" }), {
+      status: 405,
+      headers: { ...cors, "content-type": "application/json" }
+    });
+  }
+
+  // The storage directory is one flat bucket, so the key alone says nothing
+  // about who owns the bytes. 404 rather than 403 on a foreign key: the
+  // caller shouldn't learn which asset ids exist.
+  const userId = request.headers.get("x-user-id") ?? "1";
+  if (!(await canReadStorageKey(userId, key))) {
+    return new Response(JSON.stringify({ detail: "Not found" }), {
+      status: 404,
+      headers: { ...cors, "content-type": "application/json" }
+    });
+  }
+
+  let filePath = resolveStoragePath(rootDir, key);
+
+  // Objects written before the owner-prefixed layout are flat. Fall back to
+  // the legacy path when the prefixed one is missing, re-checking ownership
+  // against the `assets` row since the prefix no longer vouches for it. Only
+  // the local backend needs this — cloud backends resolve through the URL
+  // builder, so they require `nodetool storage migrate-keys`.
+  const legacy = assetKeyOwner(key) === userId ? legacyKeyFor(key) : null;
+  if (legacy && !(await pathExists(filePath))) {
+    if (await callerOwnsStorageKey(userId, legacy)) {
+      filePath = resolveStoragePath(rootDir, legacy);
+    }
+  }
 
   // HEAD
   if (request.method === "HEAD") {
@@ -187,92 +273,77 @@ async function handleStorageRequest(
   }
 
   // GET
-  if (request.method === "GET") {
-    let fileStat: Awaited<ReturnType<typeof stat>>;
-    try {
-      fileStat = await stat(filePath);
-    } catch {
-      return new Response(JSON.stringify({ detail: "Not found" }), {
-        status: 404,
-        headers: { ...cors, "content-type": "application/json" }
-      });
+  let fileStat: Awaited<ReturnType<typeof stat>>;
+  try {
+    fileStat = await stat(filePath);
+  } catch {
+    return new Response(JSON.stringify({ detail: "Not found" }), {
+      status: 404,
+      headers: { ...cors, "content-type": "application/json" }
+    });
+  }
+
+  const mtime = fileStat.mtime;
+  const lastModified = mtime.toUTCString();
+  const fileSize = fileStat.size;
+  const contentType = getMimeType(filePath);
+
+  // If-Modified-Since check
+  const ifModifiedSince = request.headers.get("If-Modified-Since");
+  if (ifModifiedSince) {
+    const ifModifiedSinceDate = new Date(ifModifiedSince);
+    if (
+      !Number.isNaN(ifModifiedSinceDate.getTime()) &&
+      mtime <= ifModifiedSinceDate
+    ) {
+      return new Response(null, { status: 304, headers: cors });
     }
+  }
 
-    const mtime = fileStat.mtime;
-    const lastModified = mtime.toUTCString();
-    const fileSize = fileStat.size;
-    const contentType = getMimeType(filePath);
-
-    // If-Modified-Since check
-    const ifModifiedSince = request.headers.get("If-Modified-Since");
-    if (ifModifiedSince) {
-      const ifModifiedSinceDate = new Date(ifModifiedSince);
-      if (
-        !Number.isNaN(ifModifiedSinceDate.getTime()) &&
-        mtime <= ifModifiedSinceDate
-      ) {
-        return new Response(null, { status: 304, headers: cors });
+  // Range request
+  const rangeHeader = request.headers.get("Range");
+  const range = rangeHeader ? parseRangeHeader(rangeHeader, fileSize) : null;
+  // A parsed-but-unsatisfiable range → 416. An unparseable/unsupported header
+  // (range === null while a header was present) is ignored and the full file
+  // is served with 200, per RFC 7233.
+  if (range === "unsatisfiable") {
+    return new Response(JSON.stringify({ detail: "Range Not Satisfiable" }), {
+      status: 416,
+      headers: {
+        ...cors,
+        "content-type": "application/json",
+        "Content-Range": `bytes */${fileSize}`
       }
-    }
-
-    // Range request
-    const rangeHeader = request.headers.get("Range");
-    if (rangeHeader) {
-      const range = parseRangeHeader(rangeHeader, fileSize);
-      if (!range) {
-        return new Response(
-          JSON.stringify({ detail: "Range Not Satisfiable" }),
-          {
-            status: 416,
-            headers: {
-              ...cors,
-              "content-type": "application/json",
-              "Content-Range": `bytes */${fileSize}`
-            }
-          }
-        );
-      }
-      const { start, end } = range;
-      const chunkSize = end - start + 1;
-      const body = nodeStreamToWebStream(filePath, { start, end });
-      return new Response(body, {
-        status: 206,
-        headers: {
-          ...cors,
-          "Content-Type": contentType,
-          "Content-Length": String(chunkSize),
-          "Content-Range": `bytes ${start}-${end}/${fileSize}`,
-          "Last-Modified": lastModified,
-          "Accept-Ranges": "bytes"
-        }
-      });
-    }
-
-    // Full file
-    const body = nodeStreamToWebStream(filePath);
+    });
+  }
+  if (range) {
+    const { start, end } = range;
+    const chunkSize = end - start + 1;
+    const body = nodeStreamToWebStream(filePath, { start, end });
     return new Response(body, {
-      status: 200,
+      status: 206,
       headers: {
         ...cors,
         "Content-Type": contentType,
-        "Content-Length": String(fileSize),
+        "Content-Length": String(chunkSize),
+        "Content-Range": `bytes ${start}-${end}/${fileSize}`,
         "Last-Modified": lastModified,
         "Accept-Ranges": "bytes"
       }
     });
   }
 
-  // PUT
-  if (request.method === "PUT") {
-    await mkdir(path.dirname(filePath), { recursive: true });
-    const bodyBuffer = await request.arrayBuffer();
-    await writeFile(filePath, Buffer.from(bodyBuffer));
-    return new Response(null, { status: 200, headers: cors });
-  }
-
-  return new Response(JSON.stringify({ detail: "Method not allowed" }), {
-    status: 405,
-    headers: { ...cors, "content-type": "application/json" }
+  // Full file
+  const body = nodeStreamToWebStream(filePath);
+  return new Response(body, {
+    status: 200,
+    headers: {
+      ...cors,
+      "Content-Type": contentType,
+      "Content-Length": String(fileSize),
+      "Last-Modified": lastModified,
+      "Accept-Ranges": "bytes"
+    }
   });
 }
 

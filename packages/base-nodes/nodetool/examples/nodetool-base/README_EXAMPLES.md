@@ -206,7 +206,7 @@ Recommended order for learning:
 - **API Calls**: Consider rate limiting for LLM calls
 - **Large Files**: Process in chunks for video/audio
 - **Async Operations**: Use async/await for parallel execution
-- **Caching**: Leverage ChromaDB for semantic caching
+- **Caching**: Use ChromaDB for semantic caching
 
 ## Troubleshooting
 

@@ -10,7 +10,6 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
-import type { Chunk } from "@nodetool-ai/protocol";
 import { BaseProvider } from "./base-provider.js";
 import { safeFetch } from "./safe-url.js";
 import { createLogger } from "@nodetool-ai/config";
@@ -22,16 +21,11 @@ import type {
   ImageToVideoParams,
   LanguageModel,
   Message,
-  MessageContent,
-  MessageImageContent,
-  MessageTextContent,
   MusicModel,
   ProviderStreamItem,
-  ProviderTool,
   TextToImageParams,
   TextToMusicParams,
   TextToVideoParams,
-  ToolCall,
   TTSModel,
   VideoModel
 } from "./types.js";
@@ -41,18 +35,44 @@ import {
   loadMusicModels,
   loadTTSModels,
   getModelImageInputs,
+  getModelInputFields,
+  getManifestNodeMeta,
   selectPrimaryImageInput,
-  selectMaskImageInput
+  selectMaskImageInput,
+  type ModelInputField
 } from "./manifest-models.js";
+import { registerWebhookWait } from "./kie-webhook-registry.js";
 import { sniffAudioMime } from "./audio-mime.js";
 import { OpenAIProvider } from "./openai-provider.js";
 import { AnthropicProvider } from "./anthropic-provider.js";
+import {
+  extractResponsesText,
+  extractResponsesToolCalls,
+  messagesToResponsesInput,
+  responseToolChoice,
+  responseTools,
+  responseUsage,
+  streamResponsesEvents
+} from "./responses-api.js";
 
 const log = createLogger("nodetool.runtime.providers.kie");
 
 const KIE_API_BASE = "https://api.kie.ai";
 const KIE_UPLOAD_URL =
   "https://kieai.redpandaai.co/api/file-stream-upload";
+// The Suno API always requires a callBackUrl. When KIE_WEBHOOK_URL is set we
+// use it; otherwise a placeholder satisfies the requirement (we poll instead).
+const KIE_SUNO_CALLBACK = "https://nodetool.ai/kie-callback";
+
+/**
+ * When set, KIE tasks are submitted with a real callBackUrl and the provider
+ * waits for the webhook instead of polling. Set to the public base URL of this
+ * server (e.g. `https://myserver.example.com`).
+ */
+function getWebhookBaseUrl(): string | undefined {
+  const url = process.env.KIE_WEBHOOK_URL;
+  return url && url.trim() ? url.replace(/\/+$/, "") : undefined;
+}
 
 type KieChatApi = "openai" | "anthropic" | "responses";
 
@@ -63,12 +83,83 @@ interface KieChatModel {
   basePath: string;
 }
 
+// Mirrors the "Chat Models" section of docs.kie.ai/llms.txt. Each entry's
+// basePath is the model's documented endpoint prefix: the Claude models share
+// /claude/v1/messages, the GPT and Grok models post to a /responses endpoint,
+// and every Gemini (plus GPT 5.2) endpoint is OpenAI chat-completions with the
+// model pinned by the path.
 const KIE_CHAT_MODELS: KieChatModel[] = [
+  {
+    id: "gpt-5-6-sol",
+    name: "GPT 5.6 Sol",
+    api: "responses",
+    basePath: "/codex/v1"
+  },
+  {
+    id: "gpt-5-6-terra",
+    name: "GPT 5.6 Terra",
+    api: "responses",
+    basePath: "/codex/v1"
+  },
+  {
+    id: "gpt-5-6-luna",
+    name: "GPT 5.6 Luna",
+    api: "responses",
+    basePath: "/codex/v1"
+  },
   {
     id: "gpt-5-5",
     name: "GPT 5.5",
     api: "responses",
     basePath: "/codex/v1"
+  },
+  {
+    id: "gpt-5-4",
+    name: "GPT 5.4",
+    api: "responses",
+    basePath: "/codex/v1"
+  },
+  {
+    id: "gpt-5.1-codex",
+    name: "GPT Codex",
+    api: "responses",
+    basePath: "/api/v1"
+  },
+  {
+    id: "gpt-5-2",
+    name: "GPT 5.2",
+    api: "openai",
+    basePath: "/gpt-5-2/v1"
+  },
+  {
+    id: "claude-opus-5",
+    name: "Claude Opus 5",
+    api: "anthropic",
+    basePath: "/claude"
+  },
+  {
+    id: "claude-sonnet-5",
+    name: "Claude Sonnet 5",
+    api: "anthropic",
+    basePath: "/claude"
+  },
+  {
+    id: "claude-fable-5",
+    name: "Claude Fable 5",
+    api: "anthropic",
+    basePath: "/claude"
+  },
+  {
+    id: "claude-opus-4-8",
+    name: "Claude Opus 4.8",
+    api: "anthropic",
+    basePath: "/claude"
+  },
+  {
+    id: "claude-opus-4-7",
+    name: "Claude Opus 4.7",
+    api: "anthropic",
+    basePath: "/claude"
   },
   {
     id: "claude-opus-4-6",
@@ -83,10 +174,34 @@ const KIE_CHAT_MODELS: KieChatModel[] = [
     basePath: "/claude"
   },
   {
+    id: "claude-opus-4-5",
+    name: "Claude Opus 4.5",
+    api: "anthropic",
+    basePath: "/claude"
+  },
+  {
+    id: "claude-sonnet-4-5",
+    name: "Claude Sonnet 4.5",
+    api: "anthropic",
+    basePath: "/claude"
+  },
+  {
     id: "claude-haiku-4-5",
     name: "Claude Haiku 4.5",
     api: "anthropic",
     basePath: "/claude"
+  },
+  {
+    id: "grok-4-5",
+    name: "Grok 4.5",
+    api: "responses",
+    basePath: "/grok/v1"
+  },
+  {
+    id: "grok-4-3",
+    name: "Grok 4.3",
+    api: "responses",
+    basePath: "/grok/v1"
   },
   {
     id: "gemini-3.1-pro",
@@ -95,10 +210,40 @@ const KIE_CHAT_MODELS: KieChatModel[] = [
     basePath: "/gemini-3.1-pro/v1"
   },
   {
+    id: "gemini-3-pro",
+    name: "Gemini 3 Pro",
+    api: "openai",
+    basePath: "/gemini-3-pro/v1"
+  },
+  {
+    id: "gemini-3-6-flash",
+    name: "Gemini 3.6 Flash",
+    api: "openai",
+    basePath: "/gemini-3-6-flash-openai/v1"
+  },
+  {
+    id: "gemini-3-5-flash",
+    name: "Gemini 3.5 Flash",
+    api: "openai",
+    basePath: "/gemini-3-5-flash-openai/v1"
+  },
+  {
     id: "gemini-3-flash",
     name: "Gemini 3 Flash",
     api: "openai",
     basePath: "/gemini-3-flash/v1"
+  },
+  {
+    id: "gemini-2.5-pro",
+    name: "Gemini 2.5 Pro",
+    api: "openai",
+    basePath: "/gemini-2.5-pro/v1"
+  },
+  {
+    id: "gemini-2.5-flash",
+    name: "Gemini 2.5 Flash",
+    api: "openai",
+    basePath: "/gemini-2.5-flash/v1"
   }
 ];
 
@@ -113,29 +258,208 @@ function headers(apiKey: string): Record<string, string> {
   };
 }
 
+/** Resolve the abort reason as an Error (mirrors the gemini provider). */
+function abortError(signal?: AbortSignal): Error {
+  return signal?.reason instanceof Error ? signal.reason : new Error("Aborted");
+}
+
+/** Sleep that rejects promptly when `signal` aborts instead of running full. */
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(abortError(signal));
+      return;
+    }
+    const onAbort = (): void => {
+      clearTimeout(timer);
+      reject(abortError(signal));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
 /**
- * Upload raw image bytes to KIE's file store and return the hosted URL.
- * Mirrors the upload flow used by the KIE factory nodes (multipart POST →
- * `downloadUrl`).
+ * KIE reports API errors inside HTTP-200 bodies as `{code, msg}`. Map the known
+ * error codes to a message and throw; code 200 (and any unmapped code) passes
+ * through. Mirrors kie-base's `checkStatus` — without this a failed job returns
+ * a 200 that the poll loop reads as "not done yet" and runs to full timeout.
+ */
+function checkStatus(data: Record<string, unknown>): void {
+  const code = Number(data.code);
+  const map: Record<number, string> = {
+    401: "Unauthorized",
+    402: "Insufficient Credits",
+    404: "Not Found",
+    422: "Validation Error",
+    429: "Rate Limited",
+    455: "Service Unavailable",
+    500: "Server Error",
+    501: "Generation Failed",
+    505: "Feature Disabled"
+  };
+  if (map[code]) throw new Error(`${map[code]}: ${JSON.stringify(data)}`);
+}
+
+/**
+ * Parse a KIE JSON response defensively: a gateway 502 returns an HTML page, not
+ * JSON, so read the text and surface a "Kie <label> failed: <status> …" error
+ * with a body snippet rather than a bare SyntaxError. Applies the HTTP-200 error
+ * envelope check ({@link checkStatus}) on every parsed body.
+ */
+async function parseKieJson(
+  res: Response,
+  label: string
+): Promise<Record<string, unknown>> {
+  const text = await res.text();
+  let data: Record<string, unknown>;
+  try {
+    data = JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    throw new Error(
+      `Kie ${label} failed: ${res.status} ${text.slice(0, 200)}`
+    );
+  }
+  if (data.code !== undefined) checkStatus(data);
+  return data;
+}
+
+/** Detect an image container from its magic bytes; defaults to PNG. */
+function sniffImageType(bytes: Uint8Array): { mime: string; ext: string } {
+  if (
+    bytes.length >= 8 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47
+  ) {
+    return { mime: "image/png", ext: "png" };
+  }
+  if (
+    bytes.length >= 3 &&
+    bytes[0] === 0xff &&
+    bytes[1] === 0xd8 &&
+    bytes[2] === 0xff
+  ) {
+    return { mime: "image/jpeg", ext: "jpg" };
+  }
+  if (
+    bytes.length >= 12 &&
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  ) {
+    return { mime: "image/webp", ext: "webp" };
+  }
+  if (
+    bytes.length >= 6 &&
+    bytes[0] === 0x47 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x38 &&
+    (bytes[4] === 0x37 || bytes[4] === 0x39) &&
+    bytes[5] === 0x61
+  ) {
+    return { mime: "image/gif", ext: "gif" };
+  }
+  return { mime: "image/png", ext: "png" };
+}
+
+/** Parse an "a:b" aspect ratio string into its numeric value, or undefined. */
+function aspectToNumber(ratio: string): number | undefined {
+  const m = /^(\d+(?:\.\d+)?)\s*:\s*(\d+(?:\.\d+)?)$/.exec(ratio.trim());
+  if (!m) return undefined;
+  const w = Number(m[1]);
+  const h = Number(m[2]);
+  if (!Number.isFinite(w) || !Number.isFinite(h) || h === 0) return undefined;
+  return w / h;
+}
+
+/** Choose the declared enum aspect ratio closest to a target numeric ratio. */
+function nearestAspect(
+  enumValues: string[],
+  target: number
+): string | undefined {
+  let best: { value: string; diff: number } | undefined;
+  for (const value of enumValues) {
+    const n = aspectToNumber(value);
+    if (n === undefined) continue;
+    const diff = Math.abs(n - target);
+    if (!best || diff < best.diff) best = { value, diff };
+  }
+  return best?.value ?? enumValues[0];
+}
+
+/**
+ * Coerce a requested duration (seconds) to the model's declared `duration`
+ * field type: snap to the nearest allowed enum value (sent as the enum's own
+ * value type — the manifest enums are strings), round to an int, or pass a
+ * float through. Returns undefined when the model declares no duration field.
+ */
+function coerceDuration(
+  field: ModelInputField | undefined,
+  seconds: number
+): unknown {
+  if (!field) return undefined;
+  if (field.type === "enum" && field.enumValues && field.enumValues.length > 0) {
+    let best: { value: string; diff: number } | undefined;
+    for (const value of field.enumValues) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) continue;
+      const diff = Math.abs(n - seconds);
+      if (!best || diff < best.diff) best = { value, diff };
+    }
+    return best?.value ?? field.enumValues[0];
+  }
+  if (field.type === "float") return seconds;
+  // int and any other numeric type: send a rounded integer.
+  return Math.round(seconds);
+}
+
+/**
+ * A field's default usable as an input value: the declared default when it's
+ * meaningful (not an empty string), otherwise the first enum option. KIE's
+ * required `model` field ships with an empty default, so the first declared
+ * version is used.
+ */
+function defaultForField(field: ModelInputField): unknown {
+  const d = field.default;
+  if (d !== undefined && !(typeof d === "string" && d === "")) return d;
+  if (field.enumValues && field.enumValues.length > 0) return field.enumValues[0];
+  return undefined;
+}
+
+/**
+ * Upload raw image bytes to KIE's file store and return the hosted URL. Sniffs
+ * the container from the magic bytes so the upload carries the right mime and
+ * extension (KIE rejects a JPEG announced as PNG).
  */
 async function uploadImageBytes(
   apiKey: string,
-  bytes: Uint8Array
+  bytes: Uint8Array,
+  signal?: AbortSignal
 ): Promise<string> {
+  const { mime, ext } = sniffImageType(bytes);
+  const fileName = `upload-${Date.now()}.${ext}`;
   const form = new FormData();
-  form.append(
-    "file",
-    new Blob([new Uint8Array(bytes)], { type: "image/png" }),
-    `upload-${Date.now()}.png`
-  );
+  form.append("file", new Blob([new Uint8Array(bytes)], { type: mime }), fileName);
   form.append("uploadPath", "images/user-uploads");
-  form.append("fileName", `upload-${Date.now()}.png`);
+  form.append("fileName", fileName);
   const res = await fetch(KIE_UPLOAD_URL, {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}` },
-    body: form
+    body: form,
+    signal
   });
-  const data = (await res.json()) as Record<string, unknown>;
+  const data = await parseKieJson(res, "upload");
   if (!res.ok || !data.success) {
     throw new Error(`Kie upload failed: ${res.status} ${JSON.stringify(data)}`);
   }
@@ -150,14 +474,16 @@ async function uploadImageBytes(
 async function submitTask(
   apiKey: string,
   model: string,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
+  signal?: AbortSignal
 ): Promise<string> {
   const res = await fetch(`${KIE_API_BASE}/api/v1/jobs/createTask`, {
     method: "POST",
     headers: headers(apiKey),
-    body: JSON.stringify({ model, input })
+    body: JSON.stringify({ model, input }),
+    signal
   });
-  const data = (await res.json()) as Record<string, unknown>;
+  const data = await parseKieJson(res, "submit");
   if (!res.ok) {
     throw new Error(`Kie submit failed: ${res.status} ${JSON.stringify(data)}`);
   }
@@ -168,16 +494,56 @@ async function submitTask(
   return taskId;
 }
 
+/**
+ * Submit a task with an optional webhook callback URL. When webhook mode is
+ * enabled, the callBackUrl is injected into the input so KIE calls us back
+ * when the task completes. The generic `/api/kie/webhook` endpoint extracts
+ * the taskId from the callback body.
+ */
+async function submitTaskWithWebhook(
+  apiKey: string,
+  model: string,
+  input: Record<string, unknown>,
+  signal?: AbortSignal
+): Promise<string> {
+  const webhookBase = getWebhookBaseUrl();
+  const finalInput = webhookBase
+    ? { ...input, callBackUrl: `${webhookBase}/api/kie/webhook` }
+    : input;
+  return submitTask(apiKey, model, finalInput, signal);
+}
+
 async function pollUntilDone(
   apiKey: string,
   taskId: string,
   pollInterval = 4000,
-  maxAttempts = 300
+  maxAttempts = 300,
+  signal?: AbortSignal
 ): Promise<void> {
   const url = `${KIE_API_BASE}/api/v1/jobs/recordInfo?taskId=${taskId}`;
+  // KIE reports failures two ways that both look like "still running" to a naive
+  // loop: a persistent non-OK poll (429/5xx/revoked key) after createTask
+  // succeeded, and an HTTP-200 body carrying an error `code` (checkStatus). Both
+  // used to run the full maxAttempts (~20 min) before blaming a slow job. Fail
+  // fast: on a bounded run of consecutive HTTP errors, and immediately on a code
+  // envelope (via parseKieJson).
+  const MAX_CONSECUTIVE_ERRORS = 5;
+  let consecutiveErrors = 0;
   for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(url, { headers: headers(apiKey) });
-    const data = (await res.json()) as Record<string, unknown>;
+    const res = await fetch(url, { headers: headers(apiKey), signal });
+    if (!res.ok) {
+      consecutiveErrors += 1;
+      if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+        const body = await res.text().catch(() => "");
+        throw new Error(
+          `Kie recordInfo failed ${consecutiveErrors}× (HTTP ${res.status}) for taskId ${taskId}: ${body.slice(0, 200)}`
+        );
+      }
+      await sleep(pollInterval, signal);
+      continue;
+    }
+    consecutiveErrors = 0;
+    const data = await parseKieJson(res, "recordInfo");
     const state = (data.data as Record<string, unknown>)?.state as string;
     if (state === "success") return;
     if (state === "failed" || state === "fail") {
@@ -185,7 +551,7 @@ async function pollUntilDone(
         (data.data as Record<string, unknown>)?.failMsg || "Unknown error";
       throw new Error(`Kie task failed: ${msg} (taskId: ${taskId})`);
     }
-    await new Promise((r) => setTimeout(r, pollInterval));
+    await sleep(pollInterval, signal);
   }
   const timeoutSeconds = (maxAttempts * pollInterval) / 1000;
   throw new Error(
@@ -194,42 +560,109 @@ async function pollUntilDone(
   );
 }
 
+/**
+ * Wait for a KIE task to complete: use webhook if KIE_WEBHOOK_URL is set,
+ * otherwise fall back to polling.
+ */
+async function waitForCompletion(
+  apiKey: string,
+  taskId: string,
+  pollInterval: number,
+  maxAttempts: number,
+  signal?: AbortSignal
+): Promise<void> {
+  if (getWebhookBaseUrl()) {
+    const timeoutMs = pollInterval * maxAttempts;
+    log.info("Waiting for KIE webhook callback", { taskId, timeoutMs });
+    await registerWebhookWait(taskId, timeoutMs, signal);
+    return;
+  }
+  await pollUntilDone(apiKey, taskId, pollInterval, maxAttempts, signal);
+}
+
 async function downloadResultBytes(
   apiKey: string,
-  taskId: string
+  taskId: string,
+  signal?: AbortSignal
 ): Promise<Uint8Array> {
   const url = `${KIE_API_BASE}/api/v1/jobs/recordInfo?taskId=${taskId}`;
-  const res = await fetch(url, { headers: headers(apiKey) });
+  const res = await fetch(url, { headers: headers(apiKey), signal });
   if (!res.ok) throw new Error(`Failed to get Kie result: ${res.status}`);
-  const data = (await res.json()) as Record<string, unknown>;
+  const data = await parseKieJson(res, "recordInfo");
   const resultJsonStr = (data.data as Record<string, unknown>)
     ?.resultJson as string;
   if (!resultJsonStr) throw new Error("No resultJson in Kie response");
   const resultData = JSON.parse(resultJsonStr) as Record<string, unknown>;
   const resultUrls = resultData.resultUrls as string[];
   if (!resultUrls?.length) throw new Error("No resultUrls in Kie resultJson");
-  const dlRes = await safeFetch(resultUrls[0]);
+  const dlRes = await safeFetch(resultUrls[0], { signal });
   if (!dlRes.ok) {
     throw new Error(`Failed to download from ${resultUrls[0]}`);
   }
   return new Uint8Array(await dlRes.arrayBuffer());
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
+/**
+ * Submit a Suno music task to `<sunoEndpoint>` and return the task id. The Suno
+ * API is separate from the generic jobs API and always requires `callBackUrl`.
+ */
+async function submitSuno(
+  apiKey: string,
+  endpoint: string,
+  input: Record<string, unknown>,
+  signal?: AbortSignal
+): Promise<string> {
+  const callBackUrl = getWebhookBaseUrl()
+    ? `${getWebhookBaseUrl()}/api/kie/webhook`
+    : KIE_SUNO_CALLBACK;
+  const body = { ...input, callBackUrl };
+  const res = await fetch(`${KIE_API_BASE}${endpoint}`, {
+    method: "POST",
+    headers: headers(apiKey),
+    body: JSON.stringify(body),
+    signal
+  });
+  const data = await parseKieJson(res, "submit");
+  if (!res.ok) {
+    throw new Error(`Kie submit failed: ${res.status} ${JSON.stringify(data)}`);
+  }
+  const taskId = (data.data as Record<string, unknown>)?.taskId as string;
+  if (!taskId) {
+    throw new Error(`No taskId in Kie response: ${JSON.stringify(data)}`);
+  }
+  return taskId;
 }
 
-function stringifyContent(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (value == null) return "";
-  return JSON.stringify(value);
-}
-
-function dataUri(mimeType: string, data: Uint8Array | string): string {
-  if (typeof data === "string" && data.startsWith("data:")) return data;
-  const base64 =
-    typeof data === "string" ? data : Buffer.from(data).toString("base64");
-  return `data:${mimeType};base64,${base64}`;
+/** Poll the Suno record-info endpoint until the task reaches a terminal state. */
+async function pollSuno(
+  apiKey: string,
+  taskId: string,
+  pollInterval: number,
+  maxAttempts: number,
+  signal?: AbortSignal
+): Promise<Record<string, unknown>> {
+  const url = `${KIE_API_BASE}/api/v1/generate/record-info?taskId=${taskId}`;
+  const failed = new Set([
+    "CREATE_TASK_FAILED",
+    "GENERATE_AUDIO_FAILED",
+    "CALLBACK_EXCEPTION",
+    "SENSITIVE_WORD_ERROR"
+  ]);
+  for (let i = 0; i < maxAttempts; i++) {
+    const res = await fetch(url, { headers: headers(apiKey), signal });
+    const data = await parseKieJson(res, "record-info");
+    const status = (data.data as Record<string, unknown>)?.status as string;
+    if (status === "SUCCESS") return data;
+    if (failed.has(status)) {
+      throw new Error(`Kie Suno task failed: ${status} (taskId: ${taskId})`);
+    }
+    await sleep(pollInterval, signal);
+  }
+  const timeoutSeconds = (maxAttempts * pollInterval) / 1000;
+  throw new Error(
+    `Kie Suno task timed out after ${timeoutSeconds}s (taskId: ${taskId}). ` +
+      "The job may still complete on KIE — check record-info or the KIE dashboard."
+  );
 }
 
 const KIE_MANIFEST_PKG = "@nodetool-ai/kie-nodes";
@@ -259,9 +692,10 @@ export class KieProvider extends BaseProvider {
   }
 
   private makeOpenAIProvider(basePath: string): OpenAIProvider {
-    const provider = new OpenAIProvider(
+    return new OpenAIProvider(
       { OPENAI_API_KEY: this.requireApiKey() },
       {
+        providerId: "kie",
         clientFactory: (apiKey) =>
           new OpenAI({
             apiKey,
@@ -269,14 +703,13 @@ export class KieProvider extends BaseProvider {
           })
       }
     );
-    (provider as { provider: string }).provider = "kie";
-    return provider;
   }
 
   private makeAnthropicProvider(basePath: string): AnthropicProvider {
-    const provider = new AnthropicProvider(
+    return new AnthropicProvider(
       { ANTHROPIC_API_KEY: this.requireApiKey() },
       {
+        providerId: "kie",
         clientFactory: (apiKey) =>
           new Anthropic({
             authToken: apiKey,
@@ -284,8 +717,6 @@ export class KieProvider extends BaseProvider {
           })
       }
     );
-    (provider as { provider: string }).provider = "kie";
-    return provider;
   }
 
   private makeResponsesClient(basePath: string): OpenAI {
@@ -343,100 +774,6 @@ export class KieProvider extends BaseProvider {
     yield* this.generateResponseMessages(args, model.basePath);
   }
 
-  private async responseInputContent(
-    content: MessageContent
-  ): Promise<Record<string, unknown> | null> {
-    if (content.type === "text") {
-      return { type: "input_text", text: (content as MessageTextContent).text };
-    }
-
-    if (content.type === "image_url") {
-      const image = (content as MessageImageContent).image;
-      if (image.uri) {
-        const resolved = await this.resolveUri(image.uri);
-        return { type: "input_image", image_url: resolved };
-      }
-      if (image.data) {
-        return {
-          type: "input_image",
-          image_url: dataUri(image.mimeType ?? "image/jpeg", image.data)
-        };
-      }
-    }
-
-    return null;
-  }
-
-  private async messagesToResponsesInput(
-    messages: Message[]
-  ): Promise<Array<Record<string, unknown>>> {
-    const input: Array<Record<string, unknown>> = [];
-
-    for (const message of messages) {
-      if (message.role === "tool") {
-        input.push({
-          type: "function_call_output",
-          call_id: message.toolCallId ?? "",
-          output: stringifyContent(message.content)
-        });
-        continue;
-      }
-
-      if (message.role === "assistant") {
-        const text = stringifyContent(message.content);
-        if (text) {
-          input.push({
-            type: "message",
-            role: "assistant",
-            content: [{ type: "output_text", text }]
-          });
-        }
-        for (const toolCall of message.toolCalls ?? []) {
-          input.push({
-            type: "function_call",
-            id: toolCall.id,
-            call_id: toolCall.id,
-            name: toolCall.name,
-            arguments: JSON.stringify(toolCall.args ?? {})
-          });
-        }
-        continue;
-      }
-
-      const content: Array<Record<string, unknown>> = [];
-      if (typeof message.content === "string") {
-        content.push({ type: "input_text", text: message.content });
-      } else if (Array.isArray(message.content)) {
-        for (const part of message.content) {
-          const converted = await this.responseInputContent(part);
-          if (converted) content.push(converted);
-        }
-      }
-
-      if (content.length === 0) continue;
-      input.push({ role: message.role, content });
-    }
-
-    return input;
-  }
-
-  private responseTools(tools: ProviderTool[] = []): Array<Record<string, unknown>> {
-    return tools.map((tool) => ({
-      type: "function",
-      name: tool.name,
-      description: tool.description ?? "",
-      parameters: tool.inputSchema ?? { type: "object", properties: {} }
-    }));
-  }
-
-  private responseToolChoice(
-    toolChoice: string | "any" | undefined
-  ): unknown {
-    if (!toolChoice) return undefined;
-    if (toolChoice === "any") return "auto";
-    return { type: "function", name: toolChoice };
-  }
-
   private async generateResponseMessage(
     args: Parameters<BaseProvider["generateMessage"]>[0],
     basePath: string
@@ -444,7 +781,9 @@ export class KieProvider extends BaseProvider {
     const client = this.makeResponsesClient(basePath);
     const request: Record<string, unknown> = {
       model: args.model,
-      input: await this.messagesToResponsesInput(args.messages),
+      input: await messagesToResponsesInput(args.messages, (uri) =>
+        this.resolveUri(uri)
+      ),
       stream: false
     };
 
@@ -452,10 +791,10 @@ export class KieProvider extends BaseProvider {
     if (args.temperature != null) request.temperature = args.temperature;
     if (args.topP != null) request.top_p = args.topP;
 
-    const tools = this.responseTools(args.tools);
+    const tools = responseTools(args.tools);
     if (tools.length > 0) {
       request.tools = tools;
-      request.tool_choice = this.responseToolChoice(args.toolChoice) ?? "auto";
+      request.tool_choice = responseToolChoice(args.toolChoice) ?? "auto";
     }
 
     this.recordRequestPayload(request);
@@ -466,13 +805,16 @@ export class KieProvider extends BaseProvider {
       signal: args.signal
     })) as Record<string, unknown>;
 
-    this.trackResponseUsage(args.model, response);
+    this.trackUsage(args.model, responseUsage(response));
 
     const outputText =
       typeof response.output_text === "string"
         ? response.output_text
-        : this.extractResponsesText(response.output);
-    const toolCalls = this.extractResponsesToolCalls(response.output);
+        : extractResponsesText(response.output);
+    const toolCalls = extractResponsesToolCalls(
+      response.output,
+      this.buildToolCall.bind(this)
+    );
 
     return {
       role: "assistant",
@@ -488,7 +830,9 @@ export class KieProvider extends BaseProvider {
     const client = this.makeResponsesClient(basePath);
     const request: Record<string, unknown> = {
       model: args.model,
-      input: await this.messagesToResponsesInput(args.messages),
+      input: await messagesToResponsesInput(args.messages, (uri) =>
+        this.resolveUri(uri)
+      ),
       stream: true
     };
 
@@ -496,10 +840,10 @@ export class KieProvider extends BaseProvider {
     if (args.temperature != null) request.temperature = args.temperature;
     if (args.topP != null) request.top_p = args.topP;
 
-    const tools = this.responseTools(args.tools);
+    const tools = responseTools(args.tools);
     if (tools.length > 0) {
       request.tools = tools;
-      request.tool_choice = this.responseToolChoice(args.toolChoice) ?? "auto";
+      request.tool_choice = responseToolChoice(args.toolChoice) ?? "auto";
     }
 
     this.recordRequestPayload(request);
@@ -511,91 +855,10 @@ export class KieProvider extends BaseProvider {
       request,
       { signal: args.signal }
     )) as AsyncIterable<Record<string, unknown>>;
-    const pendingArgs = new Map<string, string>();
-
-    for await (const event of stream) {
-      const type = event.type;
-      if (type === "response.output_text.delta") {
-        const chunk: Chunk = {
-          type: "chunk",
-          content: String(event.delta ?? ""),
-          done: false
-        };
-        yield chunk;
-        continue;
-      }
-
-      if (type === "response.function_call_arguments.delta") {
-        const itemId = String(event.item_id ?? "");
-        pendingArgs.set(itemId, (pendingArgs.get(itemId) ?? "") + String(event.delta ?? ""));
-        continue;
-      }
-
-      if (type === "response.function_call_arguments.done") {
-        const itemId = String(event.item_id ?? "");
-        const argsText = String(event.arguments ?? pendingArgs.get(itemId) ?? "{}");
-        pendingArgs.delete(itemId);
-        yield this.buildToolCall(itemId, String(event.name ?? ""), argsText);
-        continue;
-      }
-
-      if (type === "response.completed") {
-        const response = event.response;
-        if (isRecord(response)) this.trackResponseUsage(args.model, response);
-        const chunk: Chunk = { type: "chunk", content: "", done: true };
-        yield chunk;
-        continue;
-      }
-
-      if (type === "response.failed" || type === "response.error") {
-        throw new Error(`Kie responses stream failed: ${JSON.stringify(event)}`);
-      }
-    }
-  }
-
-  private extractResponsesText(output: unknown): string {
-    if (!Array.isArray(output)) return "";
-    const parts: string[] = [];
-    for (const item of output) {
-      if (!isRecord(item) || item.type !== "message" || !Array.isArray(item.content)) {
-        continue;
-      }
-      for (const content of item.content) {
-        if (isRecord(content) && content.type === "output_text") {
-          parts.push(String(content.text ?? ""));
-        }
-      }
-    }
-    return parts.join("");
-  }
-
-  private extractResponsesToolCalls(output: unknown): ToolCall[] {
-    if (!Array.isArray(output)) return [];
-    const toolCalls: ToolCall[] = [];
-    for (const item of output) {
-      if (!isRecord(item) || item.type !== "function_call") continue;
-      toolCalls.push(
-        this.buildToolCall(
-          String(item.call_id ?? item.id ?? ""),
-          String(item.name ?? ""),
-          item.arguments
-        )
-      );
-    }
-    return toolCalls;
-  }
-
-  private trackResponseUsage(model: string, response: Record<string, unknown>): void {
-    const usage = response.usage;
-    if (!isRecord(usage)) return;
-    const inputTokens = Number(usage.input_tokens ?? 0);
-    const outputTokens = Number(usage.output_tokens ?? 0);
-    const details = usage.input_tokens_details;
-    const cachedTokens = isRecord(details) ? Number(details.cached_tokens ?? 0) : 0;
-    this.trackUsage(model, {
-      inputTokens: Number.isFinite(inputTokens) ? inputTokens : 0,
-      outputTokens: Number.isFinite(outputTokens) ? outputTokens : 0,
-      cachedTokens: Number.isFinite(cachedTokens) ? cachedTokens : 0
+    yield* streamResponsesEvents(stream, {
+      model: args.model,
+      buildToolCall: this.buildToolCall.bind(this),
+      onUsage: (model, usage) => this.trackUsage(model, usage)
     });
   }
 
@@ -615,28 +878,170 @@ export class KieProvider extends BaseProvider {
     return loadMusicModels(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, "kie");
   }
 
+  /** Resolve poll interval and attempt count for a model's async task. */
+  private pollConfig(
+    modelId: string,
+    timeoutSeconds?: number | null
+  ): { pollInterval: number; maxAttempts: number } {
+    const meta = getManifestNodeMeta(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, modelId);
+    const pollInterval = meta?.pollInterval ?? 4000;
+    // A caller-supplied timeout wins: translate it into a bounded poll window.
+    if (timeoutSeconds != null && timeoutSeconds > 0) {
+      const maxAttempts = Math.max(
+        1,
+        Math.ceil((timeoutSeconds * 1000) / pollInterval)
+      );
+      return { pollInterval, maxAttempts };
+    }
+    return { pollInterval, maxAttempts: meta?.maxAttempts ?? 300 };
+  }
+
+  private declaresField(fields: ModelInputField[], name: string): boolean {
+    return fields.some((f) => f.name === name);
+  }
+
   /**
-   * Generate music as an encoded audio file. KIE runs music generation (Suno)
-   * as an async job and returns a result URL, so this mirrors the TTS / video
-   * path: submit the task, poll until done, then download the audio bytes.
+   * Per-call timeout signal (mirrors the gemini provider): threaded into the
+   * poll-loop fetches and sleeps so an expired budget aborts the in-flight
+   * request promptly instead of leaking it until the loop exhausts.
+   */
+  private timeoutSignal(
+    timeoutSeconds?: number | null
+  ): AbortSignal | undefined {
+    return timeoutSeconds && timeoutSeconds > 0
+      ? AbortSignal.timeout(timeoutSeconds * 1000)
+      : undefined;
+  }
+
+  /**
+   * Generate music as an encoded audio file. The advertised KIE music models
+   * (generate-music, generate-sounds) run through the Suno API — a separate
+   * submit endpoint and record-info poll, not the generic jobs task API. A
+   * music model without Suno metadata falls back to the generic jobs path.
    */
   override async textToMusic(
     params: TextToMusicParams
   ): Promise<EncodedAudioResult> {
     if (!params.prompt) throw new Error("Prompt is required");
+    const apiKey = this.requireApiKey();
+    const modelId = params.model.id;
+    log.debug("Kie textToMusic", { model: modelId });
+
+    const signal = this.timeoutSignal(params.timeoutSeconds);
+    const meta = getManifestNodeMeta(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, modelId);
+    if (meta?.useSuno && meta.sunoEndpoint) {
+      const input = this.buildSunoInput(modelId, params);
+      const taskId = await submitSuno(apiKey, meta.sunoEndpoint, input, signal);
+      const { pollInterval, maxAttempts } = this.sunoPollConfig(
+        meta.pollInterval,
+        meta.maxAttempts,
+        params.timeoutSeconds
+      );
+      if (getWebhookBaseUrl()) {
+        const timeoutMs = pollInterval * maxAttempts;
+        log.info("Waiting for KIE Suno webhook callback", { taskId, timeoutMs });
+        await registerWebhookWait(taskId, timeoutMs, signal);
+        // After webhook fires, fetch the record to download audio
+        const url = `${KIE_API_BASE}/api/v1/generate/record-info?taskId=${taskId}`;
+        const res = await fetch(url, { headers: headers(apiKey), signal });
+        const record = await parseKieJson(res, "record-info");
+        const bytes = await this.downloadSunoAudio(record, signal);
+        return { data: bytes, mimeType: sniffAudioMime(bytes) };
+      }
+      const record = await pollSuno(
+        apiKey,
+        taskId,
+        pollInterval,
+        maxAttempts,
+        signal
+      );
+      const bytes = await this.downloadSunoAudio(record, signal);
+      return { data: bytes, mimeType: sniffAudioMime(bytes) };
+    }
+
+    // Fallback: a music model that doesn't route through Suno.
     const input: Record<string, unknown> = { prompt: params.prompt };
     if (params.lyrics) input.lyrics = params.lyrics;
     if (params.durationSeconds != null) {
       input.duration = Math.round(params.durationSeconds);
     }
-
-    const modelId = params.model.id;
-    log.debug("Kie textToMusic", { model: modelId });
-    const apiKey = this.requireApiKey();
-    const taskId = await submitTask(apiKey, modelId, input);
-    await pollUntilDone(apiKey, taskId);
-    const bytes = await downloadResultBytes(apiKey, taskId);
+    const { pollInterval, maxAttempts } = this.pollConfig(
+      modelId,
+      params.timeoutSeconds
+    );
+    const taskId = await submitTaskWithWebhook(apiKey, modelId, input, signal);
+    await waitForCompletion(apiKey, taskId, pollInterval, maxAttempts, signal);
+    const bytes = await downloadResultBytes(apiKey, taskId, signal);
     return { data: bytes, mimeType: sniffAudioMime(bytes) };
+  }
+
+  /** Poll interval/attempts for a Suno task, honoring a per-call timeout. */
+  private sunoPollConfig(
+    metaPollInterval: number | undefined,
+    metaMaxAttempts: number | undefined,
+    timeoutSeconds?: number | null
+  ): { pollInterval: number; maxAttempts: number } {
+    const pollInterval = metaPollInterval ?? 4000;
+    if (timeoutSeconds != null && timeoutSeconds > 0) {
+      return {
+        pollInterval,
+        maxAttempts: Math.max(1, Math.ceil((timeoutSeconds * 1000) / pollInterval))
+      };
+    }
+    return { pollInterval, maxAttempts: metaMaxAttempts ?? 120 };
+  }
+
+  /**
+   * Build the Suno submit body from the model's manifest fields. `generate-music`
+   * distinguishes custom mode (lyrics supplied → prompt = lyrics, style = the
+   * description) from non-custom mode (KIE auto-generates lyrics from the
+   * prompt). Required fields with a usable default (e.g. `model`) are filled.
+   */
+  private buildSunoInput(
+    modelId: string,
+    params: TextToMusicParams
+  ): Record<string, unknown> {
+    const fields = getModelInputFields(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, modelId);
+    const has = (name: string) => this.declaresField(fields, name);
+    const input: Record<string, unknown> = {};
+
+    if (params.lyrics && has("customMode") && has("style")) {
+      input.customMode = true;
+      input.prompt = params.lyrics;
+      input.style = params.prompt;
+      if (has("instrumental")) input.instrumental = false;
+    } else {
+      if (has("customMode")) input.customMode = false;
+      input.prompt = params.prompt;
+    }
+
+    for (const f of fields) {
+      if (f.required && input[f.name] === undefined) {
+        const d = defaultForField(f);
+        if (d !== undefined) input[f.name] = d;
+      }
+    }
+    return input;
+  }
+
+  /** Download the first audio track from a Suno record-info response. */
+  private async downloadSunoAudio(
+    record: Record<string, unknown>,
+    signal?: AbortSignal
+  ): Promise<Uint8Array> {
+    const response = (record.data as Record<string, unknown>)?.response as
+      | Record<string, unknown>
+      | undefined;
+    const sunoData = response?.sunoData as
+      | Array<Record<string, unknown>>
+      | undefined;
+    const audioUrl = sunoData?.[0]?.audioUrl as string | undefined;
+    if (!audioUrl) throw new Error("No audioUrl in Kie Suno response");
+    const dlRes = await safeFetch(audioUrl, { signal });
+    if (!dlRes.ok) {
+      throw new Error(`Failed to download from ${audioUrl}`);
+    }
+    return new Uint8Array(await dlRes.arrayBuffer());
   }
 
   /**
@@ -658,8 +1063,9 @@ export class KieProvider extends BaseProvider {
 
     log.debug("Kie textToSpeech", { model: args.model });
     const apiKey = this.requireApiKey();
-    const taskId = await submitTask(apiKey, args.model, input);
-    await pollUntilDone(apiKey, taskId);
+    const { pollInterval, maxAttempts } = this.pollConfig(args.model);
+    const taskId = await submitTaskWithWebhook(apiKey, args.model, input);
+    await waitForCompletion(apiKey, taskId, pollInterval, maxAttempts);
     const bytes = await downloadResultBytes(apiKey, taskId);
     return { data: bytes, mimeType: sniffAudioMime(bytes) };
   }
@@ -667,31 +1073,160 @@ export class KieProvider extends BaseProvider {
   override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
     if (!params.prompt) throw new Error("Prompt is required");
 
+    const modelId = params.model.id;
+    const fields = getModelInputFields(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, modelId);
     const input: Record<string, unknown> = { prompt: params.prompt };
     if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
-    if (params.numFrames) {
-      input.duration = Math.ceil(params.numFrames / 24);
-    }
+    this.applyVideoDuration(input, fields, params);
+    this.applyRequiredDefaults(input, fields);
 
-    const modelId = params.model.id;
     log.debug("Kie textToVideo", { model: modelId });
+    const apiKey = this.requireApiKey();
+    const signal = this.timeoutSignal(params.timeoutSeconds);
+    const { pollInterval, maxAttempts } = this.pollConfig(
+      modelId,
+      params.timeoutSeconds
+    );
+    const taskId = await submitTaskWithWebhook(apiKey, modelId, input, signal);
+    await waitForCompletion(apiKey, taskId, pollInterval, maxAttempts, signal);
+    return downloadResultBytes(apiKey, taskId, signal);
+  }
 
-    const taskId = await submitTask(this.requireApiKey(), modelId, input);
-    await pollUntilDone(this.requireApiKey(), taskId);
-    return downloadResultBytes(this.requireApiKey(), taskId);
+  /**
+   * Set the request `duration` from the caller's requested seconds (preferring
+   * `durationSeconds`, falling back to `numFrames`/24), coerced to the model's
+   * declared field type. A declared schema with no `duration` field sends
+   * nothing; an unknown model keeps the historical numeric behavior.
+   */
+  /**
+   * Fill required fields the model declares but nothing else set, using the
+   * manifest's declared default.
+   *
+   * Kie rejects a task with `500 "This field is required"` when a declared
+   * required field is absent — it does not fall back to the documented default
+   * itself. `kling-2.6/image-to-video` requires `sound` (default false), which
+   * no param maps to, so an image-to-video task failed outright.
+   *
+   * Only fields the manifest marks required AND gives a default are filled, so
+   * this cannot invent a value the model never described.
+   */
+  private applyRequiredDefaults(
+    input: Record<string, unknown>,
+    fields: ModelInputField[]
+  ): void {
+    for (const field of fields) {
+      if (!field.required) continue;
+      if (field.default === undefined) continue;
+      if (input[field.name] !== undefined) continue;
+      input[field.name] = field.default;
+    }
+  }
+
+  private applyVideoDuration(
+    input: Record<string, unknown>,
+    fields: ModelInputField[],
+    params: { durationSeconds?: number | null; numFrames?: number | null }
+  ): void {
+    const seconds =
+      params.durationSeconds != null
+        ? params.durationSeconds
+        : params.numFrames != null
+          ? params.numFrames / 24
+          : undefined;
+    if (seconds == null) return;
+
+    if (fields.length === 0) {
+      // Unknown model: derive a plain integer as before (ceil for a frame count,
+      // round for an explicit second count).
+      input.duration =
+        params.durationSeconds != null ? Math.round(seconds) : Math.ceil(seconds);
+      return;
+    }
+    const durationField = fields.find((f) => f.name === "duration");
+    if (!durationField) return;
+    input.duration = coerceDuration(durationField, seconds);
   }
 
   override async textToImage(params: TextToImageParams): Promise<Uint8Array> {
-    const input: Record<string, unknown> = { prompt: params.prompt };
-    if (params.width) input.width = params.width;
-    if (params.height) input.height = params.height;
+    if (!params.prompt) throw new Error("Prompt is required");
 
     const modelId = params.model.id;
-    log.debug("Kie textToImage", { model: modelId });
+    const fields = getModelInputFields(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, modelId);
+    const input: Record<string, unknown> = { prompt: params.prompt };
 
-    const taskId = await submitTask(this.requireApiKey(), modelId, input);
-    await pollUntilDone(this.requireApiKey(), taskId);
-    return downloadResultBytes(this.requireApiKey(), taskId);
+    // Schema-driven: only send fields the model declares. No KIE model declares
+    // width/height, so those are never sent — an aspect ratio is derived instead.
+    if (params.negativePrompt && this.declaresField(fields, "negative_prompt")) {
+      input.negative_prompt = params.negativePrompt;
+    }
+    if (params.seed != null && this.declaresField(fields, "seed")) {
+      input.seed = params.seed;
+    }
+    this.applyTextToImageAspect(input, fields, params);
+
+    log.debug("Kie textToImage", { model: modelId });
+    const apiKey = this.requireApiKey();
+    const { pollInterval, maxAttempts } = this.pollConfig(modelId);
+    const taskId = await submitTaskWithWebhook(apiKey, modelId, input);
+    await waitForCompletion(apiKey, taskId, pollInterval, maxAttempts);
+    return downloadResultBytes(apiKey, taskId);
+  }
+
+  /**
+   * Set `aspect_ratio` when the model declares it: pass a caller-supplied ratio
+   * through if it's a declared enum value (else snap to the nearest), or derive
+   * the nearest declared ratio from width/height when no ratio was given.
+   */
+  private applyTextToImageAspect(
+    input: Record<string, unknown>,
+    fields: ModelInputField[],
+    params: TextToImageParams
+  ): void {
+    const field = fields.find((f) => f.name === "aspect_ratio");
+    if (!field) return;
+    const enumValues = field.enumValues;
+
+    if (params.aspectRatio) {
+      if (enumValues && enumValues.length > 0) {
+        input.aspect_ratio = enumValues.includes(params.aspectRatio)
+          ? params.aspectRatio
+          : nearestAspect(enumValues, aspectToNumber(params.aspectRatio) ?? 1);
+      } else {
+        input.aspect_ratio = params.aspectRatio;
+      }
+      return;
+    }
+    if (params.width && params.height && enumValues && enumValues.length > 0) {
+      input.aspect_ratio = nearestAspect(enumValues, params.width / params.height);
+    }
+  }
+
+  /**
+   * Set the request's `negative_prompt` / `aspect_ratio` / `seed` from the
+   * caller only when the model declares them. Unknown models (empty schema)
+   * keep the historical behavior: send whatever the caller supplied under the
+   * conventional names.
+   */
+  private applyEditOptions(
+    input: Record<string, unknown>,
+    fields: ModelInputField[],
+    params: {
+      negativePrompt?: string | null;
+      aspectRatio?: string | null;
+      seed?: number | null;
+    }
+  ): void {
+    const declaredOrUnknown = (name: string) =>
+      fields.length === 0 || this.declaresField(fields, name);
+    if (params.negativePrompt && declaredOrUnknown("negative_prompt")) {
+      input.negative_prompt = params.negativePrompt;
+    }
+    if (params.aspectRatio && declaredOrUnknown("aspect_ratio")) {
+      input.aspect_ratio = params.aspectRatio;
+    }
+    if (params.seed != null && declaredOrUnknown("seed")) {
+      input.seed = params.seed;
+    }
   }
 
   /**
@@ -710,18 +1245,19 @@ export class KieProvider extends BaseProvider {
       throw new Error("The input image is empty.");
     }
 
+    const modelId = params.model.id;
+    const fields = getModelInputFields(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, modelId);
     const input: Record<string, unknown> = {
       prompt: params.prompt,
-      ...this.imageInput(params.model.id, imageUrls)
+      ...this.imageInput(modelId, imageUrls)
     };
-    if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
-    if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
+    this.applyEditOptions(input, fields, params);
 
-    const modelId = params.model.id;
     log.debug("Kie imageToImage", { model: modelId, images: imageUrls.length });
 
-    const taskId = await submitTask(apiKey, modelId, input);
-    await pollUntilDone(apiKey, taskId);
+    const { pollInterval, maxAttempts } = this.pollConfig(modelId);
+    const taskId = await submitTaskWithWebhook(apiKey, modelId, input);
+    await waitForCompletion(apiKey, taskId, pollInterval, maxAttempts);
     return downloadResultBytes(apiKey, taskId);
   }
 
@@ -741,29 +1277,30 @@ export class KieProvider extends BaseProvider {
       throw new Error("The input image is empty.");
     }
 
+    const modelId = params.model.id;
+    const fields = getModelInputFields(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, modelId);
     const input: Record<string, unknown> = {
       prompt: params.prompt,
-      ...this.imageInput(params.model.id, imageUrls)
+      ...this.imageInput(modelId, imageUrls)
     };
-    if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
-    if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
+    this.applyEditOptions(input, fields, params);
 
     if (params.mask && params.mask.length > 0) {
       const [maskUrl] = await this.uploadImages(apiKey, [params.mask]);
       if (maskUrl) {
         const maskField = selectMaskImageInput(
-          getModelImageInputs(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, params.model.id)
+          getModelImageInputs(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, modelId)
         );
         const fieldName = maskField?.apiName ?? "mask_url";
         input[fieldName] = maskField?.isList ? [maskUrl] : maskUrl;
       }
     }
 
-    const modelId = params.model.id;
     log.debug("Kie inpaint", { model: modelId, images: imageUrls.length });
 
-    const taskId = await submitTask(apiKey, modelId, input);
-    await pollUntilDone(apiKey, taskId);
+    const { pollInterval, maxAttempts } = this.pollConfig(modelId);
+    const taskId = await submitTaskWithWebhook(apiKey, modelId, input);
+    await waitForCompletion(apiKey, taskId, pollInterval, maxAttempts);
     return downloadResultBytes(apiKey, taskId);
   }
 
@@ -776,28 +1313,29 @@ export class KieProvider extends BaseProvider {
     params: ImageToVideoParams
   ): Promise<Uint8Array> {
     const apiKey = this.requireApiKey();
-    const imageUrls = await this.uploadImages(apiKey, images);
+    const signal = this.timeoutSignal(params.timeoutSeconds);
+    const imageUrls = await this.uploadImages(apiKey, images, signal);
     if (imageUrls.length === 0) {
       throw new Error("The input image is empty.");
     }
 
-    const input: Record<string, unknown> = this.imageInput(
-      params.model.id,
-      imageUrls
-    );
-    if (params.prompt) input.prompt = params.prompt;
-    if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
-    if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
-    if (params.durationSeconds) {
-      input.duration = Math.ceil(params.durationSeconds);
-    }
-
     const modelId = params.model.id;
+    const fields = getModelInputFields(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, modelId);
+    const input: Record<string, unknown> = this.imageInput(modelId, imageUrls);
+    if (params.prompt) input.prompt = params.prompt;
+    this.applyEditOptions(input, fields, params);
+    this.applyVideoDuration(input, fields, params);
+    this.applyRequiredDefaults(input, fields);
+
     log.debug("Kie imageToVideo", { model: modelId, images: imageUrls.length });
 
-    const taskId = await submitTask(apiKey, modelId, input);
-    await pollUntilDone(apiKey, taskId);
-    return downloadResultBytes(apiKey, taskId);
+    const { pollInterval, maxAttempts } = this.pollConfig(
+      modelId,
+      params.timeoutSeconds
+    );
+    const taskId = await submitTaskWithWebhook(apiKey, modelId, input, signal);
+    await waitForCompletion(apiKey, taskId, pollInterval, maxAttempts, signal);
+    return downloadResultBytes(apiKey, taskId, signal);
   }
 
   /**
@@ -824,9 +1362,10 @@ export class KieProvider extends BaseProvider {
   /** Upload every non-empty image to KIE's file store, returning hosted URLs. */
   private async uploadImages(
     apiKey: string,
-    images: Uint8Array[]
+    images: Uint8Array[],
+    signal?: AbortSignal
   ): Promise<string[]> {
     const valid = images.filter((b) => b && b.length > 0);
-    return Promise.all(valid.map((b) => uploadImageBytes(apiKey, b)));
+    return Promise.all(valid.map((b) => uploadImageBytes(apiKey, b, signal)));
   }
 }

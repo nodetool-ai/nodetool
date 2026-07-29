@@ -3,7 +3,7 @@ layout: page
 title: "nodetool.text Nodes"
 ---
 
-This namespace contains 51 node(s).
+This namespace contains 52 node(s).
 
 ## Nodes
 
@@ -13,6 +13,7 @@ This namespace contains 51 node(s).
 - **[Collapse Whitespace](collapsewhitespace.md)**
 - **[Collect Text](collecttext.md)**
 - **[Compare Text](comparetext.md)**
+- **[Concat](concat.md)**
 - **[Concatenate Text](concatenatetext.md)**
 - **[Contains Text](containstext.md)**
 - **[Count Tokens](counttokens.md)**

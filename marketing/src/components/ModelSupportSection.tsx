@@ -48,11 +48,12 @@ const cloudProviders = [
 // Perishable by design: stale names here directly undercut the
 // "swap models the day they launch" pitch — review on every release cycle.
 const frontierModels = [
-    { name: "Claude Opus 4.8", color: "text-amber-400" },
-    { name: "Claude Sonnet 4.6", color: "text-amber-400" },
-    { name: "Claude Haiku 4.5", color: "text-amber-400" },
-    { name: "Gemini 3 Pro", color: "text-blue-400" },
-    { name: "Gemini 3 Flash", color: "text-blue-400" },
+    { name: "GPT-5.6", color: "text-emerald-400" },
+    { name: "Claude Fable 5", color: "text-amber-400" },
+    { name: "Claude Opus 5", color: "text-amber-400" },
+    { name: "Claude Sonnet 5", color: "text-amber-400" },
+    { name: "Gemini 3.5 Flash", color: "text-blue-400" },
+    { name: "Gemini 3.1 Pro", color: "text-blue-400" },
     { name: "Qwen Image", color: "text-sky-400" },
     { name: "Veo 3.1", color: "text-blue-400" },
     { name: "Kling 3", color: "text-cyan-400" },
@@ -70,7 +71,7 @@ export default function ModelSupportSection({
     return (
         <section
             aria-labelledby="model-support-title"
-            className="relative py-16 overflow-hidden"
+            className="relative py-16 overflow-clip-safe"
         >
             {/* Background Glow */}
             <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[800px] h-[500px] bg-emerald-900/20 blur-[120px] rounded-full pointer-events-none" />
@@ -78,9 +79,9 @@ export default function ModelSupportSection({
 
             <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
                 {/* Header */}
-                <div className="mb-12 text-center max-w-3xl mx-auto">
+                <div className="scroll-fade mb-12 text-center max-w-3xl mx-auto">
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
+                        initial={false}
                         whileInView={{ opacity: 1, scale: 1 }}
                         viewport={{ once: true }}
                         className="inline-flex items-center justify-center p-3 mb-6 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-blue-500/10 border border-emerald-500/20 shadow-lg shadow-emerald-500/5"
@@ -90,28 +91,28 @@ export default function ModelSupportSection({
 
                     <motion.h2
                         id="model-support-title"
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={false}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        transition={{ duration: 0.5 }}
+                        transition={{ duration: 0.25 }}
                         className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-6"
                     >
-                        Every model.{" "}
+                        The newest models,{" "}
                         <span className="text-white">
-                            Your keys.
+                            the day they arrive.
                         </span>
                     </motion.h2>
 
                     <motion.p
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={false}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        transition={{ duration: 0.5, delay: 0.1 }}
+                        transition={{ duration: 0.25, delay: 0.05 }}
                         className="text-lg text-slate-400 leading-relaxed"
                     >
-                        Frontier models from every major provider, called with
-                        the keys you already pay for. Swap models the day they
-                        launch. Run inference locally when you want to.
+                        The leading image, video, audio, and language models from
+                        every major provider, or the same kind of models running
+                        on your own computer when you prefer that.
                     </motion.p>
                 </div>
 
@@ -119,7 +120,7 @@ export default function ModelSupportSection({
                 <div className="mb-10">
                     <div className="flex items-center justify-center gap-3 mb-4">
                         <Sparkles className="w-5 h-5 text-violet-400" />
-                        <span className="text-sm font-medium text-slate-400">Frontier Models</span>
+                        <span className="text-sm font-medium text-slate-400">Latest Models</span>
                     </div>
 
                     <div className="relative overflow-hidden">
@@ -130,6 +131,7 @@ export default function ModelSupportSection({
                             {[...frontierModels, ...frontierModels].map((model, idx) => (
                                 <span
                                     key={`${model.name}-${idx}`}
+                                    aria-hidden={idx >= frontierModels.length || undefined}
                                     className={`flex-shrink-0 mx-4 text-lg font-semibold whitespace-nowrap ${model.color}`}
                                 >
                                     {model.name}
@@ -154,6 +156,8 @@ export default function ModelSupportSection({
                             {[...cloudProviders, ...cloudProviders].map((provider, idx) => (
                                 <a
                                     key={`${provider.title}-${idx}`}
+                                    aria-hidden={idx >= cloudProviders.length || undefined}
+                                    tabIndex={idx >= cloudProviders.length ? -1 : undefined}
                                     href={provider.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
@@ -175,7 +179,7 @@ export default function ModelSupportSection({
                 <div>
                     <div className="flex items-center gap-3 mb-4">
                         <Cpu className="w-5 h-5 text-emerald-400" />
-                        <span className="text-sm font-medium text-slate-400">Local Inference</span>
+                        <span className="text-sm font-medium text-slate-400">Runs on Your Machine</span>
                     </div>
 
                     <div className="relative overflow-hidden">
@@ -186,6 +190,8 @@ export default function ModelSupportSection({
                             {[...localEngines, ...localEngines, ...localEngines, ...localEngines].map((engine, idx) => (
                                 <a
                                     key={`${engine.title}-${idx}`}
+                                    aria-hidden={idx >= localEngines.length || undefined}
+                                    tabIndex={idx >= localEngines.length ? -1 : undefined}
                                     href={engine.url}
                                     target="_blank"
                                     rel="noopener noreferrer"

@@ -77,9 +77,6 @@ const handleRightClick: MouseEventHandler<HTMLImageElement> = (event) => {
   event.stopPropagation();
 };
 
-/**
- * AudioViewer component, used to display an audio player for a given asset.
- */
 const AudioViewer: React.FC<AudioViewerProps> = memo(function AudioViewer({ asset, url }) {
   const theme = useTheme();
   return (

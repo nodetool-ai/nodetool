@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 /**
- * CropBody — bespoke body for `nodetool.image.Crop` (plan §9.E2, PR 11).
+ * CropBody — bespoke body for `nodetool.image.Crop`.
  *
  * Top: image preview with a draggable crop rectangle overlay (4 corner +
  * 4 edge handles, drag-to-move interior). The overlay lives in image-
@@ -227,9 +227,9 @@ const asImageRef = (value: unknown): ImageRefLike | undefined => {
   if (!value || typeof value !== "object") return undefined;
   const v = value as Record<string, unknown>;
   return {
-    uri: typeof v.uri === "string" ? (v.uri as string) : undefined,
-    width: typeof v.width === "number" ? (v.width as number) : undefined,
-    height: typeof v.height === "number" ? (v.height as number) : undefined,
+    uri: typeof v.uri === "string" ? v.uri : undefined,
+    width: typeof v.width === "number" ? v.width : undefined,
+    height: typeof v.height === "number" ? v.height : undefined,
     data: v.data
   };
 };
@@ -317,6 +317,22 @@ const CropBodyInner: React.FC<CropBodyProps> = ({
   }, [inputValue, ownOutput]);
 
   const sourceSrc = useMemo(() => toSource(sourceImage), [sourceImage]);
+
+  // Revoke the blob URL minted by `toSource` when the source changes / on
+  // unmount. Only revoke URLs we created — passthrough http/data URIs from
+  // `img.uri` must not be revoked.
+  const blobUrlRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (sourceSrc && sourceSrc.startsWith("blob:")) {
+      blobUrlRef.current = sourceSrc;
+    }
+    return () => {
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
+    };
+  }, [sourceSrc]);
 
   // Track the source image's natural dimensions. Prefer the metadata
   // already on the ImageRef; fall back to the `<img>`'s naturalWidth

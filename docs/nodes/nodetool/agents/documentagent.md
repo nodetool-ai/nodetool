@@ -11,8 +11,8 @@ namespace: "nodetool.agents"
 
 ## Description
 
-Prompt-driven document skill for model-based document analysis.
-    skills, document, extraction, conversion, markdown
+Read, analyze, and convert documents to Markdown from a prompt.
+    agent, document, analysis, conversion, markdown
 
 ## Properties
 

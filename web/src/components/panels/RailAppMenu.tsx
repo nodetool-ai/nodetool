@@ -16,6 +16,7 @@ import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
 import FolderSpecialOutlinedIcon from "@mui/icons-material/FolderSpecialOutlined";
+import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 
 import { isProduction } from "../../lib/env";
 import { useCombo } from "../../stores/KeyPressedStore";
@@ -39,7 +40,7 @@ const logoButtonStyles = (theme: Theme) =>
     justifyContent: "center",
     width: "40px",
     height: "34px",
-    margin: `0 ${theme.spacing(0.625)}`,
+    margin: `0 ${theme.spacing(SPACING.micro)}`,
     padding: 0,
     border: "none",
     borderRadius: BORDER_RADIUS.lg,
@@ -63,12 +64,21 @@ const menuStyles = () =>
     padding: `${getSpacingPx(SPACING.xs)} 0`
   });
 
+export interface RailAppMenuProps {
+  /**
+   * Called after an item opens something (a page tab, Help, Downloads). The
+   * mobile panel sheet uses it to dismiss itself so the destination isn't
+   * hidden behind it.
+   */
+  onAction?: () => void;
+}
+
 /**
  * The app menu docked at the top of the workspace rail. The logo opens a menu
  * carrying the global actions that used to live in the old header's right cluster:
  * Settings, Help, and Downloads (with live progress when active).
  */
-const RailAppMenu: React.FC = () => {
+const RailAppMenu: React.FC<RailAppMenuProps> = ({ onAction }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const anchorRef = useRef<HTMLButtonElement>(null);
@@ -94,6 +104,11 @@ const RailAppMenu: React.FC = () => {
   useCombo(["Control", "/"], handleShowKeyboardShortcuts);
 
   const close = useCallback(() => setOpen(false), []);
+  // Closing after an item was picked, as opposed to dismissing the popover.
+  const finish = useCallback(() => {
+    setOpen(false);
+    onAction?.();
+  }, [onAction]);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
 
   // Open an app page (Settings, Costs, …) as a workspace tab and focus the
@@ -107,15 +122,15 @@ const RailAppMenu: React.FC = () => {
         title: PAGE_TAB_TITLES[key]
       });
       navigate("/workspace");
-      close();
+      finish();
     },
-    [openTab, navigate, close]
+    [openTab, navigate, finish]
   );
 
   const goDashboard = useCallback(() => {
     navigate("/dashboard");
-    close();
-  }, [navigate, close]);
+    finish();
+  }, [navigate, finish]);
 
   const goExamples = useCallback(() => openPage("examples"), [openPage]);
   const goTutorials = useCallback(() => openPage("tutorials"), [openPage]);
@@ -123,13 +138,14 @@ const RailAppMenu: React.FC = () => {
   const goModels = useCallback(() => openPage("models"), [openPage]);
   const goPackages = useCallback(() => openPage("packages"), [openPage]);
   const goCollections = useCallback(() => openPage("collections"), [openPage]);
+  const goEntities = useCallback(() => openPage("entities"), [openPage]);
   const goWorkspaces = useCallback(() => openPage("workspaces"), [openPage]);
   const goSettings = useCallback(() => openPage("settings"), [openPage]);
 
   const openHelp = useCallback(() => {
     handleOpenHelp();
-    close();
-  }, [handleOpenHelp, close]);
+    finish();
+  }, [handleOpenHelp, finish]);
 
   const { downloads, openDownloadsDialog } = useModelDownloadStore(
     useShallow((state) => ({
@@ -151,8 +167,8 @@ const RailAppMenu: React.FC = () => {
 
   const openDownloads = useCallback(() => {
     openDownloadsDialog();
-    close();
-  }, [openDownloadsDialog, close]);
+    finish();
+  }, [openDownloadsDialog, finish]);
 
   return (
     <>
@@ -210,15 +226,22 @@ const RailAppMenu: React.FC = () => {
             icon={<ViewInArOutlinedIcon />}
             onClick={goModels}
           />
-          <MenuItemPrimitive
-            label="Package Manager"
-            icon={<Inventory2OutlinedIcon />}
-            onClick={goPackages}
-          />
+          {!isProduction && (
+            <MenuItemPrimitive
+              label="Package Manager"
+              icon={<Inventory2OutlinedIcon />}
+              onClick={goPackages}
+            />
+          )}
           <MenuItemPrimitive
             label="Collections"
             icon={<LibraryBooksOutlinedIcon />}
             onClick={goCollections}
+          />
+          <MenuItemPrimitive
+            label="Entities"
+            icon={<PersonOutlineOutlinedIcon />}
+            onClick={goEntities}
             dividerAfter={!workspacesEnabled}
           />
           {workspacesEnabled && (

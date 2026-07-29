@@ -37,7 +37,7 @@ import {
   GrepTool,
   DownloadFileTool,
   HttpRequestTool,
-  GoogleSearchTool,
+  WebSearchTool,
   GoogleNewsTool,
   GoogleImagesTool,
   BrowserTool,
@@ -193,7 +193,7 @@ function buildToolMap(
     grep: new GrepTool(),
     download_file: new DownloadFileTool(),
     http_request: new HttpRequestTool(),
-    google_search: new GoogleSearchTool(),
+    web_search: new WebSearchTool(),
     google_news: new GoogleNewsTool(),
     google_images: new GoogleImagesTool(),
     browser: new BrowserTool(),
@@ -420,7 +420,6 @@ async function runAgentCommand(file: string, opts: RunOptions): Promise<void> {
     }
   }
 
-  // Tools
   const { tools, unknown } = resolveTools(cfg.tools, configuredProviders, prefs);
   if (unknown.length > 0) {
     process.stderr.write(
@@ -428,7 +427,6 @@ async function runAgentCommand(file: string, opts: RunOptions): Promise<void> {
     );
   }
 
-  // Workspace
   const workspaceDir = expandTilde(
     opts.workspace ?? cfg.workspace?.path ?? process.cwd()
   );
@@ -442,7 +440,6 @@ async function runAgentCommand(file: string, opts: RunOptions): Promise<void> {
 
   const provider = await createProvider(providerId);
 
-  // Header
   if (!opts.json) {
     process.stderr.write(
       chalk.bold(`\n▸ ${cfg.name ?? path.basename(file)}\n`) +
@@ -674,7 +671,7 @@ function findDebugBundle(jobId: string): string | null {
     return null;
   }
   const matches = entries
-    .filter((e) => e.isDirectory() && e.name.startsWith(jobId))
+    .filter((e) => e.isDirectory() && e.name.startsWith(`${jobId}-`))
     .map((e) => path.join(root, e.name))
     .sort();
   return matches.length > 0 ? matches[matches.length - 1]! : null;

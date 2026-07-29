@@ -2,7 +2,7 @@
 
 Visual AI workflow platform. TypeScript monorepo with React frontend, Electron desktop app, and Node.js backend.
 
-> _Last updated: 2026-06-19._ When the architecture, commands, or rules below drift from the codebase, update this file in the same PR.
+> _Last updated: 2026-07-11._ When the architecture, commands, or rules below drift from the codebase, update this file in the same PR.
 
 ## Critical Commands
 
@@ -48,16 +48,24 @@ npm run electron:dev # Electron dev (auto-rebuilds native modules)
 - Python 3.11+ with conda (optional, for Python nodes)
 
 ```bash
-# First-time setup
+# First-time setup — start.sh does all of it, then starts the server
+./start.sh           # API on :7777   (full | web | check | doctor)
+
+# Or by hand:
 nvm use              # Reads .nvmrc, activates Node 22.22.1
 npm install          # Install all workspace dependencies
 npm run build:packages  # Build backend packages
 ```
 
+In Claude Code **web** sessions, `.claude/hooks/session-start.sh` installs
+dependencies before the session starts, so `npm run typecheck`/`lint`/`test`
+work immediately. Slash commands: `/serve`, `/verify`, `/onboard`. See
+[.claude/README.md](.claude/README.md).
+
 ## Architecture
 
 ```
-packages/           # 55 npm workspace packages (TypeScript backend)
+packages/           # 58 npm workspace packages (TypeScript backend)
   protocol/         # Shared message types — base dependency for everything
   config/           # Configuration loading, logging
   security/         # Secret storage, encryption
@@ -74,11 +82,16 @@ packages/           # 55 npm workspace packages (TypeScript backend)
   websocket/        # Fastify HTTP + WebSocket server (main API, port 7777)
   cli/              # nodetool CLI
   vectorstore/      # SQLite-vec for RAG
+  app-runtime/      # Mini-app document, bindings, instance state, streaming fold
+                    # (shared by web, the CLI `app debug` harness, and mobile)
+  model-pricing/    # Unit price for a selected FAL/kie model (web + runner)
   ...
 
 web/                # React 19 + Vite + MUI + Zustand + ReactFlow
 electron/           # Electron 39 desktop app
-mobile/             # React Native / Expo
+mobile/             # React Native / Expo (documents open one-per-screen, no tabs;
+                    # edits come through the chat agent's ui_* tools —
+                    # see mobile/ARCHITECTURE.md § Documents)
 demo/               # Remotion harness for product-demo videos (replays recorded
                     # graph-UI "casts"; see demo/README.md and web/src/demo/)
 ```
@@ -137,11 +150,15 @@ npm run typecheck   # Must pass before committing
 - **Node.js 22.22.1 is required**. This matches Electron 39's embedded Node (`process.versions.node === "22.22.1"`). Pinning the major keeps API parity between dev and the packaged app. The backend (dev and prod) runs on vanilla Node, not Electron's embedded Node, so the one source-built native module — `better-sqlite3` — is rebuilt against **Node** headers by the root `postinstall` (`electron/scripts/rebuild-native.mjs`). N-API modules (`bufferutil`, `sharp`, `keytar`, `sqlite-vec`) are ABI-stable, ship their own prebuilds via their normal install scripts, and are not rebuilt here.
 - **base-nodes, node-sdk, fal-nodes, replicate-nodes, elevenlabs-nodes** use decorators and load from `dist/`. After changing these, run `npm run build:packages` before `npm run dev`.
 - **Package build order matters**. Use `npm run build:packages` which builds in dependency order, not `npm run build` on individual packages that have unbuilt dependencies.
-- **Deploy = image + web/dist bind-mount, not host packages**. The deploy unit is the GHCR image built by `.github/workflows/docker.yml` (pulled by `deploy.sh`). Backend code is baked into the image, so a backend change needs a new image. Only `web/dist` is mounted from the host (read-only), so a frontend change just needs `npm run build:web`. A host `npm run build:packages` does not affect the running container — it rebuilds local packages the image never reads.
+- **Deploy = the GHCR image, self-contained**. The prod server runs on **Fly.io** (`fly.toml`, app `nodetool`, https://nodetool.fly.dev / https://api.nodetool.ai). The deploy unit is the GHCR image built by `.github/workflows/docker.yml`; `web/dist` and workflow examples are baked into it (no host bind-mount). A push to `main` builds the image (`docker.yml`) and then auto-deploys it to Fly (`fly-deploy.yml`), so both backend and frontend changes ship in a new image. Migrations run once per release via Fly's `release_command` (see `fly.toml`).
+- **Self-hosting** (outside Fly) uses `docker-compose.yml` (reference compose) or the `packages/deploy` tooling. The old self-hosted `deploy.sh`/`npm run redeploy` box was decommissioned once Fly took over.
+- **Packaged Electron backend flattens file paths**. esbuild bundles the backend into one `server.mjs`, so anything resolved relative to `import.meta.url` (provider `*-manifest.json`, examples, `package://` assets) lives elsewhere in the packaged app than in dev. Data files a package loads at runtime must be declared in `PACKAGE_RUNTIME_ASSETS` (`packages/config/src/package-asset-registry.ts`) and loaded via `loadPackageAssetJson` from `@nodetool-ai/config` — the registry drives staging (`scripts/bundle-backend.mjs`) and artifact verification (`scripts/verify-backend-bundle.mjs`), and unregistered loads throw in dev. See [electron/src/AGENTS.md § Packaged file layout](electron/src/AGENTS.md).
+- **The packaged backend only resolves what `bundle-backend.mjs` stages, in a flat `_modules/`**. One version per package name wins, so a dependency npm hoisted for an older major can take the slot a newer one needs — invisible in dev, fatal in the artifact. `npm run backend:smoke` stages the bundle and boots `server.mjs` against `/health`; run it after touching `scripts/bundle-backend.mjs`, a native dependency, or anything the backend loads lazily. CI runs it as the Quality Gate `bundle` leg and again per-OS in `release.yaml`.
 - **WebSocket messages use MsgPack**, not JSON. Use the existing serialization helpers.
 - **Don't create new WebSocket instances** — use `GlobalWebSocketManager` singleton.
-- **Mobile typecheck** requires building protocol first: `cd packages/protocol && npm run build`.
+- **Mobile typecheck** requires building protocol first: `cd packages/protocol && npm run build`. The one shared package mobile compiles from **source** (no build) is `@nodetool-ai/app-runtime`, wired in `mobile/metro.config.js`, `tsconfig.json` and `jest.config.js` — all three must agree.
 - **`mobile/` is intentionally NOT a root workspace** (it has its own Expo/React Native dependency tree that must not be hoisted). Its scripts use `npm --prefix mobile …`, not `npm --workspace=mobile …` — the latter will fail. Do not "standardize" these to `--workspace`.
+- **`npm install` fails in sandboxed/proxied environments** (CI sandboxes, Claude Code on the web): `keytar` needs `apt-get install -y libsecret-1-dev` first; `electron` and `onnxruntime-node` download binaries in postinstall, which proxies can 403 (`ELECTRON_SKIP_BINARY_DOWNLOAD=1` covers Electron; onnxruntime has no skip var). Any postinstall failure rolls back the whole `node_modules` tree. For lint/typecheck-only work, `npm install --ignore-scripts` sidesteps all of it. Details: [AGENTS.md § Install in sandboxed / proxied environments](AGENTS.md#install-in-sandboxed--proxied-environments).
 - **Native module install is a single command**: a clean checkout builds with `npm ci` (or `npm install`) alone — no manual follow-up. The native `better-sqlite3` rebuild runs from the **root** `postinstall` (`electron/scripts/rebuild-native.mjs`), which fires *after* npm has fully reified the tree. It deliberately does **not** run from the electron workspace's own postinstall: that fired mid-reify and raced npm's atomic renames of node-gyp's deps (`tinyglobby`), giving intermittent `Cannot find module 'tinyglobby'` failures. If you ever hit a `NODE_MODULE_VERSION` mismatch, force a rebuild with `npm run rebuild:native` (root) or `npm --prefix electron run rebuild:native`.
 - **Claude Agent Provider in nested sessions (e.g. Claude Code web)**: The SDK spawns a subprocess via `node cli.js`. In environments like Claude Code on the web (`claude.ai/code`), you must: (1) strip all `CLAUDE_CODE_*` / `CLAUDE_SESSION_*` / `CLAUDE_ENABLE_*` / `CLAUDE_AFTER_*` / `CLAUDE_AUTO_*` env vars — not just `CLAUDECODE`; (2) run as a non-root user — the SDK refuses `--dangerously-skip-permissions` when uid=0; (3) keep `ANTHROPIC_BASE_URL` and `HTTP_PROXY`/`HTTPS_PROXY` vars for API routing. See `docs/AGENTS.md` § Claude Agent SDK for full details.
 
@@ -164,7 +181,7 @@ npm run chat -- [flags]
 ```bash
 # Interactive agent chat
 npm run dev:chat -- --agent --provider openai --model gpt-5.4-mini
-npm run dev:chat -- --agent --provider anthropic --model claude-sonnet-4-6
+npm run dev:chat -- --agent --provider anthropic --model claude-sonnet-5
 
 # Piped input (non-interactive)
 echo "research 5 AI topics" | npm run dev:chat -- --agent --provider openai --model gpt-5.4-mini
@@ -182,7 +199,7 @@ Chat flags:
                          moonshot, minimax, cerebras, together, openrouter,
                          huggingface, replicate, kie, aki, ollama, lmstudio
                          (any registry provider id also works, e.g. vllm, llama_cpp)
--m, --model <id>         Model ID (e.g. claude-sonnet-4-6, gpt-5.4-mini)
+-m, --model <id>         Model ID (e.g. claude-sonnet-5, gpt-5.4-mini)
 -w, --workspace <path>   Workspace directory for file tools
 --tools <list>           Comma-separated tool names
 -u, --url <ws-url>       Connect to WebSocket server instead of local provider
@@ -197,6 +214,36 @@ npm run dev:nodetool -- serve                     # Start on localhost:7777
 npm run dev:nodetool -- serve --host 0.0.0.0      # Bind all interfaces
 npm run dev:nodetool -- serve --port 8080          # Custom port
 ```
+
+### MCP bundle (.mcpb) for Claude Desktop
+
+```bash
+npm run build:mcpb        # → dist/nodetool.mcpb (runs an end-to-end smoke test)
+```
+
+Builds a one-file MCP bundle that Claude Desktop (and other MCPB-aware
+agents) installs by drag-and-drop. The bundle is a stdio↔streamable-HTTP
+bridge (`scripts/mcpb/bridge.mjs`, packed by `scripts/build-mcpb.mjs`) that
+talks to a running NodeTool server's `/mcp` endpoint — no native modules, so
+one artifact covers macOS/Windows/Linux. When the server isn't running the
+bridge starts anyway in offline mode: it serves a `nodetool_status` tool with
+startup instructions, retries in the background, and hot-attaches (with
+`list_changed` notifications) when the server appears — including after a
+mid-session app restart. User config in the bundle: server URL (default
+`http://127.0.0.1:7777/mcp`) and an optional bearer token. For CLI agents
+(Claude Code, Codex) use `nodetool mcp install` instead.
+
+Every release builds and attaches `nodetool-<version>.mcpb` to the GitHub
+Release (`release.yaml`, built once on Linux since the bundle is
+cross-platform).
+
+The desktop app ships the same bundle: the electron build runs `prepare-mcpb`
+and bundles `nodetool.mcpb` as an extra resource (`electron-builder.json`).
+**Settings → MCP → Claude Desktop → Install Extension** hands it to the OS
+(`window.api.mcp.installBundle` → `MCP_INSTALL_BUNDLE` IPC →
+`electron/src/mcpBundle.ts`), which opens Claude Desktop's install dialog
+(falling back to reveal-in-folder when no handler is registered). The button is
+desktop-only — it's hidden in the browser/remote UI.
 
 ### nodetool run (DSL Workflows)
 
@@ -261,6 +308,76 @@ graph overview in one call). The browser surface is exposed in `web/` as
 `npm run test:debug-harness` (env: `NODETOOL_DEBUG_GRAPH`, `NODETOOL_DEBUG_OUT`,
 `NODETOOL_DEBUG_PARAMS`).
 
+### nodetool app debug (App-Builder Debug Harness)
+
+Runs a mini app **headlessly** for agent debugging: validates every widget
+binding against the workflow's inputs/outputs/variables, simulates the app the
+way the web runtime does (seed input defaults, apply params, click the Run
+button or a scripted interaction sequence), executes the workflow on the kernel
+runner, folds the streamed messages into the app's reactive values, and reports
+each widget's final state plus a verdict.
+
+Three target kinds, all producing the same report: an **application id** (read
+straight from the applications table, no server), an **ApplicationBundle JSON
+file** (the app plus the full graphs of the workflows it binds — operations
+reference bundle keys, so it runs without touching the database), and — legacy
+— a **workflow id or workflow JSON file** carrying `graph` + `app_doc`, whose
+document is lifted onto the host workflow.
+
+```bash
+npm run dev:nodetool -- app debug <application_id>
+npm run dev:nodetool -- app debug my.app.json          # ApplicationBundle file
+npm run dev:nodetool -- app debug workflow.json --params '{"prompt":"hi"}'
+npm run dev:nodetool -- app debug <id> --no-run       # static wiring check only
+npm run dev:nodetool -- app debug <id> --json         # full AppDebugReport for agents
+
+# Scripted interactions: set values, change inputs, click widgets (by
+# component id, unique type, or unique label), and run or cancel an
+# operation by id
+npm run dev:nodetool -- app debug <id> --interact \
+  '[{"set":{"key":"prompt","value":"hi"}},{"click":"Button-1"}]'
+npm run dev:nodetool -- app debug <id> --interact \
+  '[{"set":{"key":"tone","value":"terse","operationId":"draft"}},{"run":"draft"},{"cancel":"draft"}]'
+```
+
+The harness runs **every** declared operation, not just the first: each resolves
+its own graph, and state is keyed per operation.
+
+The verdict catches app-level failures a workflow-only run can't: bindings that
+reference missing inputs/outputs/variables, apps with no run trigger, and
+display widgets that never receive a value from a completed run. It also catches
+what the operation/variable layer makes mis-configurable — an output mapped to
+an undeclared variable, a mapping keyed on a node the workflow lacks, an event
+naming an operation the document never declares, a widget showing execution
+state of an operation nothing can run, and an elapsed `timeoutMs`. A
+`persist: true` variable that is `instance`-scoped warns rather than being
+silently downgraded.
+
+The bundle (`nodetool-debug/app-<id>-<ts>/`) contains `report.json`/`report.md`,
+`app.json` (the app document), `workflow.json`, and
+`server/run-N.messages.jsonl` per triggered run. The report carries final
+variable values, the activity label stream, and each invocation's policy
+decision, so an agent can see why a run was replaced, queued, or timed out.
+Harness code: `packages/cli/src/app-debug/`.
+
+Not simulated headlessly: `visibleWhen`/`disabledWhen`/`format`, so a widget
+hidden by a condition is reported as if visible; and `from: "resource"` params,
+which have no provider outside the browser.
+
+The shipped example apps are curated `ApplicationBundle` files in
+`packages/base-nodes/nodetool/examples/apps/`, built from the spec in
+`scripts/example-apps/apps.mjs` by `node scripts/build-example-apps.mjs`. The
+build resolves every workflow, input, and output by name against the shipped
+template graphs, validates each bundle with `nodetool app debug --no-run`, and
+writes the preview bundles in `web/public/app-preview/`. Example workflows
+carry no `app_doc`. The server lists them at `GET /api/applications/examples`
+and installs one with `POST /api/applications/examples/:slug/install`, which
+goes through the normal bundle import. Marketing
+screenshots come from `web/scripts/screenshot-app-previews.mjs` (renders
+`web/app-preview.html` headlessly → `marketing/public/apps/<slug>.png`), and
+the `/apps/*` landing pages are generated by
+`marketing/scripts/generate-miniapp-entries.mjs` (`npm run gen:apps`).
+
 ### nodetool validate (Static Workflow Check)
 
 Checks a workflow against the node registry **without running it** — unknown
@@ -309,6 +426,47 @@ npm run dev:nodetool -- generate fal-ai --list-models              # discover mo
 npm run dev:nodetool -- generate fal-ai flux-schnell "..." --json  # machine-readable
 ```
 
+### nodetool eval (Agent Evaluation Suites)
+
+Runs the GraphPlanner evaluation suite against any registered provider and
+reports metrics: success rate, expectation score, one-shot rate (graphs
+accepted on the first `submit_graph`), submit rounds, tool calls, duration,
+and cost. Cases and expectations live in
+`packages/agents/src/evals/`.
+
+```bash
+npm run dev:nodetool -- eval graph-planner --list                     # show cases
+npm run dev:nodetool -- eval graph-planner -p anthropic -m claude-sonnet-5
+npm run dev:nodetool -- eval graph-planner -p ollama -m qwen-3.5:4b --cases summarize,branch-both-paths
+npm run dev:nodetool -- eval graph-planner -p openai -m gpt-5.4-mini --json --out report.json
+npm run dev:nodetool -- eval graph-planner -p anthropic -m ... --min-success 0.8   # non-zero exit below threshold
+```
+
+The other two planning modes have a suite each, scoring the plan without
+running it: **`task-planner`** (multi-task DAG quality — parallel width,
+decomposition size, tool routing, no synthesis task) and **`script-planner`**
+(orchestration-script authoring — concurrency primitives, real loops, budget
+guards, no prelude shadowing).
+
+```bash
+npm run dev:nodetool -- eval task-planner -p anthropic -m claude-sonnet-5
+npm run dev:nodetool -- eval script-planner -p openai -m gpt-5.4-mini
+```
+
+Alongside `graph-planner` (one-shot DSL) there are seven **tool-loop** suites
+that drive a real provider through the frontend `ui_*` tool contract against a
+headless bridge — no browser — and score the multi-turn tool-calling flow
+structurally: `tool-loop` (graph editor), `script-tools`, `sketch-tools`,
+`timeline-tools`, `storyboard-tools`, `model3d-tools`, `app-tools`. Same flags,
+metrics, and `--min-success` CI gate as `graph-planner`. Details:
+[packages/agents/CLAUDE.md](packages/agents/CLAUDE.md).
+
+```bash
+npm run dev:nodetool -- eval timeline-tools --list
+npm run dev:nodetool -- eval script-tools -p anthropic -m claude-sonnet-5
+npm run dev:nodetool -- eval sketch-tools -p ollama -m qwen-3.5:4b --min-success 0.8
+```
+
 ### nodetool affected (Changed-File → Workspace Mapping)
 
 Maps changed files (or the git working tree) to the minimal set of workspaces to
@@ -325,7 +483,9 @@ npm run dev:nodetool -- affected --json
 
 ### nodetool workflows
 
-Requires a running server (localhost:7777 or `--api-url`).
+Reads and writes the local database directly — no running server needed. Pass
+`--api-url <url>` (or set `NODETOOL_API_URL`) to target a remote server instead.
+The same applies to `jobs`, `assets`, and `models list/ollama/huggingface`.
 
 ```bash
 npm run dev:nodetool -- workflows list                          # List all workflows
@@ -381,6 +541,72 @@ npm run dev:nodetool -- assets list --content-type image/png    # Filter by type
 npm run dev:nodetool -- assets get <asset_id>                   # Asset details
 ```
 
+### nodetool collections (RAG Vector Store)
+
+Manages the vector-store collections that back RAG: CRUD, document indexing,
+and semantic search. Runs in-process against the default vector provider
+(sqlite-vec unless `NODETOOL_VECTOR_PROVIDER` points elsewhere) — no server
+needed.
+
+```bash
+npm run dev:nodetool -- collections list                        # List collections + counts
+npm run dev:nodetool -- collections create my_docs --embedding-model <id>
+npm run dev:nodetool -- collections index my_docs notes.md report.txt   # Chunk + index files
+npm run dev:nodetool -- collections query my_docs "how does X work" -n 5 # Semantic search
+npm run dev:nodetool -- collections get my_docs                 # Metadata + document count
+npm run dev:nodetool -- collections delete my_docs --yes        # Delete (skip confirm)
+```
+
+### nodetool costs
+
+Aggregates the per-call cost/token records NodeTool tracks for every LLM call,
+read straight from the local DB — no server needed.
+
+```bash
+npm run dev:nodetool -- costs summary                           # Overall + per-provider/model
+npm run dev:nodetool -- costs list --limit 20                   # Recent calls
+npm run dev:nodetool -- costs list --provider anthropic         # Filter by provider/model
+npm run dev:nodetool -- costs by-provider                       # Grouped by provider
+npm run dev:nodetool -- costs by-model --provider openai        # Grouped by model
+```
+
+### nodetool storage
+
+Asset objects live at `<userId>/<assetId>.<ext>` so the owner is the leading
+path segment — the boundary a Supabase RLS policy or S3 bucket policy can
+enforce on the object itself. `migrate-keys` moves objects written under the
+older flat layout. Required on Supabase/S3 when upgrading; the local file
+backend falls back to the flat key on a miss.
+
+```bash
+npm run dev:nodetool -- storage migrate-keys --dry-run     # Report, write nothing
+npm run dev:nodetool -- storage migrate-keys               # Move them
+npm run dev:nodetool -- storage migrate-keys --user-id <id> --json
+```
+
+### nodetool auth
+
+Signs in to providers that use an account instead of an API key. `auth claude`
+runs the same OAuth flow the `claude` CLI does and writes the tokens to the
+Claude Agent SDK's credential file (`$CLAUDE_CONFIG_DIR/.credentials.json`,
+default `~/.claude/.credentials.json`), so a NodeTool login and a `claude login`
+are interchangeable — the Claude Agent provider picks it up with no extra
+configuration.
+
+```bash
+npm run dev:nodetool -- auth claude login          # browser + loopback callback
+npm run dev:nodetool -- auth claude login --manual # paste the code (headless/remote)
+npm run dev:nodetool -- auth claude login --console # Console (API-billed) account
+npm run dev:nodetool -- auth claude status
+npm run dev:nodetool -- auth claude refresh --force
+npm run dev:nodetool -- auth claude logout
+```
+
+The same flow is exposed over HTTP at
+`/api/oauth/claude/{start,complete,tokens,disconnect}` and as a sign-in card on
+the **Models & Providers** settings page. Details:
+[packages/runtime/src/providers/oauth/README.md](packages/runtime/src/providers/oauth/README.md).
+
 ### nodetool secrets
 
 ```bash
@@ -401,7 +627,10 @@ npm run dev:nodetool -- info --json
 
 ### Global Options
 
-Most server-calling commands accept `--api-url <url>` (default: `http://localhost:7777`, env: `NODETOOL_API_URL`).
+The read commands (`workflows`, `jobs`, `assets`, `models`) hit the local
+database, providers, and caches by default — no server required. Pass
+`--api-url <url>` (env: `NODETOOL_API_URL`) to route through a remote server
+instead.
 
 ### Observing Agent Execution
 
@@ -467,7 +696,7 @@ Each line in the file is one span:
   "status": { "code": "OK" },
   "attributes": {
     "agent.objective": "...", "agent.kind": "plan",
-    "agent.provider": "anthropic", "agent.model": "claude-sonnet-4-6",
+    "agent.provider": "anthropic", "agent.model": "claude-sonnet-5",
     "gen_ai.usage.input_tokens": 150, "gen_ai.usage.output_tokens": 80
   },
   "events": [],

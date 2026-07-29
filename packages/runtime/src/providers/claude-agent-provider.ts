@@ -47,6 +47,7 @@ import { BaseProvider } from "./base-provider.js";
 import {
   isProviderMessageEvent,
   isProviderSessionUpdate,
+  WEB_SEARCH_TOOL_NAME,
   type LanguageModel,
   type Message,
   type MessageContent,
@@ -56,11 +57,34 @@ import {
   type ProviderTool,
   type ToolCall
 } from "./types.js";
+import { hashSystemPrompt } from "./provider-session.js";
 
 const log = createLogger("nodetool.runtime.providers.claude-agent");
 
 /** Replacement system prompt used when the caller supplies none. */
 const DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant.";
+
+/**
+ * The Claude Agent SDK's built-in tools. Passed as `disallowedTools` on the
+ * tool-free path so a "pure LLM" completion cannot execute host tools (Bash,
+ * file, web) under bypassPermissions.
+ */
+const SDK_BUILTIN_TOOLS = [
+  "Bash",
+  "BashOutput",
+  "KillShell",
+  "Read",
+  "Write",
+  "Edit",
+  "MultiEdit",
+  "NotebookEdit",
+  "Glob",
+  "Grep",
+  "WebFetch",
+  "WebSearch",
+  "Task",
+  "TodoWrite"
+];
 
 /**
  * Env vars a nested Claude subscription session leaks into its children. The
@@ -131,7 +155,9 @@ interface ClaudeAgentProviderOptions {
  * NODE_PATH) still finds a Package-Manager install. A missing package surfaces
  * as a clear, actionable error at call time.
  */
-async function loadSdk(): Promise<typeof import("@anthropic-ai/claude-agent-sdk")> {
+async function loadSdk(): Promise<
+  typeof import("@anthropic-ai/claude-agent-sdk")
+> {
   try {
     return await importOptionalModule<
       typeof import("@anthropic-ai/claude-agent-sdk")
@@ -147,6 +173,16 @@ async function loadSdk(): Promise<typeof import("@anthropic-ai/claude-agent-sdk"
 }
 
 export class ClaudeAgentProvider extends BaseProvider {
+  /** The SDK defers tool schemas and exposes its own built-in `ToolSearch`. */
+  override get usesNativeToolSearch(): boolean {
+    return true;
+  }
+
+  /** The SDK runs with bypassPermissions, so its built-in `WebSearch` is live. */
+  override get supportsNativeWebSearch(): boolean {
+    return true;
+  }
+
   static requiredSecrets(): string[] {
     // Auth lives in the SDK's own credential store (~/.claude), not in an env
     // secret — there is nothing for the registry to resolve.
@@ -227,7 +263,12 @@ export class ClaudeAgentProvider extends BaseProvider {
       maxIterations?: number;
     }
   ): AsyncGenerator<ProviderStreamItem> {
-    const tools = args.tools ?? [];
+    // Drop the SerpAPI-backed `web_search` tool: the SDK's built-in `WebSearch`
+    // (live under bypassPermissions) handles web search natively, so we don't
+    // expose a redundant MCP one.
+    const tools = (args.tools ?? []).filter(
+      (t) => t.name !== WEB_SEARCH_TOOL_NAME
+    );
     const executeTool = args.executeTool;
     // A tool dispatches either through its own `execute` or the harness
     // `executeTool`; build the MCP server when at least one route exists.
@@ -244,8 +285,10 @@ export class ClaudeAgentProvider extends BaseProvider {
         args.signal.addEventListener("abort", onExternalAbort, { once: true });
     }
 
-    let mcp: { mcpServers: Options["mcpServers"]; allowedTools: string[] } | null =
-      null;
+    let mcp: {
+      mcpServers: Options["mcpServers"];
+      allowedTools: string[];
+    } | null = null;
     if (tools.length > 0 && (executeTool || hasToolExecute)) {
       const createServer = await this.loadCreateMcpServer();
       // MCP tool results carry typed content blocks, so image-bearing results
@@ -283,12 +326,13 @@ export class ClaudeAgentProvider extends BaseProvider {
         { ...args, signal: abortController.signal },
         {
           emitMessages: true,
-          maxTurns: mcp ? args.maxIterations ?? DEFAULT_TOOL_TURNS : 1,
+          maxTurns: mcp ? (args.maxIterations ?? DEFAULT_TOOL_TURNS) : 1,
           mcp
         }
       );
     } finally {
-      if (args.signal) args.signal.removeEventListener("abort", onExternalAbort);
+      if (args.signal)
+        args.signal.removeEventListener("abort", onExternalAbort);
     }
   }
 
@@ -347,7 +391,7 @@ export class ClaudeAgentProvider extends BaseProvider {
     // message; the in-memory cache is a fallback for same-process turns.
     const prior =
       args.providerSession ??
-      (threadId ? this.sessions.get(threadId) ?? null : null);
+      (threadId ? (this.sessions.get(threadId) ?? null) : null);
 
     const canResume =
       prior != null &&
@@ -461,6 +505,13 @@ export class ClaudeAgentProvider extends BaseProvider {
       // safety flag below.
       permissionMode: "bypassPermissions",
       allowDangerouslySkipPermissions: true,
+      // On the tool-free path (config.mcp === null — the documented "pure LLM"
+      // primitive used by generateMessage/generateMessages), explicitly disable
+      // the SDK's built-in tools. Under bypassPermissions they are otherwise
+      // live and auto-approved, so a prompt-injected "call Bash …" in untrusted
+      // text being summarized/classified would execute on the host. allowedTools
+      // is only a no-prompt approval list, not an availability restriction.
+      ...(plan.config.mcp ? {} : { disallowedTools: SDK_BUILTIN_TOOLS }),
       includePartialMessages: true,
       // Setting env REPLACES the child env, so spread process.env minus the
       // nested-session leakage. Preserves PATH/HOME/ANTHROPIC_BASE_URL/proxies.
@@ -480,7 +531,9 @@ export class ClaudeAgentProvider extends BaseProvider {
         ...options,
         abortController: undefined,
         env: undefined,
-        mcpServers: plan.config.mcp ? Object.keys(plan.config.mcp.mcpServers ?? {}) : undefined
+        mcpServers: plan.config.mcp
+          ? Object.keys(plan.config.mcp.mcpServers ?? {})
+          : undefined
       }
     });
 
@@ -500,7 +553,8 @@ export class ClaudeAgentProvider extends BaseProvider {
         if (msg.type === "system" && msg.subtype === "init") {
           // Capture the session and surface it immediately so a streaming
           // consumer can persist it onto the assistant message it creates.
-          if (typeof msg.model === "string" && msg.model) resolvedModel = msg.model;
+          if (typeof msg.model === "string" && msg.model)
+            resolvedModel = msg.model;
           if (plan.threadId) {
             const session: ProviderSession = {
               providerId: this.provider,
@@ -538,7 +592,8 @@ export class ClaudeAgentProvider extends BaseProvider {
 
         if (msg.type === "assistant") {
           const m = (msg as SDKAssistantMessage).message;
-          if (m && typeof m.model === "string" && m.model) resolvedModel = m.model;
+          if (m && typeof m.model === "string" && m.model)
+            resolvedModel = m.model;
           // Fallback only: no partials arrived, so render text/thinking from the
           // final content blocks — kept strictly separate, never merged.
           if (!streamedFromPartials) {
@@ -557,7 +612,9 @@ export class ClaudeAgentProvider extends BaseProvider {
           // The loop needs each assistant turn (text + any tool calls) as a
           // persistable message, and a ToolCall item per call for live display.
           if (plan.config.emitMessages) {
-            const { text, toolCalls } = assistantParts(msg as SDKAssistantMessage);
+            const { text, toolCalls } = assistantParts(
+              msg as SDKAssistantMessage
+            );
             for (const tc of toolCalls) yield tc;
             yield {
               type: "message",
@@ -590,8 +647,10 @@ export class ClaudeAgentProvider extends BaseProvider {
         }
 
         if (msg.type === "result") {
+          // Bill every terminal result, not just the successful ones: an
+          // errored/max-turns run still consumed (and was charged for) tokens.
+          this.trackResultUsage(msg, resolvedModel);
           if (msg.subtype === "success") {
-            this.trackResultUsage(msg, resolvedModel);
             yield { type: "chunk", content: "", done: true } as Chunk;
           } else {
             throw resultError(msg);
@@ -605,13 +664,17 @@ export class ClaudeAgentProvider extends BaseProvider {
       if (args.signal?.aborted) return;
       throw err instanceof Error ? err : new Error(String(err));
     } finally {
+      // Terminate the SDK query on every exit path. On normal completion the
+      // query has already finished and this is a no-op; on an early `break`
+      // (consumer cancelled) or a throw it is the only thing that stops the
+      // subprocess, which otherwise runs its whole agentic loop to completion.
+      abortController.abort();
       if (args.signal) args.signal.removeEventListener("abort", onAbort);
     }
   }
 
-  /** Record token usage from the terminal success `result` message. */
+  /** Record token usage from a terminal `result` message (success or error). */
   private trackResultUsage(msg: SDKResultMessage, model: string): void {
-    if (msg.subtype !== "success") return;
     const usage = msg.usage;
     if (!usage) return;
     const input = num(usage.input_tokens);
@@ -648,7 +711,8 @@ export class ClaudeAgentProvider extends BaseProvider {
     let content = "";
     const toolCalls: ToolCall[] = [];
     for await (const item of this.generateMessages(args)) {
-      if (isProviderSessionUpdate(item) || isProviderMessageEvent(item)) continue;
+      if (isProviderSessionUpdate(item) || isProviderMessageEvent(item))
+        continue;
       if ("args" in item) {
         toolCalls.push(item);
       } else if (!item.thinking && typeof item.content === "string") {
@@ -668,30 +732,29 @@ function num(value: unknown): number {
 }
 
 /**
+ * `CLAUDE_CODE_OAUTH_TOKEN` matches {@link NESTED_SESSION_ENV} but is the CLI's
+ * credential, not session leakage: on a headless host (CI) with no interactive
+ * `~/.claude` login it is the *only* way the child authenticates. Keep it.
+ */
+const CHILD_ENV_ALLOWLIST = /^CLAUDE_CODE_OAUTH_TOKEN$/;
+
+/**
  * A copy of the current environment with nested-session leakage stripped, for
  * the SDK's `options.env`. `ANTHROPIC_BASE_URL` and the `HTTP(S)_PROXY` vars are
  * preserved (they are not matched by {@link NESTED_SESSION_ENV}) so API routing
- * keeps working.
+ * keeps working; `CLAUDE_CODE_OAUTH_TOKEN` is explicitly allowlisted so
+ * token-based auth survives on headless hosts.
  */
 function buildChildEnv(): Record<string, string> {
   const env: Record<string, string> = {};
   const source = typeof process !== "undefined" ? process.env : {};
   for (const [key, value] of Object.entries(source)) {
     if (value === undefined) continue;
-    if (NESTED_SESSION_ENV.test(key)) continue;
+    if (NESTED_SESSION_ENV.test(key) && !CHILD_ENV_ALLOWLIST.test(key))
+      continue;
     env[key] = value;
   }
   return env;
-}
-
-/** Stable, dependency-free 32-bit hash (FNV-1a) of the system prompt. */
-function hashSystemPrompt(prompt: string): string {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < prompt.length; i++) {
-    h ^= prompt.charCodeAt(i);
-    h = Math.imul(h, 0x01000193);
-  }
-  return (h >>> 0).toString(16);
 }
 
 /** Pull a text/thinking delta out of a partial `stream_event`, if any. */
@@ -728,7 +791,10 @@ function finalBlocks(
   for (const block of content) {
     if (block.type === "text" && typeof block.text === "string") {
       out.push({ content: block.text, thinking: false });
-    } else if (block.type === "thinking" && typeof block.thinking === "string") {
+    } else if (
+      block.type === "thinking" &&
+      typeof block.thinking === "string"
+    ) {
       out.push({ content: block.thinking, thinking: true });
     }
   }
@@ -868,7 +934,11 @@ function toMcpImageBlock(image: {
   } else if (image.data instanceof Uint8Array) {
     base64 = Buffer.from(image.data).toString("base64");
   }
-  if (!base64 && typeof image.uri === "string" && image.uri.startsWith("data:")) {
+  if (
+    !base64 &&
+    typeof image.uri === "string" &&
+    image.uri.startsWith("data:")
+  ) {
     fromDataUri(image.uri);
   }
   if (!base64) return null;
@@ -921,7 +991,8 @@ function jsonSchemaToZodShape(
 
 /** Convert one JSON-Schema property to a Zod type (the subset NodeTool uses). */
 function jsonPropToZod(prop: Record<string, unknown>): ZodTypeAny {
-  const desc = typeof prop?.description === "string" ? prop.description : undefined;
+  const desc =
+    typeof prop?.description === "string" ? prop.description : undefined;
   let zt: ZodTypeAny;
   switch (prop?.type) {
     case "string":
@@ -960,15 +1031,18 @@ function jsonPropToZod(prop: Record<string, unknown>): ZodTypeAny {
 }
 
 /** Build a descriptive Error from a non-success `result` message. */
-function resultError(msg: Extract<SDKResultMessage, { subtype: string }>): Error {
+function resultError(
+  msg: Extract<SDKResultMessage, { subtype: string }>
+): Error {
   const parts: string[] = [`Claude Agent SDK query failed (${msg.subtype})`];
   if ("errors" in msg && Array.isArray(msg.errors) && msg.errors.length) {
     parts.push(msg.errors.join("; "));
   } else if ("result" in msg && typeof msg.result === "string" && msg.result) {
     parts.push(msg.result);
   }
-  const denials = (msg as { permission_denials?: Array<{ tool_name?: string }> })
-    .permission_denials;
+  const denials = (
+    msg as { permission_denials?: Array<{ tool_name?: string }> }
+  ).permission_denials;
   if (Array.isArray(denials) && denials.length) {
     parts.push(
       `permission denied: ${denials.map((d) => d.tool_name ?? "?").join(", ")}`

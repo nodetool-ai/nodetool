@@ -14,6 +14,7 @@ import type { SxProps, Theme } from "@mui/material/styles";
 import { CloseButton } from "./CloseButton";
 import { Text } from "./Text";
 import { FlexRow } from "./FlexRow";
+import { BORDER_RADIUS } from "./tokens";
 
 export interface MobileBottomSheetProps {
   /** Whether the sheet is open */
@@ -42,8 +43,8 @@ const getSx = (theme: Theme, maxHeight: string): SxProps<Theme> => ({
   "& .MuiDrawer-paper": {
     maxHeight,
     height: "auto",
-    borderTopLeftRadius: "16px",
-    borderTopRightRadius: "16px",
+    borderTopLeftRadius: BORDER_RADIUS.xxl,
+    borderTopRightRadius: BORDER_RADIUS.xxl,
     backgroundColor: theme.vars.palette.background.default,
     backgroundImage: "none",
     overflow: "hidden",

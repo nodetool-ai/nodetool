@@ -1,6 +1,16 @@
 import InfoIcon from "@mui/icons-material/Info";
 import { useState } from "react";
-import { FlexRow, FlexColumn, Text, Caption, Box, Popover } from "../ui_primitives";
+import {
+  FlexRow,
+  FlexColumn,
+  Text,
+  Caption,
+  Box,
+  Popover,
+  SPACING,
+  getSpacingPx,
+  activateOnKey
+} from "../ui_primitives";
 
 const CollectionHeader = () => {
   const [formatInfoAnchor, setFormatInfoAnchor] = useState<HTMLElement | null>(
@@ -17,6 +27,13 @@ const CollectionHeader = () => {
           "&:hover": { color: "primary.main" }
         }}
         onClick={(e) => setFormatInfoAnchor(e.currentTarget)}
+        onKeyDown={activateOnKey<HTMLDivElement>((e) =>
+          setFormatInfoAnchor(e.currentTarget)
+        )}
+        role="button"
+        tabIndex={0}
+        aria-haspopup="dialog"
+        aria-expanded={Boolean(formatInfoAnchor)}
       >
         <InfoIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
         <Text size="small" weight={600}>
@@ -34,7 +51,13 @@ const CollectionHeader = () => {
             Collections are used to store and search documents. Following file
             formats are supported:
           </Caption>
-          <ul style={{ marginTop: 4, paddingLeft: 16, listStyle: "disc" }}>
+          <ul
+            style={{
+              marginTop: getSpacingPx(SPACING.xs),
+              paddingLeft: getSpacingPx(SPACING.xl),
+              listStyle: "disc"
+            }}
+          >
             <li>PDFs, PowerPoint, Word, Excel</li>
             <li>Text files, Markdown, HTML</li>
             <li>Images (text extraction with OCR)</li>

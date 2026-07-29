@@ -20,7 +20,8 @@ import {
   BORDER_RADIUS,
   MOTION,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  Z_INDEX
 } from "../../ui_primitives";
 import ForumIcon from "@mui/icons-material/Forum";
 import AddIcon from "@mui/icons-material/Add";
@@ -37,13 +38,22 @@ import useGlobalChatStore, {
 import type { ThreadInfo } from "../types/thread.types";
 import type { Message, MessageTextContent } from "../../../stores/ApiTypes";
 import { usePanelStore } from "../../../stores/PanelStore";
+import { useNotificationStore } from "../../../stores/NotificationStore";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 import { ChatSidebar, SIDEBAR_WIDTH } from "../sidebar/ChatSidebar";
+import { CostTicker } from "../../costs/CostTicker";
 import { useShallow } from "zustand/react/shallow";
+
+// The connection-error banner floats above the whole chat surface (sidebar,
+// back-to-editor button, mobile controls), so it sits above the Z_INDEX scale.
+const ERROR_BANNER_Z_INDEX = 1001;
 
 const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
   const navigate = useNavigate();
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
 
   const {
     status,
@@ -119,7 +129,6 @@ const GlobalChat: React.FC = () => {
     }))
   );
 
-  // Get connection state from WebSocket manager directly
   const [_connectionState, setConnectionState] = useState(
     globalWebSocketManager.getConnectionState()
   );
@@ -134,7 +143,6 @@ const GlobalChat: React.FC = () => {
     return unsubscribe;
   }, []);
 
-  // Initialize GlobalChatStore connection on mount
   useEffect(() => {
     connect().catch((err) => {
       console.error("Failed to connect GlobalChatStore:", err);
@@ -163,15 +171,13 @@ const GlobalChat: React.FC = () => {
     }))
   );
 
-  // Use the consolidated TanStack Query hook from the store
   const { isLoading: isLoadingThreads, error: threadsError } =
     useThreadsQuery();
   const theme = useTheme();
-  const [sidebarOpen, setSidebarOpen] = useState(true); // Sidebar open by default
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileConversationsOpen, setMobileConversationsOpen] = useState(false);
   const [alertDismissed, setAlertDismissed] = useState(false);
 
-  // Reset dismissed state when status or error changes
   useEffect(() => {
     setAlertDismissed(false);
   }, [status, error]);
@@ -184,7 +190,6 @@ const GlobalChat: React.FC = () => {
   const leftPanelSize = usePanelStore((s) => s.panel.panelSize);
   const leftPanelMinWidth = usePanelStore((s) => s.panel.minWidth);
 
-  // Get messages from store
   const messages = getCurrentMessagesSync();
   const taskUpdateForDisplay = useMemo(() => {
     if (!currentThreadId) { return null; }
@@ -202,20 +207,16 @@ const GlobalChat: React.FC = () => {
     lastTaskUpdatesByThread
   ]);
 
-  // Handle thread switching when URL changes
   useEffect(() => {
     const handleThreadLogic = async () => {
-      // Cancel any previous async operation
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
 
-      // Create new abort controller for this operation
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
 
       try {
-        // Check if operation was cancelled
         if (abortController.signal.aborted) {
           return;
         }
@@ -240,22 +241,17 @@ const GlobalChat: React.FC = () => {
           return;
         }
 
-        // Wait for threads to be loaded before attempting to switch
         if (!threadsLoaded || isLoadingThreads) {
           return;
         }
 
         if (!currentThreadId) {
-          // Create new thread if none exists
           const newThreadId = await createNewThread();
-
-          // Check if operation was cancelled before switching
           if (!abortController.signal.aborted) {
             switchThread(newThreadId);
           }
         }
       } catch (error) {
-        // Only log errors if the operation wasn't cancelled
         if (!abortController.signal.aborted) {
           console.error("Failed to handle thread logic:", error);
         }
@@ -264,7 +260,6 @@ const GlobalChat: React.FC = () => {
 
     handleThreadLogic();
 
-    // Cleanup function to cancel any pending async operations
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -285,27 +280,28 @@ const GlobalChat: React.FC = () => {
   // Remove extra reconnect loop; rely on WebSocketManager's exponential backoff and
   // the store's network/visibility listeners to reconnect. This avoids double reconnects.
 
-  // Handle mobile keyboard behavior and maintain scroll position
+  // Keep the thread pinned to the bottom when the mobile virtual keyboard
+  // resizes the visual viewport.
   useEffect(() => {
     if (!isMobile) { return; }
 
     let viewportTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
     const handleViewportChange = () => {
-      // Maintain scroll position when virtual keyboard appears/disappears
       if (viewportTimeoutId !== null) { clearTimeout(viewportTimeoutId); }
       viewportTimeoutId = setTimeout(() => {
         if (chatContainerRef.current) {
+          // The scroll host is the message wrapper (the only overflowY:auto
+          // element, ChatThreadView.styles.ts messageWrapper), not the outer
+          // .chat-thread-container which does not scroll.
           const chatArea = chatContainerRef.current.querySelector(
-            ".chat-thread-container"
+            ".scrollable-message-wrapper"
           );
           if (chatArea) {
-            // Check if user was at bottom before viewport change
             const wasAtBottom =
               chatArea.scrollTop + chatArea.clientHeight >=
               chatArea.scrollHeight - 100;
             if (wasAtBottom) {
-              // Keep scrolled to bottom
               chatArea.scrollTop = chatArea.scrollHeight;
             }
           }
@@ -313,7 +309,6 @@ const GlobalChat: React.FC = () => {
       }, 150);
     };
 
-    // Use Visual Viewport API for better keyboard handling
     const vv = window.visualViewport;
     if (vv) {
       vv.addEventListener(
@@ -330,11 +325,8 @@ const GlobalChat: React.FC = () => {
     }
   }, [isMobile]);
 
-  // model persistence is handled inside the store's setter
-
-  // Map status to ChatView compatible status
   const getChatViewStatus = () => {
-    if (status === "stopping") { return "loading"; }
+    if (status === "stopping") { return "connected"; }
     return status;
   };
 
@@ -387,27 +379,29 @@ const GlobalChat: React.FC = () => {
     (id: string) => {
       deleteThread(id).catch((error) => {
         console.error("Failed to delete thread:", error);
+        addNotification({
+          type: "error",
+          content: "Could not delete the conversation. Please try again."
+        });
       });
     },
-    [deleteThread]
+    [deleteThread, addNotification]
   );
 
   const getThreadPreview = useCallback(
     (threadId: string) => {
       if (!threads) {
-        return "Loading...";
+        return "New conversation";
       }
       const thread = threads[threadId];
       if (!thread) {
         return "Empty conversation";
       }
 
-      // Use thread title if available
       if (thread.title) {
         return thread.title;
       }
 
-      // Check if we have cached messages for this thread
       const threadMessages = messageCache[threadId];
       if (!threadMessages || threadMessages.length === 0) {
         return "New conversation";
@@ -417,14 +411,24 @@ const GlobalChat: React.FC = () => {
         (msg: Message) => msg.role === "user"
       );
       if (firstUserMessage) {
-        const content =
-          typeof firstUserMessage.content === "string"
-            ? firstUserMessage.content
-            : Array.isArray(firstUserMessage.content) &&
-              firstUserMessage.content[0]?.type === "text"
-              ? (firstUserMessage.content[0] as MessageTextContent).text
-              : "[Media message]";
-        return content?.substring(0, 50) + (content?.length > 50 ? "..." : "");
+        let content: string;
+        if (typeof firstUserMessage.content === "string") {
+          content = firstUserMessage.content;
+        } else if (
+          Array.isArray(firstUserMessage.content) &&
+          firstUserMessage.content[0]?.type === "text"
+        ) {
+          // `text` can be null/undefined even on a text block — never let that
+          // stringify into the literal "undefined".
+          content =
+            (firstUserMessage.content[0] as MessageTextContent).text ?? "";
+        } else {
+          content = "[Media message]";
+        }
+        if (!content) {
+          return "New conversation";
+        }
+        return content.substring(0, 50) + (content.length > 50 ? "..." : "");
       }
 
       return "New conversation";
@@ -432,7 +436,6 @@ const GlobalChat: React.FC = () => {
     [threads, messageCache]
   );
 
-  // Create ThreadInfo-compatible data for ThreadList
   const threadsWithMessages: Record<string, ThreadInfo> = useMemo(() => {
     if (!threads) {
       return {};
@@ -450,7 +453,6 @@ const GlobalChat: React.FC = () => {
     );
   }, [threads, messageCache]);
 
-  // Show loading state if threads are still loading
   if (isLoadingThreads) {
     return (
       <FlexRow
@@ -463,7 +465,6 @@ const GlobalChat: React.FC = () => {
     );
   }
 
-  // Show error state if threads failed to load
   if (threadsError) {
     return (
       <FlexRow
@@ -486,7 +487,7 @@ const GlobalChat: React.FC = () => {
       sx={{
         flex: 1,
         minWidth: 0,
-        height: "100dvh", // Dynamic viewport height
+        height: "100dvh",
         maxHeight: "100dvh",
         maxWidth: "100vw",
         // No top padding needed since header is external now
@@ -504,7 +505,19 @@ const GlobalChat: React.FC = () => {
         // Mobile styles handled via separate CSS file
       }}
     >
-      {/* Back to the editor workspace */}
+      {workflowId && (
+        <FlexRow
+          align="center"
+          sx={{
+            position: "absolute",
+            top: 28,
+            right: 152,
+            zIndex: Z_INDEX.modal
+          }}
+        >
+          <CostTicker workflowId={workflowId} />
+        </FlexRow>
+      )}
       <EditorButton
         className="back-to-editor"
         variant="text"
@@ -514,14 +527,13 @@ const GlobalChat: React.FC = () => {
           position: "absolute",
           top: 28,
           right: 16,
-          zIndex: 200,
+          zIndex: Z_INDEX.modal,
           whiteSpace: "nowrap",
           fontSize: "var(--fontSizeNormal)"
         }}
       >
         Back to editor
       </EditorButton>
-      {/* Main Chat Area */}
       <FlexColumn
         sx={{ height: "100%", maxHeight: "100%" }}
       >
@@ -544,7 +556,7 @@ const GlobalChat: React.FC = () => {
               transform: "translateX(-50%)",
               maxWidth: "600px",
               width: "100%",
-              zIndex: 1001,
+              zIndex: ERROR_BANNER_Z_INDEX,
               flexShrink: 0
             }}
           />
@@ -585,7 +597,7 @@ const GlobalChat: React.FC = () => {
                   position: "absolute",
                   top: 8,
                   left: 8,
-                  zIndex: 100,
+                  zIndex: Z_INDEX.overlay,
                   backgroundColor: `rgb(${theme.vars.palette.background.paperChannel} / 0.9)`,
                   backdropFilter: "blur(14px)",
                   border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.08)`,

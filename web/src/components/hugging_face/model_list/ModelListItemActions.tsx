@@ -1,8 +1,9 @@
 import React, { memo, useCallback } from "react";
-import { Check } from "@mui/icons-material";
+import Check from "@mui/icons-material/Check";
 import {
   BORDER_RADIUS,
   Chip,
+  CopyButton,
   DeleteButton,
   EditorButton,
   LoadingSpinner,
@@ -146,6 +147,11 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
       )}
 
       <div className="model-actions">
+        <CopyButton
+          value={model.repo_id || model.id}
+          tooltip={isOllama ? "Copy model name" : "Copy repo ID"}
+          nodrag={false}
+        />
         {canShowExplorerButton && !isProduction && isElectron && (
           <ModelShowInExplorerButton
             onClick={handleShowInExplorerClick}

@@ -41,14 +41,14 @@ const useCases: UseCase[] = [
   {
     name: "Video Ad Director",
     description:
-      "An agent that storyboards a 15-second spot, picks Seedance for the hero shot and Kling for B-roll, animates the cuts, and drops a Suno track underneath. Bring your brief — it'll bring the cut.",
+      "An agent that storyboards a 15-second spot, picks Seedance for the hero shot and Kling for B-roll, animates the cuts, and lays a Suno track underneath. You bring the brief, it brings the cut.",
     icon: Film,
     iconBgFrom: "from-amber-600/20",
     iconBgTo: "to-rose-600/20",
     example: "Direct a 9:16 sneaker ad, neon noir, ending on the logo",
   },
   {
-    name: "Music Video Pipeline",
+    name: "Music Video Workflow",
     description:
       "Drop in a track, let the agent pace cuts to the beat, pick scenes that match the lyrics, generate visuals across Flux and Veo, and stitch the final video. You direct, it edits.",
     icon: Music,
@@ -59,7 +59,7 @@ const useCases: UseCase[] = [
   {
     name: "Batch Retouching Agent",
     description:
-      "Hand it a folder of raw shots. It color-matches to your reference, upscales, removes the bins in the background, and exports the keepers. Your repeatable retouching, run while you sleep.",
+      "Hand it a folder of raw shots. It matches color to your reference, upscales, removes the clutter in the background, and exports the keepers while you get on with something else.",
     icon: Camera,
     iconBgFrom: "from-emerald-600/20",
     iconBgTo: "to-teal-600/20",
@@ -77,7 +77,7 @@ const useCases: UseCase[] = [
   {
     name: "Variant Explorer",
     description:
-      "Ten alts of the hero frame in five aspect ratios, ranked by how on-brief they are. The agent fans out across providers, scores the results, and surfaces only the cuts worth your time.",
+      "Ten versions of the hero frame in five aspect ratios, ranked by how closely they match the brief. The agent works across providers, scores the results, and shows you only the ones worth your time.",
     icon: LayoutGrid,
     iconBgFrom: "from-indigo-600/20",
     iconBgTo: "to-cyan-600/20",
@@ -130,10 +130,10 @@ export default function AgentUseCasesSection({
         <div className="mb-16 text-center max-w-2xl mx-auto">
           <motion.h2
             id="use-cases-title"
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
             Agents your studio{" "}
@@ -142,13 +142,13 @@ export default function AgentUseCasesSection({
             </span>
           </motion.h2>
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Open one, swap in your style guide, point it at the providers you already pay
+            Open one, add your style guide, point it at the providers you already pay
             for, and let it run while you direct. Starter workflows live in the{" "}
             <a
               href="https://github.com/nodetool-ai/nodetool/tree/main/examples"
@@ -165,7 +165,7 @@ export default function AgentUseCasesSection({
           className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
           initial="hidden"
           whileInView="show"
-          viewport={{ once: true, margin: "-100px" }}
+          viewport={{ once: true, margin: "-40px" }}
           variants={{
             show: { transition: { staggerChildren: 0.08 } },
           }}
@@ -174,8 +174,8 @@ export default function AgentUseCasesSection({
             <motion.div
               key={item.name}
               variants={{
-                hidden: { opacity: 0, y: 20 },
-                show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+                hidden: { opacity: 1, y: 0 },
+                show: { opacity: 1, y: 0, transition: { duration: 0.25 } },
               }}
             >
               <Tilt3D className="h-full">
@@ -213,10 +213,10 @@ export default function AgentUseCasesSection({
         {/* CTA */}
         <motion.div
           className="mt-16 text-center"
-          initial={{ opacity: 0 }}
+          initial={false}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.05 }}
         >
           <a
             href="https://github.com/nodetool-ai/nodetool/tree/main/examples/workflows"

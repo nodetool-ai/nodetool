@@ -1,23 +1,32 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import {
+  createSupabaseStorageClient,
+  type SupabaseStorageApi
+} from "./supabase-rest.js";
 import type {
   StorageAdapter,
   StorageEntry,
   StorageListResult,
-  StorageStat
+  StorageStat,
+  UploadTarget,
+  UploadUrlOptions
 } from "./storage-adapter.js";
 import { normalizeStorageKey } from "./storage-keys.js";
 import { assertUploadWithinLimit } from "./storage-limits.js";
+
+/** Supabase upload tokens last two hours and the sign call takes no TTL. */
+const SUPABASE_UPLOAD_URL_TTL_MS = 2 * 60 * 60 * 1000;
 
 export interface SupabaseStorageAdapterOptions {
   url: string;
   apiKey: string;
   bucket: string;
   /** Optional pre-built client (used by tests). */
-  client?: SupabaseClient;
+  client?: SupabaseStorageApi;
 }
 
 /**
- * Supabase Storage adapter using `@supabase/supabase-js`.
+ * Supabase Storage adapter using the in-house fetch-backed REST client
+ * (see supabase-rest.ts).
  *
  * URI scheme: `supabase://<bucket>/<key>`. Use `getPublicUrl(uri)` to obtain a
  * client-facing HTTPS URL (the temp-url resolver in the websocket runner does
@@ -27,7 +36,7 @@ export class SupabaseStorageAdapter implements StorageAdapter {
   readonly bucket: string;
   readonly url: string;
   private readonly apiKey: string;
-  private client: SupabaseClient | null;
+  private client: SupabaseStorageApi | null;
 
   constructor(opts: SupabaseStorageAdapterOptions) {
     if (!opts.url) throw new Error("Supabase URL is required");
@@ -39,9 +48,9 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     this.client = opts.client ?? null;
   }
 
-  private getClient(): SupabaseClient {
+  private getClient(): SupabaseStorageApi {
     if (!this.client) {
-      this.client = createClient(this.url, this.apiKey);
+      this.client = createSupabaseStorageClient(this.url, this.apiKey);
     }
     return this.client;
   }
@@ -205,6 +214,39 @@ export class SupabaseStorageAdapter implements StorageAdapter {
       ...(item.metadata?.mimetype
         ? { contentType: item.metadata.mimetype as string }
         : {})
+    };
+  }
+
+  /**
+   * One-shot Supabase upload token for `key`. The browser PUTs the bytes to
+   * the returned URL, so they never transit this process. The token is bound
+   * to this exact key server-side, so a client holding it cannot write
+   * anywhere else — that is what lets the browser upload without ever seeing
+   * the service-role key.
+   */
+  async createUploadUrl(
+    key: string,
+    opts: UploadUrlOptions = {}
+  ): Promise<UploadTarget | null> {
+    const normalized = normalizeStorageKey(key);
+    const { data, error } = await this.getClient()
+      .storage.from(this.bucket)
+      .createSignedUploadUrl(normalized);
+    if (error || !data) {
+      throw new Error(
+        `Supabase upload URL failed for key "${key}": ${error?.message ?? "no data"}`
+      );
+    }
+    const headers: Record<string, string> = {};
+    if (opts.contentType) headers["content-type"] = opts.contentType;
+    return {
+      url: data.signedUrl,
+      method: "PUT",
+      headers,
+      // Supabase upload tokens are valid for two hours and the TTL is not
+      // configurable on the sign call, so report that rather than echoing a
+      // requested value we cannot enforce.
+      expiresAt: Date.now() + SUPABASE_UPLOAD_URL_TTL_MS
     };
   }
 

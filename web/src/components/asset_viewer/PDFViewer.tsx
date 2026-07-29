@@ -13,16 +13,16 @@ import {
   Text,
   ToolbarIconButton,
   BORDER_RADIUS,
-  getSpacingPx
+  SPACING,
+  getSpacingPx,
+  Z_INDEX
 } from "../ui_primitives";
-import {
-  NavigateBefore,
-  NavigateNext,
-  ZoomIn,
-  ZoomOut,
-  RestartAlt
-} from "@mui/icons-material";
-import { ActionButtonGroup } from "../ui_primitives/ActionButtonGroup";
+import NavigateBefore from "@mui/icons-material/NavigateBefore";
+import NavigateNext from "@mui/icons-material/NavigateNext";
+import ZoomIn from "@mui/icons-material/ZoomIn";
+import ZoomOut from "@mui/icons-material/ZoomOut";
+import RestartAlt from "@mui/icons-material/RestartAlt";
+import { ActionButtonGroup } from "../ui_primitives";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
@@ -67,7 +67,7 @@ const styles = (theme: Theme) =>
         position: "relative",
         "& canvas": {
           position: "relative",
-          zIndex: 1,
+          zIndex: Z_INDEX.raised,
           width: "auto !important",
           height: "auto !important"
         },
@@ -78,7 +78,7 @@ const styles = (theme: Theme) =>
           top: 0,
           right: 0,
           bottom: 0,
-          zIndex: 2
+          zIndex: Z_INDEX.raised + 1
         },
         "& .textLayer": {
           display: "none",
@@ -87,7 +87,7 @@ const styles = (theme: Theme) =>
           color: theme.vars.palette.grey[1000],
           top: 0,
           bottom: 0,
-          zIndex: 3
+          zIndex: Z_INDEX.raised + 2
         }
       },
       "& .react-pdf__Page__canvas": {
@@ -106,7 +106,7 @@ const styles = (theme: Theme) =>
       background: theme.vars.palette.grey[600],
       padding: "0.8em 1em",
       borderRadius: BORDER_RADIUS.sm,
-      zIndex: 1,
+      zIndex: Z_INDEX.sticky,
       alignItems: "center",
       gap: "1em",
       minWidth: "200px",
@@ -119,7 +119,7 @@ const styles = (theme: Theme) =>
       background: theme.vars.palette.background.paper,
       padding: "0.2em",
       borderRadius: BORDER_RADIUS.sm,
-      zIndex: 1
+      zIndex: Z_INDEX.sticky
     },
     ".vertical-slider": {
       position: "absolute",
@@ -156,9 +156,6 @@ const styles = (theme: Theme) =>
     }
   });
 
-/**
- * PDFViewer component, used to display a PDF document for a given asset.
- */
 const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
   const theme = useTheme();
   const [numPages, setNumPages] = useState<number | null>(null);
@@ -168,7 +165,6 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
 
   const pdfUrl = asset?.get_url || url;
 
-  // Memoize callbacks to prevent unnecessary re-renders
   const onDocumentLoadSuccess = React.useCallback(
     ({ numPages }: { numPages: number }) => {
       setNumPages(numPages);
@@ -209,7 +205,6 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
     setScale(1);
   }, []);
 
-  // Memoize the Page component to prevent unnecessary re-renders
   const pageComponent = React.useMemo(
     () => <Page pageNumber={pageNumber} scale={scale} />,
     [pageNumber, scale]
@@ -233,7 +228,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
         >
           {pageComponent}
         </Document>
-        <FlexRow className="page-controls" align="center" gap={1} sx={{ position: "sticky", bottom: "1em", background: theme.vars.palette.grey[600], padding: "0.8em 1em", borderRadius: BORDER_RADIUS.sm, zIndex: 1, minWidth: "200px", userSelect: "none" }}>
+        <FlexRow className="page-controls" align="center" gap={SPACING.xs} sx={{ position: "sticky", bottom: "1em", background: theme.vars.palette.grey[600], padding: "0.8em 1em", borderRadius: BORDER_RADIUS.sm, zIndex: Z_INDEX.sticky, minWidth: "200px", userSelect: "none" }}>
           <ToolbarIconButton
             icon={<NavigateBefore />}
             tooltip="Previous page"

@@ -3,6 +3,7 @@ import os from "os";
 import fs from "fs";
 import * as yaml from "js-yaml";
 import { logMessage } from "./logger";
+import type { UpdateChannel } from "./types";
 
 /**
  * Settings record type with string keys and unknown values.
@@ -15,15 +16,11 @@ function isSettingsRecord(value: unknown): value is SettingsRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// Add cache at the module level
 let settingsCache: SettingsRecord | null = null;
 
-const START_LLAMA_CPP_ON_STARTUP_KEY = "START_LLAMA_CPP_ON_STARTUP";
 const UPDATE_CHANNEL_KEY = "updateChannel";
 const UPDATE_CHANNEL_CONFIGURED_BY_USER_KEY = "updateChannelConfiguredByUser";
 const NIGHTLY_VERSION_PATTERN = /-nightly\.\d{8}\.\d+$/;
-
-export type UpdateChannel = "latest" | "nightly";
 
 function isNightlyVersion(version: string): boolean {
   return NIGHTLY_VERSION_PATTERN.test(version);
@@ -50,57 +47,6 @@ export function setUpdateChannel(channel: UpdateChannel): UpdateChannel {
     [UPDATE_CHANNEL_CONFIGURED_BY_USER_KEY]: true,
   });
   return channel;
-}
-
-interface ModelServiceStartupSettings {
-  startLlamaCppOnStartup: boolean;
-}
-
-interface ModelServiceStartupSettingsUpdate {
-  startLlamaCppOnStartup?: boolean;
-}
-
-export function getModelServiceStartupDefaults(
-  backend: unknown
-): ModelServiceStartupSettings {
-  if (backend === "llama_cpp") {
-    return {
-      startLlamaCppOnStartup: true,
-    };
-  }
-  return {
-    startLlamaCppOnStartup: false,
-  };
-}
-
-export function getModelServiceStartupSettings(
-  settings?: SettingsRecord
-): ModelServiceStartupSettings {
-  const source = settings ?? readSettings();
-  const defaults = getModelServiceStartupDefaults(source["MODEL_BACKEND"]);
-  const startLlamaCppOnStartup =
-    typeof source[START_LLAMA_CPP_ON_STARTUP_KEY] === "boolean"
-      ? source[START_LLAMA_CPP_ON_STARTUP_KEY]
-      : defaults.startLlamaCppOnStartup;
-
-  return {
-    startLlamaCppOnStartup,
-  };
-}
-
-export function updateModelServiceStartupSettings(
-  update: ModelServiceStartupSettingsUpdate
-): ModelServiceStartupSettings {
-  const currentSettings = readSettings();
-  const current = getModelServiceStartupSettings(currentSettings);
-  const next = {
-    ...current,
-    ...update,
-  };
-  updateSettings({
-    [START_LLAMA_CPP_ON_STARTUP_KEY]: next.startLlamaCppOnStartup,
-  });
-  return next;
 }
 
 /**
@@ -131,7 +77,6 @@ function getAppConfigPath(filename: string): string {
       basePath = path.join(process.cwd(), "data");
     }
 
-    // Ensure directory exists
     fs.mkdirSync(basePath, { recursive: true });
 
     return path.join(basePath, filename);
@@ -151,7 +96,6 @@ function getAppConfigPath(filename: string): string {
  */
 function readSettings(): SettingsRecord {
   try {
-    // Return cached settings if available
     if (settingsCache !== null) {
       return settingsCache;
     }
@@ -189,7 +133,6 @@ function readSettings(): SettingsRecord {
  */
 async function readSettingsAsync(): Promise<SettingsRecord> {
   try {
-    // Return cached settings if available
     if (settingsCache !== null) {
       return settingsCache;
     }
@@ -232,7 +175,6 @@ function writeSettings(settings: SettingsRecord): void {
     const settingsPath = getAppConfigPath("settings.yaml");
     const yamlString = yaml.dump(settings);
     fs.writeFileSync(settingsPath, yamlString, "utf8");
-    // Update cache after successful write
     settingsCache = settings;
   } catch (error) {
     throw new Error(
@@ -291,7 +233,11 @@ function updateSettings(settings: Record<string, unknown>): void {
 
     writeSettings(updatedSettings);
   } catch (error) {
-    throw new Error(`Failed to update settings: ${error}`);
+    throw new Error(
+      `Failed to update settings: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
   }
 }
 

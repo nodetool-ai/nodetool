@@ -165,7 +165,6 @@ const ChromaKeyBodyInner: React.FC<ChromaKeyBodyProps> = ({
       </div>
 
       <div className="controls">
-        {/* Color picker row */}
         <span className="ctrl-label">Key Color</span>
         <span style={{ gridColumn: "2 / 4", display: "flex", alignItems: "center" }}>
           <ColorPicker
@@ -176,7 +175,6 @@ const ChromaKeyBodyInner: React.FC<ChromaKeyBodyProps> = ({
           />
         </span>
 
-        {/* Slider rows */}
         {SLIDERS.map((spec) => {
           const raw = Number(props[spec.name] ?? spec.default);
           const value = clamp(raw, spec.min, spec.max);

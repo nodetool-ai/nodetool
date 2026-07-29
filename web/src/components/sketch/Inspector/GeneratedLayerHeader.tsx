@@ -44,14 +44,7 @@ export const GeneratedLayerHeader: React.FC<GeneratedLayerHeaderProps> = memo(
     return (
       <FlexColumn gap={1} sx={{ px: 1, pt: 0.5, pb: 0.5 }}>
         <FlexRow align="center" gap={1}>
-          <Label
-            sx={{
-              flex: 1,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap"
-            }}
-          >
+          <Label noWrap sx={{ flex: 1 }}>
             {layer.name}
           </Label>
           <StatusIndicator

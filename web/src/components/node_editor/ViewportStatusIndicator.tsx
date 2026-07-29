@@ -13,7 +13,8 @@ import {
   SPACING,
   getSpacingPx,
   ListItemButton,
-  ListItemText
+  ListItemText,
+  Z_INDEX
 } from "../ui_primitives";
 import { useStore, useReactFlow } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
@@ -50,13 +51,11 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
     // Skip showing on initial render (prevZoomRef is null)
     if (prevZoomRef.current !== null && Math.abs(zoom - prevZoomRef.current) > ZOOM_CHANGE_THRESHOLD) {
       setIsZooming(true);
-      
-      // Clear any existing timeout
+
       if (hideTimeoutRef.current) {
         clearTimeout(hideTimeoutRef.current);
       }
-      
-      // Set a new timeout to hide the panel
+
       hideTimeoutRef.current = setTimeout(() => {
         setIsZooming(false);
       }, HIDE_DELAY_MS);
@@ -167,7 +166,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
       position: "absolute" as const,
       bottom: 16,
       right: 20,
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       backgroundColor: theme.vars.palette.Paper.paper,
       backdropFilter: "blur(8px)",
       borderRadius: BORDER_RADIUS.lg,
@@ -237,7 +236,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
             width: "1px",
             height: "16px",
             backgroundColor: theme.vars.palette.divider,
-            mx: 0.5
+            mx: SPACING.micro
           }}
         />
 
@@ -258,7 +257,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
         placement="top-center"
         paperSx={{
           minWidth: 120,
-          py: 0.5
+          py: SPACING.micro
         }}
       >
         <ListGroup compact flush>
@@ -269,8 +268,8 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
               data-preset={preset.toString()}
               selected={Math.abs(zoom - preset) < 0.01}
               sx={{
-                py: 0.5,
-                px: 2,
+                py: SPACING.micro,
+                px: SPACING.md,
                 "&.Mui-selected": {
                   backgroundColor: theme.vars.palette.action.selected,
                   "&:hover": {

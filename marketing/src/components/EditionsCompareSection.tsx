@@ -34,12 +34,12 @@ const rows: Row[] = [
     cloud: { value: "None — sign in and start building", ok: true },
   },
   {
-    label: "Local LLMs (Ollama, MLX, GGUF)",
+    label: "Local models (Ollama, MLX, GGUF)",
     studio: { value: "Yes — runs entirely on your hardware", ok: true },
     cloud: { value: "Not available — cloud APIs only", ok: false },
   },
   {
-    label: "Bring your own API keys (BYOK)",
+    label: "Bring your own API keys",
     studio: { value: "All providers — keys stored locally", ok: true },
     cloud: { value: "All providers — keys stored encrypted", ok: true },
   },
@@ -71,7 +71,7 @@ const rows: Row[] = [
   {
     label: "Cost",
     studio: { value: "Free — pay only for the cloud APIs you use", ok: true },
-    cloud: { value: "Free during alpha — you pay only your own API spend (BYOK)", ok: true },
+    cloud: { value: "Free during alpha — you pay only your own API costs", ok: true },
   },
 ];
 
@@ -171,14 +171,14 @@ export default function EditionsCompareSection({
         <header className="mb-12 max-w-3xl">
           <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-blue-300/80">
             <span className="h-px w-8 bg-amber-300/60" />
-            Two editions, one open-source codebase
+            Two ways to run it, one open-source project
           </div>
           <motion.h2
             id="editions-title"
-            initial={reducedMotion ? {} : { opacity: 0, y: 16 }}
+            initial={false}
             whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
             Studio runs on your machine.
@@ -186,16 +186,16 @@ export default function EditionsCompareSection({
             <span className="text-slate-300">Cloud runs in your browser.</span>
           </motion.h2>
           <motion.p
-            initial={reducedMotion ? {} : { opacity: 0, y: 16 }}
+            initial={false}
             whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.05 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl"
           >
-            Same workflows, same nodes, same providers. Pick the runtime that
-            fits how you want to work — and switch any time. Both editions are
-            AGPL-3.0 open source; Cloud is just our managed hosting of the same
-            code you can run yourself.
+            Same workflows, same building blocks, same providers. Pick the one
+            that suits how you work, and switch whenever you like. Both are
+            AGPL-3.0 open source: Cloud is simply our hosting of the same code
+            you can run yourself.
           </motion.p>
         </header>
 
@@ -206,9 +206,9 @@ export default function EditionsCompareSection({
             <div className="p-5 space-y-4">
               <p className="text-sm text-slate-300 leading-relaxed">
                 <strong className="text-white">Best for:</strong> artists with
-                a capable GPU or Apple Silicon, large local model collections,
-                offline work, and anyone who wants every byte on their own
-                disk.
+                a good graphics card or an Apple Silicon Mac, big local model
+                collections, offline work, and anyone who wants everything kept
+                on their own disk.
               </p>
               <ul className="space-y-2.5">
                 {rows.map((r) => (
@@ -229,9 +229,9 @@ export default function EditionsCompareSection({
             <div className="p-5 space-y-4">
               <p className="text-sm text-slate-300 leading-relaxed">
                 <strong className="text-white">Best for:</strong> studios and
-                solo artists who want to start in seconds, work from any
-                device, and skip the GPU setup — while still bringing their
-                own keys to every provider.
+                solo artists who want to start in seconds, work from any device,
+                and skip the hardware setup, while still using their own keys
+                with every provider.
               </p>
               <ul className="space-y-2.5">
                 {rows.map((r) => (
@@ -256,8 +256,8 @@ export default function EditionsCompareSection({
           <a href="/studio" className="text-blue-300 hover:text-blue-200 underline underline-offset-2">
             Studio
           </a>{" "}
-          when you want full local control. Your workflows are portable between
-          both.
+          when you want everything on your own machine. Your workflows move freely
+          between the two.
         </p>
       </div>
     </section>

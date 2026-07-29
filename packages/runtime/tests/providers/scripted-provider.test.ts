@@ -79,6 +79,36 @@ describe("ScriptedProvider", () => {
     expect((items[0] as { id: string }).id).toBeTruthy();
   });
 
+  it("preserves tool calls in generateMessage", async () => {
+    const provider = new ScriptedProvider([
+      toolCallScript("calculator", { expression: "2+2" })
+    ]);
+    const message = await provider.generateMessage({
+      messages: makeMessages("test"),
+      model: "fake"
+    });
+    expect(message.content).toBeNull();
+    expect(message.toolCalls).toEqual([
+      expect.objectContaining({
+        name: "calculator",
+        args: { expression: "2+2" }
+      })
+    ]);
+  });
+
+  it("marks only the final unspecified chunk as done", async () => {
+    const provider = new ScriptedProvider([
+      () => [
+        { type: "chunk", content: "hel" },
+        { type: "chunk", content: "lo" }
+      ]
+    ]);
+    const items = await collectStream(
+      provider.generateMessages({ messages: makeMessages("test"), model: "fake" })
+    );
+    expect(items).toMatchObject([{ done: false }, { done: true }]);
+  });
+
   it("advances through scripts in sequence", async () => {
     const provider = new ScriptedProvider([
       textScript("first"),
@@ -184,13 +214,14 @@ describe("ScriptedProvider", () => {
     expect(msg.content).toBe("buffered content");
   });
 
-  it("generateMessage returns 'Done.' when no text chunks", async () => {
+  it("generateMessage returns the tool call when no text chunks exist", async () => {
     const provider = new ScriptedProvider([toolCallScript("some-tool", {})]);
     const msg = await provider.generateMessage({
       messages: makeMessages("test"),
       model: "fake"
     });
-    expect(msg.content).toBe("Done.");
+    expect(msg.content).toBeNull();
+    expect(msg.toolCalls?.[0]).toMatchObject({ name: "some-tool", args: {} });
   });
 });
 

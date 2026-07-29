@@ -32,8 +32,8 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 export const colorInvertV1 = defineModule({
   id: "color.invert",
   version: 1,
-  // Promoted in Phase 3 Batch 1: trivial schema (single `amount` param) and
-  // canonical mask slot; no near-term split or rename in sight.
+  // Trivial schema (single `amount` param) and canonical mask slot; no
+  // near-term split or rename in sight, so the API is safe to publish.
   surface: "published",
   category: "color",
   linearity: "nonlinear-in-rgb",

@@ -1,3 +1,6 @@
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { initTestDb, OAuthCredential } from "@nodetool-ai/models";
 import {
@@ -5,7 +8,8 @@ import {
   generateState,
   oauthStateStore,
   handleOAuthRequest,
-  closeActiveCodexCallbackServer
+  closeActiveCodexCallbackServer,
+  closeActiveClaudeLogin
 } from "../src/oauth-api.js";
 
 function getUserId(): string {
@@ -101,6 +105,40 @@ describe("OAuth API: HuggingFace endpoints", () => {
 
     // Verify state was stored
     expect(oauthStateStore.size).toBe(1);
+  });
+
+  it("hf/whoami sends the decrypted token, not the at-rest ciphertext", async () => {
+    // Regression: the handler put credential.encrypted_access_token (ciphertext)
+    // in the Authorization header, so HF always 401'd.
+    const cred = await OAuthCredential.upsert({
+      user_id: "test-user-1",
+      provider: "huggingface",
+      account_id: "acc1",
+      access_token: "hf_plaintext_secret_123",
+      token_type: "Bearer",
+      received_at: new Date().toISOString()
+    });
+    expect(cred.encrypted_access_token).not.toBe("hf_plaintext_secret_123");
+
+    let sentAuth: string | null = null;
+    const origFetch = global.fetch;
+    global.fetch = (async (_url: unknown, init?: RequestInit) => {
+      sentAuth = new Headers(init?.headers).get("Authorization");
+      return new Response(JSON.stringify({ name: "u" }), { status: 200 });
+    }) as typeof fetch;
+    try {
+      await handleOAuthRequest(
+        new Request(
+          "http://localhost:7777/api/oauth/hf/whoami?account_id=acc1"
+        ),
+        "/api/oauth/hf/whoami",
+        getUserId
+      );
+    } finally {
+      global.fetch = origFetch;
+    }
+    expect(sentAuth).toContain("hf_plaintext_secret_123");
+    expect(sentAuth).not.toContain(cred.encrypted_access_token);
   });
 
   it("GET /api/oauth/hf/tokens returns empty list initially", async () => {
@@ -494,5 +532,189 @@ describe("OAuthCredential model CRUD", () => {
     expect(u2Creds.length).toBe(1);
     const decryptedU2 = await u2Creds[0].getDecryptedAccessToken();
     expect(decryptedU2).toBe("tok2");
+  });
+});
+
+describe("OAuth API: Claude subscription endpoints", () => {
+  // The Claude routes persist to the Claude Agent SDK's credential file rather
+  // than the database, so every test points CLAUDE_CONFIG_DIR at a scratch dir.
+  let configDir: string;
+  let previousConfigDir: string | undefined;
+
+  beforeEach(async () => {
+    previousConfigDir = process.env.CLAUDE_CONFIG_DIR;
+    configDir = await mkdtemp(join(tmpdir(), "claude-oauth-api-"));
+    process.env.CLAUDE_CONFIG_DIR = configDir;
+  });
+
+  afterEach(async () => {
+    await closeActiveClaudeLogin();
+    if (previousConfigDir === undefined) {
+      delete process.env.CLAUDE_CONFIG_DIR;
+    } else {
+      process.env.CLAUDE_CONFIG_DIR = previousConfigDir;
+    }
+    await rm(configDir, { recursive: true, force: true });
+  });
+
+  /** Mirrors the server: the router is handed a pathname, not a full URL. */
+  function claudeRequest(
+    path: string,
+    init?: RequestInit
+  ): Promise<Response | null> {
+    const url = new URL(`http://localhost:7777${path}`);
+    return handleOAuthRequest(new Request(url, init), url.pathname, getUserId);
+  }
+
+  it("GET /api/oauth/claude/start returns both authorization URLs", async () => {
+    const response = await claudeRequest("/api/oauth/claude/start");
+
+    expect(response).not.toBeNull();
+    expect(response!.status).toBe(200);
+
+    const body = (await jsonBody(response!)) as {
+      auth_url: string;
+      manual_auth_url: string;
+      state: string;
+    };
+    const authUrl = new URL(body.auth_url);
+    expect(authUrl.origin + authUrl.pathname).toBe(
+      "https://claude.com/cai/oauth/authorize"
+    );
+    expect(authUrl.searchParams.get("code_challenge_method")).toBe("S256");
+    expect(authUrl.searchParams.get("state")).toBe(body.state);
+    // The loopback listener is bound, so the redirect points back at this process.
+    expect(authUrl.searchParams.get("redirect_uri")).toMatch(
+      /^http:\/\/localhost:\d+\/callback$/
+    );
+    expect(body.manual_auth_url).toContain(
+      encodeURIComponent("https://platform.claude.com/oauth/code/callback")
+    );
+  });
+
+  it("offers only the paste flow when the browser can't reach this process", async () => {
+    const response = await claudeRequest("/api/oauth/claude/start?manual=true");
+
+    const body = (await jsonBody(response!)) as {
+      auth_url: string;
+      manual_auth_url: string;
+    };
+    // With no listener bound, `auth_url` falls back to the manual URL.
+    expect(body.auth_url).toBe(body.manual_auth_url);
+    expect(body.auth_url).not.toContain("localhost%3A");
+  });
+
+  it("points at the console for a console login", async () => {
+    const response = await claudeRequest(
+      "/api/oauth/claude/start?login_method=console&manual=true"
+    );
+    const body = (await jsonBody(response!)) as { auth_url: string };
+    expect(body.auth_url).toContain(
+      "https://platform.claude.com/oauth/authorize"
+    );
+  });
+
+  it("GET /api/oauth/claude/tokens reports disconnected with no stored login", async () => {
+    const response = await claudeRequest("/api/oauth/claude/tokens");
+
+    expect(response!.status).toBe(200);
+    const body = (await jsonBody(response!)) as { tokens: unknown[] };
+    expect(body.tokens).toEqual([]);
+  });
+
+  it("GET /api/oauth/claude/tokens reflects a stored login", async () => {
+    await writeFile(
+      join(configDir, ".credentials.json"),
+      JSON.stringify({
+        claudeAiOauth: {
+          accessToken: "access-1",
+          refreshToken: "refresh-1",
+          expiresAt: Date.now() + 3_600_000,
+          scopes: ["user:profile", "user:inference"],
+          subscriptionType: "max",
+          rateLimitTier: null
+        }
+      })
+    );
+
+    const response = await claudeRequest("/api/oauth/claude/tokens");
+    const body = (await jsonBody(response!)) as {
+      tokens: Array<Record<string, unknown>>;
+    };
+
+    expect(body.tokens).toHaveLength(1);
+    expect(body.tokens[0]).toMatchObject({
+      provider: "claude",
+      scope: "user:profile user:inference",
+      expired: false,
+      subscription_type: "max"
+    });
+    // Token material must never reach the status response.
+    expect(JSON.stringify(body)).not.toContain("access-1");
+    expect(JSON.stringify(body)).not.toContain("refresh-1");
+  });
+
+  it("POST /api/oauth/claude/disconnect removes the stored login", async () => {
+    await writeFile(
+      join(configDir, ".credentials.json"),
+      JSON.stringify({
+        claudeAiOauth: {
+          accessToken: "access-1",
+          refreshToken: "refresh-1",
+          expiresAt: null,
+          scopes: [],
+          subscriptionType: null,
+          rateLimitTier: null
+        }
+      })
+    );
+
+    const response = await claudeRequest("/api/oauth/claude/disconnect", {
+      method: "POST"
+    });
+
+    expect(response!.status).toBe(200);
+    expect(await jsonBody(response!)).toEqual({ success: true, removed: 1 });
+
+    const after = (await jsonBody(
+      (await claudeRequest("/api/oauth/claude/tokens"))!
+    )) as { tokens: unknown[] };
+    expect(after.tokens).toEqual([]);
+  });
+
+  it("POST /api/oauth/claude/complete rejects a code with no login in progress", async () => {
+    const response = await claudeRequest("/api/oauth/claude/complete", {
+      method: "POST",
+      body: JSON.stringify({ code: "the-code#the-state" })
+    });
+
+    expect(response!.status).toBe(400);
+    expect(await jsonBody(response!)).toMatchObject({
+      detail: expect.stringContaining("No Claude login in progress")
+    });
+  });
+
+  it("POST /api/oauth/claude/complete rejects a mismatched state", async () => {
+    await claudeRequest("/api/oauth/claude/start?manual=true");
+
+    const response = await claudeRequest("/api/oauth/claude/complete", {
+      method: "POST",
+      body: JSON.stringify({ code: "the-code#not-the-state" })
+    });
+
+    expect(response!.status).toBe(400);
+    expect(await jsonBody(response!)).toMatchObject({
+      detail: expect.stringContaining("state mismatch")
+    });
+  });
+
+  it("rejects the wrong method on the mutating routes", async () => {
+    for (const path of [
+      "/api/oauth/claude/complete",
+      "/api/oauth/claude/disconnect"
+    ]) {
+      const response = await claudeRequest(path);
+      expect(response!.status).toBe(405);
+    }
   });
 });

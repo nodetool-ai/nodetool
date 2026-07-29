@@ -8,7 +8,6 @@
  *  5. Control-edge EOS must decrement once per controller, not per edge.
  *  6. Runner reuse: _completedNodes must reset between runs.
  *  7. DurableInbox.append must serialize per handle (no duplicate seqs).
- *  8. TriggerManager must dedupe concurrent starts and retry failed restarts.
  * 10. Graph.fromDict/loadFromDict must not prune properties for dropped edges.
  * 11. Legacy streaming-input fallback must receive node properties.
  */
@@ -16,11 +15,6 @@ import { describe, it, expect, vi } from "vitest";
 import { WorkflowRunner } from "../src/runner.js";
 import { Graph, GraphValidationError } from "../src/graph.js";
 import { DurableInbox, MemoryDurableInboxStore } from "../src/durable-inbox.js";
-import {
-  TriggerWorkflowManager,
-  type StartJobFn,
-  type HasTriggerNodesFn
-} from "../src/trigger-manager.js";
 import type { NodeDescriptor, Edge } from "@nodetool-ai/protocol";
 
 function ce(source: string, target: string, id?: string): Edge {
@@ -135,8 +129,7 @@ describe("node executor error", () => {
     expect(result.error).toMatch(/boom.*kaboom/);
     const failedUpdate = result.messages.find(
       (m) =>
-        m.type === "job_update" &&
-        (m as { status: string }).status === "failed"
+        m.type === "job_update" && (m as { status: string }).status === "failed"
     );
     expect(failedUpdate).toBeDefined();
   });
@@ -147,45 +140,52 @@ describe("node executor error", () => {
 // ---------------------------------------------------------------------------
 
 describe("concurrent sendControlEvent", () => {
-  it("settles every in-flight control response in FIFO order", {
-    timeout: 5000
-  }, async () => {
-    const nodes: NodeDescriptor[] = [
-      { id: "agent", type: "test.Controller" },
-      { id: "proc", type: "test.Processor", is_controlled: true }
-    ];
-    const edges: Edge[] = [ce("agent", "proc")];
+  it(
+    "settles every in-flight control response in FIFO order",
+    {
+      timeout: 5000
+    },
+    async () => {
+      const nodes: NodeDescriptor[] = [
+        { id: "agent", type: "test.Controller" },
+        { id: "proc", type: "test.Processor", is_controlled: true }
+      ];
+      const edges: Edge[] = [ce("agent", "proc")];
 
-    let runnerRef!: WorkflowRunner;
-    const responses: Array<Record<string, unknown>> = [];
-    const runner = new WorkflowRunner("ctrl-burst", {
-      resolveExecutor: (node) => {
-        if (node.id === "agent") {
+      let runnerRef!: WorkflowRunner;
+      const responses: Array<Record<string, unknown>> = [];
+      const runner = new WorkflowRunner("ctrl-burst", {
+        resolveExecutor: (node) => {
+          if (node.id === "agent") {
+            return {
+              async process() {
+                // Fire two control events without awaiting in between.
+                const p1 = runnerRef.sendControlEvent("proc", { a: 1 });
+                const p2 = runnerRef.sendControlEvent("proc", { a: 2 });
+                responses.push(await p1, await p2);
+                return {};
+              }
+            };
+          }
           return {
-            async process() {
-              // Fire two control events without awaiting in between.
-              const p1 = runnerRef.sendControlEvent("proc", { a: 1 });
-              const p2 = runnerRef.sendControlEvent("proc", { a: 2 });
-              responses.push(await p1, await p2);
-              return {};
+            async process(inputs) {
+              return { result: inputs.a };
             }
           };
         }
-        return {
-          async process(inputs) {
-            return { result: inputs.a };
-          }
-        };
-      }
-    });
-    runnerRef = runner;
+      });
+      runnerRef = runner;
 
-    const result = await runner.run({ job_id: "ctrl-burst" }, { nodes, edges });
-    expect(result.status).toBe("completed");
-    expect(responses.length).toBe(2);
-    expect(responses[0].result).toBe(1);
-    expect(responses[1].result).toBe(2);
-  });
+      const result = await runner.run(
+        { job_id: "ctrl-burst" },
+        { nodes, edges }
+      );
+      expect(result.status).toBe("completed");
+      expect(responses.length).toBe(2);
+      expect(responses[0].result).toBe(1);
+      expect(responses[1].result).toBe(2);
+    }
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -229,56 +229,60 @@ describe("self-loop edges", () => {
 // ---------------------------------------------------------------------------
 
 describe("control EOS accounting", () => {
-  it("a controller with duplicate control edges closes __control__ once", {
-    timeout: 5000
-  }, async () => {
-    const nodes: NodeDescriptor[] = [
-      { id: "a", type: "test.CtrlA" },
-      { id: "b", type: "test.CtrlB" },
-      { id: "proc", type: "test.Processor", is_controlled: true }
-    ];
-    // A holds two control edges to proc; upstream counting is per unique
-    // controller, so A finishing must decrement proc's __control__ once.
-    const edges: Edge[] = [
-      ce("a", "proc", "ca1"),
-      ce("a", "proc", "ca2"),
-      ce("b", "proc", "cb")
-    ];
+  it(
+    "a controller with duplicate control edges closes __control__ once",
+    {
+      timeout: 5000
+    },
+    async () => {
+      const nodes: NodeDescriptor[] = [
+        { id: "a", type: "test.CtrlA" },
+        { id: "b", type: "test.CtrlB" },
+        { id: "proc", type: "test.Processor", is_controlled: true }
+      ];
+      // A holds two control edges to proc; upstream counting is per unique
+      // controller, so A finishing must decrement proc's __control__ once.
+      const edges: Edge[] = [
+        ce("a", "proc", "ca1"),
+        ce("a", "proc", "ca2"),
+        ce("b", "proc", "cb")
+      ];
 
-    const calls: Array<Record<string, unknown>> = [];
-    const runner = new WorkflowRunner("ctrl-eos", {
-      resolveExecutor: (node) => {
-        if (node.id === "a") {
-          return {
-            async process() {
-              return {}; // finishes immediately, no events
-            }
-          };
-        }
-        if (node.id === "b") {
-          return {
-            async process() {
-              await sleep(50);
-              return { __control_output__: { x: 1 } };
-            }
-          };
-        }
-        return {
-          async process(inputs) {
-            calls.push({ ...inputs });
-            return { result: inputs.x };
+      const calls: Array<Record<string, unknown>> = [];
+      const runner = new WorkflowRunner("ctrl-eos", {
+        resolveExecutor: (node) => {
+          if (node.id === "a") {
+            return {
+              async process() {
+                return {}; // finishes immediately, no events
+              }
+            };
           }
-        };
-      }
-    });
+          if (node.id === "b") {
+            return {
+              async process() {
+                await sleep(50);
+                return { __control_output__: { x: 1 } };
+              }
+            };
+          }
+          return {
+            async process(inputs) {
+              calls.push({ ...inputs });
+              return { result: inputs.x };
+            }
+          };
+        }
+      });
 
-    const result = await runner.run({ job_id: "ctrl-eos" }, { nodes, edges });
-    expect(result.status).toBe("completed");
-    // Without per-controller dedup, A's double decrement closed __control__
-    // before B's event arrived and proc never executed.
-    expect(calls.length).toBe(1);
-    expect(calls[0].x).toBe(1);
-  });
+      const result = await runner.run({ job_id: "ctrl-eos" }, { nodes, edges });
+      expect(result.status).toBe("completed");
+      // Without per-controller dedup, A's double decrement closed __control__
+      // before B's event arrived and proc never executed.
+      expect(calls.length).toBe(1);
+      expect(calls[0].x).toBe(1);
+    }
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -286,45 +290,49 @@ describe("control EOS accounting", () => {
 // ---------------------------------------------------------------------------
 
 describe("runner reuse", () => {
-  it("sendControlEvent works on a second run() of the same runner", {
-    timeout: 5000
-  }, async () => {
-    const nodes: NodeDescriptor[] = [
-      { id: "agent", type: "test.Controller" },
-      { id: "proc", type: "test.Processor", is_controlled: true }
-    ];
-    const edges: Edge[] = [ce("agent", "proc")];
+  it(
+    "sendControlEvent works on a second run() of the same runner",
+    {
+      timeout: 5000
+    },
+    async () => {
+      const nodes: NodeDescriptor[] = [
+        { id: "agent", type: "test.Controller" },
+        { id: "proc", type: "test.Processor", is_controlled: true }
+      ];
+      const edges: Edge[] = [ce("agent", "proc")];
 
-    let runnerRef!: WorkflowRunner;
-    const results: unknown[] = [];
-    const runner = new WorkflowRunner("reuse", {
-      resolveExecutor: (node) => {
-        if (node.id === "agent") {
+      let runnerRef!: WorkflowRunner;
+      const results: unknown[] = [];
+      const runner = new WorkflowRunner("reuse", {
+        resolveExecutor: (node) => {
+          if (node.id === "agent") {
+            return {
+              async process() {
+                // Without _completedNodes reset, the second run rejects here
+                // because proc completed during the FIRST run.
+                const res = await runnerRef.sendControlEvent("proc", { a: 7 });
+                results.push(res.result);
+                return {};
+              }
+            };
+          }
           return {
-            async process() {
-              // Without _completedNodes reset, the second run rejects here
-              // because proc completed during the FIRST run.
-              const res = await runnerRef.sendControlEvent("proc", { a: 7 });
-              results.push(res.result);
-              return {};
+            async process(inputs) {
+              return { result: inputs.a };
             }
           };
         }
-        return {
-          async process(inputs) {
-            return { result: inputs.a };
-          }
-        };
-      }
-    });
-    runnerRef = runner;
+      });
+      runnerRef = runner;
 
-    const r1 = await runner.run({ job_id: "reuse-1" }, { nodes, edges });
-    const r2 = await runner.run({ job_id: "reuse-2" }, { nodes, edges });
-    expect(r1.status).toBe("completed");
-    expect(r2.status).toBe("completed");
-    expect(results).toEqual([7, 7]);
-  });
+      const r1 = await runner.run({ job_id: "reuse-1" }, { nodes, edges });
+      const r2 = await runner.run({ job_id: "reuse-2" }, { nodes, edges });
+      expect(r1.status).toBe("completed");
+      expect(r2.status).toBe("completed");
+      expect(results).toEqual([7, 7]);
+    }
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -367,72 +375,6 @@ describe("DurableInbox.append concurrency", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 8. TriggerManager start races and watchdog retries
-// ---------------------------------------------------------------------------
-
-describe("TriggerWorkflowManager races", () => {
-  it("dedupes concurrent startTriggerWorkflow calls", async () => {
-    TriggerWorkflowManager.resetInstance();
-    const startJob = vi.fn<StartJobFn>(async () => {
-      await sleep(10);
-      return { jobId: "job-1", completion: new Promise<void>(() => {}) };
-    });
-    const hasTriggerNodes = vi.fn<HasTriggerNodesFn>(async () => true);
-    const mgr = new TriggerWorkflowManager({ startJob, hasTriggerNodes });
-
-    const [a, b] = await Promise.all([
-      mgr.startTriggerWorkflow("wf", "u"),
-      mgr.startTriggerWorkflow("wf", "u")
-    ]);
-
-    expect(startJob).toHaveBeenCalledTimes(1);
-    expect(a).not.toBeNull();
-    expect(b).toBe(a);
-    expect(mgr.listRunningWorkflows().size).toBe(1);
-  });
-
-  it("watchdog keeps retrying after a failed restart attempt", async () => {
-    vi.useFakeTimers();
-    try {
-      TriggerWorkflowManager.resetInstance();
-      let failStarts = false;
-      let counter = 0;
-      const startJob = vi.fn<StartJobFn>(async () => {
-        if (failStarts) throw new Error("transient db error");
-        counter++;
-        return {
-          jobId: `job-${counter}`,
-          completion: new Promise<void>(() => {})
-        };
-      });
-      const hasTriggerNodes = vi.fn<HasTriggerNodesFn>(async () => true);
-      const mgr = new TriggerWorkflowManager({ startJob, hasTriggerNodes });
-
-      const job = await mgr.startTriggerWorkflow("wf", "u");
-      job!.status = "failed";
-
-      // First watchdog tick: restart attempt fails transiently.
-      failStarts = true;
-      mgr.startWatchdog(1000);
-      await vi.advanceTimersByTimeAsync(1000);
-      // The stale entry must survive the failed attempt.
-      expect(mgr.getRunningWorkflow("wf")).toBeDefined();
-
-      // Second tick: restart succeeds.
-      failStarts = false;
-      await vi.advanceTimersByTimeAsync(1000);
-      expect(mgr.isWorkflowRunning("wf")).toBe(true);
-      expect(mgr.getRunningWorkflow("wf")!.jobId).toBe("job-2");
-
-      mgr.stopWatchdog();
-    } finally {
-      vi.useRealTimers();
-      TriggerWorkflowManager.resetInstance();
-    }
-  });
-});
-
-// ---------------------------------------------------------------------------
 // 10. fromDict/loadFromDict property pruning
 // ---------------------------------------------------------------------------
 
@@ -446,7 +388,7 @@ describe("edge-fed property pruning", () => {
     expect(graph.nodes[0].properties).toEqual({ keep: 1, extra: "saved" });
   });
 
-  it("fromDict still prunes values for handles fed by surviving edges", () => {
+  it("fromDict retains fallbacks for handles fed by surviving edges", () => {
     const graph = Graph.fromDict({
       nodes: [
         { id: "a", type: "t" },
@@ -456,6 +398,7 @@ describe("edge-fed property pruning", () => {
     });
     expect(graph.edges).toHaveLength(1);
     expect(graph.nodes.find((n) => n.id === "b")!.properties).toEqual({
+      fed: "stale",
       keep: 2
     });
   });
@@ -470,8 +413,7 @@ describe("edge-fed property pruning", () => {
         edges: [de("ghost", "out", "b", "extra")]
       },
       {
-        resolver: (nodeType: string) =>
-          nodeType === "t" ? { nodeType } : null
+        resolver: (nodeType: string) => (nodeType === "t" ? { nodeType } : null)
       }
     );
     expect(graph.nodes).toHaveLength(1);
@@ -531,5 +473,52 @@ describe("topologicalSort", () => {
     const levels = g.topologicalSort();
     const flat = levels.flat().map((n) => n.id);
     expect(flat).toEqual(["b", "a"]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 12. Legacy untyped dynamic slots (no dynamic_inputs) behave as before
+// ---------------------------------------------------------------------------
+
+describe("legacy dynamic_properties without dynamic_inputs", () => {
+  it("runs unchanged: values pass through uncoerced and unchecked", async () => {
+    const nodes: NodeDescriptor[] = [
+      { id: "src", type: "test.Source" },
+      {
+        id: "dyn",
+        type: "test.Dynamic",
+        supports_dynamic_inputs: true,
+        properties: { declared: "base" },
+        // Types that a typed slot would reject or wrap: a string where a
+        // list would be, a float, a raw object. All must arrive verbatim.
+        dynamic_properties: {
+          text: "plain",
+          count: 1.5,
+          blob: { type: "image", uri: "u" }
+        }
+      }
+    ];
+    const edges: Edge[] = [de("src", "output", "dyn", "wired")];
+
+    let received: Record<string, unknown> | null = null;
+    const runner = new WorkflowRunner("legacy-dyn", {
+      resolveExecutor: (node) => ({
+        async process(inputs) {
+          if (node.id === "dyn") received = { ...inputs };
+          return node.id === "src" ? { output: 7 } : {};
+        }
+      })
+    });
+
+    const result = await runner.run({ job_id: "legacy-dyn" }, { nodes, edges });
+
+    expect(result.status).toBe("completed");
+    expect(received).toEqual({
+      declared: "base",
+      text: "plain",
+      count: 1.5,
+      blob: { type: "image", uri: "u" },
+      wired: 7
+    });
   });
 });

@@ -7,17 +7,12 @@
  * Internally delegates to the SerpApiProvider abstraction when available.
  */
 
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { WEB_SEARCH_TOOL_NAME, type ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 import type { SerpProvider } from "./serp-providers/index.js";
 import { SerpApiProvider } from "./serp-providers/serpapi-provider.js";
 
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                           */
-/* ------------------------------------------------------------------ */
-
 async function getSerpApiKey(context: ProcessingContext): Promise<string> {
-  // Try context secret resolver first, then fall back to env var.
   const fromCtx = await context.getSecret("SERPAPI_API_KEY");
   if (fromCtx) return fromCtx;
 
@@ -50,10 +45,6 @@ async function serpApiFetch(params: SerpApiParams): Promise<unknown> {
   return res.json();
 }
 
-/**
- * Resolve a SerpProvider.  If an explicit provider is supplied, use it;
- * otherwise create a SerpApiProvider from the context's API key.
- */
 async function resolveProvider(
   context: ProcessingContext,
   provider?: SerpProvider
@@ -62,10 +53,6 @@ async function resolveProvider(
   const apiKey = await getSerpApiKey(context);
   return new SerpApiProvider(apiKey);
 }
-
-/* ------------------------------------------------------------------ */
-/*  GoogleSearchTool                                                  */
-/* ------------------------------------------------------------------ */
 
 function formatSearchResults(
   results: Array<{
@@ -85,24 +72,47 @@ function formatSearchResults(
     .join("\n\n");
 }
 
-export class GoogleSearchTool extends Tool {
-  readonly name = "google_search";
+function domainOf(link: string | null | undefined): string {
+  if (!link) return "";
+  try {
+    return new URL(link).hostname.replace(/^www\./, "").toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Web search, modeled on Claude Code's `WebSearch` tool: a `query` plus
+ * optional `allowed_domains` / `blocked_domains` filters. Backed by SerpAPI on
+ * providers without a built-in web search. Providers that DO have one
+ * (`supportsNativeWebSearch`) render a tool of this name as their own
+ * server-side search instead of calling this implementation.
+ */
+export class WebSearchTool extends Tool {
+  readonly name = WEB_SEARCH_TOOL_NAME;
   readonly description =
-    "Searches Google via SerpAPI and returns the organic results as text. " +
-    "Each result includes the title, URL, and snippet. Use this rather than " +
-    "fetching google.com directly — search engine result pages are blocked " +
-    "in the browser tool.";
+    "Search the web and use the results to inform responses. Returns up-to-date " +
+    "information for current events and recent data beyond the model's training " +
+    "cutoff. Each result includes the title, URL, and snippet. Optionally scope " +
+    "results with allowed_domains (only these domains) or blocked_domains " +
+    "(never these domains).";
   readonly jsonSchema: Record<string, unknown> = {
     type: "object",
     properties: {
       query: {
         type: "string",
-        description: "Search query."
+        description: "The search query to use.",
+        minLength: 2
       },
-      num_results: {
-        type: "integer",
-        description: "Number of results to retrieve. Defaults to 10.",
-        default: 10
+      allowed_domains: {
+        type: "array",
+        items: { type: "string" },
+        description: "Only include results from these domains."
+      },
+      blocked_domains: {
+        type: "array",
+        items: { type: "string" },
+        description: "Never include results from these domains."
       }
     },
     required: ["query"]
@@ -119,45 +129,73 @@ export class GoogleSearchTool extends Tool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    // Accept the canonical `query` field, tolerate the older `keyword`.
+    // Accept the canonical `query` field, tolerate older `keyword`/`num_results`.
     const query =
       (params.query as string | undefined) ??
       (params.keyword as string | undefined);
     if (!query) return "Error: query is required";
 
     const numResults = (params.num_results as number) ?? 10;
+    const allowed = (params.allowed_domains as string[] | undefined) ?? [];
+    const blocked = (params.blocked_domains as string[] | undefined) ?? [];
+    // `allowed_domains` is pushed into the query itself so the engine narrows
+    // server-side; `blocked_domains` is applied to the returned results.
+    const allowedClause = allowed.length
+      ? " " + allowed.map((d) => `site:${d}`).join(" OR ")
+      : "";
+    const effectiveQuery = `${query}${allowedClause}`;
 
+    const norm = (list: string[]) =>
+      list.map((d) => d.replace(/^www\./, "").toLowerCase());
+    const blockedSet = new Set(norm(blocked));
+    const allowedSet = new Set(norm(allowed));
+    // Match on a real label boundary, not a bare suffix: `host.endsWith("bank.com")`
+    // also matches "fakebank.com", so a bare endsWith would leak look-alike
+    // domains past an allowlist (and over-block on a blocklist).
+    const hostMatches = (host: string, d: string) =>
+      host === d || host.endsWith("." + d);
+    const keep = (link: string | null | undefined) => {
+      const host = domainOf(link);
+      if (blockedSet.size && [...blockedSet].some((d) => hostMatches(host, d)))
+        return false;
+      if (allowedSet.size && ![...allowedSet].some((d) => hostMatches(host, d)))
+        return false;
+      return true;
+    };
+
+    let raw: Array<{
+      title: string | null;
+      link: string | null;
+      snippet: string | null;
+    }>;
     if (this._provider) {
-      const results = await this._provider.search(query, { numResults });
-      return formatSearchResults(
-        results.map((r) => ({
-          title: r.title ?? null,
-          link: r.url ?? null,
-          snippet: r.snippet ?? null
-        }))
-      );
-    }
-
-    const apiKey = await getSerpApiKey(context);
-
-    const data = (await serpApiFetch({
-      engine: "google",
-      q: query,
-      api_key: apiKey,
-      num: numResults
-    })) as Record<string, unknown>;
-
-    const organicResults = (data.organic_results ?? []) as Array<
-      Record<string, unknown>
-    >;
-
-    return formatSearchResults(
-      organicResults.map((r) => ({
+      const results = await this._provider.search(effectiveQuery, {
+        numResults
+      });
+      raw = results.map((r) => ({
+        title: r.title ?? null,
+        link: r.url ?? null,
+        snippet: r.snippet ?? null
+      }));
+    } else {
+      const apiKey = await getSerpApiKey(context);
+      const data = (await serpApiFetch({
+        engine: "google",
+        q: effectiveQuery,
+        api_key: apiKey,
+        num: numResults
+      })) as Record<string, unknown>;
+      const organicResults = (data.organic_results ?? []) as Array<
+        Record<string, unknown>
+      >;
+      raw = organicResults.map((r) => ({
         title: (r.title as string) ?? null,
         link: (r.link as string) ?? null,
         snippet: (r.snippet as string) ?? null
-      }))
-    );
+      }));
+    }
+
+    return formatSearchResults(raw.filter((r) => keep(r.link)));
   }
 
   userMessage(params: Record<string, unknown>): string {
@@ -165,14 +203,10 @@ export class GoogleSearchTool extends Tool {
       (params.query as string | undefined) ??
       (params.keyword as string | undefined) ??
       "something";
-    const msg = `Searching Google for '${query}'`;
-    return msg.length > 80 ? "Searching Google" : msg;
+    const msg = `Searching the web for '${query}'`;
+    return msg.length > 80 ? "Searching the web" : msg;
   }
 }
-
-/* ------------------------------------------------------------------ */
-/*  GoogleNewsTool                                                    */
-/* ------------------------------------------------------------------ */
 
 export class GoogleNewsTool extends Tool {
   readonly name = "google_news";
@@ -239,10 +273,6 @@ export class GoogleNewsTool extends Tool {
     return msg.length > 80 ? "Searching Google News..." : msg;
   }
 }
-
-/* ------------------------------------------------------------------ */
-/*  GoogleImagesTool                                                  */
-/* ------------------------------------------------------------------ */
 
 export class GoogleImagesTool extends Tool {
   readonly name = "google_images";

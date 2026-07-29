@@ -5,7 +5,7 @@
  *  - SerpProvider interface contract
  *  - SerpApiProvider normalises results
  *  - DataForSeoProvider normalises results
- *  - GoogleSearchTool works with an injected SerpProvider
+ *  - WebSearchTool works with an injected SerpProvider
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -15,7 +15,7 @@ import type {
   SerpProvider,
   SearchResult
 } from "../../src/tools/serp-providers/index.js";
-import { GoogleSearchTool } from "../../src/tools/search-tools.js";
+import { WebSearchTool } from "../../src/tools/search-tools.js";
 import { DataForSEOSearchTool } from "../../src/tools/dataseo-tools.js";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Buffer } from "buffer";
@@ -237,10 +237,10 @@ describe("DataForSeoProvider", () => {
 });
 
 /* ------------------------------------------------------------------ */
-/*  GoogleSearchTool with injected provider                           */
+/*  WebSearchTool with injected provider                           */
 /* ------------------------------------------------------------------ */
 
-describe("GoogleSearchTool with SerpProvider", () => {
+describe("WebSearchTool with SerpProvider", () => {
   it("delegates to injected provider", async () => {
     const mockResults: SearchResult[] = [
       {
@@ -251,7 +251,7 @@ describe("GoogleSearchTool with SerpProvider", () => {
       }
     ];
     const provider = createMockProvider(mockResults);
-    const tool = new GoogleSearchTool(provider);
+    const tool = new WebSearchTool(provider);
     const ctx = makeContext();
 
     const result = (await tool.process(ctx, {
@@ -268,7 +268,7 @@ describe("GoogleSearchTool with SerpProvider", () => {
 
   it("returns error string when query is missing", async () => {
     const provider = createMockProvider([]);
-    const tool = new GoogleSearchTool(provider);
+    const tool = new WebSearchTool(provider);
     const ctx = makeContext();
 
     const result = await tool.process(ctx, {});
@@ -779,10 +779,10 @@ describe("DataForSEOImagesTool", () => {
 });
 
 /* ------------------------------------------------------------------ */
-/*  GoogleSearchTool legacy path                                       */
+/*  WebSearchTool legacy path                                       */
 /* ------------------------------------------------------------------ */
 
-describe("GoogleSearchTool legacy path (no provider)", () => {
+describe("WebSearchTool legacy path (no provider)", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
@@ -797,7 +797,7 @@ describe("GoogleSearchTool legacy path (no provider)", () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = mockFetch(rawResponse);
     try {
-      const tool = new GoogleSearchTool(); // no provider
+      const tool = new WebSearchTool(); // no provider
       const ctx = makeContext({ SERPAPI_API_KEY: "legacy-key" });
       const result = (await tool.process(ctx, {
         query: "test",
@@ -815,29 +815,29 @@ describe("GoogleSearchTool legacy path (no provider)", () => {
 });
 
 /* ------------------------------------------------------------------ */
-/*  GoogleSearchTool userMessage truncation                            */
+/*  WebSearchTool userMessage truncation                            */
 /* ------------------------------------------------------------------ */
 
-describe("GoogleSearchTool userMessage", () => {
+describe("WebSearchTool userMessage", () => {
   it("falls back to short form when the query is too long", () => {
-    const tool = new GoogleSearchTool();
+    const tool = new WebSearchTool();
     const longQuery = "a".repeat(100);
     const msg = tool.userMessage({ query: longQuery });
-    expect(msg).toBe("Searching Google");
+    expect(msg).toBe("Searching the web");
     expect(msg.length).toBeLessThanOrEqual(80);
   });
 
   it("includes short query in userMessage", () => {
-    const tool = new GoogleSearchTool();
+    const tool = new WebSearchTool();
     expect(tool.userMessage({ query: "cats" })).toBe(
-      "Searching Google for 'cats'"
+      "Searching the web for 'cats'"
     );
   });
 
   it("accepts the legacy `keyword` arg in userMessage too", () => {
-    const tool = new GoogleSearchTool();
+    const tool = new WebSearchTool();
     expect(tool.userMessage({ keyword: "cats" })).toBe(
-      "Searching Google for 'cats'"
+      "Searching the web for 'cats'"
     );
   });
 });

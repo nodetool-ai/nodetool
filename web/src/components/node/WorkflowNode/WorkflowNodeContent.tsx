@@ -126,9 +126,8 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
             borderColor: "divider"
           }}
         >
-          <Caption>
-            {/* {subWorkflow?.name && <> · {subWorkflow.name}</>} */}
-          </Caption>
+          <Caption />
+
         </Box>
       </FlexColumn>
     );

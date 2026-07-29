@@ -4,6 +4,8 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LockIcon from "@mui/icons-material/Lock";
+import LoginIcon from "@mui/icons-material/Login";
+import LinkOffIcon from "@mui/icons-material/LinkOff";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import ModelTrainingIcon from "@mui/icons-material/ModelTraining";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
@@ -13,6 +15,7 @@ import ShieldIcon from "@mui/icons-material/Shield";
 
 import useSecretsStore from "../../stores/SecretsStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import { useOAuthConnection } from "../../hooks/useOAuthConnection";
 import type { SecretResponse } from "../../stores/ApiTypes";
 import {
   FlexColumn,
@@ -27,37 +30,42 @@ import {
   Chip,
   Box,
   EmptyState,
+  CollapsibleSection,
   BORDER_RADIUS,
   MOTION,
   SPACING,
   getSpacingPx
 } from "../ui_primitives";
-import { ToolbarIconButton } from "../ui_primitives/ToolbarIconButton";
+import { ToolbarIconButton } from "../ui_primitives";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
+import GoogleWorkspaceCard from "./GoogleWorkspaceCard";
 
-// Provider icons from @lobehub/icons-static-svg
-import openaiIcon from "@lobehub/icons-static-svg/icons/openai.svg";
-import anthropicIcon from "@lobehub/icons-static-svg/icons/anthropic.svg";
-import openrouterIcon from "@lobehub/icons-static-svg/icons/openrouter.svg";
-import cerebrasColorIcon from "@lobehub/icons-static-svg/icons/cerebras-color.svg";
-import togetherColorIcon from "@lobehub/icons-static-svg/icons/together-color.svg";
-import deepseekColorIcon from "@lobehub/icons-static-svg/icons/deepseek-color.svg";
-import groqIcon from "@lobehub/icons-static-svg/icons/groq.svg";
-import mistralColorIcon from "@lobehub/icons-static-svg/icons/mistral-color.svg";
-import geminiColorIcon from "@lobehub/icons-static-svg/icons/gemini-color.svg";
-import xaiIcon from "@lobehub/icons-static-svg/icons/xai.svg";
-import huggingfaceColorIcon from "@lobehub/icons-static-svg/icons/huggingface-color.svg";
-import replicateIcon from "@lobehub/icons-static-svg/icons/replicate.svg";
-import falColorIcon from "@lobehub/icons-static-svg/icons/fal-color.svg";
-import elevenlabsIcon from "@lobehub/icons-static-svg/icons/elevenlabs.svg";
-import moonshotIcon from "@lobehub/icons-static-svg/icons/moonshot.svg";
-import topazlabsIcon from "@lobehub/icons-static-svg/icons/topazlabs.svg";
-import atlascloudIcon from "@lobehub/icons-static-svg/icons/atlascloud.svg";
-import zhipuColorIcon from "@lobehub/icons-static-svg/icons/zhipu-color.svg";
-import minimaxColorIcon from "@lobehub/icons-static-svg/icons/minimax-color.svg";
-import meshyColorIcon from "@lobehub/icons-static-svg/icons/meshy-color.svg";
-import githubIcon from "@lobehub/icons-static-svg/icons/github.svg";
-import googleColorIcon from "@lobehub/icons-static-svg/icons/google-color.svg";
+// Provider icons vendored from @lobehub/icons-static-svg (see src/icons/providers/README.md)
+import openaiIcon from "../../icons/providers/openai.svg";
+import anthropicIcon from "../../icons/providers/anthropic.svg";
+import openrouterIcon from "../../icons/providers/openrouter.svg";
+import cerebrasColorIcon from "../../icons/providers/cerebras-color.svg";
+import togetherColorIcon from "../../icons/providers/together-color.svg";
+import deepseekColorIcon from "../../icons/providers/deepseek-color.svg";
+import groqIcon from "../../icons/providers/groq.svg";
+import mistralColorIcon from "../../icons/providers/mistral-color.svg";
+import geminiColorIcon from "../../icons/providers/gemini-color.svg";
+import xaiIcon from "../../icons/providers/xai.svg";
+import huggingfaceColorIcon from "../../icons/providers/huggingface-color.svg";
+import replicateIcon from "../../icons/providers/replicate.svg";
+import falColorIcon from "../../icons/providers/fal-color.svg";
+import elevenlabsIcon from "../../icons/providers/elevenlabs.svg";
+import moonshotIcon from "../../icons/providers/moonshot.svg";
+import topazlabsIcon from "../../icons/providers/topazlabs.svg";
+import atlascloudIcon from "../../icons/providers/atlascloud.svg";
+import zhipuColorIcon from "../../icons/providers/zhipu-color.svg";
+import minimaxColorIcon from "../../icons/providers/minimax-color.svg";
+import meshyColorIcon from "../../icons/providers/meshy-color.svg";
+import githubIcon from "../../icons/providers/github.svg";
+import googleColorIcon from "../../icons/providers/google-color.svg";
+import cohereColorIcon from "../../icons/providers/cohere-color.svg";
+import jinaIcon from "../../icons/providers/jina.svg";
+import voyageColorIcon from "../../icons/providers/voyage-color.svg";
 import evolinkIcon from "../../icons/evolink.svg";
 import gmiIcon from "../../icons/gmi.svg";
 
@@ -66,7 +74,7 @@ interface ProviderMeta {
   key: string;
   name: string;
   description: string;
-  category: "recommended" | "other";
+  section: "popular" | "language" | "media" | "gateways" | "search" | "compute" | "advanced";
   tag?: string;
   docsUrl: string;
   icon?: string;
@@ -74,6 +82,16 @@ interface ProviderMeta {
   mono?: boolean;
   /** Extra hint rendered under the description (e.g. required key scope). */
   note?: string;
+  /** Provider supports OAuth sign-in in place of (or alongside) an API key. */
+  oauth?: "openai" | "hf" | "claude";
+  /**
+   * Authentication is OAuth-only — there is no API key to store, so the card
+   * shows sign-in/sign-out and nothing else. `key` is a display id, not a
+   * secret NodeTool persists.
+   */
+  oauthOnly?: boolean;
+  /** Multi-field credentials (e.g. login + password). Single-field providers omit this. */
+  fields?: Array<{ key: string; label: string; secret?: boolean }>;
 }
 
 const PROVIDER_META: ProviderMeta[] = [
@@ -81,17 +99,30 @@ const PROVIDER_META: ProviderMeta[] = [
     key: "OPENAI_API_KEY",
     name: "OpenAI",
     description: "GPT models, images, embeddings, and more.",
-    category: "recommended",
+    section: "popular",
     tag: "Popular",
     docsUrl: "https://platform.openai.com/docs",
     icon: openaiIcon,
-    mono: true
+    mono: true,
+    oauth: "openai"
+  },
+  {
+    key: "CLAUDE_SUBSCRIPTION",
+    name: "Claude",
+    description: "Use a Claude Pro or Max subscription instead of API credits.",
+    section: "popular",
+    docsUrl: "https://code.claude.com/docs/en/overview",
+    icon: anthropicIcon,
+    mono: true,
+    note: "Signs in through Claude Code and shares its credentials.",
+    oauth: "claude",
+    oauthOnly: true
   },
   {
     key: "ANTHROPIC_API_KEY",
     name: "Anthropic",
     description: "Claude models for advanced reasoning.",
-    category: "recommended",
+    section: "popular",
     docsUrl: "https://docs.anthropic.com",
     icon: anthropicIcon,
     mono: true
@@ -100,56 +131,24 @@ const PROVIDER_META: ProviderMeta[] = [
     key: "OPENROUTER_API_KEY",
     name: "OpenRouter",
     description: "Access multiple AI models through one API.",
-    category: "recommended",
+    section: "popular",
     docsUrl: "https://openrouter.ai/docs",
     icon: openrouterIcon,
     mono: true
   },
   {
-    key: "CEREBRAS_API_KEY",
-    name: "Cerebras",
-    description: "Fast LLM inference on Cerebras hardware.",
-    category: "other",
-    docsUrl: "https://docs.cerebras.ai/",
-    icon: cerebrasColorIcon
-  },
-  {
-    key: "TOGETHER_API_KEY",
-    name: "Together AI",
-    description: "Open-source models through Together API.",
-    category: "other",
-    docsUrl: "https://docs.together.ai/",
-    icon: togetherColorIcon
-  },
-  {
-    key: "DEEPSEEK_API_KEY",
-    name: "DeepSeek",
-    description: "State-of-the-art open models.",
-    category: "other",
-    docsUrl: "https://platform.deepseek.com/docs",
-    icon: deepseekColorIcon
-  },
-  {
-    key: "EVOLINK_API_KEY",
-    name: "Evolink",
-    description: "GPT, Claude, Gemini, DeepSeek and more through one gateway.",
-    category: "other",
-    docsUrl: "https://docs.evolink.ai",
-    icon: evolinkIcon
-  },
-  {
-    key: "GMI_API_KEY",
-    name: "GMI Cloud",
-    description: "Open-weight LLMs through GMI's OpenAI-compatible API.",
-    category: "other",
-    docsUrl: "https://docs.gmicloud.ai/",
-    icon: gmiIcon
+    key: "GEMINI_API_KEY",
+    name: "Gemini",
+    description: "Google Gemini AI models and services.",
+    section: "popular",
+    docsUrl: "https://ai.google.dev/docs",
+    icon: geminiColorIcon
   },
   {
     key: "GROQ_API_KEY",
     name: "Groq",
     description: "Ultra-fast LLM inference on LPU hardware.",
-    category: "other",
+    section: "language",
     docsUrl: "https://console.groq.com/docs",
     icon: groqIcon,
     mono: true
@@ -158,91 +157,48 @@ const PROVIDER_META: ProviderMeta[] = [
     key: "MISTRAL_API_KEY",
     name: "Mistral",
     description: "Mistral AI models and embeddings.",
-    category: "other",
+    section: "language",
     docsUrl: "https://docs.mistral.ai/",
     icon: mistralColorIcon
   },
   {
-    key: "GEMINI_API_KEY",
-    name: "Gemini",
-    description: "Google Gemini AI models and services.",
-    category: "other",
-    docsUrl: "https://ai.google.dev/docs",
-    icon: geminiColorIcon
+    key: "DEEPSEEK_API_KEY",
+    name: "DeepSeek",
+    description: "State-of-the-art open models.",
+    section: "language",
+    docsUrl: "https://platform.deepseek.com/docs",
+    icon: deepseekColorIcon
   },
   {
     key: "XAI_API_KEY",
     name: "xAI",
     description: "Grok models via xAI's API.",
-    category: "other",
+    section: "language",
     docsUrl: "https://docs.x.ai/",
     icon: xaiIcon,
     mono: true
   },
   {
-    key: "HF_TOKEN",
-    name: "HuggingFace",
-    description: "Inference providers and model hub access.",
-    category: "other",
-    docsUrl: "https://huggingface.co/docs",
-    icon: huggingfaceColorIcon
+    key: "CEREBRAS_API_KEY",
+    name: "Cerebras",
+    description: "Fast LLM inference on Cerebras hardware.",
+    section: "language",
+    docsUrl: "https://docs.cerebras.ai/",
+    icon: cerebrasColorIcon
   },
   {
-    key: "REPLICATE_API_TOKEN",
-    name: "Replicate",
-    description: "Run models on Replicate's cloud infrastructure.",
-    category: "other",
-    docsUrl: "https://replicate.com/docs",
-    icon: replicateIcon,
-    mono: true
-  },
-  {
-    key: "FAL_API_KEY",
-    name: "FAL",
-    description: "Serverless AI image and video generation.",
-    category: "other",
-    docsUrl: "https://fal.ai/docs",
-    icon: falColorIcon,
-    note: "For exact cost tracking, use an admin key (fal.ai dashboard → Keys → scope “Admin”). NodeTool reads each request's actual billing from FAL; a standard key only yields estimates."
-  },
-  {
-    key: "ELEVENLABS_API_KEY",
-    name: "ElevenLabs",
-    description: "High-quality text-to-speech services.",
-    category: "other",
-    docsUrl: "https://elevenlabs.io/docs",
-    icon: elevenlabsIcon,
-    mono: true
-  },
-  {
-    key: "TOPAZ_API_KEY",
-    name: "Topaz",
-    description: "Topaz Labs image and video enhancement.",
-    category: "other",
-    docsUrl: "https://developer.topazlabs.com/",
-    icon: topazlabsIcon,
-    mono: true
-  },
-  {
-    key: "ATLASCLOUD_API_KEY",
-    name: "AtlasCloud",
-    description: "GPT Image 2, Nano Banana, and Seedance 2.0 video generation.",
-    category: "other",
-    docsUrl: "https://www.atlascloud.ai/",
-    icon: atlascloudIcon
-  },
-  {
-    key: "REVE_API_KEY",
-    name: "Reve",
-    description: "Image creation, editing, and remix with strong prompt adherence.",
-    category: "other",
-    docsUrl: "https://api.reve.com/"
+    key: "TOGETHER_API_KEY",
+    name: "Together AI",
+    description: "Open-source models through Together API.",
+    section: "language",
+    docsUrl: "https://docs.together.ai/",
+    icon: togetherColorIcon
   },
   {
     key: "KIMI_API_KEY",
     name: "Kimi",
     description: "Moonshot AI models via Kimi API.",
-    category: "other",
+    section: "language",
     docsUrl: "https://platform.moonshot.cn/docs",
     icon: moonshotIcon,
     mono: true
@@ -251,7 +207,7 @@ const PROVIDER_META: ProviderMeta[] = [
     key: "ZHIPU_API_KEY",
     name: "Z.AI",
     description: "GLM models via Z.AI's OpenAI-compatible API.",
-    category: "other",
+    section: "language",
     docsUrl: "https://open.bigmodel.cn/",
     icon: zhipuColorIcon
   },
@@ -259,43 +215,100 @@ const PROVIDER_META: ProviderMeta[] = [
     key: "MINIMAX_API_KEY",
     name: "MiniMax",
     description: "MiniMax AI models.",
-    category: "other",
+    section: "language",
     docsUrl: "https://platform.minimax.chat/",
     icon: minimaxColorIcon
   },
   {
-    key: "AKI_API_KEY",
-    name: "AKI",
-    description: "AKI.IO AI Model Hub.",
-    category: "other",
-    docsUrl: "https://aki.io/"
+    key: "HF_TOKEN",
+    name: "HuggingFace",
+    description: "Inference providers and model hub access.",
+    section: "language",
+    docsUrl: "https://huggingface.co/docs",
+    icon: huggingfaceColorIcon,
+    oauth: "hf"
   },
   {
-    key: "AIME_API_KEY",
-    name: "Aime",
-    description: "Aime AI services.",
-    category: "other",
-    docsUrl: "https://aime.info/"
+    key: "COHERE_API_KEY",
+    name: "Cohere",
+    description: "Embed v4 text embeddings and reranking.",
+    section: "language",
+    docsUrl: "https://docs.cohere.com/",
+    icon: cohereColorIcon
   },
   {
-    key: "LLAMA_API_KEY",
-    name: "llama.cpp",
-    description: "Bearer auth for a local llama-server instance.",
-    category: "other",
-    docsUrl: "https://github.com/ggml-org/llama.cpp"
+    key: "JINA_API_KEY",
+    name: "Jina AI",
+    description: "Jina embeddings and reranker models.",
+    section: "language",
+    docsUrl: "https://jina.ai/",
+    icon: jinaIcon,
+    mono: true
   },
   {
-    key: "KIE_API_KEY",
-    name: "Kie.ai",
-    description: "Kie.ai unified model access.",
-    category: "other",
-    docsUrl: "https://kie.ai/"
+    key: "VOYAGE_API_KEY",
+    name: "Voyage AI",
+    description: "High-quality text and multimodal embeddings.",
+    section: "language",
+    docsUrl: "https://docs.voyageai.com/",
+    icon: voyageColorIcon
+  },
+  {
+    key: "FAL_API_KEY",
+    name: "FAL",
+    description: "Serverless AI image and video generation.",
+    section: "media",
+    docsUrl: "https://fal.ai/docs",
+    icon: falColorIcon,
+    note: 'For exact cost tracking, use an admin key (fal.ai dashboard → Keys → scope "Admin"). NodeTool reads each request\'s actual billing from FAL; a standard key only yields estimates.'
+  },
+  {
+    key: "REPLICATE_API_TOKEN",
+    name: "Replicate",
+    description: "Run models on Replicate's cloud infrastructure.",
+    section: "media",
+    docsUrl: "https://replicate.com/docs",
+    icon: replicateIcon,
+    mono: true
+  },
+  {
+    key: "ELEVENLABS_API_KEY",
+    name: "ElevenLabs",
+    description: "High-quality text-to-speech services.",
+    section: "media",
+    docsUrl: "https://elevenlabs.io/docs",
+    icon: elevenlabsIcon,
+    mono: true
+  },
+  {
+    key: "TOPAZ_API_KEY",
+    name: "Topaz",
+    description: "Topaz Labs image and video enhancement.",
+    section: "media",
+    docsUrl: "https://developer.topazlabs.com/",
+    icon: topazlabsIcon,
+    mono: true
+  },
+  {
+    key: "ATLASCLOUD_API_KEY",
+    name: "AtlasCloud",
+    description: "Chat, image, and video models behind one key.",
+    section: "gateways",
+    docsUrl: "https://www.atlascloud.ai/",
+    icon: atlascloudIcon
+  },
+  {
+    key: "REVE_API_KEY",
+    name: "Reve",
+    description: "Image creation, editing, and remix with strong prompt adherence.",
+    section: "media",
+    docsUrl: "https://api.reve.com/"
   },
   {
     key: "MESHY_API_KEY",
     name: "Meshy",
     description: "3D model generation.",
-    category: "other",
+    section: "media",
     docsUrl: "https://docs.meshy.ai/",
     icon: meshyColorIcon
   },
@@ -303,117 +316,170 @@ const PROVIDER_META: ProviderMeta[] = [
     key: "RODIN_API_KEY",
     name: "Rodin",
     description: "Rodin AI 3D model generation.",
-    category: "other",
+    section: "media",
     docsUrl: "https://hyperhuman.deemos.com/"
   },
   {
-    key: "RUNPOD_API_KEY",
-    name: "RunPod",
-    description: "Rent GPU pods to run NodeTool workers.",
-    category: "other",
-    docsUrl: "https://docs.runpod.io/"
+    key: "EVOLINK_API_KEY",
+    name: "Evolink",
+    description: "GPT, Claude, Gemini, DeepSeek and more through one gateway.",
+    section: "gateways",
+    docsUrl: "https://docs.evolink.ai",
+    icon: evolinkIcon
   },
   {
-    key: "VAST_API_KEY",
-    name: "Vast.ai",
-    description: "Rent marketplace GPUs to run NodeTool workers.",
-    category: "other",
-    docsUrl: "https://docs.vast.ai/"
+    key: "GMI_API_KEY",
+    name: "GMI Cloud",
+    description: "Open-weight LLMs through GMI's OpenAI-compatible API.",
+    section: "gateways",
+    docsUrl: "https://docs.gmicloud.ai/",
+    icon: gmiIcon
   },
   {
-    key: "NODE_SUPABASE_KEY",
-    name: "NodeSupabase",
-    description: "Supabase service key for user-provided nodes.",
-    category: "other",
-    docsUrl: "https://supabase.com/docs"
+    key: "AKI_API_KEY",
+    name: "AKI",
+    description: "AKI.IO AI Model Hub.",
+    section: "gateways",
+    docsUrl: "https://aki.io/"
+  },
+  {
+    key: "AIME_API_KEY",
+    name: "Aime",
+    description: "Aime AI services.",
+    section: "gateways",
+    docsUrl: "https://aime.info/"
+  },
+  {
+    key: "KIE_API_KEY",
+    name: "Kie.ai",
+    description: "Kie.ai unified model access.",
+    section: "gateways",
+    docsUrl: "https://kie.ai/"
   },
   {
     key: "SERPAPI_API_KEY",
     name: "SerpAPI",
     description: "Web search via SerpAPI.",
-    category: "other",
+    section: "search",
     docsUrl: "https://serpapi.com/"
   },
   {
     key: "APIFY_API_KEY",
     name: "Apify",
     description: "Web search via Apify Google Search Scraper.",
-    category: "other",
+    section: "search",
     docsUrl: "https://docs.apify.com/"
   },
   {
     key: "BRAVE_API_KEY",
     name: "Brave Search",
     description: "Brave Search web API.",
-    category: "other",
+    section: "search",
     docsUrl: "https://brave.com/search/api/"
   },
   {
     key: "DATA_FOR_SEO_LOGIN",
-    name: "DataForSEO Login",
-    description: "DataForSEO login for web search.",
-    category: "other",
-    docsUrl: "https://docs.dataforseo.com/"
+    name: "DataForSEO",
+    description: "Web search via DataForSEO.",
+    section: "search",
+    docsUrl: "https://docs.dataforseo.com/",
+    fields: [
+      { key: "DATA_FOR_SEO_LOGIN", label: "Login" },
+      { key: "DATA_FOR_SEO_PASSWORD", label: "Password", secret: true }
+    ]
   },
   {
-    key: "DATA_FOR_SEO_PASSWORD",
-    name: "DataForSEO Password",
-    description: "DataForSEO password for web search.",
-    category: "other",
-    docsUrl: "https://docs.dataforseo.com/"
+    key: "RUNPOD_API_KEY",
+    name: "RunPod",
+    description: "Rent GPU pods to run NodeTool workers.",
+    section: "compute",
+    docsUrl: "https://docs.runpod.io/"
+  },
+  {
+    key: "VAST_API_KEY",
+    name: "Vast.ai",
+    description: "Rent marketplace GPUs to run NodeTool workers.",
+    section: "compute",
+    docsUrl: "https://docs.vast.ai/"
+  },
+  {
+    key: "LLAMA_API_KEY",
+    name: "llama.cpp",
+    description: "Bearer auth for a local llama-server instance.",
+    section: "compute",
+    docsUrl: "https://github.com/ggml-org/llama.cpp"
+  },
+  {
+    key: "GOOGLE_MAIL_USER",
+    name: "Google Mail",
+    description: "Email address and app password for Google mail integration.",
+    section: "advanced",
+    docsUrl: "https://support.google.com/mail/",
+    icon: googleColorIcon,
+    fields: [
+      { key: "GOOGLE_MAIL_USER", label: "Email address" },
+      { key: "GOOGLE_APP_PASSWORD", label: "App password", secret: true }
+    ]
+  },
+  {
+    key: "GITHUB_CLIENT_ID",
+    name: "GitHub OAuth App",
+    description: "OAuth App credentials for GitHub PKCE flow.",
+    section: "advanced",
+    docsUrl: "https://docs.github.com/en/apps/oauth-apps",
+    icon: githubIcon,
+    mono: true,
+    fields: [
+      { key: "GITHUB_CLIENT_ID", label: "Client ID" },
+      { key: "GITHUB_CLIENT_SECRET", label: "Client Secret", secret: true }
+    ]
+  },
+  {
+    key: "NODE_SUPABASE_KEY",
+    name: "NodeSupabase",
+    description: "Supabase service key for user-provided nodes.",
+    section: "advanced",
+    docsUrl: "https://supabase.com/docs"
   },
   {
     key: "TRACELOOP_API_KEY",
     name: "Traceloop",
     description: "OpenLLMetry trace export to Traceloop.",
-    category: "other",
+    section: "advanced",
     docsUrl: "https://www.traceloop.com/docs"
-  },
-  {
-    key: "GOOGLE_MAIL_USER",
-    name: "Google Mail User",
-    description: "Email address for Google mail integration.",
-    category: "other",
-    docsUrl: "https://support.google.com/mail/",
-    icon: googleColorIcon
-  },
-  {
-    key: "GOOGLE_APP_PASSWORD",
-    name: "Google App Password",
-    description: "App password for Google services.",
-    category: "other",
-    docsUrl: "https://myaccount.google.com/apppasswords",
-    icon: googleColorIcon
-  },
-  {
-    key: "GITHUB_CLIENT_ID",
-    name: "GitHub Client ID",
-    description: "OAuth App Client ID for GitHub PKCE flow.",
-    category: "other",
-    docsUrl: "https://docs.github.com/en/apps/oauth-apps",
-    icon: githubIcon,
-    mono: true
-  },
-  {
-    key: "GITHUB_CLIENT_SECRET",
-    name: "GitHub Client Secret",
-    description: "OAuth App Client Secret for GitHub PKCE flow.",
-    category: "other",
-    docsUrl: "https://docs.github.com/en/apps/oauth-apps",
-    icon: githubIcon,
-    mono: true
   },
   {
     key: "SERVER_AUTH_TOKEN",
     name: "Server Auth Token",
     description: "Bearer token to secure NodeTool server endpoints.",
-    category: "other",
+    section: "advanced",
     docsUrl: "https://github.com/nodetool-ai/nodetool"
   }
 ];
 
 const getProviderMeta = (key: string): ProviderMeta | undefined =>
   PROVIDER_META.find((p) => p.key === key);
+
+// For multi-field credentials, find the parent provider (the one with fields array)
+const getParentProviderMeta = (key: string): ProviderMeta | undefined => {
+  const meta = getProviderMeta(key);
+  if (!meta) return undefined;
+
+  for (const provider of PROVIDER_META) {
+    if (provider.fields?.some((f) => f.key === key)) {
+      return provider;
+    }
+  }
+
+  return meta;
+};
+
+const areAllFieldsConfigured = (meta: ProviderMeta, configuredKeys: Set<string>): boolean => {
+  if (!meta.fields) {
+    return configuredKeys.has(meta.key);
+  }
+  return meta.fields.every((field) => configuredKeys.has(field.key));
+};
 
 /* ------------------------------------------------------------------ */
 //  Provider card
@@ -427,7 +493,7 @@ interface ProviderCardProps {
   onDelete: (secret: SecretResponse) => void;
 }
 
-const ProviderCard = memo(function ProviderCard({
+export const ProviderCard = memo(function ProviderCard({
   secret,
   meta,
   onConnect,
@@ -435,7 +501,10 @@ const ProviderCard = memo(function ProviderCard({
   onDelete
 }: ProviderCardProps) {
   const theme = useTheme();
-  const isConnected = secret.is_configured;
+  const oauth = useOAuthConnection(meta.oauth ?? null);
+  // OAuth-only providers have no stored secret — the sign-in itself is the
+  // connection.
+  const isConnected = meta.oauthOnly ? oauth.isConnected : secret.is_configured;
 
   const handleConnect = useCallback(() => {
     onConnect(secret);
@@ -455,7 +524,11 @@ const ProviderCard = memo(function ProviderCard({
       padding="compact"
       sx={{
         display: "flex",
-        alignItems: "center",
+        // Stack on mobile (<sm) so the status band + action buttons drop below
+        // the icon/info instead of overflowing the narrow row. Pure CSS
+        // breakpoints keep this a layout concern with no per-card matchMedia.
+        flexDirection: { xs: "column", sm: "row" },
+        alignItems: { xs: "stretch", sm: "center" },
         gap: theme.spacing(3),
         borderRadius: BORDER_RADIUS.lg,
         border: `1px solid ${theme.vars.palette.divider}`,
@@ -467,14 +540,16 @@ const ProviderCard = memo(function ProviderCard({
         }
       }}
     >
+      {/* Icon + info stay a row even when the card stacks on mobile. */}
+      <FlexRow align="center" gap={3} sx={{ flex: 1, minWidth: 0 }}>
       {/* Icon */}
       <FlexRow
         align="center"
         justify="center"
         sx={{
-          width: 48,
-          height: 48,
-          minWidth: 48,
+          width: PROVIDER_ICON_CHIP_PX,
+          height: PROVIDER_ICON_CHIP_PX,
+          minWidth: PROVIDER_ICON_CHIP_PX,
           borderRadius: BORDER_RADIUS.lg,
           backgroundColor: theme.vars.palette.background.default,
           overflow: "hidden"
@@ -486,8 +561,8 @@ const ProviderCard = memo(function ProviderCard({
             src={meta.icon}
             alt={meta.name}
             sx={{
-              width: 28,
-              height: 28,
+              width: PROVIDER_ICON_GLYPH_PX,
+              height: PROVIDER_ICON_GLYPH_PX,
               objectFit: "contain",
               ...(meta.mono && theme.applyStyles("dark", {
                 filter: "invert(1)"
@@ -526,7 +601,7 @@ const ProviderCard = memo(function ProviderCard({
         </Caption>
         {meta.note && (
           <Caption
-            size="tiny"
+            size="smaller"
             sx={{
               opacity: 0.45,
               lineHeight: 1.4
@@ -536,15 +611,29 @@ const ProviderCard = memo(function ProviderCard({
           </Caption>
         )}
       </FlexColumn>
+      </FlexRow>
 
-      {/* Status + Actions — one vertically centered band */}
-      <FlexRow align="center" gap={3} sx={{ flexShrink: 0 }}>
-        <FlexColumn align="flex-end" gap={1}>
+      {/* Status + Actions — one vertically centered band. On mobile it drops
+          below the icon/info and spreads full width, letting the action
+          buttons wrap instead of overflowing. */}
+      <FlexRow
+        align="center"
+        gap={3}
+        sx={{
+          flexShrink: 0,
+          flexWrap: "wrap",
+          justifyContent: { xs: "space-between", sm: "flex-start" }
+        }}
+      >
+        <FlexColumn
+          gap={1}
+          sx={{ alignItems: { xs: "flex-start", sm: "flex-end" } }}
+        >
           <FlexRow
             align="center"
             gap={1}
             sx={{
-                      padding: theme.spacing(0.5, 2),
+              padding: theme.spacing(0.5, 2),
               borderRadius: BORDER_RADIUS.pill,
               backgroundColor: `rgba(${
                 isConnected
@@ -555,8 +644,8 @@ const ProviderCard = memo(function ProviderCard({
           >
             <span
               style={{
-                width: 6,
-                height: 6,
+                width: STATUS_DOT_PX,
+                height: STATUS_DOT_PX,
                 borderRadius: BORDER_RADIUS.circle,
                 backgroundColor: isConnected
                   ? theme.vars.palette.success.main
@@ -576,20 +665,45 @@ const ProviderCard = memo(function ProviderCard({
               {isConnected ? "Connected" : "Not connected"}
             </Caption>
           </FlexRow>
+          {oauth.isConnected && !meta.oauthOnly && (
+            <FlexRow
+              align="center"
+              gap={1}
+              sx={{
+                padding: theme.spacing(0.5, 2),
+                borderRadius: BORDER_RADIUS.pill,
+                backgroundColor: `rgba(${theme.vars.palette.success.mainChannel} / 0.1)`
+              }}
+            >
+              <Caption
+                size="smaller"
+                color="success"
+                sx={{
+                  fontWeight: 500,
+                  lineHeight: 1.6,
+                  whiteSpace: "nowrap"
+                }}
+              >
+                Connected via OAuth
+              </Caption>
+            </FlexRow>
+          )}
           {isConnected && secret.updated_at && (
-            <Caption size="tiny" sx={{ opacity: 0.45, whiteSpace: "nowrap" }}>
+            <Caption size="smaller" sx={{ opacity: 0.45, whiteSpace: "nowrap" }}>
               Last used{" "}
               {new Date(secret.updated_at).toLocaleDateString()}
             </Caption>
           )}
           {!isConnected && (
-            <Caption size="tiny" sx={{ opacity: 0.45, whiteSpace: "nowrap" }}>
-              Add your API key to get started.
+            <Caption size="smaller" sx={{ opacity: 0.45, whiteSpace: "nowrap" }}>
+              {meta.oauthOnly
+                ? "Sign in to get started."
+                : "Add your API key to get started."}
             </Caption>
           )}
         </FlexColumn>
 
-        <FlexRow align="center" gap={0.5}>
+        <FlexRow align="center" gap={0.5} sx={{ flexWrap: "wrap" }}>
           <EditorButton
             density="compact"
             variant="text"
@@ -600,7 +714,35 @@ const ProviderCard = memo(function ProviderCard({
             Docs
           </EditorButton>
 
-          {isConnected ? (
+          {meta.oauth &&
+            (oauth.isConnected
+              ? oauth.canDisconnect && (
+                  <EditorButton
+                    density="compact"
+                    variant="text"
+                    size="small"
+                    startIcon={<LinkOffIcon sx={{ fontSize: 14 }} />}
+                    onClick={oauth.disconnect}
+                  >
+                    Disconnect
+                  </EditorButton>
+                )
+              : (
+                  <EditorButton
+                    density="compact"
+                    variant="outlined"
+                    size="small"
+                    startIcon={<LoginIcon sx={{ fontSize: 14 }} />}
+                    onClick={oauth.connect}
+                    disabled={oauth.isConnecting}
+                  >
+                    {oauth.isConnecting
+                      ? "Connecting…"
+                      : `Sign in with ${meta.name}`}
+                  </EditorButton>
+                ))}
+
+          {meta.oauthOnly ? null : isConnected ? (
             <>
               <EditorButton
                 density="compact"
@@ -632,6 +774,88 @@ const ProviderCard = memo(function ProviderCard({
           )}
         </FlexRow>
       </FlexRow>
+    </Card>
+  );
+});
+
+/* ------------------------------------------------------------------ */
+//  Hero — provider logo wall
+/* ------------------------------------------------------------------ */
+
+// A curated row of recognizable provider logos, shown at the top of the page
+// to make the empty/first-run state feel alive. Purely decorative.
+const HERO_LOGOS: Array<{ name: string; icon: string; mono?: boolean }> = [
+  { name: "OpenAI", icon: openaiIcon, mono: true },
+  { name: "Anthropic", icon: anthropicIcon, mono: true },
+  { name: "Gemini", icon: geminiColorIcon },
+  { name: "Mistral", icon: mistralColorIcon },
+  { name: "Groq", icon: groqIcon, mono: true },
+  { name: "HuggingFace", icon: huggingfaceColorIcon },
+  { name: "xAI", icon: xaiIcon, mono: true },
+  { name: "DeepSeek", icon: deepseekColorIcon },
+  { name: "Cohere", icon: cohereColorIcon },
+  { name: "FAL", icon: falColorIcon },
+  { name: "Replicate", icon: replicateIcon, mono: true },
+  { name: "ElevenLabs", icon: elevenlabsIcon, mono: true }
+];
+
+const ProviderHero = memo(function ProviderHero({ theme }: { theme: Theme }) {
+  return (
+    <Card
+      variant="outlined"
+      padding="comfortable"
+      sx={{
+        borderRadius: BORDER_RADIUS.xl,
+        border: `1px solid ${theme.vars.palette.divider}`,
+        background: `linear-gradient(135deg, rgba(${theme.vars.palette.primary.mainChannel} / 0.1) 0%, rgba(${theme.vars.palette.primary.mainChannel} / 0.02) 45%, ${theme.vars.palette.background.paper} 100%)`,
+        overflow: "hidden"
+      }}
+    >
+      <FlexColumn gap={2}>
+        <Text size="big" weight={600}>
+          Models &amp; Providers
+        </Text>
+        <Caption sx={{ opacity: 0.65, lineHeight: 1.5, maxWidth: 520 }}>
+          Connect the AI providers you want to use. NodeTool unlocks their
+          language, image, video, audio, and embedding models across the editor
+          and your workflows.
+        </Caption>
+        <FlexRow gap={1.5} sx={{ flexWrap: "wrap", marginTop: theme.spacing(1) }}>
+          {HERO_LOGOS.map((logo) => (
+            <Tooltip key={logo.name} title={logo.name}>
+              <FlexRow
+                align="center"
+                justify="center"
+                sx={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: BORDER_RADIUS.lg,
+                  border: `1px solid ${theme.vars.palette.divider}`,
+                  backgroundColor: theme.vars.palette.background.paper,
+                  transition: `${MOTION.transform}, ${MOTION.border}`,
+                  "&:hover": {
+                    transform: "translateY(-2px)",
+                    borderColor: theme.vars.palette.primary.main
+                  }
+                }}
+              >
+                <Box
+                  component="img"
+                  src={logo.icon}
+                  alt={logo.name}
+                  sx={{
+                    width: 22,
+                    height: 22,
+                    objectFit: "contain",
+                    ...(logo.mono &&
+                      theme.applyStyles("dark", { filter: "invert(1)" }))
+                  }}
+                />
+              </FlexRow>
+            </Tooltip>
+          ))}
+        </FlexRow>
+      </FlexColumn>
     </Card>
   );
 });
@@ -702,10 +926,8 @@ const GetStartedBanner = memo(function GetStartedBanner({
                 {step.num}
               </FlexRow>
               <FlexColumn sx={{ maxWidth: 160 }}>
-                <Text size="tiny" weight={600}>
-                  {step.title}
-                </Text>
-                <Caption sx={{ opacity: 0.5, lineHeight: 1.4, fontSize: theme.fontSizeTinyer }}>
+                <Text size="smaller" weight={600}>{step.title}</Text>
+                <Caption sx={{ opacity: 0.5, lineHeight: 1.4, fontSize: theme.fontSizeSmaller }}>
                   {step.desc}
                 </Caption>
               </FlexColumn>
@@ -752,6 +974,28 @@ const SectionTitle = memo(function SectionTitle({
 });
 
 /* ------------------------------------------------------------------ */
+//  Constants
+/* ------------------------------------------------------------------ */
+
+// Provider card icon sizing. 48px chip + 28px glyph + 18px status dot keep the
+// row visually balanced; previously these were bare numbers sprinkled across
+// the JSX.
+const PROVIDER_ICON_CHIP_PX = 48;
+const PROVIDER_ICON_GLYPH_PX = 28;
+const STATUS_DOT_PX = 6;
+
+const SECTION_ORDER = ["popular", "language", "media", "gateways", "search", "compute", "advanced"] as const;
+const SECTION_TITLES: Record<string, string> = {
+  popular: "Popular",
+  language: "Language Models",
+  media: "Media Generation",
+  gateways: "Gateways & Hubs",
+  search: "Web Search",
+  compute: "Compute & Local",
+  advanced: "Services & Advanced"
+};
+
+/* ------------------------------------------------------------------ */
 //  Main content
 /* ------------------------------------------------------------------ */
 
@@ -769,8 +1013,10 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingSecret, setEditingSecret] = useState<SecretResponse | null>(null);
   const [formValue, setFormValue] = useState("");
+  const [formValues, setFormValues] = useState<Record<string, string>>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [secretToDelete, setSecretToDelete] = useState<SecretResponse | null>(null);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const addNotification = useNotificationStore((state) => state.addNotification);
   const updateSecret = useSecretsStore((state) => state.updateSecret);
@@ -778,73 +1024,116 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
 
   const lowerSearch = searchTerm.toLowerCase().trim();
 
-  // Match secrets to known provider metadata
+  const configuredKeys = useMemo(
+    () => new Set(safeSecrets.map((s) => s.key)),
+    [safeSecrets]
+  );
+
+  // Match providers that should be displayed (excluding child fields of multi-field providers)
   const matchedProviders = useMemo(() => {
     const results: { secret: SecretResponse; meta: ProviderMeta }[] = [];
+    const processed = new Set<string>();
+
     for (const secret of safeSecrets) {
-      const meta = getProviderMeta(secret.key);
-      if (meta) {
+      // For multi-field providers, only process the parent
+      const meta = getParentProviderMeta(secret.key);
+      if (!meta || processed.has(meta.key)) continue;
+
+      // If it's a multi-field provider, create a synthetic secret that represents all fields
+      if (meta.fields) {
+        const isConfigured = areAllFieldsConfigured(meta, configuredKeys);
+        if (!lowerSearch || meta.name.toLowerCase().includes(lowerSearch) || meta.description.toLowerCase().includes(lowerSearch)) {
+          results.push({
+            secret: {
+              key: meta.key,
+              is_configured: isConfigured,
+              description: meta.description,
+              user_id: null,
+              created_at: null,
+              updated_at: null
+            } as SecretResponse,
+            meta
+          });
+          processed.add(meta.key);
+        }
+      } else {
+        // Single-field provider
         if (!lowerSearch || meta.name.toLowerCase().includes(lowerSearch) || meta.description.toLowerCase().includes(lowerSearch)) {
           results.push({ secret, meta });
+          processed.add(meta.key);
         }
       }
     }
+
     return results;
-  }, [safeSecrets, lowerSearch]);
+  }, [safeSecrets, lowerSearch, configuredKeys]);
 
   // Connected providers float to their own section at the top.
   const connected = useMemo(
     () => matchedProviders.filter((p) => p.secret.is_configured),
     [matchedProviders]
   );
-  const recommended = useMemo(
-    () =>
-      matchedProviders.filter(
-        (p) => p.meta.category === "recommended" && !p.secret.is_configured
-      ),
-    [matchedProviders]
-  );
-  const others = useMemo(
-    () =>
-      matchedProviders.filter(
-        (p) => p.meta.category === "other" && !p.secret.is_configured
-      ),
-    [matchedProviders]
-  );
 
-  // Also show unconfigured providers from our meta list that aren't in secrets
-  const configuredKeys = useMemo(
-    () => new Set(safeSecrets.map((s) => s.key)),
-    [safeSecrets]
-  );
+  // Unconfigured providers from our meta list that aren't in secrets
   const unconfiguredMeta = useMemo(() => {
     return PROVIDER_META.filter(
       (p) =>
-        !configuredKeys.has(p.key) &&
+        !areAllFieldsConfigured(p, configuredKeys) &&
         (!lowerSearch ||
           p.name.toLowerCase().includes(lowerSearch) ||
           p.description.toLowerCase().includes(lowerSearch))
     );
   }, [configuredKeys, lowerSearch]);
 
-  const unconfiguredRecommended = useMemo(
-    () => unconfiguredMeta.filter((p) => p.category === "recommended"),
-    [unconfiguredMeta]
-  );
-  const unconfiguredOthers = useMemo(
-    () => unconfiguredMeta.filter((p) => p.category === "other"),
-    [unconfiguredMeta]
-  );
+  const unconfiguredBySection = useMemo(() => {
+    const groups: Record<string, ProviderMeta[]> = {
+      popular: [],
+      language: [],
+      media: [],
+      gateways: [],
+      search: [],
+      compute: [],
+      advanced: []
+    };
+    for (const meta of unconfiguredMeta) {
+      groups[meta.section].push(meta);
+    }
+    return groups;
+  }, [unconfiguredMeta]);
+
+  const configuredBySection = useMemo(() => {
+    const groups: Record<string, Array<{ secret: SecretResponse; meta: ProviderMeta }>> = {
+      popular: [],
+      language: [],
+      media: [],
+      gateways: [],
+      search: [],
+      compute: [],
+      advanced: []
+    };
+    for (const item of matchedProviders.filter((p) => !p.secret.is_configured)) {
+      groups[item.meta.section].push(item);
+    }
+    return groups;
+  }, [matchedProviders]);
 
   const handleConnect = useCallback((secret: SecretResponse) => {
+    const meta = getParentProviderMeta(secret.key);
     setEditingSecret(secret);
     setFormValue("");
+    if (meta?.fields) {
+      setFormValues({});
+    }
     setDialogOpen(true);
   }, []);
 
   const handleManage = useCallback((secret: SecretResponse) => {
+    const meta = getParentProviderMeta(secret.key);
     setEditingSecret(secret);
     setFormValue("");
+    if (meta?.fields) {
+      setFormValues({});
+    }
     setDialogOpen(true);
   }, []);
 
@@ -854,24 +1143,46 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
   }, []);
 
   const handleSave = useCallback(async () => {
-    if (!editingSecret || !formValue) {
-      addNotification({
-        type: "error",
-        content: "Secret value is required",
-        dismissable: true
-      });
-      return;
-    }
+    if (!editingSecret) return;
+
+    const meta = getParentProviderMeta(editingSecret.key);
+
     try {
-      await updateSecret(editingSecret.key, formValue);
+      if (meta?.fields) {
+        // Multi-field provider: update all fields
+        if (!meta.fields.every((f) => formValues[f.key])) {
+          addNotification({
+            type: "error",
+            content: "All fields are required",
+            dismissable: true
+          });
+          return;
+        }
+        for (const field of meta.fields) {
+          await updateSecret(field.key, formValues[field.key]);
+        }
+      } else {
+        // Single-field provider
+        if (!formValue) {
+          addNotification({
+            type: "error",
+            content: "Secret value is required",
+            dismissable: true
+          });
+          return;
+        }
+        await updateSecret(editingSecret.key, formValue);
+      }
+
       addNotification({
         type: "success",
-        content: `${getProviderMeta(editingSecret.key)?.name || editingSecret.key} API key updated`,
+        content: `${meta?.name || editingSecret.key} API key updated`,
         alert: true
       });
       setDialogOpen(false);
       setEditingSecret(null);
       setFormValue("");
+      setFormValues({});
     } catch (err) {
       addNotification({
         type: "error",
@@ -879,15 +1190,24 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
         dismissable: true
       });
     }
-  }, [editingSecret, formValue, updateSecret, addNotification]);
+  }, [editingSecret, formValue, formValues, updateSecret, addNotification]);
 
   const confirmDelete = useCallback(async () => {
     if (!secretToDelete) return;
     try {
-      await deleteSecret(secretToDelete.key);
+      const meta = getParentProviderMeta(secretToDelete.key);
+      if (meta?.fields) {
+        // Multi-field provider: delete all fields
+        for (const field of meta.fields) {
+          await deleteSecret(field.key);
+        }
+      } else {
+        // Single-field provider
+        await deleteSecret(secretToDelete.key);
+      }
       addNotification({
         type: "success",
-        content: `${getProviderMeta(secretToDelete.key)?.name || secretToDelete.key} API key deleted`,
+        content: `${meta?.name || secretToDelete.key} API key deleted`,
         alert: true
       });
     } catch (err) {
@@ -905,6 +1225,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     setDialogOpen(false);
     setEditingSecret(null);
     setFormValue("");
+    setFormValues({});
   }, []);
 
   const handleCloseDelete = useCallback(() => {
@@ -912,42 +1233,31 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     setSecretToDelete(null);
   }, []);
 
-  const allRecommended = useMemo(
-    () => [...recommended, ...unconfiguredRecommended.map((meta) => ({
-      secret: {
-        key: meta.key,
-        is_configured: false,
-        description: meta.description,
-        user_id: null,
-        created_at: null,
-        updated_at: null
-      } as SecretResponse,
-      meta
-    }))],
-    [recommended, unconfiguredRecommended]
-  );
+  // Force advanced section open while searching
+  const forceAdvancedOpen = lowerSearch.length > 0;
 
-  const allOthers = useMemo(
-    () => [...others, ...unconfiguredOthers.map((meta) => ({
-      secret: {
-        key: meta.key,
-        is_configured: false,
-        description: meta.description,
-        user_id: null,
-        created_at: null,
-        updated_at: null
-      } as SecretResponse,
-      meta
-    }))],
-    [others, unconfiguredOthers]
-  );
-
-  const hasContent =
-    connected.length > 0 || allRecommended.length > 0 || allOthers.length > 0;
+  const hasContent = useMemo(() => {
+    if (connected.length > 0) return true;
+    for (const sectionKey of SECTION_ORDER) {
+      const configured = configuredBySection[sectionKey] || [];
+      const unconfigured = unconfiguredBySection[sectionKey] || [];
+      if (configured.length > 0 || unconfigured.length > 0) return true;
+    }
+    return false;
+  }, [connected, configuredBySection, unconfiguredBySection]);
 
   return (
     <FlexColumn sx={{ gap: "1.5rem" }}>
-      <GetStartedBanner theme={theme} />
+      <ProviderHero theme={theme} />
+
+      {/* Show the onboarding banner only until the user connects their first
+          provider — once anything is configured, the Connected Providers
+          section above makes the banner redundant. */}
+      {connected.length === 0 && <GetStartedBanner theme={theme} />}
+
+      {/* Google Workspace has no API key — access rides on the Google login.
+          Renders nothing when the backend does not offer the integration. */}
+      <GoogleWorkspaceCard />
 
       {!hasContent && lowerSearch && (
         <EmptyState
@@ -979,87 +1289,160 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
         </div>
       )}
 
-      {allRecommended.length > 0 && (
-        <div>
-          <SectionTitle
-            title="Recommended Providers"
-            count={allRecommended.length}
-            theme={theme}
-          />
-          <FlexColumn sx={{ gap: theme.spacing(2) }}>
-            {allRecommended.map(({ secret, meta }) => (
-              <ProviderCard
-                key={meta.key}
-                secret={secret}
-                meta={meta}
-                onConnect={handleConnect}
-                onManage={handleManage}
-                onDelete={handleDelete}
-              />
-            ))}
-          </FlexColumn>
-        </div>
-      )}
+      {SECTION_ORDER.map((sectionKey) => {
+        const configured = configuredBySection[sectionKey] || [];
+        const unconfigured = unconfiguredBySection[sectionKey] || [];
+        const allInSection = [
+          ...configured,
+          ...unconfigured.map((meta) => ({
+            secret: {
+              key: meta.key,
+              is_configured: false,
+              description: meta.description,
+              user_id: null,
+              created_at: null,
+              updated_at: null
+            } as SecretResponse,
+            meta
+          }))
+        ];
 
-      {allOthers.length > 0 && (
-        <div>
-          <SectionTitle
-            title="Other Providers"
-            count={allOthers.length}
-            theme={theme}
-          />
-          <FlexColumn sx={{ gap: theme.spacing(2) }}>
-            {allOthers.map(({ secret, meta }) => (
-              <ProviderCard
-                key={meta.key}
-                secret={secret}
-                meta={meta}
-                onConnect={handleConnect}
-                onManage={handleManage}
-                onDelete={handleDelete}
-              />
-            ))}
-          </FlexColumn>
-        </div>
-      )}
+        if (allInSection.length === 0) return null;
+
+        const sectionTitle = SECTION_TITLES[sectionKey];
+        const isAdvanced = sectionKey === "advanced";
+
+        const section = (
+          <div key={sectionKey}>
+            <SectionTitle
+              title={sectionTitle}
+              count={allInSection.length}
+              theme={theme}
+            />
+            <FlexColumn sx={{ gap: theme.spacing(2) }}>
+              {allInSection.map(({ secret, meta }) => (
+                <ProviderCard
+                  key={meta.key}
+                  secret={secret}
+                  meta={meta}
+                  onConnect={handleConnect}
+                  onManage={handleManage}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </FlexColumn>
+          </div>
+        );
+
+        if (isAdvanced) {
+          return (
+            <CollapsibleSection
+              key={sectionKey}
+              title={
+                <SectionTitle
+                  title={sectionTitle}
+                  count={allInSection.length}
+                  theme={theme}
+                />
+              }
+              open={forceAdvancedOpen || advancedOpen}
+              onToggle={setAdvancedOpen}
+            >
+              <FlexColumn sx={{ gap: theme.spacing(2) }}>
+                {allInSection.map(({ secret, meta }) => (
+                  <ProviderCard
+                    key={meta.key}
+                    secret={secret}
+                    meta={meta}
+                    onConnect={handleConnect}
+                    onManage={handleManage}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </FlexColumn>
+            </CollapsibleSection>
+          );
+        }
+
+        return section;
+      })}
 
       {/* Edit / Connect dialog */}
-      <Dialog
-        open={dialogOpen}
-        onClose={handleCloseDialog}
-        fullWidth
-        title={
-          <FlexRow align="center" gap={1}>
-            <LockIcon sx={{ color: "var(--palette-primary-main)", fontSize: 20 }} />
-            <Text size="normal" weight={600}>
-              {editingSecret?.is_configured ? "Update" : "Connect"}{" "}
-              {editingSecret ? getProviderMeta(editingSecret.key)?.name || editingSecret.key : ""}
-            </Text>
-          </FlexRow>
-        }
-        onConfirm={handleSave}
-        onCancel={handleCloseDialog}
-        confirmText={editingSecret?.is_configured ? "Update" : "Connect"}
-        cancelText="Cancel"
-        confirmDisabled={!formValue}
-      >
-        <FlexColumn sx={{ marginTop: theme.spacing(4), gap: theme.spacing(3) }}>
-          <TextInput
-            label="API Key"
-            type="password"
-            value={formValue}
-            onChange={(e) => setFormValue(e.target.value)}
+      {editingSecret && (() => {
+        const meta = getParentProviderMeta(editingSecret.key);
+        const isMultiField = !!meta?.fields && meta.fields.length > 0;
+        const allFieldsFilled = isMultiField && meta?.fields
+          ? meta.fields.every((f) => formValues[f.key])
+          : formValue;
+
+        return (
+          <Dialog
+            open={dialogOpen}
+            onClose={handleCloseDialog}
             fullWidth
-            placeholder="Paste your API key here"
-            autoFocus
-            variant="outlined"
-            size="small"
-          />
-          <Caption sx={{ opacity: 0.6 }}>
-            Your key will be encrypted and stored securely. Never share it publicly.
-          </Caption>
-        </FlexColumn>
-      </Dialog>
+            title={
+              <FlexRow align="center" gap={1}>
+                <LockIcon sx={{ color: "var(--palette-primary-main)", fontSize: 20 }} />
+                <Text size="normal" weight={600}>
+                  {editingSecret?.is_configured ? "Update" : "Connect"}{" "}
+                  {meta?.name || editingSecret.key}
+                </Text>
+              </FlexRow>
+            }
+            onConfirm={handleSave}
+            onCancel={handleCloseDialog}
+            confirmText={editingSecret?.is_configured ? "Update" : "Connect"}
+            cancelText="Cancel"
+            confirmDisabled={!allFieldsFilled}
+          >
+            <FlexColumn sx={{ marginTop: theme.spacing(4), gap: theme.spacing(3) }}>
+              {isMultiField ? (
+                <>
+                  {meta?.fields?.map((field) => (
+                    <TextInput
+                      key={field.key}
+                      label={field.label}
+                      type={field.secret ? "password" : "text"}
+                      value={formValues[field.key] || ""}
+                      onChange={(e) =>
+                        setFormValues((prev) => ({
+                          ...prev,
+                          [field.key]: e.target.value
+                        }))
+                      }
+                      fullWidth
+                      placeholder={`Enter ${field.label.toLowerCase()}`}
+                      autoFocus={field.key === meta.fields?.[0]?.key}
+                      variant="outlined"
+                      size="small"
+                    />
+                  ))}
+                  <Caption sx={{ opacity: 0.6 }}>
+                    All fields will be encrypted and stored securely. Never share them publicly.
+                  </Caption>
+                </>
+              ) : (
+                <>
+                  <TextInput
+                    label="API Key"
+                    type="password"
+                    value={formValue}
+                    onChange={(e) => setFormValue(e.target.value)}
+                    fullWidth
+                    placeholder="Paste your API key here"
+                    autoFocus
+                    variant="outlined"
+                    size="small"
+                  />
+                  <Caption sx={{ opacity: 0.6 }}>
+                    Your key will be encrypted and stored securely. Never share it publicly.
+                  </Caption>
+                </>
+              )}
+            </FlexColumn>
+          </Dialog>
+        );
+      })()}
 
       {/* Delete confirmation */}
       <ConfirmDialog
@@ -1067,7 +1450,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
         onClose={handleCloseDelete}
         onConfirm={confirmDelete}
         title="Delete API Key"
-        content={`Are you sure you want to delete the ${secretToDelete ? getProviderMeta(secretToDelete.key)?.name || secretToDelete.key : ""} API key?`}
+        content={`Are you sure you want to delete the ${secretToDelete ? getParentProviderMeta(secretToDelete.key)?.name || secretToDelete.key : ""} API key?`}
         confirmText="Delete"
         cancelText="Cancel"
       />
@@ -1101,10 +1484,10 @@ export const SecurityNotice = memo(function SecurityNotice() {
           }}
         />
         <FlexColumn sx={{ minWidth: 0 }}>
-          <Text size="tiny" weight={600}>
+          <Text size="smaller" weight={600}>
             Your secrets are safe
           </Text>
-          <Caption size="tiny" sx={{ opacity: 0.6, lineHeight: 1.4, marginTop: theme.spacing(0.5) }}>
+          <Caption size="smaller" sx={{ opacity: 0.6, lineHeight: 1.4, marginTop: theme.spacing(0.5) }}>
             All API keys are encrypted in the database and never exposed.
           </Caption>
           <EditorButton
@@ -1216,10 +1599,8 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
                 {link.icon}
               </FlexRow>
               <FlexColumn sx={{ flex: 1, minWidth: 0 }}>
-                <Text size="tiny" weight={500}>
-                  {link.title}
-                </Text>
-                <Caption sx={{ opacity: 0.5, fontSize: theme.fontSizeTinyer, lineHeight: 1.3 }}>
+                <Text size="smaller" weight={500}>{link.title}</Text>
+                <Caption sx={{ opacity: 0.5, fontSize: theme.fontSizeSmaller, lineHeight: 1.3 }}>
                   {link.subtitle}
                 </Caption>
               </FlexColumn>

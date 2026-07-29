@@ -6,11 +6,7 @@
  */
 
 import { BaseProvider } from "./base-provider.js";
-import { createLogger, importNodeBuiltin } from "@nodetool-ai/config";
-
-const _nodeModule = await importNodeBuiltin<typeof import("node:module")>(
-  "node:module"
-);
+import { createLogger } from "@nodetool-ai/config";
 import type {
   ImageModel,
   VideoModel,
@@ -34,9 +30,13 @@ import type {
 } from "./types.js";
 import {
   loadImageModels,
+  loadManifest,
   loadMusicModels,
   loadTTSModels,
-  loadVideoModels
+  loadVideoModels,
+  selectPrimaryImageInput,
+  sizeEnumToAspect,
+  type ModelImageInput
 } from "./manifest-models.js";
 import { sniffAudioMime } from "./audio-mime.js";
 import { safeFetch } from "./safe-url.js";
@@ -58,6 +58,8 @@ type FalClient = {
       input: Record<string, unknown>;
       logs?: boolean;
       onQueueUpdate?: (update: FalQueueUpdate) => void;
+      /** Aborts the queued request — see @fal-ai/client RunOptions. */
+      abortSignal?: AbortSignal;
     }
   ): Promise<{ data?: Record<string, unknown> }>;
   storage: {
@@ -88,20 +90,14 @@ let _falManifestByEndpoint: Map<string, FalManifestEntry> | null = null;
 function getFalManifestEntry(modelId: string): FalManifestEntry | undefined {
   if (!_falManifestByEndpoint) {
     _falManifestByEndpoint = new Map();
-    if (!_nodeModule) {
-      return undefined;
-    }
-    try {
-      const req = _nodeModule.createRequire(import.meta.url);
-      const data = req(
-        `${FAL_MANIFEST_PKG}/${FAL_MANIFEST_PATH}`
-      ) as FalManifestEntry[];
-      for (const entry of data) {
-        if (entry.endpointId)
-          _falManifestByEndpoint.set(entry.endpointId, entry);
+    const data = loadManifest(
+      FAL_MANIFEST_PKG,
+      FAL_MANIFEST_PATH
+    ) as FalManifestEntry[];
+    for (const entry of data) {
+      if (entry.endpointId) {
+        _falManifestByEndpoint.set(entry.endpointId, entry);
       }
-    } catch (err) {
-      log.warn(`Could not load fal manifest for arg shaping: ${err}`);
     }
   }
   return _falManifestByEndpoint.get(modelId);
@@ -171,6 +167,40 @@ class FalArgsBuilder {
   }
 
   /**
+   * The `kind`-typed asset inputs the endpoint declares, as {@link
+   * ModelImageInput}s (apiName / isList / name), in manifest order.
+   */
+  private assetInputs(kind: "image" | "video" | "audio"): ModelImageInput[] {
+    return this.fields
+      .filter((f) => {
+        const t = f.propType.toLowerCase();
+        return t === kind || t === `list[${kind}]`;
+      })
+      .map((f) => ({
+        apiName: f.apiParamName ?? f.name,
+        isList: f.propType.toLowerCase().startsWith("list["),
+        name: f.name
+      }));
+  }
+
+  /**
+   * Pick the field a source asset should attach to. For images this is the
+   * primary source field, skipping auxiliary slots (mask/control/reference/
+   * style/pose/end-frame, …) that must never receive the source image — the
+   * same {@link selectPrimaryImageInput} the model picker uses. For video/audio
+   * (endpoints with a single such field) it's the first declared field.
+   */
+  private selectAssetField(
+    kind: "image" | "video" | "audio",
+    count: number
+  ): ModelImageInput | undefined {
+    const inputs = this.assetInputs(kind);
+    if (inputs.length === 0) return undefined;
+    if (kind === "image") return selectPrimaryImageInput(inputs, count);
+    return inputs[0];
+  }
+
+  /**
    * Attach an uploaded asset URL to whatever field (image/video/audio) the
    * endpoint declares. Handles list-typed fields (`list[image]` -> array).
    * If the endpoint isn't in the manifest, falls back to `${kind}_url`.
@@ -180,15 +210,9 @@ class FalArgsBuilder {
     url: string,
     fallbackApiName?: string
   ): this {
-    const field = this.fields.find((f) => {
-      const t = f.propType.toLowerCase();
-      return t === kind || t === `list[${kind}]`;
-    });
+    const field = this.selectAssetField(kind, 1);
     if (field) {
-      const apiName = field.apiParamName ?? field.name;
-      this.args[apiName] = field.propType.toLowerCase().startsWith("list[")
-        ? [url]
-        : url;
+      this.args[field.apiName] = field.isList ? [url] : url;
     } else {
       this.args[fallbackApiName ?? `${kind}_url`] = url;
     }
@@ -199,8 +223,9 @@ class FalArgsBuilder {
    * Attach one or more uploaded asset URLs to whatever field (image/video/
    * audio) the endpoint declares. When the endpoint declares a list-typed field
    * (e.g. `image_urls`), every URL is sent; otherwise only the first URL is
-   * attached to the single-valued field. Falls back to `${kind}_url` (first
-   * URL) for endpoints not in the manifest.
+   * attached to the single-valued field. Auxiliary image slots (mask, control,
+   * reference/style/end-frame, …) are skipped so the source never lands there.
+   * Falls back to `${kind}_url` (first URL) for endpoints not in the manifest.
    */
   attachAssets(
     kind: "image" | "video" | "audio",
@@ -208,19 +233,9 @@ class FalArgsBuilder {
     fallbackApiName?: string
   ): this {
     if (urls.length === 0) return this;
-    // Skip mask-named fields: inpaint endpoints declare both the source
-    // (`image_url`) and the mask (`mask_url`/`mask_image_url`) as `image`, and
-    // the primary asset must never land in the mask slot.
-    const field = this.fields.find((f) => {
-      const t = f.propType.toLowerCase();
-      const apiName = (f.apiParamName ?? f.name).toLowerCase();
-      return (t === kind || t === `list[${kind}]`) && !apiName.includes("mask");
-    });
+    const field = this.selectAssetField(kind, urls.length);
     if (field) {
-      const apiName = field.apiParamName ?? field.name;
-      this.args[apiName] = field.propType.toLowerCase().startsWith("list[")
-        ? urls
-        : urls[0];
+      this.args[field.apiName] = field.isList ? urls : urls[0];
     } else {
       this.args[fallbackApiName ?? `${kind}_url`] = urls[0];
     }
@@ -287,6 +302,13 @@ class FalArgsBuilder {
     return enumValues.includes(value) ? value : undefined;
   }
 
+  /** Declared enum vocabulary for an enum-typed field, or undefined. */
+  private enumValuesOf(apiName: string): string[] | undefined {
+    const field = this.accepted.get(apiName);
+    if (!field || field.propType.toLowerCase() !== "enum") return undefined;
+    return (field as FalManifestField & { enumValues?: string[] }).enumValues;
+  }
+
   /**
    * Route an aspect ratio + resolution pair to whichever of the endpoint's
    * size-shaping enum fields it actually declares: `aspect_ratio`,
@@ -303,15 +325,20 @@ class FalArgsBuilder {
     const res = this.acceptedEnumValue("resolution", resolution);
     if (res) this.args.resolution = res;
 
-    // `video_size` / `image_size` enums share the orientation_NxM vocabulary
-    // (square_hd, square, portrait_4_3, portrait_16_9, landscape_4_3, ...).
-    // Derive from aspectRatio rather than asking the caller for yet another
-    // distinct knob.
-    const sized = aspectRatioToSizeEnum(aspectRatio);
+    // `video_size` / `image_size` are enums whose vocabulary varies per endpoint
+    // (square_hd, landscape_16_9, landscape_3_2, 1536x1024, ...). Pick the value
+    // the endpoint ITSELF declares whose ratio matches `aspectRatio`, using the
+    // same size→aspect map the model picker derives its options from — so any
+    // ratio the picker offers round-trips to a value fal accepts. Unknown
+    // endpoints (no declared enum) fall back to the canonical short list.
     for (const apiName of ["video_size", "image_size"] as const) {
       // Only set if not already set (e.g. setImageSize() may have written
       // image_size as a dict for endpoints that accept that shape).
       if (apiName in this.args) continue;
+      const declared = this.enumValuesOf(apiName);
+      const sized = declared
+        ? pickSizeEnumForAspect(declared, aspectRatio)
+        : aspectRatioToSizeEnum(aspectRatio);
       const v = this.acceptedEnumValue(apiName, sized);
       if (v) this.args[apiName] = v;
     }
@@ -324,7 +351,9 @@ class FalArgsBuilder {
  * Returns undefined for ratios fal doesn't have a native enum for; the caller
  * will then drop the field rather than risk a 422.
  */
-function aspectRatioToSizeEnum(aspectRatio?: string | null): string | undefined {
+function aspectRatioToSizeEnum(
+  aspectRatio?: string | null
+): string | undefined {
   if (!aspectRatio) return undefined;
   switch (aspectRatio) {
     case "1:1":
@@ -344,6 +373,34 @@ function aspectRatioToSizeEnum(aspectRatio?: string | null): string | undefined 
   }
 }
 
+/**
+ * Given the size-enum values an endpoint declares, pick the one whose aspect
+ * ratio matches `aspectRatio` (via {@link sizeEnumToAspect} — the same map the
+ * model picker uses to build its option list, so extraction and request-shaping
+ * agree). When several declared values share the ratio (e.g. `square` and
+ * `square_hd`), prefer the higher-resolution variant. Returns undefined when
+ * the endpoint declares no value for that ratio.
+ */
+function pickSizeEnumForAspect(
+  declared: string[],
+  aspectRatio?: string | null
+): string | undefined {
+  if (!aspectRatio) return undefined;
+  const matches = declared.filter((v) => sizeEnumToAspect(v) === aspectRatio);
+  if (matches.length === 0) return undefined;
+  return matches.sort((a, b) => sizeEnumRank(b) - sizeEnumRank(a))[0];
+}
+
+/** Rough quality ordering so "square_hd" beats "square", "…_uhd" beats both. */
+function sizeEnumRank(value: string): number {
+  const v = value.toLowerCase();
+  if (v.includes("uhd")) return 3;
+  if (v.includes("hd")) return 2;
+  const dims = v.match(/(\d+)x(\d+)/);
+  if (dims) return 1 + (Number(dims[1]) * Number(dims[2])) / 1e9;
+  return 1;
+}
+
 export class FalProvider extends BaseProvider {
   private apiKey: string;
   private _client: FalClient | null = null;
@@ -361,7 +418,7 @@ export class FalProvider extends BaseProvider {
   private makeQueueUpdateHandler(): (update: FalQueueUpdate) => void {
     let tick = 0;
     return (update) => {
-if (update.status === "IN_PROGRESS") {
+      if (update.status === "IN_PROGRESS") {
         tick++;
         const logs = update.logs ?? [];
         // Emit one message per log line; if no logs, emit a heartbeat tick
@@ -635,7 +692,8 @@ if (update.status === "IN_PROGRESS") {
     const result = await client.subscribe(modelId, {
       input: args,
       logs: true,
-      onQueueUpdate: this.makeQueueUpdateHandler()
+      onQueueUpdate: this.makeQueueUpdateHandler(),
+      abortSignal: params.signal
     });
     const data = (result.data ?? result) as Record<string, unknown>;
     return downloadBytes(extractImageUrl(data));
@@ -653,7 +711,8 @@ if (update.status === "IN_PROGRESS") {
     const result = await client.subscribe(modelId, {
       input: args,
       logs: true,
-      onQueueUpdate: this.makeQueueUpdateHandler()
+      onQueueUpdate: this.makeQueueUpdateHandler(),
+      abortSignal: params.signal
     });
     const data = (result.data ?? result) as Record<string, unknown>;
     return downloadBytes(extractImageUrl(data));
@@ -712,7 +771,8 @@ if (update.status === "IN_PROGRESS") {
     const result = await client.subscribe(modelId, {
       input: args,
       logs: true,
-      onQueueUpdate: this.makeQueueUpdateHandler()
+      onQueueUpdate: this.makeQueueUpdateHandler(),
+      abortSignal: params.signal
     });
     const data = (result.data ?? result) as Record<string, unknown>;
     return downloadBytes(extractVideoUrl(data));
@@ -737,7 +797,8 @@ if (update.status === "IN_PROGRESS") {
     const result = await client.subscribe(modelId, {
       input: args,
       logs: true,
-      onQueueUpdate: this.makeQueueUpdateHandler()
+      onQueueUpdate: this.makeQueueUpdateHandler(),
+      abortSignal: params.signal
     });
     const data = (result.data ?? result) as Record<string, unknown>;
     const urls = extractImageUrls(data);
@@ -762,7 +823,8 @@ if (update.status === "IN_PROGRESS") {
     const result = await client.subscribe(modelId, {
       input: args,
       logs: true,
-      onQueueUpdate: this.makeQueueUpdateHandler()
+      onQueueUpdate: this.makeQueueUpdateHandler(),
+      abortSignal: params.signal
     });
     const data = (result.data ?? result) as Record<string, unknown>;
     const urls = extractImageUrls(data);
@@ -781,7 +843,8 @@ if (update.status === "IN_PROGRESS") {
     const result = await client.subscribe(modelId, {
       input: args,
       logs: true,
-      onQueueUpdate: this.makeQueueUpdateHandler()
+      onQueueUpdate: this.makeQueueUpdateHandler(),
+      abortSignal: params.signal
     });
     const data = (result.data ?? result) as Record<string, unknown>;
     return downloadBytes(extractVideoUrl(data));
@@ -790,10 +853,9 @@ if (update.status === "IN_PROGRESS") {
   /** Upload raw bytes to FAL storage and return the hosted URL. */
   private async upload(bytes: Uint8Array, mimeType: string): Promise<string> {
     const client = await this.getClient();
-    const blob = new Blob(
-      [new Uint8Array(bytes) as Uint8Array<ArrayBuffer>],
-      { type: mimeType }
-    );
+    const blob = new Blob([new Uint8Array(bytes) as Uint8Array<ArrayBuffer>], {
+      type: mimeType
+    });
     return client.storage.upload(blob);
   }
 

@@ -1,8 +1,3 @@
-/**
- * Zustand store for color picker state management.
- * Handles color history, saved swatches, and user palettes.
- */
-
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -32,22 +27,12 @@ export interface GradientValue {
 }
 
 interface ColorPickerState {
-  // Color history (auto-saved, last 20 colors)
   recentColors: string[];
-  
-  // Custom swatches (user-saved)
   swatches: ColorSwatch[];
-  
-  // User-created palettes
   palettes: ColorPalette[];
-  
-  // Saved gradients
   gradients: GradientValue[];
-  
-  // Current color mode preference
   preferredColorMode: "hex" | "rgb" | "hsl" | "hsb" | "cmyk" | "lab";
-  
-  // Actions
+
   addRecentColor: (color: string) => void;
   clearRecentColors: () => void;
   
@@ -80,17 +65,11 @@ export const useColorPickerStore = create<ColorPickerState>()(
 
       addRecentColor: (color: string) => {
         set((state) => {
-          // Normalize color to lowercase
           const normalizedColor = color.toLowerCase();
-          
-          // Remove duplicate if exists
           const filtered = state.recentColors.filter(
             (c) => c.toLowerCase() !== normalizedColor
           );
-          
-          // Add to beginning and limit to max
           const updated = [normalizedColor, ...filtered].slice(0, MAX_RECENT_COLORS);
-          
           return { recentColors: updated };
         });
       },
@@ -194,9 +173,6 @@ export const useColorPickerStore = create<ColorPickerState>()(
   )
 );
 
-/**
- * Convert gradient to CSS string
- */
 export function gradientToCss(gradient: GradientValue): string {
   // Copy before sorting — `.sort()` mutates in place and `gradient` may be a
   // persisted store object that must not be modified.
@@ -213,7 +189,6 @@ export function gradientToCss(gradient: GradientValue): string {
   return `radial-gradient(circle, ${stopsStr})`;
 }
 
-// Pre-built palettes for user convenience
 export const PRESET_PALETTES: ColorPalette[] = [
   {
     id: "material-primary",

@@ -62,13 +62,7 @@ export class MyNode extends BaseNode {
   },
 ];
 
-interface DeveloperFeaturesSectionProps {
-  reducedMotion: boolean;
-}
-
-export default function DeveloperFeaturesSection({
-  reducedMotion,
-}: DeveloperFeaturesSectionProps) {
+export default function DeveloperFeaturesSection() {
   return (
     <section
       id="features"
@@ -79,29 +73,29 @@ export default function DeveloperFeaturesSection({
         {/* Section Header */}
         <div className="text-center mb-16">
           <motion.span
-            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
             className="inline-flex items-center gap-2 rounded-full bg-violet-500/10 px-4 py-1.5 text-sm font-medium text-violet-300 ring-1 ring-inset ring-violet-500/20 mb-4"
           >
             From the canvas to your code
           </motion.span>
           <motion.h2
             id="features-title"
-            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="text-3xl sm:text-4xl font-bold text-white"
           >
             Drive the workspace from code
           </motion.h2>
           <motion.p
-            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 max-w-2xl mx-auto"
           >
             The same workflows you build on the canvas, callable from a TypeScript SDK and CLI.
@@ -115,10 +109,10 @@ export default function DeveloperFeaturesSection({
           {features.map((feature, idx) => (
             <motion.div
               key={feature.title}
-              initial={reducedMotion ? {} : { opacity: 0, y: 30 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: idx * 0.1 }}
+              transition={{ duration: 0.25, delay: idx * 0.05 }}
               className={`group relative rounded-2xl ${feature.bgColor} border ${feature.borderColor} p-6 sm:p-8 backdrop-blur-sm`}
             >
               <div className="grid gap-6 md:grid-cols-5 md:gap-8 items-start">

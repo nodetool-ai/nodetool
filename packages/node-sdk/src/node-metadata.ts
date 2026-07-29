@@ -288,15 +288,24 @@ export function getNodeMetadata(
     output_correlation: nodeClass.outputCorrelation,
     is_controlled: nodeClass.isControlled || false,
     is_join_node: nodeClass.isJoinNode || undefined,
+    is_trigger: nodeClass.isTrigger || undefined,
     always_emit_output_updates: nodeClass.alwaysEmitOutputUpdates || undefined,
     supports_dynamic_inputs: nodeClass.supportsDynamicInputs || false,
+    allowed_dynamic_slot_types: nodeClass.allowedDynamicSlotTypes?.map(
+      toMetadataType
+    ),
     supports_dynamic_outputs: nodeClass.supportsDynamicOutputs,
     auto_save_asset: nodeClass.autoSaveAsset || undefined,
     cache_ttl: nodeClass.cacheTtl,
+    // `cacheTtl: "forever"` means the output depends only on the inputs, which
+    // is the definition of a pure node — no need to declare both.
+    effect:
+      nodeClass.cacheTtl === "forever" ? "pure" : nodeClass.effect ?? "external",
     primary_output: nodeClass.primaryOutput || undefined,
     model_packs: nodeClass.modelPacks,
     platforms: normalizePlatforms(nodeClass.platforms),
     deprecated: nodeClass.deprecated || undefined,
+    hidden: nodeClass.hidden || undefined,
     replaced_by: nodeClass.replacedBy
   };
 

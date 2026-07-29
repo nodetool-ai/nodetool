@@ -234,12 +234,8 @@ export function encodePremulValidationPass(args: EncodeValidationArgs): void {
     moduleKey: moduleKey(module.id, module.version),
     buffer: readback
   });
-  // counters is only needed during command-encoder execution; once the copy
-  // is recorded we can destroy it after the readback maps. Simpler: destroy
-  // after submit by stashing it on the readback entry would require a wider
-  // type. The buffer is small (16 bytes) and debug mode is opt-in — let it
-  // be reclaimed by the GC of the readback path; we destroy it explicitly
-  // inside the consumer after the readback completes.
+  // counters is only needed while the encoder runs; stash it on the readback
+  // entry so the consumer can destroy it once the readback completes.
   (ext.debugSink[ext.debugSink.length - 1] as DebugReadback & {
     countersBuffer?: GPUBuffer;
   }).countersBuffer = counters;

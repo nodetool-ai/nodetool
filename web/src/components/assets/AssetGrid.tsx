@@ -1,7 +1,19 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useEffect, useMemo, useRef, memo } from "react";
-import { Text, Tooltip, Divider, Box } from "../ui_primitives";
+import CloseIcon from "@mui/icons-material/Close";
+import {
+  Text,
+  Tooltip,
+  Divider,
+  Box,
+  AlertBanner,
+  EditorButton,
+  SPACING,
+  getSpacingPx,
+  ToolbarIconButton
+} from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 
 import AudioPlayer from "../audio/AudioPlayer";
 import AssetActionsMenu from "./AssetActionsMenu";
@@ -19,6 +31,7 @@ import AssetFoldersPanel from "./panels/AssetFoldersPanel";
 import AssetFilesPanel from "./panels/AssetFilesPanel";
 import assetGridStyles from "./assetGridStyles";
 import useClickOutsideDeselect from "./hooks/useClickOutsideDeselect";
+import { useAssetGridShortcuts } from "../../hooks/assets/useAssetGridShortcuts";
 
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
@@ -62,13 +75,12 @@ const styles = assetGridStyles;
 const FOLDERS_PANEL_HEIGHT = 200;
 const FOLDERS_PANEL_WIDTH = 200;
 
-// Panels are provided via separate components in ./panels
-
-/** Displays count and total size of selected assets */
+/** Displays count and total size of selected assets, with a clear button */
 const SelectedItemsInfo: React.FC<{
   selectedAssetIds: string[];
   assets: Asset[];
-}> = memo(({ selectedAssetIds, assets }) => {
+  onClear: () => void;
+}> = memo(({ selectedAssetIds, assets, onClear }) => {
   const totalSize = useMemo(() => {
     if (selectedAssetIds.length === 0) return 0;
     const selectedSet = new Set(selectedAssetIds);
@@ -96,6 +108,16 @@ const SelectedItemsInfo: React.FC<{
             </Tooltip>
           )}
         </Text>
+        <ToolbarIconButton
+          className="clear-selection"
+          icon={<CloseIcon />}
+          tooltip="Clear selection"
+          shortcut={["Esc"]}
+          tooltipPlacement="top"
+          onClick={onClear}
+          size="small"
+          sx={{ ml: SPACING.micro, "& .MuiSvgIcon-root": { fontSize: 14 } }}
+        />
       </div>
     </div>
   );
@@ -128,7 +150,8 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   isMobile = false,
   forceGlobalAssets = false
 }) => {
-  const { error, folderFilesFiltered, folderTree } = useAssets();
+  const { error, folderFilesFiltered, folderTree, refetchAssetsAndFolders } =
+    useAssets();
   const {
     setOpenAsset,
     setSelectedAssetIds,
@@ -174,9 +197,9 @@ const AssetGrid: React.FC<AssetGridProps> = ({
 
   const theme = useTheme();
 
-  // Folders are always shown in fullscreen; in the sidebar they follow the
-  // user's toggle. Either way, hide the tree entirely when there are no
-  // folders to show.
+  // Folders are shown by default on the wide fullscreen page; elsewhere they
+  // follow the user's toggle. Either way, hide the tree entirely when there
+  // are no folders to show.
   const hasFolders = useMemo(
     () => !!folderTree && Object.keys(folderTree).length > 0,
     [folderTree]
@@ -188,12 +211,14 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     !forceGlobalAssets &&
     !!currentWorkflowId &&
     workflowFilter === currentWorkflowId;
+  // The fullscreen page docks the folder tree beside the grid and pins it
+  // open. On a phone that 300px pane leaves no room for the grid and there is
+  // no control to close it, so narrow viewports fall back to the sidebar
+  // behaviour: folders stack above the grid and follow the toolbar toggle.
+  const isNarrow = useMediaQuery(theme.breakpoints.down("sm"));
+  const foldersDocked = Boolean(isFullscreenAssets) && !isNarrow;
   const effectiveFoldersVisible =
-    !isWorkflowOutputScope &&
-    hasFolders &&
-    (Boolean(isFullscreenAssets) || foldersVisible);
-
-  // Dockview panel components are defined below; handlers for files live inside the Files panel
+    !isWorkflowOutputScope && hasFolders && (foldersDocked || foldersVisible);
 
   const user = useAuth((state) => state.user);
 
@@ -235,6 +260,15 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     }
   }, [F2KeyPressed, selectedAssetIds, setRenameDialogOpen]);
 
+  // File-manager shortcuts (select-all, delete, deselect, open) on the
+  // fullscreen page, where there's no workflow canvas to collide with. The
+  // list mirrors what the grid displays so Cmd+A selects the visible assets.
+  const shortcutAssets = useMemo(
+    () => sortedAssets ?? folderFilesFiltered ?? [],
+    [sortedAssets, folderFilesFiltered]
+  );
+  useAssetGridShortcuts(shortcutAssets, Boolean(isFullscreenAssets));
+
   const uploadFiles = useCallback(
     (files: File[]) => {
       files.forEach((file: File) => {
@@ -257,8 +291,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     }
   }
 
-  // Dockview panels are defined as top-level components (see above)
-
   const dockviewApiRef = useRef<DockviewApi | null>(null);
 
   const addFoldersPanel = useCallback(
@@ -271,24 +303,24 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         position: api.getPanel("asset-files")
           ? {
               referencePanel: "asset-files",
-              direction: isFullscreenAssets ? "left" : "above"
+              direction: foldersDocked ? "left" : "above"
             }
           : undefined,
-        ...(isFullscreenAssets
+        ...(foldersDocked
           ? { initialWidth: initialFoldersPanelWidth }
           : { initialHeight: FOLDERS_PANEL_HEIGHT })
       });
 
       const groupApi = foldersPanel?.group?.api ?? foldersPanel?.group;
       if (groupApi && typeof groupApi.setSize === "function") {
-        if (isFullscreenAssets) {
+        if (foldersDocked) {
           groupApi.setSize({ width: initialFoldersPanelWidth });
         } else {
           groupApi.setSize({ height: FOLDERS_PANEL_HEIGHT });
         }
       }
     },
-    [isFullscreenAssets, initialFoldersPanelWidth]
+    [isFullscreenAssets, foldersDocked, initialFoldersPanelWidth]
   );
 
   useEffect(() => {
@@ -323,23 +355,13 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     [isHorizontal, itemSpacing, isMobile, effectiveFoldersVisible, addFoldersPanel]
   );
 
+  // Stale/cached assets may still render while a refresh fails. Empty-folder
+  // failures are handled inside AssetGridContent's EmptyState instead.
+  const showInlineFetchError =
+    error != null && (folderFilesFiltered?.length ?? 0) > 0;
+
   return (
     <Box css={styles(theme)} className="asset-grid-container">
-      {error && (
-        <Text
-          className="error-message"
-          color="error"
-          sx={{
-            position: "absolute",
-            top: "1em",
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 1000
-          }}
-        >
-          {error.message}
-        </Text>
-      )}
       {openAsset && (
         <AssetViewer
           asset={openAsset}
@@ -352,14 +374,39 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         <AssetActionsMenu
           maxItemSize={maxItemSize}
           onUploadFiles={uploadFiles}
-          isFullscreenAssets={isFullscreenAssets}
+          isFullscreenAssets={foldersDocked}
           hideFolderControls={isWorkflowOutputScope}
         />
+      )}
+      {showInlineFetchError && (
+        <AlertBanner
+          className="asset-grid-fetch-error"
+          severity="error"
+          compact
+          title="Could not refresh assets"
+          sx={{
+            flexShrink: 0,
+            mb: getSpacingPx(SPACING.sm),
+            mx: isMobile ? getSpacingPx(SPACING.md) : 0
+          }}
+          action={
+            <EditorButton
+              color="inherit"
+              size="small"
+              onClick={() => refetchAssetsAndFolders()}
+            >
+              Retry
+            </EditorButton>
+          }
+        >
+          {error.message}
+        </AlertBanner>
       )}
       {!isMobile && (
         <SelectedItemsInfo
           selectedAssetIds={selectedAssetIds}
           assets={sortedAssets || folderFilesFiltered || []}
+          onClear={() => setSelectedAssetIds([])}
         />
       )}
       {/* Drag-and-drop enabled region; upload button now in toolbar */}

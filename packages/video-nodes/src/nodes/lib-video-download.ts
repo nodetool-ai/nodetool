@@ -56,8 +56,31 @@ async function runCommand(
   });
 }
 
+// Trust model: the URL is user-supplied and yt-dlp runs on the user's own
+// machine (this is a local desktop tool). We only require a well-formed
+// http(s) URL — there is deliberately no internal-network/SSRF blocking, since
+// the user is free to point this at any host they can already reach.
 function isValidUrl(url: string): boolean {
-  return /^https?:\/\/[^\s/$.?#].[^\s]*$/i.test(url);
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+const DEFAULT_SUB_LANGS = "en,en-US,en-GB";
+
+function emptyVideoRef(): Record<string, unknown> {
+  return { type: "video", uri: "", asset_id: null, data: null, metadata: null };
+}
+
+function emptyAudioRef(): Record<string, unknown> {
+  return { type: "audio", uri: "", asset_id: null, data: null, metadata: null };
+}
+
+function emptyImageRef(): Record<string, unknown> {
+  return { type: "image", uri: "", asset_id: null, data: null, metadata: null };
 }
 
 function safeMetadata(info: Record<string, unknown>): Record<string, unknown> {
@@ -143,7 +166,7 @@ export class YtDlpDownloadLibNode extends BaseNode {
     title: "Url",
     description: "URL of the media to download"
   })
-  declare url: any;
+  declare url: string;
 
   @prop({
     type: "enum",
@@ -152,7 +175,7 @@ export class YtDlpDownloadLibNode extends BaseNode {
     description: "Download mode: video, audio, or metadata only",
     values: ["video", "audio", "metadata"]
   })
-  declare mode: any;
+  declare mode: string;
 
   @prop({
     type: "str",
@@ -160,7 +183,7 @@ export class YtDlpDownloadLibNode extends BaseNode {
     title: "Format Selector",
     description: "yt-dlp format selector (e.g., 'best', 'bestvideo+bestaudio')"
   })
-  declare format_selector: any;
+  declare format_selector: string;
 
   @prop({
     type: "str",
@@ -168,7 +191,7 @@ export class YtDlpDownloadLibNode extends BaseNode {
     title: "Container",
     description: "Output container format (e.g., 'mp4', 'webm', 'auto')"
   })
-  declare container: any;
+  declare container: string;
 
   @prop({
     type: "bool",
@@ -176,7 +199,16 @@ export class YtDlpDownloadLibNode extends BaseNode {
     title: "Subtitles",
     description: "Download subtitles if available"
   })
-  declare subtitles: any;
+  declare subtitles: boolean;
+
+  @prop({
+    type: "str",
+    default: DEFAULT_SUB_LANGS,
+    title: "Subtitle Languages",
+    description:
+      "Comma-separated subtitle language codes in yt-dlp syntax (e.g., 'en,en-US,en-GB', 'de.*', 'all'). Only used when Subtitles is enabled."
+  })
+  declare sub_langs: string;
 
   @prop({
     type: "bool",
@@ -184,7 +216,7 @@ export class YtDlpDownloadLibNode extends BaseNode {
     title: "Thumbnail",
     description: "Download thumbnail if available"
   })
-  declare thumbnail: any;
+  declare thumbnail: boolean;
 
   @prop({
     type: "bool",
@@ -192,7 +224,7 @@ export class YtDlpDownloadLibNode extends BaseNode {
     title: "Overwrite",
     description: "Overwrite existing files"
   })
-  declare overwrite: any;
+  declare overwrite: boolean;
 
   @prop({
     type: "int",
@@ -201,7 +233,7 @@ export class YtDlpDownloadLibNode extends BaseNode {
     description: "Rate limit in KB/s (0 = unlimited)",
     min: 0
   })
-  declare rate_limit_kbps: any;
+  declare rate_limit_kbps: number;
 
   @prop({
     type: "int",
@@ -211,7 +243,7 @@ export class YtDlpDownloadLibNode extends BaseNode {
     min: 1,
     max: 3600
   })
-  declare timeout: any;
+  declare timeout: number;
 
   async process(): Promise<Record<string, unknown>> {
     const url = String(this.url ?? "").trim();
@@ -227,6 +259,7 @@ export class YtDlpDownloadLibNode extends BaseNode {
     const formatSelector = String(this.format_selector ?? "best");
     const container = String(this.container ?? "auto");
     const subtitles = Boolean(this.subtitles ?? false);
+    const subLangs = String(this.sub_langs ?? "").trim() || DEFAULT_SUB_LANGS;
     const thumbnail = Boolean(this.thumbnail ?? false);
     const overwrite = Boolean(this.overwrite ?? false);
     const rateLimitKbps = Number(this.rate_limit_kbps ?? 0);
@@ -262,16 +295,31 @@ export class YtDlpDownloadLibNode extends BaseNode {
           break;
         }
       }
-      const parsedInfo = jsonLine
-        ? (JSON.parse(jsonLine) as Record<string, unknown>)
-        : {};
+      // yt-dlp exited 0 but produced no JSON info line — abnormal output.
+      // Downstream download-file naming relies on parsedInfo.id, so a silent
+      // {} would break it; fail loudly instead.
+      if (!jsonLine) {
+        throw new Error(
+          "yt-dlp metadata output was malformed: no JSON info line found in stdout"
+        );
+      }
+      let parsedInfo: Record<string, unknown>;
+      try {
+        parsedInfo = JSON.parse(jsonLine) as Record<string, unknown>;
+      } catch (error) {
+        throw new Error(
+          `yt-dlp metadata output was malformed: could not parse JSON info line (${
+            error instanceof Error ? error.message : String(error)
+          })`
+        );
+      }
 
       const output: Record<string, unknown> = {
-        video: {},
-        audio: {},
+        video: emptyVideoRef(),
+        audio: emptyAudioRef(),
         metadata: safeMetadata(parsedInfo),
         subtitles: "",
-        thumbnail: null
+        thumbnail: emptyImageRef()
       };
 
       if (mode !== "metadata") {
@@ -292,7 +340,7 @@ export class YtDlpDownloadLibNode extends BaseNode {
             "--write-subs",
             "--write-auto-subs",
             "--sub-langs",
-            "en,en-US,en-GB",
+            subLangs,
             "--sub-format",
             "srt/vtt/ass/best"
           );

@@ -4,7 +4,11 @@ import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
+import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
+import DashboardCustomizeOutlinedIcon from "@mui/icons-material/DashboardCustomizeOutlined";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
+import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
+import RecordVoiceOverOutlinedIcon from "@mui/icons-material/RecordVoiceOverOutlined";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 
 import {
@@ -19,14 +23,24 @@ import {
 import { trpcClient } from "../../trpc/client";
 import { useAssetSearch } from "../../serverState/useAssetSearch";
 import { useCreateTimeline } from "../../hooks/useTimelineSequence";
+import { useCreateStoryboard } from "../../hooks/storyboard/useStoryboards";
+import { useCreateApplication } from "../../hooks/useApplications";
+import { useCreateScript } from "../../hooks/script/useScripts";
 import { useAssetStore } from "../../stores/AssetStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import useGlobalChatStore from "../../stores/GlobalChatStore";
 import {
   useWorkspaceTabsStore,
   type WorkspaceTabType
 } from "../../stores/WorkspaceTabsStore";
 import { assetTabType } from "./assetTabType";
-import type { WorkflowList, AssetWithPath } from "../../stores/ApiTypes";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
+import type {
+  WorkflowList,
+  AssetWithPath,
+  Thread
+} from "../../stores/ApiTypes";
 
 /** Render a blank white PNG to seed a "New image" canvas asset. */
 const createBlankImageFile = (): Promise<File> =>
@@ -75,7 +89,7 @@ interface OpenMenuProps {
   onClose: () => void;
 }
 
-type MenuView = "root" | "texts" | "workflows" | "assets";
+type MenuView = "root" | "texts" | "workflows" | "assets" | "chats";
 
 interface TextFileTemplate {
   label: string;
@@ -130,51 +144,91 @@ const TEXT_FILE_TEMPLATES: readonly TextFileTemplate[] = [
  */
 const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
   const [view, setView] = useState<MenuView>("root");
+  const autoFocusEnabled = useAutoFocusEnabled();
   const [assetQuery, setAssetQuery] = useState("");
   const [wfFilter, setWfFilter] = useState("");
+  const [chatFilter, setChatFilter] = useState("");
+  /** Label of the "New X" creator currently in flight, if any. */
+  const [creating, setCreating] = useState<string | null>(null);
 
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const createNew = useWorkflowManager((state) => state.createNew);
+  const createNewThread = useGlobalChatStore((state) => state.createNewThread);
   const createAsset = useAssetStore((state) => state.createAsset);
   const createTimeline = useCreateTimeline();
+  const createStoryboard = useCreateStoryboard();
+  const createApplication = useCreateApplication();
+  const createScript = useCreateScript();
   const { searchAssets } = useAssetSearch();
 
   const close = useCallback(() => {
     setView("root");
     setAssetQuery("");
     setWfFilter("");
+    setChatFilter("");
     onClose();
   }, [onClose]);
 
-  const handleNew = useCallback(async () => {
-    const workflow = await createNew();
-    openTab({
-      type: "workflow",
-      ref: workflow.id,
-      mode: "edit",
-      title: workflow.name
-    });
-    close();
-  }, [createNew, openTab, close]);
+  /**
+   * Run one of the "New X" creators: block re-entry while it is in flight,
+   * close the menu on success, and surface a failure as a toast instead of a
+   * dead click.
+   */
+  const runCreate = useCallback(
+    async (label: string, create: () => Promise<void>) => {
+      setCreating(label);
+      try {
+        await create();
+        close();
+      } catch (error) {
+        addNotification({
+          type: "error",
+          alert: true,
+          content: `Could not create ${label}: ${
+            error instanceof Error ? error.message : "unknown error"
+          }`
+        });
+      } finally {
+        setCreating(null);
+      }
+    },
+    [addNotification, close]
+  );
 
-  const handleNewImage = useCallback(async () => {
-    try {
-      const asset = await createAsset(await createBlankImageFile());
-      openTab({
-        type: "image",
-        ref: asset.id,
-        mode: "edit",
-        title: asset.name || "Untitled image"
-      });
-      close();
-    } catch (error) {
-      console.error("Failed to create image", error);
-    }
-  }, [createAsset, openTab, close]);
+  const handleNew = useCallback(
+    () =>
+      runCreate("workflow", async () => {
+        const workflow = await createNew();
+        openTab({
+          type: "workflow",
+          ref: workflow.id,
+          mode: "edit",
+          title: workflow.name
+        });
+      }),
+    [runCreate, createNew, openTab]
+  );
+
+  const handleNewImage = useCallback(
+    () =>
+      runCreate("image", async () => {
+        const asset = await createAsset(await createBlankImageFile());
+        openTab({
+          type: "image",
+          ref: asset.id,
+          mode: "edit",
+          title: asset.name || "Untitled image"
+        });
+      }),
+    [runCreate, createAsset, openTab]
+  );
 
   const handleNewText = useCallback(
-    async (template: TextFileTemplate) => {
-      try {
+    (template: TextFileTemplate) =>
+      runCreate("text file", async () => {
         const asset = await createAsset(
           new File([template.content], template.filename, {
             type: template.mimeType
@@ -186,46 +240,106 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
           mode: "edit",
           title: asset.name || template.filename
         });
-        close();
-      } catch (error) {
-        console.error("Failed to create text file", error);
-      }
-    },
-    [createAsset, openTab, close]
+      }),
+    [runCreate, createAsset, openTab]
   );
 
-  const handleNewVideo = useCallback(async () => {
-    try {
-      const sequence = await createTimeline.mutateAsync({
-        name: "Untitled video",
-        projectId: "default"
-      });
-      openTab({
-        type: "timeline",
-        ref: sequence.id,
-        mode: "edit",
-        title: sequence.name || "Untitled video"
-      });
-      close();
-    } catch (error) {
-      console.error("Failed to create video", error);
-    }
-  }, [createTimeline, openTab, close]);
+  const handleNewVideo = useCallback(
+    () =>
+      runCreate("video", async () => {
+        const sequence = await createTimeline.mutateAsync({
+          name: "Untitled video",
+          projectId: "default"
+        });
+        openTab({
+          type: "timeline",
+          ref: sequence.id,
+          mode: "edit",
+          title: sequence.name || "Untitled video"
+        });
+      }),
+    [runCreate, createTimeline, openTab]
+  );
 
-  const handleNewModel = useCallback(async () => {
-    try {
-      const asset = await createAsset(await createBlankModelFile());
-      openTab({
-        type: "model3d",
-        ref: asset.id,
-        mode: "edit",
-        title: asset.name || "Untitled model"
-      });
-      close();
-    } catch (error) {
-      console.error("Failed to create 3D model", error);
-    }
-  }, [createAsset, openTab, close]);
+  const handleNewStoryboard = useCallback(
+    () =>
+      runCreate("storyboard", async () => {
+        const created = await createStoryboard.mutateAsync({
+          name: "Untitled storyboard",
+          projectId: "default"
+        });
+        openTab({
+          type: "storyboard",
+          ref: created.id,
+          mode: "edit",
+          title: created.name
+        });
+      }),
+    [runCreate, createStoryboard, openTab]
+  );
+
+  const handleNewApp = useCallback(
+    () =>
+      runCreate("app", async () => {
+        const created = await createApplication.mutateAsync({
+          name: "Untitled app",
+          description: "",
+          projectId: "default"
+        });
+        openTab({
+          type: "application",
+          ref: created.id,
+          mode: "edit",
+          title: created.name
+        });
+      }),
+    [runCreate, createApplication, openTab]
+  );
+
+  const handleNewScript = useCallback(
+    () =>
+      runCreate("script", async () => {
+        const created = await createScript.mutateAsync({
+          name: "Untitled script",
+          projectId: "default"
+        });
+        openTab({
+          type: "script",
+          ref: created.id,
+          mode: "edit",
+          title: created.name
+        });
+      }),
+    [runCreate, createScript, openTab]
+  );
+
+  const handleNewChat = useCallback(
+    () =>
+      runCreate("chat", async () => {
+        const threadId = await createNewThread();
+        openTab({
+          type: "chat",
+          ref: threadId,
+          mode: "view",
+          title: "New chat"
+        });
+      }),
+    [runCreate, createNewThread, openTab]
+  );
+
+  const handleNewModel = useCallback(
+    () =>
+      runCreate("3D model", async () => {
+        const asset = await createAsset(await createBlankModelFile());
+        openTab({
+          type: "model3d",
+          ref: asset.id,
+          mode: "edit",
+          title: asset.name || "Untitled model"
+        });
+      }),
+    [runCreate, createAsset, openTab]
+  );
 
   const { data: workflowList, isLoading: workflowsLoading } =
     useQuery<WorkflowList>({
@@ -245,6 +359,37 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
     if (!needle) return all;
     return all.filter((w) => w.name.toLowerCase().includes(needle));
   }, [workflowList, wfFilter]);
+
+  const { data: threadList, isLoading: threadsLoading } = useQuery({
+    queryKey: ["open-menu", "threads"],
+    queryFn: () => trpcClient.threads.list.query({ limit: 100 }),
+    enabled: open && view === "chats",
+    staleTime: 30_000
+  });
+
+  const chatThreads = useMemo(() => {
+    const all: Thread[] = threadList?.threads ?? [];
+    const needle = chatFilter.trim().toLowerCase();
+    const filtered = needle
+      ? all.filter((t) => (t.title ?? "").toLowerCase().includes(needle))
+      : all;
+    return [...filtered].sort((a, b) =>
+      (b.updated_at ?? "").localeCompare(a.updated_at ?? "")
+    );
+  }, [threadList, chatFilter]);
+
+  const openChat = useCallback(
+    (thread: Thread) => {
+      openTab({
+        type: "chat",
+        ref: thread.id,
+        mode: "view",
+        title: thread.title || "Untitled chat"
+      });
+      close();
+    },
+    [openTab, close]
+  );
 
   const trimmedAssetQuery = assetQuery.trim();
   const { data: assetResult, isFetching: assetsFetching } = useQuery({
@@ -301,27 +446,56 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
               label="New workflow"
               icon={<AddRoundedIcon fontSize="small" />}
               onClick={() => void handleNew()}
+              disabled={creating !== null}
             />
             <MenuItemPrimitive
               label="New text file…"
               icon={<ArticleOutlinedIcon fontSize="small" />}
               hasSubmenu
               onClick={() => setView("texts")}
+              disabled={creating !== null}
             />
             <MenuItemPrimitive
               label="New image"
               icon={<ImageOutlinedIcon fontSize="small" />}
               onClick={() => void handleNewImage()}
+              disabled={creating !== null}
             />
             <MenuItemPrimitive
               label="New video"
               icon={<MovieOutlinedIcon fontSize="small" />}
               onClick={() => void handleNewVideo()}
+              disabled={creating !== null}
+            />
+            <MenuItemPrimitive
+              label="New storyboard"
+              icon={<DashboardOutlinedIcon fontSize="small" />}
+              onClick={() => void handleNewStoryboard()}
+              disabled={creating !== null}
+            />
+            <MenuItemPrimitive
+              label="New app"
+              icon={<DashboardCustomizeOutlinedIcon fontSize="small" />}
+              onClick={() => void handleNewApp()}
+              disabled={creating !== null}
+            />
+            <MenuItemPrimitive
+              label="New script"
+              icon={<RecordVoiceOverOutlinedIcon fontSize="small" />}
+              onClick={() => void handleNewScript()}
+              disabled={creating !== null}
             />
             <MenuItemPrimitive
               label="New 3D model"
               icon={<ViewInArOutlinedIcon fontSize="small" />}
               onClick={() => void handleNewModel()}
+              disabled={creating !== null}
+            />
+            <MenuItemPrimitive
+              label="New chat"
+              icon={<ForumOutlinedIcon fontSize="small" />}
+              onClick={() => void handleNewChat()}
+              disabled={creating !== null}
               dividerAfter
             />
             <MenuItemPrimitive
@@ -333,6 +507,11 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
               label="Open asset…"
               hasSubmenu
               onClick={() => setView("assets")}
+            />
+            <MenuItemPrimitive
+              label="Open chat…"
+              hasSubmenu
+              onClick={() => setView("chats")}
             />
           </>
         )}
@@ -350,6 +529,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
                 key={template.filename}
                 label={template.label}
                 onClick={() => void handleNewText(template)}
+                disabled={creating !== null}
               />
             ))}
           </>
@@ -365,7 +545,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
             />
             <FlexRow sx={{ px: 1, py: 0.5 }}>
               <TextInput
-                autoFocus
+                autoFocus={autoFocusEnabled}
                 fullWidth
                 placeholder="Filter workflows"
                 value={wfFilter}
@@ -392,6 +572,43 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
           </>
         )}
 
+        {view === "chats" && (
+          <>
+            <MenuItemPrimitive
+              label="Back"
+              icon={<ArrowBackRoundedIcon fontSize="small" />}
+              onClick={() => setView("root")}
+              dividerAfter
+            />
+            <FlexRow sx={{ px: 1, py: 0.5 }}>
+              <TextInput
+                autoFocus={autoFocusEnabled}
+                fullWidth
+                placeholder="Filter chats"
+                value={chatFilter}
+                onChange={(e) => setChatFilter(e.target.value)}
+              />
+            </FlexRow>
+            {threadsLoading && (
+              <FlexRow justify="center" sx={{ py: 2 }}>
+                <LoadingSpinner />
+              </FlexRow>
+            )}
+            {!threadsLoading && chatThreads.length === 0 && (
+              <Caption color="secondary" sx={{ px: 2, py: 1.5 }}>
+                No chats found.
+              </Caption>
+            )}
+            {chatThreads.map((thread) => (
+              <MenuItemPrimitive
+                key={thread.id}
+                label={thread.title || "Untitled chat"}
+                onClick={() => openChat(thread)}
+              />
+            ))}
+          </>
+        )}
+
         {view === "assets" && (
           <>
             <MenuItemPrimitive
@@ -402,7 +619,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
             />
             <FlexRow sx={{ px: 1, py: 0.5 }}>
               <TextInput
-                autoFocus
+                autoFocus={autoFocusEnabled}
                 fullWidth
                 placeholder="Search assets (2+ chars)"
                 value={assetQuery}

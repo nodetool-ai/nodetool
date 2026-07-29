@@ -120,7 +120,6 @@ export class Canvas2DRuntime implements SketchRuntime {
     effects: LayerEffect[]
   ): ResolvedLayerBitmap => this.evaluateLayerEffects(layerId, source, effects);
 
-  /** Bound wrapper for renderDocumentCompositeToContext. */
   private readonly boundRenderDocComposite = (
     ctx: CanvasRenderingContext2D,
     doc: SketchDocument,
@@ -130,7 +129,6 @@ export class Canvas2DRuntime implements SketchRuntime {
     this.renderDocumentCompositeToContext(ctx, doc, isolatedLayerId, activeStroke);
   };
 
-  /** Bound wrapper for drawLayerToContext. */
   private readonly boundDrawLayerToContext = (
     ctx: CanvasRenderingContext2D,
     doc: SketchDocument,

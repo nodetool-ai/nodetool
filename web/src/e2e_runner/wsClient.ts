@@ -13,6 +13,10 @@ export type WsMessageHandler = (msg: WsEvent) => void;
 export class HarnessWsClient {
   private ws: WebSocket | null = null;
   private handlers = new Set<WsMessageHandler>();
+  private closeHandlers = new Set<() => void>();
+  // Set by close() so the ws.onclose handler can tell an intentional teardown
+  // from a mid-run drop and only fire onClose subscribers for the latter.
+  private intentionalClose = false;
 
   /** Resolve the /ws URL from the current page origin (proxied by Vite to the backend). */
   static defaultUrl(): string {
@@ -33,6 +37,9 @@ export class HarnessWsClient {
         reject(new Error(`WebSocket connection to ${url} failed`));
       ws.onclose = () => {
         if (this.ws === ws) this.ws = null;
+        if (!this.intentionalClose) {
+          for (const handler of this.closeHandlers) handler();
+        }
       };
       ws.onmessage = (event) => {
         let msg: WsEvent | null = null;
@@ -53,6 +60,12 @@ export class HarnessWsClient {
     return () => this.handlers.delete(handler);
   }
 
+  /** Subscribe to an unexpected socket close (a drop not initiated by close()). */
+  onClose(handler: () => void): () => void {
+    this.closeHandlers.add(handler);
+    return () => this.closeHandlers.delete(handler);
+  }
+
   send(payload: Record<string, unknown>): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       throw new Error("WebSocket is not open");
@@ -65,8 +78,10 @@ export class HarnessWsClient {
   }
 
   close(): void {
+    this.intentionalClose = true;
     this.ws?.close();
     this.ws = null;
     this.handlers.clear();
+    this.closeHandlers.clear();
   }
 }

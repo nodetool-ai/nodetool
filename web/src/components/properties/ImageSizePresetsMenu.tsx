@@ -7,10 +7,12 @@ import {
   EditorMenu,
   EditorMenuItem,
   ListSubheader,
-  InputAdornment
+  InputAdornment,
+  Z_INDEX
 } from "../ui_primitives";
 import Search from "@mui/icons-material/Search";
 import { IMAGE_SIZE_PRESETS, PresetOption } from "../../config/constants";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 
 interface ImageSizePresetsMenuProps {
   anchorEl: null | HTMLElement;
@@ -30,6 +32,8 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
   currentHeight
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
+  // Skipped on touch, where the virtual keyboard would cover the preset list.
+  const autoFocusEnabled = useAutoFocusEnabled();
 
   const handleClose = useCallback(() => {
     onClose();
@@ -95,7 +99,7 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
           color: 'primary.light',
           position: 'sticky',
           top: '48px',
-          zIndex: 10,
+          zIndex: Z_INDEX.dropdown,
         }
       }}
     >
@@ -104,7 +108,7 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
         position: 'sticky',
         top: 0,
         backgroundColor: 'background.paper',
-        zIndex: 11,
+        zIndex: Z_INDEX.sticky,
         borderBottom: '1px solid var(--palette-c_overlay_strong)',
         height: '48px',
         boxSizing: 'border-box'
@@ -116,7 +120,7 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
           value={searchQuery}
           onChange={handleSearchChange}
           onKeyDown={handleSearchKeyDown}
-          autoFocus
+          autoFocus={autoFocusEnabled}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">

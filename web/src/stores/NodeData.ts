@@ -1,14 +1,33 @@
 import { TypeMetadata } from "./ApiTypes";
 
+/**
+ * Declaration of one dynamic input slot: the type half of a typed dynamic
+ * slot. The value half stays in `dynamic_properties[name]`.
+ *
+ * A name present in `dynamic_properties` with no declaration here is an
+ * untyped legacy slot and behaves as `any` — that is how every workflow saved
+ * before typed slots existed loads.
+ *
+ * Mirrors `DynamicSlotMeta` in `@nodetool-ai/protocol`. Schema resolvers
+ * (FAL/Kie/Replicate/Comfy) emit a flatter shape with the TypeMetadata spread
+ * at the top level; `normalizeDynamicSlots` in `utils/dynamicSlots.ts`
+ * converts it at the resolver boundary so the store only ever holds this one.
+ */
+export type DynamicSlotDeclaration = {
+  type: TypeMetadata;
+  description?: string;
+  default?: unknown;
+  required?: boolean;
+  min?: number;
+  max?: number;
+};
+
 export type NodeData = {
   properties: Record<string, unknown>;
   selectable: boolean | undefined;
   dynamic_properties: Record<string, unknown>;
-  /** Schema-defined input types + descriptions (e.g. from FAL resolve); used for correct types and connection-only inputs */
-  dynamic_inputs?: Record<
-    string,
-    TypeMetadata & { description?: string; min?: number; max?: number; default?: unknown }
-  >;
+  /** Typed slot declarations for dynamic inputs, keyed by slot name. */
+  dynamic_inputs?: Record<string, DynamicSlotDeclaration>;
   dynamic_outputs?: Record<string, TypeMetadata>;
   /** Resolved FAL model/endpoint id (e.g. fal-ai/flux-pro) when schema is loaded */
   endpoint_id?: string;

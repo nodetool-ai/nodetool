@@ -40,7 +40,6 @@ export const getIsElectronDetails = (): ElectronDetectionDetails => {
     typeof navigator.userAgent === "string" &&
     navigator.userAgent.includes("Electron");
 
-  // Use window.api as the primary check since it's exposed by our preload script
   const isElectron = hasElectronBridge;
 
   return {

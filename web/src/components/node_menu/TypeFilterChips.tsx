@@ -31,7 +31,6 @@ interface TypeFilterChipsProps {
   setSelectedOutputType: (value: string) => void;
 }
 
-// Fixed quick filters requested by UX
 const TYPE_CATEGORIES = [
   { value: "image", label: "Image", icon: "image" },
   { value: "text", label: "Text", icon: "text" },
@@ -146,8 +145,8 @@ const typeFilterChipsStyles = (theme: Theme) =>
         paddingInline: theme.spacing(0.5)
       },
       "& .MuiChip-icon": {
-        marginLeft: theme.spacing(0.75),
-        marginRight: theme.spacing(0.25),
+        marginLeft: theme.spacing(SPACING.xs),
+        marginRight: theme.spacing(SPACING.micro),
         display: "inline-flex",
         alignItems: "center"
       },
@@ -204,7 +203,8 @@ const typeFilterChipsStyles = (theme: Theme) =>
       fontWeight: FONT_WEIGHT.semibold
     },
     ".filter-menu-content": {
-      minWidth: "390px",
+      // Clamped to the viewport: a flat 390px overflows a phone screen.
+      minWidth: "min(390px, calc(100vw - 32px))",
       maxWidth: "480px",
       padding: getSpacingPx(SPACING.xl)
     },
@@ -488,7 +488,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                   sx: {
                     "& .MuiAutocomplete-option": {
                       minHeight: "30px",
-                      py: 0.5
+                      py: SPACING.micro
                     }
                   }
                 }
@@ -535,7 +535,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                   sx: {
                     "& .MuiAutocomplete-option": {
                       minHeight: "30px",
-                      py: 0.5
+                      py: SPACING.micro
                     }
                   }
                 }

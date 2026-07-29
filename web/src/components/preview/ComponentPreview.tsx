@@ -10,10 +10,23 @@
  * normally need a UI trigger so a single navigation produces a clean capture.
  */
 
-import React, { Suspense, useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
-import { Text, Caption, LoadingSpinner, Surface, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import {
+  Text,
+  Caption,
+  LoadingSpinner,
+  Surface,
+  Box,
+  FlexColumn,
+  FlexRow,
+  Panel,
+  TextInput,
+  SelectField,
+  MOTION,
+  BORDER_RADIUS
+} from "../ui_primitives";
 import {
   DataframeRef,
   NodeMetadata,
@@ -22,6 +35,9 @@ import {
 } from "../../stores/ApiTypes";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
+import { useModelManagerStore } from "../../stores/ModelManagerStore";
+import { useSystemStatsStore } from "../../stores/systemStatsHandler";
+import { useProviderOnboardingStore } from "../../stores/ProviderOnboardingStore";
 
 const CostsDashboard = React.lazy(() => import("../costs/CostsDashboard"));
 const ModelListIndex = React.lazy(
@@ -43,6 +59,9 @@ const ImageComparer = React.lazy(() => import("../widgets/ImageComparer"));
 const RecommendedModels = React.lazy(
   () => import("../hugging_face/RecommendedModels")
 );
+const ModelOnboarding = React.lazy(
+  () => import("../hugging_face/onboarding/ModelOnboarding")
+);
 const DeleteModelDialog = React.lazy(
   () => import("../hugging_face/model_list/DeleteModelDialog")
 );
@@ -50,14 +69,14 @@ const DownloadManagerDialog = React.lazy(
   () => import("../hugging_face/DownloadManagerDialog")
 );
 const NodeInfo = React.lazy(() => import("../node_menu/NodeInfo"));
-const VibeCodingModal = React.lazy(
-  () => import("../vibecoding/VibeCodingModal")
-);
 const WorkflowFormModal = React.lazy(
   () => import("../workflows/WorkflowFormModal")
 );
 const WorkflowDeleteDialog = React.lazy(
   () => import("../workflows/WorkflowDeleteDialog")
+);
+const ProviderOnboardingDialog = React.lazy(
+  () => import("../provider_onboarding/ProviderOnboardingDialog")
 );
 
 interface PreviewEntry {
@@ -91,6 +110,12 @@ const PREVIEWS: PreviewEntry[] = [
     label: "Models Manager",
     description: "Model list and download manager",
     viewport: { width: 1920, height: 1080 }
+  },
+  {
+    id: "model-onboarding",
+    label: "Model Onboarding",
+    description: "Hardware-aware 'Get Started' guide for local models",
+    viewport: { width: 1440, height: 1080 }
   },
   {
     id: "assets",
@@ -154,9 +179,11 @@ const PREVIEWS: PreviewEntry[] = [
     description: "Safe-delete prompt for workflows"
   },
   {
-    id: "vibecoding-modal",
-    label: "VibeCoding Modal",
-    description: "AI-assisted custom UI generator"
+    id: "provider-onboarding",
+    label: "Provider Onboarding",
+    description:
+      "Blocked-provider onboarding: OAuth sign-in, API keys, and cost guidance",
+    viewport: { width: 900, height: 1200 }
   }
 ];
 
@@ -228,40 +255,44 @@ const SAMPLE_NODE_README: NodeMetadata = {
   properties: [
     {
       name: "prompt",
-      type: { type: "str" } as never,
+      type: { type: "str", optional: false, type_args: [] },
       default: "A cinematic photo of a cat astronaut on the moon",
       title: "Prompt",
-      description: "The text description of the image to generate."
+      description: "The text description of the image to generate.",
+      required: false
     },
     {
       name: "negative_prompt",
-      type: { type: "str" } as never,
+      type: { type: "str", optional: false, type_args: [] },
       default: "blurry, low quality",
       title: "Negative prompt",
-      description: "Concepts to discourage from the generated image."
+      description: "Concepts to discourage from the generated image.",
+      required: false
     },
     {
       name: "steps",
-      type: { type: "int" } as never,
+      type: { type: "int", optional: false, type_args: [] },
       default: 30,
       title: "Steps",
-      description: "Number of denoising steps. Higher = better but slower."
+      description: "Number of denoising steps. Higher = better but slower.",
+      required: false
     },
     {
       name: "guidance_scale",
-      type: { type: "float" } as never,
+      type: { type: "float", optional: false, type_args: [] },
       default: 7.5,
       title: "Guidance scale",
-      description: "Strength of prompt conditioning."
+      description: "Strength of prompt conditioning.",
+      required: false
     }
-  ] as never,
+  ],
   outputs: [
     {
       name: "image",
-      type: { type: "image" } as never,
+      type: { type: "image", optional: false, type_args: [] },
       stream: false
     }
-  ] as never,
+  ],
   recommended_models: SAMPLE_RECOMMENDED_MODELS,
   inline_fields: ["prompt", "steps"],
   required_settings: [],
@@ -352,6 +383,42 @@ const PreviewModels: React.FC = () => (
     <ModelListIndex />
   </FullscreenBox>
 );
+
+const PreviewModelOnboarding: React.FC = () => {
+  const theme = useTheme();
+  const setSource = useModelManagerStore((s) => s.setSource);
+  const setStats = useSystemStatsStore((s) => s.setStats);
+  useEffect(() => {
+    // Drive the manager to the "Get Started" tab and seed plausible hardware so
+    // the hardware card and fit badges render without a live backend.
+    setSource("onboarding");
+    setStats({
+      cpu_percent: 12,
+      memory_percent: 38,
+      memory_total_gb: 32,
+      memory_used_gb: 12,
+      vram_total_gb: 16,
+      vram_used_gb: 3,
+      vram_percent: 18
+    });
+  }, [setSource, setStats]);
+  return (
+    <Box
+      data-preview="model-onboarding"
+      sx={{
+        width: "100%",
+        minHeight: "100vh",
+        p: 4,
+        bgcolor: theme.vars.palette.background.default,
+        color: theme.vars.palette.text.primary
+      }}
+    >
+      <Suspense fallback={<LoadingSpinner />}>
+        <ModelOnboarding onDownload={() => undefined} />
+      </Suspense>
+    </Box>
+  );
+};
 
 const PreviewAssets: React.FC = () => (
   <FullscreenBox preview="assets">
@@ -554,30 +621,75 @@ const PreviewWorkflowDelete: React.FC = () => (
   </Box>
 );
 
-const PreviewVibeCodingModal: React.FC = () => {
-  // Seed an html_app so the preview pane has content instead of a blank state.
-  const seeded: Workflow = {
-    ...SAMPLE_WORKFLOW,
-    html_app:
-      "<!doctype html><html><head><title>Story</title>" +
-      "<style>body{font-family:system-ui;margin:0;padding:24px;background:#0e0e10;color:#eee}" +
-      "h1{color:#7c5cff;margin:0 0 12px}.card{background:#1a1a1d;padding:16px;border-radius:8px;max-width:520px}</style>" +
-      "</head><body><h1>Story Generator</h1><div class=\"card\"><p>Topic</p>" +
-      "<input style=\"width:100%;padding:8px;background:#0e0e10;color:#eee;border:1px solid #333;border-radius:4px\" value=\"Two robots discover they can dream\"/>" +
-      "<button style=\"margin-top:12px;padding:8px 16px;background:#7c5cff;color:#fff;border:0;border-radius:4px\">Generate</button></div></body></html>"
-  };
+const PreviewProviderOnboarding: React.FC = () => {
+  const show = useProviderOnboardingStore((s) => s.show);
+  useEffect(() => {
+    show({ capability: "generate_message" });
+  }, [show]);
   return (
-    <Box data-preview="vibecoding-modal" sx={{ width: "100%", height: "100vh" }}>
+    <Box
+      data-preview="provider-onboarding"
+      sx={{ width: "100%", height: "100vh" }}
+    >
       <Suspense fallback={null}>
-        <VibeCodingModal
-          open
-          workflow={seeded}
-          onClose={() => undefined}
-        />
+        <ProviderOnboardingDialog />
       </Suspense>
     </Box>
   );
 };
+
+const FORM_CONTROL_OPTIONS = [
+  { value: "widescreen", label: "16:9 — Widescreen" },
+  { value: "square", label: "1:1 — Square" }
+] as const;
+
+// The CONTROL height contract, side by side: a TextInput and a SelectField at
+// each size (and each Select variant) must render at exactly the same height.
+// The visual suite measures what jsdom cannot.
+const PreviewFormControls: React.FC = () => (
+  <Box data-preview="form-controls" sx={{ width: 560, p: 4 }}>
+    <Panel padding="normal">
+      <FlexColumn gap={3}>
+        <FlexRow gap={2} align="flex-end">
+          <TextInput label="Medium text" placeholder="36px" />
+          <SelectField
+            label="Medium outlined"
+            variant="outlined"
+            value="widescreen"
+            onChange={() => undefined}
+            options={FORM_CONTROL_OPTIONS}
+          />
+          <SelectField
+            label="Medium standard"
+            variant="standard"
+            value="widescreen"
+            onChange={() => undefined}
+            options={FORM_CONTROL_OPTIONS}
+          />
+        </FlexRow>
+        <FlexRow gap={2} align="flex-end">
+          <TextInput label="Small text" placeholder="28px" compact />
+          <SelectField
+            label="Small outlined"
+            variant="outlined"
+            size="small"
+            value="square"
+            onChange={() => undefined}
+            options={FORM_CONTROL_OPTIONS}
+          />
+          <SelectField
+            label="Small standard"
+            variant="standard"
+            size="small"
+            value="square"
+            onChange={() => undefined}
+            options={FORM_CONTROL_OPTIONS}
+          />
+        </FlexRow>
+      </FlexColumn>
+    </Panel>
+  </Box>
+);
 
 // ─── Preview index page ────────────────────────────────────────────────────────
 
@@ -660,6 +772,7 @@ const COMPONENT_MAP: Record<string, React.FC> = {
   dashboard: PreviewDashboard,
   costs: PreviewCosts,
   models: PreviewModels,
+  "model-onboarding": PreviewModelOnboarding,
   assets: PreviewAssets,
   "confirm-dialog": PreviewConfirmDialog,
   "color-picker": PreviewColorPicker,
@@ -672,7 +785,8 @@ const COMPONENT_MAP: Record<string, React.FC> = {
   "node-readme": PreviewNodeReadme,
   "workflow-form": PreviewWorkflowForm,
   "workflow-delete": PreviewWorkflowDelete,
-  "vibecoding-modal": PreviewVibeCodingModal
+  "provider-onboarding": PreviewProviderOnboarding,
+  "form-controls": PreviewFormControls
 };
 
 const ComponentPreview: React.FC = () => {

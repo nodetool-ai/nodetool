@@ -177,6 +177,43 @@ describe("FAL factory argument building", () => {
     });
   });
 
+  it("defaults an asset field to an AssetRef object even when the manifest default is \"\"", () => {
+    // Some manifest entries ship `default: ""` for asset fields (notably inpaint
+    // masks). The `""` must not shadow the proper AssetRef default object.
+    const NodeClass = createFalNodeClass({
+      endpointId: "fal-ai/inpaint",
+      className: "Inpaint",
+      moduleName: "image_to_image",
+      docstring: "test",
+      tags: [],
+      useCases: [],
+      outputType: "image",
+      outputFields: [],
+      enums: [],
+      inputFields: [
+        {
+          name: "mask",
+          propType: "image",
+          tsType: "image",
+          default: "",
+          description: "",
+          fieldType: "input",
+          required: true,
+          apiParamName: "mask_url"
+        }
+      ]
+    });
+
+    const instance = new NodeClass({}) as unknown as Record<string, unknown>;
+    expect(instance.mask).toEqual({
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    });
+  });
+
   it("sends mask assets under mask_url api param", async () => {
     imageToDataUrl.mockResolvedValueOnce(null);
     imageToDataUrl.mockResolvedValueOnce("data:image/png;base64,abc");

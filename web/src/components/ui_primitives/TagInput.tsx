@@ -35,7 +35,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
-import { MOTION } from "./tokens";
+import { CONTROL, MOTION } from "./tokens";
 
 const styles = (theme: Theme) =>
   css({
@@ -48,7 +48,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: theme.spacing(1),
       padding: theme.spacing(1),
-      minHeight: "48px",
+      minHeight: `${CONTROL.height.xl}px`,
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: theme.shape.borderRadius,
       backgroundColor: theme.vars.palette.background.paper,
@@ -138,12 +138,6 @@ export interface TagInputProps {
   className?: string;
 }
 
-/**
- * A tag input component for managing tags/chips.
- *
- * Provides an intuitive interface for adding and removing tags with full
- * keyboard support and accessibility features.
- */
 export const TagInput: React.FC<TagInputProps> = memo(
   function TagInput({
     tags,
@@ -183,25 +177,21 @@ export const TagInput: React.FC<TagInputProps> = memo(
       (tag: string): boolean => {
         const trimmedTag = tag.trim();
 
-        // Empty tag check
         if (trimmedTag === "") {
           setValidationError("Tag cannot be empty");
           return false;
         }
 
-        // Duplicate check
         if (!allowDuplicates && tags.includes(trimmedTag)) {
           setValidationError("This tag already exists");
           return false;
         }
 
-        // Max tags check
         if (maxTags !== undefined && tags.length >= maxTags) {
           setValidationError(`Maximum ${maxTags} tags allowed`);
           return false;
         }
 
-        // Custom validation
         if (validateTag) {
           const result = validateTag(trimmedTag);
           if (!result.valid) {

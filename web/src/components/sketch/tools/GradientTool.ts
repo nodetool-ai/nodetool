@@ -1,10 +1,5 @@
 /**
  * GradientTool – drag to define gradient start/end, draws on pointer up.
- *
- * Extracted from usePointerHandlers:
- *   handlePointerDown (~line 932-941)
- *   handlePointerMove (~line 1180-1185)
- *   handlePointerUp   (~line 1430-1447)
  */
 
 import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
@@ -19,7 +14,7 @@ import { selectionHasAnyPixels, selectionHitTest } from "../selection";
 import { captureAlphaSnapshot, restoreAlphaFromSnapshot } from "../painting/alphaLock";
 import GradientIcon from "@mui/icons-material/Gradient";
 
-// ─── Gradient Drawing (moved from drawingUtils.ts) ───────────────────────────
+// ─── Gradient Drawing ────────────────────────────────────────────────────────
 
 export function drawGradient(
   ctx: CanvasRenderingContext2D,

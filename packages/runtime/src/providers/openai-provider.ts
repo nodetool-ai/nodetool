@@ -4,15 +4,36 @@ import OpenAI, { toFile } from "openai";
 // notably the Electron main bundle, where Vite/Rollup can't resolve sharp's
 // dynamic require for `@img/sharp-*.node` and the app crashes at launch.
 import type { Chunk } from "@nodetool-ai/protocol";
+import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import { createLogger, importHidden } from "@nodetool-ai/config";
-import { BaseProvider } from "./base-provider.js";
+import { BaseProvider, splitToolResultImages } from "./base-provider.js";
+import { hashSystemPrompt } from "./provider-session.js";
+import { sniffAudioMime } from "./audio-mime.js";
+import {
+  extractResponsesImages,
+  extractResponsesText,
+  extractResponsesToolCalls,
+  isRecord,
+  messagesToResponsesInput,
+  responseToolChoice,
+  responseTools,
+  responseUsage,
+  streamResponsesEvents
+} from "./responses-api.js";
+import {
+  isProviderMessageEvent,
+  isProviderSessionUpdate,
+  IMAGE_GENERATION_TOOL_NAME,
+  WEB_SEARCH_TOOL_NAME
+} from "./types.js";
 
-type SharpFn = typeof import("sharp");
-type SharpModule = SharpFn | { default: SharpFn };
+type SharpModuleNs = typeof import("sharp");
+type SharpFn = SharpModuleNs["default"];
+type SharpModule = SharpModuleNs | { default: SharpFn };
 async function loadSharp(): Promise<SharpFn> {
   const mod = await importHidden<SharpModule>("sharp");
   if (!mod) throw new Error("sharp requires Node");
-  return (mod as { default?: SharpFn }).default ?? (mod as SharpFn);
+  return (mod as { default?: SharpFn }).default ?? (mod as unknown as SharpFn);
 }
 
 const log = createLogger("nodetool.runtime.providers.openai");
@@ -31,6 +52,7 @@ import type {
   MessageImageContent,
   MessageTextContent,
   ProviderId,
+  ProviderSession,
   ProviderStreamItem,
   ProviderTool,
   StreamingAudioChunk,
@@ -77,13 +99,8 @@ function asUint8Array(data: unknown): Uint8Array {
 }
 
 function toInt16Samples(bytes: Uint8Array): Int16Array {
-  const aligned =
-    bytes.length % 2 === 0 ? bytes : bytes.slice(0, bytes.length - 1);
-  return new Int16Array(
-    aligned.buffer,
-    aligned.byteOffset,
-    aligned.byteLength / 2
-  );
+  const copy = Uint8Array.from(bytes);
+  return new Int16Array(copy.buffer);
 }
 
 function parseDataUri(uri: string): { mime: string; data: Uint8Array } {
@@ -113,6 +130,21 @@ function makeDataUri(mime: string, data: Uint8Array): string {
 }
 
 /**
+ * OpenAI's Chat Completions `input_audio` block accepts only `"wav"` or `"mp3"`
+ * as its `format` — a bare token, not a mime type. Resolve it from the declared
+ * mime when present, otherwise sniff the leading magic bytes. Anything that
+ * isn't WAV is sent as `"mp3"` (the only other format OpenAI decodes).
+ */
+function openAiAudioFormat(
+  mime: string | undefined,
+  bytes: Uint8Array
+): "wav" | "mp3" {
+  const resolved =
+    mime && mime !== "application/octet-stream" ? mime : sniffAudioMime(bytes);
+  return /wave?$/i.test(resolved) ? "wav" : "mp3";
+}
+
+/**
  * Custom JSON replacer that handles objects with toJSON() methods
  * and other non-serializable types. Mirrors Python's _default_serializer.
  */
@@ -130,6 +162,108 @@ function defaultSerializer(_key: string, value: unknown): unknown {
     return (value as { toJSON: () => unknown }).toJSON();
   }
   return value;
+}
+
+const RESPONSE_WEB_SEARCH_TOOL: Record<string, unknown> = {
+  type: "web_search"
+};
+
+const RESPONSE_IMAGE_GENERATION_TOOL: Record<string, unknown> = {
+  type: "image_generation"
+};
+
+const RESPONSE_HOSTED_TOOL_CHOICES: Readonly<Record<string, string>> = {
+  [WEB_SEARCH_TOOL_NAME]: "web_search",
+  [IMAGE_GENERATION_TOOL_NAME]: "image_generation"
+};
+
+const SORA_VIDEO_DURATIONS = [4, 8, 12, 16, 20] as const;
+
+const OPENAI_FALLBACK_MODELS: LanguageModel[] = [
+  "gpt-5.6",
+  "gpt-5.6-sol",
+  "gpt-5.6-terra",
+  "gpt-5.6-luna",
+  "gpt-5.5",
+  "gpt-5.5-pro",
+  "gpt-5.4",
+  "gpt-5.4-pro",
+  "gpt-5.4-mini",
+  "gpt-5.4-nano",
+  "gpt-5",
+  "gpt-5-mini",
+  "gpt-5-nano"
+].map((id) => ({
+  id,
+  name: id,
+  provider: PROVIDER_IDS.OPENAI
+}));
+
+type ResponsesCreate = (
+  body: Record<string, unknown>,
+  options?: { signal?: AbortSignal }
+) => Promise<Record<string, unknown> | AsyncIterable<Record<string, unknown>>>;
+
+interface StreamTurnState {
+  assistantText: string;
+  images: MessageImageContent[];
+  pending: ToolCall[];
+  responseId: string | null;
+  emittedContent: boolean;
+}
+
+/**
+ * OpenAI language models we support: the gpt-5 family, served through the
+ * Responses API. Everything before gpt-5 (gpt-4o, gpt-4.1, the o-series, …) is
+ * retired. OpenAI-compatible subclasses set their own provider id and never
+ * reach this predicate, so they keep their own model support on Chat Completions.
+ */
+function isOpenAIResponsesModel(model: string): boolean {
+  const id = model.toLowerCase();
+  // Audio / realtime / transcription variants stay on Chat Completions — the
+  // Responses API doesn't serve the `modalities: ["text","audio"]` path.
+  if (/audio|realtime|transcribe/.test(id)) return false;
+  return /^gpt-5(?:[.-]|$)/.test(id);
+}
+
+function responsesSystemPrompt(messages: Message[]): string {
+  return messages
+    .filter((m) => m.role === "system")
+    .map((m) => (typeof m.content === "string" ? m.content : ""))
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+/**
+ * A native image_generation result surfaced by the stream parser as an image
+ * chunk. Returns the content block to attach to the assistant message, or
+ * null for any other stream item. The multi-megabyte base64 blob must be
+ * absorbed here, never yielded onward as a chunk.
+ */
+function imageContentFromChunk(item: unknown): MessageImageContent | null {
+  if (
+    !isRecord(item) ||
+    item.type !== "chunk" ||
+    item.content_type !== "image" ||
+    typeof item.content !== "string"
+  ) {
+    return null;
+  }
+  const metadata = isRecord(item.content_metadata) ? item.content_metadata : {};
+  const mimeType =
+    typeof metadata.mimeType === "string" ? metadata.mimeType : "image/png";
+  return { type: "image_url", image: { data: item.content, mimeType } };
+}
+
+/** Text block (when non-empty) followed by generated-image blocks. */
+function assistantContentWithImages(
+  text: string,
+  images: MessageImageContent[]
+): MessageContent[] {
+  const blocks: MessageContent[] = [];
+  if (text) blocks.push({ type: "text", text });
+  blocks.push(...images);
+  return blocks;
 }
 
 export class OpenAIProvider extends BaseProvider {
@@ -171,11 +305,50 @@ export class OpenAIProvider extends BaseProvider {
     return this._client;
   }
 
+  /**
+   * True when this instance should serve `model` through the Responses API.
+   * Gated on the real `openai` provider so OpenAI-compatible subclasses (which
+   * pass their own provider id) stay on Chat Completions.
+   */
+  protected usesResponsesApi(model: string): boolean {
+    return (
+      this.provider === PROVIDER_IDS.OPENAI && isOpenAIResponsesModel(model)
+    );
+  }
+
+  override get supportsNativeWebSearch(): boolean {
+    return this.provider === PROVIDER_IDS.OPENAI;
+  }
+
+  override get supportsNativeImageGeneration(): boolean {
+    return this.provider === PROVIDER_IDS.OPENAI;
+  }
+
   async hasToolSupport(model: string): Promise<boolean> {
+    if (this.usesResponsesApi(model)) return true;
     return !(model.startsWith("o1") || model.startsWith("o3"));
   }
 
+  /**
+   * Whether this instance actually serves OpenAI's own model catalog.
+   *
+   * The media and embedding lists below are hardcoded OpenAI models tagged
+   * `provider: "openai"`. Subclasses inherit OpenAI's *chat dialect*, not its
+   * lineup — a Groq or vLLM instance offering `gpt-image-2` or `whisper-1` is
+   * always wrong, and picking one sends the request to a host that has no such
+   * endpoint. Subclasses that do serve media (Together, MiniMax, GMI, xAI, …)
+   * override these methods with their own catalog; everyone else correctly
+   * reports none.
+   */
+  protected servesOpenAICatalog(): boolean {
+    return this.provider === PROVIDER_IDS.OPENAI;
+  }
+
   async getAvailableLanguageModels(): Promise<LanguageModel[]> {
+    // The `openai` provider only serves the supported (gpt-5+) models; retire
+    // everything older. Subclasses (their own provider id) keep their full list.
+    const isOpenAI = this.provider === PROVIDER_IDS.OPENAI;
+
     const response = await this._fetch("https://api.openai.com/v1/models", {
       headers: {
         Authorization: `Bearer ${this.apiKey}`
@@ -183,44 +356,97 @@ export class OpenAIProvider extends BaseProvider {
     });
 
     if (!response.ok) {
-      return [];
+      return isOpenAI ? OPENAI_FALLBACK_MODELS : [];
     }
 
     const payload = (await response.json()) as {
       data?: Array<{ id?: string }>;
     };
     const rows = payload.data ?? [];
-    return rows
+    const models = rows
       .filter(
         (row): row is { id: string } =>
           typeof row.id === "string" && row.id.length > 0
       )
+      .filter((row) => !isOpenAI || isOpenAIResponsesModel(row.id))
       .map((row) => ({
         id: row.id,
         name: row.id,
-        provider: "openai"
+        provider: this.provider
       }));
+    if (models.length === 0 && isOpenAI) {
+      return OPENAI_FALLBACK_MODELS;
+    }
+    return models;
   }
 
   async getAvailableTTSModels(): Promise<TTSModel[]> {
+    if (!this.servesOpenAICatalog()) return [];
+    const legacyVoices = [
+      "alloy",
+      "ash",
+      "coral",
+      "echo",
+      "fable",
+      "onyx",
+      "nova",
+      "sage",
+      "shimmer"
+    ];
     return [
+      {
+        id: "gpt-4o-mini-tts",
+        name: "GPT-4o Mini TTS (Deprecated)",
+        provider: "openai",
+        voices: [
+          "alloy",
+          "ash",
+          "ballad",
+          "coral",
+          "echo",
+          "fable",
+          "nova",
+          "onyx",
+          "sage",
+          "shimmer",
+          "verse",
+          "marin",
+          "cedar"
+        ]
+      },
       {
         id: "tts-1",
         name: "TTS 1",
         provider: "openai",
-        voices: ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+        voices: legacyVoices
       },
       {
         id: "tts-1-hd",
         name: "TTS 1 HD",
         provider: "openai",
-        voices: ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+        voices: legacyVoices
       }
     ];
   }
 
   async getAvailableASRModels(): Promise<ASRModel[]> {
+    if (!this.servesOpenAICatalog()) return [];
     return [
+      {
+        id: "gpt-4o-transcribe",
+        name: "GPT-4o Transcribe",
+        provider: "openai"
+      },
+      {
+        id: "gpt-4o-mini-transcribe",
+        name: "GPT-4o Mini Transcribe",
+        provider: "openai"
+      },
+      {
+        id: "gpt-4o-transcribe-diarize",
+        name: "GPT-4o Transcribe Diarize",
+        provider: "openai"
+      },
       {
         id: "whisper-1",
         name: "Whisper",
@@ -230,23 +456,31 @@ export class OpenAIProvider extends BaseProvider {
   }
 
   async getAvailableVideoModels(): Promise<VideoModel[]> {
+    if (!this.servesOpenAICatalog()) return [];
     return [
       {
         id: "sora-2",
         name: "Sora 2",
         provider: "openai",
-        supportedTasks: ["text_to_video"]
+        supportedTasks: ["text_to_video", "image_to_video"],
+        durations: [...SORA_VIDEO_DURATIONS],
+        resolutions: ["720p"],
+        aspectRatios: ["16:9", "9:16"]
       },
       {
         id: "sora-2-pro",
         name: "Sora 2 Pro",
         provider: "openai",
-        supportedTasks: ["text_to_video"]
+        supportedTasks: ["text_to_video", "image_to_video"],
+        durations: [...SORA_VIDEO_DURATIONS],
+        resolutions: ["720p", "1024p", "1080p"],
+        aspectRatios: ["16:9", "9:16"]
       }
     ];
   }
 
   async getAvailableImageModels(): Promise<ImageModel[]> {
+    if (!this.servesOpenAICatalog()) return [];
     return [
       {
         id: "gpt-image-2",
@@ -276,6 +510,7 @@ export class OpenAIProvider extends BaseProvider {
   }
 
   async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
+    if (!this.servesOpenAICatalog()) return [];
     return [
       {
         id: "text-embedding-3-small",
@@ -298,12 +533,74 @@ export class OpenAIProvider extends BaseProvider {
     ];
   }
 
+  /**
+   * gpt-image-2 accepts arbitrary sizes within limits: both edges a multiple of
+   * 16, long edge <= 3840, aspect ratio <= 3:1, and total area between 0.64MP
+   * and 8.3MP. Requested sizes rarely land on that grid (16:9 at 1K is
+   * 1820x1024), so snap to the nearest valid size preserving the aspect ratio
+   * rather than dropping `size` and letting the API default to a square.
+   */
+  static snapToGptImage2Size(width: number, height: number): string | null {
+    const MIN_AREA = 655_360;
+    const MAX_AREA = 8_294_400;
+    const MAX_EDGE = 3840;
+    const MAX_RATIO = 3;
+
+    if (!(width > 0) || !(height > 0)) return null;
+
+    const landscape = width >= height;
+    const ratio = Math.min(
+      MAX_RATIO,
+      landscape ? width / height : height / width
+    );
+
+    // Derive edges from the clamped ratio at the requested area, then pull the
+    // area into range.
+    const area = Math.min(MAX_AREA, Math.max(MIN_AREA, width * height));
+    let long = Math.sqrt(area * ratio);
+    let short = long / ratio;
+    if (long > MAX_EDGE) {
+      short *= MAX_EDGE / long;
+      long = MAX_EDGE;
+    }
+
+    const snap = (v: number): number =>
+      Math.min(MAX_EDGE, Math.max(16, Math.round(v / 16) * 16));
+    let longPx = snap(long);
+    let shortPx = snap(short);
+
+    // Snapping can nudge the area out of range; step it back in.
+    while (longPx * shortPx < MIN_AREA && longPx + 16 <= MAX_EDGE) {
+      longPx += 16;
+      shortPx = snap(longPx / ratio);
+    }
+    while (longPx * shortPx > MAX_AREA && longPx - 16 >= 16) {
+      longPx -= 16;
+      shortPx = snap(longPx / ratio);
+    }
+    // Rounding the short edge down can tip the ratio back over the limit, so
+    // round up here.
+    if (longPx / shortPx > MAX_RATIO) {
+      shortPx = Math.min(longPx, Math.ceil(longPx / MAX_RATIO / 16) * 16);
+    }
+
+    const areaPx = longPx * shortPx;
+    if (areaPx < MIN_AREA || areaPx > MAX_AREA) return null;
+
+    return landscape ? `${longPx}x${shortPx}` : `${shortPx}x${longPx}`;
+  }
+
   resolveImageSize(
     width?: number | null,
-    height?: number | null
+    height?: number | null,
+    model?: string
   ): string | null {
     if (!width || !height) {
       return null;
+    }
+
+    if (model === "gpt-image-2" || model?.startsWith("gpt-image-2-") === true) {
+      return OpenAIProvider.snapToGptImage2Size(width, height);
     }
 
     const supported: Array<[number, number]> = [
@@ -335,18 +632,28 @@ export class OpenAIProvider extends BaseProvider {
 
   static resolveVideoSize(
     aspectRatio?: string | null,
-    resolution?: string | null
+    resolution?: string | null,
+    model?: string
   ): string | null {
     if (!resolution) {
       return null;
     }
 
-    const supported: Array<[number, number]> = [
-      [1280, 720],
-      [1792, 1024],
-      [720, 1280],
-      [1024, 1792]
-    ];
+    const isStandardSora2 =
+      model?.startsWith("sora-2") === true && !model.includes("pro");
+    const supported: Array<[number, number]> = isStandardSora2
+      ? [
+          [1280, 720],
+          [720, 1280]
+        ]
+      : [
+          [1280, 720],
+          [1792, 1024],
+          [1920, 1080],
+          [720, 1280],
+          [1024, 1792],
+          [1080, 1920]
+        ];
 
     const aspect = (aspectRatio ?? "16:9").replaceAll(" ", "");
     const resolutionKey = resolution.toLowerCase();
@@ -415,17 +722,32 @@ export class OpenAIProvider extends BaseProvider {
   }
 
   static secondsFromParams(params: {
+    durationSeconds?: number | null;
     numFrames?: number | null;
   }): number | null {
+    const durationSeconds = params.durationSeconds;
+    if (
+      durationSeconds != null &&
+      Number.isFinite(durationSeconds) &&
+      durationSeconds > 0
+    ) {
+      return SORA_VIDEO_DURATIONS.reduce(
+        (duration, candidate) =>
+          candidate <= durationSeconds ? candidate : duration,
+        SORA_VIDEO_DURATIONS[0]
+      );
+    }
+
     const numFrames = params.numFrames;
-    if (!numFrames || numFrames <= 0) {
+    if (!numFrames || !Number.isFinite(numFrames) || numFrames <= 0) {
       return null;
     }
 
     const estimated = Math.ceil(numFrames / 24);
-    if (estimated < 8) return 4;
-    if (estimated < 12) return 8;
-    return 12;
+    return SORA_VIDEO_DURATIONS.reduce(
+      (duration, candidate) => (candidate <= estimated ? candidate : duration),
+      SORA_VIDEO_DURATIONS[0]
+    );
   }
 
   static snapToValidVideoDimensions(width: number, height: number): string {
@@ -529,17 +851,21 @@ export class OpenAIProvider extends BaseProvider {
 
     if (content.type === "audio") {
       const c = content as MessageAudioContent;
-      const base64 = c.audio.uri
-        ? (await this.uriToBase64(c.audio.uri)).split(",", 2)[1]
-        : Buffer.from(asUint8Array(c.audio.data ?? new Uint8Array())).toString(
-            "base64"
-          );
+      let bytes: Uint8Array;
+      let mime = c.audio.mimeType;
+      if (c.audio.uri) {
+        const parsed = parseDataUri(await this.uriToBase64(c.audio.uri));
+        bytes = parsed.data;
+        mime = mime ?? parsed.mime;
+      } else {
+        bytes = asUint8Array(c.audio.data ?? new Uint8Array());
+      }
 
       return {
         type: "input_audio",
         input_audio: {
-          format: "mp3",
-          data: base64
+          format: openAiAudioFormat(mime, bytes),
+          data: Buffer.from(bytes).toString("base64")
         }
       };
     }
@@ -659,11 +985,19 @@ export class OpenAIProvider extends BaseProvider {
     });
   }
 
-  private convertSystemToUserForOModels(
+  protected convertSystemToUserForOModels(
     messages: Message[],
     model: string
   ): Message[] {
-    if (!model.startsWith("o")) {
+    // Match ONLY genuine OpenAI reasoning models (o1/o3/o4), not any id that
+    // merely starts with "o". Compat providers use namespaced ids like
+    // "openai/gpt-4o" or "openai/gpt-oss-120b" that begin with "o" but fully
+    // support the system role — mangling their system prompt corrupts every
+    // request. Strip a leading "vendor/" namespace before matching.
+    const bareModel = model.includes("/")
+      ? model.slice(model.lastIndexOf("/") + 1)
+      : model;
+    if (!/^o[134](-|$)/.test(bareModel)) {
       return messages;
     }
 
@@ -678,17 +1012,13 @@ export class OpenAIProvider extends BaseProvider {
     );
   }
 
-  async *generateMessages(args: {
-    messages: Message[];
-    model: string;
-    tools?: ProviderTool[];
-    maxTokens?: number;
-    temperature?: number;
-    topP?: number;
-    presencePenalty?: number;
-    frequencyPenalty?: number;
-    audio?: Record<string, unknown>;
-  }): AsyncGenerator<ProviderStreamItem> {
+  async *generateMessages(
+    args: Parameters<BaseProvider["generateMessages"]>[0]
+  ): AsyncGenerator<ProviderStreamItem> {
+    if (this.usesResponsesApi(args.model)) {
+      yield* this.generateMessagesResponses(args);
+      return;
+    }
     const {
       model,
       tools = [],
@@ -697,7 +1027,8 @@ export class OpenAIProvider extends BaseProvider {
       topP,
       presencePenalty,
       frequencyPenalty,
-      audio
+      audio,
+      toolChoice
     } = args;
 
     const messages = this.convertSystemToUserForOModels(args.messages, model);
@@ -713,8 +1044,7 @@ export class OpenAIProvider extends BaseProvider {
       stream_options: { include_usage: true }
     };
 
-    const hasTools =
-      tools.length > 0 && (await this.hasToolSupport(model));
+    const hasTools = tools.length > 0 && (await this.hasToolSupport(model));
 
     if (temperature != null) request.temperature = temperature;
     if (topP != null) request.top_p = topP;
@@ -728,13 +1058,20 @@ export class OpenAIProvider extends BaseProvider {
 
     if (hasTools) {
       request.tools = this.formatTools(tools);
+      if (toolChoice) {
+        request.tool_choice =
+          toolChoice === "any"
+            ? "required"
+            : { type: "function", function: { name: toolChoice } };
+      }
     }
 
     log.debug("OpenAI request", { model });
 
     this.recordRequestPayload(request);
     const stream = (await this.getClient().chat.completions.create(
-      request as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming
+      request as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming,
+      { signal: args.signal }
     )) as AsyncIterable<any> & { close?: () => Promise<void> };
 
     const deltaToolCalls = new Map<number, MutableToolCall>();
@@ -790,7 +1127,7 @@ export class OpenAIProvider extends BaseProvider {
           yield item;
         }
 
-        if (choice.finish_reason === "tool_calls") {
+        if (choice.finish_reason && deltaToolCalls.size > 0) {
           for (const call of deltaToolCalls.values()) {
             const toolCall: ToolCall = this.buildToolCall(
               call.id,
@@ -819,17 +1156,12 @@ export class OpenAIProvider extends BaseProvider {
     }
   }
 
-  async generateMessage(args: {
-    messages: Message[];
-    model: string;
-    tools?: ProviderTool[];
-    toolChoice?: string | "any";
-    maxTokens?: number;
-    temperature?: number;
-    topP?: number;
-    presencePenalty?: number;
-    frequencyPenalty?: number;
-  }): Promise<Message> {
+  async generateMessage(
+    args: Parameters<BaseProvider["generateMessage"]>[0]
+  ): Promise<Message> {
+    if (this.usesResponsesApi(args.model)) {
+      return this.generateMessageResponses(args);
+    }
     const {
       model,
       tools = [],
@@ -853,8 +1185,7 @@ export class OpenAIProvider extends BaseProvider {
       max_completion_tokens: maxTokens
     };
 
-    const hasTools =
-      tools.length > 0 && (await this.hasToolSupport(model));
+    const hasTools = tools.length > 0 && (await this.hasToolSupport(model));
 
     if (temperature != null) request.temperature = temperature;
     if (topP != null) request.top_p = topP;
@@ -875,7 +1206,8 @@ export class OpenAIProvider extends BaseProvider {
 
     this.recordRequestPayload(request);
     const completion = await this.getClient().chat.completions.create(
-      request as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming
+      request as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
+      { signal: args.signal }
     );
 
     const choice = completion.choices?.[0];
@@ -883,7 +1215,7 @@ export class OpenAIProvider extends BaseProvider {
       throw new Error("OpenAI returned no choices");
     }
 
-    const usage = (completion as any).usage;
+    const usage = completion.usage;
     if (usage) {
       this.trackUsage(model, {
         inputTokens: usage.prompt_tokens ?? 0,
@@ -897,7 +1229,9 @@ export class OpenAIProvider extends BaseProvider {
     const toolCalls = Array.isArray(responseMessage.tool_calls)
       ? responseMessage.tool_calls
           .filter(
-            (tc): tc is OpenAI.Chat.Completions.ChatCompletionMessageFunctionToolCall =>
+            (
+              tc
+            ): tc is OpenAI.Chat.Completions.ChatCompletionMessageFunctionToolCall =>
               tc.type === "function"
           )
           .map((tc) =>
@@ -910,6 +1244,446 @@ export class OpenAIProvider extends BaseProvider {
       content: responseMessage.content ?? null,
       toolCalls
     };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Responses API path (used for OpenAI models matched by isOpenAIResponsesModel)
+  // ---------------------------------------------------------------------------
+
+  /** Tool shapes for the Responses API: native web_search / image_generation. */
+  private formatResponsesTools(
+    tools: ProviderTool[]
+  ): Array<Record<string, unknown>> {
+    const formatted: Array<Record<string, unknown>> = [];
+    for (const tool of tools) {
+      if (tool.name === WEB_SEARCH_TOOL_NAME) {
+        formatted.push(RESPONSE_WEB_SEARCH_TOOL);
+        continue;
+      }
+      if (tool.name === IMAGE_GENERATION_TOOL_NAME) {
+        formatted.push(RESPONSE_IMAGE_GENERATION_TOOL);
+        continue;
+      }
+      const [functionTool] = responseTools([tool]);
+      if (functionTool) formatted.push(functionTool);
+    }
+    return formatted;
+  }
+
+  private async generateMessageResponses(
+    args: Parameters<BaseProvider["generateMessage"]>[0]
+  ): Promise<Message> {
+    const request = await this.buildResponsesRequest(args, {
+      input: await messagesToResponsesInput(args.messages, (uri) =>
+        this.resolveUri(uri)
+      ),
+      stream: false,
+      store: false
+    });
+    const client = this.getClient();
+
+    this.recordRequestPayload(request);
+    const response = (await (
+      client.responses.create as unknown as ResponsesCreate
+    ).call(client.responses, request, {
+      signal: args.signal
+    })) as Record<string, unknown>;
+
+    this.trackUsage(args.model, responseUsage(response));
+    const outputText =
+      typeof response.output_text === "string"
+        ? response.output_text
+        : extractResponsesText(response.output);
+    const toolCalls = extractResponsesToolCalls(
+      response.output,
+      this.buildToolCall.bind(this)
+    );
+    const images = extractResponsesImages(response.output);
+    const content: string | MessageContent[] | null =
+      images.length > 0
+        ? assistantContentWithImages(outputText, images)
+        : outputText || null;
+
+    return {
+      role: "assistant",
+      content,
+      toolCalls: toolCalls.length > 0 ? toolCalls : undefined
+    };
+  }
+
+  private async *generateMessagesResponses(
+    args: Parameters<BaseProvider["generateMessages"]>[0]
+  ): AsyncGenerator<ProviderStreamItem> {
+    const input = await messagesToResponsesInput(args.messages, (uri) =>
+      this.resolveUri(uri)
+    );
+    const request = await this.buildResponsesRequest(args, {
+      input,
+      stream: true,
+      store: false
+    });
+    // Absorb native image results here too — this non-loop path must uphold
+    // the same invariant as collectModelTurn: the base64 blob never leaks
+    // outward as a chunk. The image rides a trailing assistant message event.
+    const images: MessageImageContent[] = [];
+    let assistantText = "";
+    for await (const item of this.streamResponsesRequest(args, request)) {
+      const image = imageContentFromChunk(item);
+      if (image) {
+        images.push(image);
+        continue;
+      }
+      if (
+        isRecord(item) &&
+        item.type === "chunk" &&
+        typeof item.content === "string" &&
+        !item.thinking
+      ) {
+        assistantText += item.content;
+      }
+      yield item;
+    }
+    if (images.length > 0) {
+      yield {
+        type: "message",
+        message: {
+          role: "assistant",
+          content: assistantContentWithImages(assistantText, images)
+        }
+      };
+    }
+  }
+
+  override async *generateLoop(
+    args: Parameters<BaseProvider["generateMessages"]>[0] & {
+      executeTool?: (toolCall: ToolCall) => Promise<string | MessageContent[]>;
+      maxIterations?: number;
+      sequentialTools?: boolean;
+    }
+  ): AsyncGenerator<ProviderStreamItem> {
+    if (!this.usesResponsesApi(args.model)) {
+      yield* super.generateLoop(args);
+      return;
+    }
+    const maxIterations = args.maxIterations ?? 25;
+    const {
+      executeTool,
+      maxIterations: _omitMaxIterations,
+      sequentialTools,
+      ...turnArgs
+    } = args;
+    const systemHash = hashSystemPrompt(responsesSystemPrompt(args.messages));
+    const prior = args.providerSession ?? null;
+    const canResume =
+      prior != null &&
+      prior.providerId === this.provider &&
+      prior.model === args.model &&
+      (prior.systemHash == null || prior.systemHash === systemHash) &&
+      args.messages.length > prior.checkpoint;
+
+    if (canResume && prior) {
+      const firstMessages = args.messages.slice(prior.checkpoint);
+      const firstTurnState = this.createResponsesTurnState(prior.token);
+      try {
+        yield* this.runResponsesLoop({
+          args: turnArgs,
+          executeTool,
+          sequentialTools: sequentialTools === true,
+          maxIterations,
+          firstMessages,
+          firstPreviousResponseId: prior.token,
+          systemHash,
+          firstTurnState
+        });
+        return;
+      } catch (err) {
+        if (firstTurnState.emittedContent) {
+          throw err;
+        }
+        log.warn("OpenAI Responses resume failed; starting fresh", {
+          error: err instanceof Error ? err.message : String(err)
+        });
+      }
+    }
+
+    const freshMessages = args.loadFullHistory
+      ? await args.loadFullHistory()
+      : args.messages;
+    yield* this.runResponsesLoop({
+      args: turnArgs,
+      executeTool,
+      sequentialTools: sequentialTools === true,
+      maxIterations,
+      firstMessages: freshMessages,
+      firstPreviousResponseId: null,
+      systemHash,
+      firstTurnState: this.createResponsesTurnState(null)
+    });
+  }
+
+  private async buildResponsesRequest(
+    args: Pick<
+      Parameters<BaseProvider["generateMessages"]>[0],
+      "model" | "tools" | "toolChoice" | "maxTokens" | "temperature" | "topP"
+    >,
+    config: {
+      input: Array<Record<string, unknown>>;
+      stream: boolean;
+      store: boolean;
+      previousResponseId?: string | null;
+    }
+  ): Promise<Record<string, unknown>> {
+    const request: Record<string, unknown> = {
+      model: args.model,
+      input: config.input,
+      stream: config.stream,
+      store: config.store
+    };
+
+    if (config.previousResponseId) {
+      request.previous_response_id = config.previousResponseId;
+    }
+    if (args.maxTokens != null) request.max_output_tokens = args.maxTokens;
+    if (args.temperature != null) request.temperature = args.temperature;
+    if (args.topP != null) request.top_p = args.topP;
+
+    const tools = this.formatResponsesTools(args.tools ?? []);
+    if (tools.length > 0) {
+      request.tools = tools;
+      const hostedToolChoice = args.toolChoice
+        ? RESPONSE_HOSTED_TOOL_CHOICES[args.toolChoice]
+        : undefined;
+      request.tool_choice = hostedToolChoice
+        ? { type: hostedToolChoice }
+        : (responseToolChoice(args.toolChoice) ?? "auto");
+    }
+
+    return request;
+  }
+
+  private async *streamResponsesRequest(
+    args: Parameters<BaseProvider["generateMessages"]>[0],
+    request: Record<string, unknown>,
+    onResponseId?: (responseId: string) => void
+  ): AsyncGenerator<ProviderStreamItem> {
+    const client = this.getClient();
+    this.recordRequestPayload(request);
+    const stream = (await (
+      client.responses.create as unknown as ResponsesCreate
+    ).call(client.responses, request, {
+      signal: args.signal
+    })) as AsyncIterable<Record<string, unknown>>;
+    yield* streamResponsesEvents(stream, {
+      model: args.model,
+      buildToolCall: this.buildToolCall.bind(this),
+      onUsage: (model, usage) => this.trackUsage(model, usage),
+      onResponseId
+    });
+  }
+
+  private createResponsesTurnState(responseId: string | null): StreamTurnState {
+    return {
+      assistantText: "",
+      images: [],
+      pending: [],
+      responseId,
+      emittedContent: false
+    };
+  }
+
+  private async *runResponsesLoop(config: {
+    args: Parameters<BaseProvider["generateMessages"]>[0];
+    executeTool?: (toolCall: ToolCall) => Promise<string | MessageContent[]>;
+    sequentialTools: boolean;
+    maxIterations: number;
+    firstMessages: Message[];
+    firstPreviousResponseId: string | null;
+    systemHash: string;
+    firstTurnState: StreamTurnState;
+  }): AsyncGenerator<ProviderStreamItem> {
+    const toolMap = new Map<string, ProviderTool>(
+      (config.args.tools ?? []).map((tool) => [tool.name, tool])
+    );
+    let previousResponseId = config.firstPreviousResponseId;
+    let input = await messagesToResponsesInput(config.firstMessages, (uri) =>
+      this.resolveUri(uri)
+    );
+    let state = config.firstTurnState;
+
+    for (let iteration = 0; iteration < config.maxIterations; iteration++) {
+      if (config.args.signal?.aborted) return;
+
+      const request = await this.buildResponsesRequest(config.args, {
+        input,
+        stream: true,
+        store: true,
+        previousResponseId
+      });
+      yield* this.collectResponsesTurn(
+        config.args,
+        request,
+        config.systemHash,
+        state
+      );
+
+      previousResponseId = state.responseId;
+      // Native image_generation results ride the assistant message as image
+      // content and don't affect pending-tool semantics.
+      const assistantContent: string | MessageContent[] | null =
+        state.images.length > 0
+          ? assistantContentWithImages(state.assistantText, state.images)
+          : state.assistantText || null;
+      const assistantMsg: Message = {
+        role: "assistant",
+        content: assistantContent,
+        toolCalls: state.pending.length > 0 ? state.pending : null
+      };
+      yield { type: "message", message: assistantMsg };
+
+      if (state.pending.length === 0) {
+        return;
+      }
+
+      if (!previousResponseId) {
+        throw new Error(
+          "OpenAI Responses returned tool calls without a response id"
+        );
+      }
+
+      const toolMessages: Message[] = [];
+      const runTool = async (
+        tc: ToolCall
+      ): Promise<string | MessageContent[]> => {
+        // Per-tool error isolation: a thrown tool must still yield a
+        // tool_result so a parallel Promise.all rejection can't discard sibling
+        // results and leave a dangling tool_use (rejected by the API next turn).
+        try {
+          const tool = toolMap.get(tc.name);
+          if (tool?.execute) return await tool.execute(tc.args ?? {}, tc.id);
+          if (config.executeTool) return await config.executeTool(tc);
+          return `Tool "${tc.name}" is not available`;
+        } catch (err) {
+          return `Error executing tool "${tc.name}": ${
+            err instanceof Error ? err.message : String(err)
+          }`;
+        }
+      };
+      const emitToolResult = function* (
+        tc: ToolCall,
+        content: string | MessageContent[]
+      ): Generator<ProviderStreamItem> {
+        const { toolContent, imageMessage } = splitToolResultImages(content);
+        const toolMsg: Message = {
+          role: "tool",
+          toolCallId: tc.id,
+          content: toolContent
+        };
+        toolMessages.push(toolMsg);
+        yield { type: "message", message: toolMsg };
+        if (imageMessage) {
+          toolMessages.push(imageMessage);
+        }
+      };
+
+      let terminated = false;
+      if (config.sequentialTools) {
+        for (const tc of state.pending) {
+          // Honor a mid-turn abort (mirrors base-provider generateLoop): a tool
+          // like finish_step aborts the signal to stop the model running any
+          // further tools THIS turn. Without this check the Responses loop would
+          // keep executing pending tools after completion — duplicate
+          // step_result/StepCompleted events, overwritten memory, and stray
+          // side-effecting tools after the step is already done.
+          if (config.args.signal?.aborted) break;
+          const content = await runTool(tc);
+          yield* emitToolResult(tc, content);
+          const tool = toolMap.get(tc.name);
+          if (tool?.terminal) {
+            terminated = true;
+            break;
+          }
+        }
+      } else {
+        const results = await Promise.all(
+          state.pending.map(async (tc) => ({
+            tc,
+            content: await runTool(tc)
+          }))
+        );
+        for (const { tc, content } of results) {
+          yield* emitToolResult(tc, content);
+          const tool = toolMap.get(tc.name);
+          if (tool?.terminal) terminated = true;
+        }
+      }
+
+      input = await messagesToResponsesInput(toolMessages, (uri) =>
+        this.resolveUri(uri)
+      );
+      if (terminated) return;
+      state = this.createResponsesTurnState(previousResponseId);
+    }
+
+    yield { type: "chunk", content: "", done: true };
+  }
+
+  private async *collectResponsesTurn(
+    args: Parameters<BaseProvider["generateMessages"]>[0],
+    request: Record<string, unknown>,
+    systemHash: string,
+    state: StreamTurnState
+  ): AsyncGenerator<ProviderStreamItem> {
+    const sessionUpdates: ProviderStreamItem[] = [];
+    const enqueueSession = (responseId: string): void => {
+      if (state.responseId === responseId) return;
+      state.responseId = responseId;
+      const session: ProviderSession = {
+        providerId: this.provider,
+        model: args.model,
+        token: responseId,
+        checkpoint: args.messages.length,
+        systemHash
+      };
+      sessionUpdates.push({ type: "session", session });
+    };
+    const flushSessions = function* (): Generator<ProviderStreamItem> {
+      while (sessionUpdates.length > 0) {
+        const update = sessionUpdates.shift();
+        if (update) yield update;
+      }
+    };
+
+    for await (const item of this.streamResponsesRequest(
+      args,
+      request,
+      enqueueSession
+    )) {
+      yield* flushSessions();
+      if (isProviderSessionUpdate(item) || isProviderMessageEvent(item)) {
+        yield item;
+        continue;
+      }
+      if ("id" in item && "name" in item && "args" in item) {
+        state.pending.push(item);
+        state.emittedContent = true;
+        yield item;
+        continue;
+      }
+      if (isRecord(item) && item.type === "chunk") {
+        const image = imageContentFromChunk(item);
+        if (image) {
+          state.images.push(image);
+          state.emittedContent = true;
+          continue;
+        }
+        if (typeof item.content === "string" && !item.thinking) {
+          state.assistantText += item.content;
+          if (item.content) state.emittedContent = true;
+        }
+        yield item;
+      }
+    }
+    yield* flushSessions();
   }
 
   async textToImage(params: TextToImageParams): Promise<Uint8Array> {
@@ -928,14 +1702,21 @@ export class OpenAIProvider extends BaseProvider {
 
     const size = this.resolveImageSize(
       params.width ?? undefined,
-      params.height ?? undefined
+      params.height ?? undefined,
+      params.model.id
     );
     if (size) request.size = size;
     if (params.quality) request.quality = params.quality;
 
     const response = (await this.getClient().images.generate(
-      request as unknown as OpenAI.Images.ImageGenerateParams
+      request as unknown as OpenAI.Images.ImageGenerateParams,
+      { signal: params.signal }
     )) as OpenAI.Images.ImagesResponse;
+
+    this.trackUsage(params.model.id, {
+      imageCount: response.data?.length ?? 1,
+      imageQuality: params.quality ?? undefined
+    });
 
     const item = response.data?.[0];
     if (!item) {
@@ -1041,14 +1822,21 @@ export class OpenAIProvider extends BaseProvider {
 
     const size = this.resolveImageSize(
       params.targetWidth ?? undefined,
-      params.targetHeight ?? undefined
+      params.targetHeight ?? undefined,
+      params.model.id
     );
     if (size) request.size = size;
     if (params.quality) request.quality = params.quality;
 
     const response = (await this.getClient().images.edit(
-      request as unknown as OpenAI.Images.ImageEditParams
+      request as unknown as OpenAI.Images.ImageEditParams,
+      { signal: params.signal }
     )) as OpenAI.Images.ImagesResponse;
+
+    this.trackUsage(params.model.id, {
+      imageCount: response.data?.length ?? 1,
+      imageQuality: params.quality ?? undefined
+    });
 
     const item = response.data?.[0];
     if (!item) {
@@ -1095,9 +1883,21 @@ export class OpenAIProvider extends BaseProvider {
         response_format: "pcm"
       });
 
+      // TTS is billed per input character, not per token.
+      this.trackUsage(args.model, { inputCharacters: args.text.length });
+
+      let carry: number | undefined;
       for await (const chunk of response.iterBytes(4096)) {
-        const bytes = asUint8Array(chunk);
-        yield { samples: toInt16Samples(bytes) };
+        const incoming = asUint8Array(chunk);
+        const bytes = new Uint8Array(incoming.length + (carry == null ? 0 : 1));
+        if (carry != null) bytes[0] = carry;
+        bytes.set(incoming, carry == null ? 0 : 1);
+        const completeLength = bytes.length - (bytes.length % 2);
+        carry =
+          completeLength < bytes.length ? bytes[bytes.length - 1] : undefined;
+        if (completeLength > 0) {
+          yield { samples: toInt16Samples(bytes.subarray(0, completeLength)) };
+        }
       }
       return;
     }
@@ -1109,6 +1909,8 @@ export class OpenAIProvider extends BaseProvider {
       speed,
       response_format: "pcm"
     });
+
+    this.trackUsage(args.model, { inputCharacters: args.text.length });
 
     const bytes = asUint8Array(
       typeof response.arrayBuffer === "function"
@@ -1160,6 +1962,8 @@ export class OpenAIProvider extends BaseProvider {
       response_format: fmt
     });
 
+    this.trackUsage(args.model, { inputCharacters: args.text.length });
+
     const bytes = asUint8Array(
       typeof response.arrayBuffer === "function"
         ? await response.arrayBuffer()
@@ -1190,13 +1994,28 @@ export class OpenAIProvider extends BaseProvider {
             name: "audio.mp3"
           });
 
+    const isDiarizationModel = args.model.startsWith(
+      "gpt-4o-transcribe-diarize"
+    );
+    if (args.word_timestamps && args.model !== "whisper-1") {
+      throw new Error("Word timestamps are only supported by whisper-1");
+    }
+
     const requestParams: Record<string, unknown> = {
       file: fileLike,
       model: args.model,
       language: args.language,
-      prompt: args.prompt,
       temperature
     };
+
+    if (!isDiarizationModel && args.prompt) {
+      requestParams.prompt = args.prompt;
+    }
+
+    if (isDiarizationModel) {
+      requestParams.response_format = "diarized_json";
+      requestParams.chunking_strategy = "auto";
+    }
 
     if (args.word_timestamps) {
       requestParams.response_format = "verbose_json";
@@ -1207,9 +2026,23 @@ export class OpenAIProvider extends BaseProvider {
       this.getClient().audio.transcriptions as any
     ).create(requestParams);
 
+    // Whisper/transcribe is billed per second of audio. The duration is only
+    // reported on the verbose/diarized formats (and as `usage.seconds` on the
+    // newer transcribe models); skip accounting when it is absent rather than
+    // guessing.
+    const durationSeconds =
+      typeof response.duration === "number"
+        ? response.duration
+        : typeof response.usage?.seconds === "number"
+          ? response.usage.seconds
+          : undefined;
+    if (durationSeconds !== undefined) {
+      this.trackUsage(args.model, { durationSeconds });
+    }
+
     const text = String(response.text ?? "");
 
-    if (!args.word_timestamps) {
+    if (!args.word_timestamps && !isDiarizationModel) {
       return { text };
     }
 
@@ -1248,19 +2081,21 @@ export class OpenAIProvider extends BaseProvider {
 
     const size = OpenAIProvider.resolveVideoSize(
       params.aspectRatio,
-      params.resolution
+      params.resolution,
+      params.model.id
     );
     const seconds = OpenAIProvider.secondsFromParams(params) ?? 4;
 
     const request: Record<string, unknown> = {
       model: params.model.id,
       prompt: params.prompt,
-      size: size ?? "1024x1024",
+      size: size ?? "1280x720",
       seconds: String(seconds)
     };
 
     const video = await this.getClient().videos.create(
-      request as unknown as OpenAI.Videos.VideoCreateParams
+      request as unknown as OpenAI.Videos.VideoCreateParams,
+      { signal: params.signal }
     );
     if (!video?.id) {
       throw new Error(
@@ -1268,7 +2103,12 @@ export class OpenAIProvider extends BaseProvider {
       );
     }
 
-    const timeoutMs = 10 * 60 * 1000;
+    const timeoutMs =
+      params.timeoutSeconds != null &&
+      Number.isFinite(params.timeoutSeconds) &&
+      params.timeoutSeconds > 0
+        ? params.timeoutSeconds * 1000
+        : 10 * 60 * 1000;
     const intervalMs = 2000;
     const start = Date.now();
 
@@ -1278,8 +2118,19 @@ export class OpenAIProvider extends BaseProvider {
         throw new Error("Video generation timed out");
       }
 
-      await new Promise((resolve) => setTimeout(resolve, intervalMs));
-      latest = await this.getClient().videos.retrieve(video.id);
+      const remainingMs = timeoutMs - (Date.now() - start);
+      await new Promise((resolve) =>
+        setTimeout(resolve, Math.min(intervalMs, remainingMs))
+      );
+      if (Date.now() - start >= timeoutMs) {
+        throw new Error("Video generation timed out");
+      }
+      if (params.signal?.aborted) {
+        throw new Error("Video generation cancelled");
+      }
+      latest = await this.getClient().videos.retrieve(video.id, {
+        signal: params.signal
+      });
     }
 
     if (latest.status !== "completed") {
@@ -1310,7 +2161,8 @@ export class OpenAIProvider extends BaseProvider {
     const [width, height] = OpenAIProvider.extractImageDimensions(image);
     const requestedSize = OpenAIProvider.resolveVideoSize(
       params.aspectRatio,
-      params.resolution
+      params.resolution,
+      params.model.id
     );
     const size =
       requestedSize ?? OpenAIProvider.snapToValidVideoDimensions(width, height);
@@ -1327,15 +2179,18 @@ export class OpenAIProvider extends BaseProvider {
               .toBuffer()
           );
 
-    const video = await this.getClient().videos.create({
-      model: params.model.id as OpenAI.Videos.VideoModel,
-      prompt: params.prompt ?? "",
-      input_reference: await toFile(Buffer.from(resized), "input_image.png", {
-        type: "image/png"
-      }),
-      size: size as OpenAI.Videos.VideoSize,
-      seconds: String(seconds) as OpenAI.Videos.VideoSeconds
-    });
+    const video = await this.getClient().videos.create(
+      {
+        model: params.model.id as OpenAI.Videos.VideoModel,
+        prompt: params.prompt ?? "",
+        input_reference: await toFile(Buffer.from(resized), "input_image.png", {
+          type: "image/png"
+        }),
+        size: size as OpenAI.Videos.VideoSize,
+        seconds: String(seconds) as OpenAI.Videos.VideoSeconds
+      },
+      { signal: params.signal }
+    );
 
     if (!video?.id) {
       throw new Error(
@@ -1343,7 +2198,12 @@ export class OpenAIProvider extends BaseProvider {
       );
     }
 
-    const timeoutMs = 10 * 60 * 1000;
+    const timeoutMs =
+      params.timeoutSeconds != null &&
+      Number.isFinite(params.timeoutSeconds) &&
+      params.timeoutSeconds > 0
+        ? params.timeoutSeconds * 1000
+        : 10 * 60 * 1000;
     const intervalMs = 2000;
     const start = Date.now();
 
@@ -1353,8 +2213,19 @@ export class OpenAIProvider extends BaseProvider {
         throw new Error("Image-to-video generation timed out");
       }
 
-      await new Promise((resolve) => setTimeout(resolve, intervalMs));
-      latest = await this.getClient().videos.retrieve(video.id);
+      const remainingMs = timeoutMs - (Date.now() - start);
+      await new Promise((resolve) =>
+        setTimeout(resolve, Math.min(intervalMs, remainingMs))
+      );
+      if (Date.now() - start >= timeoutMs) {
+        throw new Error("Image-to-video generation timed out");
+      }
+      if (params.signal?.aborted) {
+        throw new Error("Image-to-video generation cancelled");
+      }
+      latest = await this.getClient().videos.retrieve(video.id, {
+        signal: params.signal
+      });
     }
 
     if (latest.status !== "completed") {

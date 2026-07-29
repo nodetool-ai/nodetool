@@ -4,7 +4,7 @@
  * Port of Python's `nodetool.models.asset`.
  */
 
-import { eq, and, like, desc, isNull, lt } from "drizzle-orm";
+import { eq, and, like, desc, isNull, lt, inArray } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { assets } from "./schema/assets.js";
@@ -77,6 +77,20 @@ export class Asset extends DBModel {
     const asset = await Asset.get<Asset>(assetId);
     if (!asset || asset.user_id !== userId) return null;
     return asset;
+  }
+
+  /**
+   * Every asset across all users, oldest first — for offline maintenance
+   * (the storage key backfill). Deliberately not user-scoped, so it must
+   * never back a request handler; pass `userId` to narrow it.
+   */
+  static async allForMigration(userId?: string): Promise<Asset[]> {
+    const db = getDb();
+    const query = db.select().from(assets);
+    const rows = await (userId
+      ? query.where(eq(assets.user_id, userId))
+      : query);
+    return rows.map((row) => new Asset(row as Partial<Asset>));
   }
 
   /** List assets in a folder. */
@@ -239,9 +253,20 @@ export class Asset extends DBModel {
     const result: Record<string, Record<string, string>> = {};
 
     const assetMap = new Map<string, Asset>();
-    for (const id of assetIds) {
-      const asset = await Asset.find(userId, id);
-      if (asset) assetMap.set(id, asset);
+
+    // Chunk ids to avoid sqlite limitations on max parameters if array is huge
+    const chunkSize = 900;
+    for (let i = 0; i < assetIds.length; i += chunkSize) {
+      const chunk = assetIds.slice(i, i + chunkSize);
+      const db = getDb();
+      const rows = await db
+        .select()
+        .from(assets)
+        .where(and(eq(assets.user_id, userId), inArray(assets.id, chunk)));
+
+      for (const r of rows) {
+        assetMap.set(r.id as string, new Asset(r as Record<string, unknown>));
+      }
     }
 
     const parentCache = new Map<string, Asset>();
@@ -262,8 +287,14 @@ export class Asset extends DBModel {
       const pathParts: string[] = [];
       const pathIds: string[] = [];
       let currentId: string | null = asset.parent_id;
+      // A cyclic parent chain would loop here forever. better-sqlite3 is
+      // synchronous, so the awaits never yield to the macrotask queue and the
+      // whole process wedges rather than just this request.
+      const seenAncestors = new Set<string>();
 
       while (currentId && currentId !== userId) {
+        if (seenAncestors.has(currentId)) break;
+        seenAncestors.add(currentId);
         let parent = parentCache.get(currentId);
         if (!parent) {
           parent = (await Asset.find(userId, currentId)) ?? undefined;
@@ -303,9 +334,16 @@ export class Asset extends DBModel {
     const folder = await Asset.find(userId, folderId);
     if (!folder) return { assets: [] };
 
+    // Guards against cyclic parent links: without it the descent never
+    // terminates, and since better-sqlite3 is synchronous it starves the
+    // event loop instead of overflowing the stack.
+    const visited = new Set<string>();
+
     async function recursiveFetch(
       currentFolderId: string
     ): Promise<Record<string, unknown>[]> {
+      if (visited.has(currentFolderId)) return [];
+      visited.add(currentFolderId);
       const [assetList] = await Asset.paginate(userId, {
         parentId: currentFolderId,
         limit: 10000

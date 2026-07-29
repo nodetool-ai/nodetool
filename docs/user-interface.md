@@ -46,13 +46,13 @@ Conversational AI with multi-thread history, an always-on agent loop, tools, and
 
 Docs: [Chat](global-chat.md)
 
-### Mini-Apps — `/apps/:workflowId?`
+### Mini-Apps — the Apps panel
 
-Run saved workflows through simplified form UIs. Mini-apps can also be launched as standalone frameless windows from the desktop tray.
+Apps are their own resource, listed in the **Apps** panel in the left sidebar and opened as workspace tabs. Each one runs one or more workflows behind a form. Apps can also be launched as standalone frameless windows from the desktop tray.
 
 ![Mini-App Page](assets/screenshots/mini-app-page.png)
 
-Docs: [Mini-Apps](mobile-app.md#mini-apps) · [Electron Mini-App Window](electron-views.md#mini-app-window)
+Docs: [Mini Apps](mini-apps.md) · [Electron Mini-App Window](electron-views.md#mini-app-window)
 
 ### Asset Explorer — `/assets`
 
@@ -106,6 +106,10 @@ Touch-optimized Dashboard, Chat, and Graph Editor. See [Mobile App](mobile-app.m
 
 ![Mobile Dashboard](assets/screenshots/dashboard-mobile.png)
 
+At tablet width the same layout keeps the panels but widens the content column:
+
+![Tablet Dashboard](assets/screenshots/dashboard-tablet.png)
+
 ### Desktop (Electron)
 
 The desktop app shares all the views above, plus an Install Wizard, System Tray, and frameless mini-app windows. See [Desktop App Views](electron-views.md).
@@ -129,8 +133,6 @@ Five workspaces:
 ## The App Menu
 
 The logo at the top of the left rail opens the app menu — your navigation hub:
-
-![App Menu](assets/screenshots/app-header.png)
 
 - **Dashboard** – Home screen
 - **Examples** – Browse ready-to-run example workflows
@@ -250,7 +252,7 @@ Access chat directly from the system tray for quick conversations:
 
 ## Mini-Apps
 
-Convert workflows into simple apps.
+A form or dashboard over one or more workflows, with the graph hidden.
 
 ### Purpose
 
@@ -260,12 +262,14 @@ Convert workflows into simple apps.
 
 ### How It Works
 
-1. Build your workflow in the Editor
-2. Click **Mini-App** in the top-right
-3. See a clean interface with just:
-   - Input fields (from your Input nodes)
-   - Run button
-   - Output results
+1. Build the workflows in the Editor
+2. Open the **Apps** panel and click **New app**, or **New app from workflow** to scaffold one from a graph
+3. Design the app in its tab: input widgets, a run button, display widgets
+4. Switch the tab to **Run** to use it, and publish when it is ready
+
+The workflows an app runs stay separate resources. **Linked workflows** on the app tab opens one in its own workflow tab. See [Mini Apps](mini-apps.md).
+
+![Mini App — Run view](assets/screenshots/mini-app-run.png)
 
 ### Standalone Mini-App Windows
 
@@ -331,6 +335,10 @@ Download, organize, and configure AI models.
 ## Panels and Layout
 
 NodeTool's interface is flexible – customize it to your workflow.
+
+Open documents sit in a tab bar across the top — workflows, sketches, timelines, storyboards and apps all share it.
+
+![Workspace tab bar](assets/screenshots/editor-tabs-bar.png)
 
 ### Rearranging Panels
 
@@ -416,7 +424,7 @@ Just start typing what you want!
 
 ## Next Steps
 
-- **[Workflow Editor deep dive](workflow-editor.md)** – Master the canvas
+- **[Workflow Editor](workflow-editor.md)** – Master the canvas
 - **[Editor Panels](editor-panels.md)** – Left, right, bottom, and floating panels
 - **[Tips & Tricks](tips-and-tricks.md)** – Power user secrets
 - **[Cookbook](cookbook.md)** – Learn workflow patterns

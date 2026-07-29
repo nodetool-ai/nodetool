@@ -1,7 +1,5 @@
 /**
  * FillTool – flood-fills a region on the active layer canvas.
- *
- * Extracted from usePointerHandlers handlePointerDown (~line 810-835).
  */
 
 import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
@@ -19,7 +17,7 @@ import {
   selectionHitTest
 } from "../selection";
 
-// ─── Flood Fill (moved from drawingUtils.ts) ─────────────────────────────────
+// ─── Flood Fill ──────────────────────────────────────────────────────────────
 //
 // Scanline span-fill: ~7x faster than 4-way pixel-stack fill.
 // Uses perceptually weighted color distance (luminance-weighted RGB + alpha)

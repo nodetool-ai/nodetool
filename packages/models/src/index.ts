@@ -25,6 +25,7 @@ export {
   jobs,
   messages,
   threads,
+  threadMemories,
   assets,
   secrets,
   workspaces,
@@ -39,7 +40,10 @@ export {
   timelineSequences,
   imageDocuments,
   workerProfiles,
-  workerInstances
+  workerInstances,
+  triggerInputs,
+  runInboxMessages,
+  triggerRegistrations
 } from "./schema/index.js";
 
 // ── Drizzle Schema (PostgreSQL) ─────────────────────────────────────
@@ -50,6 +54,7 @@ export {
   DBModel,
   ModelObserver,
   ModelChangeEvent,
+  createStableUuid,
   createTimeOrderedUuid,
   computeEtag
 } from "./base-model.js";
@@ -60,15 +65,31 @@ export { Job } from "./job.js";
 export type { JobStatus } from "./job.js";
 
 export { Workflow } from "./workflow.js";
-export type { AccessLevel, WorkflowGraph } from "./workflow.js";
+export type {
+  AccessLevel,
+  WorkflowGraph,
+  WorkflowSummary
+} from "./workflow.js";
 
 export { WorkflowVersion } from "./workflow-version.js";
+export {
+  WorkflowCollaborator,
+  isCollaboratorRole,
+  type CollaboratorRole
+} from "./workflow-collaborator.js";
+export { WorkflowShare } from "./workflow-share.js";
 
 export { Asset } from "./asset.js";
 
 export { Message } from "./message.js";
 
 export { Thread } from "./thread.js";
+
+export { ThreadMemory } from "./thread-memory.js";
+export type {
+  ThreadMemoryKind,
+  ThreadMemoryResource
+} from "./thread-memory.js";
 
 export { Secret } from "./secret.js";
 export {
@@ -113,13 +134,75 @@ export type {
   ListWorkerInstancesOptions
 } from "./worker-instances.js";
 
-export { TimelineSequence } from "./timeline-sequence.js";
-export type { TimelineDocument } from "./timeline-sequence.js";
-
 export {
-  ImageDocument,
-  ImageDocumentConflictError
-} from "./image-document.js";
+  TimelineSequence,
+  TimelineSequenceConflictError
+} from "./timeline-sequence.js";
+export type {
+  TimelineDocument,
+  TimelineSequenceMutationResult
+} from "./timeline-sequence.js";
+
+export { ImageDocument, ImageDocumentConflictError } from "./image-document.js";
+export {
+  Storyboard,
+  StoryboardConflictError,
+  emptyStoryboardDocument
+} from "./storyboard.js";
+export type { StoryboardDocument, StoryboardResponse } from "./storyboard.js";
+export {
+  Application,
+  ApplicationConflictError,
+  deriveCapabilities,
+  publishApplication,
+  listApplicationVersions,
+  releasedApplicationVersion,
+  releasedApplicationRelease,
+  releaseApplicationVersion
+} from "./application.js";
+export type {
+  ApplicationCapabilities,
+  ApplicationReleaseResponse,
+  ApplicationResponse,
+  ApplicationVersionResponse,
+  PinnedWorkflow
+} from "./application.js";
+export {
+  applicationUsage,
+  checkApplicationBudget,
+  getApplicationBudget,
+  listInvocations,
+  periodStart,
+  recordInvocation,
+  reserveInvocation,
+  setApplicationBudget,
+  settleInvocation
+} from "./application-budget.js";
+export type {
+  ApplicationBudget,
+  ApplicationUsage,
+  BudgetDecision,
+  BudgetPeriod,
+  InvocationRecord,
+  Reservation,
+  ReserveInput
+} from "./application-budget.js";
+export {
+  Script,
+  ScriptConflictError,
+  emptyScriptDocument,
+  countScriptLines
+} from "./script.js";
+export type {
+  ScriptDocument,
+  ScriptResponse,
+  ScriptSection,
+  ScriptLine,
+  ScriptTake,
+  ScriptSpeaker,
+  VoiceBinding as ScriptVoiceBinding,
+  ScriptCaptionWord
+} from "./script.js";
 export type {
   ImageDocumentData,
   ImageDocumentMutationResult,
@@ -128,6 +211,14 @@ export type {
 
 export { OAuthCredential } from "./oauth-credential.js";
 export { resolveCodexAccessToken } from "./codex-token.js";
+export {
+  GOOGLE_ACCESS_TOKEN_KEY,
+  GOOGLE_CREDENTIAL_PROVIDER,
+  resolveGoogleAccessToken,
+  getGoogleGrantedScopes,
+  storeGoogleCredential,
+  deleteGoogleCredentials
+} from "./google-token.js";
 
 export { Prediction } from "./prediction.js";
 export type {
@@ -145,6 +236,10 @@ export { RunEvent } from "./run-event.js";
 export type { EventType } from "./run-event.js";
 
 export { RunLease } from "./run-lease.js";
+
+export { TriggerInput } from "./trigger-input.js";
+export { RunInboxMessage } from "./run-inbox-message.js";
+export { TriggerRegistration } from "./trigger-registration.js";
 
 // ── Seeds ────────────────────────────────────────────────────────────
 export { runSeeds, seedCostData, COST_SEED_USER_ID } from "./seeds/index.js";

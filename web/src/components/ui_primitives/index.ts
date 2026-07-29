@@ -76,7 +76,9 @@ export type { SettingsButtonProps } from "./SettingsButton";
 export { ZoomControls } from "./ZoomControls";
 export type { ZoomControlsProps } from "./ZoomControls";
 
-export { FavoriteButton } from "./FavoriteButton";
+// Re-export the memoized default (not the raw named export) so barrel
+// consumers keep memoization.
+export { default as FavoriteButton } from "./FavoriteButton";
 export type { FavoriteButtonProps } from "./FavoriteButton";
 
 export { EmptyState } from "./EmptyState";
@@ -95,6 +97,8 @@ export type { ExternalLinkProps } from "./ExternalLink";
 
 export { StatusIndicator } from "./StatusIndicator";
 export type { StatusIndicatorProps, StatusType } from "./StatusIndicator";
+
+export { HighlightText } from "./HighlightText";
 
 export { TagButton } from "./TagButton";
 export type { TagButtonProps } from "./TagButton";
@@ -238,6 +242,7 @@ export {
   MOTION,
   Z_INDEX,
   BORDER_RADIUS,
+  CONTROL,
   TYPOGRAPHY,
   FONT_WEIGHT,
   FONT_SIZE_SANS,
@@ -246,6 +251,9 @@ export {
   thinScrollbarStyles,
   reducedMotion
 } from "./tokens";
+
+// Keyboard activation for non-native-button click targets
+export { activateOnKey } from "./keyboardActivation";
 
 // Keyboard shortcuts display
 export { KeyboardShortcutCard } from "./KeyboardShortcutCard";
@@ -271,8 +279,15 @@ export type { AlertBannerProps } from "./AlertBanner";
 export { TabGroup, TabPanel } from "./TabGroup";
 export type { TabGroupProps, TabPanelProps, TabItem } from "./TabGroup";
 
+// Form composition
 export { FormField } from "./FormField";
 export type { FormFieldProps } from "./FormField";
+
+export { FormSection } from "./FormSection";
+export type { FormSectionProps } from "./FormSection";
+
+export { FormGrid } from "./FormGrid";
+export type { FormGridProps } from "./FormGrid";
 
 export { SectionHeader } from "./SectionHeader";
 export type { SectionHeaderProps } from "./SectionHeader";
@@ -322,6 +337,8 @@ export type { MobileBottomSheetProps } from "./MobileBottomSheet";
 
 export { Checkbox } from "./Checkbox";
 export type { CheckboxProps } from "./Checkbox";
+export { Radio, RadioSet } from "./Radio";
+export type { RadioProps, RadioSetProps } from "./Radio";
 
 export { ContextMenu } from "./ContextMenu";
 export type { ContextMenuProps } from "./ContextMenu";

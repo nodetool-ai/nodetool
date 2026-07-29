@@ -13,7 +13,7 @@ namespace: "nodetool.triggers"
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| max_events | `int` | Maximum number of events to process (0 = unlimited) | `0` |
+| max_events | `int` | Ticks to emit before the node stops (0 = unlimited). Applies only while the node runs in the editor; the scheduler keeps firing an activated trigger regardless. | `0` |
 | interval_seconds | `float` | Interval between triggers in seconds | `60` |
 | initial_delay_seconds | `float` | Delay before the first trigger fires | `0` |
 | emit_on_start | `bool` | Whether to emit an event immediately on start | `true` |

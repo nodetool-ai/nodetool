@@ -7,7 +7,7 @@
  * maintain hardcoded model lists.
  */
 
-import { createLogger, importNodeBuiltin } from "@nodetool-ai/config";
+import { createLogger, loadPackageAssetJson } from "@nodetool-ai/config";
 import type {
   ImageModel,
   MusicModel,
@@ -18,10 +18,6 @@ import type {
 // Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.manifest-models");
 
-const _nodeModule = await importNodeBuiltin<typeof import("node:module")>(
-  "node:module"
-);
-
 // ---------------------------------------------------------------------------
 // Manifest entry shapes — union of Kie / FAL / Replicate conventions
 // ---------------------------------------------------------------------------
@@ -31,6 +27,21 @@ interface ManifestInputField {
   apiParamName?: string;
   propType: string;
   enumValues?: string[];
+}
+
+/**
+ * Kie-style input field. The field `name` IS the API param name, `type` is a
+ * lowercase primitive ("str" | "enum" | "int" | "float" | "bool"), and enum
+ * options live in `values` (not `enumValues`).
+ */
+interface ManifestField {
+  name: string;
+  type: string;
+  values?: string[];
+  default?: unknown;
+  required?: boolean;
+  min?: number;
+  max?: number;
 }
 
 /** Kie-style asset upload descriptor (carries the real API param name). */
@@ -59,8 +70,18 @@ interface ManifestNode {
   supportedTasks?: string[];
   /** FAL ships per-endpoint input schemas; used to derive option constraints. */
   inputFields?: ManifestInputField[];
+  /** Kie ships per-endpoint input schemas under `fields` (name is the API param). */
+  fields?: ManifestField[];
   /** Kie ships asset upload descriptors (field → API param mapping). */
   uploads?: ManifestUpload[];
+  /** Kie: routes the model through the Suno music API. */
+  useSuno?: boolean;
+  /** Kie: Suno API endpoint path for this model. */
+  sunoEndpoint?: string;
+  /** Kie: poll interval (ms) while waiting on the async task. */
+  pollInterval?: number;
+  /** Kie: maximum poll attempts before giving up. */
+  maxAttempts?: number;
 }
 
 export function explicitTasks(n: ManifestNode): string[] | undefined {
@@ -69,17 +90,25 @@ export function explicitTasks(n: ManifestNode): string[] | undefined {
     : undefined;
 }
 
-/** Enum values declared for a manifest input field, by canonical API name. */
+/**
+ * Enum values declared for a manifest input field, by canonical API name.
+ * Reads both the FAL/Replicate `inputFields` (`apiParamName ?? name` →
+ * `enumValues`) and the Kie `fields` (`name` → `values`) conventions.
+ */
 export function enumValuesFor(
   n: ManifestNode,
   apiName: string
 ): string[] | undefined {
   // Stryker disable next-line ArrayDeclaration: the fallback's contents are irrelevant — a non-array node yields no matching field either way.
-  const field = (n.inputFields ?? []).find(
+  const inputField = (n.inputFields ?? []).find(
     (f) => (f.apiParamName ?? f.name) === apiName
   );
-  const values = field?.enumValues;
-  return values && values.length > 0 ? values : undefined;
+  const fromInput = inputField?.enumValues;
+  if (fromInput && fromInput.length > 0) return fromInput;
+  // Stryker disable next-line ArrayDeclaration: same rationale — a non-array node yields no matching field either way.
+  const field = (n.fields ?? []).find((f) => f.name === apiName);
+  const fromField = field?.values;
+  return fromField && fromField.length > 0 ? fromField : undefined;
 }
 
 /** Option constraints (duration/resolution/aspect) for a video endpoint. */
@@ -96,6 +125,50 @@ export function videoConstraints(n: ManifestNode): {
     durations: durations && durations.length > 0 ? durations : undefined,
     resolutions: enumValuesFor(n, "resolution"),
     aspectRatios: enumValuesFor(n, "aspect_ratio")
+  };
+}
+
+// FAL image endpoints usually declare an `image_size` enum instead of an
+// `aspect_ratio`. This maps its named / explicit sizes onto the aspect-ratio
+// vocabulary the picker uses; `auto*` sizes have no fixed ratio and are dropped.
+const SIZE_ENUM_TO_ASPECT: Record<string, string> = {
+  square: "1:1",
+  square_hd: "1:1",
+  square_uhd: "1:1",
+  "1024x1024": "1:1",
+  landscape_4_3: "4:3",
+  portrait_4_3: "3:4",
+  landscape_16_9: "16:9",
+  landscape_hd: "16:9",
+  portrait_16_9: "9:16",
+  portrait_hd: "9:16",
+  landscape_3_2: "3:2",
+  "1536x1024": "3:2",
+  portrait_3_2: "2:3",
+  "1024x1536": "2:3"
+};
+
+/** Map a FAL `image_size` enum value onto an aspect ratio, or undefined. */
+export function sizeEnumToAspect(value: string): string | undefined {
+  return SIZE_ENUM_TO_ASPECT[value];
+}
+
+/** Option constraints (aspect/resolution) for an image endpoint. */
+export function imageConstraints(n: ManifestNode): {
+  aspectRatios?: string[];
+  resolutions?: string[];
+} {
+  // FAL splits size across `aspect_ratio` and `image_size`; union both into one
+  // aspect-ratio list, preserving first-seen order and dropping duplicates.
+  const fromAspect = enumValuesFor(n, "aspect_ratio") ?? [];
+  const fromSize = (enumValuesFor(n, "image_size") ?? [])
+    .map(sizeEnumToAspect)
+    .filter((v): v is string => Boolean(v));
+  const aspectRatios = [...new Set([...fromAspect, ...fromSize])];
+  return {
+    aspectRatios: aspectRatios.length > 0 ? aspectRatios : undefined,
+    // Resolution is its own enum — never derived from image_size.
+    resolutions: enumValuesFor(n, "resolution")
   };
 }
 
@@ -186,17 +259,11 @@ export function loadManifest(
   // Stryker disable next-line ConditionalExpression: this cache short-circuit is a pure memoization; skipping it just re-resolves the same manifest — behaviour-preserving.
   if (_cache.has(key)) return _cache.get(key)!;
 
-  // _nodeModule is absent only in a non-Node runtime (browser/edge), which the
-  // test environment never is — this fallback is unreachable here.
-  // Stryker disable all
-  if (!_nodeModule) {
-    _cache.set(key, []);
-    return [];
-  }
-  // Stryker restore all
   try {
-    const req = _nodeModule.createRequire(import.meta.url);
-    const data = req(`${packageName}/${exportPath}`) as ManifestNode[];
+    const data = loadPackageAssetJson<ManifestNode[]>(
+      { pkg: packageName, path: exportPath },
+      import.meta.url
+    );
     _cache.set(key, data);
     return data;
   } catch (err) {
@@ -273,6 +340,35 @@ export interface ModelImageInput {
  * `uploads` (which carry the real API param name) take precedence; otherwise
  * the FAL/Replicate `inputFields` image/list[image] entries are used.
  */
+/**
+ * Input parameter names a model declares, from the generated manifest.
+ *
+ * Providers assemble a generic input bag from `*Params` (prompt,
+ * negative_prompt, strength, seed…), but each endpoint accepts only a subset.
+ * Replicate rejects the whole prediction with a validation error when it sees
+ * an undeclared field rather than ignoring it, so sending the superset fails
+ * outright — `decart/lucy-edit-2` takes neither `negative_prompt` nor
+ * `strength`.
+ *
+ * Returns an empty set when the model is missing from the manifest or declares
+ * no fields. Callers must read that as "unknown, send everything" rather than
+ * "accepts nothing", so a model absent from the manifest keeps working.
+ */
+export function getModelInputNames(
+  packageName: string,
+  exportPath: string,
+  modelId: string
+): Set<string> {
+  const entry = loadManifest(packageName, exportPath).find(
+    (n) => nodeId(n) === modelId
+  );
+  return new Set(
+    (entry?.inputFields ?? [])
+      .map((f) => f.name)
+      .filter((n): n is string => typeof n === "string" && n.length > 0)
+  );
+}
+
 export function getModelImageInputs(
   packageName: string,
   exportPath: string,
@@ -312,6 +408,84 @@ export function manifestEntryImageInputs(
       isList: f.propType.toLowerCase().startsWith("list["),
       name: f.name
     }));
+}
+
+/** A model's declared input field, normalized across manifest conventions. */
+export interface ModelInputField {
+  /** API parameter name to set on the request body. */
+  name: string;
+  /** Declared type: "str" | "enum" | "int" | "float" | "bool" | ... (lowercased). */
+  type: string;
+  enumValues?: string[];
+  required?: boolean;
+  default?: unknown;
+}
+
+/**
+ * The input fields a model declares, normalized across manifest conventions.
+ * Kie `fields` (where `name` is the API param and options live in `values`) take
+ * precedence; otherwise the FAL/Replicate `inputFields` are normalized
+ * (`apiParamName ?? name`, `propType` lowercased, `enumValues`).
+ */
+export function getModelInputFields(
+  packageName: string,
+  exportPath: string,
+  modelId: string
+): ModelInputField[] {
+  const entry = loadManifest(packageName, exportPath).find(
+    (n) => nodeId(n) === modelId
+  );
+  if (!entry) return [];
+  if (entry.fields?.length) {
+    return entry.fields.map((f) => ({
+      name: f.name,
+      type: f.type.toLowerCase(),
+      ...(f.values && f.values.length > 0 ? { enumValues: f.values } : {}),
+      ...(f.required !== undefined ? { required: f.required } : {}),
+      ...(f.default !== undefined ? { default: f.default } : {})
+    }));
+  }
+  return (entry.inputFields ?? []).map((f) => ({
+    name: f.apiParamName ?? f.name,
+    type: f.propType.toLowerCase(),
+    ...(f.enumValues && f.enumValues.length > 0
+      ? { enumValues: f.enumValues }
+      : {})
+  }));
+}
+
+/** Kie execution metadata carried on a manifest entry. */
+export interface ManifestNodeMeta {
+  useSuno: boolean;
+  sunoEndpoint?: string;
+  pollInterval?: number;
+  maxAttempts?: number;
+}
+
+/**
+ * Kie execution metadata for a model, or undefined when the model id is unknown.
+ */
+export function getManifestNodeMeta(
+  packageName: string,
+  exportPath: string,
+  modelId: string
+): ManifestNodeMeta | undefined {
+  const entry = loadManifest(packageName, exportPath).find(
+    (n) => nodeId(n) === modelId
+  );
+  if (!entry) return undefined;
+  return {
+    useSuno: Boolean(entry.useSuno),
+    ...(entry.sunoEndpoint !== undefined
+      ? { sunoEndpoint: entry.sunoEndpoint }
+      : {}),
+    ...(entry.pollInterval !== undefined
+      ? { pollInterval: entry.pollInterval }
+      : {}),
+    ...(entry.maxAttempts !== undefined
+      ? { maxAttempts: entry.maxAttempts }
+      : {})
+  };
 }
 
 // Auxiliary image inputs (mask / control / reference / style / end-frame, …)
@@ -395,7 +569,10 @@ export function buildImageModels(
     const id = nodeId(n);
     if (!id || seen.has(id)) continue;
     const name = nodeName(n);
-    const tasks = explicitTasks(n) ?? inferImageTasks(name, id);
+    // Copy so the mask-input augmentation below never mutates the manifest
+    // node's own `supportedTasks` array (which `loadManifest` memoizes and
+    // shares across every caller).
+    const tasks = [...(explicitTasks(n) ?? inferImageTasks(name, id))];
     // Endpoints that declare a mask image input support inpainting (mask-guided
     // editing). Tag them so the inpaint capability/picker can find them.
     if (
@@ -413,7 +590,13 @@ export function buildImageModels(
       // Stryker disable next-line ConditionalExpression,EqualityOperator: tasks is always non-empty (infer* returns >=1, explicit is non-empty), so `tasks.length > 0` is invariantly true here.
       (n.outputType === "dict" && tasks.length > 0);
     if (!qualifies) continue;
-    seen.set(id, { id, name, provider, supportedTasks: tasks });
+    seen.set(id, {
+      id,
+      name,
+      provider,
+      supportedTasks: tasks,
+      ...imageConstraints(n)
+    });
   }
 
   return [...seen.values()];
@@ -495,16 +678,48 @@ const MUSIC_KEYWORDS = [
   "flux-music"
 ];
 
+// Kie Suno ships many audio endpoints, but only a few generate music from a
+// text prompt — the rest transform existing audio or tasks (referenced by
+// upload / task / audio / music ids) or output text (lyrics). A required field
+// whose name references such an existing asset marks a transform, not a
+// generator.
+const AUDIO_ASSET_REF_RE =
+  // Stryker disable next-line Regex: heuristic alternation over Suno field names; the exact-boundary variants are interchangeable for the real manifest names, and the predicate is pinned by a test against the real manifest.
+  /upload|task_?id|audio_?id|music_?id|verify|voice_?url/i;
+
+/**
+ * Is this Kie-style entry a text-to-music generator? True only when it declares
+ * a free-form `prompt`, selects a generation `model`, and requires no field
+ * that references an existing audio asset or task. On the current Kie manifest
+ * this yields exactly {generate-music, generate-sounds}; every Suno utility
+ * (covers, extends, mashups, vocal splits, lyric/voice tools) is rejected.
+ */
+export function isKieMusicNode(n: ManifestNode): boolean {
+  const fields = n.fields ?? [];
+  const hasPrompt = fields.some((f) => f.name === "prompt");
+  const hasModel = fields.some((f) => f.name === "model");
+  const requiresAsset = fields.some(
+    (f) => f.required === true && AUDIO_ASSET_REF_RE.test(f.name)
+  );
+  return hasPrompt && hasModel && !requiresAsset;
+}
+
 /**
  * Is this manifest entry a music-generation model? Music endpoints emit audio
- * but are neither speech (TTS) nor speech-to-text. FAL groups them under
- * `moduleName: "text_to_audio"`; other manifests have no grouping, so fall back
- * to an explicit `text_to_music` task or a music keyword in the id/name. The
- * `outputType === "audio"` and `!isTTSNode` guards keep speech models out.
+ * but are neither speech (TTS) nor speech-to-text. Kie-style entries (those that
+ * carry a `fields` schema or route through Suno) are judged structurally by
+ * `isKieMusicNode` — keyword matching over-tags Suno's utility endpoints. FAL
+ * groups its music under `moduleName: "text_to_audio"`; other manifests have no
+ * grouping, so fall back to an explicit `text_to_music` task or a music keyword
+ * in the id/name. The `outputType === "audio"` and `!isTTSNode` guards keep
+ * speech models out.
  */
 export function isMusicNode(n: ManifestNode): boolean {
   if (n.outputType !== "audio") return false;
   if (isTTSNode(n)) return false;
+  if (Array.isArray(n.fields) || n.useSuno === true) {
+    return isKieMusicNode(n);
+  }
   if (n.moduleName === "text_to_audio") return true;
   if (explicitTasks(n)?.includes("text_to_music")) return true;
   const hay = `${nodeId(n)} ${nodeName(n)}`.toLowerCase();

@@ -143,6 +143,39 @@ describe('WorkflowRunner message handling', () => {
       expect(runner.getState().results).toEqual(['my result']);
     });
 
+    it.each([0, false, '', null])(
+      'preserves falsy output %p when workflow completes',
+      async (output) => {
+        const { runner, socket } = await connectRunner();
+        const onComplete = jest.fn();
+        runner.setState({ onComplete });
+
+        sendMessage(socket, {
+          type: 'node_update',
+          node_name: 'ValueOutput',
+          result: { output },
+        });
+        sendMessage(socket, { type: 'job_update', status: 'completed' });
+
+        expect(onComplete).toHaveBeenCalledWith([output]);
+      },
+    );
+
+    it('ignores an undefined output when workflow completes', async () => {
+      const { runner, socket } = await connectRunner();
+      const onComplete = jest.fn();
+      runner.setState({ onComplete });
+
+      sendMessage(socket, {
+        type: 'node_update',
+        node_name: 'ValueOutput',
+        result: { output: undefined },
+      });
+      sendMessage(socket, { type: 'job_update', status: 'completed' });
+
+      expect(onComplete).toHaveBeenCalledWith([]);
+    });
+
     it('sets statusMessage when node_name is present but no error or output', async () => {
       const { runner, socket } = await connectRunner();
 

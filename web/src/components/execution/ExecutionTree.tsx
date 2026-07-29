@@ -18,11 +18,13 @@ import AutorenewRoundedIcon from "@mui/icons-material/AutorenewRounded";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
 import {
-  FlexRow,
-  FlexColumn,
   BORDER_RADIUS,
+  FlexColumn,
+  FlexRow,
   MOTION,
-  reducedMotion
+  reducedMotion,
+  SPACING,
+  Z_INDEX
 } from "../ui_primitives";
 import type {
   ExecutionTreeState,
@@ -156,7 +158,7 @@ const treeStyles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       flexShrink: 0,
-      zIndex: 1,
+      zIndex: Z_INDEX.raised,
       transition: MOTION.all,
       ...reducedMotion({ transition: MOTION.none }),
       "& svg": { fontSize: 14 }
@@ -177,7 +179,7 @@ const treeStyles = (theme: Theme) =>
       color: theme.vars.palette.info.contrastText,
       boxShadow: `0 0 0 4px rgb(${theme.vars.palette.info.mainChannel} / 0.2)`,
       "& svg": {
-        animation: "tlSpin 1.4s linear infinite",
+        animation: `tlSpin ${MOTION.spin} infinite`,
         ...reducedMotion({ animation: "none" })
       }
     },
@@ -214,7 +216,7 @@ const treeStyles = (theme: Theme) =>
     ".tl-content": {
       flex: 1,
       minWidth: 0,
-      paddingBottom: theme.spacing(2.5)
+      paddingBottom: theme.spacing(SPACING.lg)
     },
 
     ".tl-item.last > .tl-content": {
@@ -303,7 +305,7 @@ const treeStyles = (theme: Theme) =>
         height: 6,
         borderRadius: BORDER_RADIUS.circle,
         background: "currentColor",
-        animation: "tlPulse 1.6s ease-in-out infinite",
+        animation: `tlPulse ${MOTION.pulse} infinite`,
         ...reducedMotion({ animation: "none" })
       }
     },
@@ -314,7 +316,7 @@ const treeStyles = (theme: Theme) =>
     },
 
     ".tl-detail": {
-      marginTop: theme.spacing(0.25),
+      marginTop: theme.spacing(SPACING.micro),
       fontFamily: theme.fontFamily2,
       fontSize: "var(--fontSizeSmaller)",
       lineHeight: 1.6,
@@ -371,7 +373,7 @@ const treeStyles = (theme: Theme) =>
     ".tl-inspector-section": {
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.25)
+      gap: theme.spacing(SPACING.micro)
     },
 
     ".tl-inspector-label": {
@@ -407,7 +409,7 @@ const treeStyles = (theme: Theme) =>
     ".tl-inspector-tool": {
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.25),
+      gap: theme.spacing(SPACING.micro),
       padding: theme.spacing(0.5, 0),
       borderTop: `1px dashed ${theme.vars.palette.divider}`,
       "&:first-of-type": { borderTop: "none" }
@@ -620,8 +622,8 @@ StepNode.displayName = "StepNode";
 const TaskNode: React.FC<{
   task: TaskState;
   isLast: boolean;
-  onToggle: () => void;
-}> = memo(({ task, isLast, onToggle }) => {
+  onToggleTask: (taskId: string) => void;
+}> = memo(({ task, isLast, onToggleTask }) => {
   const stepCount = task.steps.length;
   const completedSteps = task.steps.filter(
     (s) => s.status === "completed"
@@ -629,6 +631,10 @@ const TaskNode: React.FC<{
   const duration =
     task.duration !== undefined ? formatDuration(task.duration) : "";
   const hasSteps = stepCount > 0;
+
+  const onToggle = useCallback(() => {
+    onToggleTask(task.id);
+  }, [onToggleTask, task.id]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -841,7 +847,7 @@ const ExecutionTree: React.FC<ExecutionTreeProps> = ({ state, onToggleTask }) =>
                 key={task.id}
                 task={task}
                 isLast={i === state.tasks.length - 1}
-                onToggle={() => onToggleTask(task.id)}
+                onToggleTask={onToggleTask}
               />
             ))}
           </FlexColumn>

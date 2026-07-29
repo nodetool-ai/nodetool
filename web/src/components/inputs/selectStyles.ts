@@ -37,7 +37,7 @@ export const selectStyles = (theme: Theme) =>
       border: `1px solid ${theme.vars.palette.divider}`,
       boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
       borderRadius: BORDER_RADIUS.lg,
-      zIndex: 10000
+      zIndex: theme.zIndex.popover
     },
 
     ".options-list .option:first-of-type": {
@@ -158,7 +158,7 @@ export const portalOptionsStyles = (theme: Theme) =>
       border: `1px solid ${theme.vars.palette.divider}`,
       boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
       borderRadius: BORDER_RADIUS.lg,
-      zIndex: 10000
+      zIndex: theme.zIndex.popover
     },
 
     ".option:first-of-type": {

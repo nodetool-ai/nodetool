@@ -16,13 +16,15 @@ import {
   Position,
   ResizeParams
 } from "@xyflow/react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import {
   Container,
   BORDER_RADIUS,
   MOTION,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  reducedMotion,
+  Z_INDEX
 } from "../ui_primitives";
 import FalPricingFooter from "./FalPricingFooter";
 import KieCreditsFooter from "./KieCreditsFooter";
@@ -91,6 +93,12 @@ const SPECIAL_NAMESPACES = ["nodetool.constant", "nodetool.input", "nodetool.out
 
 const isEmptyResult = (obj: unknown) =>
   obj && typeof obj === "object" && Object.keys(obj as object).length === 0;
+
+const isCreatingControlEdgeSelector = (
+  state: ReturnType<typeof useConnectionStore.getState>
+) =>
+  state.connectType?.type === "control" &&
+  state.connectDirection === "source";
 
 const NODE_CONTENT_CONTAINER_STYLE: React.CSSProperties = {
   flex: "1 1 auto",
@@ -193,14 +201,15 @@ const getAmbientRingCss = (color: string) =>
   css({
     position: "absolute",
     inset: 0,
-    borderRadius: "var(--rounded-node)",
+    borderRadius: BORDER_RADIUS.lg,
     pointerEvents: "none",
     // Pure box-shadow halo (no fill), so it only paints outside the node body
     // regardless of stacking order — robust to whether the container is a
     // positioned ancestor.
     zIndex: 0,
     boxShadow: `0 0 0 2px ${color}, 0 0 16px 2px color-mix(in srgb, ${color} 55%, transparent)`,
-    animation: `${ambientPulseKeyframes} 1.6s ease-in-out infinite`
+    animation: `${ambientPulseKeyframes} ${MOTION.pulse} infinite`,
+    ...reducedMotion({ animation: "none" })
   });
 
 const getAmbientBadgeStyle = (theme: Theme): React.CSSProperties => ({
@@ -220,7 +229,7 @@ const getAmbientBadgeStyle = (theme: Theme): React.CSSProperties => ({
   fontSize: "var(--fontSizeSmaller)",
   fontWeight: 600,
   lineHeight: 1,
-  zIndex: 20,
+  zIndex: Z_INDEX.sticky,
   pointerEvents: "none"
 });
 
@@ -252,7 +261,7 @@ const getNodeStyles = (colors: string[]) =>
         ${colors[4]},
         ${colors[0]}
       )`,
-        borderRadius: "var(--rounded-node)",
+        borderRadius: BORDER_RADIUS.lg,
         zIndex: -20,
         pointerEvents: "none",
         // Show only a thin ring (border area), not full fill
@@ -263,13 +272,15 @@ const getNodeStyles = (colors: string[]) =>
         maskComposite: "exclude",
         padding: "var(--ring)",
         backgroundClip: "border-box",
-        animation: `${gradientAnimationKeyframes} 5s ease-in-out infinite`,
+        animation: `${gradientAnimationKeyframes} ${MOTION.pulse} infinite`,
+        ...reducedMotion({ animation: "none" }),
         transition: MOTION.opacity
       }
     },
 
     "&.is-loading::before": {
-      opacity: 1
+      opacity: 1,
+      borderRadius: BORDER_RADIUS.xl
     }
   });
 
@@ -359,6 +370,9 @@ const getNodeColors = (metadata: NodeMetadata | undefined): string[] => {
       allColors.push(color);
     }
   }
+  if (allColors.length === 0) {
+    allColors.push(colorForType("any"));
+  }
   while (allColors.length < 5) {
     allColors.push(allColors[allColors.length - 1]);
   }
@@ -405,7 +419,7 @@ const getHeaderColors = (
 const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const theme = useTheme();
   const isDarkMode = useIsDarkMode();
-  const { id, type, data, selected, parentId, dragging } = props;
+  const { id, type, data, selected, parentId, dragging, height: nodeHeight } = props;
   const { workflow_id, title } = data;
   // Subscribe directly to focusedNodeId with equality check to avoid re-renders
   const isFocused = useNodeFocusStore(
@@ -424,7 +438,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       borderRadius: BORDER_RADIUS.sm,
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
-      zIndex: 1000
+      zIndex: Z_INDEX.toast
     }),
     [theme.vars.palette.warning.main, theme.vars.palette.warning.contrastText]
   );
@@ -570,12 +584,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   // Show control handle when dragging a control edge from an Agent node
   const isCreatingControlEdge = useConnectionStore(
-    (state: ReturnType<typeof useConnectionStore.getState>) => {
-      return (
-        state.connectType?.type === "control" &&
-        state.connectDirection === "source"
-      );
-    }
+    isCreatingControlEdgeSelector
   );
 
   const isConstantInputLockedResult =
@@ -684,6 +693,14 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [theme]
   );
 
+  // Cap the body's minHeight at the node's measured height so the body never
+  // overflows the ReactFlow node wrapper (can happen when handle count increases
+  // after a resize, pushing minHeight above the stored height).
+  const bodyMinHeight =
+    nodeHeight !== undefined
+      ? Math.min(styleProps.minHeight, nodeHeight)
+      : styleProps.minHeight;
+
   // Memoize the container sx prop to prevent object recreation on every render
   const containerSx = useMemo(
     () =>
@@ -697,7 +714,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         baseColor,
         parentColor,
         theme,
-        minHeight: styleProps.minHeight,
+        minHeight: bodyMinHeight,
         collapsed: Boolean(data.collapsed)
       }),
     [
@@ -710,7 +727,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       baseColor,
       parentColor,
       theme,
-      styleProps.minHeight,
+      bodyMinHeight,
       data.collapsed
     ]
   );

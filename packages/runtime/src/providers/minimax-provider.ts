@@ -9,9 +9,13 @@
  * Docs: https://platform.minimax.io/docs/api-reference/api-overview
  */
 
-import OpenAI from "openai";
-import { OpenAIProvider } from "./openai-provider.js";
+import {
+  OpenAICompatProvider,
+  type OpenAICompatProviderOptions
+} from "./openai-compat-provider.js";
+import type { OpenAIProvider } from "./openai-provider.js";
 import { createLogger } from "@nodetool-ai/config";
+import { safeFetch } from "./safe-url.js";
 import type {
   ASRModel,
   EmbeddingModel,
@@ -137,15 +141,33 @@ function toInt16Samples(bytes: Uint8Array): Int16Array {
   );
 }
 
-interface MinimaxProviderOptions {
-  client?: OpenAI;
-  clientFactory?: (apiKey: string) => OpenAI;
-  fetchFn?: typeof fetch;
-}
-
 interface MinimaxBaseResp {
   status_code?: number;
   status_msg?: string;
+}
+
+/** Resolve the abort reason as an Error (mirrors the gemini provider). */
+function abortError(signal?: AbortSignal): Error {
+  return signal?.reason instanceof Error ? signal.reason : new Error("Aborted");
+}
+
+/** Sleep that rejects promptly when `signal` aborts instead of running full. */
+function abortableSleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(abortError(signal));
+      return;
+    }
+    const onAbort = (): void => {
+      clearTimeout(timer);
+      reject(abortError(signal));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 }
 
 /** MiniMax embeds a `base_resp` on most responses; surface failures as errors. */
@@ -158,7 +180,7 @@ function assertBaseResp(data: Record<string, unknown>, context: string): void {
   }
 }
 
-export class MinimaxProvider extends OpenAIProvider {
+export class MinimaxProvider extends OpenAICompatProvider {
   static override requiredSecrets(): string[] {
     return ["MINIMAX_API_KEY"];
   }
@@ -167,7 +189,7 @@ export class MinimaxProvider extends OpenAIProvider {
 
   constructor(
     secrets: { MINIMAX_API_KEY?: string },
-    options: MinimaxProviderOptions = {}
+    options: OpenAICompatProviderOptions = {}
   ) {
     const apiKey = secrets.MINIMAX_API_KEY;
     if (!apiKey) {
@@ -177,21 +199,14 @@ export class MinimaxProvider extends OpenAIProvider {
     const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
 
     super(
-      { OPENAI_API_KEY: apiKey },
       {
-        client: options.client,
-        clientFactory:
-          options.clientFactory ??
-          ((key) =>
-            new OpenAI({
-              apiKey: key,
-              baseURL: MINIMAX_OPENAI_BASE_URL
-            })),
-        fetchFn
-      }
+        providerId: "minimax",
+        apiKey,
+        baseURL: MINIMAX_OPENAI_BASE_URL
+      },
+      { ...options, fetchFn }
     );
 
-    (this as { provider: string }).provider = "minimax";
     this._minimaxFetch = fetchFn;
   }
 
@@ -263,7 +278,7 @@ export class MinimaxProvider extends OpenAIProvider {
         id: "MiniMax-Hailuo-2.3-Fast",
         name: "MiniMax Hailuo 2.3 Fast",
         provider: "minimax",
-        supportedTasks: both
+        supportedTasks: ["image_to_video"]
       },
       {
         id: "MiniMax-Hailuo-02",
@@ -442,7 +457,7 @@ export class MinimaxProvider extends OpenAIProvider {
   ): Promise<Uint8Array> {
     const [first] = await this._generateImages(
       this._imageToImageAsTextParams(params),
-      images[0] ?? null,
+      images,
       1
     );
     return first;
@@ -455,7 +470,7 @@ export class MinimaxProvider extends OpenAIProvider {
   ): Promise<Uint8Array[]> {
     return this._generateImages(
       this._imageToImageAsTextParams(params),
-      images[0] ?? null,
+      images,
       numImages
     );
   }
@@ -479,7 +494,7 @@ export class MinimaxProvider extends OpenAIProvider {
 
   private async _generateImages(
     params: TextToImageParams,
-    referenceImage: Uint8Array | null,
+    referenceImages: Uint8Array[] | null,
     numImages: number
   ): Promise<Uint8Array[]> {
     if (!params.prompt) {
@@ -490,10 +505,16 @@ export class MinimaxProvider extends OpenAIProvider {
       ? `${params.prompt.trim()}\n\nDo not include: ${params.negativePrompt.trim()}`
       : params.prompt;
 
+    if (numImages > 9) {
+      throw new Error(
+        `MiniMax image_generation supports at most 9 images per request (got ${numImages})`
+      );
+    }
+
     const body: Record<string, unknown> = {
       model: params.model.id || "image-01",
       prompt,
-      n: Math.max(1, Math.min(9, numImages)),
+      n: Math.max(1, numImages),
       response_format: "base64",
       prompt_optimizer: true
     };
@@ -505,13 +526,15 @@ export class MinimaxProvider extends OpenAIProvider {
     if (aspect) body.aspect_ratio = aspect;
     if (params.seed != null) body.seed = params.seed;
 
-    if (referenceImage) {
-      body.subject_reference = [
-        {
-          type: "character",
-          image_file: `data:image/png;base64,${b64(referenceImage)}`
-        }
-      ];
+    // MiniMax i2i accepts multiple subject/reference images via a
+    // subject_reference array; each entry carries a base64 Data URL. The first
+    // image is the primary subject, the rest are additional references. The API
+    // docs document no maximum count, so we forward all provided images.
+    if (referenceImages && referenceImages.length > 0) {
+      body.subject_reference = referenceImages.map((image) => ({
+        type: "character",
+        image_file: `data:image/png;base64,${b64(image)}`
+      }));
     }
 
     log.debug("MiniMax textToImage", { model: body.model, n: body.n });
@@ -544,7 +567,10 @@ export class MinimaxProvider extends OpenAIProvider {
     if (urls && urls.length > 0) {
       const results: Uint8Array[] = [];
       for (const url of urls) {
-        const dl = await this._minimaxFetch(url);
+        // safeFetch (not the raw API fetch): this URL comes from the provider
+        // response body, so block internal/link-local targets (SSRF). Route
+        // through the injected fetch so the guard stays testable.
+        const dl = await safeFetch(url, undefined, 5, this._minimaxFetch);
         if (!dl.ok) {
           throw new Error(`Failed to download MiniMax image from ${url}`);
         }
@@ -564,7 +590,8 @@ export class MinimaxProvider extends OpenAIProvider {
     return this._generateVideo(params.model.id, {
       prompt: params.prompt,
       durationSeconds: params.durationSeconds,
-      resolution: params.resolution
+      resolution: params.resolution,
+      signal: this._timeoutSignal(params.timeoutSeconds)
     });
   }
 
@@ -576,8 +603,22 @@ export class MinimaxProvider extends OpenAIProvider {
       prompt: params.prompt ?? undefined,
       durationSeconds: params.durationSeconds,
       resolution: params.resolution,
-      firstFrame: images[0]
+      firstFrame: images[0],
+      signal: this._timeoutSignal(params.timeoutSeconds)
     });
+  }
+
+  /**
+   * Per-call timeout signal (mirrors the gemini provider): threaded into the
+   * poll-loop fetch and sleep so an expired budget aborts the in-flight request
+   * promptly instead of leaking it until the fixed poll cap.
+   */
+  private _timeoutSignal(
+    timeoutSeconds?: number | null
+  ): AbortSignal | undefined {
+    return timeoutSeconds && timeoutSeconds > 0
+      ? AbortSignal.timeout(timeoutSeconds * 1000)
+      : undefined;
   }
 
   private async _generateVideo(
@@ -587,21 +628,54 @@ export class MinimaxProvider extends OpenAIProvider {
       durationSeconds?: number | null;
       resolution?: string | null;
       firstFrame?: Uint8Array;
+      signal?: AbortSignal;
     }
   ): Promise<Uint8Array> {
     const body: Record<string, unknown> = { model: modelId };
     if (opts.prompt) body.prompt = opts.prompt;
-    if (opts.durationSeconds) {
-      body.duration = opts.durationSeconds >= 9 ? 10 : 6;
+
+    // duration/resolution are Hailuo-only knobs; the 01-series models
+    // (T2V-01-Director, I2V-01-Director, S2V-01) are fixed at 6s/720P and
+    // reject the parameters outright.
+    const isHailuo = modelId.startsWith("MiniMax-Hailuo");
+    if (isHailuo) {
+      let duration: number | null = null;
+      if (opts.durationSeconds) {
+        // Hailuo models only render 6s or 10s clips.
+        duration = opts.durationSeconds >= 9 ? 10 : 6;
+        body.duration = duration;
+      }
+      if (opts.resolution) {
+        const r = opts.resolution.toLowerCase();
+        let resolution: string | null = null;
+        if (r.includes("1080")) resolution = "1080P";
+        else if (r.includes("768") || r.includes("720")) resolution = "768P";
+        else if (r.includes("512")) resolution = "512P";
+        // 512P only exists on Hailuo-02; 1080P only renders 6s clips. Keep the
+        // requested duration and fall back to 768P (the API default) rather
+        // than letting MiniMax reject the combination.
+        if (resolution === "512P" && modelId !== "MiniMax-Hailuo-02") {
+          resolution = "768P";
+        }
+        if (resolution === "1080P" && duration === 10) {
+          log.warn(
+            "MiniMax Hailuo renders 10s clips only at 768P; downgrading from 1080P"
+          );
+          resolution = "768P";
+        }
+        if (resolution) body.resolution = resolution;
+      }
     }
-    if (opts.resolution) {
-      const r = opts.resolution.toLowerCase();
-      if (r.includes("1080")) body.resolution = "1080P";
-      else if (r.includes("768") || r.includes("720")) body.resolution = "768P";
-      else if (r.includes("512")) body.resolution = "512P";
-    }
+
     if (opts.firstFrame) {
-      body.first_frame_image = `data:image/png;base64,${b64(opts.firstFrame)}`;
+      const dataUrl = `data:image/png;base64,${b64(opts.firstFrame)}`;
+      if (modelId === "S2V-01") {
+        // S2V-01 animates a character reference, not a first frame, and
+        // rejects first_frame_image.
+        body.subject_reference = [{ type: "character", image: [dataUrl] }];
+      } else {
+        body.first_frame_image = dataUrl;
+      }
     }
 
     log.debug("MiniMax textToVideo submit", { model: modelId });
@@ -611,7 +685,8 @@ export class MinimaxProvider extends OpenAIProvider {
       {
         method: "POST",
         headers: this.headers(),
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
+        signal: opts.signal
       }
     );
     if (!submit.ok) {
@@ -629,26 +704,33 @@ export class MinimaxProvider extends OpenAIProvider {
       );
     }
 
-    const fileId = await this._pollVideoTask(taskId);
-    return this._downloadFile(fileId);
+    const fileId = await this._pollVideoTask(taskId, 5000, 360, opts.signal);
+    return this._downloadFile(fileId, opts.signal);
   }
 
   private async _pollVideoTask(
     taskId: string,
     pollIntervalMs = 5000,
-    maxAttempts = 360
+    maxAttempts = 360,
+    signal?: AbortSignal
   ): Promise<string> {
     const url = `${MINIMAX_BASE_URL}/v1/query/video_generation?task_id=${encodeURIComponent(
       taskId
     )}`;
     for (let i = 0; i < maxAttempts; i++) {
-      const res = await this._minimaxFetch(url, { headers: this.headers() });
+      const res = await this._minimaxFetch(url, {
+        headers: this.headers(),
+        signal
+      });
       if (!res.ok) {
         throw new Error(
           `MiniMax video status failed: ${res.status} ${await res.text()}`
         );
       }
       const data = (await res.json()) as Record<string, unknown>;
+      // Surface API-level failures (expired task, auth, rate limit) instead of
+      // polling an empty status until the timeout.
+      assertBaseResp(data, "video status");
       const status = String(data.status ?? "").toLowerCase();
       if (status === "success") {
         const fileId = data.file_id as string | undefined;
@@ -662,18 +744,24 @@ export class MinimaxProvider extends OpenAIProvider {
           `MiniMax video task failed: ${JSON.stringify(data.base_resp ?? data)}`
         );
       }
-      await new Promise((r) => setTimeout(r, pollIntervalMs));
+      await abortableSleep(pollIntervalMs, signal);
     }
     throw new Error(
       `MiniMax video task timed out after ${maxAttempts * pollIntervalMs}ms`
     );
   }
 
-  private async _downloadFile(fileId: string): Promise<Uint8Array> {
+  private async _downloadFile(
+    fileId: string,
+    signal?: AbortSignal
+  ): Promise<Uint8Array> {
     const url = `${MINIMAX_BASE_URL}/v1/files/retrieve?file_id=${encodeURIComponent(
       fileId
     )}`;
-    const res = await this._minimaxFetch(url, { headers: this.headers() });
+    const res = await this._minimaxFetch(url, {
+      headers: this.headers(),
+      signal
+    });
     if (!res.ok) {
       throw new Error(
         `MiniMax files/retrieve failed: ${res.status} ${await res.text()}`
@@ -690,7 +778,10 @@ export class MinimaxProvider extends OpenAIProvider {
         `MiniMax files/retrieve returned no download_url: ${JSON.stringify(data)}`
       );
     }
-    const dl = await this._minimaxFetch(downloadUrl);
+    // safeFetch: download_url is provider-returned (externally influenced), so
+    // route it through the SSRF guard rather than the raw API fetch. Use the
+    // injected fetch so the guard stays testable.
+    const dl = await safeFetch(downloadUrl, { signal }, 5, this._minimaxFetch);
     if (!dl.ok) {
       throw new Error(`Failed to download MiniMax file from ${downloadUrl}`);
     }

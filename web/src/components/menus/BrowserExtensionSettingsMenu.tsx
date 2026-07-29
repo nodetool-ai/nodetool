@@ -8,7 +8,7 @@ import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DownloadIcon from "@mui/icons-material/Download";
 import { Text, FlexRow, FlexColumn, NavButton, Chip } from "../ui_primitives";
-import { getSharedSettingsStyles } from "./sharedSettingsStyles";
+import { getSharedSettingsStyles } from "./settingsMenuStyles";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { trpcClient } from "../../trpc/client";
 import { BASE_URL } from "../../stores/BASE_URL";

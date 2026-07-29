@@ -7,7 +7,6 @@ import { NodeSelectionContext } from "./node/NodeSelectionContext";
 
 const ENTER_DELAY = 1200;
 
-// Generate a unique ID for tooltip descriptions
 let tooltipIdCounter = 0;
 const generateTooltipId = () => `handle-tooltip-${tooltipIdCounter++}`;
 
@@ -16,7 +15,6 @@ const generateTooltipId = () => `handle-tooltip-${tooltipIdCounter++}`;
  * and returns "number" if so, otherwise returns the formatted type string.
  */
 const formatTypeString = (typeMetadata: TypeMetadata): string => {
-  // Check if it's a union type with exactly 2 type args
   if (
     typeMetadata.type === "union" &&
     typeMetadata.type_args &&
@@ -25,7 +23,6 @@ const formatTypeString = (typeMetadata: TypeMetadata): string => {
     const typeArgs = typeMetadata.type_args;
     const types = [typeArgs[0].type, typeArgs[1].type].sort();
 
-    // Check if it's a union of float and int (in any order)
     if (types[0] === "float" && types[1] === "int") {
       return "number";
     }
@@ -67,7 +64,6 @@ const HandleTooltip = memo(function HandleTooltip({
   // hovering each one. Selection toggles cleanly via the context provider.
   const nodeSelected = useContext(NodeSelectionContext);
 
-  // Ref to keep track of the timer used for delaying tooltip appearance
   const showTimerRef = useRef<number | null>(null);
 
   // Clear any pending timers on unmount to avoid memory leaks

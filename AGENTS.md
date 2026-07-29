@@ -73,6 +73,34 @@ token/cost/latency.
 - If you see `NODE_MODULE_VERSION` errors, run `npm run rebuild:native`.
 - **Fresh checkout or missing `node_modules`**: if `npm run typecheck`/`lint`/`test` fail with module-resolution errors (`Cannot find module`, `Cannot find type definition file`) on files you didn't touch, run `npm install` first — don't spend a cycle proving the failure predates your change. Re-run the checks after install before investigating further.
 
+### Install in sandboxed / proxied environments
+
+Three postinstall steps break `npm install` in locked-down containers (CI
+sandboxes, Claude Code on the web, proxied networks). A failed postinstall
+makes npm roll back the **entire** `node_modules` tree, so one bad package
+means no dependencies at all — including ESLint and the design-lint gate.
+
+1. **`keytar` needs libsecret headers on Linux.** Without them node-gyp fails
+   with `Package libsecret-1 was not found`. Fix first:
+   `apt-get install -y libsecret-1-dev`.
+2. **`electron` downloads its binary in postinstall.** Proxies that block the
+   download (HTTP 403) fail the install. Skip it when you don't need to launch
+   Electron: `ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm install`.
+3. **`onnxruntime-node` downloads CUDA binaries from GitHub releases** in
+   postinstall (it assumes CUDA when `nvcc` is absent). Same proxy failure
+   mode, and there is no skip env var in our pinned version.
+
+When only the JS toolchain matters (typecheck, lint, unit tests that don't hit
+native modules), bypass all of the above in one step:
+
+```bash
+npm install --ignore-scripts --no-audit --no-fund
+```
+
+This skips every postinstall — including the root `better-sqlite3` rebuild —
+so anything touching the database needs `npm run rebuild:native` afterwards
+(which will still require the downloads above to have succeeded).
+
 ## Build, Lint & Test Commands
 
 ### Make Targets (Recommended)

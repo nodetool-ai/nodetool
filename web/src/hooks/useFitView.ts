@@ -1,8 +1,7 @@
 import { useCallback } from "react";
 import { useReactFlow, XYPosition, Node } from "@xyflow/react";
-import { useNodes } from "../contexts/NodeContext";
+import { useNodeStoreRef } from "../contexts/NodeContext";
 import { NodeData } from "../stores/NodeData";
-import { useShallow } from "zustand/react/shallow";
 
 const EXTRA_LEFT_PADDING = 100;
 const TOP_PADDING_ADJUSTMENT = 50;
@@ -51,14 +50,10 @@ export function getNodesBounds(
  */
 export const useFitView = (): ((options?: { padding?: number; nodeIds?: string[] }) => void) => {
   const reactFlowInstance = useReactFlow();
-  const { nodes, selectedNodes, setSelectedNodes, setViewport } = useNodes(
-    useShallow((state) => ({
-      nodes: state.nodes,
-      selectedNodes: state.getSelectedNodes(),
-      setSelectedNodes: state.setSelectedNodes,
-      setViewport: state.setViewport
-    }))
-  );
+  // Read the graph lazily so this hook subscribes to nothing and the returned
+  // callback stays stable. Subscribing was also never equal across renders:
+  // `getSelectedNodes()` allocates a fresh array on every call.
+  const nodeStore = useNodeStoreRef();
   const TRANSITION_DURATION = 800;
 
   // A short delay for the second fitBounds call when nodes are selected.
@@ -70,6 +65,9 @@ export const useFitView = (): ((options?: { padding?: number; nodeIds?: string[]
     (options?: { padding?: number; nodeIds?: string[] }) => {
       const padding = options?.padding ?? 0.1;
       const explicitNodeIds = options?.nodeIds ?? [];
+      const { nodes, getSelectedNodes, setSelectedNodes, setViewport } =
+        nodeStore.getState();
+      const selectedNodes = getSelectedNodes();
 
       const nodesToFit = (() => {
         if (explicitNodeIds.length > 0) {
@@ -170,7 +168,6 @@ export const useFitView = (): ((options?: { padding?: number; nodeIds?: string[]
         setViewport(newViewport);
       }, TRANSITION_DURATION + FIT_BOUNDS_DELAY_DEFAULT + 100); // Wait for animations to finish
     },
-    // [nodes, selectedNodes, setSelectedNodes, reactFlowInstance, setViewport]
-    [nodes, selectedNodes, reactFlowInstance, setSelectedNodes, setViewport]
+    [nodeStore, reactFlowInstance]
   );
 };

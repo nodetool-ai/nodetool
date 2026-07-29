@@ -8,7 +8,7 @@ import SearchResultItem from "./SearchResultItem";
 import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
-import { EmptyState } from "../ui_primitives/EmptyState";
+import { EmptyState } from "../ui_primitives";
 
 interface SearchResultsPanelProps {
   searchNodes: NodeMetadata[];
@@ -43,7 +43,6 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
     overscan: theme.virtualScroll.overscan.small,
   });
 
-  // Scroll to the selected item when selectedIndex changes
   useEffect(() => {
     if (selectedIndex >= 0 && searchNodes.length > 0) {
       virtualizer.scrollToIndex(selectedIndex, { align: "auto" });

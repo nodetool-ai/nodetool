@@ -15,7 +15,7 @@
 
 import { useMemo } from "react";
 import { useSketchStore } from "../state";
-import type { SketchTool } from "../types";
+import type { SketchTool, ToolSettings } from "../types";
 import { isShapeTool } from "../types";
 import {
   DEFAULT_BRUSH_SETTINGS,
@@ -39,7 +39,7 @@ import {
  * The result is memoised on the raw `toolSettings` slice so the reference
  * stays stable across renders that don't change tool settings.
  */
-export function useResolvedToolSettings() {
+export function useResolvedToolSettings(): ToolSettings {
   const liveToolSettings = useSketchStore((s) => s.toolSettings);
 
   return useMemo(() => {
@@ -107,10 +107,28 @@ export function useResolvedToolSettings() {
 
 // ─── Active-tool-only resolved settings ─────────────────────────────────────
 
+/**
+ * The tools that carry their own settings object. Narrower than
+ * `keyof ToolSettings`, which also covers the `penPressure` curve merged into
+ * brush/pencil and the `move`/`transform` settings no active-tool panel reads.
+ */
+type ResolvedToolKey =
+  | "brush"
+  | "pencil"
+  | "eraser"
+  | "shape"
+  | "fill"
+  | "blur"
+  | "gradient"
+  | "cloneStamp"
+  | "select"
+  | "segment";
+
+/** Resolved settings for one tool, whichever is active. */
+export type ActiveToolSettings = ToolSettings[ResolvedToolKey];
+
 /** Map from active tool name to the key in the resolved settings object. */
-function toolToSettingsKey(
-  tool: SketchTool
-): keyof ReturnType<typeof useResolvedToolSettings> | null {
+function toolToSettingsKey(tool: SketchTool): ResolvedToolKey | null {
   if (tool === "brush") return "brush";
   if (tool === "pencil") return "pencil";
   if (tool === "eraser") return "eraser";
@@ -132,7 +150,7 @@ function toolToSettingsKey(
  * in a memoised pass, so a brush-slider change while the eraser is active
  * does **not** trigger a rerender.
  */
-export function useActiveToolSettings() {
+export function useActiveToolSettings(): ActiveToolSettings | null {
   const activeTool = useSketchStore((s) => s.activeTool);
   const liveToolSettings = useSketchStore((s) => s.toolSettings);
 

@@ -51,8 +51,6 @@ interface GlobalWebSocketEvents {
 
 type GlobalWebSocketEvent = keyof GlobalWebSocketEvents;
 
-// Configuration constants
-const MAX_RECONNECT_ATTEMPTS = 10;
 const RECONNECT_INTERVAL_MS = 1000;
 
 /**
@@ -60,9 +58,10 @@ const RECONNECT_INTERVAL_MS = 1000;
  *
  * Establishes a single shared WebSocket to the unified backend and
  * multiplexes messages by job_id or thread_id. Consumers subscribe with a
- * routing key and receive only their messages. Built-in reconnect with up to
- * 5 attempts/1s backoff; `ensureConnection` blocks until connected and reuses
- * Supabase auth when available.
+ * routing key and receive only their messages. Reconnects indefinitely with
+ * backoff, and cuts the backoff short when the network or the tab comes back;
+ * `ensureConnection` blocks until connected and reuses Supabase auth when
+ * available.
  */
 class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
   private static instance: GlobalWebSocketManager | null = null;
@@ -89,14 +88,26 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
   }
 
   /**
-   * Ensure WebSocket connection is established
+   * True while an existing manager is still working towards a connection —
+   * including the reconnect-backoff window, during which `isConnected` and
+   * `isConnecting` are both false (the "close" event fires before the
+   * "reconnecting" event that the backoff timer eventually triggers).
+   * Without this, `ensureConnection` would build a second manager whose
+   * `on("message")` handler routes every message a second time.
    */
+  private isManagerBusy(): boolean {
+    const state = this.wsManager?.getState();
+    return (
+      state === "connecting" || state === "reconnecting" || state === "disconnected"
+    );
+  }
+
   async ensureConnection(): Promise<void> {
     if (this.isConnected && this.wsManager) {
       return;
     }
 
-    if (this.isConnecting) {
+    if (this.isConnecting || (this.wsManager && this.isManagerBusy())) {
       // Wait for ongoing connection with timeout to prevent memory leak
       return new Promise((resolve, reject) => {
         const CONNECTION_TIMEOUT_MS = 30000; // 30 second timeout
@@ -105,6 +116,12 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
             clearInterval(checkInterval);
             clearTimeout(timeoutId);
             resolve();
+            return;
+          }
+          if (!this.isConnecting && !(this.wsManager && this.isManagerBusy())) {
+            clearInterval(checkInterval);
+            clearTimeout(timeoutId);
+            reject(new Error("WebSocket connection attempt failed"));
           }
         }, 100);
 
@@ -118,6 +135,12 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
 
     this.isConnecting = true;
 
+    // Tear down any previous manager before replacing it. Overwriting
+    // `this.wsManager` while the old one still holds an open (or reconnecting)
+    // socket leaves an orphan that keeps routing messages into
+    // `routeMessage` — every chunk and node update handled twice.
+    this.teardownManager();
+
     try {
       const wsUrl = await this.buildAuthenticatedUrl();
       console.info("GlobalWebSocketManager: Establishing connection");
@@ -126,8 +149,7 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
         url: wsUrl,
         binaryType: "arraybuffer",
         reconnect: true,
-        reconnectInterval: RECONNECT_INTERVAL_MS,
-        reconnectAttempts: MAX_RECONNECT_ATTEMPTS
+        reconnectInterval: RECONNECT_INTERVAL_MS
       });
 
       this.wsManager.on("open", () => {
@@ -310,7 +332,6 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
 
     console.debug(`GlobalWebSocketManager: Subscribed handler for ${key}`);
 
-    // Return unsubscribe function
     return () => {
       const handlers = this.messageHandlers.get(key);
       if (handlers) {
@@ -323,9 +344,6 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
     };
   }
 
-  /**
-   * Send a message through the WebSocket
-   */
   async send(message: Record<string, unknown>): Promise<void> {
     await this.ensureConnection();
 
@@ -338,18 +356,28 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
   }
 
   /**
-   * Disconnect the WebSocket
+   * Close and fully detach the current manager. Dropping the reference alone
+   * is not enough: the manager keeps its socket and its reconnect timer, and
+   * its listeners keep feeding `routeMessage`.
    */
+  private teardownManager(): void {
+    const manager = this.wsManager;
+    if (!manager) {
+      return;
+    }
+    this.wsManager = null;
+    this.isConnected = false;
+    manager.disconnect();
+    manager.destroy();
+  }
+
   disconnect(): void {
     if (this.wsManager) {
       console.info("GlobalWebSocketManager: Disconnecting");
-      this.wsManager.disconnect();
-      this.wsManager = null;
-      this.isConnected = false;
+      this.teardownManager();
       this.isConnecting = false;
     }
-    
-    // Clean up network listeners
+
     if (this.networkCleanup) {
       this.networkCleanup();
       this.networkCleanup = null;
@@ -357,9 +385,6 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
     }
   }
 
-  /**
-   * Get connection state
-   */
   getConnectionState(): {
     isConnected: boolean;
     isConnecting: boolean;
@@ -404,6 +429,37 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
   }
 
   /**
+   * Re-establish the connection after an event that may have killed it.
+   *
+   * Waking from sleep or switching networks usually leaves the socket
+   * half-open: the browser still reports it as connected and `close` never
+   * fires, so checking `isConnected` alone would conclude there is nothing to
+   * do. Probe the socket instead, and only rebuild when it is genuinely gone.
+   */
+  private recoverConnection(trigger: string): void {
+    if (this.isConnected && this.wsManager) {
+      this.wsManager.checkLiveness();
+      return;
+    }
+    // Already retrying: the manager owns the socket, so let it keep it — but
+    // cut short whatever backoff it is sitting in, since the thing it was
+    // waiting for (network, wake) has just happened.
+    if (this.wsManager && this.isManagerBusy()) {
+      this.wsManager.retryNow();
+      return;
+    }
+    if (this.isConnecting) {
+      return;
+    }
+    this.ensureConnection().catch((err) => {
+      console.error(
+        `GlobalWebSocketManager: Failed to reconnect after ${trigger}:`,
+        err
+      );
+    });
+  }
+
+  /**
    * Set up network status monitoring to auto-reconnect on network changes
    */
   private setupNetworkListeners(): void {
@@ -415,28 +471,19 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
 
     const handleOnline = () => {
       console.info("GlobalWebSocketManager: Network came online, attempting reconnection");
-      if (!this.isConnected && !this.isConnecting) {
-        this.ensureConnection().catch((err) => {
-          console.error("GlobalWebSocketManager: Failed to reconnect after network online:", err);
-        });
-      }
+      this.recoverConnection("network online");
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         console.info("GlobalWebSocketManager: Tab became visible, checking connection");
-        if (!this.isConnected && !this.isConnecting) {
-          this.ensureConnection().catch((err) => {
-            console.error("GlobalWebSocketManager: Failed to reconnect after visibility change:", err);
-          });
-        }
+        this.recoverConnection("tab visible");
       }
     };
 
     window.addEventListener("online", handleOnline);
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    // Store cleanup function
     this.networkCleanup = () => {
       window.removeEventListener("online", handleOnline);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
@@ -460,5 +507,4 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
   }
 }
 
-// Export singleton instance
 export const globalWebSocketManager = GlobalWebSocketManager.getInstance();

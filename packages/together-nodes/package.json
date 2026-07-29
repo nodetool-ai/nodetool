@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22.0.0 <23.0.0"
   },
-  "version": "0.7.0-rc.29",
+  "version": "0.7.0-rc.32",
   "description": "Together AI nodes for NodeTool — serverless image (FLUX / Imagen / Ideogram / Seedream), video (Veo / Sora / Kling / Seedance / MiniMax), text-to-speech (Orpheus / Kokoro / Cartesia) and transcription (Whisper / Voxtral / Parakeet)",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -15,6 +15,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@nodetool-ai/config": "*",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/runtime": "*"
   },
@@ -47,5 +48,19 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "ai-nodes",
+    "no-code",
+    "visual-programming",
+    "workflow-nodes",
+    "together-ai",
+    "llm",
+    "model-nodes"
   ]
 }

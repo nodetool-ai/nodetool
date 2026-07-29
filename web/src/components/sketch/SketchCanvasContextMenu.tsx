@@ -480,9 +480,6 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             px: 1,
             py: 0.5,
             borderRadius: BORDER_RADIUS.lg,
-            // border: "1px solid",
-            // borderColor: alpha(theme.palette.primary.main, 0.28),
-            // backgroundColor: alpha(theme.palette.primary.main, 0.1),
             overflow: "hidden",
             "& .sketch-context-menu__header-shortcut": {
               opacity: 0,
@@ -629,7 +626,6 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
               </Box>
             </Box>
 
-            {/* Selection actions: only when the select tool is active */}
             {activeTool === "select" && (
               <Box
                 className="sketch-context-menu__selection-actions"

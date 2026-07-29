@@ -18,10 +18,6 @@
 
 const TOGETHER_BASE = "https://api.together.xyz";
 
-// ---------------------------------------------------------------------------
-// API key
-// ---------------------------------------------------------------------------
-
 export function getApiKey(secrets: Record<string, string> | undefined): string {
   const key =
     (secrets && secrets.TOGETHER_API_KEY) ||
@@ -39,10 +35,6 @@ function authHeaders(apiKey: string): Record<string, string> {
     "Content-Type": "application/json"
   };
 }
-
-// ---------------------------------------------------------------------------
-// SSRF guard (shared shape with fal / atlascloud node packages)
-// ---------------------------------------------------------------------------
 
 /**
  * Validate an http(s) URL for outbound fetching from the workflow runtime.
@@ -144,10 +136,6 @@ function isPrivateOrLocalHost(hostname: string): boolean {
   if (/^f[cd][0-9a-f]{2}:/i.test(h)) return true;
   return false;
 }
-
-// ---------------------------------------------------------------------------
-// Asset-ref resolution → raw bytes
-// ---------------------------------------------------------------------------
 
 export type AssetKind = "image" | "audio" | "video";
 
@@ -259,10 +247,7 @@ function bytesToDataUri(bytes: Uint8Array, mime: string): string {
   return `data:${mime};base64,${Buffer.from(bytes).toString("base64")}`;
 }
 
-// ---------------------------------------------------------------------------
 // Image generation / editing — POST /v1/images/generations (synchronous)
-// ---------------------------------------------------------------------------
-
 export interface ImageParams {
   prompt: string;
   width?: number | null;
@@ -320,10 +305,7 @@ export function imageBytesToDataUri(bytes: Uint8Array): string {
   return bytesToDataUri(bytes, "image/jpeg");
 }
 
-// ---------------------------------------------------------------------------
 // Text-to-speech — POST /v1/audio/speech (synchronous, encoded audio)
-// ---------------------------------------------------------------------------
-
 export interface SpeechParams {
   text: string;
   voice?: string;
@@ -366,10 +348,7 @@ export async function togetherTextToSpeech(
   return { data, mimeType: mime };
 }
 
-// ---------------------------------------------------------------------------
 // Transcription — POST /v1/audio/transcriptions (multipart, OpenAI-compatible)
-// ---------------------------------------------------------------------------
-
 export interface TranscribeParams {
   audio: Uint8Array;
   language?: string | null;
@@ -406,10 +385,7 @@ export async function togetherTranscribe(
   return String(payload.text ?? "");
 }
 
-// ---------------------------------------------------------------------------
 // Video — POST /v2/videos then poll GET /v2/videos/{id} (asynchronous)
-// ---------------------------------------------------------------------------
-
 export interface VideoParams {
   prompt?: string | null;
   aspectRatio?: string | null;
@@ -539,10 +515,6 @@ export async function togetherGenerateVideo(
   }
   return fetchBytes(videoUrl);
 }
-
-// ---------------------------------------------------------------------------
-// Small utilities (wrapped so tests can run without real timers/clock)
-// ---------------------------------------------------------------------------
 
 function nowMs(): number {
   return Date.now();

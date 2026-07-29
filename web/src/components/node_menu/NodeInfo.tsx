@@ -11,7 +11,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { titleizeString } from "../../utils/titleizeString";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
-import { HighlightText } from "../ui_primitives/HighlightText";
+import { HighlightText } from "../ui_primitives";
 import {
   formatFalUnitPricingShort,
   formatFalUnitPricingTooltip,
@@ -24,7 +24,7 @@ import {
   formatKieUnitPricingTooltip,
   isKieVagueBillingSummary,
 } from "../../utils/formatKieUnitPricing";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 
 interface NodeInfoProps {
   nodeMetadata: NodeMetadata;
@@ -65,7 +65,7 @@ const nodeInfoStyles = (theme: Theme) =>
       display: "inline-flex",
       alignItems: "center",
       padding: "0.25em 0.5em",
-      borderRadius: "0.25em",
+      borderRadius: BORDER_RADIUS.sm,
       height: "1.5em"
     },
     ".replicate-status.online": {

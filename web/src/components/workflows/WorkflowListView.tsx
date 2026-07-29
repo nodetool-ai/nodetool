@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useMemo, useRef, useEffect, useCallback } from "react";
-import { Text, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { Text, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListItem from "./WorkflowListItem";
@@ -147,7 +147,7 @@ const listStyles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "flex-end",
       gap: getSpacingPx(SPACING.xs),
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       opacity: 0,
       transition: MOTION.opacity,
       background: `linear-gradient(to right, transparent, rgb(${theme.vars.palette.background.defaultChannel} / 0.96) 16px)`,
@@ -180,7 +180,7 @@ const listStyles = (theme: Theme) =>
       top: "5px",
       right: "5px",
       transform: "none",
-      zIndex: 5,
+      zIndex: Z_INDEX.base + 5,
       backgroundColor: theme.vars.palette.c_scrim_soft,
       borderRadius: BORDER_RADIUS.sm,
       padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`

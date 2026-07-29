@@ -2,7 +2,6 @@ import { spawn } from "child_process";
 import { app } from "electron";
 import { logMessage } from "./logger";
 import {
-  getOptionalNodeModulesPath,
   getProcessEnv,
   getPythonPath,
   getCondaEnvPath,
@@ -152,7 +151,6 @@ export function isRegistryWheelPackage(packageName: string): boolean {
   return REGISTRY_WHEEL_PACKAGES.has(canonicalizePackageName(packageName));
 }
 
-// Get the app version dynamically from Electron's app.getVersion()
 function getAppVersion(): string {
   try {
     return app.getVersion();
@@ -161,7 +159,6 @@ function getAppVersion(): string {
   }
 }
 
-// Simple in-memory cache for nodes
 let nodeCache: PackageNode[] | null = null;
 
 /**
@@ -314,7 +311,7 @@ function compareVersions(a: string, b: string): number {
   return 0;
 }
 
-export interface RegistryWheelSelectionOptions {
+interface RegistryWheelSelectionOptions {
   packageName: string;
   pythonTag: string;
   platformTag: string;
@@ -957,7 +954,7 @@ async function runUvCommand(
 async function listPythonInstalledPackages(): Promise<PackageModel[]> {
   try {
     const output = await runUvCommand(["pip", "list", "--format=json"], { silent: true });
-    const parsed = JSON.parse(output);
+    const parsed: unknown = JSON.parse(output);
     const allPackages = isPipPackageArray(parsed) ? parsed : [];
 
     return allPackages
@@ -1114,7 +1111,7 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
     );
     // Renderer prepends its own "Failed to install package:" framing, so
     // return just the underlying reason to avoid duplicated prefixes in
-    // user-facing dialogs (see electron/pages/PackageManager.tsx).
+    // user-facing dialogs.
     return {
       success: false,
       message: errorMsg(error),
@@ -1227,8 +1224,6 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
     };
   }
 }
-
-export { PACKAGE_INDEX_URL };
 
 /**
  * Check all expected package versions

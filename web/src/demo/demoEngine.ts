@@ -19,6 +19,10 @@ import useMetadataStore from "../stores/MetadataStore";
 import type { NodeData } from "../stores/NodeData";
 import useResultsStore from "../stores/ResultsStore";
 import useStatusStore from "../stores/StatusStore";
+import {
+  setExecutionClock,
+  resetExecutionClock
+} from "../stores/ExecutionTimeStore";
 import useWorkflowRunsStore from "../stores/WorkflowRunsStore";
 import { useNotificationStore, type Notification } from "../stores/NotificationStore";
 import useAuth from "../stores/useAuth";
@@ -188,6 +192,10 @@ export class DemoEngine {
   }
 
   private applyEvent(event: CastEvent): void {
+    // Stamp execution timing from the recorded event timeline, not wall-clock.
+    // Otherwise a node whose start and end events land in the same synchronous
+    // seek gets a tiny, frame-dependent duration that wiggles the badge.
+    setExecutionClock(() => event.t);
     handleUpdate(
       this.workflow,
       event.message as unknown as MsgpackData,
@@ -209,6 +217,9 @@ export class DemoEngine {
       edges: clone(this.pristineEdges),
     });
     this.appliedIndex = 0;
+    // Restore the wall-clock timing clock; the next applyEvent re-installs the
+    // event-driven one before it stamps anything.
+    resetExecutionClock();
   }
 
   /** Drop all global state this engine wrote. Call when unmounting the player. */

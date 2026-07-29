@@ -29,6 +29,18 @@ async function readWorkspaceOrAssetFile(
   context: ProcessingContext,
   inputFile: string
 ): Promise<Uint8Array> {
+  // asset:// URIs are the primary handle the generate_* tools return (an
+  // asset is created with no workspace copy), and the tool docs advertise
+  // asset:// sources. Route them through the asset resolver — workspaceStorage
+  // treats them as literal keys (asset://id.png → key "asset:/id.png") and
+  // fails.
+  if (inputFile.startsWith("asset://")) {
+    const { bytes } = await context.resolveAssetBytes(inputFile);
+    if (!bytes) {
+      throw new Error(`Asset not found: ${inputFile}`);
+    }
+    return bytes;
+  }
   // Read via the workspace storage adapter so cloud deployments work
   // identically to local. `inputFile` is treated as a storage key.
   if (!context.workspaceStorage) {
@@ -62,10 +74,6 @@ function parseModelArgs(
   }
   return { provider, model };
 }
-
-/* ------------------------------------------------------------------ */
-/*  Image generation                                                  */
-/* ------------------------------------------------------------------ */
 
 export class GenerateImageTool extends Tool {
   readonly name = "generate_image";
@@ -205,10 +213,6 @@ export class EditImageTool extends Tool {
   }
 }
 
-/* ------------------------------------------------------------------ */
-/*  Video generation                                                  */
-/* ------------------------------------------------------------------ */
-
 export class GenerateVideoTool extends Tool {
   readonly name = "generate_video";
   readonly description =
@@ -340,10 +344,6 @@ export class AnimateImageTool extends Tool {
     return `Animating image with ${String(params["provider"])}:${String(params["model"])}`;
   }
 }
-
-/* ------------------------------------------------------------------ */
-/*  Audio: TTS + ASR                                                  */
-/* ------------------------------------------------------------------ */
 
 interface TTSChunkLike {
   data?: Uint8Array | string;
@@ -492,6 +492,10 @@ export class GenerateSpeechTool extends Tool {
         // a WAV container before writing to disk so the file is playable.
         const parts: Uint8Array[] = [];
         let pcmOnly = true;
+        // Capture the PCM sample rate from the stream — providers emit non-24k
+        // PCM (MiniMax 32000, Together varies). Hardcoding 24000 in the WAV
+        // header makes those play back at the wrong speed/pitch.
+        let pcmSampleRate: number | undefined;
         for await (const item of context.streamProviderPrediction({
           provider: m.provider,
           capability: "text_to_speech",
@@ -512,6 +516,7 @@ export class GenerateSpeechTool extends Tool {
             if (chunk.mimeType) mimeType = chunk.mimeType;
             pcmOnly = false;
           } else if (chunk.samples) {
+            pcmSampleRate ??= chunk.sampleRate;
             parts.push(int16ToUint8(chunk.samples));
           }
         }
@@ -520,8 +525,9 @@ export class GenerateSpeechTool extends Tool {
         const merged = concatUint8(parts);
         if (pcmOnly && !mimeType) {
           // Wrap raw PCM in WAV so the bytes are playable. Rename .mp3 →
-          // .wav since the actual data is now WAV, not MP3.
-          audio = wrapPcmAsWav(merged);
+          // .wav since the actual data is now WAV, not MP3. Honor the provider's
+          // actual sample rate (defaulting to 24k only when unknown).
+          audio = wrapPcmAsWav(merged, pcmSampleRate ?? 24000);
           mimeType = "audio/wav";
           if (outputFileFinal) {
             const dir = path.dirname(outputFileFinal);
@@ -626,10 +632,6 @@ export class TranscribeAudioTool extends Tool {
     return `Transcribing audio with ${String(params["provider"])}:${String(params["model"])}`;
   }
 }
-
-/* ------------------------------------------------------------------ */
-/*  Embeddings                                                        */
-/* ------------------------------------------------------------------ */
 
 export class EmbedTextTool extends Tool {
   readonly name = "embed_text";

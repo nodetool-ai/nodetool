@@ -3,7 +3,7 @@ import { LeftPanelView, usePanelStore } from "../../stores/PanelStore";
 import { useShallow } from "zustand/react/shallow";
 const DEFAULT_PANEL_SIZE = 400;
 const MIN_DRAG_SIZE = 60;
-const MIN_PANEL_SIZE = DEFAULT_PANEL_SIZE - 100;
+const MIN_PANEL_SIZE = 160;
 const MAX_PANEL_SIZE = 800;
 
 export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
@@ -53,7 +53,7 @@ export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
           newSize = startDragSize.current - deltaX;
         }
 
-        newSize = Math.max(MIN_DRAG_SIZE, Math.min(newSize, MAX_PANEL_SIZE));
+        newSize = Math.max(MIN_PANEL_SIZE, Math.min(newSize, MAX_PANEL_SIZE));
         actions.setSize(newSize);
 
         if (Math.abs(deltaX) > dragThreshold) {
@@ -68,22 +68,17 @@ export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
           // If we didn't move, treat it as a click and toggle the current view
           actions.handleViewChange(panel.activeView);
         } else {
-          // Ensure final size respects minimum and collapse if below threshold
-          let finalSize = Math.max(
-            MIN_DRAG_SIZE,
+          // Clamp to the minimum width rather than collapsing — resizing small
+          // limits the size; closing is done via the toggle button.
+          const finalSize = Math.max(
+            MIN_PANEL_SIZE,
             currentSize || DEFAULT_PANEL_SIZE
           );
-
-          let visible = true;
-          if (finalSize < MIN_PANEL_SIZE) {
-            finalSize = MIN_DRAG_SIZE;
-            visible = false;
-          }
 
           if (finalSize !== currentSize) {
             actions.setSize(finalSize);
           }
-          actions.setVisibility(visible);
+          actions.setVisibility(true);
         }
 
         actions.setIsDragging(false);

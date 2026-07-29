@@ -20,7 +20,7 @@
   right: 10px;
   z-index: 1;
   opacity: 0;
-  transition: opacity 0.2s ease-in-out;
+  transition: opacity var(--motion-normal) ease-in-out;
 }
 
 .dv-tabs-and-actions-container:hover {

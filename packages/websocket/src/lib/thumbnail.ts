@@ -23,7 +23,9 @@ import { promisify } from "node:util";
 
 import sharp from "sharp";
 import { createLogger } from "@nodetool-ai/config";
+import { assetObjectKey } from "@nodetool-ai/storage";
 import { getAssetAdapter } from "./storage.js";
+import { retrieveAssetBytes } from "./asset-paths.js";
 
 const log = createLogger("nodetool.thumbnail");
 const execFileAsync = promisify(execFile);
@@ -36,7 +38,7 @@ export function thumbnailKey(assetId: string): string {
   return `${assetId}_thumb.jpg`;
 }
 
-function resizeAndEncode(pipeline: sharp.Sharp): Promise<Buffer> {
+function resizeAndEncode(pipeline: ReturnType<typeof sharp>): Promise<Buffer> {
   return pipeline
     .resize({
       width: THUMB_MAX_DIM,
@@ -90,15 +92,25 @@ async function runFfmpegThumb(
 }
 
 async function generateVideoThumb(bytes: Uint8Array): Promise<Buffer> {
-  return runFfmpegThumb(bytes, "nodetool-vthumb-", (input, output) => [
-    "-y",
-    "-ss", "1",
-    "-i", input,
-    "-frames:v", "1",
-    "-vf", `scale='min(${THUMB_MAX_DIM},iw)':-2`,
-    "-q:v", "4",
-    output
-  ]);
+  const buildArgs =
+    (seekSeconds: number) =>
+    (input: string, output: string): string[] => [
+      "-y",
+      "-ss", String(seekSeconds),
+      "-i", input,
+      "-frames:v", "1",
+      "-vf", `scale='min(${THUMB_MAX_DIM},iw)':-2`,
+      "-q:v", "4",
+      output
+    ];
+  // Seek 1s in for a representative frame, but clips shorter than that would
+  // seek past EOF and yield no frame (leaving the asset thumbnail-less). Fall
+  // back to the first frame so short clips still get a thumbnail.
+  try {
+    return await runFfmpegThumb(bytes, "nodetool-vthumb-", buildArgs(1));
+  } catch {
+    return await runFfmpegThumb(bytes, "nodetool-vthumb-", buildArgs(0));
+  }
 }
 
 async function generatePdfThumb(bytes: Uint8Array): Promise<Buffer> {
@@ -149,35 +161,79 @@ async function generateAudioThumb(bytes: Uint8Array): Promise<Buffer> {
   ]);
 }
 
+/** Largest object we'll pull back out of storage just to thumbnail it. */
+export const THUMBNAIL_SOURCE_MAX_BYTES = 100 * 1024 * 1024;
+
+function thumbGeneratorFor(
+  contentType: string
+): ((bytes: Uint8Array) => Promise<Buffer>) | null {
+  if (contentType.startsWith("image/")) return generateImageThumb;
+  if (contentType.startsWith("video/")) return generateVideoThumb;
+  if (contentType.startsWith("audio/")) return generateAudioThumb;
+  if (contentType === "application/pdf") return generatePdfThumb;
+  return null;
+}
+
+/**
+ * Generate a thumbnail for an object already in storage — the client-direct
+ * upload path, where the bytes never passed through this process. Reads them
+ * back once. Failures are logged and swallowed; the asset stays usable
+ * without a thumbnail.
+ */
+export async function generateThumbnailForStoredAsset(
+  userId: string,
+  assetId: string,
+  contentType: string
+): Promise<void> {
+  const generator = thumbGeneratorFor(contentType);
+  if (!generator) return;
+
+  const adapter = getAssetAdapter();
+  try {
+    const bytes = await retrieveAssetBytes(
+      adapter,
+      userId,
+      assetId,
+      contentType
+    );
+    if (!bytes) return;
+    const thumb = await generator(bytes);
+    await adapter.store(
+      assetObjectKey(userId, thumbnailKey(assetId)),
+      new Uint8Array(thumb),
+      THUMB_CONTENT_TYPE
+    );
+  } catch (err) {
+    log.warn("thumbnail generation failed", {
+      assetId,
+      contentType,
+      error: String(err)
+    });
+  }
+}
+
 /**
  * Store an asset's bytes and, when applicable, generate and store a
  * thumbnail. Thumbnail failures are logged and swallowed — the original
  * upload still succeeds.
  */
 export async function storeAssetWithThumbnail(
+  userId: string,
   assetId: string,
   fileName: string,
   bytes: Uint8Array,
   contentType: string
 ): Promise<void> {
   const adapter = getAssetAdapter();
-  await adapter.store(fileName, bytes, contentType);
+  await adapter.store(assetObjectKey(userId, fileName), bytes, contentType);
 
-  const generator = contentType.startsWith("image/")
-    ? generateImageThumb
-    : contentType.startsWith("video/")
-      ? generateVideoThumb
-      : contentType.startsWith("audio/")
-        ? generateAudioThumb
-        : contentType === "application/pdf"
-          ? generatePdfThumb
-          : null;
+  const generator = thumbGeneratorFor(contentType);
   if (!generator) return;
 
   try {
     const thumb = await generator(bytes);
     await adapter.store(
-      thumbnailKey(assetId),
+      assetObjectKey(userId, thumbnailKey(assetId)),
       new Uint8Array(thumb),
       THUMB_CONTENT_TYPE
     );

@@ -10,6 +10,11 @@ export {
 export { getByteLimitEnv } from "./byte-limits.js";
 
 export {
+  isGoogleWorkspaceEnabled,
+  GOOGLE_WORKSPACE_NAMESPACE
+} from "./google-workspace.js";
+
+export {
   registerSetting,
   getSettings,
   clearSettings,
@@ -33,6 +38,19 @@ export {
 } from "./diagnostics.js";
 
 export { importOptionalModule } from "./optional-modules.js";
+
+export {
+  PACKAGE_RUNTIME_ASSETS,
+  findPackageAsset,
+  type PackageAssetRef
+} from "./package-asset-registry.js";
+
+export {
+  resolvePackageAssetPath,
+  loadPackageAssetJson,
+  getPackageAssetResolutions,
+  type PackageAssetResolution
+} from "./package-assets.js";
 
 export {
   getNodetoolDataDir,

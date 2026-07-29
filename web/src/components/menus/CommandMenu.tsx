@@ -9,7 +9,7 @@ import useAlignNodes from "../../hooks/useAlignNodes";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import React from "react";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -18,6 +18,12 @@ import {
   exportWorkflowBundle,
   importWorkflowBundle
 } from "../../utils/workflowBundle";
+import {
+  exportApplicationBundle,
+  importApplicationBundle
+} from "../../utils/applicationBundle";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import { useWorkflowShareDialogStore } from "../../stores/WorkflowShareDialogStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { create } from "zustand";
 import { shallow } from "zustand/shallow";
@@ -29,11 +35,13 @@ import { useSurroundWithGroup } from "../../hooks/nodes/useSurroundWithGroup";
 import { useFitView } from "../../hooks/useFitView";
 import { useReactFlow } from "@xyflow/react";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
+import { workflowListQueryKey } from "../../serverState/workflowQueryKeys";
 import { useFindInWorkflowStore } from "../../stores/FindInWorkflowStore";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { areNodesEqualIgnoringPosition } from "../../utils/nodeEquality";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useCanvasChatDockStore } from "../../stores/CanvasChatDockStore";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 
 // Icons — Workflow
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
@@ -153,6 +161,9 @@ const WorkflowCommands = memo(function WorkflowCommands() {
     link.download = `${currentWorkflow.name}.json`;
     link.href = url;
     link.click();
+    // Defer the revoke past the download; releasing it synchronously can cancel
+    // the download, and never revoking leaks the blob URL for the page's life.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }, [workflowJSON, currentWorkflow]);
 
   const copyWorkflow = useCallback(() => {
@@ -254,6 +265,15 @@ const WorkflowCommands = memo(function WorkflowCommands() {
     }
   }, [currentWorkflow, addNotification]);
 
+  const openShareDialog = useWorkflowShareDialogStore((state) => state.open);
+  const shareWorkflow = useCallback(() => {
+    if (!currentWorkflow?.id) return;
+    openShareDialog({
+      workflowId: currentWorkflow.id,
+      workflowName: currentWorkflow.name
+    });
+  }, [currentWorkflow, openShareDialog]);
+
   const handleImportBundle = useCallback(() => {
     bundleInputRef.current?.click();
   }, []);
@@ -326,6 +346,9 @@ const WorkflowCommands = memo(function WorkflowCommands() {
       <Command.Item onSelect={() => executeAndClose(exportBundle)}>
         <FolderZipRoundedIcon /> Export Workflow as Bundle (.nodetool)
       </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(shareWorkflow)}>
+        Share Workflow…
+      </Command.Item>
       <Command.Item onSelect={() => executeAndClose(handleImportBundle)}>
         <FolderZipRoundedIcon /> Import Workflow from Bundle (.nodetool)
       </Command.Item>
@@ -371,7 +394,7 @@ const EditCommands = memo(function EditCommands({
   const duplicateNodes = useDuplicateNodes();
   const duplicateNodesVertical = useDuplicateNodes(true);
   const selectedNodes = useNodes(
-    (state) => state.nodes.filter((node) => node.selected),
+    (state) => state.getSelectedNodes(),
     areNodesEqualIgnoringPosition
   );
   const surroundWithGroup = useSurroundWithGroup();
@@ -560,14 +583,107 @@ const PanelCommands = memo(function PanelCommands() {
   );
 });
 
+/**
+ * App bundle commands, mirroring the workflow bundle ones. An app bundle is
+ * one JSON file carrying the app plus the graph of every workflow it binds, so
+ * export needs an app tab open and import creates both the workflows and the
+ * app, then opens it.
+ */
+const AppCommands = memo(function AppCommands() {
+  const executeAndClose = useCommandMenu((state) => state.executeAndClose);
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
+  const queryClient = useQueryClient();
+  const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  const applicationId = useWorkspaceTabsStore((state) => {
+    const tab = state.tabs.find((t) => t.id === state.activeTabId);
+    return tab?.type === "application" ? tab.ref : null;
+  });
+  const applicationName = useWorkspaceTabsStore((state) => {
+    const tab = state.tabs.find((t) => t.id === state.activeTabId);
+    return tab?.type === "application" ? tab.title : "";
+  });
+  const appBundleInputRef = useRef<HTMLInputElement>(null);
+
+  const exportApp = useCallback(async () => {
+    if (!applicationId) return;
+    try {
+      await exportApplicationBundle(applicationId, applicationName || "app");
+    } catch (error) {
+      addNotification({
+        type: "error",
+        alert: true,
+        content: `Failed to export app bundle: ${error instanceof Error ? error.message : "Unknown error"}`
+      });
+    }
+  }, [applicationId, applicationName, addNotification]);
+
+  const pickAppBundle = useCallback(() => {
+    appBundleInputRef.current?.click();
+  }, []);
+
+  const handleAppBundleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const app = await importApplicationBundle(file);
+        await queryClient.invalidateQueries({ queryKey: ["applications"] });
+        await queryClient.invalidateQueries({ queryKey: ["workflows"] });
+        openTab({ type: "application", ref: app.id, title: app.name });
+        addNotification({
+          type: "success",
+          alert: true,
+          content: `Imported app "${app.name}"`
+        });
+      } catch (error) {
+        addNotification({
+          type: "error",
+          alert: true,
+          content: `Failed to import app bundle: ${error instanceof Error ? error.message : "Unknown error"}`
+        });
+      }
+      if (appBundleInputRef.current) appBundleInputRef.current.value = "";
+    },
+    [queryClient, openTab, addNotification]
+  );
+
+  return (
+    <>
+      <input
+        ref={appBundleInputRef}
+        type="file"
+        accept=".json,application/json"
+        aria-label="Import app bundle file"
+        style={{ display: "none" }}
+        onChange={handleAppBundleFileChange}
+      />
+      <Command.Group heading="App">
+        {applicationId && (
+          <Command.Item onSelect={() => executeAndClose(exportApp)}>
+            <FolderZipRoundedIcon /> Export App as Bundle (.app.json)
+          </Command.Item>
+        )}
+        <Command.Item onSelect={() => executeAndClose(pickAppBundle)}>
+          <FolderZipRoundedIcon /> Import App from Bundle (.app.json)
+        </Command.Item>
+      </Command.Group>
+    </>
+  );
+});
+
+/** Matches the default page size of `WorkflowManagerStore.load`. */
+const COMMAND_MENU_WORKFLOW_LIMIT = 100;
+
 const OpenWorkflowCommands = memo(function OpenWorkflowCommands() {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   const navigate = useNavigate();
   const load = useWorkflowManager((state) => state.load);
 
   const { data: workflows } = useQuery<WorkflowList>({
-    queryKey: ["workflows"],
-    queryFn: () => load()
+    queryKey: workflowListQueryKey(COMMAND_MENU_WORKFLOW_LIMIT),
+    queryFn: () => load("", COMMAND_MENU_WORKFLOW_LIMIT)
   });
 
   const openWorkflow = useCallback(
@@ -611,6 +727,7 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
 }) => {
   const [pastePosition, setPastePosition] = useState({ x: 0, y: 0 });
   const input = useRef<HTMLInputElement>(null);
+  const autoFocusEnabled = useAutoFocusEnabled();
   const focusInputTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const executeAndClose = useCallback(
@@ -621,7 +738,6 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
     [setOpen]
   );
 
-  // Set up command menu context
   useEffect(() => {
     useCommandMenu.setState({
       executeAndClose,
@@ -629,29 +745,22 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
     });
   }, [executeAndClose, reactFlowWrapper]);
 
+  // Skipped on touch, where the virtual keyboard would cover the command list.
   useEffect(() => {
-    const focusInput = () => {
-      const inputElement = document.querySelector("input[cmdk-input]");
-      (inputElement as HTMLInputElement)?.focus();
-    };
-
-    if (open) {
-      // Clear any existing timeout before setting a new one
+    if (open && autoFocusEnabled) {
       if (focusInputTimeoutRef.current) {
         clearTimeout(focusInputTimeoutRef.current);
       }
-      focusInputTimeoutRef.current = setTimeout(focusInput, 0);
+      focusInputTimeoutRef.current = setTimeout(() => input.current?.focus(), 0);
     }
 
-    // Cleanup: clear timeout when component unmounts or open changes
     return () => {
       if (focusInputTimeoutRef.current) {
         clearTimeout(focusInputTimeoutRef.current);
       }
     };
-  }, [open]);
+  }, [open, autoFocusEnabled]);
 
-  // Cleanup timeout on component unmount
   useEffect(() => {
     return () => {
       if (focusInputTimeoutRef.current) {
@@ -672,12 +781,18 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
       onClose={() => setOpen(false)}
       className="command-menu-dialog"
       css={styles()}
+      aria-label="Command menu"
     >
       <Command label="Command Menu" className="command-menu">
-        <CommandInput ref={input} />
+        <CommandInput
+          ref={input}
+          placeholder="Type a command or search…"
+          aria-label="Command menu search"
+        />
         <Command.List>
           <Command.Empty>No results found.</Command.Empty>
           <WorkflowCommands />
+          <AppCommands />
           <EditCommands undo={undo} redo={redo} />
           <LayoutCommands />
           <ViewCommands />

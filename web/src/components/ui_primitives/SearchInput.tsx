@@ -3,10 +3,12 @@ import React, { useCallback, useRef, useState, memo, forwardRef } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { SxProps, Theme } from "@mui/material/styles";
+import { CONTROL, MOTION } from "./tokens";
 import { IconButton, Tooltip, InputAdornment, TextField } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 
 export interface SearchInputProps {
   /** Current search value */
@@ -21,7 +23,8 @@ export interface SearchInputProps {
   size?: "small" | "medium";
   /** Whether the input is disabled */
   disabled?: boolean;
-  /** Auto-focus on mount */
+  /** Auto-focus on mount. Ignored on touch devices, where it would raise the
+   * virtual keyboard over the panel that just opened. */
   autoFocus?: boolean;
   /** Debounce delay in ms (0 = no debounce) */
   debounceMs?: number;
@@ -44,9 +47,14 @@ export interface SearchInputProps {
 const styles = (theme: Theme) => css`
   .search-input {
     .MuiInputBase-root {
-      border-radius: 8px;
-      background-color: ${theme.vars.palette.action.hover};
-      transition: all 0.2s ease;
+      border-radius: ${CONTROL.radius};
+      background-color: ${theme.vars.palette.Paper.overlay};
+      transition: ${MOTION.all};
+      min-height: ${CONTROL.height.lg}px;
+
+      &.MuiInputBase-sizeSmall {
+        min-height: ${CONTROL.height.sm}px;
+      }
 
       &:hover {
         background-color: ${theme.vars.palette.action.selected};
@@ -56,6 +64,17 @@ const styles = (theme: Theme) => css`
         background-color: ${theme.vars.palette.action.selected};
         box-shadow: 0 0 0 2px ${theme.vars.palette.primary.main}40;
       }
+    }
+
+    /* MUI's outlined vertical padding targets ~56px / 40px fields; shrink it
+       so the control lands on the CONTROL token heights (36 / 28). */
+    .MuiOutlinedInput-input {
+      padding-top: 7px;
+      padding-bottom: 7px;
+    }
+    .MuiInputBase-sizeSmall .MuiOutlinedInput-input {
+      padding-top: 3px;
+      padding-bottom: 3px;
     }
 
     /* Shared form-control sizing: value at the 15px body token, placeholder
@@ -69,7 +88,7 @@ const styles = (theme: Theme) => css`
     
     .MuiOutlinedInput-notchedOutline {
       border-color: ${theme.vars.palette.divider};
-      transition: border-color 0.2s ease;
+      transition: ${MOTION.border};
     }
     
     &:hover .MuiOutlinedInput-notchedOutline {
@@ -88,7 +107,7 @@ const styles = (theme: Theme) => css`
   .clear-button {
     padding: 4px;
     color: ${theme.vars.palette.text.disabled};
-    transition: color 0.2s ease;
+    transition: color ${MOTION.normal};
     
     &:hover {
       color: ${theme.vars.palette.text.primary};
@@ -119,6 +138,7 @@ export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>((
   sx
 }, ref) => {
   const theme = useTheme();
+  const autoFocusEnabled = useAutoFocusEnabled();
   const [localValue, setLocalValue] = useState(value);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   
@@ -153,12 +173,10 @@ export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>((
     }
   }, [localValue, onSubmit, handleClear]);
   
-  // Sync local value with prop
   React.useEffect(() => {
     setLocalValue(value);
   }, [value]);
-  
-  // Cleanup timeout on unmount
+
   React.useEffect(() => {
     return () => {
       if (timeoutRef.current) {
@@ -177,7 +195,7 @@ export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>((
         placeholder={placeholder}
         size={size}
         disabled={disabled}
-        autoFocus={autoFocus}
+        autoFocus={autoFocus && autoFocusEnabled}
         fullWidth={fullWidth}
         sx={sx}
         inputRef={ref}

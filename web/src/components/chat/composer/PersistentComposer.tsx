@@ -1,4 +1,3 @@
-// web/src/components/chat/composer/PersistentComposer.tsx
 import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import ChatInputSection from "../containers/ChatInputSection";
@@ -15,6 +14,10 @@ interface Box {
 }
 
 const NOOP = () => {};
+
+// Floats over the app at MUI's drawer layer (theme.zIndex.drawer = 1200) so the
+// composer stays above page content; beyond the shared Z_INDEX scale.
+const COMPOSER_Z_INDEX = 1200;
 
 type InputStatus =
   | "disconnected"
@@ -87,7 +90,7 @@ const PositionedComposer: React.FC<PositionedComposerProps> = ({
         height: box.height || undefined,
         visibility: visible ? "visible" : "hidden",
         pointerEvents: visible ? "auto" : "none",
-        zIndex: 1200
+        zIndex: COMPOSER_Z_INDEX
       }}
     >
       <ChatInputSection
@@ -185,7 +188,7 @@ const PersistentComposer: React.FC = () => {
 
   // Narrow "stopping" out of status since ChatInputSection doesn't accept it.
   const inputStatus: InputStatus =
-    status === "stopping" ? "loading" : (status as InputStatus);
+    status === "stopping" ? "connected" : (status as InputStatus);
 
   return (
     <PositionedComposer

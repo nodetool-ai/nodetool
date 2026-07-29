@@ -1,0 +1,344 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-06-21T16:03:52.969Z",
+  "updated_at": "2026-06-21T16:55:51.256Z",
+  "name": "B-Roll Reel from a Brief",
+  "tool_name": null,
+  "description": "One line of direction becomes a two-shot b-roll reel. Prompt nodes expand the brief into a wide establishing shot and a matching detail shot, text-to-video renders both, and a crossfade cuts them together. Two paid video generations per run.",
+  "tags": [
+    "video",
+    "content",
+    "example"
+  ],
+  "thumbnail": "B-Roll Reel from a Brief.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "comment-1",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "B-Roll Reel from a Brief",
+          "comment": [
+            "Turn one line of direction into a cut b-roll reel.\n\n",
+            "The two shots share a subject and a look, so they cut together: a wide establishing shot, then a detail shot.\n\n",
+            "Both prompts inherit the same look note — that shared line is what stops the two clips from feeling unrelated."
+          ]
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 170
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "in-subject",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "subject",
+          "value": "A coastal roastery at first light, steam rising off the drum",
+          "description": "What the b-roll is of"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 240
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Subject"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "in-look",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "look",
+          "value": "handheld documentary, warm morning light, 35mm, shallow depth of field",
+          "description": "Shared look across both shots"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Look"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "brief-wide",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "Wide establishing shot.\n\nSubject: {{ subject }}\nLook: {{ look }}\n\nHold the full scene in frame with a slow push-in. Natural motion only. No text, no logos, no on-screen graphics."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 380,
+            "y": 280
+          },
+          "zIndex": 0,
+          "width": 320,
+          "selectable": true,
+          "title": "Shot 1 brief"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "brief-detail",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "Close detail shot of the same scene.\n\nSubject: {{ subject }}\nLook: {{ look }}\n\nTight on texture and material — hands, surfaces, steam. Shallow focus, small camera drift. Same time of day and colour as the wide shot so the two cut together. No text, no logos."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 380,
+            "y": 560
+          },
+          "zIndex": 0,
+          "width": 320,
+          "selectable": true,
+          "title": "Shot 2 brief"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "shot-wide",
+        "type": "nodetool.video.TextToVideo",
+        "data": {
+          "model": {
+            "type": "video_model",
+            "provider": "fal_ai",
+            "id": "fal-ai/ltx-2.3/text-to-video/fast",
+            "name": "LTX-2.3 Text to Video Fast",
+            "path": null,
+            "supported_tasks": []
+          },
+          "negative_prompt": "text, watermark, logo, subtitles",
+          "aspect_ratio": "16:9",
+          "resolution": "1080p",
+          "duration": 6,
+          "timeout_seconds": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 760,
+            "y": 260
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Render wide"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "shot-detail",
+        "type": "nodetool.video.TextToVideo",
+        "data": {
+          "model": {
+            "type": "video_model",
+            "provider": "fal_ai",
+            "id": "fal-ai/ltx-2.3/text-to-video/fast",
+            "name": "LTX-2.3 Text to Video Fast",
+            "path": null,
+            "supported_tasks": []
+          },
+          "negative_prompt": "text, watermark, logo, subtitles",
+          "aspect_ratio": "16:9",
+          "resolution": "1080p",
+          "duration": 6,
+          "timeout_seconds": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 760,
+            "y": 560
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Render detail"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "cut",
+        "type": "nodetool.video.Transition",
+        "data": {
+          "transition_type": "fade",
+          "duration": 0.6
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1120,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "5  Crossfade"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "output-reel",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "reel"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1460,
+            "y": 420
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "6  B-roll reel"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in-subject",
+        "sourceHandle": "output",
+        "target": "brief-wide",
+        "targetHandle": "subject"
+      },
+      {
+        "id": "e2",
+        "source": "in-look",
+        "sourceHandle": "output",
+        "target": "brief-wide",
+        "targetHandle": "look"
+      },
+      {
+        "id": "e3",
+        "source": "in-subject",
+        "sourceHandle": "output",
+        "target": "brief-detail",
+        "targetHandle": "subject"
+      },
+      {
+        "id": "e4",
+        "source": "in-look",
+        "sourceHandle": "output",
+        "target": "brief-detail",
+        "targetHandle": "look"
+      },
+      {
+        "id": "e5",
+        "source": "brief-wide",
+        "sourceHandle": "output",
+        "target": "shot-wide",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e6",
+        "source": "brief-detail",
+        "sourceHandle": "output",
+        "target": "shot-detail",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e7",
+        "source": "shot-wide",
+        "sourceHandle": "output",
+        "target": "cut",
+        "targetHandle": "video_a"
+      },
+      {
+        "id": "e8",
+        "source": "shot-detail",
+        "sourceHandle": "output",
+        "target": "cut",
+        "targetHandle": "video_b"
+      },
+      {
+        "id": "e9",
+        "source": "cut",
+        "sourceHandle": "output",
+        "target": "output-reel",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "subject": {
+        "type": "string",
+        "default": "A coastal roastery at first light, steam rising off the drum",
+        "label": ""
+      },
+      "look": {
+        "type": "string",
+        "default": "handheld documentary, warm morning light, 35mm, shallow depth of field",
+        "label": ""
+      }
+    },
+    "required": [
+      "subject",
+      "look"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "reel": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "const": "video"
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      }
+    },
+    "required": [
+      "reel"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "e31acfae86ee104dbf9df243c9ba6084"
+}

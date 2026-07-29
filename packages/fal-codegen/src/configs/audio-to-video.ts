@@ -164,6 +164,125 @@ export const config: ModuleConfig = {
         "Audio-synced content creation",
         "Podcast video generation"
       ]
+    },
+    "fal-ai/flashtalk": {
+      className: "Flashtalk",
+      docstring:
+        "Audio-driven talking avatar generation powered by the SoulX-FlashTalk 14B model.",
+      tags: ["generation", "audio-to-video", "video", "flashtalk"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-22b/audio-to-video": {
+      className: "Ltx2322bAudioToVideo",
+      docstring:
+        "Generate video with audio from audio, text and images using LTX-2",
+      tags: ["generation", "audio-to-video", "video", "ltx", "22b"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-22b/audio-to-video/lora": {
+      className: "Ltx2322bAudioToVideoLora",
+      docstring:
+        "Generate video with audio from audio, text and images using LTX-2.3 and custom LoRA",
+      tags: ["generation", "audio-to-video", "video", "ltx", "22b", "lora"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-22b/distilled/audio-to-video": {
+      className: "Ltx2322bDistilledAudioToVideo",
+      docstring:
+        "Generate video with audio from audio, text and images using LTX-2 Distilled",
+      tags: [
+        "generation",
+        "audio-to-video",
+        "video",
+        "ltx",
+        "22b",
+        "distilled"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-22b/distilled/audio-to-video/lora": {
+      className: "Ltx2322bDistilledAudioToVideoLora",
+      docstring:
+        "Generate video with audio from audio, text and images using LTX-2.3 Distilled and custom LoRA",
+      tags: [
+        "generation",
+        "audio-to-video",
+        "video",
+        "ltx",
+        "22b",
+        "distilled",
+        "lora"
+      ],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/audio-to-video": {
+      className: "Ltx23QualityAudioToVideo",
+      docstring:
+        "Generate high-quality video with audio from audio, text and images using LTX-2.3",
+      tags: ["generation", "audio-to-video", "video", "ltx", "quality"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-quality/audio-to-video/lora": {
+      className: "Ltx23QualityAudioToVideoLora",
+      docstring:
+        "Generate high-quality video with audio from audio, text and images using LTX-2.3 and custom LoRA",
+      tags: ["generation", "audio-to-video", "video", "ltx", "quality", "lora"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3/audio-to-video": {
+      className: "Ltx23AudioToVideo",
+      docstring:
+        "LTX-2.3 is a high-quality, fast AI video model available in Pro and Fast variants for text-to-video, image-to-video, and audio-to-video.",
+      tags: ["generation", "audio-to-video", "video", "ltx"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
     }
   }
 };

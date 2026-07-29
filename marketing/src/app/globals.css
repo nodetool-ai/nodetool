@@ -280,25 +280,6 @@
     overflow: hidden;
     clip: rect(0, 0, 0, 0);
   }
-  /* Fly-in reveal controlled by IntersectionObserver */
-  .fly-in {
-    opacity: 0;
-    transform: translateY(16px);
-    transition: transform 600ms cubic-bezier(0.2, 0.8, 0.2, 1),
-      opacity 600ms ease;
-    transition-delay: var(--fly-delay, 0ms);
-    will-change: transform, opacity;
-  }
-  .fly-in[data-fly-direction="left"] {
-    transform: translateX(-20px);
-  }
-  .fly-in[data-fly-direction="right"] {
-    transform: translateX(20px);
-  }
-  .fly-in.is-visible {
-    opacity: 1;
-    transform: none;
-  }
   /* Tone down images inside cards */
   .card img,
   .card picture img {
@@ -417,6 +398,48 @@
   }
 }
 
+/*
+ * Scroll-driven entrance reveal. Unlike the retired JS reveals (framer
+ * initial-opacity-0, the .fly-in IntersectionObserver), this is resolved by
+ * the style engine before first paint — anything already in the viewport at
+ * load sits past its entry range and renders fully visible, so there is no
+ * hydration blink. Browsers without scroll-timeline support skip the
+ * @supports block and render everything static.
+ */
+/*
+ * Crop like overflow-hidden without becoming a scroll container. view()
+ * timelines bind to the nearest scroll-container ancestor, and an
+ * overflow-hidden wrapper is one — it never scrolls, so any .scroll-fade
+ * inside it would sit on a dead timeline and never animate. Browsers without
+ * overflow: clip keep the hidden fallback (they don't run the @supports
+ * block below anyway).
+ */
+.overflow-clip-safe {
+  overflow: hidden;
+  overflow: clip;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .scroll-fade {
+      animation: scroll-fade-in ease-out both;
+      animation-timeline: view();
+      animation-range: entry 5% entry 50%;
+    }
+  }
+}
+
+@keyframes scroll-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @keyframes slideUp {
   from {
     opacity: 0;
@@ -435,6 +458,15 @@
   to {
     opacity: 1;
   }
+}
+
+/*
+ * Hero entrance animations retired — content renders in place at first paint.
+ * The .hero-rise classes stay as no-ops so section markup doesn't churn.
+ */
+.hero-rise,
+.hero-rise-delayed {
+  animation: none;
 }
 
 /* Legal pages (Privacy / Terms) — minimal long-form prose styling */

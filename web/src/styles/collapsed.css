@@ -134,6 +134,21 @@
   display: none !important;
 }
 
+/* PromptComposerBody: dynamic variable inputs live in `.dynamic-inputs`. The
+   generic bespoke hide rule above collapses it; re-show the slot (scoped to the
+   Prompt body so ContentCardBody keeps hiding its own) with a zero-height box so
+   the input handles stay wired on the collapsed strip while the fields vanish. */
+.react-flow__node.collapsed [data-bespoke-body="Prompt"] > .dynamic-inputs,
+.node-body.collapsed [data-bespoke-body="Prompt"] > .dynamic-inputs {
+  display: block !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  flex: none !important;
+}
+
 /* PainterBody: input handles live inside `.paint-row`, not `.preview-area`. */
 .react-flow__node.collapsed .paint-row,
 .node-body.collapsed .paint-row {

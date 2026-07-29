@@ -50,9 +50,9 @@ describe("GENERIC_AI_NODES catalog", () => {
     }
   });
 
-  it("only AgentStep declines a model property", () => {
+  it("only the Agent step declines a model property", () => {
     for (const node of GENERIC_AI_NODES) {
-      if (node.type === "nodetool.agents.AgentStep") {
+      if (node.type === "nodetool.agents.Agent") {
         expect(node.acceptsModel).toBe(false);
       } else {
         expect(node.acceptsModel).toBe(true);

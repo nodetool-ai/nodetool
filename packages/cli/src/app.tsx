@@ -415,7 +415,6 @@ export function App({
     };
   }, [wsUrl]);
 
-  // Unique ID generator
   const nextId = useRef(0);
   const genId = () => `msg-${++nextId.current}`;
 

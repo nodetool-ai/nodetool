@@ -49,16 +49,79 @@ describe("parseDate", () => {
     expect(d).not.toBe(src);
   });
 
-  it("returns current time for empty/null inputs", () => {
-    const before = Date.now();
-    const a = parseDate("");
-    const b = parseDate(null);
-    const c = parseDate(undefined);
-    const after = Date.now();
-    for (const d of [a, b, c]) {
-      expect(d.getTime()).toBeGreaterThanOrEqual(before - 10);
-      expect(d.getTime()).toBeLessThanOrEqual(after + 10);
-    }
+  it("throws on empty/null/undefined inputs (missing wire is not 'now')", () => {
+    expect(() => parseDate("")).toThrow(/No date provided/);
+    expect(() => parseDate(null)).toThrow(/No date provided/);
+    expect(() => parseDate(undefined)).toThrow(/No date provided/);
+  });
+
+  it("parses a Constant Date object {year, month, day} as local midnight", () => {
+    const d = parseDate({ year: 2024, month: 3, day: 15 });
+    expect(d.getFullYear()).toBe(2024);
+    expect(d.getMonth()).toBe(2);
+    expect(d.getDate()).toBe(15);
+    expect(d.getHours()).toBe(0);
+    expect(d.getMinutes()).toBe(0);
+    expect(d.getSeconds()).toBe(0);
+    expect(d.getMilliseconds()).toBe(0);
+  });
+
+  it("parses a full Constant DateTime object honoring utc_offset (seconds)", () => {
+    // 2024-03-15 12:30:00 at +01:00 (utc_offset 3600s) == 11:30:00 UTC.
+    const d = parseDate({
+      year: 2024,
+      month: 3,
+      day: 15,
+      hour: 12,
+      minute: 30,
+      second: 0,
+      microsecond: 500_000, // 500 ms
+      tzinfo: "Europe/Berlin",
+      utc_offset: 3600
+    });
+    expect(d.getTime()).toBe(Date.UTC(2024, 2, 15, 11, 30, 0, 500));
+  });
+
+  it("parses a UTC datetime object (utc_offset 0) as the exact UTC instant", () => {
+    const d = parseDate({
+      year: 2024,
+      month: 1,
+      day: 1,
+      hour: 6,
+      minute: 0,
+      second: 0,
+      microsecond: 0,
+      tzinfo: "UTC",
+      utc_offset: 0
+    });
+    expect(d.getTime()).toBe(Date.UTC(2024, 0, 1, 6, 0, 0, 0));
+  });
+
+  it("throws a friendly error on a malformed date object", () => {
+    expect(() => parseDate({ year: "nope", month: 1, day: 1 })).toThrow(
+      /Could not parse date/
+    );
+    expect(() => parseDate({ year: 2024, month: NaN, day: 1 })).toThrow(
+      /Could not parse date/
+    );
+  });
+
+  it("Constant DateTime → parseDate round-trips (regression for the throw)", () => {
+    // Shape identical to ConstantDateTimeNode.process() output.
+    const constantOutput = {
+      year: 2024,
+      month: 6,
+      day: 1,
+      hour: 0,
+      minute: 0,
+      second: 0,
+      microsecond: 0,
+      tzinfo: "UTC",
+      utc_offset: 0
+    };
+    expect(() => parseDate(constantOutput)).not.toThrow();
+    const shifted = addUnits(parseDate(constantOutput), 1, "day");
+    expect(shifted.getTime()).toBe(Date.UTC(2024, 5, 2, 0, 0, 0, 0));
   });
 
   it("throws on garbage strings", () => {
@@ -122,9 +185,39 @@ describe("formatDate", () => {
 describe("addUnits", () => {
   const base = new Date("2024-03-15T12:00:00.000Z");
 
-  it("adds days as milliseconds", () => {
+  it("adds days (calendar-aware)", () => {
     const out = addUnits(base, 7, "day");
     expect(out.toISOString()).toBe("2024-03-22T12:00:00.000Z");
+  });
+
+  it("adds days preserving the local wall-clock hour across DST", () => {
+    // US spring-forward is 2024-03-10. Starting at noon on the 9th and adding
+    // one day must land on noon on the 10th regardless of the runtime TZ: in a
+    // DST zone the day is only 23h, so fixed-ms math would land at 13:00.
+    const start = new Date(2024, 2, 9, 12, 0, 0, 0);
+    const out = addUnits(start, 1, "day");
+    expect(out.getFullYear()).toBe(2024);
+    expect(out.getMonth()).toBe(2);
+    expect(out.getDate()).toBe(10);
+    expect(out.getHours()).toBe(12);
+    expect(out.getMinutes()).toBe(0);
+  });
+
+  it("adds weeks preserving the local wall-clock hour across DST", () => {
+    // A week spanning the DST boundary (Mar 6 → Mar 13, 2024).
+    const start = new Date(2024, 2, 6, 9, 30, 0, 0);
+    const out = addUnits(start, 1, "week");
+    expect(out.getMonth()).toBe(2);
+    expect(out.getDate()).toBe(13);
+    expect(out.getHours()).toBe(9);
+    expect(out.getMinutes()).toBe(30);
+  });
+
+  it("subtracts days via negative amount (calendar-aware)", () => {
+    const start = new Date(2024, 2, 10, 8, 0, 0, 0);
+    const out = addUnits(start, -1, "day");
+    expect(out.getDate()).toBe(9);
+    expect(out.getHours()).toBe(8);
   });
 
   it("subtracts via negative amount", () => {
@@ -216,6 +309,35 @@ describe("startOf/endOf", () => {
 
   it("startOf week lands on Sunday", () => {
     expect(startOf(d, "week").getDay()).toBe(0);
+  });
+
+  it("endOf lands on .999ms and equals next-period-start minus 1ms", () => {
+    const sample = new Date(2024, 2, 9, 14, 7, 9, 42); // day before US DST
+    for (const unit of [
+      "day",
+      "week",
+      "month",
+      "year",
+      "hour",
+      "minute",
+      "second"
+    ] as const) {
+      const e = endOf(sample, unit);
+      expect(e.getMilliseconds()).toBe(999);
+      // end is exactly 1ms before the start of the following period.
+      const nextStart = addUnits(startOf(sample, unit), 1, unit);
+      expect(e.getTime()).toBe(nextStart.getTime() - 1);
+    }
+  });
+
+  it("endOf day across DST stays on the same local day", () => {
+    // Even when the local day is 23h (spring-forward), endOf lands at 23:59:59.999.
+    const e = endOf(new Date(2024, 2, 10, 5, 0, 0, 0), "day");
+    expect(e.getDate()).toBe(10);
+    expect(e.getHours()).toBe(23);
+    expect(e.getMinutes()).toBe(59);
+    expect(e.getSeconds()).toBe(59);
+    expect(e.getMilliseconds()).toBe(999);
   });
 });
 

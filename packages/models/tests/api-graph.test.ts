@@ -40,6 +40,7 @@ describe("toApiNode", () => {
       data: { a: 1, b: 2 },
       ui_properties: { x: 10, y: 20 },
       dynamic_properties: { extra: "value" },
+      dynamic_inputs: {},
       dynamic_outputs: { alt: { type: "string" } }
     });
     // Runtime fields should NOT be present
@@ -69,7 +70,20 @@ describe("toApiNode", () => {
       data: {},
       ui_properties: {},
       dynamic_properties: {},
+      dynamic_inputs: {},
       dynamic_outputs: {}
+    });
+  });
+
+  it("carries typed dynamic slot declarations", () => {
+    const node: NodeDescriptor = {
+      id: "n5",
+      type: "test.Dynamic",
+      dynamic_properties: { picture: null },
+      dynamic_inputs: { picture: { type: { type: "image", type_args: [] } } }
+    };
+    expect(toApiNode(node).dynamic_inputs).toEqual({
+      picture: { type: { type: "image", type_args: [] } }
     });
   });
 });

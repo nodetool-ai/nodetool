@@ -28,39 +28,39 @@ const creativeFeatures = [
   {
     title: "Visual Workflow Canvas",
     description:
-      "Snap nodes into full creative pipelines — the whole process on one screen, from brief to render.",
+      "Snap blocks together into complete creative workflows, so the whole process sits on one screen, from brief to final render.",
     icon: Layers,
     image: "/screen_canvas.png",
     features: [
       "Infinite canvas",
-      "Real-time execution graph",
-      "Custom sub-graphs",
+      "Watch every step run live",
+      "Reusable groups you can save",
     ],
   },
   {
     title: "Image generation & editing",
     description:
-      "Run Flux, Qwen-Image, Nano-Banana, Z-Image, gpt-image, and friends. Generate, mask, inpaint, outpaint, relight, and upscale — all on the canvas.",
+      "Run Flux, Qwen-Image, Nano-Banana, Z-Image, gpt-image, and the rest. Generate, mask, inpaint, outpaint, relight, and upscale, all on the canvas.",
     icon: Wand2,
     image: "/disaster_girl.mp4",
     features: ["Masks, inpaint, outpaint", "Multi-model support", "Batch processing"],
   },
   {
-    title: "Video pipelines",
+    title: "Video workflows",
     description:
-      "Wire Seedance, Kling, Veo, Runway, and Sora alongside your edit nodes. Generate, transform, and stitch — without exporting between tools.",
+      "Put Seedance, Kling, Veo, Runway, and Sora next to your editing steps. Generate, transform, and join clips without exporting between tools.",
     icon: Video,
     image: "/sora.mp4",
     features: [
       "Frame-accurate edits",
-      "Temporal smoothing",
-      "Format transcoding",
+      "Motion smoothing",
+      "Convert between formats",
     ],
   },
   {
     title: "Audio on the same surface",
     description:
-      "Compose with Suno, generate voice with ElevenLabs, transcribe with Whisper. Same canvas, same nodes, no extra tabs.",
+      "Write music with Suno, make voices with ElevenLabs, and turn speech into text with Whisper. Same canvas, no extra tabs.",
     icon: Music,
     image: "/suno.png",
     features: ["Stem separation", "Music generation", "Voice generation"],
@@ -115,7 +115,7 @@ export default function CreativesPage() {
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="mx-auto max-w-5xl text-center">
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={false}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
               >
@@ -138,8 +138,9 @@ export default function CreativesPage() {
                 </h1>
 
                 <p className="text-lg md:text-xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed">
-                  Every model. Your keys. Your canvas. Wire Seedance, Kling, Veo, Runway,
-                  Luma, Suno, and Flux on one open-source surface — no credit markup, no vendor lock-in.
+                  Every model. Your keys. Your canvas. Bring Seedance, Kling, Veo,
+                  Runway, Luma, Suno, and Flux together in one open-source workspace,
+                  with no marked-up credits and nothing locking you in.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
@@ -184,7 +185,7 @@ export default function CreativesPage() {
 
             {/* Hero Visual */}
             <motion.div
-              initial={{ opacity: 0, y: 40 }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
               className="mt-20 relative"
@@ -217,7 +218,7 @@ export default function CreativesPage() {
         <section className="py-20 relative">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               className="text-center mb-12 max-w-3xl mx-auto"
@@ -236,7 +237,7 @@ export default function CreativesPage() {
             </motion.div>
 
             <motion.figure
-              initial={{ opacity: 0, y: 30 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
@@ -277,7 +278,7 @@ export default function CreativesPage() {
               ].map((highlight, index) => (
                 <motion.div
                   key={highlight.title}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={false}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.1 }}
@@ -302,7 +303,7 @@ export default function CreativesPage() {
         <section className="py-20 relative">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               className="text-center mb-12 max-w-3xl mx-auto"
@@ -322,7 +323,7 @@ export default function CreativesPage() {
             </motion.div>
 
             <motion.figure
-              initial={{ opacity: 0, y: 30 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
@@ -363,7 +364,7 @@ export default function CreativesPage() {
               ].map((highlight, index) => (
                 <motion.div
                   key={highlight.title}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={false}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.1 }}
@@ -390,7 +391,7 @@ export default function CreativesPage() {
 
           <div className="mx-auto max-w-7xl px-6 lg:px-8 relative z-10">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               className="text-center mb-16"
@@ -401,12 +402,12 @@ export default function CreativesPage() {
               <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
                 One canvas for <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-cyan-400">
-                  every modality
+                  every medium
                 </span>
               </h2>
               <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-                The same models the studios use — Seedance, Kling, Luma, Suno, Flux —
-                wired into one node-based canvas, with masks, inpaint, outpaint,
+                The same models the studios use, including Seedance, Kling, Luma,
+                Suno, and Flux, on one visual canvas with masks, inpaint, outpaint,
                 relight, upscale, and compositing built in.
               </p>
             </motion.div>
@@ -415,7 +416,7 @@ export default function CreativesPage() {
               {creativeFeatures.map((feature, index) => (
                 <motion.div
                   key={feature.title}
-                  initial={{ opacity: 0, y: 40 }}
+                  initial={false}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-100px" }}
                   transition={{ duration: 0.6 }}
@@ -484,7 +485,7 @@ export default function CreativesPage() {
 
           <div className="mx-auto max-w-7xl px-6 lg:px-8 relative z-10">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               className="text-center mb-16"
@@ -520,7 +521,7 @@ export default function CreativesPage() {
                 {
                   title: "Every model on one canvas",
                   description:
-                    "Seedance, Kling, Veo, Runway, Luma, Suno, ElevenLabs, Flux, Ideogram, and more — switch the moment a better one ships.",
+                    "Seedance, Kling, Veo, Runway, Luma, Suno, ElevenLabs, Flux, Ideogram, and more. Switch the moment a better one arrives.",
                   icon: Zap,
                   color: "text-amber-400",
                   bgColor: "bg-teal-500/10",
@@ -529,7 +530,7 @@ export default function CreativesPage() {
               ].map((benefit, index) => (
                 <motion.div
                   key={benefit.title}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={false}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.1 }}
@@ -559,7 +560,7 @@ export default function CreativesPage() {
         <section className="py-24 relative">
           <div className="mx-auto max-w-4xl px-6 lg:px-8 text-center">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
@@ -570,8 +571,8 @@ export default function CreativesPage() {
                 </span>
               </h2>
               <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto">
-                Download NodeTool, plug in the providers you already pay for,
-                and start wiring your next piece on a canvas you actually own.
+                Download NodeTool, connect the providers you already pay for,
+                and start your next piece on a canvas you actually own.
               </p>
               <a
                 href="https://github.com/nodetool-ai/nodetool/releases"

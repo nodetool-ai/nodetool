@@ -19,9 +19,15 @@ export type WorkspaceTabType =
   | "image"
   | "sketch"
   | "timeline"
+  | "storyboard"
+  | "script"
   | "model3d"
   | "audio"
   | "text"
+  // Mini apps. `ref` is an application id (trpc.applications.*).
+  | "application"
+  // Chat conversations. `ref` is a chat thread id (GlobalChatStore).
+  | "chat"
   // App pages (Settings, Costs, Model Manager, …) opened from the logo menu.
   // `ref` is a PageTabKey; these have no edit mode.
   | "page";
@@ -38,7 +44,7 @@ export interface WorkspaceTab {
   title: string;
 }
 
-export interface OpenTabInput {
+interface OpenTabInput {
   type: WorkspaceTabType;
   ref: string;
   /**

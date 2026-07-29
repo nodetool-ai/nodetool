@@ -1,5 +1,14 @@
 version: 2
 
+# One npm entry per lockfile, not per package.json. `web/`, `electron/`, and
+# `packages/*` are root npm workspaces: their dependencies resolve through the
+# root `package-lock.json`, so the `/` entry below already covers them via
+# `directories`. A separate entry per workspace directory made Dependabot treat
+# it as a standalone project — it bumped the workspace's package.json and wrote
+# a nested lockfile that npm never reads, leaving the root lock stale. Release
+# builds run `npm ci` at the root and died on the desync (run 30198644988).
+# `mobile/` keeps its own entry: it is deliberately not a workspace and has a
+# real lockfile of its own.
 updates:
   - package-ecosystem: "npm"
     directory: "/"
@@ -21,36 +30,27 @@ updates:
       - "automated"
 
   - package-ecosystem: "npm"
-    directory: "/web"
-    schedule:
-      interval: "weekly"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
-    open-pull-requests-limit: 3
-    labels:
-      - "dependencies"
-      - "automated"
-
-  - package-ecosystem: "npm"
-    directory: "/electron"
-    schedule:
-      interval: "weekly"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
-    open-pull-requests-limit: 3
-    labels:
-      - "dependencies"
-      - "automated"
-
-  - package-ecosystem: "npm"
     directory: "/mobile"
     schedule:
       interval: "weekly"
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+      # The Expo SDK pins react-native, react, and every @react-native/* and
+      # expo-* package that ships with it. Those are 0.x/SDK-versioned, so a
+      # 0.85 -> 0.86 or 56.0 -> 56.1 bump is semver-minor but ecosystem-major:
+      # `npm ci` then dies on react-native's own peer range (run 30246386256
+      # bumped @react-native/jest-preset to 0.86.1 against
+      # `peerOptional @react-native/jest-preset@"0.85.3"`). These move together
+      # in an `npx expo install --fix` SDK upgrade, never one at a time.
+      - dependency-name: "react"
+      - dependency-name: "react-test-renderer"
+      - dependency-name: "react-native"
+      - dependency-name: "@react-native/*"
+      - dependency-name: "expo"
+      - dependency-name: "expo-*"
+      - dependency-name: "@expo/*"
+      - dependency-name: "babel-preset-expo"
     open-pull-requests-limit: 3
     labels:
       - "dependencies"

@@ -6,10 +6,10 @@ import type { Theme } from "@mui/material/styles";
 import Prism from "prismjs";
 import "prismjs/components/prism-json";
 import DOMPurify from "dompurify";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../../utils/isEqual";
 import Actions from "./Actions";
 
-import { BORDER_RADIUS } from "../../ui_primitives";
+import { BORDER_RADIUS, Z_INDEX } from "../../ui_primitives";
 const jsonStyles = (theme: Theme) =>
   css({
     "&": {
@@ -44,7 +44,7 @@ const jsonStyles = (theme: Theme) =>
       display: "flex",
       flexDirection: "row",
       gap: "0.5em",
-      zIndex: 10
+      zIndex: Z_INDEX.dropdown
     },
     ".actions button": {
       minWidth: "unset",
@@ -104,6 +104,7 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
   showActions = true
 }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => jsonStyles(theme), [theme]);
 
   const { formattedJson, rawJson } = useMemo(() => {
     let jsonString: string;
@@ -196,7 +197,6 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
       jsonString = String(value);
     }
 
-    // Ensure jsonString is always a string
     if (typeof jsonString !== "string") {
       jsonString = "";
     }
@@ -224,7 +224,7 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
   }
 
   return (
-    <div className="output json-output nodrag" css={jsonStyles(theme)}>
+    <div className="output json-output nodrag" css={cssStyles}>
       {showActions && <Actions copyValue={rawJson} />}
       <div
         className="json-content"
@@ -235,9 +235,7 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
 };
 
 
-// Custom comparison function for deep equality check
 const arePropsEqual = (prevProps: JSONRendererProps, nextProps: JSONRendererProps) => {
-  // Quick check for primitive props
   if (prevProps.showActions !== nextProps.showActions) {
     return false;
   }

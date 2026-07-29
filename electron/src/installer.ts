@@ -5,7 +5,6 @@ import * as https from "https";
 import { app, dialog } from "electron";
 import {
   getDefaultInstallLocation,
-  installRequiredPythonPackages,
 } from "./python";
 import { getCondaEnvPath } from "./config";
 
@@ -16,7 +15,6 @@ import {
   readSettings,
   updateSettings,
   updateSetting,
-  getModelServiceStartupDefaults,
 } from "./settings";
 import { emitBootMessage, emitServerLog, emitUpdateProgress } from "./events";
 import os from "os";
@@ -27,8 +25,6 @@ import { BrowserWindow } from "electron";
 import { InstallToLocationData, IpcChannels, ModelBackend } from "./types.d";
 import { createIpcMainHandler } from "./ipc";
 
-const CUDA_LLAMA_SPEC = "llama.cpp=*=cuda126*";
-const CPU_LLAMA_SPEC = "llama.cpp";
 const CONDA_CHANNELS = ["conda-forge"];
 const MICROMAMBA_ENV_VAR = "MICROMAMBA_EXE";
 const MICROMAMBA_BIN_DIR_NAME = "bin";
@@ -47,7 +43,6 @@ interface InstallationPreferences {
 
 interface InstallationSelection extends InstallationPreferences {
   installLlamaCpp?: boolean;
-  startLlamaCppOnStartup?: boolean;
 }
 
 function normalizeModelBackend(backend: unknown): ModelBackend {
@@ -68,23 +63,14 @@ function normalizeInstallLocation(location: unknown): string {
 function persistInstallationPreferences(
   location: unknown,
   modelBackend: unknown,
-  startupSettings?: {
-    startLlamaCppOnStartup?: unknown;
-  }
 ): InstallationPreferences {
   const normalizedLocation = normalizeInstallLocation(location);
   const normalizedBackend = normalizeModelBackend(modelBackend);
-  const startupDefaults = getModelServiceStartupDefaults(normalizedBackend);
-  const startLlamaCppOnStartup =
-    typeof startupSettings?.startLlamaCppOnStartup === "boolean"
-      ? startupSettings.startLlamaCppOnStartup
-      : startupDefaults.startLlamaCppOnStartup;
 
   try {
     updateSettings({
       CONDA_ENV: normalizedLocation,
       [MODEL_BACKEND_SETTING_KEY]: normalizedBackend,
-      START_LLAMA_CPP_ON_STARTUP: startLlamaCppOnStartup,
     });
     logMessage(
       `Persisted installer preferences: location=${normalizedLocation}, backend=${normalizedBackend}`
@@ -122,28 +108,19 @@ async function promptForInstallLocation(
           location,
           modelBackend,
           installLlamaCpp,
-          startLlamaCppOnStartup,
         }: InstallToLocationData
       ) => {
         const preferences = persistInstallationPreferences(
           location,
           modelBackend,
-          {
-            startLlamaCppOnStartup,
-          }
         );
         resolve({
           ...preferences,
           installLlamaCpp,
-          startLlamaCppOnStartup:
-            typeof startLlamaCppOnStartup === "boolean"
-              ? startLlamaCppOnStartup
-              : undefined,
         });
       }
     );
 
-    // Send the prompt data to the renderer process
     let mainWindow = BrowserWindow.getFocusedWindow();
 
     if (!mainWindow) {
@@ -674,45 +651,6 @@ async function createEnvironmentWithMicromamba(
   );
 }
 
-async function provisionCondaEnvironment(
-  location: string,
-  modelBackend: ModelBackend,
-  options?: {
-    bootMessage?: string;
-    installLlamaCpp?: boolean;
-  }
-): Promise<void> {
-  const bootMessage =
-    options?.bootMessage ?? "Setting up conda environment...";
-
-  emitBootMessage(bootMessage);
-  logMessage(`Setting up conda environment at: ${location} (Backend: ${modelBackend})`);
-
-  const micromambaExecutable = await ensureMicromambaAvailable();
-
-  await createEnvironmentWithMicromamba(
-    micromambaExecutable,
-    location,
-    BOOTSTRAP_CONDA_PACKAGES,
-  );
-
-  const condaEnvPath = location;
-  await installCondaPackages(micromambaExecutable, condaEnvPath, modelBackend, {
-    installLlamaCpp: options?.installLlamaCpp,
-  });
-
-  await installRequiredPythonPackages();
-
-  const shouldInstallLlamaCpp =
-    options?.installLlamaCpp ?? modelBackend === "llama_cpp";
-  if (shouldInstallLlamaCpp) {
-    await ensureLlamaCppInstalled(condaEnvPath);
-  }
-
-  logMessage("Conda environment installation completed successfully");
-  emitBootMessage("Conda environment is ready");
-}
-
 /**
  * Conda Environment Installer Module
  *
@@ -729,7 +667,6 @@ async function provisionCondaEnvironment(
  * Installation Process:
  * 1. `ensureCondaEnvironment()` creates a minimal env if none exists
  * 2. `installCondaPackageBySpec()` installs runtime-specific packages on demand
- * 3. `provisionCondaEnvironment()` (legacy) creates env with backend packages
  */
 
 createIpcMainHandler(IpcChannels.SELECT_CUSTOM_LOCATION, async (_event) => {
@@ -747,89 +684,6 @@ createIpcMainHandler(IpcChannels.SELECT_CUSTOM_LOCATION, async (_event) => {
 
   return path.join(filePaths[0], "nodetool-python");
 });
-
-async function installCondaPackages(
-  micromambaExecutable: string,
-  envPrefix: string,
-  modelBackend: ModelBackend,
-  options?: { installLlamaCpp?: boolean }
-): Promise<void> {
-  const prefersCuda =
-    process.platform === "win32" || process.platform === "linux";
-
-  const packageSpecs: string[] = [];
-
-  const shouldInstallLlamaCpp =
-    options?.installLlamaCpp ?? modelBackend === "llama_cpp";
-
-  if (shouldInstallLlamaCpp) {
-    packageSpecs.push(prefersCuda ? CUDA_LLAMA_SPEC : CPU_LLAMA_SPEC);
-  } else {
-    logMessage(
-      "Skipping llama.cpp conda package installation (not selected or external llama.cpp selected)",
-      "info"
-    );
-  }
-
-  if (packageSpecs.length === 0) {
-    logMessage(`No backend-specific packages to install for backend: ${modelBackend}`);
-    return;
-  }
-
-  const args = [
-    "install",
-    "--yes",
-    "--prefix",
-    envPrefix,
-    ...packageSpecs,
-    "--override-channels",
-    "--strict-channel-priority",
-  ];
-  for (const channel of CONDA_CHANNELS) {
-    args.push("--channel", channel);
-  }
-
-  logMessage(
-    `Ensuring micromamba packages (${packageSpecs.join(
-      ", "
-    )}) are installed into ${envPrefix}`
-  );
-
-  await runMicromambaCommand(
-    micromambaExecutable,
-    args,
-    "Installing system dependencies"
-  );
-}
-
-async function ensureLlamaCppInstalled(
-  envPrefix: string
-): Promise<void> {
-  const executableName =
-    os.platform() === "win32" ? "llama-server.exe" : "llama-server";
-  const condaBinDir =
-    os.platform() === "win32"
-      ? path.join(envPrefix, "Library", "bin")
-      : path.join(envPrefix, "bin");
-  const llamaBinaryPath = path.join(condaBinDir, executableName);
-
-  if (await fileExists(llamaBinaryPath)) {
-    logMessage(`llama.cpp binary already present at ${llamaBinaryPath}`);
-    return;
-  }
-
-  logMessage("llama.cpp binary missing, reinstalling package via micromamba");
-  const micromambaExecutable = await ensureMicromambaAvailable();
-  await installCondaPackages(micromambaExecutable, envPrefix, "llama_cpp", {
-    installLlamaCpp: true,
-  });
-
-  if (!(await fileExists(llamaBinaryPath))) {
-    throw new Error(
-      "llama.cpp binary was not found after conda installation. Please verify your GPU drivers or try reinstalling manually."
-    );
-  }
-}
 
 /**
  * Install arbitrary conda packages into the existing conda environment.
@@ -972,7 +826,6 @@ async function ensureCondaEnvironment(
 export {
   promptForInstallLocation,
   ensureCondaEnvironment,
-  ensureLlamaCppInstalled,
   installCondaPackageBySpec,
   removeCondaPackageBySpec,
   setCondaInstallLocation,

@@ -1,6 +1,6 @@
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useMemo } from "react";
 import { Node, NodeProps, NodeToolbar, Position } from "@xyflow/react";
-import { Box } from "../../ui_primitives";
+import { FlexColumn } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import { NodeData } from "../../../stores/NodeData";
 import { NodeHeader } from "../NodeHeader";
@@ -15,13 +15,10 @@ import { useNodes } from "../../../contexts/NodeContext";
 import useSelect from "../../../hooks/nodes/useSelect";
 import { useDelayedVisibility } from "../../../hooks/useDelayedVisibility";
 import { useNodeFocusStore } from "../../../stores/NodeFocusStore";
-import { useSubgraphTabsStore } from "../../../stores/SubgraphTabsStore";
 import { SubgraphNodeContent } from "./SubgraphNodeContent";
+import { SUBGRAPH_ACCENT_COLOR } from "../../../constants/nodeTypes";
 
 const TOOLBAR_SHOW_DELAY = 200;
-
-/** Accent color for SubgraphNode (violet — distinct from WorkflowNode's teal). */
-const SUBGRAPH_HEADER_COLOR = "#7C3AED";
 
 const Toolbar = memo(function Toolbar({
   id,
@@ -50,8 +47,7 @@ const Toolbar = memo(function Toolbar({
 /**
  * Dedicated React Flow node for SubgraphNode (inline sub-graph execution).
  * Inputs/outputs are derived from the inner Input/Output nodes stored in
- * `data.properties.graph`. Double-click opens the subgraph in a new tab
- * (handled by the editor — wiring lands in a follow-up).
+ * `data.properties.graph`. Double-click opens the subgraph in a new tab.
  */
 const SubgraphNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const theme = useTheme();
@@ -74,45 +70,22 @@ const SubgraphNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     return data.title || metadata.title || "Subgraph";
   }, [metadata, data.title]);
 
-  const openSubgraphTab = useSubgraphTabsStore((state) => state.openTab);
-  const handleDoubleClick = useCallback(
-    (event?: React.MouseEvent) => {
-      event?.stopPropagation();
-      const innerGraph = (data.properties?.graph as
-        | { nodes?: unknown[]; edges?: unknown[] }
-        | undefined) ?? { nodes: [], edges: [] };
-      openSubgraphTab({
-        workflowId: workflow_id,
-        nodeId: id,
-        label: headerTitle,
-        initialGraph: {
-          nodes: Array.isArray(innerGraph.nodes) ? innerGraph.nodes : [],
-          edges: Array.isArray(innerGraph.edges) ? innerGraph.edges : []
-        }
-      });
-    },
-    [openSubgraphTab, workflow_id, id, headerTitle, data.properties?.graph]
-  );
-
   if (!metadata) {
     return null;
   }
 
   return (
-    <Box
+    <FlexColumn
       className="subgraph-node"
-      onDoubleClick={handleDoubleClick}
       sx={{
-        display: "flex",
-        flexDirection: "column",
         height: "100%",
         minHeight: 100,
         padding: "0 !important",
-        border: `1px solid ${SUBGRAPH_HEADER_COLOR}40`,
+        border: `1px solid ${SUBGRAPH_ACCENT_COLOR}40`,
         borderRadius: theme.rounded.node,
         backgroundColor: theme.vars.palette.c_node_bg,
         boxShadow: selected
-          ? `0 0 0 2px ${SUBGRAPH_HEADER_COLOR}, 0 1px 10px rgba(0,0,0,0.5)`
+          ? `0 0 0 2px ${SUBGRAPH_ACCENT_COLOR}, 0 1px 10px rgba(0,0,0,0.5)`
           : isFocused
           ? `0 0 0 2px ${theme.vars.palette.warning.main}`
           : "none",
@@ -120,7 +93,7 @@ const SubgraphNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           ? `2px dashed ${theme.vars.palette.warning.main}`
           : "none",
         outlineOffset: "-2px",
-        "--node-primary-color": SUBGRAPH_HEADER_COLOR
+        "--node-primary-color": SUBGRAPH_ACCENT_COLOR
       }}
     >
       {selected && <Toolbar id={id} selected={selected} dragging={dragging} />}
@@ -129,11 +102,11 @@ const SubgraphNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         id={id}
         selected={selected}
         data={data}
-        backgroundColor={SUBGRAPH_HEADER_COLOR}
+        backgroundColor={SUBGRAPH_ACCENT_COLOR}
         metadataTitle={headerTitle}
         hasParent={hasParent}
         iconType="workflow"
-        iconBaseColor={SUBGRAPH_HEADER_COLOR}
+        iconBaseColor={SUBGRAPH_ACCENT_COLOR}
         workflowId={workflow_id}
       />
       <NodeErrors id={id} workflow_id={workflow_id} />
@@ -143,14 +116,12 @@ const SubgraphNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         workflowId={workflow_id}
         status={statusValue}
       />
-      <Box
+      <FlexColumn
         className="node-content-container"
         sx={{
           flex: "1 1 auto",
           minHeight: 80,
-          width: "100%",
-          display: "flex",
-          flexDirection: "column"
+          width: "100%"
         }}
       >
         <SubgraphNodeContent
@@ -161,8 +132,8 @@ const SubgraphNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           status={statusValue}
           workflowId={workflow_id}
         />
-      </Box>
-    </Box>
+      </FlexColumn>
+    </FlexColumn>
   );
 };
 

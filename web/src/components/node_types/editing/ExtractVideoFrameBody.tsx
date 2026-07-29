@@ -35,8 +35,14 @@ import SkipPreviousIcon from "@mui/icons-material/SkipPrevious";
 import SkipNextIcon from "@mui/icons-material/SkipNext";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";
+import DownloadIcon from "@mui/icons-material/Download";
 
-import { CheckerDropzone, ToolbarIconButton } from "../../ui_primitives";
+import {
+  BORDER_RADIUS,
+  CheckerDropzone,
+  SPACING,
+  ToolbarIconButton
+} from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import NumberInput from "../../inputs/NumberInput";
 import { NodeOutputs } from "../../node/NodeOutputs";
@@ -109,7 +115,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       flex: "1 1 auto",
       minHeight: 140,
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
       backgroundColor: theme.vars.palette.common.black,
       display: "flex",
@@ -129,21 +135,21 @@ const styles = (theme: Theme) =>
       height: 4,
       appearance: "none",
       background: theme.vars.palette.grey[700],
-      borderRadius: 2,
+      borderRadius: BORDER_RADIUS.xs,
       cursor: "pointer",
-      margin: `${theme.spacing(0.25)} 0`,
+      margin: `${theme.spacing(SPACING.micro)} 0`,
       "&::-webkit-slider-thumb": {
         appearance: "none",
         width: 12,
         height: 12,
-        borderRadius: "50%",
+        borderRadius: BORDER_RADIUS.circle,
         backgroundColor: theme.vars.palette.primary.main,
         cursor: "pointer"
       },
       "&::-moz-range-thumb": {
         width: 12,
         height: 12,
-        borderRadius: "50%",
+        borderRadius: BORDER_RADIUS.circle,
         backgroundColor: theme.vars.palette.primary.main,
         border: "none",
         cursor: "pointer"
@@ -152,10 +158,17 @@ const styles = (theme: Theme) =>
     ".transport": {
       flex: "0 0 auto",
       display: "flex",
+      flexWrap: "wrap",
       alignItems: "center",
-      gap: theme.spacing(0.5)
+      justifyContent: "center",
+      gap: theme.spacing(0.5),
+      minWidth: 0
     },
     ".time-display": {
+      flex: "0 1 auto",
+      minWidth: 0,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
       fontVariantNumeric: "tabular-nums",
@@ -163,17 +176,24 @@ const styles = (theme: Theme) =>
       whiteSpace: "nowrap"
     },
     ".transport-buttons": {
+      flex: "1 1 auto",
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(0.25),
-      margin: "0 auto"
+      justifyContent: "center",
+      gap: theme.spacing(SPACING.micro)
+    },
+    ".transport-actions": {
+      flex: "0 0 auto",
+      display: "flex",
+      alignItems: "center",
+      gap: theme.spacing(SPACING.micro)
     },
     ".footer": {
       flex: "0 0 auto",
       display: "flex",
       alignItems: "center",
       gap: theme.spacing(1),
-      paddingTop: theme.spacing(0.25)
+      paddingTop: theme.spacing(SPACING.micro)
     },
     ".field": {
       display: "flex",
@@ -196,8 +216,8 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall,
       fontVariantNumeric: "tabular-nums",
       color: theme.vars.palette.grey[100],
-      padding: `${theme.spacing(0.25)} ${theme.spacing(0.75)}`,
-      borderRadius: "var(--rounded-sm)",
+      padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.xs)}`,
+      borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.grey[800]
     },
     ".outputs-row": {
@@ -419,6 +439,40 @@ const ExtractVideoFrameBodyInner: React.FC<ExtractVideoFrameBodyProps> = ({
     });
   }, []);
 
+  // Draw the frame currently shown in the `<video>` element to a canvas at its
+  // native resolution and download it as a PNG. This is the same frame the node
+  // extracts, so what you see is what you save.
+  const handleDownloadFrame = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth || !video.videoHeight) {
+      return;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+    try {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    } catch {
+      // Cross-origin frames taint the canvas; nothing to download in that case.
+      return;
+    }
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `frame-${frameOf(video.currentTime, fps)}.png`;
+      link.click();
+      URL.revokeObjectURL(url);
+    }, "image/png");
+  }, [fps]);
+
   const isRunning = status === "running";
   const frame = frameOf(currentTime, fps);
   const maxFrame = frameOf(duration, fps);
@@ -437,6 +491,7 @@ const ExtractVideoFrameBodyInner: React.FC<ExtractVideoFrameBodyProps> = ({
             ref={videoRef}
             className="nodrag nopan"
             src={videoSrc}
+            crossOrigin="anonymous"
             muted={muted}
             playsInline
             aria-label="Video frame preview"
@@ -494,13 +549,22 @@ const ExtractVideoFrameBodyInner: React.FC<ExtractVideoFrameBodyProps> = ({
             onClick={() => stepFrame(1)}
           />
         </div>
-        <ToolbarIconButton
-          icon={muted ? <VolumeOffIcon /> : <VolumeUpIcon />}
-          tooltip={muted ? "Unmute" : "Mute"}
-          ariaLabel={muted ? "Unmute" : "Mute"}
-          disabled={!videoSrc}
-          onClick={handleToggleMute}
-        />
+        <div className="transport-actions">
+          <ToolbarIconButton
+            icon={muted ? <VolumeOffIcon /> : <VolumeUpIcon />}
+            tooltip={muted ? "Unmute" : "Mute"}
+            ariaLabel={muted ? "Unmute" : "Mute"}
+            disabled={!videoSrc}
+            onClick={handleToggleMute}
+          />
+          <ToolbarIconButton
+            icon={<DownloadIcon />}
+            tooltip="Download frame"
+            ariaLabel="Download frame"
+            disabled={!videoSrc}
+            onClick={handleDownloadFrame}
+          />
+        </div>
       </div>
 
       <div className="footer">

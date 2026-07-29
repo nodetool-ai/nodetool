@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useEffect, useRef, MouseEventHandler, useCallback, memo, useMemo } from "react";
-import { Text } from "../ui_primitives";
+import { Text, Z_INDEX } from "../ui_primitives";
 import { Asset } from "../../stores/ApiTypes";
 import { getAlphaSurfaceBg } from "../../styles/AlphaSurface";
 
@@ -20,14 +20,14 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       margin: "0",
       position: "relative",
-      zIndex: 0,
+      zIndex: Z_INDEX.base,
       pointerEvents: "auto"
     },
     ".image-info": {
       position: "absolute",
       bottom: "0",
       right: theme.spacing(2),
-      zIndex: 1000,
+      zIndex: Z_INDEX.overlay,
       color: theme.vars.palette.text.primary,
       textShadow: `${theme.spacing(0, 0, 0.5)} ${theme.vars.palette.background.default}`,
       textAlign: "right"
@@ -102,11 +102,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ asset, url }) => {
     setTranslate((prevTranslate) => {
       const img = imageRef.current;
       if (img) {
-        // margin for the bounds
         const marginX = window.innerWidth * 0.5;
         const marginY = window.innerHeight * 0.5;
 
-        // bounds with added margins
         const bounds = {
           minX: window.innerWidth / 2 - (img.naturalWidth * zoom) / 2 - marginX,
           maxX: (img.naturalWidth * zoom) / 2 - window.innerWidth / 2 + marginX,
@@ -116,7 +114,6 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ asset, url }) => {
             (img.naturalHeight * zoom) / 2 - window.innerHeight / 2 + marginY
         };
 
-        // translation within bounds
         const newTranslateX = Math.max(
           Math.min(prevTranslate.x + deltaX, bounds.maxX),
           bounds.minX
@@ -174,7 +171,6 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ asset, url }) => {
     setZoom(1);
   }, []);
 
-  // Memoize style objects to prevent recreation on every render
   const containerStyle = useMemo(() => ({
     margin: "0",
     height: "100%",

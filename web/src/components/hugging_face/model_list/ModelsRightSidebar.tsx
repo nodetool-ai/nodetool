@@ -35,7 +35,6 @@ const ModelsRightSidebar: React.FC = () => {
         overflowX: "hidden"
       }}
     >
-      {/* Supported Formats */}
       <Card
         variant="outlined"
         padding="normal"
@@ -56,7 +55,7 @@ const ModelsRightSidebar: React.FC = () => {
               variant={fmt.primary ? "filled" : "outlined"}
               color={fmt.primary ? "success" : "default"}
               sx={{
-                fontSize: theme.fontSizeTiny,
+                fontSize: theme.fontSizeSmaller,
                 fontWeight: 500,
                 height: 22,
                 ...(fmt.primary
@@ -75,7 +74,6 @@ const ModelsRightSidebar: React.FC = () => {
         </FlexRow>
       </Card>
 
-      {/* Need help? */}
       <Card
         variant="outlined"
         padding="normal"

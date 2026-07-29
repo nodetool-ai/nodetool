@@ -6,7 +6,7 @@ import type { Theme } from "@mui/material/styles";
 import { MenuItem, ListItemIcon, ListItemText, Tooltip, Divider } from "@mui/material";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { MOTION } from "./tokens";
+import { BORDER_RADIUS, CONTROL, MOTION } from "./tokens";
 
 export interface MenuItemPrimitiveProps {
   /** Label text */
@@ -43,7 +43,7 @@ export interface MenuItemPrimitiveProps {
 
 const styles = (theme: Theme) => css`
   .menu-item-primitive {
-    border-radius: 4px;
+    border-radius: ${BORDER_RADIUS.sm};
     margin: 2px 4px;
     padding: 8px 12px;
     transition: ${MOTION.all};
@@ -111,7 +111,7 @@ const styles = (theme: Theme) => css`
       font-family: monospace;
       background: ${theme.vars.palette.action.hover};
       padding: 2px 6px;
-      border-radius: 4px;
+      border-radius: ${BORDER_RADIUS.sm};
     }
     
     .submenu-icon {
@@ -128,11 +128,11 @@ const styles = (theme: Theme) => css`
       }
 
       &.compact {
-        min-height: 32px;
+        min-height: ${CONTROL.height.md}px;
         padding: 4px 12px;
 
         .MuiListItemIcon-root {
-          min-width: 28px;
+          min-width: ${CONTROL.height.sm}px;
         }
 
         .MuiListItemText-primary {

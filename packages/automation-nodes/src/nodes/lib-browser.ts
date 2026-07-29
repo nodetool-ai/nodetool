@@ -387,7 +387,6 @@ export class SpiderCrawlLibNode extends BaseNode {
     const urlPatternRe = urlPattern ? new RegExp(urlPattern) : null;
     const excludePatternRe = excludePattern ? new RegExp(excludePattern) : null;
 
-    // robots.txt cache and parser
     const robotsCache = new Map<string, string[]>(); // origin -> disallowed paths
 
     const fetchRobotsTxt = async (origin: string): Promise<string[]> => {
@@ -467,7 +466,6 @@ export class SpiderCrawlLibNode extends BaseNode {
       if (urlPatternRe && !urlPatternRe.test(currentUrl)) continue;
       if (excludePatternRe && excludePatternRe.test(currentUrl)) continue;
 
-      // Check robots.txt before crawling
       if (!(await isAllowedByRobots(currentUrl))) {
         visited.add(currentUrl);
         continue;
@@ -555,7 +553,6 @@ export class SpiderCrawlLibNode extends BaseNode {
       allPages.push(page);
       yield page;
     }
-    // Emit collected list as final output
     yield { pages: allPages };
   }
 }

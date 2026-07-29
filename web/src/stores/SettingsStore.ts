@@ -252,9 +252,8 @@ export const useSettingsStore = create<SettingsStore>()(
       name: "settings-storage",
       partialize: (state) => ({
         settings: state.settings
-        // Don't persist menuAnchorEl state
       }),
-      // Merge persisted state with defaults to handle new settings being added
+      // Merge persisted state with defaults so newly-added settings get their defaults.
       merge: (persistedState, currentState) => {
         const persisted = persistedState as Partial<SettingsStore> | undefined;
         return {

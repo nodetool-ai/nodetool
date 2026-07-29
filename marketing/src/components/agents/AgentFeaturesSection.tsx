@@ -25,21 +25,21 @@ export default function AgentFeaturesSection({
       icon: Brain,
       title: "Briefs become storyboards",
       description:
-        "Drop in a one-line prompt or a full mood board. The agent plans the shots, picks the model for each one, and lays out a board you can rearrange before a single render runs.",
+        "Give it a one-line prompt or a full mood board. The agent plans the shots, picks a model for each one, and lays out a board you can rearrange before anything is rendered.",
       color: "teal",
     },
     {
       icon: GitFork,
       title: "Batch variants in parallel",
       description:
-        "Need ten alts of the hero frame in five aspect ratios? The agent fans the work out across providers, runs them at the same time, and brings the cuts back ranked for review.",
+        "Need ten versions of the hero frame in five aspect ratios? The agent spreads the work across providers, runs them at the same time, and brings the results back ranked for review.",
       color: "blue",
     },
     {
       icon: Users,
       title: "A crew, not a single model",
       description:
-        "Run a director, a stylist, and a colorist as separate agents that hand off via a shared board. Each one gets the model and prompt that fits its job.",
+        "Run a director, a stylist, and a colorist as separate agents that hand work to each other on a shared board. Each gets the model and prompt that suits its job.",
       color: "cyan",
     },
     {
@@ -53,14 +53,14 @@ export default function AgentFeaturesSection({
       icon: Eye,
       title: "See every decision",
       description:
-        "Watch the agent reason about composition, swap models when a render misses, and log every prompt it tried. No black boxes when the deadline hits.",
+        "Watch the agent think through the composition, switch models when a render misses the mark, and record every prompt it tried. Nothing is hidden when the deadline is close.",
       color: "pink",
     },
     {
       icon: Sparkles,
       title: "Bottle your art direction",
       description:
-        "Lock down a style guide as a reusable skill — palette, lens, mood, prompt patterns — and every agent on your canvas picks it up automatically.",
+        "Save a style guide once (palette, lens, mood, and the prompts behind them) and every agent on your canvas follows it automatically.",
       color: "amber",
     },
   ];
@@ -77,7 +77,7 @@ export default function AgentFeaturesSection({
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mb-16 text-center max-w-3xl mx-auto">
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={false}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             className="inline-flex items-center justify-center p-3 mb-6 rounded-2xl bg-rose-500/10 border border-rose-500/20 shadow-lg shadow-rose-500/10"
@@ -87,10 +87,10 @@ export default function AgentFeaturesSection({
 
           <motion.h2
             id="features-title"
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
             Built to{" "}
@@ -100,15 +100,15 @@ export default function AgentFeaturesSection({
           </motion.h2>
 
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Agents are nodes on the same canvas as your image, video, and audio
-            workflows — except these nodes have taste, a plan, and the ability to
-            self-correct when a render misses.
+            An agent sits on the same canvas as your image, video, and audio
+            work. The difference is that it arrives with a plan, an eye for the
+            brief, and the ability to try again when a render misses.
           </motion.p>
         </div>
 
@@ -117,7 +117,7 @@ export default function AgentFeaturesSection({
           className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
           initial="hidden"
           whileInView="show"
-          viewport={{ once: true, margin: "-100px" }}
+          viewport={{ once: true, margin: "-40px" }}
           variants={{
             show: { transition: { staggerChildren: 0.1 } },
           }}
@@ -126,8 +126,8 @@ export default function AgentFeaturesSection({
             <motion.div
               key={feature.title}
               variants={{
-                hidden: { opacity: 0, y: 20 },
-                show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+                hidden: { opacity: 1, y: 0 },
+                show: { opacity: 1, y: 0, transition: { duration: 0.25 } },
               }}
             >
               <Tilt3D className="h-full">

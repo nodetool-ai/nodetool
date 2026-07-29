@@ -68,7 +68,7 @@ import { useProcessedEdges } from "../../hooks/useProcessedEdges";
 import { useFitNodeEvent } from "../../hooks/useFitNodeEvent";
 import { MAX_ZOOM, MIN_ZOOM, ZOOMED_OUT } from "../../config/constants";
 import GroupNode from "../node/GroupNode";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { useTheme } from "@mui/material/styles";
 import AxisMarker from "../node_editor/AxisMarker";
 import ConnectionLine from "../node_editor/ConnectionLine";
@@ -124,7 +124,6 @@ const IS_APPLE_PLATFORM = /Mac|iPhone|iPad/.test(navigator.platform);
 
 interface ReactFlowWrapperProps {
   workflowId: string;
-  active: boolean;
 }
 
 import GhostNode from "./GhostNode";
@@ -159,8 +158,7 @@ function withEdgeNeighborNodeIds(
 }
 
 const ReactFlowWrapper = ({
-  workflowId,
-  active
+  workflowId
 }: ReactFlowWrapperProps) => {
   const workflowManagerStore = useWorkflowManagerStore();
   const isDarkMode = useIsDarkMode();
@@ -230,9 +228,11 @@ const ReactFlowWrapper = ({
       labelBackground: isDark
         ? "rgba(8, 47, 73, 0.75)"
         : "rgba(255, 255, 255, 0.95)",
-      hintColor: isDark ? "rgba(148, 163, 184, 0.9)" : "rgba(71, 85, 105, 0.9)"
+      hintColor: isDark ? "rgba(148, 163, 184, 0.9)" : "rgba(71, 85, 105, 0.9)",
+      // Fixed drag preview: above canvas/panels, below the node menu.
+      zIndex: theme.zIndex.floating
     };
-  }, [theme.palette.mode, theme.vars.palette.primary.main]);
+  }, [theme.palette.mode, theme.vars.palette.primary.main, theme.zIndex.floating]);
 
   const backgroundStyle = useMemo(
     () => ({
@@ -272,9 +272,11 @@ const ReactFlowWrapper = ({
 
   // Single trigger: connection drag ended or edges changed (add/remove/reconnect).
   // Wait one frame, then refresh handle positions for all nodes.
-  // Use a ref for nodes to avoid re-running on every node position change (60fps drag).
+  // Use refs to avoid re-running on every node position change (60fps drag).
   const nodesRef = useRef(nodes);
   nodesRef.current = nodes;
+  const edgesRef = useRef(edges);
+  edgesRef.current = edges;
   const prevConnectingRef = useRef(connecting);
   const prevEdgeCountRef = useRef(edges.length);
   useEffect(() => {
@@ -302,9 +304,58 @@ const ReactFlowWrapper = ({
   }, [workflowId]);
 
   const sortedKeysCache = useRef(new WeakMap<object, string>());
+  const perNodeSigCache = useRef(new WeakMap<NodeData, string>());
+  const prevFingerprintRef = useRef("");
+
+  // Structural fingerprint: only changes when layout-relevant fields change
+  // (height, collapsed, exposed inputs, dynamic props). Position-only drag
+  // frames produce the same string, so the effect below stays dormant.
+  // Uses a per-node WeakMap cache keyed on `data` identity to avoid
+  // recomputing string fragments during position-only drags (60fps).
+  const nodeLayoutFingerprint = useMemo(() => {
+    const keysCache = sortedKeysCache.current;
+    const sigCache = perNodeSigCache.current;
+    const getSortedKeys = (obj: object | null | undefined): string => {
+      if (!obj) return "";
+      const cached = keysCache.get(obj);
+      if (cached !== undefined) return cached;
+      const result = Object.keys(obj).sort().join(",");
+      keysCache.set(obj, result);
+      return result;
+    };
+
+    let changed = nodes.length !== prevFingerprintRef.current.split("|").length;
+    const parts: string[] = [];
+    for (const n of nodes) {
+      let sig = sigCache.get(n.data);
+      if (sig === undefined) {
+        changed = true;
+        const sh = n.style?.height;
+        const stylePart =
+          typeof sh === "number"
+            ? String(sh)
+            : typeof sh === "string"
+              ? sh.trim()
+              : "";
+        const exposedPart = [
+          ...(n.data.exposedInputs ?? []),
+          ...(n.data.exposedInputsLabeled ?? []),
+          ...(n.data.exposedInputsHidden ?? [])
+        ].join(",");
+        sig = `${n.id}:${typeof n.height === "number" ? n.height : ""}:${stylePart}:${Boolean(n.data.collapsed)}:${exposedPart}:${getSortedKeys(n.data.dynamic_properties)}:${getSortedKeys(n.data.dynamic_inputs)}:${getSortedKeys(n.data.dynamic_outputs)}`;
+        sigCache.set(n.data, sig);
+      }
+      parts.push(sig);
+    }
+    if (!changed) return prevFingerprintRef.current;
+    const result = parts.join("|");
+    prevFingerprintRef.current = result;
+    return result;
+  }, [nodes]);
+
   useEffect(() => {
     const cache = sortedKeysCache.current;
-    const sortedKeys = (obj: object | null | undefined): string => {
+    const getSortedKeys = (obj: object | null | undefined): string => {
       if (!obj) return "";
       const cached = cache.get(obj);
       if (cached !== undefined) return cached;
@@ -313,8 +364,9 @@ const ReactFlowWrapper = ({
       return result;
     };
 
+    const currentNodes = nodesRef.current;
     const next = new Map<string, string>();
-    for (const n of nodes) {
+    for (const n of currentNodes) {
       const sh = n.style?.height;
       const stylePart =
         typeof sh === "number"
@@ -327,9 +379,9 @@ const ReactFlowWrapper = ({
         ...(n.data.exposedInputsLabeled ?? []),
         ...(n.data.exposedInputsHidden ?? [])
       ].join(",");
-      const dynPropsPart = sortedKeys(n.data.dynamic_properties);
-      const dynInputsPart = sortedKeys(n.data.dynamic_inputs);
-      const dynOutputsPart = sortedKeys(n.data.dynamic_outputs);
+      const dynPropsPart = getSortedKeys(n.data.dynamic_properties);
+      const dynInputsPart = getSortedKeys(n.data.dynamic_inputs);
+      const dynOutputsPart = getSortedKeys(n.data.dynamic_outputs);
       next.set(
         n.id,
         `${typeof n.height === "number" ? n.height : ""}:${stylePart}:${Boolean(n.data.collapsed)}:${exposedPart}:${dynPropsPart}:${dynInputsPart}:${dynOutputsPart}`
@@ -358,9 +410,9 @@ const ReactFlowWrapper = ({
     }
     scheduleNodeInternalsRefresh(
       updateNodeInternals,
-      withEdgeNeighborNodeIds(changedIds, edges)
+      withEdgeNeighborNodeIds(changedIds, edgesRef.current)
     );
-  }, [nodes, edges, updateNodeInternals]);
+  }, [nodeLayoutFingerprint, updateNodeInternals]);
 
   const ref = useRef<HTMLDivElement | null>(null);
   const zoomedOut = useStore((s) => s.transform[2] <= ZOOMED_OUT);
@@ -536,10 +588,10 @@ const ReactFlowWrapper = ({
       }
       scheduleNodeInternalsRefresh(
         updateNodeInternals,
-        withEdgeNeighborNodeIds([...dimIds], edges)
+        withEdgeNeighborNodeIds([...dimIds], edgesRef.current)
       );
     },
-    [propagateNodesChange, updateNodeInternals, edges]
+    [propagateNodesChange, updateNodeInternals]
   );
 
   const {
@@ -586,15 +638,19 @@ const ReactFlowWrapper = ({
     (_event: ReactMouseEvent, node: Node) => {
       if (node.type !== SUBGRAPH_NODE_TYPE) return;
       const data = node.data as {
-        workflow_id?: string;
         title?: string;
         properties?: { graph?: { nodes?: unknown[]; edges?: unknown[] } };
       };
       const innerGraph = data.properties?.graph ?? { nodes: [], edges: [] };
       const key = useSubgraphTabsStore.getState().openTab({
-        workflowId: data.workflow_id ?? "",
+        // The canvas this node is on, not `data.workflow_id`: that is only
+        // stamped on nodes the store created, so a node loaded from a saved
+        // graph would key its tab off "" and the strip would never find it.
+        workflowId,
         nodeId: node.id,
-        label: data.title || "Subgraph",
+        // Same fallback chain as the node's own header, so the tab is labelled
+        // with what the user sees on the canvas.
+        label: data.title || getMetadata(SUBGRAPH_NODE_TYPE)?.title || "Subgraph",
         initialGraph: {
           nodes: Array.isArray(innerGraph.nodes) ? innerGraph.nodes : [],
           edges: Array.isArray(innerGraph.edges) ? innerGraph.edges : []
@@ -612,7 +668,7 @@ const ReactFlowWrapper = ({
         }));
       }
     },
-    [workflowManagerStore]
+    [workflowManagerStore, workflowId, getMetadata]
   );
 
   const handlePaneClickWithSuppress = useCallback(
@@ -769,7 +825,8 @@ const ReactFlowWrapper = ({
       return;
     }
 
-    if (!edges.length) {
+    const currentEdges = edgesRef.current;
+    if (!currentEdges.length) {
       return;
     }
 
@@ -791,7 +848,7 @@ const ReactFlowWrapper = ({
 
     const selectionUpdates: Record<string, boolean> = {};
 
-    for (const edge of edges) {
+    for (const edge of currentEdges) {
       const isEdgeAlreadySelected = Boolean(edge.selected);
       const nodeDrivenSelection =
         selectedNodeIds.has(edge.source) || selectedNodeIds.has(edge.target);
@@ -808,7 +865,6 @@ const ReactFlowWrapper = ({
       setEdgeSelectionState(selectionUpdates);
     }
   }, [
-    edges,
     setEdgeSelectionState,
     isSelecting,
     selectedNodeIds,

@@ -1,5 +1,7 @@
-import OpenAI from "openai";
-import { OpenAIProvider } from "./openai-provider.js";
+import {
+  OpenAICompatProvider,
+  type OpenAICompatProviderOptions
+} from "./openai-compat-provider.js";
 import type {
   ASRModel,
   EmbeddingModel,
@@ -14,26 +16,24 @@ import type {
 // no DNS record — the live serving host is api.gmi-serving.com.
 const GMI_BASE_URL = "https://api.gmi-serving.com/v1";
 
-interface GMIProviderOptions {
-  client?: OpenAI;
-  clientFactory?: (apiKey: string) => OpenAI;
-  fetchFn?: typeof fetch;
-}
-
 /**
- * GMI Cloud provider. Uses the OpenAI SDK against GMI Cloud's
- * OpenAI-compatible inference gateway at https://api.gmi-serving.com/v1, which
- * serves open-weight chat models (Llama, DeepSeek, Qwen, …) behind a single
- * API key. See https://docs.gmicloud.ai/quickstart.
+ * GMI Cloud provider. Speaks the OpenAI Chat Completions dialect against GMI
+ * Cloud's OpenAI-compatible inference gateway at
+ * https://api.gmi-serving.com/v1, which serves open-weight chat models (Llama,
+ * DeepSeek, Qwen, …) behind a single API key.
+ * See https://docs.gmicloud.ai/quickstart.
  */
-export class GMIProvider extends OpenAIProvider {
+export class GMIProvider extends OpenAICompatProvider {
   static override requiredSecrets(): string[] {
     return ["GMI_API_KEY"];
   }
 
   private _gmiFetch: typeof fetch;
 
-  constructor(secrets: { GMI_API_KEY?: string }, options: GMIProviderOptions = {}) {
+  constructor(
+    secrets: { GMI_API_KEY?: string },
+    options: OpenAICompatProviderOptions = {}
+  ) {
     const apiKey = secrets.GMI_API_KEY;
     if (!apiKey) {
       throw new Error("GMI_API_KEY is required");
@@ -42,19 +42,8 @@ export class GMIProvider extends OpenAIProvider {
     const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
 
     super(
-      { OPENAI_API_KEY: apiKey },
-      {
-        providerId: "gmi",
-        client: options.client,
-        clientFactory:
-          options.clientFactory ??
-          ((key) =>
-            new OpenAI({
-              apiKey: key,
-              baseURL: GMI_BASE_URL
-            })),
-        fetchFn
-      }
+      { providerId: "gmi", apiKey, baseURL: GMI_BASE_URL },
+      { ...options, fetchFn }
     );
 
     this._gmiFetch = fetchFn;

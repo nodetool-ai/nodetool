@@ -2,10 +2,11 @@
 import { css } from "@emotion/react";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { NodeProps, Handle, Position } from "@xyflow/react";
+import type { NodeStoreState } from "../../stores/NodeStore";
 import { NodeData } from "../../stores/NodeData";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import {
   Tooltip,
   Container,
@@ -17,7 +18,6 @@ import {
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { DATA_TYPES } from "../../config/data_types";
-import { shallow } from "zustand/shallow";
 import { findOutputHandle } from "../../utils/handleUtils";
 import { useSyncEdgeSelection } from "../../hooks/nodes/useSyncEdgeSelection";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -43,11 +43,7 @@ const styles = (theme: Theme) =>
     WebkitBackdropFilter: theme.vars.palette.glass.blur,
     borderRadius: BORDER_RADIUS.circle,
     cursor: "grab",
-    transition: MOTION.all,
-
-    "&:hover": {
-      // transform: "scale(1.05)"
-    }
+    transition: MOTION.all
   });
 
 const titleStyles = (theme: Theme) =>
@@ -134,23 +130,46 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
     [commitTitle]
   );
 
-  const upstreamConnection = useNodes((state) => {
-    const incoming = state.edges.find(
-      (e) => e.target === id && e.targetHandle === "input_value"
-    );
-    if (!incoming) {
-      return null;
-    }
-    const sourceNode = state.nodes.find((n) => n.id === incoming.source);
-    if (!sourceNode) {
-      return null;
-    }
-    return {
-      sourceType: sourceNode.type,
-      sourceData: sourceNode.data,
-      sourceHandle: incoming.sourceHandle
+  const upstreamConnectionSelector = useMemo(() => {
+    let lastSourceType: string | undefined;
+    let lastSourceDynamicOutputs: Record<string, unknown> | undefined;
+    let lastSourceHandle: string | null | undefined;
+    let lastResult: { sourceType: string | undefined; sourceData: NodeData; sourceHandle: string | null | undefined } | null = null;
+    return (state: NodeStoreState) => {
+      const incoming = state.edges.find(
+        (e) => e.target === id && e.targetHandle === "input_value"
+      );
+      if (!incoming) {
+        if (lastResult === null) return lastResult;
+        lastResult = null;
+        return lastResult;
+      }
+      const sourceNode = state.findNode(incoming.source);
+      if (!sourceNode) {
+        if (lastResult === null) return lastResult;
+        lastResult = null;
+        return lastResult;
+      }
+      if (
+        lastResult !== null &&
+        sourceNode.type === lastSourceType &&
+        sourceNode.data.dynamic_outputs === lastSourceDynamicOutputs &&
+        incoming.sourceHandle === lastSourceHandle
+      ) {
+        return lastResult;
+      }
+      lastSourceType = sourceNode.type;
+      lastSourceDynamicOutputs = sourceNode.data.dynamic_outputs;
+      lastSourceHandle = incoming.sourceHandle;
+      lastResult = {
+        sourceType: sourceNode.type,
+        sourceData: sourceNode.data,
+        sourceHandle: incoming.sourceHandle
+      };
+      return lastResult;
     };
-  }, shallow);
+  }, [id]);
+  const upstreamConnection = useNodes(upstreamConnectionSelector);
 
   const { slug: upstreamSlug, color: upstreamColor } = useMemo(() => {
     const anyType = DATA_TYPES.find((dt) => dt.slug === "any");
@@ -191,6 +210,20 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
 
   useSyncEdgeSelection(id, Boolean(selected));
 
+  const titleCssStyles = useMemo(() => titleStyles(theme), [theme]);
+  const containerSx = useMemo(() => ({
+    boxShadow: selected
+      ? `0 0 12px ${theme.vars.palette.primary.main}60`
+      : "0 0 24px -22px rgba(0,0,0,.65)",
+    borderColor: selected
+      ? theme.vars.palette.primary.main
+      : theme.vars.palette.grey[400]
+  }), [selected, theme.vars.palette.primary.main, theme.vars.palette.grey]);
+  const handleStyle = useMemo<React.CSSProperties>(() => ({
+    top: "50%",
+    backgroundColor: upstreamColor
+  }), [upstreamColor]);
+
   return (
     <Tooltip
       title="Double-click to add a label"
@@ -203,38 +236,25 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
           selected ? "selected" : ""
         }`}
         onDoubleClick={handleDoubleClick}
-        sx={{
-          boxShadow: selected
-            ? `0 0 12px ${theme.vars.palette.primary.main}60`
-            : "0 0 24px -22px rgba(0,0,0,.65)",
-          borderColor: selected
-            ? theme.vars.palette.primary.main
-            : theme.vars.palette.grey[400]
-        }}
+        sx={containerSx}
       >
         <Handle
           id="input_value"
           type="target"
           position={Position.Left}
           className={upstreamSlug}
-          style={{
-            top: "50%",
-            backgroundColor: upstreamColor
-          }}
+          style={handleStyle}
         />
         <Handle
           id="output"
           type="source"
           position={Position.Right}
           className={upstreamSlug}
-          style={{
-            top: "50%",
-            backgroundColor: upstreamColor
-          }}
+          style={handleStyle}
         />
 
         {(isEditing || title) && (
-          <div css={titleStyles(theme)}>
+          <div css={titleCssStyles}>
             {isEditing ? (
               <input
                 ref={inputRef}

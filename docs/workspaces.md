@@ -22,6 +22,8 @@ Workspaces have their own full-screen page at `/workspaces` (not a Settings tab)
 2. Choose **Workspaces** (shown when workspaces are enabled).
 3. Add one or more workspace directories on the Workspaces page.
 
+![Workspaces page](assets/screenshots/workspaces-page.png)
+
 After adding a workspace, NodeTool can browse files, list folders, and read/write files inside the configured root.
 
 ## Where workspaces are used

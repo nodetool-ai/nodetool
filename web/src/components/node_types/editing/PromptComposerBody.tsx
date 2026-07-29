@@ -43,12 +43,17 @@ import { NodeInputs } from "../../node/NodeInputs";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 
-import type { NodeMetadata, Property } from "../../../stores/ApiTypes";
+import type {
+  NodeMetadata,
+  Property,
+  TypeMetadata
+} from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useDynamicProperty } from "../../../hooks/nodes/useDynamicProperty";
 
 import { AssetMentionNode } from "./promptComposer/AssetMentionNode";
+import { EntityMentionNode } from "./promptComposer/EntityMentionNode";
 import { VariableNode, $createVariableNode } from "./promptComposer/VariableNode";
 import AssetMentionPlugin from "./promptComposer/AssetMentionPlugin";
 import AssetDropPlugin from "./promptComposer/AssetDropPlugin";
@@ -58,6 +63,7 @@ import {
 } from "./promptComposer/promptEditorState";
 import { variablesInPrompt } from "./promptComposer/promptTokens";
 import { PromptComposerContext } from "./promptComposer/promptComposerContext";
+import { useVariablePassthroughOutputs } from "./promptComposer/useVariablePassthroughOutputs";
 import { useGraphVariableNames } from "./useGraphVariables";
 import { PROMPT_NODE_TYPE } from "../../../constants/nodeTypes";
 
@@ -84,6 +90,9 @@ const styles = (theme: Theme) =>
       background: "transparent",
       padding: theme.spacing(1),
       overflow: "auto",
+      // The node body carries `.node-drag-handle` (cursor: grabbing !important);
+      // the composer is a text field, so override it back to a text caret.
+      cursor: "text !important",
       transition: `${MOTION.background}, ${MOTION.border}`,
       ...reducedMotion({ transition: MOTION.none }),
       "&:focus-within": {
@@ -93,6 +102,7 @@ const styles = (theme: Theme) =>
     },
     ".composer-input": {
       outline: "none",
+      cursor: "text !important",
       minHeight: 72,
       width: "100%",
       whiteSpace: "pre-wrap",
@@ -247,6 +257,14 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
     [variableNames]
   );
 
+  // Each variable also gets an output handle carrying its raw value.
+  useVariablePassthroughOutputs(
+    id,
+    variableNames,
+    data.dynamic_inputs ?? {},
+    (data.dynamic_outputs ?? {}) as Record<string, TypeMetadata>
+  );
+
   // Variables defined by Set Variable nodes anywhere in the workflow. They
   // resolve at runtime from the shared processing context, so they're offered
   // as insertable chips and treated as "known" even without a dynamic input.
@@ -306,7 +324,7 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
   const initialConfig = useMemo<InitialConfigType>(
     () => ({
       namespace: "PromptComposer",
-      nodes: [AssetMentionNode, VariableNode],
+      nodes: [AssetMentionNode, EntityMentionNode, VariableNode],
       theme: composerTheme,
       editorState: () => {
         $setPromptFromString(initialPromptRef.current);
@@ -352,7 +370,11 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
 
   return (
     <PromptComposerContext.Provider value={promptComposerContextValue}>
-      <div css={cssStyles} className="prompt-composer-body node-drag-handle">
+      <div
+        css={cssStyles}
+        className="prompt-composer-body node-drag-handle"
+        data-bespoke-body="Prompt"
+      >
         <LexicalComposer initialConfig={initialConfig}>
           <div className="composer-area nodrag nowheel">
             <PlainTextPlugin

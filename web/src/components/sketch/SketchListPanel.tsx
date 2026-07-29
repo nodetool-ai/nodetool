@@ -27,7 +27,9 @@ import {
 import { trpc } from "../../trpc/client";
 import { groupByDate } from "../../utils/groupByDate";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
+import { notifyMutationError } from "../../utils/notifyMutationError";
 import CategorySearchBar from "../node_menu/CategorySearchBar";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import {
   EmptyState,
   FlexColumn,
@@ -41,6 +43,7 @@ import {
   SPACING,
   getSpacingPx
 } from "../ui_primitives";
+import { newDocumentId } from "../../lib/newDocumentId";
 
 const styles = (theme: Theme) =>
   css({
@@ -314,6 +317,7 @@ export const CreateSketchButton = memo(function CreateSketchButton() {
   const handleCreate = useCallback(async () => {
     try {
       const sketch = await createSketch.mutateAsync({
+        id: newDocumentId(),
         name: "Untitled sketch",
         projectId: "default"
       });
@@ -329,7 +333,7 @@ export const CreateSketchButton = memo(function CreateSketchButton() {
       }
       setVisibility(false);
     } catch (error) {
-      console.error("Failed to create sketch", error);
+      notifyMutationError("create the sketch", error);
     }
   }, [createSketch, location.pathname, navigate, openTab, setVisibility]);
 
@@ -350,12 +354,15 @@ const SketchListPanel = () => {
   const theme = useTheme();
   const [filterValue, setFilterValue] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+  const autoFocusEnabled = useAutoFocusEnabled();
 
-  // Focus the filter on open so users can immediately type to search,
-  // matching the workflows list panel.
+  // Focus the filter on open so users can immediately type to search — except
+  // on touch, where the virtual keyboard would cover the list.
   useEffect(() => {
-    searchRef.current?.focus();
-  }, []);
+    if (autoFocusEnabled) {
+      searchRef.current?.focus();
+    }
+  }, [autoFocusEnabled]);
   const { data, isLoading, isError, error } = trpc.sketch.list.useQuery(
     {},
     { staleTime: 30_000 }
@@ -463,6 +470,7 @@ const SketchListPanel = () => {
       try {
         const source = await utils.sketch.get.fetch({ id: item.id });
         const copy = await createSketch.mutateAsync({
+          id: newDocumentId(),
           name: `${source.name} (copy)`.substring(0, 200),
           projectId: source.projectId,
           width: source.width,
@@ -474,7 +482,7 @@ const SketchListPanel = () => {
           document: source.document
         });
       } catch (error) {
-        console.error("Failed to duplicate sketch", error);
+        notifyMutationError("duplicate the sketch", error);
       }
     },
     [utils, createSketch, updateSketch]

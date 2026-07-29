@@ -12,6 +12,8 @@ Draw, paint, mask, and generate AI imagery on a layered canvas — without leavi
 
 ## Overview
 
+![Sketch Editor](assets/screenshots/sketch-editor.png)
+
 The Sketch Editor is a layered raster editor with a built-in AI generation pipeline. It combines a familiar painting toolset (brush, eraser, fill, shapes, transform, selection) with the ability to **generate image content directly onto a layer** — bound either to a model or to one of your own workflows.
 
 **Features:**
@@ -25,6 +27,14 @@ The Sketch Editor is a layered raster editor with a built-in AI generation pipel
 - **AI layers** — generate a layer from a prompt or bind it to a workflow; regenerate when inputs change
 - Unlimited undo/redo with a full history
 - Exports a flattened image, a mask, and per-layer outputs back into your workflow
+
+---
+
+## Where this fits
+
+The Sketch Editor is one of NodeTool's editing surfaces, and it sits between manual editing and workflow automation. It opens an image **asset**, lets you paint or generate layers by hand or bind a layer to an image **workflow**, then renders the result back into an asset. That asset is the same material every other surface reads — drop it back on the canvas, drag it onto a **timeline**, or expose the workflow behind it as a **Mini-App**. Every surface shares one asset store and the same model/provider system.
+
+See [Key Concepts → How everything fits together](key-concepts.md#how-everything-fits-together) for the full loop.
 
 ---
 

@@ -177,29 +177,18 @@ export class TextToSpeechNode extends BaseNode {
     const text = String(this.text ?? "");
     if (!text) throw new Error("Text is required");
 
-    const modelId = String(
-      this.model_id ?? this.model_id ?? "eleven_monolingual_v1"
-    );
-    const languageCode = String(
-      this.language_code ?? this.language_code ?? "none"
-    );
-    const stability = Number(this.stability ?? this.stability ?? 0.5);
-    const similarityBoost = Number(
-      this.similarity_boost ?? this.similarity_boost ?? 0.75
-    );
-    const styleVal = Number(this.style ?? this.style ?? 0.0);
-    const useSpeakerBoost = Boolean(
-      this.use_speaker_boost ?? this.use_speaker_boost ?? false
-    );
-    const seed = Number(this.seed ?? this.seed ?? -1);
+    const modelId = String(this.model_id ?? "eleven_monolingual_v1");
+    const languageCode = String(this.language_code ?? "none");
+    const stability = Number(this.stability ?? 0.5);
+    const similarityBoost = Number(this.similarity_boost ?? 0.75);
+    const styleVal = Number(this.style ?? 0.0);
+    const useSpeakerBoost = Boolean(this.use_speaker_boost ?? false);
+    const seed = Number(this.seed ?? -1);
     const optimizeStreamingLatency = Number(
-      this.optimize_streaming_latency ?? this.optimize_streaming_latency ?? 2
+      this.optimize_streaming_latency ?? 2
     );
-    const textNormalization = String(
-      this.text_normalization ?? this.text_normalization ?? "auto"
-    );
+    const textNormalization = String(this.text_normalization ?? "auto");
 
-    // Build payload matching the Python implementation
     const payload: Record<string, unknown> = {
       text,
       model_id: modelId,

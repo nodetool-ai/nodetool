@@ -32,7 +32,6 @@ export class TypeMetadata {
       return new TypeMetadata(s);
     }
 
-    // Must end with ]
     if (!s.endsWith("]")) {
       return new TypeMetadata(s);
     }
@@ -40,7 +39,6 @@ export class TypeMetadata {
     const baseName = s.slice(0, bracketIdx);
     const inner = s.slice(bracketIdx + 1, -1).trim();
 
-    // Parse comma-separated args, respecting nested brackets
     const args = splitTypeArgs(inner).map((arg) =>
       TypeMetadata.fromString(arg)
     );
@@ -73,23 +71,18 @@ export class TypeMetadata {
    * - List element types are compatible
    */
   isCompatibleWith(other: TypeMetadata): boolean {
-    // any matches everything
     if (this.isAny() || other.isAny()) return true;
 
-    // Same base type
     if (this.type === other.type) {
-      // For parameterized types, check args
       if (this.args.length === 0 && other.args.length === 0) return true;
       if (this.args.length !== other.args.length) return true; // loose match for different arities
       return this.args.every((arg, i) => arg.isCompatibleWith(other.args[i]));
     }
 
-    // Numeric widening
     if (NUMERIC_TYPES.has(this.type) && NUMERIC_TYPES.has(other.type)) {
       return true;
     }
 
-    // Union: check if other type is in this union, or vice versa
     if (this.isUnionType()) {
       return this.args.some((arg) => arg.isCompatibleWith(other));
     }

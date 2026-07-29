@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import React, {
   useCallback,
   useMemo,
@@ -11,11 +11,12 @@ import React, {
 } from "react";
 import ReactDOM from "react-dom";
 import useSelect from "../../hooks/nodes/useSelect";
-import Fuse, { IFuseOptions } from "fuse.js";
+import { fuzzyScore } from "../../utils/fuzzyMatch";
 import { Tooltip } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { selectStyles, portalOptionsStyles } from "./selectStyles";
+import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 
 interface Option {
   value: string;
@@ -30,7 +31,6 @@ interface SelectProps {
   placeholder?: string;
   label?: string;
   tabIndex?: number;
-  fuseOptions?: IFuseOptions<Option>;
   /**
    * Value differs from default — shows visual indicator (right border)
    */
@@ -63,13 +63,13 @@ const Select: React.FC<SelectProps> = ({
   placeholder,
   label,
   tabIndex,
-  fuseOptions,
   changed
 }) => {
   const theme = useTheme();
   const selectRef = useRef<HTMLDivElement>(null);
   const optionsRef = useRef<HTMLUListElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const autoFocusEnabled = useAutoFocusEnabled();
   const { open, close, activeSelect, searchQuery, setSearchQuery } =
     useSelect();
   const id = useId();
@@ -164,32 +164,31 @@ const Select: React.FC<SelectProps> = ({
     };
   }, [close, activeSelect, id]);
 
-  // Focus search input when dropdown opens
+  // Skipped on touch, where the virtual keyboard would cover the options.
   useEffect(() => {
-    if (activeSelect === id && searchInputRef.current) {
-      searchInputRef.current.focus();
+    if (activeSelect === id && autoFocusEnabled) {
+      searchInputRef.current?.focus();
     }
-  }, [activeSelect, id]);
+  }, [activeSelect, id, autoFocusEnabled]);
 
-  const fuse = useMemo(() => {
-    const defaultOptions: IFuseOptions<Option> = {
-      keys: ["label"],
-      threshold: 0.3,
-      ignoreLocation: true
-    };
-
-    return new Fuse(options, {
-      ...defaultOptions,
-      ...fuseOptions
-    });
-  }, [options, fuseOptions]);
-
-  // Memoize filtered options to avoid recomputation on every render
+  // Fuzzy-match the query against option labels, best matches first.
   const filteredOptions = useMemo(() => {
-    return searchQuery
-      ? fuse.search(searchQuery).map(({ item }) => item)
-      : options;
-  }, [searchQuery, fuse, options]);
+    const query = searchQuery.trim();
+    if (!query) {
+      return options;
+    }
+    return options
+      .map((option) => ({
+        option,
+        score: fuzzyScore(
+          query,
+          typeof option.label === "string" ? option.label : option.value
+        )
+      }))
+      .filter(({ score }) => score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(({ option }) => option);
+  }, [searchQuery, options]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -230,7 +229,6 @@ const Select: React.FC<SelectProps> = ({
     ]
   );
 
-  // Memoize styles to avoid recalculation on each render
   const styles = useMemo(() => selectStyles(theme), [theme]);
 
   // Changed state — inset shadow so box size stays unchanged
@@ -238,7 +236,6 @@ const Select: React.FC<SelectProps> = ({
     ? { boxShadow: `inset -2px 0 0 ${theme.vars.palette.primary.main}` }
     : undefined;
 
-  // Memoize dropdown style object to prevent recreation on every render
   const dropdownStyle = useMemo(() => {
     if (!dropdownPosition) {
       return undefined;
@@ -253,7 +250,7 @@ const Select: React.FC<SelectProps> = ({
     };
   }, [dropdownPosition]);
 
-  // Create stable callbacks for option clicks to prevent re-renders
+  // Stable per-option click callbacks to prevent re-renders.
   const optionClickHandlers = useMemo(() => {
     const handlers = new Map<string, () => void>();
     filteredOptions.forEach((option) => {

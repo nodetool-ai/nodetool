@@ -5,9 +5,11 @@
  * lodash dependency can be removed from the web package.
  */
 
-// ---- debounce ----
+// Parameters are contravariant, so `never[]` accepts every argument list
+// without `any` leaking into the inferred `Parameters<T>`.
+type AnyVoidFn = (...args: never[]) => void;
 
-interface DebouncedFunction<T extends (...args: any[]) => void> {
+interface DebouncedFunction<T extends AnyVoidFn> {
   (...args: Parameters<T>): void;
   cancel(): void;
 }
@@ -17,32 +19,34 @@ interface DebouncedFunction<T extends (...args: any[]) => void> {
  * milliseconds have elapsed since the last call.  Calling `.cancel()` on the
  * returned function clears any pending timeout.
  */
-export function debounce<T extends (...args: any[]) => void>(
+export function debounce<T extends AnyVoidFn>(
   fn: T,
   ms: number
 ): DebouncedFunction<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const debounced = (...args: Parameters<T>) => {
-    if (timer !== undefined) {
-      clearTimeout(timer);
+  const debounced: DebouncedFunction<T> = Object.assign(
+    (...args: Parameters<T>) => {
+      if (timer !== undefined) {
+        clearTimeout(timer);
+      }
+      timer = setTimeout(() => {
+        timer = undefined;
+        fn(...args);
+      }, ms);
+    },
+    {
+      cancel: () => {
+        if (timer !== undefined) {
+          clearTimeout(timer);
+          timer = undefined;
+        }
+      }
     }
-    timer = setTimeout(() => {
-      timer = undefined;
-      fn(...args);
-    }, ms);
-  };
-  debounced.cancel = () => {
-    if (timer !== undefined) {
-      clearTimeout(timer);
-      timer = undefined;
-    }
-  };
-  return debounced as DebouncedFunction<T>;
+  );
+  return debounced;
 }
 
-// ---- throttle ----
-
-interface ThrottledFunction<T extends (...args: any[]) => void> {
+interface ThrottledFunction<T extends AnyVoidFn> {
   (...args: Parameters<T>): void;
   cancel(): void;
 }
@@ -53,46 +57,43 @@ interface ThrottledFunction<T extends (...args: any[]) => void> {
  * window are deferred to the end of the window.  `.cancel()` clears any
  * pending trailing invocation.
  */
-export function throttle<T extends (...args: any[]) => void>(
+export function throttle<T extends AnyVoidFn>(
   fn: T,
   ms: number
 ): ThrottledFunction<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   let lastArgs: Parameters<T> | undefined;
 
-  const throttled = (...args: Parameters<T>) => {
-    if (timer !== undefined) {
-      // Inside a throttle window — remember the latest args for trailing call.
-      lastArgs = args;
-      return;
-    }
-    // Fire immediately.
-    fn(...args);
-    timer = setTimeout(() => {
-      timer = undefined;
-      if (lastArgs !== undefined) {
-        fn(...lastArgs);
-        lastArgs = undefined;
-        // Start a new throttle window for the trailing call.
-        timer = setTimeout(() => {
-          timer = undefined;
-        }, ms);
+  const throttled: ThrottledFunction<T> = Object.assign(
+    (...args: Parameters<T>) => {
+      if (timer !== undefined) {
+        lastArgs = args;
+        return;
       }
-    }, ms);
-  };
-
-  throttled.cancel = () => {
-    if (timer !== undefined) {
-      clearTimeout(timer);
-      timer = undefined;
+      fn(...args);
+      timer = setTimeout(() => {
+        timer = undefined;
+        if (lastArgs !== undefined) {
+          fn(...lastArgs);
+          lastArgs = undefined;
+          timer = setTimeout(() => {
+            timer = undefined;
+          }, ms);
+        }
+      }, ms);
+    },
+    {
+      cancel: () => {
+        if (timer !== undefined) {
+          clearTimeout(timer);
+          timer = undefined;
+        }
+        lastArgs = undefined;
+      }
     }
-    lastArgs = undefined;
-  };
-
-  return throttled as ThrottledFunction<T>;
+  );
+  return throttled;
 }
-
-// ---- omit ----
 
 /**
  * Returns a shallow copy of `obj` without the specified `keys`.

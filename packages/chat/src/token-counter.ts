@@ -17,9 +17,6 @@ export function countTextTokens(text: string | null | undefined): number {
   return countTokens(text);
 }
 
-/**
- * Count tokens consumed by an array of tool calls.
- */
 function countToolCallsTokens(
   toolCalls: ToolCall[] | null | undefined
 ): number {
@@ -67,9 +64,6 @@ export function countMessageTokens(message: Message): number {
   return tokenCount;
 }
 
-/**
- * Count tokens across an array of Messages.
- */
 export function countMessagesTokens(messages: Message[]): number {
   let total = 0;
   for (const msg of messages) {

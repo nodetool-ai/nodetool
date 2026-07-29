@@ -24,8 +24,21 @@ export interface NodeRegistryOptions {
   strictMetadata?: boolean;
 }
 
+export type NodeMetadataSource =
+  | "typescript"
+  | "python-package"
+  | "python-bridge"
+  | "loaded-metadata";
+
 export interface RegisterNodeOptions {
   metadata?: NodeMetadata;
+  source?: NodeMetadataSource;
+  packageId?: string;
+}
+
+export interface LoadMetadataOptions {
+  source?: NodeMetadataSource;
+  packageId?: string;
 }
 
 export interface RegistryGraphResolverOptions {
@@ -39,7 +52,13 @@ export class NodeRegistry {
   private _classes = new Map<string, NodeClass>();
   private _loadedMetadataByType = new Map<string, NodeMetadata>();
   private _registeredMetadataByType = new Map<string, NodeMetadata>();
+  private _loadedMetadataSourceByType = new Map<string, NodeMetadataSource>();
+  private _registeredMetadataSourceByType = new Map<string, NodeMetadataSource>();
+  private _loadedPackageIdByType = new Map<string, string>();
+  private _registeredPackageIdByType = new Map<string, string>();
+  private _activePackageId: string | undefined;
   private _strictMetadata: boolean;
+  private _revision = 0;
 
   // Memoized derived views of the metadata maps above. Both are O(n) to build,
   // and `listMetadata`/`searchMetadata` are called many times per graph build
@@ -55,6 +74,7 @@ export class NodeRegistry {
     if (options.metadataByType) {
       for (const [nodeType, metadata] of options.metadataByType.entries()) {
         this._loadedMetadataByType.set(nodeType, metadata);
+        this._loadedMetadataSourceByType.set(nodeType, "loaded-metadata");
       }
     }
   }
@@ -82,6 +102,19 @@ export class NodeRegistry {
     // Stryker disable ConditionalExpression,BlockStatement,StringLiteral: getNodeMetadata always returns a populated object for a valid class, so `metadata` is always truthy and the strict-mode else branch is unreachable dead defensive code.
     if (metadata) {
       this._registeredMetadataByType.set(nodeClass.nodeType, metadata);
+      this._registeredMetadataSourceByType.set(
+        nodeClass.nodeType,
+        options.source ?? "typescript"
+      );
+      const packageId = options.packageId ?? this._activePackageId;
+      if (packageId?.trim()) {
+        this._registeredPackageIdByType.set(
+          nodeClass.nodeType,
+          packageId.trim()
+        );
+      } else {
+        this._registeredPackageIdByType.delete(nodeClass.nodeType);
+      }
     } else if (this._strictMetadata) {
       throw new Error(
         `Missing resolved metadata for node type: ${nodeClass.nodeType}`
@@ -99,6 +132,29 @@ export class NodeRegistry {
   private invalidateMetadataCaches(): void {
     this._mergedMetadataCache = null;
     this._searchIndexCache = null;
+    this._revision++;
+  }
+
+  /**
+   * Attribute synchronous registrar calls to an explicit package identity.
+   * Package registration functions are synchronous by contract.
+   */
+  registerPackage(
+    packageId: string,
+    registrar: (registry: NodeRegistry) => void
+  ): void {
+    const previous = this._activePackageId;
+    this._activePackageId = packageId.trim() || undefined;
+    try {
+      registrar(this);
+    } finally {
+      this._activePackageId = previous;
+    }
+  }
+
+  /** Monotonic metadata revision used to invalidate derived contract caches. */
+  get revision(): number {
+    return this._revision;
   }
 
   /**
@@ -140,7 +196,9 @@ export class NodeRegistry {
       (descriptor.properties as Record<string, unknown> | undefined) ?? {};
     return NodeClass.validateProperties(properties, {
       connectedHandles,
-      nodeId: descriptor.id
+      nodeId: descriptor.id,
+      dynamicSlots: descriptor.dynamic_inputs,
+      dynamicValues: descriptor.dynamic_properties
     });
   }
 
@@ -174,10 +232,27 @@ export class NodeRegistry {
     for (const [nodeType, nodeClass] of this._classes) {
       if (!supportsPlatform(nodeClass.platforms, target)) continue;
       const metadata = this._registeredMetadataByType.get(nodeType);
-      filtered.register(nodeClass, metadata ? { metadata } : {});
+      const source =
+        this._registeredMetadataSourceByType.get(nodeType) ?? "typescript";
+      const packageId = this._registeredPackageIdByType.get(nodeType);
+      filtered.register(nodeClass, {
+        ...(metadata ? { metadata } : {}),
+        source,
+        ...(packageId ? { packageId } : {})
+      });
       const loaded = this._loadedMetadataByType.get(nodeType);
       // Stryker disable next-line ConditionalExpression: every kept node is re-registered with derived metadata above (which getMetadata returns first), so copying the loaded entry is unobservable (equivalent).
-      if (loaded) filtered._loadedMetadataByType.set(nodeType, loaded);
+      if (loaded) {
+        filtered._loadedMetadataByType.set(nodeType, loaded);
+        filtered._loadedMetadataSourceByType.set(
+          nodeType,
+          this._loadedMetadataSourceByType.get(nodeType) ?? "loaded-metadata"
+        );
+        const loadedPackageId = this._loadedPackageIdByType.get(nodeType);
+        if (loadedPackageId) {
+          filtered._loadedPackageIdByType.set(nodeType, loadedPackageId);
+        }
+      }
     }
     return filtered;
   }
@@ -206,6 +281,7 @@ export class NodeRegistry {
           nodeId: descriptor.id,
           nodeType: descriptor.type,
           property: "*",
+          code: "unsupported_platform",
           message: `Node ${descriptor.type} is not supported on platform '${target}' (supports: ${supported})`
         }
       ];
@@ -217,14 +293,24 @@ export class NodeRegistry {
     if (!NodeClass) {
       throw new Error(`Unknown node type: ${descriptor.type}`);
     }
+    const properties =
+      (descriptor.properties as Record<string, unknown> | undefined) ?? {};
+    // Slot declarations must be visible to `assign()` before it stores the
+    // dynamic values, so they can be coerced against their declared type.
     const instance = new NodeClass(
-      (descriptor.properties as Record<string, unknown> | undefined) ?? {}
+      descriptor.dynamic_inputs
+        ? { _dynamic_inputs: descriptor.dynamic_inputs, ...properties }
+        : properties
     );
     instance.__node_id = descriptor.id;
     instance.__node_name = descriptor.name ?? descriptor.type;
     // Stryker disable next-line ConditionalExpression: forcing this true assigns _dynamic_outputs = undefined, which reads back identically to leaving it unset (equivalent).
     if (descriptor.dynamic_outputs) {
-      (instance as any)._dynamic_outputs = descriptor.dynamic_outputs;
+      (instance as unknown as Record<string, unknown>)._dynamic_outputs = descriptor.dynamic_outputs;
+    }
+    if (descriptor.dynamic_inputs) {
+      (instance as unknown as Record<string, unknown>)._dynamic_inputs =
+        descriptor.dynamic_inputs;
     }
     return instance.toExecutor();
   }
@@ -246,6 +332,39 @@ export class NodeRegistry {
       this._registeredMetadataByType.get(nodeType) ??
       this._loadedMetadataByType.get(nodeType)
     );
+  }
+
+  getMetadataSource(nodeType: string): NodeMetadataSource | undefined {
+    return (
+      this._registeredMetadataSourceByType.get(nodeType) ??
+      this._loadedMetadataSourceByType.get(nodeType)
+    );
+  }
+
+  /**
+   * Exact package identity recorded by the loader or registrar for this node.
+   * Undefined means package provenance is not authoritative.
+   */
+  getNodePackageId(nodeType: string): string | undefined {
+    if (this._registeredMetadataByType.has(nodeType)) {
+      return this._registeredPackageIdByType.get(nodeType);
+    }
+    return this._loadedPackageIdByType.get(nodeType);
+  }
+
+  /** Exact package identities represented by the current registry. */
+  listNodePackageIds(): string[] {
+    const ids = new Set<string>();
+    for (const nodeType of this._registeredMetadataByType.keys()) {
+      const id = this._registeredPackageIdByType.get(nodeType);
+      if (id) ids.add(id);
+    }
+    for (const nodeType of this._loadedMetadataByType.keys()) {
+      if (this._registeredMetadataByType.has(nodeType)) continue;
+      const id = this._loadedPackageIdByType.get(nodeType);
+      if (id) ids.add(id);
+    }
+    return [...ids].sort();
   }
 
   resolveMetadata(nodeType: string): NodeMetadata | undefined {
@@ -286,8 +405,21 @@ export class NodeRegistry {
   }
 
   /** Add or replace metadata for a node type (e.g. from Python bridge). */
-  loadMetadata(nodeType: string, metadata: NodeMetadata): void {
+  loadMetadata(
+    nodeType: string,
+    metadata: NodeMetadata,
+    options: LoadMetadataOptions = {}
+  ): void {
     this._loadedMetadataByType.set(nodeType, metadata);
+    this._loadedMetadataSourceByType.set(
+      nodeType,
+      options.source ?? "loaded-metadata"
+    );
+    if (options.packageId?.trim()) {
+      this._loadedPackageIdByType.set(nodeType, options.packageId.trim());
+    } else {
+      this._loadedPackageIdByType.delete(nodeType);
+    }
     this.invalidateMetadataCaches();
   }
 
@@ -295,8 +427,21 @@ export class NodeRegistry {
     options: PythonMetadataLoadOptions = {}
   ): PythonMetadataLoadResult {
     const loaded = loadPythonPackageMetadata(options);
+    const packageIdByType = new Map<string, string>();
+    for (const pkg of loaded.packages) {
+      for (const node of pkg.nodes ?? []) {
+        if (node?.node_type) packageIdByType.set(node.node_type, pkg.name);
+      }
+    }
     for (const [nodeType, metadata] of loaded.nodesByType.entries()) {
       this._loadedMetadataByType.set(nodeType, metadata);
+      this._loadedMetadataSourceByType.set(nodeType, "python-package");
+      const packageId = packageIdByType.get(nodeType);
+      if (packageId) {
+        this._loadedPackageIdByType.set(nodeType, packageId);
+      } else {
+        this._loadedPackageIdByType.delete(nodeType);
+      }
     }
     this.invalidateMetadataCaches();
     return loaded;
@@ -310,6 +455,10 @@ export class NodeRegistry {
     const hadClass = this._classes.delete(nodeType);
     this._loadedMetadataByType.delete(nodeType);
     this._registeredMetadataByType.delete(nodeType);
+    this._loadedMetadataSourceByType.delete(nodeType);
+    this._registeredMetadataSourceByType.delete(nodeType);
+    this._loadedPackageIdByType.delete(nodeType);
+    this._registeredPackageIdByType.delete(nodeType);
     this.invalidateMetadataCaches();
     return hadClass;
   }
@@ -318,6 +467,10 @@ export class NodeRegistry {
     this._classes.clear();
     this._loadedMetadataByType.clear();
     this._registeredMetadataByType.clear();
+    this._loadedMetadataSourceByType.clear();
+    this._registeredMetadataSourceByType.clear();
+    this._loadedPackageIdByType.clear();
+    this._registeredPackageIdByType.clear();
     this.invalidateMetadataCaches();
   }
 
@@ -371,25 +524,32 @@ export function hydrateGraphNodeFlags(
     const meta = cls ? undefined : registry.resolveMetadata(node.type);
     return {
       ...node,
+      // `??`, not `||`: a registered class always carries explicit booleans
+      // (BaseNode defaults them to false), so the registry corrects a stale
+      // saved `true` when a node type migrates away from streaming/control.
+      // OR let the saved value win forever. Saved flags apply only when the
+      // registry has no opinion (unknown type, or metadata omitting the flag).
       is_streaming_input:
-        (cls ? cls.isStreamingInput : meta?.is_streaming_input) ||
-        node.is_streaming_input ||
+        (cls ? cls.isStreamingInput : meta?.is_streaming_input) ??
+        node.is_streaming_input ??
         false,
       is_streaming_output:
-        (cls ? hasStreamingOutput(cls) : meta?.is_streaming_output) ||
-        node.is_streaming_output ||
+        (cls ? hasStreamingOutput(cls) : meta?.is_streaming_output) ??
+        node.is_streaming_output ??
         false,
       is_controlled:
-        (cls ? cls.isControlled : meta?.is_controlled) ||
-        node.is_controlled ||
+        (cls ? cls.isControlled : meta?.is_controlled) ??
+        node.is_controlled ??
         false,
       is_join_node:
-        (cls ? cls.isJoinNode : meta?.is_join_node) ||
-        node.is_join_node ||
+        (cls ? cls.isJoinNode : meta?.is_join_node) ??
+        node.is_join_node ??
         false,
+      is_trigger:
+        (cls ? cls.isTrigger : meta?.is_trigger) ?? node.is_trigger ?? false,
       always_emit_output_updates:
-        (cls ? cls.alwaysEmitOutputUpdates : meta?.always_emit_output_updates) ||
-        node.always_emit_output_updates ||
+        (cls ? cls.alwaysEmitOutputUpdates : meta?.always_emit_output_updates) ??
+        node.always_emit_output_updates ??
         false,
       input_mode: (cls ? cls.inputMode : meta?.input_mode) ?? node.input_mode,
       output_correlation:
@@ -458,14 +618,19 @@ export function createGraphNodeTypeResolver(
         supportsDynamicInputs: metadata.supports_dynamic_inputs ?? false,
         descriptorDefaults: {
           name: metadata.title,
-          ...(metadata.is_streaming_input && { is_streaming_input: true }),
-          ...(metadata.is_streaming_output && { is_streaming_output: true }),
+          // Explicit booleans, never omitted: Graph.loadFromDict resolves each
+          // flag as `descriptorDefaults.flag ?? saved ?? false`, so an omitted
+          // false here would let a stale saved `true` survive a node type's
+          // migration away from streaming/control. Metadata is built from the
+          // class statics (BaseNode defaults false), so absent means false.
+          is_streaming_input: metadata.is_streaming_input ?? false,
+          is_streaming_output: metadata.is_streaming_output ?? false,
+          is_controlled: metadata.is_controlled ?? false,
+          is_join_node: metadata.is_join_node ?? false,
           ...(metadata.input_mode && { input_mode: metadata.input_mode }),
           ...(metadata.output_correlation && {
             output_correlation: metadata.output_correlation
           }),
-          ...(metadata.is_controlled && { is_controlled: true }),
-          ...(metadata.is_join_node && { is_join_node: true }),
           ...(metadata.always_emit_output_updates && {
             always_emit_output_updates: true
           }),

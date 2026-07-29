@@ -15,6 +15,7 @@ import type {
   ToolCall
 } from "@nodetool-ai/runtime";
 import { withAgentSpanGen } from "@nodetool-ai/runtime";
+import { linkAbort } from "./utils/link-abort.js";
 import { createLogger } from "@nodetool-ai/config";
 import {
   TaskUpdateEvent,
@@ -175,6 +176,8 @@ export interface TaskPlannerOptions {
    * (no caching). A `planMultiTask` argument overrides this.
    */
   planCache?: PlanCache;
+  /** External cancellation. Aborts the planning provider loop mid-flight. */
+  signal?: AbortSignal;
 }
 
 export class TaskPlanner {
@@ -188,6 +191,7 @@ export class TaskPlanner {
   private maxRetries: number;
   private threadId?: string;
   private planCache?: PlanCache;
+  private signal?: AbortSignal;
 
   constructor(opts: TaskPlannerOptions) {
     this.provider = opts.provider;
@@ -200,6 +204,7 @@ export class TaskPlanner {
     this.maxRetries = opts.maxRetries ?? MAX_RETRIES;
     this.threadId = opts.threadId;
     this.planCache = opts.planCache;
+    this.signal = opts.signal;
   }
 
   /** Build the stable plan-cache key for the given objective. */
@@ -207,7 +212,13 @@ export class TaskPlanner {
     return hashPlanKey({
       objective,
       tools: this.tools.map((t) => t.name),
-      model: this.model
+      model: this.model,
+      outputSchema: this.outputSchema ?? null,
+      inputKeys: Object.keys(this.inputs),
+      systemPrompt:
+        this.systemPrompt !== DEFAULT_PLANNING_SYSTEM_PROMPT
+          ? this.systemPrompt
+          : null
     });
   }
 
@@ -238,8 +249,10 @@ export class TaskPlanner {
   ): AsyncGenerator<ProcessingMessage, Task | null> {
     const toolsInfo = this.formatToolsInfo();
 
-    const userPrompt = TASK_CREATION_PROMPT_TEMPLATE
-      .replace("{{objective}}", objective)
+    const userPrompt = TASK_CREATION_PROMPT_TEMPLATE.replace(
+      "{{objective}}",
+      objective
+    )
       .replace("{{toolsInfo}}", toolsInfo)
       .replace(
         "{{outputSchema}}",
@@ -373,14 +386,20 @@ export class TaskPlanner {
           status: "success",
           content: `Plan cache hit: ${cached.title} (${cached.tasks.length} tasks)`
         } satisfies PlanningUpdate;
-        return cached;
+        // Return a private deep copy: execution mutates the plan in place
+        // (task.completed = true, step.logs.push, …). Handing out the cached
+        // reference would leave the template marked completed, so the NEXT
+        // cache hit would run zero tasks and produce an empty result.
+        return structuredClone(cached);
       }
     }
 
     const toolsInfo = this.formatToolsInfo();
 
-    const userPrompt = PLAN_CREATION_PROMPT_TEMPLATE
-      .replace("{{objective}}", objective)
+    const userPrompt = PLAN_CREATION_PROMPT_TEMPLATE.replace(
+      "{{objective}}",
+      objective
+    )
       .replace("{{toolsInfo}}", toolsInfo)
       .replace(
         "{{outputSchema}}",
@@ -417,10 +436,18 @@ export class TaskPlanner {
     // agent loop (e.g. the Claude Agent SDK) work. Each plan tool carries its
     // own `execute` closure that mutates the shared builder and buffers the UI
     // events its result implies; the stream consumer below drains that buffer
-    // in order. `finish_plan` is `terminal`, so the loop ends after it runs.
-    // The AbortController only short-circuits the loop when a single task fails
-    // validation too many times (an early-stop that is not a terminal tool).
+    // in order.
+    //
+    // `finish_plan` is only *conditionally* terminal: on a valid plan it
+    // commits and aborts the loop; on a validation failure it returns the
+    // errors as the tool result and does NOT abort, so the model iterates and
+    // fixes the plan within the call budget. The static `terminal` flag can't
+    // express that, so the AbortController stops the loop on a successful
+    // finish. It also short-circuits when a single task fails validation too
+    // many times (an early-stop that is not a terminal tool).
     const abort = new AbortController();
+    // External cancellation (user pressed Stop) fires the same controller.
+    const unlinkAbort = linkAbort(abort, this.signal);
     const uiEvents: ProcessingMessage[] = [];
     let finished = false;
     let abortedReason: string | null = null;
@@ -516,6 +543,7 @@ export class TaskPlanner {
           content: `Plan created: ${plan.title} (${plan.tasks.length} tasks, ${totalSteps} steps, ${independent} parallelizable)`
         } satisfies PlanningUpdate);
         finished = true;
+        abort.abort();
       } else if (status === "validation_failed") {
         const errors = (result["errors"] as string[]) ?? [];
         uiEvents.push({
@@ -533,8 +561,7 @@ export class TaskPlanner {
       { ...removeTaskTool.toProviderTool(), execute: removeTaskExecute },
       {
         ...finishPlanTool.toProviderTool(),
-        execute: finishPlanExecute,
-        terminal: true
+        execute: finishPlanExecute
       }
     ];
 
@@ -553,50 +580,56 @@ export class TaskPlanner {
       signal: abort.signal
     });
 
-    for await (const item of stream) {
-      // A tool call is announced before it runs — surface it for live display.
-      if ("id" in item && "name" in item && "args" in item) {
-        const tc = item as ToolCall;
-        const tool = toolsByName.get(tc.name);
-        if (tool) {
-          const args = (tc.args ?? {}) as Record<string, unknown>;
-          yield {
-            type: "tool_call_update",
-            node_id: "",
-            name: tc.name,
-            args,
-            message: Tool.resolveMessage(tool, args)
-          } satisfies ToolCallUpdate;
+    try {
+      for await (const item of stream) {
+        // A tool call is announced before it runs — surface it for live display.
+        if ("id" in item && "name" in item && "args" in item) {
+          const tc = item as ToolCall;
+          const tool = toolsByName.get(tc.name);
+          if (tool) {
+            const args = (tc.args ?? {}) as Record<string, unknown>;
+            yield {
+              type: "tool_call_update",
+              node_id: "",
+              name: tc.name,
+              args,
+              message: Tool.resolveMessage(tool, args)
+            } satisfies ToolCallUpdate;
+          }
+          yield* drainUi();
+          continue;
         }
-        yield* drainUi();
-        continue;
-      }
-      if ("type" in item && (item as { type?: string }).type === "chunk") {
-        const chunk = item as { content?: string; done?: boolean };
-        if (
-          typeof chunk.content === "string" &&
-          chunk.content.length > 0 &&
-          !chunk.done
-        ) {
-          yield {
-            type: "chunk",
-            content: chunk.content,
-            done: false
-          } satisfies Chunk;
+        if ("type" in item && (item as { type?: string }).type === "chunk") {
+          const chunk = item as { content?: string; done?: boolean };
+          if (
+            typeof chunk.content === "string" &&
+            chunk.content.length > 0 &&
+            !chunk.done
+          ) {
+            yield {
+              type: "chunk",
+              content: chunk.content,
+              done: false
+            } satisfies Chunk;
+          }
+          yield* drainUi();
+          continue;
         }
+        // Assistant/tool message events: a tool result just landed — flush its UI.
         yield* drainUi();
-        continue;
       }
-      // Assistant/tool message events: a tool result just landed — flush its UI.
-      yield* drainUi();
+    } finally {
+      unlinkAbort();
     }
 
     yield* drainUi();
 
     if (finished) {
       // Persist a successful plan so an identical objective + tool set reuses it.
+      // Store a deep copy so the executor's in-place mutation of the returned
+      // plan cannot corrupt the cached template.
       if (planCache && planKey && builder.plan) {
-        planCache.set(planKey, builder.plan);
+        planCache.set(planKey, structuredClone(builder.plan));
       }
       return builder.plan;
     }
@@ -737,9 +770,7 @@ export class TaskPlanner {
       let schemaInfo = "";
       const schema = tool.inputSchema;
       if (schema && typeof schema === "object" && "properties" in schema) {
-        const props = Object.keys(
-          schema.properties as Record<string, unknown>
-        );
+        const props = Object.keys(schema.properties as Record<string, unknown>);
         const required = Array.isArray(schema.required)
           ? (schema.required as string[])
           : [];

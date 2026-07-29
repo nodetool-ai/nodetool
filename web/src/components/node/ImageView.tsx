@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { useMemo, useRef, useCallback, useState, useEffect } from "react";
-import { Text, ToolbarIconButton, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { Text, ToolbarIconButton, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import AssetViewer from "../assets/AssetViewer";
@@ -28,6 +28,10 @@ const hoverStyles = css({
   },
   "&:hover .image-view-actions": {
     opacity: 1
+  },
+  // Touch devices have no hover; keep the copy/download/viewer buttons reachable.
+  "@media (pointer: coarse)": {
+    ".image-view-actions": { opacity: 1 }
   }
 });
 
@@ -207,7 +211,6 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
     ? { width: bitmap.width, height: bitmap.height }
     : imgNaturalDimensions;
 
-  // Memoize style objects to prevent recreation on every render
   const containerStyle = useMemo(() => ({
     position: "relative" as const,
     display: "flex",
@@ -225,7 +228,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
     position: "absolute" as const,
     top: 4,
     right: 40, // Leave space for history button in parent ResultOverlay
-    zIndex: 10,
+    zIndex: Z_INDEX.dropdown,
     display: "flex",
     gap: getSpacingPx(SPACING.xs),
     opacity: 0,
@@ -255,7 +258,6 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
     cursor: "pointer"
   }), []);
 
-  // Memoize event handlers to prevent recreation on every render
   const handleCloseViewer = useCallback(() => {
     setOpenViewer(false);
   }, []);

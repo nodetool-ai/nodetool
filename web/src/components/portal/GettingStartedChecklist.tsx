@@ -27,7 +27,7 @@ const styles = (theme: Theme) =>
       textTransform: "uppercase" as const,
       letterSpacing: "0.08em",
       color: theme.vars.palette.text.disabled,
-      marginRight: 4
+      marginRight: getSpacingPx(SPACING.xs)
     },
     ".checklist-step": {
       display: "inline-flex",

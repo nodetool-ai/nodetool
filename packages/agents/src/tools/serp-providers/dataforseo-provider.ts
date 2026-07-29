@@ -7,17 +7,9 @@
 
 import type { SerpProvider, SearchResult, SearchOptions } from "./index.js";
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
 const API_BASE = "https://api.dataforseo.com";
 const DEFAULT_LOCATION_CODE = 2840; // United States
 const DEFAULT_LANGUAGE_CODE = "en";
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 function makeAuthHeader(login: string, password: string): string {
   const encoded = Buffer.from(`${login}:${password}`).toString("base64");
@@ -85,10 +77,6 @@ function extractItems(
   }
   return [];
 }
-
-// ---------------------------------------------------------------------------
-// Provider
-// ---------------------------------------------------------------------------
 
 export class DataForSeoProvider implements SerpProvider {
   private readonly auth: string;

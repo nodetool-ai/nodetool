@@ -167,7 +167,6 @@ const GetVariableBodyInner: React.FC<GetVariableBodyProps> = ({
             onChange={handleChange}
             options={options}
             size="small"
-            variant="standard"
             className="nodrag"
           />
         </div>

@@ -31,50 +31,6 @@ interface UseFindInWorkflowResult {
   getNodeDisplayName: (node: Node<NodeData>) => string;
 }
 
-/**
- * Hook to implement "Find in Workflow" functionality.
- * 
- * Provides search capabilities for finding nodes within the current workflow.
- * Supports searching by node name, node type, or node ID with debounced
- * input and keyboard navigation through results.
- * 
- * @returns Object containing:
- *   - isOpen: Whether the find dialog is open
- *   - searchTerm: Current search term
- *   - results: Array of matching nodes with indices
- *   - selectedIndex: Currently selected result index
- *   - totalCount: Total number of matching results
- *   - openFind: Function to open the find dialog
- *   - closeFind: Function to close the find dialog
- *   - performSearch: Debounced search function for text input
- *   - immediateSearch: Non-debounced search function
- *   - goToSelected: Navigate to and select the current result
- *   - navigateNext: Move to next result
- *   - navigatePrevious: Move to previous result
- *   - clearSearch: Clear search term and results
- *   - selectNode: Programmatically select a result by index
- *   - getNodeDisplayName: Get display name for a node
- * 
- * @example
- * ```typescript
- * const { 
- *   isOpen, 
- *   openFind, 
- *   performSearch, 
- *   results,
- *   goToSelected 
- * } = useFindInWorkflow();
- * 
- * // Open find dialog
- * openFind();
- * 
- * // Search for nodes
- * performSearch("text");
- * 
- * // Navigate to result
- * goToSelected();
- * ```
- */
 export const useFindInWorkflow = (): UseFindInWorkflowResult => {
   const isOpen = useFindInWorkflowStore((state) => state.isOpen);
   const searchTerm = useFindInWorkflowStore((state) => state.searchTerm);
@@ -90,7 +46,7 @@ export const useFindInWorkflow = (): UseFindInWorkflowResult => {
   const clearSearch = useFindInWorkflowStore((state) => state.clearSearch);
 
   const nodes = useNodes((state) => (isOpen ? state.nodes : EMPTY_NODES));
-  const { setCenter, fitView } = useReactFlow();
+  const { setCenter } = useReactFlow();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -155,14 +111,12 @@ export const useFindInWorkflow = (): UseFindInWorkflowResult => {
 
   const debouncedSearch = useCallback(
     (term: string) => {
-      // Update search term immediately for responsive typing
       setSearchTerm(term);
 
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
       }
 
-      // Debounce the actual search
       searchTimeoutRef.current = setTimeout(() => {
         performSearch(term);
       }, 150);
@@ -199,14 +153,7 @@ export const useFindInWorkflow = (): UseFindInWorkflowResult => {
       node.position.y + (node.height || 100) / 2,
       { zoom: 1, duration: 300 }
     );
-
-    fitView({
-      nodes: [node],
-      duration: 300,
-      minZoom: 0.5,
-      maxZoom: 2
-    });
-  }, [results, selectedIndex, setCenter, fitView]);
+  }, [results, selectedIndex, setCenter]);
 
   const selectNode = useCallback(
     (index: number) => {

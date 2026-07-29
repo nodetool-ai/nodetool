@@ -48,8 +48,14 @@ type HfBinary = Uint8Array | ArrayBuffer | { arrayBuffer(): Promise<ArrayBuffer>
 
 /** Minimal shape of the HfInference client used by this provider. */
 interface HfClient {
-  chatCompletion(params: Record<string, unknown>): Promise<HfChatResponse>;
-  chatCompletionStream(params: Record<string, unknown>): AsyncIterable<HfChatResponse>;
+  chatCompletion(
+    params: Record<string, unknown>,
+    options?: { signal?: AbortSignal }
+  ): Promise<HfChatResponse>;
+  chatCompletionStream(
+    params: Record<string, unknown>,
+    options?: { signal?: AbortSignal }
+  ): AsyncIterable<HfChatResponse>;
   textToImage(params: Record<string, unknown>): Promise<HfBinary>;
   imageToImage(params: Record<string, unknown>): Promise<HfBinary>;
   textToVideo(params: Record<string, unknown>): Promise<HfBinary>;
@@ -306,6 +312,7 @@ export class HuggingFaceProvider extends BaseProvider {
     topP?: number;
     presencePenalty?: number;
     frequencyPenalty?: number;
+    signal?: AbortSignal;
   }): Promise<Message> {
     const client = await this.getClient();
 
@@ -324,7 +331,9 @@ export class HuggingFaceProvider extends BaseProvider {
       ...(args.topP != null ? { top_p: args.topP } : {})
     };
     this.recordRequestPayload(requestPayload);
-    const response = await client.chatCompletion(requestPayload);
+    const response = await client.chatCompletion(requestPayload, {
+      signal: args.signal
+    });
 
     const choice = response?.choices?.[0];
     if (!choice) {
@@ -356,6 +365,7 @@ export class HuggingFaceProvider extends BaseProvider {
     presencePenalty?: number;
     frequencyPenalty?: number;
     audio?: Record<string, unknown>;
+    signal?: AbortSignal;
   }): AsyncGenerator<ProviderStreamItem> {
     const client = await this.getClient();
 
@@ -374,9 +384,23 @@ export class HuggingFaceProvider extends BaseProvider {
       ...(args.topP != null ? { top_p: args.topP } : {})
     };
     this.recordRequestPayload(requestPayload);
-    const stream = client.chatCompletionStream(requestPayload);
+    const stream = client.chatCompletionStream(requestPayload, {
+      signal: args.signal
+    });
 
     for await (const chunk of stream) {
+      // OpenAI-compatible streams (which the HF Inference SDK proxies) carry
+      // usage on the terminal chunk. Record it, otherwise every streamed HF
+      // call reports 0 tokens / $0 cost (the non-streaming path already tracks).
+      const usage = (chunk as { usage?: { prompt_tokens?: number; completion_tokens?: number } })
+        ?.usage;
+      if (usage) {
+        this.trackUsage(args.model, {
+          inputTokens: usage.prompt_tokens ?? 0,
+          outputTokens: usage.completion_tokens ?? 0
+        });
+      }
+
       const choice = chunk?.choices?.[0];
       if (!choice) continue;
 
@@ -389,6 +413,15 @@ export class HuggingFaceProvider extends BaseProvider {
           done: choice.finish_reason === "stop"
         };
         yield item;
+      }
+
+      // Emit a terminal `done: true` chunk for every non-"stop" terminal reason
+      // (length, eos_token, tool_calls, content_filter) too, so consumers that
+      // finalize on `done` get a consistent end-of-stream marker. "stop" already
+      // emitted its terminal chunk above.
+      if (choice.finish_reason && choice.finish_reason !== "stop") {
+        const doneChunk: Chunk = { type: "chunk", content: "", done: true };
+        yield doneChunk;
       }
     }
   }

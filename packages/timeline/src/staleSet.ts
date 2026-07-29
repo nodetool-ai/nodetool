@@ -81,7 +81,6 @@ export function computeStaleSet(
 ): Set<string> {
   const stale = new Set<string>();
 
-  // Index: nodeId → node
   const nodeById = new Map<string, StaleSetGraphNode>();
   for (const node of graph.nodes) {
     nodeById.set(node.id, node);

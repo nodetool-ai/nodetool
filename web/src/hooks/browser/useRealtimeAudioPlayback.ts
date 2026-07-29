@@ -23,7 +23,7 @@ interface UseRealtimeAudioPlaybackOptions {
   chunksVersion: number;
   sampleRate?: number;
   channels?: number;
-  nodeId?: string; // Optional ID for this audio source
+  nodeId?: string;
   /**
    * Live-monitoring mode: keep the scheduled lead over the playhead within a
    * small bound by dropping stale chunks instead of queueing them. Use for
@@ -386,7 +386,6 @@ export const useRealtimeAudioPlayback = ({
     [channels, sampleRate, decodeChunkSamples]
   );
 
-  // Internal play/stop functions (called by queue)
   const internalStart = useCallback(() => {
     const ctx = audioContextRef.current;
     if (!ctx) {
@@ -568,7 +567,6 @@ export const useRealtimeAudioPlayback = ({
     });
   }, [nodeId, decodeChunkSamples, noteDelivery]);
 
-  // Public start: requests playback via queue
   const start = useCallback(() => {
     setWantsToPlay(true);
     audioQueue.enqueue({
@@ -578,7 +576,6 @@ export const useRealtimeAudioPlayback = ({
     });
   }, [audioQueue, internalStart, internalStop]);
 
-  // Public stop: removes from queue
   const stop = useCallback(() => {
     setWantsToPlay(false);
     internalStop();

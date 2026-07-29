@@ -11,7 +11,10 @@ import SketchCanvasPresentation from "../SketchCanvasPresentation";
 import type { SketchCanvasPresentationProps } from "../SketchCanvasPresentation";
 import { useSketchStore } from "../state";
 import { cursorStyleForTool } from "../sketchCursorStyle";
-import { canvasTransformStyle } from "../sketchCanvasPresentation.helpers";
+import {
+  canvasTransformStyle,
+  computeFitZoom
+} from "../sketchCanvasPresentation.helpers";
 import { TransformTool } from "../tools/TransformTool";
 
 // Mock MUI ThemeProvider — SketchCanvasPresentation uses useTheme.
@@ -134,6 +137,33 @@ describe("canvasTransformStyle", () => {
     );
     expect(style.transformOrigin).toBe("center center");
     expect(style.imageRendering).toBe("pixelated");
+  });
+});
+
+// ─── computeFitZoom ──────────────────────────────────────────────────────────
+
+describe("computeFitZoom", () => {
+  it("fits by the limiting axis with the default 90% margin", () => {
+    // Wide viewport, square canvas — height is limiting: 400/1000 * 0.9.
+    expect(computeFitZoom(2000, 400, 1000, 1000)).toBeCloseTo(0.36, 5);
+  });
+
+  it("uses the width axis when it is the limiting dimension", () => {
+    expect(computeFitZoom(500, 2000, 1000, 1000)).toBeCloseTo(0.45, 5);
+  });
+
+  it("can enlarge a small canvas past 100%", () => {
+    expect(computeFitZoom(1000, 1000, 100, 100)).toBeCloseTo(9, 5);
+  });
+
+  it("honors a custom margin", () => {
+    expect(computeFitZoom(1000, 1000, 1000, 1000, 1)).toBe(1);
+  });
+
+  it("falls back to 1 when any dimension is non-positive", () => {
+    expect(computeFitZoom(0, 500, 1000, 1000)).toBe(1);
+    expect(computeFitZoom(500, 500, 0, 1000)).toBe(1);
+    expect(computeFitZoom(-10, 500, 1000, 1000)).toBe(1);
   });
 });
 

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef, memo } from "react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 
 import {
   Text,
@@ -7,7 +7,9 @@ import {
   LoadingSpinner,
   FlexRow,
   ListItemText,
-  ListItemIcon
+  ListItemIcon,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
 import { useOllamaModels } from "../../hooks/useOllamaModels";
@@ -15,7 +17,6 @@ import { isElectron } from "../../lib/env";
 import type { LlamaModelValue } from "../../stores/ApiTypes";
 import ModelSelectButton from "./shared/ModelSelectButton";
 import { EditorMenu, EditorMenuItem } from "../editor_ui";
-// no providers here; always Ollama
 
 interface LlamaModelSelectProps {
   onChange: (value: LlamaModelValue) => void;
@@ -73,8 +74,6 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
     [handleModelSelect]
   );
 
-  // no providers menu; just one list of models
-
   return (
     <>
       <ModelSelectButton
@@ -109,7 +108,7 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
             <LoadingSpinner size="medium" />
           </FlexRow>
         ) : ollamaError ? (
-          <div style={{ padding: 8, maxWidth: 300 }}>
+          <div style={{ padding: getSpacingPx(SPACING.md), maxWidth: 300 }}>
             <Text size="small" color="error" sx={{ mb: 1 }}>
               Could not load Ollama models
             </Text>

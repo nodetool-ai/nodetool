@@ -1,7 +1,7 @@
 import { memo, useCallback } from "react";
 import NumberInput from "../inputs/NumberInput";
 import { PropertyProps } from "../node/PropertyInput";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { useInputMinMax } from "../../hooks/useInputMinMax";
 import { useTemporalNodes } from "../../contexts/NodeContext";
 
@@ -28,7 +28,6 @@ const FloatProperty = (props: PropertyProps) => {
   const isMinMaxProperty = property.name === "min" || property.name === "max";
   const showSlider = !(isInputNode && isMinMaxProperty);
 
-  // Memoize handler to prevent unnecessary re-renders of memoized NumberInput child
   const handleChange = useCallback((_: React.ChangeEvent<HTMLInputElement> | null, newValue: number) => {
     onChange(Number(newValue));
   }, [onChange]);

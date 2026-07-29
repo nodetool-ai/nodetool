@@ -21,7 +21,13 @@ import type {
   WsEvent
 } from "./types";
 
-const TERMINAL_STATUSES = new Set(["completed", "failed", "cancelled", "error"]);
+const TERMINAL_STATUSES = new Set([
+  "completed",
+  "failed",
+  "cancelled",
+  "error",
+  "suspended"
+]);
 // Faked nodes complete near-instantly; a tight per-run cap keeps the whole
 // 49-template suite within the Playwright test budget even when a template
 // hangs (e.g. a required input with no default/param).
@@ -89,15 +95,18 @@ function extractArtifact(output: {
     const uri = typeof obj.uri === "string" ? obj.uri : undefined;
     const data = typeof obj.data === "string" ? obj.data : undefined;
     const type = typeof obj.type === "string" ? obj.type : output.output_type;
+    const mimeType = typeof obj.mimeType === "string" ? obj.mimeType : undefined;
     if (uri || data) {
+      // The value's own mimeType is authoritative; the type-based guess is a fallback.
       const contentType =
-        type === "image"
+        mimeType ??
+        (type === "image"
           ? "image/png"
           : type === "audio"
             ? "audio/mpeg"
             : type === "video"
               ? "video/mp4"
-              : "application/octet-stream";
+              : "application/octet-stream");
       const artifact: CapturedArtifact = {
         name: output.output_name ?? type ?? "artifact",
         contentType
@@ -133,6 +142,24 @@ function reduceRecordEvent(
   nodeStatus: Record<string, string>
 ): TerminalSignal | null {
   rec.events.push(msg);
+  // The backend's invalid_command / invalid_message envelope carries no `type`
+  // field, only { error, details?/message? }. Catch it before the type switch;
+  // it's terminal and would otherwise fall through and hang to timeout.
+  if (typeof msg.type !== "string") {
+    const errCode = (msg as { error?: unknown }).error;
+    if (typeof errCode === "string" && errCode) {
+      const details = (msg as { details?: unknown; message?: unknown }).details;
+      const message = (msg as { message?: unknown }).message;
+      const text =
+        typeof details === "string" && details
+          ? `${errCode}: ${details}`
+          : typeof message === "string" && message
+            ? `${errCode}: ${message}`
+            : errCode;
+      if (!rec.error) rec.error = text;
+      return { status: "error", error: text };
+    }
+  }
   switch (msg.type) {
     case "job_update": {
       if (typeof msg.job_id === "string" && msg.job_id) rec.jobId = msg.job_id;
@@ -188,6 +215,12 @@ function reduceRecordEvent(
       });
       break;
     }
+    case "error": {
+      // A backend { type:"error", message } frame is terminal.
+      const text = typeof msg.message === "string" && msg.message ? msg.message : "error";
+      if (!rec.error) rec.error = text;
+      return { status: "error", error: text };
+    }
     default:
       break;
   }
@@ -218,6 +251,9 @@ export class Harness {
   };
   private secretsAvailable: string[] = [];
   private graphCache = new Map<string, { nodes: unknown[]; edges: unknown[] }>();
+  // Serializes runs: a second runNext/runGraph while one is in flight returns
+  // the in-flight promise instead of racing the same pending record.
+  private runInFlight: Promise<RunRecord | null> | null = null;
 
   subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
@@ -235,17 +271,25 @@ export class Harness {
   }
 
   async init(manifestUrl = "/e2e-suite/manifest.json"): Promise<void> {
-    const res = await fetch(manifestUrl);
-    if (!res.ok) {
-      throw new Error(`Failed to load manifest: ${res.status} ${res.statusText}`);
+    try {
+      const res = await fetch(manifestUrl);
+      if (!res.ok) {
+        throw new Error(`Failed to load manifest: ${res.status} ${res.statusText}`);
+      }
+      const manifest = (await res.json()) as Manifest;
+      this.secretsAvailable = manifest.secretsAvailable ?? [];
+      this.setState({
+        manifest: manifest.workflows,
+        records: manifest.workflows.map(emptyRecord),
+        state: "idle"
+      });
+    } catch (err) {
+      // No manifest (e.g. the ad-hoc debug path) must not leave the harness
+      // stuck "loading": settle to idle+empty so runGraph still works. The
+      // caller still sees the rejection and surfaces the banner.
+      this.setState({ manifest: [], records: [], state: "idle" });
+      throw err;
     }
-    const manifest = (await res.json()) as Manifest;
-    this.secretsAvailable = manifest.secretsAvailable ?? [];
-    this.setState({
-      manifest: manifest.workflows,
-      records: manifest.workflows.map(emptyRecord),
-      state: "idle"
-    });
   }
 
   /** Load and cache a workflow graph by file path. */
@@ -296,6 +340,13 @@ export class Harness {
     );
   }
 
+  // A single-step run leaves state at "running"; settle it back so manual mode
+  // isn't stuck. "idle" while pending records remain, "done" once none do.
+  private settleManualState(): void {
+    const hasPending = this.state.records.some((r) => r.status === "pending");
+    this.setState({ state: hasPending ? "idle" : "done" });
+  }
+
   private updateRecord(index: number, mutate: (rec: RunRecord) => void): void {
     const records = this.state.records.slice();
     const rec = { ...records[index] };
@@ -306,6 +357,7 @@ export class Harness {
 
   /** Run the next pending workflow. Resolves with its record once settled. */
   async runNext(): Promise<RunRecord | null> {
+    if (this.runInFlight) return this.runInFlight;
     const nextIndex = this.state.records.findIndex(
       (r) => r.status === "pending"
     );
@@ -313,7 +365,11 @@ export class Harness {
       this.setState({ state: "done" });
       return null;
     }
-    return this.runAt(nextIndex);
+    const promise = this.runAt(nextIndex).finally(() => {
+      this.runInFlight = null;
+    });
+    this.runInFlight = promise;
+    return promise;
   }
 
   async runAll(): Promise<RunRecord[]> {
@@ -334,6 +390,7 @@ export class Harness {
         rec.status = "skipped";
         rec.skipReason = `Missing secrets: ${missing.join(", ")}`;
       });
+      this.settleManualState();
       return this.state.records[index];
     }
 
@@ -345,6 +402,7 @@ export class Harness {
         rec.status = "error";
         rec.error = err instanceof Error ? err.message : String(err);
       });
+      this.settleManualState();
       return this.state.records[index];
     }
 
@@ -368,19 +426,35 @@ export class Harness {
         rec.durationMs = finishedAt - startedAt;
         rec.error = err instanceof Error ? err.message : String(err);
       });
+      this.settleManualState();
       return this.state.records[index];
     }
+
+    const runTimeoutMs = ref.timeoutMs ?? RUN_TIMEOUT_MS;
 
     await new Promise<void>((resolve) => {
       const nodeStatus: Record<string, string> = {};
       let settled = false;
-      const timer = window.setTimeout(() => finish("timeout"), RUN_TIMEOUT_MS);
+      const timer = window.setTimeout(() => finish("timeout"), runTimeoutMs);
 
       const finish = (status: RunStatus, error?: string) => {
         if (settled) return;
         settled = true;
         window.clearTimeout(timer);
         unsubscribe();
+        unsubscribeClose();
+        // A timed-out job keeps running server-side after we drop the socket;
+        // best-effort ask the backend to stop it first.
+        if (status === "timeout") {
+          const jobId = this.state.records[index].jobId;
+          if (jobId) {
+            try {
+              ws.send({ command: "stop", data: { job_id: jobId } });
+            } catch {
+              // best-effort; the socket may already be gone
+            }
+          }
+        }
         ws.close();
         const finishedAt = Date.now();
         this.updateRecord(index, (rec) => {
@@ -397,6 +471,9 @@ export class Harness {
       const unsubscribe = ws.onMessage((msg: WsEvent) => {
         this.handleEvent(index, msg, nodeStatus, finish);
       });
+      const unsubscribeClose = ws.onClose(() =>
+        finish("error", "WebSocket connection closed unexpectedly")
+      );
 
       try {
         ws.send({ command: "run_job", data: { graph, params: ref.params } });
@@ -405,6 +482,7 @@ export class Harness {
       }
     });
 
+    this.settleManualState();
     return this.state.records[index];
   }
 
@@ -437,7 +515,11 @@ export class Harness {
       );
     }
     if (expect.outputContains) {
-      const haystack = asString(rec.outputs.map((o) => o.value));
+      // Concatenate raw values (strings verbatim) so an expected substring with
+      // quotes/backslashes/newlines isn't defeated by JSON escaping.
+      const haystack = rec.outputs
+        .map((o) => (typeof o.value === "string" ? o.value : asString(o.value)))
+        .join("\n");
       if (!haystack.includes(expect.outputContains)) {
         failures.push(`outputs did not contain "${expect.outputContains}"`);
       }
@@ -455,6 +537,20 @@ export class Harness {
     graph: { nodes: unknown[]; edges: unknown[] },
     params: Record<string, unknown> = {},
     options: AdHocRunOptions = {}
+  ): Promise<RunRecord> {
+    // Refuse a concurrent run: hand back the in-flight promise instead.
+    if (this.runInFlight) return this.runInFlight as Promise<RunRecord>;
+    const promise = this.runGraphInternal(graph, params, options).finally(() => {
+      this.runInFlight = null;
+    });
+    this.runInFlight = promise;
+    return promise;
+  }
+
+  private async runGraphInternal(
+    graph: { nodes: unknown[]; edges: unknown[] },
+    params: Record<string, unknown>,
+    options: AdHocRunOptions
   ): Promise<RunRecord> {
     const ref: WorkflowRef = {
       id: options.id ?? `adhoc-${Date.now()}`,
@@ -504,6 +600,16 @@ export class Harness {
         settled = true;
         window.clearTimeout(timer);
         unsubscribe();
+        unsubscribeClose();
+        // A timed-out job keeps running server-side after we drop the socket;
+        // best-effort ask the backend to stop it first.
+        if (status === "timeout" && rec.jobId) {
+          try {
+            ws.send({ command: "stop", data: { job_id: rec.jobId } });
+          } catch {
+            // best-effort; the socket may already be gone
+          }
+        }
         ws.close();
         rec.status = status;
         rec.finishedAt = Date.now();
@@ -526,6 +632,9 @@ export class Harness {
         });
         if (terminal) queueMicrotask(() => finish(terminal.status, terminal.error));
       });
+      const unsubscribeClose = ws.onClose(() =>
+        finish("error", "WebSocket connection closed unexpectedly")
+      );
 
       try {
         ws.send({ command: "run_job", data: { graph, params } });

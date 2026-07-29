@@ -12,12 +12,6 @@ interface RouteOptions {
 }
 
 const filesRoutes: FastifyPluginAsync<RouteOptions> = async (app, _opts) => {
-  // Register all methods so unsupported verbs reach the handler and get the
-  // explicit 405 response instead of Fastify's default 404.
-  app.all("/api/files/download", async (req, reply) => {
-    await bridge(req, reply, (request) => handleFileRequest(request));
-  });
-
   // Stream a local file by absolute path (previews for `file://` URIs). GET/HEAD
   // with Range support; the handler enforces the production guard and path
   // denylist.

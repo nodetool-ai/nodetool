@@ -1,13 +1,8 @@
 /**
  * useColorIntentRouter
  *
- * Centralized foreground-color-change handler that routes a new color to both
- * the global `foregroundColor` state and the active tool's color setting.
- *
- * This eliminates the duplicated `handleFgColorChange` callbacks that were
- * previously maintained in `ConnectedToolbar` and `ConnectedLayersPanel`.
- *
- * Both components now call `useColorIntentRouter()` instead.
+ * Routes a new foreground color to both the global `foregroundColor` state
+ * and the active tool's color setting.
  */
 
 import { useCallback } from "react";

@@ -18,7 +18,7 @@ import React, { useCallback } from "react";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 
-import { NodeSlider, BORDER_RADIUS, FONT_WEIGHT } from "../../ui_primitives";
+import { NodeSlider, BORDER_RADIUS, FONT_WEIGHT, Z_INDEX } from "../../ui_primitives";
 
 const TRACK_HEIGHT = 4;
 const THUMB_SIZE = 12;
@@ -90,7 +90,7 @@ export const adjustmentSliderStyles = (theme: Theme) =>
       borderRadius: TRACK_HEIGHT / 2,
       backgroundColor: theme.vars.palette.primary.main,
       pointerEvents: "none",
-      zIndex: 1
+      zIndex: Z_INDEX.raised
     },
     ".ctrl-value": {
       fontFamily: theme.fontFamily2,

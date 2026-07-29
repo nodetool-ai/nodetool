@@ -77,7 +77,10 @@ describe("Python parity — Graph.fromDict normalization", () => {
       ]
     });
 
-    expect(graph.findNode("target")?.properties).toEqual({ keep: "ok" });
+    expect(graph.findNode("target")?.properties).toEqual({
+      value: 999,
+      keep: "ok"
+    });
   });
 
   it("skips malformed and dangling edges by default", () => {

@@ -99,9 +99,7 @@ function collectMetrics(): MetricRow[] {
     .sort((a, b) => b.cpu - a.cpu);
 }
 
-/**
- * Opens (or focuses) the Performance Monitor window.
- */
+/** Opens (or focuses) the Performance Monitor window. */
 export function openPerformanceMonitorWindow(): void {
   if (perfWindow && !perfWindow.isDestroyed()) {
     perfWindow.focus();

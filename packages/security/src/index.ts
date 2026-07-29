@@ -16,7 +16,6 @@ export {
   setMasterKeyPersistent,
   deleteMasterKey,
   isUsingEnvKey,
-  isUsingAwsKey,
   setKeytarLoader,
   resetKeytarLoader,
   KeychainAccessError

@@ -6,7 +6,7 @@
  * clip onto the first unlocked video track at the playhead (creating a video
  * track if the sequence has none). Generation starts immediately.
  *
- * Layout mirrors the image editor's prompt bar (`ConnectedModePromptBar`) and
+ * Layout mirrors the image editor's generate form (`ConnectedGeneratePopover`) and
  * the media chat composer: a prompt that grows to fill, then the model + setting
  * chips, then the primary Generate action. The model / duration / resolution /
  * aspect controls are the shared `MediaControlChip` + option menus, so options
@@ -168,7 +168,12 @@ export const TopBarPrompt: React.FC = memo(() => {
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" && !e.shiftKey) {
+      if (
+        e.key === "Enter" &&
+        !e.shiftKey &&
+        !e.nativeEvent.isComposing &&
+        e.nativeEvent.keyCode !== 229
+      ) {
         e.preventDefault();
         void handleSubmit();
       }

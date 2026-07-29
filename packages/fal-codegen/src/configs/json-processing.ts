@@ -39,6 +39,42 @@ export const config: ModuleConfig = {
         "Audio analysis",
         "Media processing utilities"
       ]
+    },
+    "fal-ai/omnilottie": {
+      className: "Omnilottie",
+      docstring: "Convert your assets into lottie using Omnilottie.",
+      tags: ["json", "structured-output", "processing", "omnilottie"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/omnilottie/image-to-lottie": {
+      className: "OmnilottieImageToLottie",
+      docstring: "Convert your assets into lottie using Omnilottie.",
+      tags: ["json", "structured-output", "processing", "omnilottie", "lottie"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/omnilottie/video-to-lottie": {
+      className: "OmnilottieVideoToLottie",
+      docstring: "Convert your assets into lottie using Omnilottie.",
+      tags: ["json", "structured-output", "processing", "omnilottie", "lottie"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
     }
   }
 };

@@ -10,15 +10,7 @@ interface UseSecretsResult {
   isApiKeySet: (key: string) => boolean;
 }
 
-/**
- * Hook to fetch and manage API secrets (API keys) from the backend.
- *
- * @example
- * const { secrets, isApiKeySet } = useSecrets();
- * if (isApiKeySet("openai_api_key")) {
- *   console.log("OpenAI API key exists for this user");
- * }
- */
+/** Fetch and manage API secrets (API keys) from the backend. */
 export const useSecrets = (): UseSecretsResult => {
   const {
     data: secrets = [],
@@ -27,7 +19,7 @@ export const useSecrets = (): UseSecretsResult => {
   } = useQuery({
     queryKey: ["secrets"],
     queryFn: () => useSecretsStore.getState().fetchSecrets(),
-    staleTime: 30000 // Consider data fresh for 30 seconds
+    staleTime: 30000
   });
 
   /**

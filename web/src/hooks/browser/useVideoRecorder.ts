@@ -227,7 +227,6 @@ export function useVideoRecorder({ onChange }: VideoRecorderProps): Readonly<Vid
 
   const handleRecord = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
-      // Stop recording
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       return;
@@ -305,7 +304,6 @@ export function useVideoRecorder({ onChange }: VideoRecorderProps): Readonly<Vid
 
     return () => {
       if (mediaRecorderRef.current) {
-        // Check if it's currently recording before stopping
         if (mediaRecorderRef.current.state === "recording") {
           mediaRecorderRef.current.stop();
         }

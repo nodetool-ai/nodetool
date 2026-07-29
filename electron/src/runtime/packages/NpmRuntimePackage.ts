@@ -14,7 +14,7 @@ import {
   RuntimeCategory,
 } from "./types";
 
-export interface NpmRuntimePackageOptions {
+interface NpmRuntimePackageOptions {
   id: string;
   name: string;
   description: string;

@@ -99,13 +99,7 @@ const coreFeatures = [
   },
 ];
 
-interface DeveloperCoreSectionProps {
-  reducedMotion: boolean;
-}
-
-export default function DeveloperCoreSection({
-  reducedMotion,
-}: DeveloperCoreSectionProps) {
+export default function DeveloperCoreSection() {
   return (
     <section
       id="core"
@@ -116,10 +110,10 @@ export default function DeveloperCoreSection({
         {/* Section Header */}
         <div className="text-center mb-16">
           <motion.span
-            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
             className="inline-flex items-center gap-2 rounded-full bg-blue-500/10 px-4 py-1.5 text-sm font-medium text-blue-300 ring-1 ring-inset ring-blue-500/20 mb-4"
           >
             <Code2 className="h-4 w-4" />
@@ -127,29 +121,29 @@ export default function DeveloperCoreSection({
           </motion.span>
           <motion.h2
             id="core-title"
-            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="text-3xl sm:text-4xl font-bold text-white"
           >
             Open source, end to end
           </motion.h2>
           <motion.p
-            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 max-w-2xl mx-auto"
           >
             Workflows run on an async Node.js runtime. Embed NodeTool as a library, drive it from
             the CLI, or run the same code that powers Studio and Cloud on your own boxes.
           </motion.p>
           <motion.div
-            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.3 }}
+            transition={{ duration: 0.25, delay: 0.08 }}
             className="mt-4 flex flex-wrap justify-center gap-2"
           >
             <Image
@@ -184,7 +178,7 @@ export default function DeveloperCoreSection({
           {coreFeatures.map((feature, idx) => (
             <motion.div
               key={feature.title}
-              initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: idx * 0.05 }}
@@ -205,10 +199,10 @@ export default function DeveloperCoreSection({
         <div className="grid gap-8 lg:grid-cols-2">
           {/* Installation */}
           <motion.div
-            initial={reducedMotion ? {} : { opacity: 0, x: -30 }}
+            initial={false}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
             className="rounded-2xl bg-slate-800/40 p-6 ring-1 ring-slate-700/50"
           >
             <div className="flex items-center gap-3 mb-4">
@@ -236,10 +230,10 @@ export default function DeveloperCoreSection({
 
           {/* Basic Usage */}
           <motion.div
-            initial={reducedMotion ? {} : { opacity: 0, x: 30 }}
+            initial={false}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
             className="rounded-2xl bg-slate-800/40 p-6 ring-1 ring-slate-700/50"
           >
             <div className="flex items-center gap-3 mb-4">
@@ -262,10 +256,10 @@ export default function DeveloperCoreSection({
 
         {/* DSL Explanation */}
         <motion.div
-          initial={reducedMotion ? {} : { opacity: 0, y: 30 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.25 }}
           className="mt-8 rounded-2xl bg-gradient-to-br from-teal-900/20 to-purple-900/20 p-8 ring-1 ring-teal-500/20"
         >
           <div className="flex items-center gap-3 mb-6">
@@ -281,10 +275,10 @@ export default function DeveloperCoreSection({
             {dslExplanation.map((point, idx) => (
               <motion.div
                 key={point.title}
-                initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+                initial={false}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.3, delay: idx * 0.1 }}
+                transition={{ duration: 0.3, delay: idx * 0.05 }}
                 className="rounded-xl bg-slate-800/40 p-5 ring-1 ring-slate-700/50"
               >
                 <h4 className="font-semibold text-white mb-2">{point.title}</h4>
@@ -296,10 +290,10 @@ export default function DeveloperCoreSection({
 
 {/* Links */}
         <motion.div
-          initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.25 }}
           className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
         >
           <a

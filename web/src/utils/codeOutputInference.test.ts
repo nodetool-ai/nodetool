@@ -25,6 +25,11 @@ describe("inferOutputKeysFromCode", () => {
     expect(inferOutputKeysFromCode(code)).toEqual(["second", "third"]);
   });
 
+  it("keeps outer return keys when its value contains a nested return", () => {
+    const code = `return { outer: (() => { return { inner: 1 }; })() }`;
+    expect(inferOutputKeysFromCode(code)).toEqual(["outer"]);
+  });
+
   it("returns null when return does not have an object literal", () => {
     const code = `return 42`;
     expect(inferOutputKeysFromCode(code)).toBeNull();

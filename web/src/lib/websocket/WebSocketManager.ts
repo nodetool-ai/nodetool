@@ -3,8 +3,17 @@
  *
  * Exposes a small state machine (`ConnectionState`) plus EventEmitter events
  * for `open/close/message/error/reconnecting/stateChange`. Queues outbound
- * messages until connected, retries with exponential-ish backoff, and enforces
- * valid transitions to avoid double-connect/disconnect races.
+ * messages for the whole time a reconnect is pending — including the backoff
+ * window, which is when callers are most likely to send — retries with
+ * exponential backoff and jitter for as long as it takes, and enforces valid
+ * transitions to avoid double-connect/disconnect races.
+ *
+ * A liveness watchdog covers the failure mode `onclose` cannot: a half-open
+ * socket (laptop sleep, NAT/proxy drop, network switch) where the browser still
+ * reports OPEN but nothing arrives. The server heartbeats every 25s, so a
+ * longer stretch of inbound silence means the connection is suspect — we probe
+ * with a ping and, if that stays unanswered, tear the socket down so the normal
+ * reconnect path runs instead of silently dropping every run update.
  */
 import { EventEmitter } from "../EventEmitter";
 import { pack, unpack } from "msgpackr";
@@ -23,9 +32,25 @@ export interface WebSocketConfig {
   reconnect?: boolean;
   reconnectInterval?: number;
   reconnectDecay?: number;
+  /**
+   * Cap on consecutive reconnect attempts. Defaults to `Infinity`: a client
+   * that stops retrying stays dark until something else (a tab focus, a network
+   * event) happens to rebuild it, which for a background tab may be never.
+   */
   reconnectAttempts?: number;
+  /** Ceiling on the exponential backoff delay. */
+  maxReconnectInterval?: number;
   timeoutInterval?: number;
   binaryType?: BinaryType;
+  /**
+   * Inbound silence (ms) after which the connection is probed with a ping.
+   * Must stay above the server's 25s heartbeat. 0 disables the watchdog.
+   */
+  heartbeatInterval?: number;
+  /** Grace period (ms) for traffic to arrive after a probe. */
+  heartbeatTimeout?: number;
+  /** Cap on messages queued while offline; the oldest are dropped first. */
+  maxQueueSize?: number;
 }
 
 export interface WebSocketMessage {
@@ -34,7 +59,7 @@ export interface WebSocketMessage {
   [key: string]: unknown;
 }
 
-export interface WebSocketManagerEvents {
+interface WebSocketManagerEvents {
   open: () => void;
   close: (code: number, reason: string, wasClean: boolean) => void;
   error: (error: unknown) => void;
@@ -45,6 +70,14 @@ export interface WebSocketManagerEvents {
     newState: ConnectionState,
     previousState: ConnectionState
   ) => void;
+}
+
+/**
+ * Heartbeat frames are about the socket that carried them, so replaying one
+ * queued during an outage would only answer a question nobody is still asking.
+ */
+function isLivenessFrame(message: WebSocketMessage): boolean {
+  return message.type === "ping" || message.type === "pong";
 }
 
 interface ConnectionStateTransition {
@@ -88,7 +121,11 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
   private state: ConnectionState = "disconnected";
   private reconnectTimer: NodeJS.Timeout | null = null;
   private connectionTimer: NodeJS.Timeout | null = null;
+  private livenessTimer: NodeJS.Timeout | null = null;
+  private lastInboundAt = 0;
+  private probeSentAt = 0;
   private reconnectAttempt = 0;
+  private reconnectPending = false;
   private intentionalDisconnect = false;
   private messageQueue: WebSocketMessage[] = [];
   private connectionPromise: Promise<void> | null = null;
@@ -103,9 +140,13 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
       reconnect: config.reconnect ?? true,
       reconnectInterval: config.reconnectInterval ?? 1000,
       reconnectDecay: config.reconnectDecay ?? 1.5,
-      reconnectAttempts: config.reconnectAttempts ?? 10,
+      reconnectAttempts: config.reconnectAttempts ?? Infinity,
+      maxReconnectInterval: config.maxReconnectInterval ?? 30000,
       timeoutInterval: config.timeoutInterval ?? 30000,
-      binaryType: config.binaryType ?? "arraybuffer"
+      binaryType: config.binaryType ?? "arraybuffer",
+      heartbeatInterval: config.heartbeatInterval ?? 45000,
+      heartbeatTimeout: config.heartbeatTimeout ?? 10000,
+      maxQueueSize: config.maxQueueSize ?? 100
     };
   }
 
@@ -161,6 +202,7 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
 
   public disconnect(): void {
     this.intentionalDisconnect = true;
+    this.reconnectPending = false;
     this.clearTimers();
     this.messageQueue = [];
 
@@ -177,12 +219,14 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
 
   public send(message: WebSocketMessage): void {
     if (!this.isConnected()) {
-      if (
-        this.config.reconnect &&
-        (this.state === "connecting" || this.state === "reconnecting")
-      ) {
-        console.debug("Queueing message while connecting");
+      if (this.canQueue() && !isLivenessFrame(message)) {
+        console.debug(`Queueing message while ${this.state}`);
         this.messageQueue.push(message);
+        // A long outage with a chatty caller would otherwise grow this without
+        // bound. The oldest queued messages are the least useful on recovery.
+        while (this.messageQueue.length > this.config.maxQueueSize) {
+          this.messageQueue.shift();
+        }
         return;
       }
       throw new Error(`Cannot send message in state: ${this.state}`);
@@ -197,6 +241,25 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
       this.emit("error", error);
       throw error;
     }
+  }
+
+  /**
+   * Whether an outbound message can wait for the socket to come back.
+   *
+   * The backoff window between a drop and the next attempt sits in the
+   * `disconnected` state, and it is exactly when a caller is most likely to
+   * send: the run they just started, the chat message they just typed. Dropping
+   * those on the floor is what makes a blip look like a broken app.
+   */
+  private canQueue(): boolean {
+    if (!this.config.reconnect || this.intentionalDisconnect) {
+      return false;
+    }
+    return (
+      this.state === "connecting" ||
+      this.state === "reconnecting" ||
+      (this.state === "disconnected" && this.reconnectPending)
+    );
   }
 
   private setupEventHandlers(): void {
@@ -214,6 +277,7 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
     console.info("WebSocket connection opened");
     this.clearConnectionTimeout();
     this.reconnectAttempt = 0;
+    this.reconnectPending = false;
 
     if (!this.transitionTo("connected")) {
       return;
@@ -221,10 +285,9 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
 
     this.emit("open");
 
-    // Process queued messages
+    this.startLivenessWatchdog();
     this.processMessageQueue();
 
-    // Resolve connection promise
     if (this.connectionResolver) {
       this.connectionResolver();
       this.connectionResolver = null;
@@ -234,6 +297,10 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
   }
 
   private async handleMessage(event: MessageEvent): Promise<void> {
+    // Any frame proves the socket is alive, decodable or not.
+    this.lastInboundAt = Date.now();
+    this.probeSentAt = 0;
+
     try {
       let data: unknown;
 
@@ -263,11 +330,38 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
         data = event.data;
       }
 
+      if (this.handleLivenessFrame(data)) {
+        return;
+      }
+
       this.emit("message", data);
     } catch (error) {
       console.error("Failed to process message:", error);
       this.emit("error", error);
     }
+  }
+
+  /**
+   * Consume heartbeat frames instead of forwarding them: they carry no routing
+   * key, so subscribers have nothing to do with them. Returns true when the
+   * frame was a heartbeat.
+   */
+  private handleLivenessFrame(data: unknown): boolean {
+    const type =
+      data && typeof data === "object"
+        ? (data as { type?: unknown }).type
+        : undefined;
+
+    if (type === "ping") {
+      try {
+        this.send({ type: "pong", ts: Date.now() / 1000 });
+      } catch (error) {
+        console.debug("Failed to answer server ping:", error);
+      }
+      return true;
+    }
+
+    return type === "pong";
   }
 
   private handleError(event: Event): void {
@@ -282,6 +376,7 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
 
     this.ws = null;
     this.clearConnectionTimeout();
+    this.stopLivenessWatchdog();
 
     const wasConnecting =
       this.state === "connecting" || this.state === "reconnecting";
@@ -290,7 +385,6 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
       return;
     }
 
-    // Handle connection promise rejection
     if (wasConnecting && this.connectionRejector) {
       this.connectionRejector(
         new Error(`Connection failed: ${event.reason || "Unknown reason"}`)
@@ -300,13 +394,15 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
       this.connectionPromise = null;
     }
 
-    this.emit("close", event.code, event.reason, event.wasClean);
-
-    // Handle reconnection
     const shouldReconnect = this.shouldReconnect(event);
     console.info(
       `Should reconnect: ${shouldReconnect}, attempts: ${this.reconnectAttempt}/${this.config.reconnectAttempts}`
     );
+
+    // Decided before the event fires: a listener that sends from its `close`
+    // handler must see the same queueing window as one that sends a tick later.
+    this.reconnectPending = shouldReconnect;
+    this.emit("close", event.code, event.reason, event.wasClean);
 
     if (shouldReconnect) {
       this.scheduleReconnect();
@@ -324,12 +420,14 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
     // 4. Specific error codes that shouldn't trigger reconnection
     const noReconnectCodes = [
       // Note: 1001 (Going away) is intentionally NOT blocked to allow reconnect
-      // when servers restart or proxies roll connections. We still avoid
-      // reconnecting on policy/auth/server errors.
+      // when servers restart or proxies roll connections. Nor is 1011 (Internal
+      // server error): a server that fell over is the case reconnect exists
+      // for, and backoff keeps a genuinely broken one from being hammered.
+      // What stays terminal is what retrying cannot fix — a rejected client, a
+      // frame this client would only send again, a missing extension.
       1008, // Policy violation
       1009, // Message too big
       1010, // Mandatory extension
-      1011, // Internal server error
       4000, // Custom: Authentication required
       4001, // Custom: Unauthorized
       4003 // Custom: Forbidden
@@ -416,9 +514,132 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
     const delay = Math.min(
       this.config.reconnectInterval *
         Math.pow(this.config.reconnectDecay, this.reconnectAttempt),
-      30000 // Max 30 seconds
+      this.config.maxReconnectInterval
     );
-    return delay;
+    // Half-to-full jitter. Without it every client that dropped on a server
+    // restart comes back in lockstep and hammers the server as it boots.
+    return delay * (0.5 + Math.random() * 0.5);
+  }
+
+  /**
+   * Ask the socket to prove it is alive right now. Cheap and idempotent —
+   * callers use it when the environment hints the connection may have died
+   * without notice (tab restored after sleep, network change).
+   */
+  public checkLiveness(): void {
+    if (this.state !== "connected") {
+      return;
+    }
+    if (this.ws?.readyState !== WebSocket.OPEN) {
+      this.handleDeadConnection("socket no longer open");
+      return;
+    }
+    this.probeLiveness();
+  }
+
+  /**
+   * Collapse a pending backoff wait and retry immediately.
+   *
+   * Backoff assumes nothing has changed since the last failure. When the
+   * environment says otherwise — the network came back, the tab woke up — the
+   * remaining wait is dead time, and at the 30s ceiling that is 30s of a UI
+   * that looks broken for no reason.
+   */
+  public retryNow(): void {
+    if (!this.reconnectTimer) {
+      return;
+    }
+    clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
+    // Restart the backoff ladder — the failures it was counting are stale.
+    this.reconnectAttempt = 1;
+    if (this.intentionalDisconnect) {
+      return;
+    }
+    void this.reconnect();
+  }
+
+  private startLivenessWatchdog(): void {
+    this.stopLivenessWatchdog();
+    if (this.config.heartbeatInterval <= 0) {
+      return;
+    }
+
+    this.lastInboundAt = Date.now();
+    this.probeSentAt = 0;
+    // Poll well below the silence threshold so a dead socket is caught within
+    // roughly one heartbeat interval rather than two.
+    const tick = Math.max(1000, Math.floor(this.config.heartbeatInterval / 4));
+    this.livenessTimer = setInterval(() => this.checkForSilence(), tick);
+  }
+
+  private stopLivenessWatchdog(): void {
+    if (this.livenessTimer) {
+      clearInterval(this.livenessTimer);
+      this.livenessTimer = null;
+    }
+    this.probeSentAt = 0;
+  }
+
+  private checkForSilence(): void {
+    if (this.state !== "connected") {
+      return;
+    }
+
+    if (this.probeSentAt) {
+      if (Date.now() - this.probeSentAt >= this.config.heartbeatTimeout) {
+        this.handleDeadConnection("no response to heartbeat probe");
+      }
+      return;
+    }
+
+    if (Date.now() - this.lastInboundAt >= this.config.heartbeatInterval) {
+      this.probeLiveness();
+    }
+  }
+
+  private probeLiveness(): void {
+    if (this.probeSentAt) {
+      return;
+    }
+    this.probeSentAt = Date.now();
+    try {
+      this.send({ type: "ping", ts: this.probeSentAt / 1000 });
+    } catch (error) {
+      console.warn("Heartbeat probe failed to send:", error);
+      this.handleDeadConnection("heartbeat probe could not be sent");
+    }
+  }
+
+  /**
+   * Drop a socket the browser still calls OPEN but that has stopped carrying
+   * traffic. `close()` alone is not enough: the closing handshake on a dead
+   * connection can hang for minutes before `onclose` fires, so detach the
+   * handlers and run the close path ourselves to get reconnect going now.
+   */
+  private handleDeadConnection(reason: string): void {
+    const dead = this.ws;
+    console.warn(`WebSocket appears dead (${reason}); reconnecting`);
+    this.stopLivenessWatchdog();
+
+    if (dead) {
+      dead.onopen = null;
+      dead.onmessage = null;
+      dead.onerror = null;
+      dead.onclose = null;
+      try {
+        dead.close();
+      } catch (error) {
+        console.debug("Failed to close dead socket:", error);
+      }
+    }
+
+    this.emit("error", new Error(`WebSocket liveness check failed: ${reason}`));
+    this.handleClose({
+      code: 1006,
+      reason: "Heartbeat timeout",
+      wasClean: false
+    } as CloseEvent);
   }
 
   private startConnectionTimeout(): void {
@@ -442,6 +663,7 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
 
   private clearTimers(): void {
     this.clearConnectionTimeout();
+    this.stopLivenessWatchdog();
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;

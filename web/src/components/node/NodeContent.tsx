@@ -20,6 +20,8 @@ import {
   arePropsEqual,
   type NodeContentProps
 } from "./NodeContent.helpers";
+import { useNodes } from "../../contexts/NodeContext";
+import { useConnectedEdgesSelector } from "../../hooks/nodes/useConnectedEdges";
 
 const FLEX_COLUMN_SX = {
   position: "relative" as const,
@@ -39,6 +41,9 @@ const NodeContent: React.FC<NodeContentProps> = ({
     id,
     data.dynamic_properties
   );
+
+  const connectedEdgesSelector = useConnectedEdgesSelector(id);
+  const connectedEdges = useNodes(connectedEdgesSelector);
 
   const properties = nodeMetadata.properties;
   const { allProperties, inlineProperties, inputProperties } = useMemo(() => {
@@ -122,6 +127,7 @@ const NodeContent: React.FC<NodeContentProps> = ({
         id={id}
         properties={inputProperties}
         layout="stacked"
+        connectedEdges={connectedEdges}
       />
       <NodeInputs
         id={id}

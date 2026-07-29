@@ -43,7 +43,57 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     static findById = vi.fn();
     static listByUser = vi.fn();
     static listByProject = vi.fn();
+    // `update` is retained as the spy the assertions inspect; the atomic
+    // helpers below route their write through it so existing assertions on
+    // `TS.update.mock.calls[...]` keep working. These helpers are plain static
+    // methods (not vi.fn) so `vi.resetAllMocks()` doesn't strip their bodies.
     static update = vi.fn();
+
+    static async updateDocumentIfUnchanged(
+      id: string,
+      _expectedUpdatedAt: string,
+      doc: TimelineDocument
+    ): Promise<StubTimelineSequence | null> {
+      const seq = (await StubTimelineSequence.findById(
+        id
+      )) as StubTimelineSequence | null;
+      if (!seq) return null;
+      seq.document = JSON.stringify(doc);
+      await StubTimelineSequence.update(id, { document: seq.document });
+      return seq;
+    }
+
+    static async updateFieldsIfUnchanged(
+      id: string,
+      _expectedUpdatedAt: string,
+      fields: Record<string, unknown>
+    ): Promise<StubTimelineSequence | null> {
+      const seq = (await StubTimelineSequence.findById(
+        id
+      )) as StubTimelineSequence | null;
+      if (!seq) return null;
+      Object.assign(seq, fields);
+      await StubTimelineSequence.update(id, fields);
+      return seq;
+    }
+
+    static async mutateDocument(
+      id: string,
+      mutator: (
+        doc: TimelineDocument,
+        seq: StubTimelineSequence
+      ) => unknown | Promise<unknown>
+    ): Promise<{ sequence: StubTimelineSequence; result: unknown } | null> {
+      const seq = (await StubTimelineSequence.findById(
+        id
+      )) as StubTimelineSequence | null;
+      if (!seq) return null;
+      const doc = seq.toDocument();
+      const result = await mutator(doc, seq);
+      seq.document = JSON.stringify(doc);
+      await StubTimelineSequence.update(id, { document: seq.document });
+      return { sequence: seq, result };
+    }
   }
   return {
     ...actual,
@@ -103,14 +153,14 @@ describe("timeline router", () => {
       expect(out.map((s) => s.id)).toEqual(["a", "b"]);
     });
 
-    it("filters by projectId and excludes other users' sequences", async () => {
+    it("scopes project listing by user before applying its limit", async () => {
       TS.listByProject.mockResolvedValue([
-        makeSeq({ id: "a", user_id: "user-1" }),
-        makeSeq({ id: "b", user_id: "other" })
+        makeSeq({ id: "a", user_id: "user-1" })
       ]);
       const caller = createCaller(makeCtx());
       const out = await caller.timeline.list({ projectId: "p-1" });
       expect(out.map((s) => s.id)).toEqual(["a"]);
+      expect(TS.listByProject).toHaveBeenCalledWith("p-1", "user-1");
     });
 
     it("rejects unauthenticated callers", async () => {
@@ -151,6 +201,37 @@ describe("timeline router", () => {
       expect(out.fps).toBe(30);
       expect(out.width).toBe(1920);
       expect(out.height).toBe(1080);
+    });
+
+    it("honors a client-supplied id", async () => {
+      TS.findById.mockResolvedValue(null);
+      const caller = createCaller(makeCtx());
+      const out = await caller.timeline.create({
+        id: "client-minted-id",
+        name: "New",
+        projectId: "p-1"
+      });
+      expect(out.id).toBe("client-minted-id");
+    });
+
+    it("is idempotent — a repeated create returns the existing sequence", async () => {
+      TS.findById.mockResolvedValue(makeSeq({ id: "dupe", name: "Original" }));
+      const caller = createCaller(makeCtx());
+      const out = await caller.timeline.create({
+        id: "dupe",
+        name: "Should be ignored",
+        projectId: "p-1"
+      });
+      expect(out.id).toBe("dupe");
+      expect(out.name).toBe("Original");
+    });
+
+    it("hides another user's sequence behind a 404 rather than overwriting it", async () => {
+      TS.findById.mockResolvedValue(makeSeq({ id: "theirs", user_id: "other" }));
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.timeline.create({ id: "theirs", name: "Mine", projectId: "p-1" })
+      ).rejects.toThrow();
     });
   });
 
@@ -301,9 +382,7 @@ describe("timeline router", () => {
       let savedDocumentJson = "";
       TS.update.mockImplementation((_id, fields) => {
         savedDocumentJson = (fields as { document: string }).document;
-        return Promise.resolve(
-          makeSeq({ document: savedDocumentJson })
-        );
+        return Promise.resolve(makeSeq({ document: savedDocumentJson }));
       });
       const caller = createCaller(makeCtx());
       await caller.timeline.update({
@@ -401,330 +480,6 @@ describe("timeline router", () => {
       TS.findById.mockResolvedValue(makeSeq({ user_id: "other" }));
       const caller = createCaller(makeCtx());
       await expect(caller.timeline.delete({ id: "seq-1" })).rejects.toThrow();
-    });
-  });
-
-  describe("versions", () => {
-    const docWithClip: TimelineDocument = {
-      tracks: [],
-      clips: [
-        {
-          id: "clip-1",
-          trackId: "v1",
-          name: "Clip",
-          startMs: 0,
-          durationMs: 1000,
-          mediaType: "video",
-          sourceType: "imported",
-          status: "generated",
-          locked: false,
-          versions: [
-            {
-              id: "v0",
-              createdAt: "2026-01-01T00:00:00Z",
-              jobId: "j",
-              assetId: "a",
-              workflowUpdatedAt: "2026-01-01T00:00:00Z",
-              dependencyHash: "h",
-              paramOverridesSnapshot: {},
-              status: "success"
-            }
-          ]
-        }
-      ],
-      markers: []
-    };
-
-    it("list returns the clip versions", async () => {
-      TS.findById.mockResolvedValue(
-        makeSeq({ document: JSON.stringify(docWithClip) })
-      );
-      const caller = createCaller(makeCtx());
-      const out = await caller.timeline.versions.list({
-        id: "seq-1",
-        clipId: "clip-1"
-      });
-      expect(out).toHaveLength(1);
-      expect(out[0]?.id).toBe("v0");
-    });
-
-    it("list 404s on unknown clip", async () => {
-      TS.findById.mockResolvedValue(
-        makeSeq({ document: JSON.stringify(docWithClip) })
-      );
-      const caller = createCaller(makeCtx());
-      await expect(
-        caller.timeline.versions.list({ id: "seq-1", clipId: "nope" })
-      ).rejects.toThrow();
-    });
-
-    it("append adds a new version and persists", async () => {
-      TS.findById.mockResolvedValue(
-        makeSeq({ document: JSON.stringify(docWithClip) })
-      );
-      TS.update.mockResolvedValue(undefined);
-      const caller = createCaller(makeCtx());
-      const out = await caller.timeline.versions.append({
-        id: "seq-1",
-        clipId: "clip-1",
-        jobId: "job-2",
-        assetId: "asset-2",
-        dependencyHash: "h2",
-        workflowUpdatedAt: "2026-01-02T00:00:00Z"
-      });
-      expect(out.id).toBe("version-id");
-      expect(out.status).toBe("success");
-      expect(TS.update).toHaveBeenCalled();
-      const updateArgs = TS.update.mock.calls[0]?.[1];
-      const persisted = JSON.parse(
-        updateArgs?.document as string
-      ) as TimelineDocument;
-      expect(persisted.clips[0].versions).toHaveLength(2);
-    });
-
-    it("append prunes successful versions beyond cap, keeping favorites", async () => {
-      // Build a clip with 10 successful versions (none favorited) + 1 favorite
-      const existingVersions = Array.from({ length: 10 }, (_, i) => ({
-        id: `v-${i}`,
-        createdAt: `2026-01-01T00:00:0${i}Z`,
-        jobId: `j-${i}`,
-        assetId: `a-${i}`,
-        workflowUpdatedAt: "2026-01-01T00:00:00Z",
-        dependencyHash: `h${i}`,
-        paramOverridesSnapshot: {},
-        status: "success" as const,
-        favorite: i === 0 // first one is favorited
-      }));
-
-      const docWithManyVersions: TimelineDocument = {
-        tracks: [],
-        clips: [
-          {
-            id: "clip-1",
-            trackId: "v1",
-            name: "Clip",
-            startMs: 0,
-            durationMs: 1000,
-            mediaType: "video",
-            sourceType: "imported",
-            status: "generated",
-            locked: false,
-            versions: existingVersions
-          }
-        ],
-        markers: []
-      };
-
-      TS.findById.mockResolvedValue(
-        makeSeq({ document: JSON.stringify(docWithManyVersions) })
-      );
-      TS.update.mockResolvedValue(undefined);
-      const caller = createCaller(makeCtx());
-      await caller.timeline.versions.append({
-        id: "seq-1",
-        clipId: "clip-1",
-        jobId: "job-new",
-        assetId: "asset-new",
-        dependencyHash: "h-new",
-        workflowUpdatedAt: "2026-01-02T00:00:00Z"
-      });
-      const updateArgs = TS.update.mock.calls[0]?.[1];
-      const persisted = JSON.parse(
-        updateArgs?.document as string
-      ) as TimelineDocument;
-      // 1 favorite + 9 newest non-favorites = 10 total (cap kept)
-      expect(persisted.clips[0].versions!.length).toBeLessThanOrEqual(10);
-      // The favorite version must still be present
-      expect(
-        persisted.clips[0].versions!.some((v) => v.id === "v-0")
-      ).toBe(true);
-    });
-
-    it("append does not exceed cap when all versions are favorited", async () => {
-      // 10 favorites fills the cap — no slots left for non-favorites
-      const allFavVersions = Array.from({ length: 10 }, (_, i) => ({
-        id: `vf-${i}`,
-        createdAt: `2026-01-01T00:00:0${i}Z`,
-        jobId: `j-${i}`,
-        assetId: `a-${i}`,
-        workflowUpdatedAt: "2026-01-01T00:00:00Z",
-        dependencyHash: `h${i}`,
-        paramOverridesSnapshot: {},
-        status: "success" as const,
-        favorite: true
-      }));
-
-      const docAllFav: TimelineDocument = {
-        tracks: [],
-        clips: [
-          {
-            id: "clip-1",
-            trackId: "v1",
-            name: "Clip",
-            startMs: 0,
-            durationMs: 1000,
-            mediaType: "video",
-            sourceType: "imported",
-            status: "generated",
-            locked: false,
-            versions: allFavVersions
-          }
-        ],
-        markers: []
-      };
-
-      TS.findById.mockResolvedValue(
-        makeSeq({ document: JSON.stringify(docAllFav) })
-      );
-      TS.update.mockResolvedValue(undefined);
-      const caller = createCaller(makeCtx());
-      await caller.timeline.versions.append({
-        id: "seq-1",
-        clipId: "clip-1",
-        jobId: "job-new",
-        assetId: "asset-new",
-        dependencyHash: "h-new",
-        workflowUpdatedAt: "2026-01-02T00:00:00Z"
-      });
-      const updateArgs = TS.update.mock.calls[0]?.[1];
-      const persisted = JSON.parse(
-        updateArgs?.document as string
-      ) as TimelineDocument;
-      // 10 favorites + 1 new non-favorite (the just-appended version)
-      // Since favorites fill the cap, the new non-fav gets 0 slots → only favorites + new item itself
-      // The new version is kept (it was just appended), non-fav slots = 0
-      const versions = persisted.clips[0].versions!;
-      // All 10 favorites must still be present
-      expect(versions.filter((v) => v.favorite).length).toBe(10);
-      // slotsForNonFav = Math.max(0, 10 - 10) = 0 → new non-favorite is pruned
-      expect(versions.filter((v) => !v.favorite).length).toBe(0);
-      expect(versions.length).toBe(10);
-    });
-
-    it("setFavorite toggles the favorite flag", async () => {
-      TS.findById.mockResolvedValue(
-        makeSeq({ document: JSON.stringify(docWithClip) })
-      );
-      TS.update.mockResolvedValue(undefined);
-      const caller = createCaller(makeCtx());
-      const out = await caller.timeline.versions.setFavorite({
-        id: "seq-1",
-        clipId: "clip-1",
-        versionId: "v0",
-        favorite: true
-      });
-      expect(out.favorite).toBe(true);
-      expect(TS.update).toHaveBeenCalled();
-    });
-
-    it("setFavorite 404s on unknown version", async () => {
-      TS.findById.mockResolvedValue(
-        makeSeq({ document: JSON.stringify(docWithClip) })
-      );
-      const caller = createCaller(makeCtx());
-      await expect(
-        caller.timeline.versions.setFavorite({
-          id: "seq-1",
-          clipId: "clip-1",
-          versionId: "nope",
-          favorite: true
-        })
-      ).rejects.toThrow();
-    });
-
-    it("delete removes the version and persists", async () => {
-      TS.findById.mockResolvedValue(
-        makeSeq({ document: JSON.stringify(docWithClip) })
-      );
-      TS.update.mockResolvedValue(undefined);
-      const caller = createCaller(makeCtx());
-      const out = await caller.timeline.versions.delete({
-        id: "seq-1",
-        clipId: "clip-1",
-        versionId: "v0"
-      });
-      expect(out.ok).toBe(true);
-      const updateArgs = TS.update.mock.calls[0]?.[1];
-      const persisted = JSON.parse(
-        updateArgs?.document as string
-      ) as TimelineDocument;
-      expect(persisted.clips[0].versions).toHaveLength(0);
-    });
-
-    it("delete 404s on unknown version", async () => {
-      TS.findById.mockResolvedValue(
-        makeSeq({ document: JSON.stringify(docWithClip) })
-      );
-      const caller = createCaller(makeCtx());
-      await expect(
-        caller.timeline.versions.delete({
-          id: "seq-1",
-          clipId: "clip-1",
-          versionId: "nope"
-        })
-      ).rejects.toThrow();
-    });
-  });
-
-  describe("clips", () => {
-    const clipDoc: TimelineDocument = {
-      tracks: [],
-      clips: [
-        {
-          id: "clip-1",
-          trackId: "t1",
-          name: "Generated",
-          startMs: 500,
-          durationMs: 1000,
-          mediaType: "video",
-          sourceType: "generated",
-          workflowId: "wf-1",
-          paramOverrides: { prompt: "hello" },
-          status: "generated",
-          locked: false,
-          versions: []
-        }
-      ],
-      markers: []
-    };
-
-    it("delete removes only the clip", async () => {
-      TS.findById.mockResolvedValue(
-        makeSeq({ document: JSON.stringify(clipDoc) })
-      );
-      TS.update.mockResolvedValue(undefined);
-
-      const caller = createCaller(makeCtx());
-      const out = await caller.timeline.clips.delete({
-        id: "seq-1",
-        clipId: "clip-1"
-      });
-
-      expect(out.ok).toBe(true);
-      const updateArgs = TS.update.mock.calls[0]?.[1];
-      const persisted = JSON.parse(
-        updateArgs?.document as string
-      ) as TimelineDocument;
-      expect(persisted.clips).toHaveLength(0);
-    });
-
-    it("duplicate copies overrides and shares the workflow", async () => {
-      TS.findById.mockResolvedValue(
-        makeSeq({ document: JSON.stringify(clipDoc) })
-      );
-      TS.update.mockResolvedValue(undefined);
-
-      const caller = createCaller(makeCtx());
-      const out = await caller.timeline.clips.duplicate({
-        id: "seq-1",
-        clipId: "clip-1",
-        deltaMs: 2000
-      });
-
-      expect(out.id).toBe("version-id");
-      expect(out.workflowId).toBe("wf-1");
-      expect(out.startMs).toBe(2500);
-      expect(out.paramOverrides).toEqual({ prompt: "hello" });
     });
   });
 });

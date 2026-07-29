@@ -1,10 +1,6 @@
-// pageTabs.ts
-// -----------------------------------------------------------------
-// The set of app "pages" that open as workspace tabs (type: "page")
-// instead of their own route. `ref` is the PageTabKey; the title is
-// looked up here so the tab bar and the logo menu stay in sync.
-// -----------------------------------------------------------------
-
+// App "pages" that open as workspace tabs (type: "page") instead of their own
+// route. The title is looked up here so the tab bar and the logo menu stay in
+// sync.
 export type PageTabKey =
   | "tutorials"
   | "examples"
@@ -13,6 +9,7 @@ export type PageTabKey =
   | "packages"
   | "collections"
   | "workspaces"
+  | "entities"
   | "settings";
 
 export const PAGE_TAB_TITLES: Record<PageTabKey, string> = {
@@ -23,6 +20,7 @@ export const PAGE_TAB_TITLES: Record<PageTabKey, string> = {
   packages: "Package Manager",
   collections: "Collections",
   workspaces: "Workspaces",
+  entities: "Entities",
   settings: "Settings"
 };
 

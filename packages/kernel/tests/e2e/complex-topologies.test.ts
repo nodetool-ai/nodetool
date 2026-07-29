@@ -292,16 +292,18 @@ describe("COMPLEX-010: Static constant + streaming counter feeds Add", () => {
     );
 
     expect(result.status).toBe("completed");
-    // 3 values (10,11,12) + b=1 → Add fires 3 times. edge_update is
-    // throttled; the last active update carries the total.
-    const active = result.messages.filter(
+    // 3 values (10,11,12) + b=1 → Add fires 3 times. edge_update is throttled;
+    // the terminal "completed" update carries the total, with no trailing
+    // "active" (§1).
+    const edgeUpdates = result.messages.filter(
       (m) =>
         m.type === "edge_update" &&
-        (m as EdgeUpdate).edge_id === "e-sc-add" &&
-        (m as EdgeUpdate).status === "active"
-    );
-    expect(active.length).toBeGreaterThanOrEqual(1);
-    expect((active[active.length - 1] as EdgeUpdate).counter).toBe(3);
+        (m as EdgeUpdate).edge_id === "e-sc-add"
+    ) as EdgeUpdate[];
+    const completed = edgeUpdates.filter((m) => m.status === "completed");
+    expect(completed.length).toBeGreaterThanOrEqual(1);
+    expect(completed[completed.length - 1].counter).toBe(3);
+    expect(edgeUpdates[edgeUpdates.length - 1].status).toBe("completed");
   });
 });
 

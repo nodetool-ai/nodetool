@@ -71,9 +71,7 @@ export async function renderTimelineAudio(
   const length = Math.max(1, Math.ceil((durationMs / 1000) * sampleRate));
   const offline = new OfflineAudioContext(2, length, sampleRate);
 
-  // AudioGraph only ever calls BaseAudioContext members on its context, so the
-  // OfflineAudioContext stands in for the live AudioContext here.
-  const graph = new AudioGraph(offline as unknown as AudioContext);
+  const graph = new AudioGraph(offline);
   // currentTimeMs = 0: the renderer always mixes the whole timeline from t=0,
   // so each clip is scheduled at its absolute startMs on the offline clock.
   await graph.scheduleClips(validClips, tracks, 0);

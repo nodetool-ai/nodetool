@@ -36,7 +36,7 @@ describe("GroundedSearchNode", () => {
     const node = new GroundedSearchNode();
     const d = node.serialize();
     expect(d.query).toBe("");
-    expect(d.model).toBe("gemini-3-flash-preview");
+    expect(d.model).toBe("gemini-3.5-flash");
   });
 
   it("throws without API key", async () => {
@@ -80,7 +80,7 @@ describe("GroundedSearchNode", () => {
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const [url, opts] = mockFetch.mock.calls[0];
-    expect(url).toContain("gemini-3-flash-preview:generateContent");
+    expect(url).toContain("gemini-3.5-flash:generateContent");
     expect(url).toContain("key=test-key");
     expect(opts.method).toBe("POST");
 
@@ -166,7 +166,7 @@ describe("EmbeddingNode (Gemini)", () => {
     const node = new EmbeddingNode();
     const d = node.serialize();
     expect(d.input).toBe("");
-    expect(d.model).toBe("text-embedding-004");
+    expect(d.model).toBe("gemini-embedding-2");
   });
 
   it("throws without API key", async () => {
@@ -199,7 +199,7 @@ describe("EmbeddingNode (Gemini)", () => {
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const [url] = mockFetch.mock.calls[0];
-    expect(url).toContain("text-embedding-004:embedContent");
+    expect(url).toContain("gemini-embedding-2:embedContent");
     expect(result.output).toEqual([0.1, 0.2, 0.3]);
   });
 });
@@ -221,7 +221,9 @@ describe("ImageGenerationNode", () => {
     const node = new ImageGenerationNode();
     const d = node.serialize();
     expect(d.prompt).toBe("");
-    expect(d.model).toBe("imagen-4.0-generate-001");
+    expect(d.model).toBe("gemini-3.1-flash-image");
+    expect(d.aspect_ratio).toBe("1:1");
+    expect(d.resolution).toBe("1K");
   });
 
   it("throws when prompt is empty", async () => {
@@ -231,7 +233,7 @@ describe("ImageGenerationNode", () => {
     await expect(node.process()).rejects.toThrow(/prompt cannot be empty/i);
   });
 
-  it("uses generateImages endpoint for imagen models", async () => {
+  it("uses predict for Imagen models", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
@@ -241,13 +243,20 @@ describe("ImageGenerationNode", () => {
 
     const node = new ImageGenerationNode();
     node.assign({
-      prompt: "a cat"
+      prompt: "a cat",
+      model: "imagen-4.0-generate-001",
+      aspect_ratio: "16:9"
     });
     node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
     const result = await node.process();
 
     const [url] = mockFetch.mock.calls[0];
-    expect(url).toContain(":generateImages");
+    expect(url).toContain("imagen-4.0-generate-001:predict");
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body).toEqual({
+      instances: [{ prompt: "a cat" }],
+      parameters: { sampleCount: 1, aspectRatio: "16:9" }
+    });
     expect((result.output as Record<string, unknown>).data).toBe(
       "abc123base64"
     );
@@ -270,13 +279,27 @@ describe("ImageGenerationNode", () => {
     const node = new ImageGenerationNode();
     node.assign({
       prompt: "a dog",
-      model: "gemini-2.0-flash"
+      model: "gemini-3.1-flash-image",
+      image: { data: Buffer.from("input").toString("base64") },
+      aspect_ratio: "9:16",
+      resolution: "2K"
     });
     node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
     const result = await node.process();
 
     const [url] = mockFetch.mock.calls[0];
     expect(url).toContain(":generateContent");
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.contents[0].parts[1]).toEqual({
+      inlineData: {
+        mimeType: "image/png",
+        data: Buffer.from("input").toString("base64")
+      }
+    });
+    expect(body.generationConfig.imageConfig).toEqual({
+      aspectRatio: "9:16",
+      imageSize: "2K"
+    });
     expect((result.output as Record<string, unknown>).data).toBe("imagedata");
   });
 
@@ -291,7 +314,7 @@ describe("ImageGenerationNode", () => {
     const node = new ImageGenerationNode();
     node.assign({
       prompt: "bad content",
-      model: "gemini-2.0-flash"
+      model: "gemini-3.1-flash-image"
     });
     node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
     await expect(node.process()).rejects.toThrow(/Prohibited content/);
@@ -317,6 +340,7 @@ describe("TextToVideoGeminiNode", () => {
     expect(d.prompt).toBe("");
     expect(d.model).toBe("veo-3.1-generate-preview");
     expect(d.aspect_ratio).toBe("16:9");
+    expect(d.resolution).toBe("720p");
   });
 
   it("throws when prompt is empty", async () => {
@@ -344,7 +368,109 @@ describe("TextToVideoGeminiNode", () => {
     node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
     const result = await node.process();
 
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain("veo-3.1-generate-preview:predictLongRunning");
+    expect(JSON.parse(options.body).parameters).toEqual({
+      aspectRatio: "16:9",
+      resolution: "720p"
+    });
     expect((result.output as Record<string, unknown>).data).toBe("videobase64");
+  });
+
+  it("handles the nested Veo response shape", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        done: true,
+        response: {
+          generateVideoResponse: {
+            generatedSamples: [{ video: { videoBytes: "nestedvideo" } }]
+          }
+        }
+      })
+    });
+
+    const node = new TextToVideoGeminiNode();
+    node.assign({ prompt: "a sunset" });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
+
+    const result = await node.process();
+
+    expect((result.output as Record<string, unknown>).data).toBe("nestedvideo");
+  });
+
+  it("downloads a provider URI with the API key header", async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          done: true,
+          response: {
+            generatedVideos: [
+              {
+                video: {
+                  uri: "https://generativelanguage.googleapis.com/video.mp4"
+                }
+              }
+            ]
+          }
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        arrayBuffer: async () => Buffer.from("downloaded-video")
+      });
+
+    const node = new TextToVideoGeminiNode();
+    node.assign({ prompt: "a sunset" });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
+
+    const result = await node.process();
+
+    expect(mockFetch.mock.calls[1][0]).toBe(
+      "https://generativelanguage.googleapis.com/video.mp4"
+    );
+    expect(mockFetch.mock.calls[1][1]).toMatchObject({
+      headers: { "x-goog-api-key": "test-key" },
+      redirect: "manual"
+    });
+    expect((result.output as Record<string, unknown>).data).toBe(
+      Buffer.from("downloaded-video").toString("base64")
+    );
+  });
+
+  it("does not send the API key to a third-party video URI", async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          done: true,
+          response: {
+            generatedVideos: [
+              { video: { uri: "https://storage.googleapis.com/video.mp4" } }
+            ]
+          }
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        arrayBuffer: async () => Buffer.from("downloaded-video")
+      });
+
+    const node = new TextToVideoGeminiNode();
+    node.assign({ prompt: "a sunset" });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
+
+    await node.process();
+
+    expect(mockFetch.mock.calls[1][1]).toMatchObject({
+      headers: undefined,
+      redirect: "manual"
+    });
   });
 
   it("polls operation until done", async () => {
@@ -406,6 +532,7 @@ describe("ImageToVideoGeminiNode", () => {
     const d = node.serialize();
     expect(d.prompt).toBe("");
     expect(d.model).toBe("veo-3.1-generate-preview");
+    expect(d.resolution).toBe("720p");
   });
 
   it("throws when image is not provided", async () => {
@@ -437,8 +564,17 @@ describe("ImageToVideoGeminiNode", () => {
     const result = await node.process();
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
-    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body.instances[0].image).toBeDefined();
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain("veo-3.1-generate-preview:predictLongRunning");
+    const body = JSON.parse(options.body);
+    expect(body.instances[0].image).toEqual({
+      bytesBase64Encoded: b64data,
+      mimeType: "image/png"
+    });
+    expect(body.parameters).toEqual({
+      aspectRatio: "16:9",
+      resolution: "720p"
+    });
     expect((result.output as Record<string, unknown>).data).toBe("vid");
   });
 });
@@ -460,7 +596,7 @@ describe("TextToSpeechGeminiNode", () => {
     const node = new TextToSpeechGeminiNode();
     const d = node.serialize();
     expect(d.text).toBe("");
-    expect(d.model).toBe("gemini-2.5-pro-preview-tts");
+    expect(d.model).toBe("gemini-3.1-flash-tts-preview");
     expect(d.voice_name).toBe("kore");
   });
 
@@ -547,7 +683,7 @@ describe("TranscribeGeminiNode", () => {
   it("returns expected defaults", () => {
     const node = new TranscribeGeminiNode();
     const d = node.serialize();
-    expect(d.model).toBe("gemini-2.5-flash");
+    expect(d.model).toBe("gemini-3.5-flash");
   });
 
   it("throws when audio is not provided", async () => {
@@ -584,7 +720,7 @@ describe("TranscribeGeminiNode", () => {
 
     expect(result.output).toBe("Hello world");
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body.contents[0].parts[1].inline_data.mime_type).toBe("audio/wav");
+    expect(body.contents[0].parts[1].inlineData.mimeType).toBe("audio/wav");
   });
 });
 

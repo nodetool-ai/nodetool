@@ -44,10 +44,7 @@ export default function LanguageModelSelectionScreen() {
     {
       enabled: step === 2 && !!selectedProvider,
       select: (m) =>
-        normalizeModels<LanguageModel>(
-          m as unknown as Array<Record<string, unknown>>,
-          selectedProvider ?? ''
-        ),
+        normalizeModels<LanguageModel>(m, selectedProvider ?? ''),
     }
   );
   const models = useMemo(() => modelsQuery.data ?? [], [modelsQuery.data]);

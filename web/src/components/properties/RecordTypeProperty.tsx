@@ -10,7 +10,7 @@ import ColumnsManager from "../node/ColumnsManager";
 import { EditorButton, ButtonGroup, BORDER_RADIUS } from "../ui_primitives";
 // icons
 import TableRowsIcon from "@mui/icons-material/TableRows";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 
 const styles = (theme: Theme) =>
   css({
@@ -27,7 +27,7 @@ const styles = (theme: Theme) =>
       marginBottom: "0.5em"
     },
     button: {
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.grey[100],
       backgroundColor: theme.vars.palette.grey[600],
       border: 0,

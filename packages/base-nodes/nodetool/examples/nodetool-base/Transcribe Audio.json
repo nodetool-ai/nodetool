@@ -5,11 +5,11 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Transcribe Audio",
   "tool_name": null,
-  "description": "Convert speech to text using Whisper model with word-level timestamps",
+  "description": "Instant Whisper transcription: drop in an audio clip, get a clean text transcript back — one step, auto-runs on upload.",
   "tags": [
     "start",
     "audio",
-    "huggingface"
+    "asr"
   ],
   "thumbnail": null,
   "thumbnail_url": null,
@@ -20,7 +20,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎙️ Transcribe Audio\n\nDrop in an audio clip and Whisper converts the speech to text.\n\n**Pipeline:** Audio → Transcribe\n\n**Try this:** swap the ASR model or try a different language clip."
+          "comment": "# 🎙️ Transcribe Audio\n\nDrop in an audio clip and Whisper converts the speech to text. One node, one output — the app runs itself the moment you upload.\n\n**Pipeline:** Audio → Transcribe → Transcript\n\n**Try this:** swap the ASR model, or set a language code to skip auto-detection."
         },
         "ui_properties": {
           "selected": false,
@@ -64,7 +64,13 @@
         "parent_id": null,
         "type": "nodetool.text.AutomaticSpeechRecognition",
         "data": {
-          "model": {}
+          "model": {
+            "type": "asr_model",
+            "provider": "fal_ai",
+            "id": "openai/whisper-large-v3",
+            "name": "Whisper Large v3",
+            "path": null
+          }
         },
         "ui_properties": {
           "selected": false,
@@ -79,6 +85,22 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "output-transcript",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "transcript"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 79
+          },
+          "width": 260,
+          "title": "3️⃣ Transcript",
+          "selectable": true
+        }
       }
     ],
     "edges": [
@@ -91,6 +113,14 @@
         "ui_properties": {
           "className": "audio"
         }
+      },
+      {
+        "id": "edge-output-transcript",
+        "source": "c5191702-2a3c-440d-b3af-2db20e74a369",
+        "sourceHandle": "text",
+        "target": "output-transcript",
+        "targetHandle": "value",
+        "ui_properties": null
       }
     ]
   },

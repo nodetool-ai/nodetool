@@ -55,12 +55,11 @@ const resolveMediaUrl = (url: string | null | undefined): string | null => {
 
 const getAudioContextCtor = (): typeof AudioContext | null => {
   if (typeof window === "undefined") return null;
-  return (
-    window.AudioContext ??
-    (window as unknown as { webkitAudioContext?: typeof AudioContext })
-      .webkitAudioContext ??
-    null
-  );
+  if (window.AudioContext) return window.AudioContext;
+  if ("webkitAudioContext" in window) {
+    return window.webkitAudioContext as typeof AudioContext;
+  }
+  return null;
 };
 
 const formatTime = (seconds: number): string => {

@@ -87,7 +87,7 @@ The tray icon stays running while NodeTool is active and exposes quick actions:
 |--------|--------------|
 | Show NodeTool | Bring up the main window |
 | Chat | Launch the standalone chat window |
-| Mini Apps | Submenu of mini-apps published from your workflows |
+| Mini Apps | Submenu of your published apps |
 | Package Manager | Open the Package Manager window |
 | Log Viewer | Tail the backend log |
 | Settings | Native settings window |

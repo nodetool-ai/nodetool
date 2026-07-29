@@ -10,9 +10,9 @@ export default function DevelopersHero() {
       <div className="text-center max-w-4xl mx-auto">
         {/* Badge */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.25 }}
           className="mb-6"
         >
           <span className="inline-flex items-center gap-2 rounded-full bg-violet-500/10 px-4 py-1.5 text-sm font-medium text-violet-300 ring-1 ring-inset ring-violet-500/20">
@@ -24,9 +24,9 @@ export default function DevelopersHero() {
         {/* Title */}
         <motion.h1
           id="hero-title"
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
+          transition={{ duration: 0.25, delay: 0.05 }}
           className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight"
         >
           <span className="text-white">Extend the </span>
@@ -37,9 +37,9 @@ export default function DevelopersHero() {
 
         {/* Subtitle */}
         <motion.p
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
+          transition={{ duration: 0.25, delay: 0.05 }}
           className="mt-6 text-lg sm:text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed"
         >
           TypeScript-first, async Node.js under the hood, the same open-source
@@ -50,9 +50,9 @@ export default function DevelopersHero() {
 
         {/* Feature Pills */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
+          transition={{ duration: 0.25, delay: 0.08 }}
           className="mt-8 flex flex-wrap justify-center gap-3"
         >
           {[
@@ -73,9 +73,9 @@ export default function DevelopersHero() {
 
         {/* CTA Buttons */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
+          transition={{ duration: 0.25, delay: 0.05 }}
           className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
         >
           <a

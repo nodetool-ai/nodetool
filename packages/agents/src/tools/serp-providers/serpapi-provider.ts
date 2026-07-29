@@ -9,10 +9,6 @@
 
 import type { SerpProvider, SearchResult, SearchOptions } from "./index.js";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 interface SerpApiParams {
   engine: string;
   q?: string;
@@ -35,10 +31,6 @@ async function serpApiFetch(params: SerpApiParams): Promise<unknown> {
   }
   return res.json();
 }
-
-// ---------------------------------------------------------------------------
-// Provider
-// ---------------------------------------------------------------------------
 
 export class SerpApiProvider implements SerpProvider {
   private readonly apiKey: string;

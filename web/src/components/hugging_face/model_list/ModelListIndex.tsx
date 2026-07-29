@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { FlexColumn, FlexRow, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
+import { FlexColumn, FlexRow, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
 import { LoadingSpinner, Text } from "../../ui_primitives";
 import SearchOffIcon from "@mui/icons-material/SearchOff";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -20,6 +20,7 @@ import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 import ModelListItem from "./ModelListItem";
 import ModelsRightSidebar from "./ModelsRightSidebar";
 import LocalModelsHero from "./LocalModelsHero";
+import ModelOnboarding from "../onboarding/ModelOnboarding";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import type { UnifiedModel } from "../../../stores/ApiTypes";
 import { useModelCompatibility } from "./useModelCompatibility";
@@ -60,7 +61,7 @@ const styles = (theme: Theme) =>
       background: theme.vars.palette.action.hover
     },
     ".model-list": {
-      paddingBottom: `calc(${getSpacingPx(SPACING.micro)} * 125)` // was 250px
+      paddingBottom: `calc(${getSpacingPx(SPACING.micro)} * 125)`
     },
     ".model-list-header": {
       display: "flex",
@@ -71,7 +72,7 @@ const styles = (theme: Theme) =>
       padding: "1em 1.5em",
       position: "sticky",
       top: 0,
-      zIndex: 2,
+      zIndex: Z_INDEX.raised + 1,
       width: "100%",
       backdropFilter: theme.vars.palette.glass.blur,
       background: theme.vars.palette.background.paper,
@@ -122,6 +123,39 @@ const styles = (theme: Theme) =>
     },
     ".model-list-section": {
       marginBottom: theme.spacing(6)
+    },
+    // Phone width: the 300px category rail plus the 280px info rail leave the
+    // model list nothing to occupy, and the header row overflows sideways.
+    // Stack the rails, cap the category list, and drop the purely
+    // informational one.
+    [theme.breakpoints.down("sm")]: {
+      ".model-list-header": {
+        flexWrap: "wrap",
+        justifyContent: "flex-start",
+        padding: "0.75em 1em"
+      },
+      ".main": {
+        flexDirection: "column"
+      },
+      ".sidebar": {
+        width: "100%",
+        minWidth: 0,
+        maxWidth: "none",
+        height: "auto",
+        maxHeight: "35vh",
+        flexShrink: 0,
+        borderRight: "none",
+        borderBottom: `1px solid ${theme.vars.palette.divider}`
+      },
+      ".content": {
+        height: "auto",
+        flex: "1 1 auto",
+        minHeight: 0,
+        padding: "1em 0.75em 2em 0.75em"
+      },
+      ".right-sidebar": {
+        display: "none"
+      }
     }
   });
 
@@ -137,7 +171,8 @@ const ModelListIndex: React.FC = () => {
     selectedModelType, setSelectedModelType,
     modelSearchTerm, setModelSearchTerm,
     scope, setScope,
-    source, setSource
+    source, setSource,
+    sourceInitialized, setSourceInitialized
   } = useModelManagerStore(
     useShallow((state) => ({
       selectedModelType: state.selectedModelType,
@@ -147,12 +182,13 @@ const ModelListIndex: React.FC = () => {
       scope: state.scope,
       setScope: state.setScope,
       source: state.source,
-      setSource: state.setSource
+      setSource: state.setSource,
+      sourceInitialized: state.sourceInitialized,
+      setSourceInitialized: state.setSourceInitialized
     }))
   );
   const { activeWorker } = useWorkers();
   const workerName = activeWorker?.profile_name ?? activeWorker?.id ?? null;
-  const [visibleRange, setVisibleRange] = useState({ start: 0, stop: -1 });
   const { cacheStatuses, cachePending, cacheVersion, ensureStatuses } =
     useHfCacheStatusStore(
       useShallow((state) => ({
@@ -177,13 +213,13 @@ const ModelListIndex: React.FC = () => {
   const openDialog = useModelDownloadStore((state) => state.openDialog);
   const { getModelCompatibility } = useModelCompatibility();
 
-  const handleDeleteClick = (modelId: string) => {
+  const handleDeleteClick = useCallback((modelId: string) => {
     setModelToDelete(modelId);
-  };
+  }, []);
 
-  const handleCancelDelete = () => {
+  const handleCancelDelete = useCallback(() => {
     setModelToDelete(null);
-  };
+  }, []);
 
   const handleStartDownload = useCallback(
     (model: UnifiedModel) => {
@@ -231,13 +267,20 @@ const ModelListIndex: React.FC = () => {
       // view filters so the new one starts clean instead of inheriting stale
       // type/status selections.
       setSource(nextSource);
+      // An explicit choice settles the source: don't auto-default afterwards.
+      setSourceInitialized(true);
       setModelSearchTerm("");
       setSelectedModelType("All");
     },
-    [source, setSource, setModelSearchTerm, setSelectedModelType]
+    [
+      source,
+      setSource,
+      setSourceInitialized,
+      setModelSearchTerm,
+      setSelectedModelType
+    ]
   );
 
-  // Flatten the model list with headers for "All" view
   const flattenedList = useMemo(() => {
     if (selectedModelType !== "All") {
       return filteredModels.map(
@@ -289,28 +332,19 @@ const ModelListIndex: React.FC = () => {
   const lastVirtualIndex =
     virtualItems[virtualItems.length - 1]?.index ?? -1;
 
-  useEffect(() => {
-    setVisibleRange((prev) => {
-      if (prev.start === firstVirtualIndex && prev.stop === lastVirtualIndex) {
-        return prev;
-      }
-      return { start: firstVirtualIndex, stop: lastVirtualIndex };
-    });
-  }, [firstVirtualIndex, lastVirtualIndex]);
-
   const visibleModels = useMemo(() => {
-    if (visibleRange.stop < visibleRange.start) {
+    if (lastVirtualIndex < firstVirtualIndex) {
       return [];
     }
     const models: UnifiedModel[] = [];
-    for (let i = visibleRange.start; i <= visibleRange.stop; i += 1) {
+    for (let i = firstVirtualIndex; i <= lastVirtualIndex; i += 1) {
       const item = flattenedList[i];
       if (item?.type === "model") {
         models.push(item.model);
       }
     }
     return models;
-  }, [flattenedList, visibleRange]);
+  }, [flattenedList, firstVirtualIndex, lastVirtualIndex]);
 
   useEffect(() => {
     // The HF cache store scans the LOCAL filesystem; for the worker scope the
@@ -339,6 +373,37 @@ const ModelListIndex: React.FC = () => {
       setScope("local");
     }
   }, [scope, workerName, setScope]);
+
+  // First-run onboarding: when the local install is confirmed empty, open the
+  // "Get Started" guide instead of a blank Installed list. One-shot per session
+  // (sourceInitialized) so opening the still-empty Installed tab doesn't bounce
+  // back. Only for the plain local view — a worker or a non-default source means
+  // the user is already somewhere deliberate.
+  useEffect(() => {
+    if (
+      !sourceInitialized &&
+      source === "installed" &&
+      scope === "local" &&
+      workerName == null &&
+      !isLoading &&
+      !isFetching &&
+      Array.isArray(allModels) &&
+      allModels.length === 0
+    ) {
+      setSource("onboarding");
+      setSourceInitialized(true);
+    }
+  }, [
+    sourceInitialized,
+    source,
+    scope,
+    workerName,
+    isLoading,
+    isFetching,
+    allModels,
+    setSource,
+    setSourceInitialized
+  ]);
 
   if (isLoading) {
     return (
@@ -431,6 +496,12 @@ const ModelListIndex: React.FC = () => {
         />
       </Box>
       <Box className="main">
+        {source === "onboarding" ? (
+          <Box className="content">
+            <ModelOnboarding onDownload={handleStartDownload} />
+          </Box>
+        ) : (
+          <>
         <Box className="sidebar">
           <ModelTypeSidebar />
         </Box>
@@ -438,7 +509,7 @@ const ModelListIndex: React.FC = () => {
         <Box className="content">
           <LocalModelsHero models={allModels ?? []} />
           {isFetching && (
-            <Box sx={{ position: "absolute", top: "1em", right: "1em", zIndex: 1 }}>
+            <Box sx={{ position: "absolute", top: "1em", right: "1em", zIndex: Z_INDEX.raised }}>
               <LoadingSpinner size="small" />
             </Box>
           )}
@@ -485,9 +556,7 @@ const ModelListIndex: React.FC = () => {
                 />
               </Box>
               <Box sx={{ minWidth: 0 }}>
-                <Text size="bigger" weight={600} sx={{ lineHeight: 1.2 }}>
-                  {prettifyModelType(selectedModelType)}
-                </Text>
+                <Text size="big" weight={600} sx={{ lineHeight: 1.2 }}>{prettifyModelType(selectedModelType)}</Text>
                 <Text
                   size="small"
                   color="secondary"
@@ -530,9 +599,7 @@ const ModelListIndex: React.FC = () => {
                   if (item.type === "header") {
                     return (
                       <Box key={vi.key} style={itemStyle} sx={{ pt: 2, pb: 1 }}>
-                        <Text size="bigger">
-                          {prettifyModelType(item.modelType)}
-                        </Text>
+                        <Text size="big" >{prettifyModelType(item.modelType)}</Text>
                       </Box>
                     );
                   }
@@ -662,6 +729,8 @@ const ModelListIndex: React.FC = () => {
         <Box className="right-sidebar">
           <ModelsRightSidebar />
         </Box>
+          </>
+        )}
       </Box>
     </Box>
   );

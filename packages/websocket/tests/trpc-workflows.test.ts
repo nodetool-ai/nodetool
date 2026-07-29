@@ -3,6 +3,16 @@ import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
 
+// The workspace package entry points at built output. Keep this focused source
+// test independent of a full workspace build (which currently has unrelated
+// sharp type errors in runtime).
+vi.mock("@nodetool-ai/node-sdk", async (orig) => ({
+  ...(await orig<typeof import("@nodetool-ai/node-sdk")>()),
+  deriveWorkflowInterfaceV1: (
+    await import("../../node-sdk/src/workflow-interface.js")
+  ).deriveWorkflowInterfaceV1
+}));
+
 // ── Mock @nodetool-ai/models ────────────────────────────────────────────────────
 vi.mock("@nodetool-ai/models", async (orig) => {
   const actual = await orig<typeof import("@nodetool-ai/models")>();
@@ -13,8 +23,9 @@ vi.mock("@nodetool-ai/models", async (orig) => {
       get: vi.fn(),
       find: vi.fn(),
       paginate: vi.fn(),
+      paginateSummaries: vi.fn(),
+      getManyByIds: vi.fn(),
       paginatePublic: vi.fn(),
-      paginateTools: vi.fn(),
       create: vi.fn()
     },
     WorkflowVersion: {
@@ -26,26 +37,33 @@ vi.mock("@nodetool-ai/models", async (orig) => {
       findByVersion: vi.fn(),
       pruneOldVersions: vi.fn()
     },
-    Job: {
-      ...actual.Job,
-      create: vi.fn()
+    WorkflowCollaborator: {
+      ...actual.WorkflowCollaborator,
+      findFor: vi.fn(),
+      grantedWorkflowIds: vi.fn(),
+      listForWorkflow: vi.fn(),
+      listForUser: vi.fn(),
+      upsert: vi.fn(),
+      remove: vi.fn(),
+      removeAllForWorkflow: vi.fn()
+    },
+    WorkflowShare: {
+      ...actual.WorkflowShare,
+      get: vi.fn(),
+      findByToken: vi.fn(),
+      listForWorkflow: vi.fn(),
+      ensure: vi.fn(),
+      removeAllForWorkflow: vi.fn()
     }
-  };
-});
-
-// ── Mock @nodetool-ai/kernel ────────────────────────────────────────────────────
-vi.mock("@nodetool-ai/kernel", () => {
-  return {
-    WorkflowRunner: vi.fn()
   };
 });
 
 import {
   Workflow,
   WorkflowVersion,
-  Job
+  WorkflowCollaborator,
+  WorkflowShare
 } from "@nodetool-ai/models";
-import { WorkflowRunner } from "@nodetool-ai/kernel";
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -55,7 +73,8 @@ function makeCtx(overrides: Partial<Context> = {}): Context {
     registry: {
       has: vi.fn().mockReturnValue(false),
       resolve: vi.fn(),
-      getMetadata: vi.fn().mockReturnValue(null)
+      getMetadata: vi.fn().mockReturnValue(null),
+      resolveMetadata: vi.fn().mockReturnValue(undefined)
     } as never,
     apiOptions: { metadataRoots: [], registry: {} as never } as never,
     pythonBridge: {
@@ -131,18 +150,8 @@ function makeVersion(opts: {
 describe("workflows router", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Set WorkflowRunner constructor mock for each test.
-    (WorkflowRunner as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      function () {
-        return {
-          run: vi.fn().mockResolvedValue({
-            status: "completed",
-            outputs: {},
-            error: null,
-            messages: []
-          })
-        };
-      }
+    (WorkflowCollaborator.findFor as ReturnType<typeof vi.fn>).mockResolvedValue(
+      null
     );
   });
 
@@ -170,6 +179,21 @@ describe("workflows router", () => {
       const caller = createCaller(makeCtx());
       const result = await caller.workflows.list({});
       expect(result.next).toBeNull();
+    });
+
+    it("forwards the cursor to workflow pagination", async () => {
+      (Workflow.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([
+        [],
+        ""
+      ]);
+      const caller = createCaller(makeCtx());
+
+      await caller.workflows.list({ limit: 25, cursor: "wf-cursor" });
+
+      expect(Workflow.paginate).toHaveBeenCalledWith(
+        "user-1",
+        expect.objectContaining({ limit: 25, startKey: "wf-cursor" })
+      );
     });
 
     it("rejects unauthenticated callers", async () => {
@@ -282,29 +306,6 @@ describe("workflows router", () => {
     });
   });
 
-  // ── names ─────────────────────────────────────────────────────────────────
-  describe("names", () => {
-    it("returns id→name map", async () => {
-      const wf1 = makeWorkflow({ id: "wf-1", name: "Alpha" });
-      const wf2 = makeWorkflow({ id: "wf-2", name: "Beta" });
-      (Workflow.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([
-        [wf1, wf2],
-        ""
-      ]);
-
-      const caller = createCaller(makeCtx());
-      const result = await caller.workflows.names();
-      expect(result).toEqual({ "wf-1": "Alpha", "wf-2": "Beta" });
-    });
-
-    it("rejects unauthenticated callers", async () => {
-      const caller = createCaller(makeCtx({ userId: null }));
-      await expect(caller.workflows.names()).rejects.toMatchObject({
-        code: "UNAUTHORIZED"
-      });
-    });
-  });
-
   // ── get ───────────────────────────────────────────────────────────────────
   describe("get", () => {
     it("returns an owned workflow", async () => {
@@ -357,6 +358,181 @@ describe("workflows router", () => {
       await expect(caller.workflows.get({ id: "wf-1" })).rejects.toMatchObject({
         code: "UNAUTHORIZED"
       });
+    });
+  });
+
+  describe("sdkSummaries", () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it("returns only compact identity and revision fields", async () => {
+      vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
+      (
+        Workflow.paginateSummaries as ReturnType<typeof vi.fn>
+      ).mockResolvedValue([
+        [
+          {
+            id: "wf-1",
+            name: "Large workflow",
+            description: "Description",
+            updated_at: "2026-07-23T01:02:03.000Z",
+            run_mode: "workflow"
+          }
+        ],
+        "next-id"
+      ]);
+      const caller = createCaller(makeCtx());
+
+      const result = await caller.workflows.sdkSummaries({ limit: 25 });
+
+      expect(result).toEqual({
+        workflows: [
+          {
+            id: "wf-1",
+            name: "Large workflow",
+            description: "Description",
+            revision: "2026-07-23T01:02:03.000Z",
+            registry_revision: null,
+            run_mode: "workflow"
+          }
+        ],
+        next: "next-id"
+      });
+      expect(Workflow.paginateSummaries).toHaveBeenCalledWith("user-1", {
+        limit: 25
+      });
+    });
+  });
+
+  describe("interface", () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it("is unavailable while the SDK feature flag is disabled", async () => {
+      vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "1");
+      const caller = createCaller(makeCtx());
+
+      await expect(
+        caller.workflows.interface({ id: "wf-1", version: 1 })
+      ).rejects.toMatchObject({
+        code: "INTERNAL_SERVER_ERROR",
+        cause: { apiCode: "SERVICE_UNAVAILABLE" }
+      });
+      expect(Workflow.get).not.toHaveBeenCalled();
+    });
+
+    it("derives a compact authoritative interface when enabled", async () => {
+      vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
+      const wf = makeWorkflow({
+        id: "wf-1",
+        graph: {
+          nodes: [
+            {
+              id: "input-1",
+              type: "nodetool.input.StringInput",
+              properties: { name: "prompt", value: "hello" }
+            },
+            {
+              id: "output-1",
+              type: "nodetool.output.Output",
+              properties: { name: "text" }
+            }
+          ],
+          edges: [
+            {
+              id: "edge-1",
+              source: "input-1",
+              sourceHandle: "output",
+              target: "output-1",
+              targetHandle: "value"
+            }
+          ]
+        }
+      });
+      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
+      const stringMetadata = {
+        title: "String Input",
+        description: "",
+        namespace: "nodetool.input",
+        node_type: "nodetool.input.StringInput",
+        properties: [],
+        outputs: [
+          {
+            name: "output",
+            type: { type: "str", optional: false, type_args: [] }
+          }
+        ]
+      };
+      const resolveMetadata = vi.fn().mockImplementation((nodeType: string) =>
+        nodeType === "nodetool.input.StringInput" ? stringMetadata : undefined
+      );
+      const registry = { resolveMetadata, revision: 0 };
+      const caller = createCaller(makeCtx({ registry: registry as never }));
+
+      const result = await caller.workflows.interface({
+        id: "wf-1",
+        version: 1
+      });
+
+      expect(result).toMatchObject({
+        version: 1,
+        workflow_id: "wf-1",
+        etag: "etag-123",
+        source: "server",
+        inputs: [{ node_id: "input-1", name: "prompt", default: "hello" }],
+        outputs: [{ node_id: "output-1", name: "text" }],
+        diagnostics: []
+      });
+      expect(JSON.stringify(result)).not.toContain("edges");
+      expect(JSON.stringify(result)).not.toContain("properties");
+
+      const callsAfterFirstDerivation = resolveMetadata.mock.calls.length;
+      await caller.workflows.interface({ id: "wf-1", version: 1 });
+      expect(resolveMetadata).toHaveBeenCalledTimes(callsAfterFirstDerivation);
+
+      registry.revision++;
+      await caller.workflows.interface({ id: "wf-1", version: 1 });
+      expect(resolveMetadata.mock.calls.length).toBeGreaterThan(
+        callsAfterFirstDerivation
+      );
+    });
+
+    it("derives a bounded interface batch without per-workflow lookups", async () => {
+      vi.stubEnv("NODETOOL_DISABLE_SDK_WORKFLOW_INTERFACE_V1", "0");
+      const first = makeWorkflow({ id: "wf-1" });
+      const second = makeWorkflow({ id: "wf-2" });
+      (Workflow.getManyByIds as ReturnType<typeof vi.fn>).mockResolvedValue(
+        new Map([
+          [first.id, first],
+          [second.id, second]
+        ])
+      );
+      (
+        WorkflowCollaborator.grantedWorkflowIds as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(new Set());
+      const caller = createCaller(makeCtx());
+
+      const result = await caller.workflows.interfaces({
+        ids: [second.id, "missing", first.id],
+        version: 1
+      });
+
+      expect(result.interfaces.map((item) => item.workflow_id)).toEqual([
+        second.id,
+        first.id
+      ]);
+      expect(result.errors).toEqual([
+        {
+          workflow_id: "missing",
+          code: "workflow_not_found",
+          message: "Workflow not found"
+        }
+      ]);
+      expect(Workflow.get).not.toHaveBeenCalled();
+      expect(Workflow.getManyByIds).toHaveBeenCalledTimes(1);
+      expect(WorkflowCollaborator.grantedWorkflowIds).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -490,59 +666,6 @@ describe("workflows router", () => {
     });
   });
 
-  // ── run ───────────────────────────────────────────────────────────────────
-  describe("run", () => {
-    it("runs a workflow and returns job result", async () => {
-      const wf = makeWorkflow({
-        id: "wf-1",
-        user_id: "user-1",
-        run_mode: "workflow"
-      });
-      (Workflow.find as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
-
-      const job = {
-        id: "job-1",
-        markCompleted: vi.fn(),
-        markFailed: vi.fn(),
-        markCancelled: vi.fn(),
-        save: vi.fn().mockResolvedValue(undefined)
-      };
-      (Job.create as ReturnType<typeof vi.fn>).mockResolvedValue(job);
-
-      const caller = createCaller(makeCtx());
-      const result = await caller.workflows.run({ id: "wf-1" });
-      expect(result.job_id).toBe("job-1");
-      expect(result.workflow_id).toBe("wf-1");
-      expect(result.status).toBe("completed");
-      expect(job.markCompleted).toHaveBeenCalled();
-    });
-
-    it("throws NOT_FOUND when workflow does not exist", async () => {
-      (Workflow.find as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-      const caller = createCaller(makeCtx());
-      await expect(caller.workflows.run({ id: "missing" })).rejects.toMatchObject({
-        code: "NOT_FOUND"
-      });
-    });
-
-    it("throws BAD_REQUEST for unsupported run mode", async () => {
-      const wf = makeWorkflow({ id: "wf-1", run_mode: "chat" });
-      (Workflow.find as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
-
-      const caller = createCaller(makeCtx());
-      await expect(caller.workflows.run({ id: "wf-1" })).rejects.toMatchObject({
-        code: "BAD_REQUEST"
-      });
-    });
-
-    it("rejects unauthenticated callers", async () => {
-      const caller = createCaller(makeCtx({ userId: null }));
-      await expect(caller.workflows.run({ id: "wf-1" })).rejects.toMatchObject({
-        code: "UNAUTHORIZED"
-      });
-    });
-  });
-
   // ── autosave ──────────────────────────────────────────────────────────────
   describe("autosave", () => {
     it("saves workflow and creates a version", async () => {
@@ -611,31 +734,6 @@ describe("workflows router", () => {
     });
   });
 
-  // ── tools ─────────────────────────────────────────────────────────────────
-  describe("tools", () => {
-    it("returns workflow tools list", async () => {
-      const wf = makeWorkflow({ id: "wf-1", name: "My Tool" });
-      (wf as unknown as { tool_name: string }).tool_name = "my_tool";
-      (Workflow.paginateTools as ReturnType<typeof vi.fn>).mockResolvedValue([
-        [wf],
-        ""
-      ]);
-
-      const caller = createCaller(makeCtx());
-      const result = await caller.workflows.tools({ limit: 100 });
-      expect(result.workflows).toHaveLength(1);
-      expect(result.workflows[0]?.name).toBe("My Tool");
-      expect(result.next).toBeNull();
-    });
-
-    it("rejects unauthenticated callers", async () => {
-      const caller = createCaller(makeCtx({ userId: null }));
-      await expect(caller.workflows.tools({})).rejects.toMatchObject({
-        code: "UNAUTHORIZED"
-      });
-    });
-  });
-
   // ── examples ──────────────────────────────────────────────────────────────
   describe("examples", () => {
     it("returns examples list (empty when no examplesDir configured)", async () => {
@@ -701,69 +799,6 @@ describe("workflows router", () => {
     });
   });
 
-  // ── app ───────────────────────────────────────────────────────────────────
-  describe("app", () => {
-    it("returns app metadata with default baseUrl", async () => {
-      const caller = createCaller(makeCtx());
-      const result = await caller.workflows.app({ id: "wf-1" });
-      expect(result.workflow_id).toBe("wf-1");
-      expect(result.api_url).toBe("http://127.0.0.1:7777");
-    });
-
-    it("uses provided baseUrl", async () => {
-      const caller = createCaller(makeCtx());
-      const result = await caller.workflows.app({
-        id: "wf-1",
-        baseUrl: "https://example.com"
-      });
-      expect(result.api_url).toBe("https://example.com");
-    });
-
-    it("rejects unauthenticated callers", async () => {
-      const caller = createCaller(makeCtx({ userId: null }));
-      await expect(caller.workflows.app({ id: "wf-1" })).rejects.toMatchObject({
-        code: "UNAUTHORIZED"
-      });
-    });
-  });
-
-  // ── generateName ──────────────────────────────────────────────────────────
-  describe("generateName", () => {
-    it("derives a name from node types", async () => {
-      const wf = makeWorkflow({
-        id: "wf-1",
-        user_id: "user-1",
-        graph: {
-          nodes: [
-            { id: "n1", type: "nodetool.text.Generate" },
-            { id: "n2", type: "nodetool.image.Transform" }
-          ],
-          edges: []
-        }
-      });
-      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
-
-      const caller = createCaller(makeCtx());
-      const result = await caller.workflows.generateName({ id: "wf-1" });
-      expect(result.name).toContain("Workflow");
-    });
-
-    it("throws NOT_FOUND when workflow does not exist", async () => {
-      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-      const caller = createCaller(makeCtx());
-      await expect(
-        caller.workflows.generateName({ id: "missing" })
-      ).rejects.toMatchObject({ code: "NOT_FOUND" });
-    });
-
-    it("rejects unauthenticated callers", async () => {
-      const caller = createCaller(makeCtx({ userId: null }));
-      await expect(
-        caller.workflows.generateName({ id: "wf-1" })
-      ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
-    });
-  });
-
   describe("terminalOutputs", () => {
     it("returns only terminal media-output nodes", async () => {
       const wf = makeWorkflow({
@@ -790,6 +825,30 @@ describe("workflows router", () => {
       const caller = createCaller(makeCtx());
       const result = await caller.workflows.terminalOutputs({ id: "wf-1" });
       expect(result.outputs.map((output) => output.id)).toEqual(["img-out"]);
+    });
+
+    // Regression (#13): a client-controlled node type equal to an inherited
+    // Object.prototype key ("toString", "constructor", …) must NOT be treated
+    // as a terminal media-output node. The `in` operator matched prototype
+    // keys; Object.hasOwn does not.
+    it("does not classify Object.prototype-keyed node types as media outputs", async () => {
+      const wf = makeWorkflow({
+        id: "wf-proto",
+        user_id: "user-1",
+        graph: {
+          nodes: [
+            { id: "evil-1", type: "toString", data: {} },
+            { id: "evil-2", type: "constructor", data: {} },
+            { id: "evil-3", type: "hasOwnProperty", data: {} }
+          ],
+          edges: []
+        }
+      });
+      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.terminalOutputs({ id: "wf-proto" });
+      expect(result.outputs).toEqual([]);
     });
   });
 
@@ -855,41 +914,6 @@ describe("workflows router", () => {
         const caller = createCaller(makeCtx({ userId: null }));
         await expect(
           caller.workflows.versions.create({ id: "wf-1" })
-        ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
-      });
-    });
-
-    describe("get", () => {
-      it("returns a specific version by number", async () => {
-        const wf = makeWorkflow({ id: "wf-1", user_id: "user-1" });
-        (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
-        const ver = makeVersion({ id: "ver-1", version: 1 });
-        (WorkflowVersion.findByVersion as ReturnType<typeof vi.fn>).mockResolvedValue(ver);
-
-        const caller = createCaller(makeCtx());
-        const result = await caller.workflows.versions.get({
-          id: "wf-1",
-          version: 1
-        });
-        expect(result.id).toBe("ver-1");
-        expect(result.version).toBe(1);
-      });
-
-      it("throws NOT_FOUND for missing version", async () => {
-        const wf = makeWorkflow({ id: "wf-1", user_id: "user-1" });
-        (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
-        (WorkflowVersion.findByVersion as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-
-        const caller = createCaller(makeCtx());
-        await expect(
-          caller.workflows.versions.get({ id: "wf-1", version: 99 })
-        ).rejects.toMatchObject({ code: "NOT_FOUND" });
-      });
-
-      it("rejects unauthenticated callers", async () => {
-        const caller = createCaller(makeCtx({ userId: null }));
-        await expect(
-          caller.workflows.versions.get({ id: "wf-1", version: 1 })
         ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
       });
     });
@@ -962,9 +986,12 @@ describe("workflows router", () => {
         ).rejects.toMatchObject({ code: "NOT_FOUND" });
       });
 
-      it("throws NOT_FOUND when user doesn't own the version", async () => {
+      it("throws NOT_FOUND when user owns neither the version nor the workflow", async () => {
         const ver = makeVersion({ id: "ver-1", user_id: "other-user" });
         (WorkflowVersion.get as ReturnType<typeof vi.fn>).mockResolvedValue(ver);
+        (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(
+          makeWorkflow({ id: "wf-1", user_id: "other-owner" })
+        );
 
         const caller = createCaller(makeCtx());
         await expect(
@@ -976,6 +1003,22 @@ describe("workflows router", () => {
         expect(ver.delete).not.toHaveBeenCalled();
       });
 
+      it("lets the workflow owner delete a collaborator's version", async () => {
+        const ver = makeVersion({ id: "ver-1", user_id: "collaborator" });
+        (WorkflowVersion.get as ReturnType<typeof vi.fn>).mockResolvedValue(ver);
+        (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(
+          makeWorkflow({ id: "wf-1", user_id: "user-1" })
+        );
+
+        const caller = createCaller(makeCtx());
+        const result = await caller.workflows.versions.delete({
+          id: "wf-1",
+          version_id: "ver-1"
+        });
+        expect(result.ok).toBe(true);
+        expect(ver.delete).toHaveBeenCalled();
+      });
+
       it("rejects unauthenticated callers", async () => {
         const caller = createCaller(makeCtx({ userId: null }));
         await expect(
@@ -985,6 +1028,327 @@ describe("workflows router", () => {
           })
         ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
       });
+    });
+  });
+});
+
+// ── sharing ──────────────────────────────────────────────────────────────────
+
+describe("workflows.sharing router", () => {
+  const asMock = (fn: unknown) => fn as ReturnType<typeof vi.fn>;
+
+  function makeGrant(opts: {
+    workflow_id?: string;
+    user_id?: string;
+    role?: "viewer" | "editor";
+  }) {
+    return {
+      workflow_id: opts.workflow_id ?? "wf-1",
+      user_id: opts.user_id ?? "user-2",
+      role: opts.role ?? "viewer",
+      invited_by: "user-1",
+      created_at: "2026-07-10T00:00:00Z",
+      save: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn().mockResolvedValue(undefined)
+    };
+  }
+
+  function makeShare(opts: {
+    id?: string;
+    workflow_id?: string;
+    role?: "viewer" | "editor";
+    revoked_at?: string | null;
+  }) {
+    const revokedAt = opts.revoked_at ?? null;
+    return {
+      id: opts.id ?? "share-1",
+      workflow_id: opts.workflow_id ?? "wf-1",
+      token: "tok_abc",
+      role: opts.role ?? "viewer",
+      created_by: "user-1",
+      created_at: "2026-07-10T00:00:00Z",
+      revoked_at: revokedAt,
+      isRevoked: revokedAt != null,
+      revoke: vi.fn().mockResolvedValue(undefined),
+      save: vi.fn().mockResolvedValue(undefined)
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    asMock(WorkflowCollaborator.findFor).mockResolvedValue(null);
+  });
+
+  describe("collaborator access to core procedures", () => {
+    it("get allows a viewer collaborator on a private workflow", async () => {
+      const wf = makeWorkflow({ id: "wf-1", user_id: "owner-1" });
+      asMock(Workflow.get).mockResolvedValue(wf);
+      asMock(WorkflowCollaborator.findFor).mockResolvedValue(
+        makeGrant({ user_id: "user-1", role: "viewer" })
+      );
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.get({ id: "wf-1" });
+      expect(result.id).toBe("wf-1");
+      expect(WorkflowCollaborator.findFor).toHaveBeenCalledWith(
+        "wf-1",
+        "user-1"
+      );
+    });
+
+    it("get still hides private workflows without a grant", async () => {
+      const wf = makeWorkflow({ id: "wf-1", user_id: "owner-1" });
+      asMock(Workflow.get).mockResolvedValue(wf);
+
+      const caller = createCaller(makeCtx());
+      await expect(caller.workflows.get({ id: "wf-1" })).rejects.toMatchObject(
+        { code: "NOT_FOUND" }
+      );
+    });
+
+    it("update allows an editor collaborator but preserves access", async () => {
+      const wf = makeWorkflow({
+        id: "wf-1",
+        user_id: "owner-1",
+        access: "private"
+      });
+      asMock(Workflow.get).mockResolvedValue(wf);
+      asMock(WorkflowCollaborator.findFor).mockResolvedValue(
+        makeGrant({ user_id: "user-1", role: "editor" })
+      );
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.update({
+        id: "wf-1",
+        name: "Renamed",
+        graph: { nodes: [], edges: [] },
+        access: "public"
+      });
+      expect(result.name).toBe("Renamed");
+      // An editor cannot flip visibility.
+      expect(wf.access).toBe("private");
+      expect(wf.save).toHaveBeenCalled();
+    });
+
+    it("update rejects a viewer collaborator", async () => {
+      const wf = makeWorkflow({ id: "wf-1", user_id: "owner-1" });
+      asMock(Workflow.get).mockResolvedValue(wf);
+      asMock(WorkflowCollaborator.findFor).mockResolvedValue(
+        makeGrant({ user_id: "user-1", role: "viewer" })
+      );
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workflows.update({
+          id: "wf-1",
+          name: "Nope",
+          graph: { nodes: [], edges: [] }
+        })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+  });
+
+  describe("sharing.get", () => {
+    it("returns collaborators and shares for the owner", async () => {
+      const wf = makeWorkflow({ id: "wf-1", user_id: "user-1" });
+      asMock(Workflow.get).mockResolvedValue(wf);
+      asMock(WorkflowCollaborator.listForWorkflow).mockResolvedValue([
+        makeGrant({ user_id: "user-2", role: "editor" })
+      ]);
+      asMock(WorkflowShare.listForWorkflow).mockResolvedValue([
+        makeShare({ role: "viewer" })
+      ]);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.sharing.get({ id: "wf-1" });
+      expect(result.collaborators).toHaveLength(1);
+      expect(result.collaborators[0].role).toBe("editor");
+      expect(result.shares[0].token).toBe("tok_abc");
+    });
+
+    it("rejects non-owners, including editors", async () => {
+      const wf = makeWorkflow({ id: "wf-1", user_id: "owner-1" });
+      asMock(Workflow.get).mockResolvedValue(wf);
+      asMock(WorkflowCollaborator.findFor).mockResolvedValue(
+        makeGrant({ user_id: "user-1", role: "editor" })
+      );
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workflows.sharing.get({ id: "wf-1" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+  });
+
+  describe("sharing.createLink / revokeLink", () => {
+    it("mints a share link for the owner", async () => {
+      const wf = makeWorkflow({ id: "wf-1", user_id: "user-1" });
+      asMock(Workflow.get).mockResolvedValue(wf);
+      asMock(WorkflowShare.ensure).mockResolvedValue(
+        makeShare({ role: "editor" })
+      );
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.sharing.createLink({
+        id: "wf-1",
+        role: "editor"
+      });
+      expect(result.token).toBe("tok_abc");
+      expect(WorkflowShare.ensure).toHaveBeenCalledWith({
+        workflowId: "wf-1",
+        role: "editor",
+        createdBy: "user-1"
+      });
+    });
+
+    it("revokes a link belonging to the workflow", async () => {
+      const wf = makeWorkflow({ id: "wf-1", user_id: "user-1" });
+      asMock(Workflow.get).mockResolvedValue(wf);
+      const share = makeShare({ id: "share-1", workflow_id: "wf-1" });
+      asMock(WorkflowShare.get).mockResolvedValue(share);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.sharing.revokeLink({
+        id: "wf-1",
+        share_id: "share-1"
+      });
+      expect(result.ok).toBe(true);
+      expect(share.revoke).toHaveBeenCalled();
+    });
+
+    it("rejects revoking a share of a different workflow", async () => {
+      const wf = makeWorkflow({ id: "wf-1", user_id: "user-1" });
+      asMock(Workflow.get).mockResolvedValue(wf);
+      asMock(WorkflowShare.get).mockResolvedValue(
+        makeShare({ id: "share-1", workflow_id: "wf-other" })
+      );
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workflows.sharing.revokeLink({ id: "wf-1", share_id: "share-1" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+  });
+
+  describe("sharing.accept", () => {
+    it("grants the caller the link's role", async () => {
+      const wf = makeWorkflow({ id: "wf-1", user_id: "owner-1" });
+      asMock(WorkflowShare.findByToken).mockResolvedValue(
+        makeShare({ role: "editor" })
+      );
+      asMock(Workflow.get).mockResolvedValue(wf);
+      asMock(WorkflowCollaborator.upsert).mockResolvedValue(
+        makeGrant({ user_id: "user-1", role: "editor" })
+      );
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.sharing.accept({
+        token: "tok_abc"
+      });
+      expect(result.workflow.id).toBe("wf-1");
+      expect(result.role).toBe("editor");
+      expect(WorkflowCollaborator.upsert).toHaveBeenCalledWith({
+        workflowId: "wf-1",
+        userId: "user-1",
+        role: "editor",
+        invitedBy: "user-1"
+      });
+    });
+
+    it("does not grant the owner a collaborator row", async () => {
+      const wf = makeWorkflow({ id: "wf-1", user_id: "user-1" });
+      asMock(WorkflowShare.findByToken).mockResolvedValue(makeShare({}));
+      asMock(Workflow.get).mockResolvedValue(wf);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.sharing.accept({
+        token: "tok_abc"
+      });
+      expect(result.workflow.id).toBe("wf-1");
+      expect(WorkflowCollaborator.upsert).not.toHaveBeenCalled();
+    });
+
+    it("rejects revoked tokens", async () => {
+      asMock(WorkflowShare.findByToken).mockResolvedValue(
+        makeShare({ revoked_at: "2026-07-09T00:00:00Z" })
+      );
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workflows.sharing.accept({ token: "tok_abc" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+
+    it("rejects unknown tokens", async () => {
+      asMock(WorkflowShare.findByToken).mockResolvedValue(null);
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workflows.sharing.accept({ token: "nope" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+  });
+
+  describe("sharing.removeCollaborator", () => {
+    it("owner removes a collaborator", async () => {
+      const wf = makeWorkflow({ id: "wf-1", user_id: "user-1" });
+      asMock(Workflow.get).mockResolvedValue(wf);
+      asMock(WorkflowCollaborator.remove).mockResolvedValue(true);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.sharing.removeCollaborator({
+        id: "wf-1",
+        user_id: "user-2"
+      });
+      expect(result.ok).toBe(true);
+      expect(WorkflowCollaborator.remove).toHaveBeenCalledWith(
+        "wf-1",
+        "user-2"
+      );
+    });
+
+    it("a collaborator can remove themself without ownership", async () => {
+      asMock(WorkflowCollaborator.remove).mockResolvedValue(true);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.sharing.removeCollaborator({
+        id: "wf-1",
+        user_id: "user-1"
+      });
+      expect(result.ok).toBe(true);
+      // Ownership was never checked — Workflow.get untouched.
+      expect(Workflow.get).not.toHaveBeenCalled();
+    });
+
+    it("a non-owner cannot remove someone else", async () => {
+      const wf = makeWorkflow({ id: "wf-1", user_id: "owner-1" });
+      asMock(Workflow.get).mockResolvedValue(wf);
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workflows.sharing.removeCollaborator({
+          id: "wf-1",
+          user_id: "user-2"
+        })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+  });
+
+  describe("sharing.sharedWithMe", () => {
+    it("sharedWithMe lists granted workflows with roles", async () => {
+      asMock(WorkflowCollaborator.listForUser).mockResolvedValue([
+        makeGrant({ workflow_id: "wf-1", user_id: "user-1", role: "editor" }),
+        makeGrant({ workflow_id: "wf-gone", user_id: "user-1", role: "viewer" })
+      ]);
+      asMock(Workflow.get).mockImplementation(async (id: string) =>
+        id === "wf-1" ? makeWorkflow({ id: "wf-1", user_id: "owner-1" }) : null
+      );
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.sharing.sharedWithMe({});
+      expect(result.workflows).toHaveLength(1);
+      expect(result.workflows[0].id).toBe("wf-1");
+      expect(result.workflows[0].shared_role).toBe("editor");
     });
   });
 });

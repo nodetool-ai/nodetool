@@ -9,6 +9,7 @@
 import { run as runWorkflow } from "@nodetool-ai/dsl";
 import type { Workflow } from "@nodetool-ai/dsl";
 import { tsImport } from "tsx/esm/api";
+import { pathToFileURL } from "node:url";
 
 export function isWorkflow(value: unknown): value is Workflow {
   return (
@@ -22,7 +23,8 @@ export function isWorkflow(value: unknown): value is Workflow {
 export async function runDslFile(
   filePath: string
 ): Promise<Record<string, Record<string, unknown>>> {
-  const mod = (await tsImport(filePath, import.meta.url)) as Record<
+  const moduleUrl = pathToFileURL(filePath).href;
+  const mod = (await tsImport(moduleUrl, import.meta.url)) as Record<
     string,
     unknown
   >;

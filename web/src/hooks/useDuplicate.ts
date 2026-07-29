@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { Node, Edge, useReactFlow } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 import { DUPLICATE_SPACING } from "../config/constants";
-import { useNodes } from "../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
 import { shallow } from "zustand/shallow";
 
 /**
@@ -22,23 +22,21 @@ export const useDuplicateNodes = (
   keepUpstreamConnections: boolean = true
 ): (() => void) => {
   const reactFlow = useReactFlow();
-  const {
-    nodes,
-    edges,
-    setNodes,
-    setEdges,
-    generateNodeIds,
-    getSelectedNodes
-  } = useNodes((state) => ({
-    nodes: state.nodes,
-    edges: state.edges,
-    setNodes: state.setNodes,
-    setEdges: state.setEdges,
-    getSelectedNodes: state.getSelectedNodes,
-    generateNodeIds: state.generateNodeIds
-  }), shallow);
+  // Subscribe to the actions only; `nodes`/`edges` are read lazily below so
+  // the returned callback keeps a stable identity.
+  const { setNodes, setEdges, generateNodeIds, getSelectedNodes } = useNodes(
+    (state) => ({
+      setNodes: state.setNodes,
+      setEdges: state.setEdges,
+      getSelectedNodes: state.getSelectedNodes,
+      generateNodeIds: state.generateNodeIds
+    }),
+    shallow
+  );
+  const nodeStore = useNodeStoreRef();
   return useCallback(() => {
     const getNodesBounds = reactFlow.getNodesBounds;
+    const { nodes, edges } = nodeStore.getState();
     const selectedNodes = getSelectedNodes();
 
     if (selectedNodes.length === 0) {
@@ -49,7 +47,6 @@ export const useDuplicateNodes = (
     const offsetX = vertical ? 0 : nodeBounds.width + DUPLICATE_SPACING;
     const offsetY = vertical ? nodeBounds.height + DUPLICATE_SPACING : 0;
 
-    // Generate new sequential IDs for all selected nodes
     const newIds = generateNodeIds(selectedNodes.length);
     const oldToNewIds = new Map<string, string>();
     selectedNodes.forEach((node, index) => {
@@ -70,7 +67,6 @@ export const useDuplicateNodes = (
           : parentId
         : undefined;
 
-      // Apply offset only if the parent is not duplicated
       const positionOffsetX = isParentDuplicated ? 0 : offsetX;
       const positionOffsetY = isParentDuplicated ? 0 : offsetY;
 
@@ -97,18 +93,18 @@ export const useDuplicateNodes = (
       newNodes.push(newNode);
     }
 
-    // Find edges connected to selected nodes
     const selectedNodeIds = selectedNodes.map((node) => node.id);
+    const selectedNodeIdsSet = new Set(selectedNodeIds);
     const connectedEdges = edges.filter(
       (edge) =>
-        selectedNodeIds.includes(edge.source) ||
-        selectedNodeIds.includes(edge.target)
+        selectedNodeIdsSet.has(edge.source) ||
+        selectedNodeIdsSet.has(edge.target)
     );
 
     const newEdges: Edge[] = [];
     for (const edge of connectedEdges) {
-      const sourceInSelection = selectedNodeIds.includes(edge.source);
-      const targetInSelection = selectedNodeIds.includes(edge.target);
+      const sourceInSelection = selectedNodeIdsSet.has(edge.source);
+      const targetInSelection = selectedNodeIdsSet.has(edge.target);
 
       if (sourceInSelection && targetInSelection) {
         const newSource = oldToNewIds.get(edge.source);
@@ -138,13 +134,11 @@ export const useDuplicateNodes = (
       }
     }
 
-    // Deselect old nodes and select new duplicated nodes
     const updatedNodes = nodes.map((node) => ({
       ...node,
       selected: false
     }));
 
-    // Deselect old edges
     const updatedEdges = edges.map((edge) => ({
       ...edge,
       selected: false
@@ -160,7 +154,6 @@ export const useDuplicateNodes = (
     reactFlow.getNodesBounds,
     setNodes,
     setEdges,
-    edges,
-    nodes
+    nodeStore
   ]);
 };

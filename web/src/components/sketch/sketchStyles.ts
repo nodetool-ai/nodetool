@@ -1,8 +1,5 @@
 /**
  * Shared design tokens and MUI sx styles for the Sketch Editor.
- *
- * Import from here instead of repeating values inline.
- * Keep all sketch-wide visual constants in one place.
  */
 
 import type { SxProps, Theme } from "@mui/material/styles";
@@ -62,6 +59,7 @@ export const SKETCH_SIZE = {
   layerItemHeight: "39.2px",
   layerThumbnail: "39.2px",
   panelWidth: "260px",
+  assistantPanelWidth: "340px",
   iconButtonPad: "3px",
   borderRadius: BORDER_RADIUS.sm
 } as const;
@@ -74,6 +72,7 @@ export const SKETCH_TOOLTIP_DELAY_MS = 500;
 // ─── Z-Index Scale ───────────────────────────────────────────────────────────
 
 export const SKETCH_Z_INDEX = {
+  /** Dimension/zoom readout over canvas */ readout: 5,
   /** Resize handles around canvas */    handles: 6,
   /** Cursor overlay, selection ants */  overlay: 10,
   /** Modal covering the editor */       modal: 9999,

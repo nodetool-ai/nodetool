@@ -107,7 +107,13 @@ export async function assetToFalUrl(
   ref: Record<string, unknown>,
   context?: UploadContext
 ): Promise<string | null> {
-  const uri = ref.uri as string | undefined;
+  let uri = ref.uri as string | undefined;
+  // A library-picked or generated ref may carry only `asset_id` (empty `uri`).
+  // Encode it as an `asset://<id>` URI so the trusted context-resolver branch
+  // below uploads it instead of dropping the ref.
+  if (!uri && typeof ref.asset_id === "string" && ref.asset_id) {
+    uri = `asset://${ref.asset_id}`;
+  }
   // Only pass through URLs that FAL can definitely access (their own CDN)
   if (uri?.includes("fal.media") || uri?.includes("fal.run")) return uri;
   const data = ref.data as string | undefined;
@@ -161,7 +167,8 @@ export async function assetToFalUrl(
 // ---------------------------------------------------------------------------
 
 export async function imageToDataUrl(
-  ref: Record<string, unknown>
+  ref: Record<string, unknown>,
+  context?: UploadContext
 ): Promise<string | null> {
   const data = ref.data as string | undefined;
   const mime = inferMimeFromRef(ref) ?? "image/png";
@@ -172,6 +179,21 @@ export async function imageToDataUrl(
     const contentType = res.headers?.get?.("content-type") ?? mime;
     const buf = Buffer.from(await res.arrayBuffer());
     return `data:${contentType};base64,${buf.toString("base64")}`;
+  }
+  // Asset/package refs — including a library-picked ref carrying only
+  // `asset_id` — resolve through the trusted context resolver, never a direct
+  // fetch (storage adapters return null for these schemes).
+  const assetUri =
+    uri?.startsWith("asset://") || uri?.startsWith("package://")
+      ? uri
+      : typeof ref.asset_id === "string" && ref.asset_id
+        ? `asset://${ref.asset_id}`
+        : null;
+  if (assetUri && context?.resolveAssetBytes) {
+    const { bytes } = await context.resolveAssetBytes(assetUri);
+    if (bytes) {
+      return `data:${mime};base64,${Buffer.from(bytes).toString("base64")}`;
+    }
   }
   return null;
 }
@@ -215,7 +237,10 @@ export function inferContentType(assetType: string | undefined): string {
 export function isRefSet(ref: unknown): boolean {
   if (!ref || typeof ref !== "object") return false;
   const r = ref as Record<string, unknown>;
-  return Boolean(r.data || r.uri);
+  // A library-picked or freshly-generated ref carries only `asset_id` (with an
+  // empty `uri`); it still resolves to bytes via the processing context, so
+  // treat a non-empty `asset_id` as a source. `null`/`""` stay unset.
+  return Boolean(r.data || r.uri || r.asset_id);
 }
 
 // ---------------------------------------------------------------------------

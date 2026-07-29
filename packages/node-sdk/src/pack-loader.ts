@@ -228,6 +228,20 @@ export function resolvePackTrust(
   return { allowlist, allowUnlisted };
 }
 
+/**
+ * The trust fields as they exist ON DISK (no env or default merging). Use this
+ * — not {@link resolvePackTrust} — when persisting a partial trust update, so an
+ * ephemeral `NODETOOL_PACKS_ALLOWLIST` env override is never baked into the
+ * config file for a field the caller didn't set.
+ */
+export function readPackTrustFromFile(): {
+  allow?: string[];
+  allowUnlisted?: boolean;
+} {
+  const f = readPacksConfigFile();
+  return { allow: f.allow, allowUnlisted: f.allowUnlisted };
+}
+
 function trustConfigPath(): string {
   return (
     process.env["NODETOOL_PACKS_CONFIG"] ??
@@ -420,7 +434,8 @@ async function loadPack(
     registry,
     reserved,
     registered,
-    skippedNodes
+    skippedNodes,
+    pack.name
   );
 
   try {
@@ -450,7 +465,8 @@ function makeGuardedRegistry(
   target: NodeRegistry,
   reserved: readonly string[],
   registered: string[],
-  skippedNodes: { nodeType: string; reason: SkipReason }[]
+  skippedNodes: { nodeType: string; reason: SkipReason }[],
+  packageId: string
 ): PackRegistry {
   return {
     has: (nodeType: string) => target.has(nodeType),
@@ -459,7 +475,7 @@ function makeGuardedRegistry(
       // Stryker disable next-line ConditionalExpression,BlockStatement: a falsy nodeType errors either way — this branch lets target.register throw "without nodeType"; skipping it makes isReservedNamespace throw on the missing type — both surface as a loadPack error (equivalent).
       if (!nodeType) {
         // Let the real registry surface the "no nodeType" error.
-        target.register(nodeClass);
+        target.register(nodeClass, { packageId });
         return;
       }
       if (isReservedNamespace(nodeType, reserved)) {
@@ -470,7 +486,7 @@ function makeGuardedRegistry(
         skippedNodes.push({ nodeType, reason: "collision" });
         return;
       }
-      target.register(nodeClass);
+      target.register(nodeClass, { packageId });
       registered.push(nodeType);
     }
   };

@@ -10,7 +10,7 @@
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
 import { getSecret } from "@nodetool-ai/models";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
-import { hydrateGraphNodeFlags } from "@nodetool-ai/node-sdk";
+import { hydrateGraphNodeFlags, isEditorOnlyType } from "@nodetool-ai/node-sdk";
 import type { GraphData, ProcessingMessage } from "@nodetool-ai/protocol";
 import {
   ProcessingContext,
@@ -61,7 +61,17 @@ function withTimeout<T>(
 }
 
 export async function runOnServer(input: ServerRunInput): Promise<ServerRunOutcome> {
-  const { graph, workflowId, params } = input;
+  const { graph: rawGraph, workflowId, params } = input;
+  // Editor-only nodes (Comment/Group/Reroute) carry no executable class; the
+  // web editor prunes them at serialize time, so the headless surface must do
+  // the same or every commented example dies with "Unknown node type".
+  const executableNodes = rawGraph.nodes.filter((n) => !isEditorOnlyType(String(n.type)));
+  const keep = new Set(executableNodes.map((n) => n.id));
+  const graph = {
+    ...rawGraph,
+    nodes: executableNodes,
+    edges: rawGraph.edges.filter((e) => keep.has(e.source) && keep.has(e.target))
+  };
   const startedAt = Date.now();
 
   const registry = buildFullRegistry();

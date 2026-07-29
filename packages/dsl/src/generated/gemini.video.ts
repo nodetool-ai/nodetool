@@ -6,9 +6,10 @@ import type { ImageRef, VideoRef } from "../types.js";
 // Text To Video — gemini.video.TextToVideo
 export interface TextToVideoInputs {
   prompt?: Connectable<string>;
-  model?: Connectable<"veo-3.1-generate-preview" | "veo-2.0-generate-001">;
+  model?: Connectable<"veo-3.1-generate-preview" | "veo-3.1-fast-generate-preview" | "veo-3.1-lite-generate-preview">;
   aspect_ratio?: Connectable<"16:9" | "9:16">;
   negative_prompt?: Connectable<string>;
+  resolution?: Connectable<"720p" | "1080p" | "4k">;
 }
 
 export interface TextToVideoOutputs {
@@ -23,9 +24,10 @@ export function textToVideo(inputs: TextToVideoInputs): DslNode<TextToVideoOutpu
 export interface ImageToVideoInputs {
   image?: Connectable<ImageRef>;
   prompt?: Connectable<string>;
-  model?: Connectable<"veo-3.1-generate-preview" | "veo-2.0-generate-001">;
+  model?: Connectable<"veo-3.1-generate-preview" | "veo-3.1-fast-generate-preview" | "veo-3.1-lite-generate-preview">;
   aspect_ratio?: Connectable<"16:9" | "9:16">;
   negative_prompt?: Connectable<string>;
+  resolution?: Connectable<"720p" | "1080p" | "4k">;
 }
 
 export interface ImageToVideoOutputs {

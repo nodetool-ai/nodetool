@@ -37,7 +37,7 @@ const getForcedLocalhost = (): boolean | null => {
   return null;
 };
 
-export const isLocalhost = (() => {
+export const isLocalhost: boolean = (() => {
   const forced = getForcedLocalhost();
   if (forced !== null) {
     return forced;

@@ -23,9 +23,11 @@ import {
   isProviderConfigured,
   listRegisteredProviderIds,
   PythonProvider,
-  registerProvider
+  registerProvider,
+  RECOMMENDED_MODELS
 } from "@nodetool-ai/runtime";
-import type { Chunk } from "@nodetool-ai/protocol";
+import { readCachedHfModels } from "@nodetool-ai/huggingface";
+import type { Chunk, UnifiedModel } from "@nodetool-ai/protocol";
 import { getSecret } from "@nodetool-ai/models";
 import type { WebSocketChatClient } from "./websocket-client.js";
 
@@ -58,7 +60,8 @@ export const KNOWN_PROVIDERS = [
   "aki",
   "ollama",
   "lmstudio",
-  "mlx"
+  "mlx",
+  "node_llama_cpp"
 ] as const;
 export type KnownProvider = (typeof KNOWN_PROVIDERS)[number];
 
@@ -71,7 +74,8 @@ const LOCAL_PROVIDERS: readonly string[] = [
   "lmstudio",
   "ollama",
   "mlx",
-  "claude_agent_sdk"
+  "claude_agent_sdk",
+  "node_llama_cpp"
 ];
 
 /**
@@ -104,12 +108,13 @@ export const DEFAULT_MODELS: Record<string, string> = {
   together: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
   openrouter: "openai/gpt-5.4-mini",
   huggingface: "meta-llama/Llama-3.3-70B-Instruct",
-  replicate: "meta/meta-llama-3-70b-instruct",
+  replicate: "anthropic/claude-4.5-sonnet",
   kie: "gpt-5-5",
   aki: "llama3_chat",
   ollama: "qwen-3.5:4b",
   lmstudio: "qwen/qwen3.5-9b",
-  mlx: "mlx-community/Qwen3.5-0.8B-OptiQ-4bit"
+  mlx: "mlx-community/Qwen3.5-0.8B-OptiQ-4bit",
+  node_llama_cpp: "qwen2.5-3b-instruct-q4_k_m.gguf"
 };
 
 /** Resolve a secret from the encrypted DB (user "1"); env fallback handled by the registry. */
@@ -146,27 +151,15 @@ async function ensurePythonProvidersRegistered(): Promise<void> {
   return pythonProvidersPromise;
 }
 
-/**
- * Build a provider instance by id, resolving credentials via the registry
- * (encrypted DB first, then `process.env`).
- *
- * Python-only providers (e.g. `mlx`) aren't in the registry until the local
- * Python worker bridge connects, so they're registered on demand here. If the
- * worker can't be started, the failure surfaces with a clear message rather
- * than silently falling back to Ollama.
- *
- * An unknown/unregistered id (e.g. a typo) falls back to the local Ollama
- * daemon, preserving the CLI's historical default. A *registered* provider that
- * fails to construct — most commonly a missing API key, which several providers
- * enforce in their constructor — surfaces its error to the caller rather than
- * silently masquerading as Ollama (which would list Ollama's models under the
- * requested provider).
- */
-export async function createProvider(
+/** Build a registered provider, rejecting unknown ids instead of falling back. */
+export async function createProviderStrict(
   providerId: string
 ): Promise<BaseProvider> {
   const id = providerId.toLowerCase();
-  if (PYTHON_ONLY_PROVIDERS.includes(id) && !listRegisteredProviderIds().includes(id)) {
+  if (
+    PYTHON_ONLY_PROVIDERS.includes(id) &&
+    !listRegisteredProviderIds().includes(id)
+  ) {
     try {
       await ensurePythonProvidersRegistered();
     } catch (err) {
@@ -184,9 +177,23 @@ export async function createProvider(
     }
   }
   if (!listRegisteredProviderIds().includes(id)) {
-    return getProvider("ollama", resolveForUser1);
+    throw new Error(`Unknown provider "${id}"`);
   }
   return getProvider(id, resolveForUser1);
+}
+
+/** Build a provider, preserving the chat CLI's Ollama fallback for unknown ids. */
+export async function createProvider(
+  providerId: string
+): Promise<BaseProvider> {
+  const id = providerId.toLowerCase();
+  if (
+    !PYTHON_ONLY_PROVIDERS.includes(id) &&
+    !listRegisteredProviderIds().includes(id)
+  ) {
+    return getProvider("ollama", resolveForUser1);
+  }
+  return createProviderStrict(id);
 }
 
 /**
@@ -218,6 +225,143 @@ export async function buildConfiguredProviders(): Promise<
     }
   }
   return result;
+}
+
+export type ProviderModelKind =
+  | "llm"
+  | "image"
+  | "tts"
+  | "asr"
+  | "video"
+  | "embedding";
+
+export async function listConfiguredProviderInfo(): Promise<
+  Array<{ provider: string; capabilities: string[] }>
+> {
+  const providers = await buildConfiguredProviders();
+  return Object.entries(providers).map(([provider, instance]) => ({
+    provider,
+    capabilities: instance.getCapabilities()
+  }));
+}
+
+function toUnifiedModel(
+  model: {
+    id: string;
+    name: string;
+    provider: string;
+    voices?: string[];
+    supportedTasks?: string[];
+    durations?: number[];
+    resolutions?: string[];
+    aspectRatios?: string[];
+  },
+  type: string
+): UnifiedModel {
+  return {
+    id: model.id,
+    type,
+    name: model.name,
+    provider: model.provider,
+    repo_id: null,
+    path: null,
+    downloaded:
+      model.provider === "ollama" ||
+      model.provider === "llama_cpp" ||
+      model.provider === "node_llama_cpp",
+    tags: [model.provider],
+    voices: model.voices ?? null,
+    supported_tasks: model.supportedTasks ?? null,
+    durations: model.durations ?? null,
+    resolutions: model.resolutions ?? null,
+    aspect_ratios: model.aspectRatios ?? null
+  };
+}
+
+export async function listProviderModels(
+  providerId: string,
+  kind: ProviderModelKind
+): Promise<UnifiedModel[]> {
+  const provider = await createProviderStrict(providerId);
+  if (kind === "llm") {
+    const models = await provider.getAvailableLanguageModels();
+    const toolSupport = await Promise.all(
+      models.map((model) => provider.hasToolSupport(model.id).catch(() => null))
+    );
+    return models.map((model, index) => ({
+      ...toUnifiedModel(model, "language_model"),
+      supports_tools: toolSupport[index]
+    }));
+  }
+
+  switch (kind) {
+    case "image":
+      return (await provider.getAvailableImageModels()).map((model) =>
+        toUnifiedModel(model, "image_model")
+      );
+    case "tts":
+      return (await provider.getAvailableTTSModels()).map((model) =>
+        toUnifiedModel(model, "tts_model")
+      );
+    case "asr":
+      return (await provider.getAvailableASRModels()).map((model) =>
+        toUnifiedModel(model, "asr_model")
+      );
+    case "video":
+      return (await provider.getAvailableVideoModels()).map((model) =>
+        toUnifiedModel(model, "video_model")
+      );
+    case "embedding":
+      return (await provider.getAvailableEmbeddingModels()).map((model) =>
+        toUnifiedModel(model, "embedding_model")
+      );
+  }
+}
+
+/**
+ * The full model catalog assembled locally, mirroring the server's
+ * `models.all` endpoint without a running server: the recommended models, the
+ * language models of every configured provider (tagged with tool support), and
+ * the locally cached HuggingFace repos. Provider and cache failures are skipped
+ * so one broken provider never sinks the whole list.
+ */
+export async function listAllModels(): Promise<UnifiedModel[]> {
+  const all: UnifiedModel[] = [...RECOMMENDED_MODELS];
+
+  const providers = await buildConfiguredProviders();
+  const perProvider = await Promise.all(
+    Object.values(providers).map(async (instance) => {
+      try {
+        const models = await instance.getAvailableLanguageModels();
+        const toolFlags = await Promise.all(
+          models.map((model) =>
+            instance.hasToolSupport(model.id).catch(() => null)
+          )
+        );
+        return models.map((model, index) => ({
+          ...toUnifiedModel(model, "language_model"),
+          supports_tools: toolFlags[index]
+        }));
+      } catch {
+        // Provider unavailable — skip it.
+        return [] as UnifiedModel[];
+      }
+    })
+  );
+  for (const models of perProvider) all.push(...models);
+
+  try {
+    all.push(...(await readCachedHfModels()));
+  } catch {
+    // HuggingFace cache unavailable — continue without it.
+  }
+
+  return all;
+}
+
+/** Ollama's locally installed language models, read straight from the daemon. */
+export async function listOllamaModels(): Promise<UnifiedModel[]> {
+  return listProviderModels("ollama", "llm");
 }
 
 /**

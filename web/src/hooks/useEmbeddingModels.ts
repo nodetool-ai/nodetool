@@ -6,21 +6,8 @@ import { useEmbeddingProviders } from "./useProviders";
 import type { ModelsByProviderResult } from "./useModelsByProvider";
 
 /**
- * Custom hook for fetching embedding models grouped by provider.
- * 
- * Uses TanStack Query's useQueries to parallel fetch embedding models
- * from all configured embedding providers. Provides loading states
- * and error handling for the model list.
- * 
- * @param options - Optional configuration including provider filtering
- * @returns Object containing models array, loading states, and error info
- * 
- * @example
- * ```typescript
- * const { models, isLoading, error } = useEmbeddingModelsByProvider({
- *   allowedProviders: ["openai", "cohere"]
- * });
- * ```
+ * Fetch embedding models from all configured (optionally filtered) providers in
+ * parallel, grouped by provider.
  */
 export const useEmbeddingModelsByProvider = (options?: {
   allowedProviders?: string[];
@@ -59,7 +46,15 @@ export const useEmbeddingModelsByProvider = (options?: {
   const isFetching = queries.some((q) => q.isFetching);
   const error = queries.find((q) => q.error)?.error;
 
-  const allModels = queries.flatMap((q) => q.data?.models ?? []);
+  const allModels = useMemo(
+    () => queries.flatMap((q) => q.data?.models ?? []),
+    [queries]
+  );
+
+  const providerIds = useMemo(
+    () => providers.map((p) => p.provider),
+    [providers]
+  );
 
   const refetch = useMemo(
     () => async () => {
@@ -68,12 +63,12 @@ export const useEmbeddingModelsByProvider = (options?: {
     [queries]
   );
 
-  return {
-    models: allModels || [],
-    providers: providers.map((p) => p.provider),
+  return useMemo(() => ({
+    models: allModels,
+    providers: providerIds,
     isLoading,
     isFetching,
     error,
     refetch
-  };
+  }), [allModels, providerIds, isLoading, isFetching, error, refetch]);
 };
