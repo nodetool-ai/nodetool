@@ -58,7 +58,9 @@ A worker started from the ComfyUI image fronts ComfyUI over the worker bridge
 `worker.status.comfy.enabled: true`. The **Run ComfyUI Workflow (Worker)** node
 runs an API-format ComfyUI workflow on such a worker. Pick the ComfyUI image
 from the **Worker image preset** dropdown in the Profiles editor, or pass
-`--image ghcr.io/nodetool-ai/nodetool-worker-comfy:latest` on the CLI.
+`--image ghcr.io/nodetool-ai/nodetool-worker-comfy:latest` on the CLI. See
+[ComfyUI](comfyui.md) for the node's properties, input handles, and the
+`comfy.*` bridge surface.
 
 Store the API key in the secret store so the manager can read it:
 
