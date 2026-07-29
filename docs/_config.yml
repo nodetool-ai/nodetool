@@ -108,6 +108,7 @@ exclude:
   - COMPONENT_STREAMLINE_PLAN.md
   - AGENT_CLI_QUICKREF.md
   - runtime-package-interface.md
+  - RELIABILITY_ARCHITECTURE.md
   # Internal product/design specs (PRDs, drafts) — not for the public site.
   - STUDIO_PRD.md
   - STUDIO_MVP_PROMPT.md
