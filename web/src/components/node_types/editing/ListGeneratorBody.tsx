@@ -32,7 +32,6 @@ import type { Theme } from "@mui/material/styles";
 
 import {
   CopyButton,
-  FlexColumn,
   FlexRow,
   LoadingSpinner,
   BORDER_RADIUS,
@@ -207,6 +206,9 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.disabled,
       fontSize: theme.fontSizeSmaller,
       padding: theme.spacing(SPACING.lg)
+    },
+    ".outputs-row": {
+      flex: "0 0 auto"
     }
   });
 
@@ -262,7 +264,7 @@ const ListGeneratorBodyInner: React.FC<BespokeBodyProps> = ({
   }, [items.length]);
 
   return (
-    <div css={styles(theme)} className="nodrag">
+    <div css={styles(theme)} className="nodrag" data-bespoke-body="ListGenerator">
       {inputProperties.length > 0 && (
         <HandleColumn id={id} properties={inputProperties} layout="stacked" />
       )}
@@ -331,9 +333,9 @@ const ListGeneratorBodyInner: React.FC<BespokeBodyProps> = ({
       )}
 
       {!isOutputNode && (
-        <FlexColumn gap={0}>
+        <div className="outputs-row">
           <NodeOutputs id={id} outputs={nodeMetadata.outputs} />
-        </FlexColumn>
+        </div>
       )}
       {isRunning && (
         <FlexRow>

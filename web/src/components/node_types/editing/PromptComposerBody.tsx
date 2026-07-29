@@ -370,7 +370,11 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
 
   return (
     <PromptComposerContext.Provider value={promptComposerContextValue}>
-      <div css={cssStyles} className="prompt-composer-body node-drag-handle">
+      <div
+        css={cssStyles}
+        className="prompt-composer-body node-drag-handle"
+        data-bespoke-body="Prompt"
+      >
         <LexicalComposer initialConfig={initialConfig}>
           <div className="composer-area nodrag nowheel">
             <PlainTextPlugin
