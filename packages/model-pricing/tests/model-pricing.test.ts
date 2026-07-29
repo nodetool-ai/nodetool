@@ -6,6 +6,7 @@
 import { describe, it, expect } from "vitest";
 import falUnitPricingCatalog from "@nodetool-ai/fal-nodes/unit-pricing-catalog";
 import kieUnitPricingCatalog from "@nodetool-ai/kie-nodes/unit-pricing-catalog";
+import { genspendPricingCatalog } from "../src/genspend-catalog.js";
 import { getModelUnitPrice } from "../src/index.js";
 
 const firstEntry = (
@@ -36,7 +37,30 @@ describe("getModelUnitPrice", () => {
     expect(found?.currency).toBe("USD");
   });
 
-  it("returns null for a model in neither catalog", () => {
+  it("falls back to the GenSpend catalog for a model the provider catalogs miss", () => {
+    const entry = Object.entries(genspendPricingCatalog.prices).find(
+      ([key]) => key.startsWith("replicate:") && !kieUnitPricingCatalog.prices?.[key]
+    );
+    if (!entry) throw new Error("no Replicate price in the GenSpend catalog");
+    const [key, price] = entry;
+    const id = key.slice("replicate:".length);
+    expect(getModelUnitPrice({ id, provider: "replicate" })).toEqual({
+      unit_price: price.unit_price,
+      billing_unit: price.billing_unit,
+      currency: "USD",
+      source: "bundle"
+    });
+  });
+
+  it("does not price a GenSpend model against the wrong provider", () => {
+    const [key] = Object.entries(genspendPricingCatalog.prices).find(([k]) =>
+      k.startsWith("replicate:")
+    )!;
+    const id = key.slice("replicate:".length);
+    expect(getModelUnitPrice({ id, provider: "together" })).toBeNull();
+  });
+
+  it("returns null for a model in no catalog", () => {
     expect(getModelUnitPrice({ id: "no-such/model", provider: null })).toBeNull();
   });
 });

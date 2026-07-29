@@ -14,9 +14,13 @@ import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
-import { Box, Caption, Tooltip } from "../ui_primitives";
+import { Box, Caption, ExternalLink, Tooltip } from "../ui_primitives";
+import { genspendPricingCatalog } from "@nodetool-ai/model-pricing/genspend-catalog";
 import { useWorkflowCostEstimate } from "../../hooks/useWorkflowCostEstimate";
 import { formatMoney } from "./costsData";
+
+/** Date the shipped GenSpend prices last moved, e.g. "2026-07-29". */
+const genspendUpdatedOn = genspendPricingCatalog.updatedAt.slice(0, 10);
 
 export interface WorkflowCostEstimatePanelProps {
   workflowId: string;
@@ -130,6 +134,10 @@ const styles = (theme: Theme) =>
     ".cost-note": {
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.warning.main
+    },
+    ".cost-credit": {
+      fontSize: "var(--fontSizeSmaller)",
+      color: theme.vars.palette.text.disabled
     }
   });
 
@@ -208,6 +216,13 @@ const WorkflowCostEstimatePanelInternal: React.FC<
               total.
             </span>
           )}
+          <span className="cost-credit">
+            List prices from provider catalogs and{" "}
+            <ExternalLink href="https://genspend.io" size="small">
+              genspend.io
+            </ExternalLink>
+            , last updated {genspendUpdatedOn}.
+          </span>
         </>
       )}
     </Box>
