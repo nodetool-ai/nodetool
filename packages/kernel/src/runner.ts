@@ -862,11 +862,48 @@ export class WorkflowRunner {
   // Node initialization
   // -----------------------------------------------------------------------
 
+  /**
+   * Initialize every node's executor before any actor runs.
+   *
+   * A failure here aborts the run before `_processGraph`, so the actors that
+   * would normally call `finalize()` never start. Finalize the executors that
+   * did initialize, otherwise whatever they opened (python bridge handles,
+   * provider clients, file descriptors) leaks for the lifetime of the process.
+   * The failure is also re-thrown with the offending node's identity attached —
+   * a bare "connect ECONNREFUSED" gives no clue which node to fix.
+   */
   private async _initializeGraph(): Promise<void> {
+    const initialized: NodeExecutor[] = [];
     for (const node of this._graph.nodes) {
       const executor = this._resolveExecutor(node);
-      if (executor.initialize) {
+      if (!executor.initialize) continue;
+      try {
         await executor.initialize();
+        initialized.push(executor);
+      } catch (err) {
+        await this._finalizeExecutors(initialized);
+        const message = err instanceof Error ? err.message : String(err);
+        throw new Error(
+          `Node "${node.name ?? node.id}" (${node.type}) failed to initialize: ${message}`,
+          { cause: err }
+        );
+      }
+    }
+  }
+
+  /** Finalize executors, never letting one failure hide another. */
+  private async _finalizeExecutors(
+    executors: readonly NodeExecutor[]
+  ): Promise<void> {
+    for (const executor of executors) {
+      if (!executor.finalize) continue;
+      try {
+        await executor.finalize();
+      } catch (err) {
+        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+        log.warn("Executor finalize failed during initialization rollback", {
+          error: err instanceof Error ? err.message : String(err)
+        });
       }
     }
   }
@@ -1133,6 +1170,8 @@ export class WorkflowRunner {
    */
   private async _processGraph(): Promise<void> {
     const actorPromises: Array<Promise<void>> = [];
+    /** Parallel to `actorPromises` — maps a settled index back to its node. */
+    const actorNodeIds: string[] = [];
 
     for (const node of this._graph.nodes) {
       // Skip input-only nodes that have no incoming edges
@@ -1177,8 +1216,14 @@ export class WorkflowRunner {
           this._signalSlotEos(sourceNodeId, slot)
       });
 
+      actorNodeIds.push(node.id);
       actorPromises.push(
         actor.run().then(async (result) => {
+          // Nothing will read this inbox again. Wake any upstream actor parked
+          // on a full buffer so it can finish instead of waiting forever for a
+          // consumer that is gone.
+          inbox.releaseBackpressure();
+
           if (result.error !== undefined) {
             this._nodeErrors.set(node.id, result.error);
           }
@@ -1244,8 +1289,26 @@ export class WorkflowRunner {
       );
     }
 
-    // Wait for all actors to complete
-    await Promise.all(actorPromises);
+    // Wait for every actor, including post-completion routing. `allSettled`
+    // rather than `all`: a throw in one actor's completion handler (EOS
+    // routing, channel bookkeeping, a message-transport failure) must not
+    // return the run while its siblings are still executing — orphaned actors
+    // would keep writing to inboxes and emitting messages after the runner
+    // reported a terminal status.
+    const settled = await Promise.allSettled(actorPromises);
+    for (const [index, outcome] of settled.entries()) {
+      if (outcome.status !== "rejected") continue;
+      const nodeId = actorNodeIds[index];
+      const message =
+        outcome.reason instanceof Error
+          ? outcome.reason.message
+          : String(outcome.reason);
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+      log.error("Actor completion handling failed", { nodeId, error: message });
+      if (!this._nodeErrors.has(nodeId)) {
+        this._nodeErrors.set(nodeId, message);
+      }
+    }
 
     // Backstop: release any reader still waiting on a channel (e.g. a writer
     // that errored before publishing). Non-cyclic graphs are already closed by
@@ -1719,13 +1782,19 @@ export class WorkflowRunner {
       );
     }
 
+    const entry: {
+      resolve: (outputs: Record<string, unknown>) => void;
+      reject: (err: Error) => void;
+    } = { resolve: () => {}, reject: () => {} };
     const promise = new Promise<Record<string, unknown>>((resolve, reject) => {
+      entry.resolve = resolve;
+      entry.reject = reject;
       let queue = this._pendingControlResponses.get(targetNodeId);
       if (!queue) {
         queue = [];
         this._pendingControlResponses.set(targetNodeId, queue);
       }
-      queue.push({ resolve, reject });
+      queue.push(entry);
     });
 
     const event: ControlEvent = {
@@ -1733,6 +1802,26 @@ export class WorkflowRunner {
       properties
     };
     await inbox.put("__control__", event);
+
+    // The target's actor can finish between the check above and this point —
+    // its completion handler drains `_pendingControlResponses` before this
+    // waiter joined the queue, so nothing would ever settle it. Re-check after
+    // registering and reject rather than hang.
+    if (this._completedNodes.has(targetNodeId)) {
+      const queue = this._pendingControlResponses.get(targetNodeId);
+      const index = queue?.indexOf(entry) ?? -1;
+      if (queue && index >= 0) {
+        queue.splice(index, 1);
+        if (queue.length === 0) {
+          this._pendingControlResponses.delete(targetNodeId);
+        }
+        entry.reject(
+          new Error(
+            `Target node already completed and cannot handle control events: ${targetNodeId}`
+          )
+        );
+      }
+    }
 
     return promise;
   }
@@ -1901,7 +1990,20 @@ export class WorkflowRunner {
       this._messages.push(msg);
     }
     if (this._options.executionContext) {
-      this._options.executionContext.emit(msg);
+      // Message delivery is observation, not execution. A transport that fails
+      // mid-run (a closed WebSocket, a full queue) must not abort the workflow
+      // — `_emit` is called from EOS routing and actor completion handlers,
+      // where a throw would take down the run and orphan sibling actors.
+      try {
+        this._options.executionContext.emit(msg);
+      } catch (err) {
+        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+        log.warn("Message emit failed", {
+          jobId: this.jobId,
+          type: msg.type,
+          error: err instanceof Error ? err.message : String(err)
+        });
+      }
     }
     // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
     log.debug("Message emitted", { jobId: this.jobId, type: msg.type });

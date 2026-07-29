@@ -126,6 +126,12 @@ export class NodeInbox {
   /** Flag: inbox is closed (no more data accepted). */
   private _closed = false;
 
+  /**
+   * Flag: backpressure is disabled because nothing will read this inbox again
+   * (its actor finished). See {@link releaseBackpressure}.
+   */
+  private _backpressureReleased = false;
+
   /** Waiters: consumers blocking for new data. */
   private _waiters: Array<Deferred<void>> = [];
 
@@ -208,9 +214,10 @@ export class NodeInbox {
     }
 
     // Backpressure: wait if buffer is at limit
-    if (this._bufferLimit !== null) {
+    if (this._bufferLimit !== null && !this._backpressureReleased) {
       while (
         !this._closed &&
+        !this._backpressureReleased &&
         // Stryker disable next-line OptionalChaining: the buffer was auto-created above, so get(handle) is always defined here — the ?. is defensive
         (this._buffers.get(handle)?.length ?? 0) >= this._bufferLimit
       ) {
@@ -544,6 +551,25 @@ export class NodeInbox {
   async closeAll(): Promise<void> {
     this._closed = true;
     this._notifyWaiters();
+    this._notifyPutWaiters();
+  }
+
+  /**
+   * Stop applying backpressure: wake every producer parked on a full buffer and
+   * let later `put`s through without waiting.
+   *
+   * Called when the consuming actor has finished, so no one will ever drain
+   * this inbox again. Without it, an upstream actor blocked in `put()` on a
+   * full buffer waits on a `_putWaiters` deferred that only a consumer pop can
+   * resolve — the producer never returns, and the runner's `Promise.all` over
+   * all actors never settles, hanging the whole workflow.
+   *
+   * Unlike `closeAll()`, writes are still accepted and buffered, so the
+   * runner's post-run "pending inbox work" check still reports the undelivered
+   * values instead of silently dropping them.
+   */
+  releaseBackpressure(): void {
+    this._backpressureReleased = true;
     this._notifyPutWaiters();
   }
 
