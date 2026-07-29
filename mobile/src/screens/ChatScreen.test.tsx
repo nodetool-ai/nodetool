@@ -73,13 +73,17 @@ describe('ChatScreen', () => {
       expect(screen.getByTestId('chat-view')).toBeTruthy();
     });
 
-    it('renders SafeAreaView container', () => {
+    it('renders a safe-area-context SafeAreaView container', () => {
       const { UNSAFE_root } = render(
         <ChatScreen navigation={mockNavigation as any} route={{} as any} />
       );
-      
-      const safeAreaView = UNSAFE_root.findByType(require('react-native').SafeAreaView);
+
+      const safeAreaView = UNSAFE_root.findByType(
+        require('react-native-safe-area-context').SafeAreaView
+      );
       expect(safeAreaView).toBeTruthy();
+      // The header owns the top inset; the composer paints the bottom one.
+      expect(safeAreaView.props.edges).toEqual(['left', 'right']);
     });
   });
 

@@ -3,9 +3,18 @@
  */
 
 import React from 'react';
-import { render, screen } from '@testing-library/react-native';
+import { Dimensions, StyleSheet } from 'react-native';
+import { render, screen, act } from '@testing-library/react-native';
 import { MessageContentRenderer } from './MessageContentRenderer';
 import { MessageContent } from '../../types/ApiTypes';
+
+/** The content box MessageView's bubble gives a message at a given window width. */
+const bubbleContentWidth = (windowWidth: number) => (windowWidth - 28) * 0.85 - 28;
+
+const setWindowWidth = (width: number) => {
+  const metrics = { width, height: 800, scale: 2, fontScale: 1 };
+  Dimensions.set({ window: metrics, screen: metrics } as never);
+};
 
 describe('MessageContentRenderer', () => {
   const mockRenderTextContent = jest.fn((text: string, index: number) => {
@@ -93,6 +102,39 @@ describe('MessageContentRenderer', () => {
       expect(UNSAFE_root).toBeTruthy();
       // renderTextContent should not be called for images
       expect(mockRenderTextContent).not.toHaveBeenCalled();
+    });
+
+    it('keeps the image inside the bubble content box on a narrow phone', () => {
+      const original = Dimensions.get('window');
+      setWindowWidth(320);
+      const imageContent: MessageContent = {
+        type: 'image_url',
+        image: { type: 'image', uri: 'https://example.com/image.png' },
+      };
+
+      render(
+        <MessageContentRenderer
+          content={imageContent}
+          renderTextContent={mockRenderTextContent}
+          index={0}
+        />
+      );
+
+      const styleAt320 = StyleSheet.flatten(screen.getByLabelText('Image content').props.style);
+      expect(styleAt320.width).toBeLessThanOrEqual(bubbleContentWidth(320));
+      // Height follows the media's ratio instead of a fixed 200pt letterbox.
+      expect(styleAt320.height).toBeUndefined();
+      expect(styleAt320.aspectRatio).toBeGreaterThan(0);
+
+      // A width change (rotation, split view) is picked up without a re-mount —
+      // the old module-level Dimensions.get value never was.
+      act(() => setWindowWidth(720));
+
+      const styleAt720 = StyleSheet.flatten(screen.getByLabelText('Image content').props.style);
+      expect(styleAt720.width).toBeGreaterThan(styleAt320.width as number);
+      expect(styleAt720.width).toBeLessThanOrEqual(bubbleContentWidth(720));
+
+      act(() => setWindowWidth(original.width));
     });
 
     it('shows error message when image URI is missing', () => {

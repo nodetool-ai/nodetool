@@ -23,11 +23,13 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
   type GestureResponderEvent,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -74,6 +76,12 @@ const DEFAULT_PX_PER_SECOND = 20;
 const ZOOM_FACTOR = 2;
 /** Empty room after the last clip, so the sequence end is reachable. */
 const TAIL_MS = 2000;
+
+/**
+ * Width the title cannot have: the back button plus the actions (chat bubble,
+ * gap, Save) plus the gutters around them.
+ */
+const HEADER_RESERVED_WIDTH = 164;
 
 /** Tick spacings, coarsest that still leaves ~64px between labels wins. */
 const TICK_STEPS_MS = [
@@ -435,10 +443,27 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
   const openChat = useCallback(() => navigation.navigate('Chat'), [navigation]);
   const handleSave = useCallback(() => void runSave(), [runSave]);
 
+  // The header lays the title out at its natural width and never shrinks it, so
+  // a long sequence name runs under the actions and pushes Save off the screen.
+  // Cap the title instead, leaving room for the actions and the back button.
+  const { width: windowWidth } = useWindowDimensions();
+  const titleMaxWidth = Math.max(96, windowWidth - HEADER_RESERVED_WIDTH);
+
   useLayoutEffect(() => {
     const saving = status === 'saving';
     navigation.setOptions({
       title,
+      headerTitle: ({ children, tintColor }) => (
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.headerTitle,
+            { maxWidth: titleMaxWidth, color: tintColor ?? colors.text },
+          ]}
+        >
+          {children}
+        </Text>
+      ),
       headerRight: () => (
         <View style={styles.headerActions}>
           <TouchableOpacity
@@ -484,6 +509,7 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
     openChat,
     status,
     title,
+    titleMaxWidth,
   ]);
 
   const msToPx = useCallback(
@@ -592,7 +618,10 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
       )}
 
       <View style={[styles.toolbar, { borderBottomColor: colors.borderLight }]}>
-        <Text style={[styles.toolbarText, { color: colors.textSecondary }]}>
+        <Text
+          style={[styles.toolbarText, { color: colors.textSecondary }]}
+          numberOfLines={1}
+        >
           {`${formatTime(durationMs)} · ${tracks.length} tracks · ${clips.length} clips`}
         </Text>
         <View style={styles.toolbarActions}>
@@ -868,10 +897,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+  },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
+    // Native headers inset their own items; the web header does not.
+    paddingRight: Platform.OS === 'web' ? 12 : 0,
   },
   saveText: {
     fontSize: 16,
@@ -922,11 +957,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   toolbarText: {
+    // Shrinks and truncates so the zoom controls and the playhead readout keep
+    // their width on a narrow phone.
+    flexShrink: 1,
+    marginRight: 8,
     fontSize: 12,
   },
   toolbarActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexShrink: 0,
     gap: 4,
   },
   playheadReadout: {

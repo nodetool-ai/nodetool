@@ -3,6 +3,7 @@
  */
 
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { render, screen, fireEvent } from '@testing-library/react-native';
 import { ChatView } from './ChatView';
 import { Message, ChatStatus } from '../../types';
@@ -120,6 +121,15 @@ describe('ChatView', () => {
       render(<ChatView {...defaultProps} error="Connection failed" />);
       
       expect(screen.getByText('Connection failed')).toBeTruthy();
+    });
+
+    it('lets a long error string wrap instead of overflowing the centred row', () => {
+      const longError = 'Network request failed: connect ECONNREFUSED 127.0.0.1:7777';
+      render(<ChatView {...defaultProps} error={longError} />);
+
+      const style = StyleSheet.flatten(screen.getByText(longError).props.style);
+      expect(style.flex).toBe(1);
+      expect(style.textAlign).toBe('center');
     });
 
     it('shows disconnected banner', () => {

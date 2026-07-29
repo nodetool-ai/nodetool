@@ -15,12 +15,18 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import {
   ActivityIndicator,
   Image,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
+  useWindowDimensions,
+  type NativeSyntheticEvent,
+  type TextInputContentSizeChangeEventData,
+  type TextInputProps,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp, useFocusEffect } from '@react-navigation/native';
@@ -64,6 +70,43 @@ const newShotId = (): string =>
 
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(Math.max(value, min), max);
+
+/** 18pt icon + 10pt padding = 38pt; the slop lifts it to the 46pt touch target. */
+const ICON_HIT_SLOP = { top: 4, bottom: 4, left: 4, right: 4 };
+
+/**
+ * Width the title cannot have: the back button plus the actions (chat bubble,
+ * gap, Save) plus the gutters around them.
+ */
+const HEADER_RESERVED_WIDTH = 164;
+
+const MULTILINE_MIN_HEIGHT = 68;
+
+/**
+ * Multiline field that grows to fit its text.
+ *
+ * A plain multiline `TextInput` with a fixed height clips its own content — on
+ * web it is a `textarea` that never resizes — so a brief long enough to wrap
+ * three times got cut through the middle of the third row. Following the
+ * content size keeps every wrapped row visible while typing.
+ */
+function GrowingTextInput({ style, ...rest }: TextInputProps) {
+  const [height, setHeight] = useState(MULTILINE_MIN_HEIGHT);
+  const onContentSizeChange = useCallback(
+    (event: NativeSyntheticEvent<TextInputContentSizeChangeEventData>) => {
+      setHeight(event.nativeEvent.contentSize.height);
+    },
+    []
+  );
+  return (
+    <TextInput
+      {...rest}
+      multiline
+      onContentSizeChange={onContentSizeChange}
+      style={[style, { height: Math.max(MULTILINE_MIN_HEIGHT, height) }]}
+    />
+  );
+}
 
 const STATUS_LABELS: Record<ShotStatus, string> = {
   planned: 'Planned',
@@ -294,10 +337,27 @@ export default function StoryboardEditorScreen({ navigation, route }: Props) {
     navigation.navigate('Chat');
   }, [navigation]);
 
+  // The header lays the title out at its natural width and never shrinks it, so
+  // a long board name runs under the actions and pushes Save off the screen.
+  // Cap the title instead, leaving room for the actions and the back button.
+  const { width: windowWidth } = useWindowDimensions();
+  const titleMaxWidth = Math.max(96, windowWidth - HEADER_RESERVED_WIDTH);
+
   useLayoutEffect(() => {
     const saving = status === 'saving';
     navigation.setOptions({
       title: name || initialName || 'Storyboard',
+      headerTitle: ({ children, tintColor }) => (
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.headerTitle,
+            { maxWidth: titleMaxWidth, color: tintColor ?? colors.text },
+          ]}
+        >
+          {children}
+        </Text>
+      ),
       headerRight: () => (
         <View style={styles.headerActions}>
           <TouchableOpacity
@@ -340,9 +400,11 @@ export default function StoryboardEditorScreen({ navigation, route }: Props) {
     dirty,
     status,
     colors.primary,
+    colors.text,
     colors.textTertiary,
     handleSave,
     openChat,
+    titleMaxWidth,
   ]);
 
   // ── Local edits ──────────────────────────────────────────────────────────
@@ -432,7 +494,13 @@ export default function StoryboardEditorScreen({ navigation, route }: Props) {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    // Brief, style, and every shot are text fields, so the keyboard would
+    // otherwise cover whichever one the user tapped in the lower half.
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
       {status === 'conflict' && (
         <View
           style={[styles.banner, { backgroundColor: colors.warning + '22' }]}
@@ -479,7 +547,7 @@ export default function StoryboardEditorScreen({ navigation, route }: Props) {
         </View>
 
         <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Brief</Text>
-        <TextInput
+        <GrowingTextInput
           style={[
             styles.input,
             styles.inputMulti,
@@ -489,12 +557,11 @@ export default function StoryboardEditorScreen({ navigation, route }: Props) {
           onChangeText={(brief) => edit((board) => ({ ...board, brief }))}
           placeholder="What is this piece about?"
           placeholderTextColor={colors.textTertiary}
-          multiline
           accessibilityLabel="Board brief"
         />
 
         <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Style</Text>
-        <TextInput
+        <GrowingTextInput
           style={[
             styles.input,
             styles.inputMulti,
@@ -504,7 +571,6 @@ export default function StoryboardEditorScreen({ navigation, route }: Props) {
           onChangeText={(style) => edit((board) => ({ ...board, style }))}
           placeholder="Grainy 16mm, muted teal palette, low sun"
           placeholderTextColor={colors.textTertiary}
-          multiline
           accessibilityLabel="Board style"
         />
 
@@ -628,7 +694,7 @@ export default function StoryboardEditorScreen({ navigation, route }: Props) {
                   />
                 )}
 
-                <TextInput
+                <GrowingTextInput
                   style={[
                     styles.input,
                     styles.inputMulti,
@@ -642,7 +708,6 @@ export default function StoryboardEditorScreen({ navigation, route }: Props) {
                   onChangeText={(action) => patchShot(shot.id, { action })}
                   placeholder="What we see in this shot"
                   placeholderTextColor={colors.textTertiary}
-                  multiline
                   accessibilityLabel={`Shot ${index + 1} action`}
                 />
 
@@ -712,6 +777,7 @@ export default function StoryboardEditorScreen({ navigation, route }: Props) {
                     accessibilityRole="button"
                     accessibilityLabel={`Move shot ${index + 1} up`}
                     accessibilityState={{ disabled: index === 0 }}
+                    hitSlop={ICON_HIT_SLOP}
                     style={styles.iconButton}
                   >
                     <Ionicons
@@ -727,6 +793,7 @@ export default function StoryboardEditorScreen({ navigation, route }: Props) {
                     accessibilityRole="button"
                     accessibilityLabel={`Move shot ${index + 1} down`}
                     accessibilityState={{ disabled: index === doc.shots.length - 1 }}
+                    hitSlop={ICON_HIT_SLOP}
                     style={styles.iconButton}
                   >
                     <Ionicons
@@ -743,6 +810,7 @@ export default function StoryboardEditorScreen({ navigation, route }: Props) {
                     activeOpacity={0.7}
                     accessibilityRole="button"
                     accessibilityLabel={`Delete shot ${index + 1}`}
+                    hitSlop={ICON_HIT_SLOP}
                     style={styles.iconButton}
                   >
                     <Ionicons name="trash-outline" size={18} color={colors.error} />
@@ -753,7 +821,7 @@ export default function StoryboardEditorScreen({ navigation, route }: Props) {
           })
         )}
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -761,7 +829,14 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
   centerText: { fontSize: 14, textAlign: 'center' },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  headerTitle: { fontSize: 17, fontWeight: '700' },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    // Native headers inset their own items; the web header does not.
+    paddingRight: Platform.OS === 'web' ? 12 : 0,
+  },
   saveText: { fontSize: 16, fontWeight: '600' },
   banner: {
     flexDirection: 'row',
@@ -801,7 +876,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginBottom: 8,
   },
-  inputMulti: { minHeight: 68, textAlignVertical: 'top' },
+  inputMulti: { minHeight: MULTILINE_MIN_HEIGHT, textAlignVertical: 'top' },
   addButton: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   addButtonText: { fontSize: 15, fontWeight: '600' },
   empty: { alignItems: 'center', paddingVertical: 40, gap: 12 },
@@ -828,6 +903,6 @@ const styles = StyleSheet.create({
   statusPillText: { fontSize: 11, fontWeight: '600' },
   thumbnail: { width: '100%', height: 150, borderRadius: 10, marginBottom: 10 },
   cardActions: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
-  iconButton: { padding: 6 },
+  iconButton: { padding: 10 },
   spacer: { flex: 1 },
 });

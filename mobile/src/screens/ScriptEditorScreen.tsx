@@ -22,12 +22,18 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
+  useWindowDimensions,
+  type NativeSyntheticEvent,
+  type TextInputContentSizeChangeEventData,
+  type TextInputProps,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp, useFocusEffect } from '@react-navigation/native';
@@ -83,6 +89,43 @@ const STATUS_LABELS: Record<ScriptLineStatus, string> = {
   voiced: 'Voiced',
   stale: 'Stale',
 };
+
+/** 18pt icon + 10pt padding = 38pt; the slop lifts it to the 46pt touch target. */
+const ICON_HIT_SLOP = { top: 4, bottom: 4, left: 4, right: 4 };
+
+/**
+ * Width the title cannot have: the back button plus the actions (chat bubble,
+ * gap, Save) plus the gutters around them.
+ */
+const HEADER_RESERVED_WIDTH = 164;
+
+const MULTILINE_MIN_HEIGHT = 68;
+
+/**
+ * Multiline field that grows to fit its text.
+ *
+ * A plain multiline `TextInput` with a fixed height clips its own content — on
+ * web it is a `textarea` that never resizes — so a line long enough to wrap
+ * three times got cut through the middle of the third row. Following the
+ * content size keeps every wrapped row visible while typing.
+ */
+function GrowingTextInput({ style, ...rest }: TextInputProps) {
+  const [height, setHeight] = useState(MULTILINE_MIN_HEIGHT);
+  const onContentSizeChange = useCallback(
+    (event: NativeSyntheticEvent<TextInputContentSizeChangeEventData>) => {
+      setHeight(event.nativeEvent.contentSize.height);
+    },
+    []
+  );
+  return (
+    <TextInput
+      {...rest}
+      multiline
+      onContentSizeChange={onContentSizeChange}
+      style={[style, { height: Math.max(MULTILINE_MIN_HEIGHT, height) }]}
+    />
+  );
+}
 
 export default function ScriptEditorScreen({ navigation, route }: Props) {
   const { id, name: initialName } = route.params;
@@ -420,10 +463,27 @@ export default function ScriptEditorScreen({ navigation, route }: Props) {
     navigation.navigate('Chat');
   }, [navigation]);
 
+  // The header lays the title out at its natural width and never shrinks it, so
+  // a long script name runs under the actions and pushes Save off the screen.
+  // Cap the title instead, leaving room for the actions and the back button.
+  const { width: windowWidth } = useWindowDimensions();
+  const titleMaxWidth = Math.max(96, windowWidth - HEADER_RESERVED_WIDTH);
+
   useLayoutEffect(() => {
     const saving = status === 'saving';
     navigation.setOptions({
       title: name || initialName || 'Script',
+      headerTitle: ({ children, tintColor }) => (
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.headerTitle,
+            { maxWidth: titleMaxWidth, color: tintColor ?? colors.text },
+          ]}
+        >
+          {children}
+        </Text>
+      ),
       headerRight: () => (
         <View style={styles.headerActions}>
           <TouchableOpacity
@@ -470,9 +530,11 @@ export default function ScriptEditorScreen({ navigation, route }: Props) {
     dirty,
     status,
     colors.primary,
+    colors.text,
     colors.textTertiary,
     handleSave,
     openChat,
+    titleMaxWidth,
   ]);
 
   // ── Local edits ──────────────────────────────────────────────────────────
@@ -631,7 +693,13 @@ export default function ScriptEditorScreen({ navigation, route }: Props) {
   const lineNumber = new Map(flat.map((entry) => [entry.line.id, entry.index]));
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    // Every line is a text field, so the keyboard would otherwise cover
+    // whichever one the user tapped in the lower half of the screen.
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
       {status === 'conflict' && (
         <View
           style={[styles.banner, { backgroundColor: colors.warning + '22' }]}
@@ -713,6 +781,7 @@ export default function ScriptEditorScreen({ navigation, route }: Props) {
               accessibilityRole="button"
               accessibilityLabel={`Assign ${speaker.name} to the selected line`}
               accessibilityState={{ disabled: selectedLineId === null }}
+              hitSlop={ICON_HIT_SLOP}
               style={styles.iconButton}
             >
               <Ionicons
@@ -726,6 +795,7 @@ export default function ScriptEditorScreen({ navigation, route }: Props) {
               activeOpacity={0.7}
               accessibilityRole="button"
               accessibilityLabel={`Remove speaker ${index + 1}`}
+              hitSlop={ICON_HIT_SLOP}
               style={styles.iconButton}
             >
               <Ionicons name="trash-outline" size={18} color={colors.error} />
@@ -822,6 +892,7 @@ export default function ScriptEditorScreen({ navigation, route }: Props) {
                   activeOpacity={0.7}
                   accessibilityRole="button"
                   accessibilityLabel={`Delete section ${sectionIndex + 1}`}
+                  hitSlop={ICON_HIT_SLOP}
                   style={styles.iconButton}
                 >
                   <Ionicons name="trash-outline" size={18} color={colors.error} />
@@ -889,7 +960,7 @@ export default function ScriptEditorScreen({ navigation, route }: Props) {
                       </View>
                     </TouchableOpacity>
 
-                    <TextInput
+                    <GrowingTextInput
                       style={[
                         styles.input,
                         styles.inputMulti,
@@ -903,7 +974,6 @@ export default function ScriptEditorScreen({ navigation, route }: Props) {
                       onChangeText={(text) => patchLine(line.id, { text })}
                       placeholder="What is said"
                       placeholderTextColor={colors.textTertiary}
-                      multiline
                       accessibilityLabel={`Line ${index + 1} text`}
                     />
 
@@ -933,6 +1003,7 @@ export default function ScriptEditorScreen({ navigation, route }: Props) {
                         accessibilityRole="button"
                         accessibilityLabel={`Move line ${index + 1} up`}
                         accessibilityState={{ disabled: index === 0 }}
+                        hitSlop={ICON_HIT_SLOP}
                         style={styles.iconButton}
                       >
                         <Ionicons
@@ -948,6 +1019,7 @@ export default function ScriptEditorScreen({ navigation, route }: Props) {
                         accessibilityRole="button"
                         accessibilityLabel={`Move line ${index + 1} down`}
                         accessibilityState={{ disabled: index === flat.length - 1 }}
+                        hitSlop={ICON_HIT_SLOP}
                         style={styles.iconButton}
                       >
                         <Ionicons
@@ -966,6 +1038,7 @@ export default function ScriptEditorScreen({ navigation, route }: Props) {
                         activeOpacity={0.7}
                         accessibilityRole="button"
                         accessibilityLabel={`Delete line ${index + 1}`}
+                        hitSlop={ICON_HIT_SLOP}
                         style={styles.iconButton}
                       >
                         <Ionicons name="trash-outline" size={18} color={colors.error} />
@@ -995,7 +1068,7 @@ export default function ScriptEditorScreen({ navigation, route }: Props) {
           ))
         )}
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -1054,7 +1127,14 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   centerText: { fontSize: 14, textAlign: 'center' },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  headerTitle: { fontSize: 17, fontWeight: '700' },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    // Native headers inset their own items; the web header does not.
+    paddingRight: Platform.OS === 'web' ? 12 : 0,
+  },
   saveText: { fontSize: 16, fontWeight: '600' },
   banner: {
     flexDirection: 'row',
@@ -1086,7 +1166,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginBottom: 8,
   },
-  inputMulti: { minHeight: 68, textAlignVertical: 'top' },
+  inputMulti: { minHeight: MULTILINE_MIN_HEIGHT, textAlignVertical: 'top' },
   castRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   castInput: { flex: 1, marginBottom: 0 },
   colorChip: { width: 14, height: 14, borderRadius: 7 },
@@ -1120,6 +1200,6 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 2,
   },
-  iconButton: { padding: 6 },
+  iconButton: { padding: 10 },
   spacer: { flex: 1 },
 });

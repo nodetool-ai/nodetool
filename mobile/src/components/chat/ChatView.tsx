@@ -238,9 +238,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // The row is centred, so without `flex` a long error string overflows and is
+  // clipped at both ends. Taking the leftover width lets it wrap instead.
   bannerText: {
+    flex: 1,
     fontSize: 13,
     fontWeight: '500',
+    textAlign: 'center',
   },
 });
 

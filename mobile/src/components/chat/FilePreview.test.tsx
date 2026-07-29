@@ -14,6 +14,21 @@ describe('FilePreview', () => {
     jest.clearAllMocks();
   });
 
+  describe('Remove button', () => {
+    it('gives the 20pt icon a 44pt effective touch target', () => {
+      const file: DroppedFile = {
+        dataUri: 'data:application/pdf;base64,pdf123',
+        type: 'application/pdf',
+        name: 'document.pdf',
+      };
+
+      render(<FilePreview file={file} onRemove={mockOnRemove} />);
+
+      const button = screen.getByLabelText('Remove file document.pdf');
+      expect(button.props.hitSlop).toEqual({ top: 12, bottom: 12, left: 12, right: 12 });
+    });
+  });
+
   describe('Image files', () => {
     it('shows file icon for image with invalid data URI format', () => {
       const invalidImageFile: DroppedFile = {
