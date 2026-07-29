@@ -659,8 +659,57 @@ describe("GeminiProvider", () => {
       { googleSearch: {} }
     ]);
     expect(body.toolConfig).toEqual({
+      includeServerSideToolInvocations: true,
       functionCallingConfig: { mode: "ANY", allowedFunctionNames: ["my_tool_"] }
     });
+  });
+
+  it("enables server-side tool invocations when built-ins ride along with function tools", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(
+      makeFetchResponse({
+        candidates: [{ content: { parts: [{ text: "ok" }] } }]
+      })
+    );
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
+    for (const builtIn of [
+      { name: "web_search" },
+      { name: "run_code", type: "code_interpreter" as const }
+    ]) {
+      fetchFn.mockClear();
+      await provider.generateMessage({
+        model: "gemini-3.5-flash",
+        messages: [{ role: "user", content: "go" }],
+        tools: [builtIn, { name: "ui_storyboard_add_shot" }]
+      });
+      const body = JSON.parse(fetchFn.mock.calls[0][1].body);
+      expect(body.toolConfig.includeServerSideToolInvocations).toBe(true);
+    }
+  });
+
+  it("omits toolConfig when there is nothing to configure", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(
+      makeFetchResponse({
+        candidates: [{ content: { parts: [{ text: "ok" }] } }]
+      })
+    );
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
+
+    // Function tools alone — no built-in in play, so no flag.
+    await provider.generateMessage({
+      model: "gemini-3.5-flash",
+      messages: [{ role: "user", content: "go" }],
+      tools: [{ name: "ui_storyboard_add_shot" }]
+    });
+    expect(JSON.parse(fetchFn.mock.calls[0][1].body).toolConfig).toBeUndefined();
+
+    // A built-in with no function declarations needs no flag either.
+    fetchFn.mockClear();
+    await provider.generateMessage({
+      model: "gemini-3.5-flash",
+      messages: [{ role: "user", content: "go" }],
+      tools: [{ name: "web_search" }]
+    });
+    expect(JSON.parse(fetchFn.mock.calls[0][1].body).toolConfig).toBeUndefined();
   });
 
   it("maps code-interpreter tools to Gemini code execution", async () => {
