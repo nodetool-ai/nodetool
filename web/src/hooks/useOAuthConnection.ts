@@ -23,6 +23,33 @@ interface TokensResponse {
   tokens: unknown[];
 }
 
+/**
+ * Claim a window synchronously so the browser credits it to the user's click,
+ * and show something while /start is in flight. Returns null when the pop-up
+ * was blocked. `noopener` is deliberately absent — it would null the handle we
+ * need to navigate — so the opener link is severed by hand instead.
+ */
+const openPlaceholderWindow = (label: string): Window | null => {
+  const authWindow = window.open("", "_blank", "width=600,height=700");
+  if (!authWindow) {
+    return null;
+  }
+  try {
+    authWindow.opener = null;
+    const doc = authWindow.document;
+    doc.title = `Connecting to ${label}…`;
+    if (doc.body) {
+      doc.body.style.font = "16px sans-serif";
+      doc.body.style.padding = "2rem";
+      doc.body.textContent = `Connecting to ${label}…`;
+    }
+  } catch {
+    // A browser that refuses to let us touch the blank document can still be
+    // navigated, which is all the flow actually needs.
+  }
+  return authWindow;
+};
+
 export interface OAuthConnection {
   /** Provider label for UI (e.g. "OpenAI"). */
   label: string;
@@ -102,6 +129,16 @@ export const useOAuthConnection = (
       return;
     }
     setIsConnecting(true);
+
+    // The auth URL only exists after a round-trip to /start, but a window
+    // opened after that await counts as gestureless and mobile browsers block
+    // it silently — the login page simply never appears. So claim the window
+    // now, in the click's own tick, and point it at the URL once it lands.
+    const useNativeBrowser = isElectron && !!window.api?.shell?.openExternal;
+    const authWindow = useNativeBrowser
+      ? null
+      : openPlaceholderWindow(config.label);
+
     try {
       const response = await restFetch(`/api/oauth/${provider}/start`);
       const body = (await response.json().catch(() => null)) as
@@ -113,16 +150,17 @@ export const useOAuthConnection = (
       }
 
       const authUrl = body.auth_url;
-      if (isElectron && window.api?.shell?.openExternal) {
-        await window.api.shell.openExternal(authUrl);
+      if (useNativeBrowser) {
+        await window.api?.shell?.openExternal(authUrl);
+      } else if (authWindow) {
+        authWindow.location.replace(authUrl);
       } else {
-        window.open(
-          authUrl,
-          "_blank",
-          "noopener,noreferrer,width=600,height=700"
-        );
+        // Pop-up blocked (the strict default on mobile Safari). Hand the whole
+        // tab to the provider instead; the poll picks the token up on return.
+        window.open(authUrl, "_self");
       }
     } catch (error) {
+      authWindow?.close();
       setIsConnecting(false);
       addNotification({
         content:

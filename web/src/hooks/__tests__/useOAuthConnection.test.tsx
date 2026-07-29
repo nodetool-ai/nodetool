@@ -27,9 +27,19 @@ const createWrapper = () => {
   };
 };
 
+/** Stand-in for the window connect() claims in the click's own tick. */
+const fakeAuthWindow = () =>
+  ({
+    opener: {},
+    document: { title: "", body: null },
+    location: { replace: jest.fn() },
+    close: jest.fn()
+  }) as unknown as Window;
+
 describe("useOAuthConnection", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.spyOn(window, "open").mockReturnValue(fakeAuthWindow());
     (useNotificationStore as unknown as jest.Mock).mockImplementation(
       (selector: (state: unknown) => unknown) =>
         selector({ addNotification: mockAddNotification })
@@ -42,6 +52,10 @@ describe("useOAuthConnection", () => {
       if (url.endsWith("/disconnect")) return jsonResponse({});
       return jsonResponse({});
     });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it("stays inert and issues no request when provider is null", async () => {
@@ -76,10 +90,11 @@ describe("useOAuthConnection", () => {
     expect(result.current.canDisconnect).toBe(true);
   });
 
-  it("opens the auth URL when connect() is called", async () => {
-    const openSpy = jest
-      .spyOn(window, "open")
-      .mockReturnValue(null as unknown as Window);
+  it("claims a window before /start, then navigates it to the auth URL", async () => {
+    const authWindow = fakeAuthWindow();
+    (window.open as jest.MockedFunction<typeof window.open>).mockReturnValue(
+      authWindow
+    );
 
     const { result } = renderHook(() => useOAuthConnection("hf"), {
       wrapper: createWrapper()
@@ -89,13 +104,34 @@ describe("useOAuthConnection", () => {
       await result.current.connect();
     });
 
-    expect(mockRestFetch).toHaveBeenCalledWith("/api/oauth/hf/start");
-    expect(openSpy).toHaveBeenCalledWith(
-      "https://example.com/auth",
+    // Opened blank so the click's own tick pays for it — a window opened after
+    // the /start round-trip is blocked on mobile.
+    expect(window.open).toHaveBeenCalledWith(
+      "",
       "_blank",
-      expect.stringContaining("noopener")
+      "width=600,height=700"
     );
-    openSpy.mockRestore();
+    expect(mockRestFetch).toHaveBeenCalledWith("/api/oauth/hf/start");
+    expect(authWindow.location.replace).toHaveBeenCalledWith(
+      "https://example.com/auth"
+    );
+    expect(authWindow.opener).toBeNull();
+  });
+
+  it("falls back to a same-tab navigation when the pop-up is blocked", async () => {
+    const open = (
+      window.open as jest.MockedFunction<typeof window.open>
+    ).mockReturnValue(null);
+
+    const { result } = renderHook(() => useOAuthConnection("hf"), {
+      wrapper: createWrapper()
+    });
+
+    await act(async () => {
+      await result.current.connect();
+    });
+
+    expect(open).toHaveBeenCalledWith("https://example.com/auth", "_self");
   });
 
   it("calls the disconnect endpoint for a provider that supports it", async () => {
