@@ -6,6 +6,7 @@ import type {} from "./material-ui";
 import type {} from "./window";
 
 // Early polyfills / globals must come before other imports.
+import "./cryptoUUIDPolyfill";
 import "./prismGlobal";
 
 import React, { Suspense, useCallback, useEffect, useState } from "react";
