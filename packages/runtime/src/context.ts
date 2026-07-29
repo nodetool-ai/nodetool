@@ -1047,6 +1047,11 @@ export class ProcessingContext {
   readonly userId: string;
   readonly workspaceDir: string | null;
   readonly assetOutputMode: AssetOutputMode;
+  /**
+   * Whether Output nodes should turn transient media into durable Asset rows.
+   * Hosts can disable this for explicitly temporary SDK executions.
+   */
+  readonly persistOutputAssets: boolean;
   readonly environment: Record<string, string>;
   /** Bearer token for authenticated calls back to the owning NodeTool API. */
   readonly authToken: string | null;
@@ -1182,6 +1187,7 @@ export class ProcessingContext {
     userId?: string;
     workspaceDir?: string | null;
     assetOutputMode?: AssetOutputMode;
+    persistOutputAssets?: boolean;
     cache?: CacheAdapter;
     storage?: StorageAdapter | null;
     workspaceStorage?: StorageAdapter | null;
@@ -1223,6 +1229,7 @@ export class ProcessingContext {
     this.userId = opts.userId ?? "default";
     this.workspaceDir = opts.workspaceDir ?? null;
     this.assetOutputMode = opts.assetOutputMode ?? "native";
+    this.persistOutputAssets = opts.persistOutputAssets ?? true;
     this.cache = opts.cache ?? new MemoryCache();
     this.storage = opts.storage ?? null;
     this.workspaceStorage = opts.workspaceStorage ?? null;
@@ -1254,6 +1261,7 @@ export class ProcessingContext {
       userId: this.userId,
       workspaceDir: this.workspaceDir,
       assetOutputMode: this.assetOutputMode,
+      persistOutputAssets: this.persistOutputAssets,
       cache: this.cache,
       storage: this.storage,
       workspaceStorage: this.workspaceStorage,

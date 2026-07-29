@@ -521,6 +521,31 @@ describe("output nodes — full coverage", () => {
     expect(await fresh.process()).toEqual({ output: null });
   });
 
+  it("OutputNode does not persist media for a temporary execution", async () => {
+    const node = new OutputNode();
+    const normalized = {
+      type: "image",
+      uri: "/api/storage/temp/sdk-image.png"
+    };
+    const createAsset = vi.fn();
+    const context = {
+      persistOutputAssets: false,
+      normalizeOutputValue: vi.fn(async () => normalized),
+      createAsset
+    } as unknown as ProcessingContext;
+    node.assign({
+      value: {
+        type: "image",
+        data: new Uint8Array([1, 2, 3])
+      }
+    });
+
+    await expect(node.process(context)).resolves.toEqual({
+      output: normalized
+    });
+    expect(createAsset).not.toHaveBeenCalled();
+  });
+
   it("OutputNode output_name defaults to 'output' when name prop empty", async () => {
     const node = new OutputNode();
     node.assign({ __node_id: "n1", name: "" });

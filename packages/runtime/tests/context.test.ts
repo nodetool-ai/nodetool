@@ -1545,6 +1545,7 @@ describe("ProcessingContext – copy and cost tracking", () => {
       jobId: "j1",
       workflowId: "w1",
       userId: "u1",
+      persistOutputAssets: false,
       variables: { x: 1 },
       environment: { APP_ENV: "test" },
       secretResolver: async () => "s"
@@ -1556,6 +1557,7 @@ describe("ProcessingContext – copy and cost tracking", () => {
     expect(cloned.jobId).toBe("j1");
     expect(cloned.workflowId).toBe("w1");
     expect(cloned.userId).toBe("u1");
+    expect(cloned.persistOutputAssets).toBe(false);
     expect(cloned.get("x")).toBe(1);
     expect(cloned.environment.APP_ENV).toBe("test");
     await expect(cloned.getSecretRequired("any")).resolves.toBe("s");
