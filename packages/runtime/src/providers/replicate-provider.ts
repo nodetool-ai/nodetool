@@ -32,6 +32,7 @@ import type {
 } from "./types.js";
 import {
   getModelImageInputs,
+  getModelInputNames,
   loadImageModels,
   loadMusicModels,
   loadVideoModels,
@@ -927,6 +928,36 @@ export class ReplicateProvider extends BaseProvider {
     });
   }
 
+  /**
+   * Drop input fields the model does not declare in the manifest.
+   *
+   * Replicate fails the whole prediction on an undeclared field instead of
+   * ignoring it, so a generic param bag breaks any endpoint with a narrower
+   * schema. An empty declaration set means the model is not in the manifest —
+   * send everything rather than silently stripping the request bare.
+   */
+  private pruneToDeclaredInputs(
+    modelId: string,
+    input: Record<string, unknown>
+  ): Record<string, unknown> {
+    const declared = getModelInputNames(
+      "@nodetool-ai/replicate-nodes",
+      "replicate-manifest.json",
+      modelId
+    );
+    if (declared.size === 0) return input;
+    const pruned: Record<string, unknown> = {};
+    const dropped: string[] = [];
+    for (const [key, value] of Object.entries(input)) {
+      if (declared.has(key)) pruned[key] = value;
+      else dropped.push(key);
+    }
+    if (dropped.length > 0) {
+      log.debug("pruned undeclared inputs", { model: modelId, dropped });
+    }
+    return pruned;
+  }
+
   override async videoToVideo(
     video: Uint8Array,
     params: VideoToVideoParams
@@ -939,7 +970,10 @@ export class ReplicateProvider extends BaseProvider {
     if (params.strength != null) input.strength = params.strength;
     if (params.seed != null) input.seed = params.seed;
     log.debug("videoToVideo", { model: params.model.id });
-    return this.runWithInput(params.model.id, input);
+    return this.runWithInput(
+      params.model.id,
+      this.pruneToDeclaredInputs(params.model.id, input)
+    );
   }
 
   override async lipSync(
@@ -952,7 +986,10 @@ export class ReplicateProvider extends BaseProvider {
     };
     if (params.seed != null) input.seed = params.seed;
     log.debug("lipSync", { model: params.model.id });
-    return this.runWithInput(params.model.id, input);
+    return this.runWithInput(
+      params.model.id,
+      this.pruneToDeclaredInputs(params.model.id, input)
+    );
   }
 
   /**

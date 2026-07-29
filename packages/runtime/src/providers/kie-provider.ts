@@ -1078,6 +1078,7 @@ export class KieProvider extends BaseProvider {
     const input: Record<string, unknown> = { prompt: params.prompt };
     if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
     this.applyVideoDuration(input, fields, params);
+    this.applyRequiredDefaults(input, fields);
 
     log.debug("Kie textToVideo", { model: modelId });
     const apiKey = this.requireApiKey();
@@ -1097,6 +1098,30 @@ export class KieProvider extends BaseProvider {
    * declared field type. A declared schema with no `duration` field sends
    * nothing; an unknown model keeps the historical numeric behavior.
    */
+  /**
+   * Fill required fields the model declares but nothing else set, using the
+   * manifest's declared default.
+   *
+   * Kie rejects a task with `500 "This field is required"` when a declared
+   * required field is absent — it does not fall back to the documented default
+   * itself. `kling-2.6/image-to-video` requires `sound` (default false), which
+   * no param maps to, so an image-to-video task failed outright.
+   *
+   * Only fields the manifest marks required AND gives a default are filled, so
+   * this cannot invent a value the model never described.
+   */
+  private applyRequiredDefaults(
+    input: Record<string, unknown>,
+    fields: ModelInputField[]
+  ): void {
+    for (const field of fields) {
+      if (!field.required) continue;
+      if (field.default === undefined) continue;
+      if (input[field.name] !== undefined) continue;
+      input[field.name] = field.default;
+    }
+  }
+
   private applyVideoDuration(
     input: Record<string, unknown>,
     fields: ModelInputField[],
@@ -1300,6 +1325,7 @@ export class KieProvider extends BaseProvider {
     if (params.prompt) input.prompt = params.prompt;
     this.applyEditOptions(input, fields, params);
     this.applyVideoDuration(input, fields, params);
+    this.applyRequiredDefaults(input, fields);
 
     log.debug("Kie imageToVideo", { model: modelId, images: imageUrls.length });
 

@@ -3,16 +3,16 @@
   "access": "private",
   "created_at": "2026-06-21T16:03:52.969Z",
   "updated_at": "2026-06-21T16:55:51.256Z",
-  "name": "AI Spokesperson",
+  "name": "Score a Silent Clip",
   "tool_name": null,
-  "description": "Give a presenter clip a new script. Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Useful for localising a take, fixing a fluffed line, or spinning one recording into many variants. Both the speech and lip-sync steps are paid per run.",
+  "description": "Give a clip a soundtrack. Describe the mood, Stable Audio on fal.ai writes a bed to match the clip's length, and the mix is laid under the original audio. Cheaper than the video templates — one audio generation per run.",
   "tags": [
     "video",
     "audio",
-    "marketing",
+    "music",
     "example"
   ],
-  "thumbnail": "AI Spokesperson.jpg",
+  "thumbnail": "Score a Silent Clip.jpg",
   "thumbnail_url": null,
   "graph": {
     "nodes": [
@@ -20,13 +20,11 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "headline": "AI Spokesperson",
+          "headline": "Score a Silent Clip",
           "comment": [
-            "Re-voice an existing presenter clip without a reshoot.\n\n",
-            "1. Drop in footage of a person talking to camera.\n",
-            "2. Write the new script.\n",
-            "3. TTS voices it, then lip-sync redrives the mouth to match.\n\n",
-            "Keep the script close to the original length — lip-sync follows the audio, and a much longer script will run past the footage."
+            "Put a soundtrack under a clip.\n\n",
+            "Set duration to match your clip: a bed shorter than the video leaves silence at the tail.\n\n",
+            "mix stays on so the original audio survives underneath. Turn it off to replace the track outright."
           ]
         },
         "ui_properties": {
@@ -43,12 +41,12 @@
         "dynamic_outputs": {}
       },
       {
-        "id": "in-clip",
+        "id": "in-video",
         "type": "nodetool.input.VideoInput",
         "data": {
-          "name": "presenter_clip",
+          "name": "clip",
           "value": null,
-          "description": "Footage of a person speaking to camera"
+          "description": "The clip to score"
         },
         "ui_properties": {
           "position": {
@@ -58,18 +56,18 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "1  Presenter clip"
+          "title": "1  Clip"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
-        "id": "in-script",
+        "id": "in-mood",
         "type": "nodetool.input.StringInput",
         "data": {
-          "name": "script",
-          "value": "Our spring release ships today. Faster renders, sharper output, and a price that did not move.",
-          "description": "The new words the presenter should say"
+          "name": "mood",
+          "value": "Warm analogue synth bed, slow pulse, hopeful but restrained, no drums",
+          "description": "The mood of the score"
         },
         "ui_properties": {
           "position": {
@@ -79,50 +77,44 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "2  New script"
+          "title": "2  Mood"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
-        "id": "speech",
-        "type": "nodetool.audio.TextToSpeech",
+        "id": "score",
+        "type": "nodetool.audio.TextToMusic",
         "data": {
           "model": {
-            "type": "tts_model",
-            "provider": "replicate",
-            "id": "inworld/realtime-tts-1.5-max",
-            "name": "Inworld Realtime TTS 1.5 Max",
-            "path": null,
-            "voices": []
+            "type": "music_model",
+            "provider": "fal_ai",
+            "id": "fal-ai/stable-audio-25/text-to-audio",
+            "name": "Stable Audio 2.5",
+            "path": null
           },
-          "speed": 1.0
+          "lyrics": "",
+          "duration": 12.0
         },
         "ui_properties": {
           "position": {
-            "x": 380,
+            "x": 400,
             "y": 380
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "3  Voice the script"
+          "title": "3  Write the score (fal)"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
-        "id": "sync",
-        "type": "nodetool.video.LipSync",
+        "id": "mix",
+        "type": "nodetool.video.AddAudio",
         "data": {
-          "model": {
-            "type": "video_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/sync-lipsync/v2/pro",
-            "name": "Sync Lipsync v2 Pro",
-            "path": null,
-            "supported_tasks": []
-          }
+          "volume": 0.35,
+          "mix": true
         },
         "ui_properties": {
           "position": {
@@ -132,16 +124,16 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "4  Lip-sync to the new audio"
+          "title": "4  Lay it under"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
-        "id": "output-clip",
+        "id": "output-scored",
         "type": "nodetool.output.Output",
         "data": {
-          "name": "revoiced_clip"
+          "name": "scored_clip"
         },
         "ui_properties": {
           "position": {
@@ -151,7 +143,7 @@
           "zIndex": 0,
           "width": 240,
           "selectable": true,
-          "title": "5  Re-voiced clip"
+          "title": "5  Scored clip"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -160,30 +152,30 @@
     "edges": [
       {
         "id": "e1",
-        "source": "in-script",
+        "source": "in-mood",
         "sourceHandle": "output",
-        "target": "speech",
-        "targetHandle": "text"
+        "target": "score",
+        "targetHandle": "prompt"
       },
       {
         "id": "e2",
-        "source": "in-clip",
+        "source": "in-video",
         "sourceHandle": "output",
-        "target": "sync",
+        "target": "mix",
         "targetHandle": "video"
       },
       {
         "id": "e3",
-        "source": "speech",
+        "source": "score",
         "sourceHandle": "audio",
-        "target": "sync",
+        "target": "mix",
         "targetHandle": "audio"
       },
       {
         "id": "e4",
-        "source": "sync",
+        "source": "mix",
         "sourceHandle": "output",
-        "target": "output-clip",
+        "target": "output-scored",
         "targetHandle": "value"
       }
     ]
@@ -191,7 +183,7 @@
   "input_schema": {
     "type": "object",
     "properties": {
-      "presenter_clip": {
+      "clip": {
         "type": "object",
         "properties": {
           "uri": {
@@ -209,21 +201,21 @@
         ],
         "label": ""
       },
-      "script": {
+      "mood": {
         "type": "string",
-        "default": "Our spring release ships today. Faster renders, sharper output, and a price that did not move.",
+        "default": "Warm analogue synth bed, slow pulse, hopeful but restrained, no drums",
         "label": ""
       }
     },
     "required": [
-      "presenter_clip",
-      "script"
+      "clip",
+      "mood"
     ]
   },
   "output_schema": {
     "type": "object",
     "properties": {
-      "revoiced_clip": {
+      "scored_clip": {
         "type": "object",
         "properties": {
           "uri": {
@@ -243,7 +235,7 @@
       }
     },
     "required": [
-      "revoiced_clip"
+      "scored_clip"
     ]
   },
   "settings": {},
