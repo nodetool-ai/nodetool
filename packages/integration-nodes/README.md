@@ -54,8 +54,15 @@ that have a login (see Configuration below).
 `ApifyGoogleSearchScraper`, `ApifyInstagramScraper`, `ApifyAmazonScraper`,
 `ApifyYouTubeScraper`, `ApifyTwitterScraper`, `ApifyLinkedInScraper`.
 
-**Other** — `lib.comfy.RunWorkflow`, `lib.comfy.RunWorkflowOnWorker`,
-`kie.dynamic_schema.KieAI`, `lib.secret.GetSecret`.
+**ComfyUI** (`lib.comfy.*`) — `RunWorkflow` runs an API-format ComfyUI workflow
+against any reachable ComfyUI server, streaming each output file as its save node
+finishes. `RunWorkflowOnWorker` runs the same workflow on a NodeTool worker that
+fronts a loopback-only ComfyUI, proxied over the worker bridge's `comfy.*`
+messages. Both derive typed inputs from `Load*` nodes and typed outputs from
+`Save*` nodes, keyed `<comfyNodeId>:<field>`. See
+[docs/comfyui.md](https://docs.nodetool.ai/comfyui).
+
+**Other** — `kie.dynamic_schema.KieAI`, `lib.secret.GetSecret`.
 
 ## Configuration
 

@@ -58,6 +58,7 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [Local vs Cloud]({{ site.url }}/models): When to use which.
 - [Provider Reference]({{ site.url }}/providers): Per-provider configuration.
 - [HuggingFace]({{ site.url }}/huggingface): Models from the Hub.
+- [ComfyUI]({{ site.url }}/comfyui): Run ComfyUI workflows directly or over a GPU worker.
 - [Models Manager]({{ site.url }}/models-manager): Download and manage local models.
 
 ## Examples

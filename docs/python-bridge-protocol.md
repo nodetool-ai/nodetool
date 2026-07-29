@@ -157,7 +157,8 @@ ComfyUI proxy. Introduced in bridge protocol **v3**, gated by `supportsComfy()`
 — a worker offers these only when it fronts a co-located, loopback-only ComfyUI
 server AND reports `worker.status.comfy.enabled: true`. Route `comfy.*` requests
 only to such workers. The full field-level reference lives in
-`docs/comfy-proxy.md` in nodetool-core.
+`docs/comfy-proxy.md` in nodetool-core; [ComfyUI](comfyui.md) covers the nodes
+that sit on top of these messages.
 
 - `comfy.execute` — submit an API-format workflow; streams its lifecycle as
   dedicated `comfy.event` frames (see below), then a terminal `result`/`error`.
