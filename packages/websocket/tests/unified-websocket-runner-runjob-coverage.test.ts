@@ -113,6 +113,7 @@ function makeActive(opts: {
   workflowId?: string | null;
   nodes?: Array<Record<string, unknown>>;
   messages: Record<string, unknown>[];
+  requireTerminalResult?: boolean;
   executionOptions?: {
     persistence?: "job" | "session";
     event_detail?: "full" | "outputs" | "terminal";
@@ -129,7 +130,7 @@ function makeActive(opts: {
     graph: { nodes: opts.nodes ?? [], edges: [] },
     finished: false,
     status: "running" as const,
-    requireTerminalResult: false,
+    requireTerminalResult: opts.requireTerminalResult ?? false,
     executionOptions: resolveRunJobExecutionOptions(opts.executionOptions),
     timings: {
       acceptedAt: now,
@@ -216,6 +217,32 @@ describe("UnifiedWebSocketRunner run_job — streamJobMessages relay", () => {
     );
     expect(terminal).toBeDefined();
     expect((terminal?.result as any).outputs).toEqual({ out: ["v1"] });
+  });
+
+  it("does not duplicate the kernel running update for authoritative SDK runs", async () => {
+    const active = makeActive({
+      jobId: "J-SDK",
+      workflowId: "wf-sdk",
+      messages: [
+        {
+          type: "job_update",
+          status: "running"
+        }
+      ],
+      requireTerminalResult: true
+    });
+
+    await streamTo(
+      runner,
+      active,
+      Promise.resolve({ status: "completed", outputs: {} })
+    );
+
+    const runningUpdates = decodeAll(ws).filter(
+      (message) =>
+        message.type === "job_update" && message.status === "running"
+    );
+    expect(runningUpdates).toHaveLength(1);
   });
 
   it("waits for execution activity without scheduling a polling timer", async () => {

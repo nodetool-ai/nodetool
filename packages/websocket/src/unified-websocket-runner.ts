@@ -3049,12 +3049,17 @@ export class UnifiedWebSocketRunner {
     // N-variant run does one query per node, not one per variant (RFC D8).
     const persistedIndexByNode = new Map<string, Set<number>>();
 
-    await this.sendMessage({
-      type: "job_update",
-      status: "running",
-      job_id: active.jobId,
-      workflow_id: active.workflowId
-    });
+    // The kernel emits the same running update once graph validation begins.
+    // Authoritative SDK runs can use that update and avoid an otherwise
+    // duplicate WebSocket frame. Legacy clients keep the eager acknowledgement.
+    if (!active.requireTerminalResult) {
+      await this.sendMessage({
+        type: "job_update",
+        status: "running",
+        job_id: active.jobId,
+        workflow_id: active.workflowId
+      });
+    }
 
     const executionSettled = executePromise
       .then((result) => {
@@ -3334,24 +3339,7 @@ export class UnifiedWebSocketRunner {
       finalOutputs = await this.normalizeFinalOutputs(active, finalOutputs);
     }
 
-    const completedAt = performance.now();
-    log.info("Job completed", {
-      jobId: active.jobId,
-      status: active.status,
-      executionOptions: active.executionOptions,
-      timings: {
-        queueMs: active.timings.queueMs,
-        graphLoadedMs: active.timings.graphLoadedMs,
-        graphHydratedMs: active.timings.graphHydratedMs,
-        preRunMs: active.timings.preRunMs,
-        persistenceMs: active.timings.persistenceMs,
-        executionAndRelayMs: Math.max(
-          0,
-          completedAt - active.timings.kernelStartedAt
-        ),
-        totalMs: Math.max(0, completedAt - active.timings.acceptedAt)
-      }
-    });
+    const relayCompletedAt = performance.now();
 
     if (
       !terminalSeen ||
@@ -3366,6 +3354,32 @@ export class UnifiedWebSocketRunner {
         result: { outputs: finalOutputs }
       });
     }
+
+    const terminalDeliveredAt = performance.now();
+    log.info("Job completed", {
+      jobId: active.jobId,
+      status: active.status,
+      executionOptions: active.executionOptions,
+      timings: {
+        queueMs: active.timings.queueMs,
+        graphLoadedMs: active.timings.graphLoadedMs,
+        graphHydratedMs: active.timings.graphHydratedMs,
+        preRunMs: active.timings.preRunMs,
+        persistenceMs: active.timings.persistenceMs,
+        executionAndRelayMs: Math.max(
+          0,
+          relayCompletedAt - active.timings.kernelStartedAt
+        ),
+        terminalDeliveryMs: Math.max(
+          0,
+          terminalDeliveredAt - relayCompletedAt
+        ),
+        totalMs: Math.max(
+          0,
+          terminalDeliveredAt - active.timings.acceptedAt
+        )
+      }
+    });
 
     await this.persistTerminalJobStatus(active);
     await this.settleApplicationInvocation(active);
