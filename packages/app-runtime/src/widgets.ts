@@ -207,6 +207,45 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
       placeholder: "text"
     }
   },
+  // Renders a bound `Model3DRef` in an orbit viewer. The raw ref is `{type,
+  // uri}`, so without this a 3D result shows as an opaque object.
+  Model3D: {
+    label: "3D Model",
+    mode: "read",
+    fields: { binding: "custom", height: "number", placeholder: "text" }
+  },
+  // Plots a bound array or dataframe. `chartKind` picks the trace type rather
+  // than asking the app author for a Plotly spec.
+  Chart: {
+    label: "Chart",
+    mode: "read",
+    fields: {
+      binding: "custom",
+      label: "text",
+      chartKind: "select",
+      height: "number",
+      placeholder: "text"
+    }
+  },
+  // Paginated PDF preview of a bound document ref. `Download` offers the same
+  // value as a file; this one renders it in place.
+  PDF: {
+    label: "PDF",
+    mode: "read",
+    fields: { binding: "custom", height: "number", placeholder: "text" }
+  },
+  // A tiled grid of a bound array of media refs — what a batch run that emits N
+  // images needs, since `Image` binds one value and `Table` renders rows.
+  Gallery: {
+    label: "Gallery",
+    mode: "read",
+    fields: {
+      binding: "custom",
+      label: "text",
+      tileSize: "number",
+      placeholder: "text"
+    }
+  },
   // Inputs
   WorkflowInput: {
     label: "Workflow Input",
@@ -349,6 +388,69 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
     trigger: "change",
     commits: false,
     fields: { binding: "custom", label: "text", events: "array" }
+  },
+  // Edits a bound dataframe as a grid. `Table` renders the same shape read-only.
+  DataFrameInput: {
+    label: "Data Table Input",
+    mode: "write",
+    trigger: "change",
+    commits: true,
+    fields: { binding: "custom", label: "text", maxHeight: "number", events: "array" }
+  },
+  // Local filesystem paths, for apps driving a workflow that reads off disk.
+  FilePathInput: {
+    label: "File Path Input",
+    mode: "write",
+    trigger: "change",
+    commits: true,
+    fields: {
+      binding: "custom",
+      label: "text",
+      placeholder: "text",
+      events: "array"
+    }
+  },
+  FolderPathInput: {
+    label: "Folder Path Input",
+    mode: "write",
+    trigger: "change",
+    commits: true,
+    fields: {
+      binding: "custom",
+      label: "text",
+      placeholder: "text",
+      events: "array"
+    }
+  },
+  Model3DInput: {
+    label: "3D Model Input",
+    mode: "write",
+    trigger: "change",
+    commits: false,
+    fields: { binding: "custom", label: "text", events: "array" }
+  },
+  // Writes an `{width, height}` pair, so an app can offer the size its image
+  // workflow reads without two coupled number fields.
+  ImageSizeInput: {
+    label: "Image Size Input",
+    mode: "write",
+    trigger: "change",
+    commits: false,
+    fields: { binding: "custom", label: "text", events: "array" }
+  },
+  // The one widget behind the four list input nodes: `listKind` picks which,
+  // rather than four near-identical palette entries.
+  MediaListInput: {
+    label: "Media List Input",
+    mode: "write",
+    trigger: "change",
+    commits: false,
+    fields: {
+      binding: "custom",
+      label: "text",
+      listKind: "select",
+      events: "array"
+    }
   },
   // Resource widgets address a collection through `resourceBindingId`, not the
   // `binding` token the state widgets carry.

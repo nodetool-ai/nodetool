@@ -52,7 +52,10 @@ const KIND_TO_PROPERTY_TYPE: Record<
   image_list: "list",
   video_list: "list",
   audio_list: "list",
-  text_list: "list"
+  text_list: "list",
+  model3d: "model_3d",
+  image_size: "image_size",
+  huggingface_model: "hf.model"
 };
 
 const createPropertyFromDefinition = (

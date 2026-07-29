@@ -15,6 +15,7 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
 
 import {
+  Box,
   Caption,
   FlexColumn,
   TextInput,
@@ -29,6 +30,8 @@ import VideoModelSelect from "../../properties/VideoModelSelect";
 import TTSModelSelect from "../../properties/TTSModelSelect";
 import ASRModelSelect from "../../properties/ASRModelSelect";
 import EmbeddingModelSelect from "../../properties/EmbeddingModelSelect";
+import HuggingFaceModelSelect from "../../properties/HuggingFaceModelSelect";
+import type { HuggingFaceModelValueInput } from "../../../stores/ApiTypes";
 import { NodeContext } from "../../../contexts/NodeContext";
 import { AppEvent } from "../types";
 import {
@@ -69,11 +72,18 @@ const Placeholder: React.FC<{ text: string }> = ({ text }) => (
   </FlexColumn>
 );
 
+const EMPTY_HF_MODEL: HuggingFaceModelValueInput = {
+  type: "hf.model",
+  repo_id: ""
+};
+
 const ModelSelect: React.FC<{
   input: WorkflowInputIO;
-  modelId: string;
+  /** The stored reference; every select but the HF one keys off its `id`. */
+  value: unknown;
   onChange: (value: unknown) => void;
-}> = ({ input, modelId, onChange }) => {
+}> = ({ input, value, onChange }) => {
+  const modelId = (value as { id?: string } | undefined)?.id || "";
   switch (input.kind) {
     case "language_model":
       return <LanguageModelSelect onChange={onChange} value={modelId} />;
@@ -85,6 +95,18 @@ const ModelSelect: React.FC<{
       return <TTSModelSelect onChange={onChange} value={modelId} />;
     case "asr_model":
       return <ASRModelSelect onChange={onChange} value={modelId} />;
+    case "huggingface_model":
+      // A HuggingFace reference is `{type, repo_id, path}`, not an id, so this
+      // one takes the whole stored value.
+      return (
+        <HuggingFaceModelSelect
+          modelType="hf.model"
+          onChange={onChange}
+          value={
+            (value as HuggingFaceModelValueInput | undefined) ?? EMPTY_HF_MODEL
+          }
+        />
+      );
     default:
       return <EmbeddingModelSelect onChange={onChange} value={modelId} />;
   }
@@ -160,7 +182,6 @@ const InputControl: React.FC<{
   }
 
   if (MODEL_INPUT_KINDS.has(input.kind)) {
-    const modelId = (resolved as { id?: string } | undefined)?.id || "";
     return (
       <FlexColumn gap={SPACING.micro} fullWidth>
         <PropertyLabel
@@ -168,7 +189,7 @@ const InputControl: React.FC<{
           description={property.description}
           id={inputId}
         />
-        <ModelSelect input={input} modelId={modelId} onChange={handleChange} />
+        <ModelSelect input={input} value={resolved} onChange={handleChange} />
       </FlexColumn>
     );
   }
@@ -251,9 +272,9 @@ export const WorkflowInputWidget: React.FC<WorkflowInputWidgetProps> = (
 };
 
 /**
- * The model kinds a ModelSelect widget can offer. Same six the workflow input
- * form resolves, picked here by the app author instead of by a node's type —
- * an app often wants to drive an LLM node's `model` property directly.
+ * The model kinds a ModelSelect widget can offer. The same ones the workflow
+ * input form resolves, picked here by the app author instead of by a node's
+ * type — an app often wants to drive an LLM node's `model` property directly.
  */
 export const MODEL_WIDGET_KINDS = [
   "language_model",
@@ -261,7 +282,8 @@ export const MODEL_WIDGET_KINDS = [
   "video_model",
   "tts_model",
   "asr_model",
-  "embedding_model"
+  "embedding_model",
+  "huggingface_model"
 ] as const;
 
 export type ModelWidgetKind = (typeof MODEL_WIDGET_KINDS)[number];
@@ -272,7 +294,8 @@ const MODEL_KIND_NODE_TYPE: Record<ModelWidgetKind, string> = {
   video_model: "nodetool.input.VideoModelInput",
   tts_model: "nodetool.input.TTSModelInput",
   asr_model: "nodetool.input.ASRModelInput",
-  embedding_model: "nodetool.input.EmbeddingModelInput"
+  embedding_model: "nodetool.input.EmbeddingModelInput",
+  huggingface_model: "nodetool.input.HuggingFaceModelInput"
 };
 
 const isModelKind = (value: unknown): value is ModelWidgetKind =>
@@ -323,15 +346,39 @@ export const ModelSelectWidget: React.FC<ModelSelectWidgetProps> = (props) => {
 };
 
 /** Kinds exposed as standalone palette widgets alongside the auto-resolving
- * WorkflowInput — so an app authored from scratch can offer media pickers. */
-export type FixedInputKind = "image" | "audio" | "video" | "document" | "color";
+ * WorkflowInput — so an app authored from scratch can offer media pickers,
+ * paths, tables, and the media list controls. */
+export type FixedInputKind =
+  | "image"
+  | "audio"
+  | "video"
+  | "document"
+  | "color"
+  | "dataframe"
+  | "file_path"
+  | "folder_path"
+  | "model3d"
+  | "image_size"
+  | "image_list"
+  | "video_list"
+  | "audio_list"
+  | "text_list";
 
 const FIXED_KIND_NODE_TYPE: Record<FixedInputKind, string> = {
   image: "nodetool.input.ImageInput",
   audio: "nodetool.input.AudioInput",
   video: "nodetool.input.VideoInput",
   document: "nodetool.input.DocumentInput",
-  color: "nodetool.input.ColorInput"
+  color: "nodetool.input.ColorInput",
+  dataframe: "nodetool.input.DataframeInput",
+  file_path: "nodetool.input.FilePathInput",
+  folder_path: "nodetool.input.FolderPathInput",
+  model3d: "nodetool.input.Model3DInput",
+  image_size: "nodetool.input.ImageSizeInput",
+  image_list: "nodetool.input.ImageListInput",
+  video_list: "nodetool.input.VideoListInput",
+  audio_list: "nodetool.input.AudioListInput",
+  text_list: "nodetool.input.TextListInput"
 };
 
 export interface FixedInputWidgetProps {
@@ -339,12 +386,18 @@ export interface FixedInputWidgetProps {
   binding?: string;
   label?: string;
   description?: string;
+  /** Hint shown under the control — path inputs have nothing else to guide on. */
+  placeholder?: string;
   events?: AppEvent[];
 }
 
 export const FixedKindInputWidget: React.FC<
-  FixedInputWidgetProps & { kind: FixedInputKind }
-> = ({ kind, ...props }) => {
+  FixedInputWidgetProps & {
+    kind: FixedInputKind;
+    /** Caps the control's height; the grid editors grow with their rows. */
+    maxHeight?: number;
+  }
+> = ({ kind, maxHeight, ...props }) => {
   const { value, setValue, emit } = useWidgetRuntime({
     id: props.id,
     bindingMode: "write",
@@ -361,12 +414,19 @@ export const FixedKindInputWidget: React.FC<
       name: props.label || props.binding || props.id,
       label: props.label || props.binding || kind,
       kind,
-      description: props.description
+      description: props.description || props.placeholder
     }),
-    [kind, props.binding, props.description, props.id, props.label]
+    [
+      kind,
+      props.binding,
+      props.description,
+      props.id,
+      props.label,
+      props.placeholder
+    ]
   );
 
-  return (
+  const control = (
     <InputControl
       input={input}
       value={value}
@@ -375,5 +435,10 @@ export const FixedKindInputWidget: React.FC<
         emit("change");
       }}
     />
+  );
+
+  if (!maxHeight) return control;
+  return (
+    <Box sx={{ width: "100%", maxHeight, overflow: "auto" }}>{control}</Box>
   );
 };

@@ -27,7 +27,10 @@ export type WorkflowInputKind =
   | "image_list"
   | "video_list"
   | "audio_list"
-  | "text_list";
+  | "text_list"
+  | "model3d"
+  | "image_size"
+  | "huggingface_model";
 
 const KIND_BY_NODE_TYPE: Readonly<Record<string, WorkflowInputKind>> = {
   "nodetool.input.StringInput": "string",
@@ -43,6 +46,9 @@ const KIND_BY_NODE_TYPE: Readonly<Record<string, WorkflowInputKind>> = {
   "nodetool.input.RealtimeAudioInput": "audio",
   "nodetool.input.DocumentInput": "document",
   "nodetool.input.DataFrameInput": "dataframe",
+  "nodetool.input.Model3DInput": "model3d",
+  "nodetool.input.ImageSizeInput": "image_size",
+  "nodetool.input.HuggingFaceModelInput": "huggingface_model",
   "nodetool.input.DataframeInput": "dataframe",
   "nodetool.input.FilePathInput": "file_path",
   "nodetool.input.FolderPathInput": "folder_path",
