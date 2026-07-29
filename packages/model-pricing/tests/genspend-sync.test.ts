@@ -15,7 +15,7 @@ import {
 import {
   buildInventoryIndex,
   extractReceiptModelId,
-  resolveOfferingIds,
+  resolveOfferingPrices,
   PROVIDER_IDS_BY_GENSPEND_SLUG
 } from "../../../scripts/genspend/match.mjs";
 import {
@@ -73,7 +73,11 @@ const model = (over: Record<string, unknown> = {}) => ({
 });
 
 const resolve = (m: unknown, o: unknown, aliases = {}) =>
-  resolveOfferingIds({ model: m, offering: o, index, aliases });
+  resolveOfferingPrices({ model: m, offering: o, index, aliases });
+
+/** The model ids a resolution priced, for assertions that ignore the prices. */
+const idsOf = (result: { entries: Array<{ modelId: string }> }) =>
+  result.entries.map((e) => e.modelId);
 
 describe("normalize", () => {
   it("collapses the ways providers spell one model", () => {
@@ -142,8 +146,72 @@ describe("extractReceiptModelId", () => {
   });
 });
 
-describe("resolveOfferingIds", () => {
-  it("prefers the receipt id over any name match", () => {
+describe("resolveOfferingPrices", () => {
+  it("prices each variant row at its own price, not the model's headline", () => {
+    // GenSpend lists fal's flux-pro endpoints as variants at different prices;
+    // pricing them all at the offering's headline number would be wrong for
+    // three of the four.
+    const result = resolve(
+      model({ slug: "flux-1-schnell", name: "FLUX.1 [schnell]", modality: "image" }),
+      offering({
+        provider: { slug: "fal", name: "Fal.ai" },
+        priceUsd: 0.09,
+        unitClass: "per-image",
+        sourceUrl: "https://www.fal.ai/pricing",
+        variants: [
+          {
+            spec: "fal-ai/flux/schnell",
+            unitClass: "per-image",
+            priceUsd: 0.003,
+            tier: "pro"
+          }
+        ]
+      })
+    );
+    expect(result.entries).toEqual([
+      expect.objectContaining({
+        modelId: "fal-ai/flux/schnell",
+        unitPrice: 0.003,
+        match: "variant",
+        tier: "pro"
+      })
+    ]);
+  });
+
+  it("ignores a variant spec naming a model NodeTool does not ship", () => {
+    const result = resolve(
+      model(),
+      offering({
+        variants: [{ spec: "bytedance/seedance-9.9/text-to-video", priceUsd: 0.01 }]
+      })
+    );
+    expect(idsOf(result)).not.toContain("bytedance/seedance-9.9/text-to-video");
+  });
+
+  it("takes providerModelId only when the provider's own listing knows it", () => {
+    const claimed = resolve(
+      model({ slug: "no-name-match" }),
+      offering({ providerModelId: "bytedance/seedance-2.0/text-to-video" })
+    );
+    expect(claimed).toMatchObject({
+      entries: [
+        expect.objectContaining({
+          modelId: "bytedance/seedance-2.0/text-to-video",
+          match: "provider-id"
+        })
+      ]
+    });
+
+    // GenSpend often fills the field with its own slug; that names no NodeTool
+    // model, so it must resolve to nothing rather than to a guess.
+    const echoed = resolve(
+      model({ slug: "no-name-match", name: "Nothing Like This" }),
+      offering({ providerModelId: "no-name-match" })
+    );
+    expect(echoed.entries).toEqual([]);
+  });
+
+  it("prefers the receipt id over a name match", () => {
     const result = resolve(
       model({ slug: "flux-1-schnell", name: "FLUX.1 [schnell]", modality: "image" }),
       offering({
@@ -151,25 +219,75 @@ describe("resolveOfferingIds", () => {
         sourceUrl: "https://fal.ai/models/fal-ai/flux/schnell"
       })
     );
-    expect(result).toMatchObject({
-      ids: ["fal-ai/flux/schnell"],
-      match: "receipt",
-      providerId: "fal_ai"
-    });
+    expect(result).toMatchObject({ providerId: "fal_ai" });
+    expect(result.entries).toEqual([
+      expect.objectContaining({ modelId: "fal-ai/flux/schnell", match: "receipt" })
+    ]);
   });
 
   it("matches every task variant of the model the provider ships", () => {
     const result = resolve(model(), offering());
-    expect(result.match).toBe("catalog");
-    expect(result.ids).toEqual([
+    expect(result.entries[0].match).toBe("catalog");
+    expect(idsOf(result)).toEqual([
       "bytedance/seedance-2.0/image-to-video",
       "bytedance/seedance-2.0/text-to-video"
     ]);
   });
 
   it("does not let a model bleed onto a neighbouring variant", () => {
-    const result = resolve(model(), offering());
-    expect(result.ids).not.toContain("bytedance/seedance-2.0-mini/text-to-video");
+    expect(idsOf(resolve(model(), offering()))).not.toContain(
+      "bytedance/seedance-2.0-mini/text-to-video"
+    );
+  });
+
+  it("drops an endpoint whose task the model's capabilities refute", () => {
+    const result = resolve(
+      model({ capabilities: { tasks: { t2v: true, i2v: false } } }),
+      offering()
+    );
+    expect(idsOf(result)).toEqual(["bytedance/seedance-2.0/text-to-video"]);
+  });
+
+  it("treats an unknown capability as unknown, not as a refusal", () => {
+    const result = resolve(
+      model({ capabilities: { tasks: { t2v: true, i2v: null } } }),
+      offering()
+    );
+    expect(idsOf(result)).toHaveLength(2);
+  });
+
+  it("reports a model whose every candidate endpoint is refuted", () => {
+    const result = resolve(
+      model({ capabilities: { tasks: { t2v: false, i2v: false } } }),
+      offering()
+    );
+    expect(result).toMatchObject({ entries: [], reason: "refuted-by-capabilities" });
+  });
+
+  it("keeps a music model off a provider's text-to-speech listing", () => {
+    const result = resolve(
+      model({
+        slug: "gemini-3.1-flash-tts",
+        name: "Gemini 3.1 Flash TTS",
+        modality: "audio",
+        capabilities: { kind: "music" }
+      }),
+      offering({ provider: { slug: "google", name: "Google" } })
+    );
+    expect(result).toMatchObject({ entries: [], reason: "unmatched" });
+  });
+
+  it("matches on a published alias the primary name does not carry", () => {
+    const result = resolve(
+      model({
+        slug: "gemini-3-pro-image",
+        name: "Nano Banana Pro",
+        modality: "image",
+        aliases: ["Gemini 3 Pro Image"]
+      }),
+      offering({ provider: { slug: "google", name: "Google" } })
+    );
+    expect(idsOf(result)).toEqual(["gemini-3-pro-image"]);
   });
 
   it("sees through a company prefix on the provider's id", () => {
@@ -177,18 +295,20 @@ describe("resolveOfferingIds", () => {
       model({ slug: "hailuo-02", name: "Hailuo 02" }),
       offering({ provider: { slug: "minimax", name: "MiniMax" } })
     );
-    expect(result).toMatchObject({ ids: ["MiniMax-Hailuo-02"], match: "catalog" });
+    expect(idsOf(result)).toEqual(["MiniMax-Hailuo-02"]);
+    expect(result.entries[0].match).toBe("catalog");
   });
 
   it("never prices across modalities", () => {
-    // "Gemini 3.1 Flash Image" and "Gemini 3.1 Flash TTS" normalize alike once
-    // the task word goes; the modality guard is what keeps them apart.
     const result = resolve(
-      model({ slug: "gemini-3.1-flash-image", name: "Gemini 3.1 Flash Image", modality: "image" }),
+      model({
+        slug: "gemini-3.1-flash-image",
+        name: "Gemini 3.1 Flash Image",
+        modality: "image"
+      }),
       offering({ provider: { slug: "google", name: "Google" } })
     );
-    expect(result.ids).toEqual([]);
-    expect(result.reason).toBe("unmatched");
+    expect(result).toMatchObject({ entries: [], reason: "unmatched" });
   });
 
   it("leaves upscalers and other separately-billed endpoints out", () => {
@@ -196,19 +316,21 @@ describe("resolveOfferingIds", () => {
       model({ slug: "kling-3.0-pro", name: "Kling v3.0 Pro" }),
       offering()
     );
-    expect(result.ids).toEqual([]);
+    expect(result.entries).toEqual([]);
   });
 
   it("prices a pinned alias the name comparison cannot see", () => {
     const result = resolve(model({ slug: "eleven-multilingual-v2" }), offering(), {
       atlascloud: { "eleven-multilingual-v2": ["some/eleven-v2"] }
     });
-    expect(result).toMatchObject({ ids: ["some/eleven-v2"], match: "alias" });
+    expect(result.entries).toEqual([
+      expect.objectContaining({ modelId: "some/eleven-v2", match: "alias" })
+    ]);
   });
 
   it("blocks a model an alias pins to null", () => {
     const result = resolve(model(), offering(), { atlascloud: { "seedance-2": null } });
-    expect(result).toMatchObject({ ids: [], reason: "blocked" });
+    expect(result).toMatchObject({ entries: [], reason: "blocked" });
   });
 
   it("reports a provider NodeTool cannot run instead of pricing it", () => {
@@ -228,13 +350,13 @@ describe("resolveOfferingIds", () => {
         }))
       }
     };
-    const result = resolveOfferingIds({
+    const result = resolveOfferingPrices({
       model: model(),
       offering: offering(),
       index: buildInventoryIndex(wide),
       aliases: {}
     });
-    expect(result).toMatchObject({ ids: [], reason: "ambiguous" });
+    expect(result).toMatchObject({ entries: [], reason: "ambiguous" });
   });
 
   it("maps every GenSpend provider slug to a real NodeTool provider id", () => {
@@ -349,6 +471,64 @@ describe("buildPriceIndex", () => {
 describe("buildCatalog", () => {
   const build = (models: unknown[], previous: unknown, nowIso: string) =>
     buildCatalog({ models, index, aliases: {}, previous, nowIso });
+
+  const buildWithSnapshot = (
+    models: unknown[],
+    previous: unknown,
+    nowIso: string,
+    etag: string,
+    generatedAt: string
+  ) =>
+    buildCatalog({
+      models,
+      index,
+      aliases: {},
+      previous,
+      nowIso,
+      etag,
+      generatedAt
+    });
+
+  it("freezes the upstream snapshot fields when no price moved", () => {
+    // GenSpend's ETag covers the envelope's `generatedAt`, which turns over
+    // with its 60s edge cache. Letting either float would rewrite the shipped
+    // file — and open a nightly PR — on a run where nothing was repriced.
+    const first = buildWithSnapshot(
+      [model()],
+      null,
+      "2026-01-01T00:00:00.000Z",
+      '"aaa"',
+      "2026-01-01T00:00:00.000Z"
+    ).catalog;
+    const second = buildWithSnapshot(
+      [model()],
+      first,
+      "2026-01-02T00:00:00.000Z",
+      '"bbb"',
+      "2026-01-02T00:00:00.000Z"
+    ).catalog;
+    expect(second.etag).toBe('"aaa"');
+    expect(second.catalogGeneratedAt).toBe("2026-01-01T00:00:00.000Z");
+  });
+
+  it("advances the snapshot fields when a price moved", () => {
+    const first = buildWithSnapshot(
+      [model()],
+      null,
+      "2026-01-01T00:00:00.000Z",
+      '"aaa"',
+      "2026-01-01T00:00:00.000Z"
+    ).catalog;
+    const second = buildWithSnapshot(
+      [model({ offerings: [offering({ priceUsd: 0.11 })] })],
+      first,
+      "2026-01-02T00:00:00.000Z",
+      '"bbb"',
+      "2026-01-02T00:00:00.000Z"
+    ).catalog;
+    expect(second.etag).toBe('"bbb"');
+    expect(second.catalogGeneratedAt).toBe("2026-01-02T00:00:00.000Z");
+  });
 
   it("keeps the previous updatedAt when no price moved", () => {
     const first = build([model()], null, "2026-01-01T00:00:00.000Z").catalog;

@@ -2,7 +2,9 @@
   "schemaVersion": 2,
   "source": "https://genspend.io/api/v1/models",
   "attribution": "Prices via genspend.io",
-  "updatedAt": "2026-07-29T15:18:08.609Z",
+  "updatedAt": "2026-07-29T18:43:29.107Z",
+  "catalogGeneratedAt": "2026-07-29T18:45:39.395Z",
+  "etag": "\"f247ba578ac3c745053d442f197f0e65cc93e0bf\"",
   "catalogModels": 135,
   "catalogOfferings": 447,
   "providers": [
@@ -17,7 +19,7 @@
     "together",
     "xai"
   ],
-  "pricedModels": 206,
+  "pricedModels": 240,
   "prices": {
     "atlascloud:alibaba/happyhorse-1.1/image-to-video": {
       "unit_price": 0.14,
@@ -46,12 +48,30 @@
       "live": true,
       "source_url": "https://www.atlascloud.ai/models/alibaba/happyhorse-1.1/text-to-video"
     },
+    "atlascloud:alibaba/wan-2.7/image-edit": {
+      "unit_price": 0.03,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "wan-2.7",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://www.atlascloud.ai/pricing/models"
+    },
     "atlascloud:alibaba/wan-2.7/image-to-video": {
       "unit_price": 0.1,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "wan-2.7",
-      "match": "catalog",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://www.atlascloud.ai/pricing/models"
+    },
+    "atlascloud:alibaba/wan-2.7/text-to-image": {
+      "unit_price": 0.03,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "wan-2.7",
+      "match": "variant",
       "live": true,
       "source_url": "https://www.atlascloud.ai/pricing/models"
     },
@@ -60,7 +80,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "wan-2.7",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
       "source_url": "https://www.atlascloud.ai/pricing/models"
     },
@@ -69,27 +89,30 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-2-fast",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
-      "source_url": "https://www.atlascloud.ai/pricing/models"
+      "source_url": "https://www.atlascloud.ai/pricing/models",
+      "tier": "fast"
     },
     "atlascloud:bytedance/seedance-2.0-fast/reference-to-video": {
       "unit_price": 0.072,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-2-fast",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
-      "source_url": "https://www.atlascloud.ai/pricing/models"
+      "source_url": "https://www.atlascloud.ai/pricing/models",
+      "tier": "fast"
     },
     "atlascloud:bytedance/seedance-2.0-fast/text-to-video": {
       "unit_price": 0.072,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-2-fast",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
-      "source_url": "https://www.atlascloud.ai/pricing/models"
+      "source_url": "https://www.atlascloud.ai/pricing/models",
+      "tier": "fast"
     },
     "atlascloud:bytedance/seedance-2.0-mini/image-to-video": {
       "unit_price": 0.045,
@@ -123,7 +146,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-2",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
       "source_url": "https://www.atlascloud.ai/pricing/models"
     },
@@ -132,7 +155,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-2",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
       "source_url": "https://www.atlascloud.ai/pricing/models"
     },
@@ -141,7 +164,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-2",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
       "source_url": "https://www.atlascloud.ai/pricing/models"
     },
@@ -150,16 +173,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "seedream-5-lite",
-      "match": "catalog",
-      "live": true,
-      "source_url": "https://www.atlascloud.ai/models/bytedance/seedream-v5.0-lite/edit-sequential"
-    },
-    "atlascloud:bytedance/seedream-v5.0-lite/edit": {
-      "unit_price": 0.032,
-      "billing_unit": "images",
-      "unit_class": "per-image",
-      "model_slug": "seedream-5-lite",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://www.atlascloud.ai/models/bytedance/seedream-v5.0-lite/edit-sequential"
     },
@@ -204,7 +218,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gemini-3.1-flash-image",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
       "source_url": "https://www.atlascloud.ai/pricing/models"
     },
@@ -213,7 +227,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gemini-3.1-flash-image",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
       "source_url": "https://www.atlascloud.ai/pricing/models"
     },
@@ -222,61 +236,87 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gemini-3-pro-image",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
-      "source_url": "https://www.atlascloud.ai/pricing/models"
+      "source_url": "https://www.atlascloud.ai/pricing/models",
+      "tier": "pro"
+    },
+    "atlascloud:google/nano-banana-pro/edit-ultra": {
+      "unit_price": 0.15,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "gemini-3-pro-image",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://www.atlascloud.ai/pricing/models",
+      "tier": "pro"
     },
     "atlascloud:google/nano-banana-pro/text-to-image": {
       "unit_price": 0.14,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gemini-3-pro-image",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
-      "source_url": "https://www.atlascloud.ai/pricing/models"
+      "source_url": "https://www.atlascloud.ai/pricing/models",
+      "tier": "pro"
+    },
+    "atlascloud:google/nano-banana-pro/text-to-image-ultra": {
+      "unit_price": 0.15,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "gemini-3-pro-image",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://www.atlascloud.ai/pricing/models",
+      "tier": "pro"
     },
     "atlascloud:google/veo3.1-fast/image-to-video": {
       "unit_price": 0.08,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "veo-3.1-fast",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
-      "source_url": "https://www.atlascloud.ai/pricing/models"
+      "source_url": "https://www.atlascloud.ai/pricing/models",
+      "tier": "fast"
     },
     "atlascloud:google/veo3.1-fast/text-to-video": {
       "unit_price": 0.08,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "veo-3.1-fast",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
-      "source_url": "https://www.atlascloud.ai/pricing/models"
+      "source_url": "https://www.atlascloud.ai/pricing/models",
+      "tier": "fast"
     },
     "atlascloud:google/veo3.1-lite/image-to-video": {
       "unit_price": 0.05,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "veo-3.1-lite",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
-      "source_url": "https://www.atlascloud.ai/pricing/models"
+      "source_url": "https://www.atlascloud.ai/pricing/models",
+      "tier": "lite"
     },
     "atlascloud:google/veo3.1-lite/text-to-video": {
       "unit_price": 0.05,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "veo-3.1-lite",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
-      "source_url": "https://www.atlascloud.ai/pricing/models"
+      "source_url": "https://www.atlascloud.ai/pricing/models",
+      "tier": "lite"
     },
     "atlascloud:google/veo3.1/image-to-video": {
       "unit_price": 0.2,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "veo-3.1",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
       "source_url": "https://www.atlascloud.ai/pricing/models"
     },
@@ -285,7 +325,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "veo-3.1",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
       "source_url": "https://www.atlascloud.ai/pricing/models"
     },
@@ -294,36 +334,60 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "kling-3.0-pro",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
-      "source_url": "https://www.atlascloud.ai/pricing/models"
+      "source_url": "https://www.atlascloud.ai/pricing/models",
+      "tier": "pro"
     },
     "atlascloud:kwaivgi/kling-v3.0-pro/text-to-video": {
       "unit_price": 0.095,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "kling-3.0-pro",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
-      "source_url": "https://www.atlascloud.ai/pricing/models"
+      "source_url": "https://www.atlascloud.ai/pricing/models",
+      "tier": "pro"
+    },
+    "atlascloud:kwaivgi/kling-v3.0-std/image-to-video": {
+      "unit_price": 0.071,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "kling-3.0-standard",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://www.atlascloud.ai/pricing/models",
+      "tier": "std"
+    },
+    "atlascloud:kwaivgi/kling-v3.0-std/text-to-video": {
+      "unit_price": 0.071,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "kling-3.0-standard",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://www.atlascloud.ai/pricing/models",
+      "tier": "std"
     },
     "atlascloud:kwaivgi/kling-v3.0-turbo/image-to-video": {
       "unit_price": 0.095,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "kling-3.0-turbo",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
-      "source_url": "https://www.atlascloud.ai/pricing/models"
+      "source_url": "https://www.atlascloud.ai/pricing/models",
+      "tier": "turbo"
     },
     "atlascloud:kwaivgi/kling-v3.0-turbo/text-to-video": {
       "unit_price": 0.095,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "kling-3.0-turbo",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
-      "source_url": "https://www.atlascloud.ai/pricing/models"
+      "source_url": "https://www.atlascloud.ai/pricing/models",
+      "tier": "turbo"
     },
     "atlascloud:microsoft/mai-image-2.5/edit": {
       "unit_price": 0.05,
@@ -348,7 +412,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gpt-image-1.5",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
       "source_url": "https://www.atlascloud.ai/pricing/models"
     },
@@ -357,16 +421,16 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gpt-image-1.5",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
       "source_url": "https://www.atlascloud.ai/pricing/models"
     },
     "atlascloud:openai/gpt-image-2/edit": {
-      "unit_price": 0.009,
+      "unit_price": 0.01,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gpt-image-2",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
       "source_url": "https://www.atlascloud.ai/pricing/models"
     },
@@ -375,7 +439,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gpt-image-2",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
       "source_url": "https://www.atlascloud.ai/pricing/models"
     },
@@ -411,9 +475,10 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "z-image-turbo",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
-      "source_url": "https://www.atlascloud.ai/pricing/models"
+      "source_url": "https://www.atlascloud.ai/pricing/models",
+      "tier": "turbo"
     },
     "elevenlabs:eleven_flash_v2_5": {
       "unit_price": 50,
@@ -496,14 +561,35 @@
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/bytedance/seed-speech/tts/v2"
     },
-    "fal_ai:fal-ai/bytedance/seedance/v1/pro/text-to-video": {
-      "unit_price": 0.124,
-      "billing_unit": "seconds",
-      "unit_class": "per-video-second",
+    "fal_ai:fal-ai/bytedance/seedance/v1/pro/fast/image-to-video": {
+      "unit_price": 1,
+      "billing_unit": "1m_tokens",
+      "unit_class": "per-1m-tokens",
       "model_slug": "seedance-1-pro",
-      "match": "receipt",
+      "match": "variant",
       "live": true,
-      "source_url": "https://fal.ai/models/fal-ai/bytedance/seedance/v1/pro/text-to-video"
+      "source_url": "https://fal.ai/models/fal-ai/bytedance/seedance/v1/pro/text-to-video",
+      "tier": "pro"
+    },
+    "fal_ai:fal-ai/bytedance/seedance/v1/pro/fast/text-to-video": {
+      "unit_price": 1,
+      "billing_unit": "1m_tokens",
+      "unit_class": "per-1m-tokens",
+      "model_slug": "seedance-1-pro",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/bytedance/seedance/v1/pro/text-to-video",
+      "tier": "pro"
+    },
+    "fal_ai:fal-ai/bytedance/seedance/v1/pro/text-to-video": {
+      "unit_price": 2.5,
+      "billing_unit": "1m_tokens",
+      "unit_class": "per-1m-tokens",
+      "model_slug": "seedance-1-pro",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/bytedance/seedance/v1/pro/text-to-video",
+      "tier": "pro"
     },
     "fal_ai:fal-ai/bytedance/seedream/v4.5/edit": {
       "unit_price": 0.04,
@@ -514,12 +600,21 @@
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/bytedance/seedream/v4.5/edit"
     },
+    "fal_ai:fal-ai/bytedance/seedream/v4/edit": {
+      "unit_price": 0.03,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "seedream-4",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/bytedance/seedream/v4/text-to-image"
+    },
     "fal_ai:fal-ai/bytedance/seedream/v4/text-to-image": {
       "unit_price": 0.03,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "seedream-4",
-      "match": "receipt",
+      "match": "variant",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/bytedance/seedream/v4/text-to-image"
     },
@@ -542,13 +637,14 @@
       "source_url": "https://fal.ai/models/fal-ai/elevenlabs/text-to-dialogue/eleven-v3"
     },
     "fal_ai:fal-ai/elevenlabs/tts/turbo-v2.5": {
-      "unit_price": 50,
+      "unit_price": 0.05,
       "billing_unit": "1m_chars",
       "unit_class": "per-1m-chars",
       "model_slug": "eleven-turbo-v2.5",
-      "match": "receipt",
+      "match": "variant",
       "live": true,
-      "source_url": "https://fal.ai/models/fal-ai/elevenlabs/tts/turbo-v2.5"
+      "source_url": "https://fal.ai/models/fal-ai/elevenlabs/tts/turbo-v2.5",
+      "tier": "turbo"
     },
     "fal_ai:fal-ai/flux-1/schnell": {
       "unit_price": 0.003,
@@ -582,9 +678,30 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "flux-2-pro",
-      "match": "receipt",
+      "match": "variant",
       "live": true,
-      "source_url": "https://fal.ai/models/fal-ai/flux-2-pro"
+      "source_url": "https://fal.ai/models/fal-ai/flux-2-pro",
+      "tier": "pro"
+    },
+    "fal_ai:fal-ai/flux-2-pro/edit": {
+      "unit_price": 0.03,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "flux-2-pro",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/flux-2-pro",
+      "tier": "pro"
+    },
+    "fal_ai:fal-ai/flux-2-pro/outpaint": {
+      "unit_price": 0.03,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "flux-2-pro",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/flux-2-pro",
+      "tier": "pro"
     },
     "fal_ai:fal-ai/flux-2/klein/9b": {
       "unit_price": 0.011,
@@ -609,16 +726,56 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "flux-1.1-pro",
-      "match": "receipt",
+      "match": "variant",
       "live": true,
-      "source_url": "https://fal.ai/models/fal-ai/flux-pro/v1.1"
+      "source_url": "https://fal.ai/models/fal-ai/flux-pro/v1.1",
+      "tier": "pro"
+    },
+    "fal_ai:fal-ai/flux-pro/v1.1-ultra": {
+      "unit_price": 0.06,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "flux-1.1-pro",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/flux-pro/v1.1",
+      "tier": "pro"
+    },
+    "fal_ai:fal-ai/flux-pro/v1.1-ultra/redux": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "flux-1.1-pro",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/flux-pro/v1.1",
+      "tier": "pro"
+    },
+    "fal_ai:fal-ai/flux-pro/v1.1/redux": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "flux-1.1-pro",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/flux-pro/v1.1",
+      "tier": "pro"
     },
     "fal_ai:fal-ai/flux/dev": {
       "unit_price": 0.025,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "flux-1-dev",
-      "match": "receipt",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/flux/dev"
+    },
+    "fal_ai:fal-ai/flux/dev/redux": {
+      "unit_price": 0.025,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "flux-1-dev",
+      "match": "variant",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/flux/dev"
     },
@@ -699,7 +856,43 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "ideogram-v3",
-      "match": "receipt",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/ideogram/v3"
+    },
+    "fal_ai:fal-ai/ideogram/v3/edit": {
+      "unit_price": 0.03,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "ideogram-v3",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/ideogram/v3"
+    },
+    "fal_ai:fal-ai/ideogram/v3/reframe": {
+      "unit_price": 0.03,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "ideogram-v3",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/ideogram/v3"
+    },
+    "fal_ai:fal-ai/ideogram/v3/remix": {
+      "unit_price": 0.03,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "ideogram-v3",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/ideogram/v3"
+    },
+    "fal_ai:fal-ai/ideogram/v3/replace-background": {
+      "unit_price": 0.03,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "ideogram-v3",
+      "match": "variant",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/ideogram/v3"
     },
@@ -802,6 +995,36 @@
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/minimax-music"
     },
+    "fal_ai:fal-ai/minimax/hailuo-02-fast/image-to-video": {
+      "unit_price": 0.017,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "hailuo-02",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/minimax/hailuo-02/standard/text-to-video",
+      "tier": "fast"
+    },
+    "fal_ai:fal-ai/minimax/hailuo-02/pro/image-to-video": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "hailuo-02",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/minimax/hailuo-02/standard/text-to-video",
+      "tier": "pro"
+    },
+    "fal_ai:fal-ai/minimax/hailuo-02/pro/text-to-video": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "hailuo-02",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/minimax/hailuo-02/standard/text-to-video",
+      "tier": "pro"
+    },
     "fal_ai:fal-ai/minimax/hailuo-02/standard/text-to-video": {
       "unit_price": 0.045,
       "billing_unit": "seconds",
@@ -821,11 +1044,11 @@
       "source_url": "https://fal.ai/models/fal-ai/minimax/image-01"
     },
     "fal_ai:fal-ai/minimax/speech-02-hd": {
-      "unit_price": 100,
+      "unit_price": 0.1,
       "billing_unit": "1m_chars",
       "unit_class": "per-1m-chars",
       "model_slug": "minimax-speech-02-hd",
-      "match": "receipt",
+      "match": "variant",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/minimax/speech-02-hd"
     },
@@ -834,7 +1057,16 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gemini-2.5-flash-image",
-      "match": "receipt",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/nano-banana"
+    },
+    "fal_ai:fal-ai/nano-banana/edit": {
+      "unit_price": 0.0398,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "gemini-2.5-flash-image",
+      "match": "variant",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/nano-banana"
     },
@@ -928,6 +1160,15 @@
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/recraft-20b"
     },
+    "fal_ai:fal-ai/recraft/v3/image-to-image": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "recraft-v3",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/recraft/v3/text-to-image"
+    },
     "fal_ai:fal-ai/recraft/v3/text-to-image": {
       "unit_price": 0.04,
       "billing_unit": "images",
@@ -960,7 +1201,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "sora-2",
-      "match": "receipt",
+      "match": "variant",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/sora-2/text-to-video"
     },
@@ -978,7 +1219,103 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "veo-3.1",
-      "match": "receipt",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/veo3.1"
+    },
+    "fal_ai:fal-ai/veo3.1/extend-video": {
+      "unit_price": 0.4,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "veo-3.1",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/veo3.1"
+    },
+    "fal_ai:fal-ai/veo3.1/fast": {
+      "unit_price": 0.15,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "veo-3.1-fast",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/veo3/fast",
+      "tier": "fast"
+    },
+    "fal_ai:fal-ai/veo3.1/fast/extend-video": {
+      "unit_price": 0.15,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "veo-3.1-fast",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/veo3/fast",
+      "tier": "fast"
+    },
+    "fal_ai:fal-ai/veo3.1/fast/first-last-frame-to-video": {
+      "unit_price": 0.15,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "veo-3.1-fast",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/veo3/fast",
+      "tier": "fast"
+    },
+    "fal_ai:fal-ai/veo3.1/fast/image-to-video": {
+      "unit_price": 0.15,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "veo-3.1-fast",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/veo3/fast",
+      "tier": "fast"
+    },
+    "fal_ai:fal-ai/veo3.1/first-last-frame-to-video": {
+      "unit_price": 0.4,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "veo-3.1",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/veo3.1"
+    },
+    "fal_ai:fal-ai/veo3.1/image-to-video": {
+      "unit_price": 0.4,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "veo-3.1",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/veo3.1"
+    },
+    "fal_ai:fal-ai/veo3.1/lite": {
+      "unit_price": 0.05,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "veo-3.1",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/veo3.1",
+      "tier": "lite"
+    },
+    "fal_ai:fal-ai/veo3.1/lite/image-to-video": {
+      "unit_price": 0.05,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "veo-3.1",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/veo3.1",
+      "tier": "lite"
+    },
+    "fal_ai:fal-ai/veo3.1/reference-to-video": {
+      "unit_price": 0.4,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "veo-3.1",
+      "match": "variant",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/veo3.1"
     },
@@ -1009,12 +1346,30 @@
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/vidu/q2/text-to-image"
     },
+    "fal_ai:fal-ai/wan-25-preview/image-to-image": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "wan-2.5",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/wan-25-preview/text-to-video"
+    },
+    "fal_ai:fal-ai/wan-25-preview/text-to-image": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "wan-2.5",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/wan-25-preview/text-to-video"
+    },
     "fal_ai:fal-ai/wan-25-preview/text-to-video": {
       "unit_price": 0.05,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "wan-2.5",
-      "match": "receipt",
+      "match": "variant",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/wan-25-preview/text-to-video"
     },
@@ -1356,7 +1711,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "nano-banana-2-lite",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://kie.ai/nano-banana-2-lite"
     },
@@ -1368,15 +1723,6 @@
       "match": "catalog",
       "live": true,
       "source_url": "https://kie.ai/nano-banana-pro"
-    },
-    "kie:qwen/image-edit": {
-      "unit_price": 0.02,
-      "billing_unit": "images",
-      "unit_class": "per-image",
-      "model_slug": "qwen-image",
-      "match": "catalog",
-      "live": true,
-      "source_url": "https://kie.ai/qwen-image"
     },
     "kie:seedream/4.5-edit": {
       "unit_price": 0.0325,
@@ -1464,7 +1810,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "z-image",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://kie.ai/z-image"
     },
@@ -1770,7 +2116,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "seedream-4",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
       "source_url": "https://www.together.ai/pricing"
     },
@@ -1779,25 +2125,27 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-1-pro",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
-      "source_url": "https://www.together.ai/pricing"
+      "source_url": "https://www.together.ai/pricing",
+      "tier": "pro"
     },
     "together:black-forest-labs/FLUX.1-kontext-pro": {
       "unit_price": 0.04,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "flux-1-kontext-pro",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
-      "source_url": "https://www.together.ai/pricing"
+      "source_url": "https://www.together.ai/pricing",
+      "tier": "pro"
     },
     "together:black-forest-labs/FLUX.1-schnell": {
       "unit_price": 0.0027,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "flux-1-schnell",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
       "source_url": "https://www.together.ai/pricing"
     },
@@ -1806,25 +2154,27 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "flux-1.1-pro",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
-      "source_url": "https://www.together.ai/pricing"
+      "source_url": "https://www.together.ai/pricing",
+      "tier": "pro"
     },
     "together:black-forest-labs/FLUX.2-pro": {
       "unit_price": 0.03,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "flux-2-pro",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
-      "source_url": "https://www.together.ai/pricing"
+      "source_url": "https://www.together.ai/pricing",
+      "tier": "pro"
     },
     "together:canopylabs/orpheus-3b-0.1-ft": {
       "unit_price": 15,
       "billing_unit": "1m_chars",
       "unit_class": "per-1m-chars",
       "model_slug": "orpheus-3b",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
       "source_url": "https://www.together.ai/pricing"
     },
@@ -1833,9 +2183,10 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gemini-3-pro-image",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
-      "source_url": "https://www.together.ai/pricing"
+      "source_url": "https://www.together.ai/pricing",
+      "tier": "pro"
     },
     "together:google/veo-3.0": {
       "unit_price": 0.2,
@@ -1851,7 +2202,7 @@
       "billing_unit": "1m_chars",
       "unit_class": "per-1m-chars",
       "model_slug": "kokoro-82m",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
       "source_url": "https://www.together.ai/pricing"
     },
@@ -1860,7 +2211,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "hailuo-02",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
       "source_url": "https://docs.together.ai/docs/serverless-models"
     },
@@ -1869,7 +2220,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "sora-2",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
       "source_url": "https://www.together.ai/pricing"
     }

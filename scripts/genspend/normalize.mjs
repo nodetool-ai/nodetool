@@ -148,6 +148,42 @@ export function isNonGenerationTask(...values) {
 }
 
 /**
+ * Task suffix → the capability flag GenSpend publishes for it. A model whose
+ * capabilities refute a task must not be priced on an endpoint for that task:
+ * `bria-3-2` reports `i2i: false`, so its per-image price never lands on an
+ * image-to-image endpoint.
+ *
+ * `edit` maps to `i2i` because that is what an edit endpoint is — an image in,
+ * an image out.
+ */
+const CAPABILITY_BY_TASK = {
+  "text-to-image": "t2i",
+  "image-to-image": "i2i",
+  edit: "i2i",
+  inpaint: "i2i",
+  outpaint: "i2i",
+  "text-to-video": "t2v",
+  "image-to-video": "i2v",
+  "reference-to-video": "r2v",
+  "first-last-frame-to-video": "i2v",
+  "video-to-video": "v2v"
+};
+
+/** The capability flag a model id/title implies, or null when it names no task. */
+export function capabilityForModelId(...values) {
+  for (const value of values) {
+    const key = normalize(value);
+    if (!key) continue;
+    const parts = key.split("-");
+    for (let n = MAX_SUFFIX_WORDS; n >= 1; n -= 1) {
+      const suffix = parts.slice(-n).join("-");
+      if (CAPABILITY_BY_TASK[suffix]) return CAPABILITY_BY_TASK[suffix];
+    }
+  }
+  return null;
+}
+
+/**
  * Every key a model id or display name should be findable under — the whole
  * string, its task-stripped form, and the same two for the id's path tail
  * (`fal-ai/bytedance/seedream/v4` also answers to `seedream-4`).

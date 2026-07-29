@@ -31,7 +31,8 @@ import { fileURLToPath } from "node:url";
 import { collectProviderInventory } from "./genspend/inventory.mjs";
 import {
   buildInventoryIndex,
-  resolveOfferingIds,
+  resolveOfferingPrices,
+  MATCH_RANK,
   PROVIDER_IDS_BY_GENSPEND_SLUG
 } from "./genspend/match.mjs";
 
@@ -79,8 +80,6 @@ export function buildPriceIndex({ models, index, aliases }) {
   const unresolved = [];
   let offeringCount = 0;
 
-  const rank = { receipt: 3, alias: 2, catalog: 1 };
-
   for (const model of Array.isArray(models) ? models : []) {
     if (!model || typeof model.slug !== "string") continue;
     for (const offering of Array.isArray(model.offerings) ? model.offerings : []) {
@@ -90,7 +89,7 @@ export function buildPriceIndex({ models, index, aliases }) {
       if (offering.availability !== "available") continue;
       if (!isFiniteNumber(offering.priceUsd)) continue;
 
-      const resolved = resolveOfferingIds({ model, offering, index, aliases });
+      const resolved = resolveOfferingPrices({ model, offering, index, aliases });
       const providerId = resolved.providerId;
       const stats = (coverage[providerId] ??= {
         offerings: 0,
@@ -100,7 +99,7 @@ export function buildPriceIndex({ models, index, aliases }) {
       });
       stats.offerings += 1;
 
-      if (resolved.ids.length === 0) {
+      if (resolved.entries.length === 0) {
         stats.unresolved += 1;
         unresolved.push({
           provider: providerId,
@@ -113,31 +112,31 @@ export function buildPriceIndex({ models, index, aliases }) {
       }
 
       stats.priced += 1;
-      const unitClass =
-        typeof offering.unitClass === "string" ? offering.unitClass : "";
 
-      for (const modelId of resolved.ids) {
-        const key = `${providerId}:${modelId}`;
+      for (const entry of resolved.entries) {
+        const key = `${providerId}:${entry.modelId}`;
         const existing = prices[key];
         if (existing) {
           const better =
-            rank[resolved.match] > rank[existing.match] ||
-            (rank[resolved.match] === rank[existing.match] &&
-              offering.priceUsd < existing.unit_price);
+            MATCH_RANK[entry.match] > MATCH_RANK[existing.match] ||
+            (MATCH_RANK[entry.match] === MATCH_RANK[existing.match] &&
+              entry.unitPrice < existing.unit_price);
           if (!better) continue;
         } else {
           stats.ids += 1;
         }
 
         prices[key] = {
-          unit_price: offering.priceUsd,
-          billing_unit: BILLING_UNITS[unitClass] ?? "units",
-          unit_class: unitClass,
+          unit_price: entry.unitPrice,
+          billing_unit: BILLING_UNITS[entry.unitClass] ?? "units",
+          unit_class: entry.unitClass,
           model_slug: model.slug,
-          match: resolved.match,
+          match: entry.match,
           live: offering.live === true,
           source_url:
-            typeof offering.sourceUrl === "string" ? offering.sourceUrl : ""
+            typeof offering.sourceUrl === "string" ? offering.sourceUrl : "",
+          ...(entry.tier ? { tier: entry.tier } : {}),
+          ...(entry.resolution ? { resolution: entry.resolution } : {})
         };
       }
     }
@@ -156,7 +155,15 @@ export function buildPriceIndex({ models, index, aliases }) {
  * prices are byte-identical, so an unchanged nightly run produces no diff and
  * the timestamp keeps meaning "when the numbers last moved".
  */
-export function buildCatalog({ models, index, aliases, previous, nowIso }) {
+export function buildCatalog({
+  models,
+  index,
+  aliases,
+  previous,
+  nowIso,
+  etag = null,
+  generatedAt = null
+}) {
   const { prices, coverage, unresolved, offeringCount } = buildPriceIndex({
     models,
     index,
@@ -169,6 +176,14 @@ export function buildCatalog({ models, index, aliases, previous, nowIso }) {
     source: GENSPEND_MODELS_URL,
     attribution: "Prices via genspend.io",
     updatedAt: unchanged ? previous.updatedAt : nowIso,
+    // The snapshot these prices came from. Frozen with them: GenSpend's ETag
+    // covers the envelope's `generatedAt`, which turns over with the 60s edge
+    // cache, so letting either field float would rewrite the file — and open a
+    // nightly PR — on runs where no price moved.
+    catalogGeneratedAt: unchanged
+      ? previous.catalogGeneratedAt ?? null
+      : generatedAt ?? previous?.catalogGeneratedAt ?? null,
+    etag: unchanged ? previous.etag ?? null : etag ?? previous?.etag ?? null,
     catalogModels: Array.isArray(models) ? models.length : 0,
     catalogOfferings: offeringCount,
     providers: Object.keys(coverage).sort(),
@@ -178,23 +193,47 @@ export function buildCatalog({ models, index, aliases, previous, nowIso }) {
   return { catalog, coverage, unresolved };
 }
 
-async function fetchModels(url, attempts = 3) {
+/**
+ * GenSpend issues strong ETags, but a compressing intermediary (Brotli, on
+ * Node's default `Accept-Encoding`) marks the validator weak in transit, and
+ * the origin then compares `If-None-Match` strongly and misses. Sending the
+ * strong form back is what the origin actually issued; if that ever stops
+ * matching, the cost is a full fetch producing an identical file.
+ */
+const strongEtag = (etag) =>
+  typeof etag === "string" ? etag.replace(/^W\//, "") : null;
+
+/**
+ * Fetch the catalog, asking for the envelope (`generatedAt` + `count`, so the
+ * payload dates itself) and offering the previous run's ETag. A 304 means the
+ * upstream catalog has not moved since the shipped file was written, and the
+ * whole run is a no-op — reported as `{ notModified: true }`.
+ */
+async function fetchModels(url, { etag, attempts = 3 } = {}) {
+  const endpoint = `${url}?envelope=1`;
   let lastError;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
-      const res = await fetch(url, {
+      const res = await fetch(endpoint, {
         headers: {
           "User-Agent": "nodetool-cost/1.0 (+https://nodetool.ai)",
-          Accept: "application/json"
+          Accept: "application/json",
+          ...(etag ? { "If-None-Match": etag } : {})
         },
         signal: AbortSignal.timeout(30_000)
       });
-      if (!res.ok) throw new Error(`GET ${url} → HTTP ${res.status}`);
+      if (res.status === 304) return { notModified: true };
+      if (!res.ok) throw new Error(`GET ${endpoint} → HTTP ${res.status}`);
       const body = await res.json();
-      if (!Array.isArray(body)) {
-        throw new Error(`GET ${url} → expected an array of models`);
+      const models = Array.isArray(body) ? body : body?.models;
+      if (!Array.isArray(models)) {
+        throw new Error(`GET ${endpoint} → expected an array of models`);
       }
-      return body;
+      return {
+        models,
+        etag: strongEtag(res.headers.get("etag")),
+        generatedAt: typeof body?.generatedAt === "string" ? body.generatedAt : null
+      };
     } catch (err) {
       lastError = err;
       if (attempt < attempts) {
@@ -262,10 +301,33 @@ function printCoverage(coverage, unresolved, uncovered) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  const previous = readJson(args.out);
 
-  const models = args.fromFile
-    ? JSON.parse(readFileSync(args.fromFile, "utf8"))
-    : await fetchModels(GENSPEND_MODELS_URL);
+  let models;
+  let etag = null;
+  let generatedAt = null;
+  if (args.fromFile) {
+    const body = JSON.parse(readFileSync(args.fromFile, "utf8"));
+    models = Array.isArray(body) ? body : body?.models;
+    generatedAt = typeof body?.generatedAt === "string" ? body.generatedAt : null;
+  } else {
+    const fetched = await fetchModels(GENSPEND_MODELS_URL, {
+      // Only offer the stored ETag when the local rules are unchanged too — a
+      // 304 asserts the upstream catalog moved, not that this script agrees
+      // with what it produced last time.
+      etag:
+        previous?.schemaVersion === SCHEMA_VERSION ? previous?.etag ?? null : null
+    });
+    if (fetched.notModified) {
+      console.log(
+        `GenSpend catalog unchanged since ${
+          previous?.catalogGeneratedAt ?? "the last sync"
+        } (HTTP 304) — nothing to do.`
+      );
+      return;
+    }
+    ({ models, etag, generatedAt } = fetched);
+  }
 
   const { inventory, uncovered } = args.inventoryFile
     ? { inventory: readJson(args.inventoryFile, {}), uncovered: [] }
@@ -278,13 +340,14 @@ async function main() {
 
   const index = buildInventoryIndex(inventory);
   const aliases = readJson(ALIASES_PATH, {});
-  const previous = readJson(args.out);
   const { catalog, coverage, unresolved } = buildCatalog({
     models,
     index,
     aliases,
     previous,
-    nowIso: new Date().toISOString()
+    nowIso: new Date().toISOString(),
+    etag,
+    generatedAt
   });
 
   if (catalog.pricedModels === 0) {

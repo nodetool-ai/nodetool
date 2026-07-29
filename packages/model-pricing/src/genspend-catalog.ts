@@ -18,14 +18,23 @@ import catalog from "./generated/genspend-pricing.json" with { type: "json" };
 export const GENSPEND_CURRENCY = "USD";
 
 /**
- * How a price was tied to a NodeTool model id:
- * - `receipt` — read from the provider's own model page URL. Exact.
+ * How a price was tied to a NodeTool model id, most trusted first:
  * - `alias` — pinned by hand in `scripts/genspend/aliases.json`.
+ * - `variant` — a GenSpend `variants[]` row naming this exact model, so the
+ *   price is that endpoint's own, not the model's headline number.
+ * - `receipt` — read from the provider's own model page URL.
+ * - `provider-id` — GenSpend's `providerModelId`, taken only when NodeTool's
+ *   own provider listing recognizes it.
  * - `catalog` — the model's normalized name matched a model the provider
  *   enumerates in NodeTool. It prices the model, not one endpoint variant, so
  *   sibling task endpoints share the number.
  */
-export type GenspendMatch = "receipt" | "alias" | "catalog";
+export type GenspendMatch =
+  | "alias"
+  | "variant"
+  | "receipt"
+  | "provider-id"
+  | "catalog";
 
 export interface GenspendPrice {
   unit_price: number;
@@ -39,6 +48,10 @@ export interface GenspendPrice {
   live: boolean;
   /** The receipt page the price was read from. */
   source_url: string;
+  /** Quality tier the priced variant belongs to ("pro", "turbo", …), if any. */
+  tier?: string;
+  /** Resolution the priced variant is billed at, if the provider prices per one. */
+  resolution?: string;
 }
 
 export interface GenspendPricingCatalog {
@@ -47,6 +60,10 @@ export interface GenspendPricingCatalog {
   attribution: string;
   /** When the prices last changed — an unchanged nightly run leaves it alone. */
   updatedAt: string;
+  /** The upstream snapshot these prices came from; frozen with them. */
+  catalogGeneratedAt: string | null;
+  /** That snapshot's ETag, offered as `If-None-Match` on the next sync. */
+  etag: string | null;
   catalogModels: number;
   catalogOfferings: number;
   /** NodeTool provider ids the catalog carries prices for. */

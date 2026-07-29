@@ -53,14 +53,20 @@ moved. Never hand-edit the generated file.
 
 GenSpend keys models by its own slug (`seedance-2`); a run is priced by the
 provider-native id on the node (`bytedance/seedance-2.0/text-to-video`). Each
-entry records which of three routes bridged them, in descending order of trust:
+entry records which of five routes bridged them, in descending order of trust:
 
-- **`receipt`** — the offering's `sourceUrl` is a model page carrying the native
-  id: `fal.ai/models/fal-ai/flux/schnell`, `replicate.com/black-forest-labs/flux-dev`.
-  Exact, nothing interpreted.
 - **`alias`** — pinned by hand in `scripts/genspend/aliases.json`. An array of
   ids pins a match the name comparison cannot see; `null` blocks a model for
   that provider.
+- **`variant`** — a `variants[]` row whose `spec` names a model NodeTool ships.
+  Best of the automatic routes, because the row carries that endpoint's *own*
+  price: `fal-ai/flux-pro/v1.1` bills $0.04 and `…/v1.1-ultra` $0.06, and both
+  get their real number instead of sharing the model's headline price.
+- **`receipt`** — the offering's `sourceUrl` is a model page carrying the native
+  id: `fal.ai/models/fal-ai/flux/schnell`, `replicate.com/black-forest-labs/flux-dev`.
+- **`provider-id`** — GenSpend's `providerModelId`. It is frequently filled with
+  GenSpend's own slug rather than the provider's id, so it counts only when the
+  provider's NodeTool listing recognizes it — never on faith.
 - **`catalog`** — the model's normalized name exactly equals that of a model the
   provider itself enumerates in NodeTool (`getAvailableImageModels` and
   friends). That listing is the model picker's own source, so the sync can only
@@ -68,15 +74,23 @@ entry records which of three routes bridged them, in descending order of trust:
 
 A catalog match prices the **model**, not one endpoint variant, so sibling task
 endpoints (text-to-video, image-to-video, edit) share the number — which is what
-GenSpend publishes: one price per model per provider.
+GenSpend publishes when it has no per-variant rows.
 
-Four guards keep a wrong number out of a budget decision:
+Five guards keep a wrong number out of a budget decision:
 
-- **Same modality only.** "Gemini 3.1 Flash Image" and "Gemini 3.1 Flash TTS"
-  normalize alike once the task word is stripped; the modality guard is what
-  keeps an image price off a TTS model.
+- **Published capabilities are respected.** GenSpend's receipted task flags
+  (`t2i`/`i2i`/`t2v`/`i2v`/`r2v`/`v2v`) drop an endpoint whose task the model
+  cannot do — `qwen-image` reports `i2i: false`, so its price never lands on
+  kie's image-edit endpoint. Only an explicit `false` blocks; `null` is unknown,
+  not refuted.
+- **Same modality, and speech is not music.** "Gemini 3.1 Flash Image" and
+  "Gemini 3.1 Flash TTS" normalize alike once the task word is stripped; the
+  modality guard keeps them apart, and `capabilities.kind === "music"` keeps a
+  music model off a provider's text-to-speech listing.
 - **Exact key equality**, never prefix or fuzzy — so `seedance-2` cannot price
-  `seedance-2-mini`, and `kling-3-pro` cannot price `kling-3-turbo`.
+  `seedance-2-mini`, and `kling-3-pro` cannot price `kling-3-turbo`. A model's
+  published `aliases[]` are matched too, which is how Nano Banana Pro and Gemini
+  3 Pro Image find each other.
 - **Generation endpoints only.** Upscalers, lip-sync and voice-clone endpoints
   bill on their own basis and never inherit a model's generation price.
 - **Ambiguity is dropped, not resolved.** A name hitting more than eight ids is
@@ -84,6 +98,20 @@ Four guards keep a wrong number out of a budget decision:
 
 Anything left unresolved is printed by the sync and written to its `--report`
 file, so the gap is visible rather than silently absent.
+
+### Fetching
+
+The sync requests `?envelope=1` (so the payload carries its own `generatedAt`)
+and sends the stored ETag as `If-None-Match`; a 304 ends the run as a no-op.
+Two wrinkles, both handled:
+
+- A compressing intermediary marks GenSpend's strong ETag weak in transit, and
+  the origin then compares strongly and misses. The sync stores and sends the
+  strong form.
+- The ETag covers the envelope's `generatedAt`, which turns over with the 60 s
+  edge cache, so a nightly run usually gets a fresh body anyway. `etag` and
+  `catalogGeneratedAt` are therefore frozen alongside the prices — otherwise
+  the shipped file would change every night and open a PR with no price movement.
 
 ### What the numbers mean
 

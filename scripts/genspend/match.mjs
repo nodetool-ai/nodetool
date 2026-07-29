@@ -1,24 +1,29 @@
 /**
- * Resolve a GenSpend offering to the model ids NodeTool actually ships.
+ * Resolve a GenSpend offering to the model ids NodeTool ships, each with the
+ * price that actually applies to it.
  *
  * GenSpend keys models by its own slug (`seedance-2`); a run is priced by the
  * provider-native id on a node's provider-model property
  * (`bytedance/seedance-2.0/text-to-video`). Bridging the two is the whole job
- * here, and it is done two ways, in order of how much they can be trusted:
+ * here, done four ways, in descending order of how much they can be trusted:
  *
- *   1. `receipt` — the offering's `sourceUrl` is a model page carrying the
- *      native id (fal, Replicate). Exact, no interpretation.
- *   2. `catalog` — the normalized model name matches a model the provider
- *      itself enumerates in NodeTool (`getAvailableImageModels` and friends).
- *      Exact key equality, never prefix or fuzzy, and only within the same
- *      provider and the same modality.
+ *   1. `alias`  — pinned by hand in `aliases.json`. A maintainer's explicit call.
+ *   2. `variant`— a `variants[]` row whose `spec` is a model NodeTool ships.
+ *      Best of all the automatic routes: the row carries that endpoint's *own*
+ *      price, so `fal-ai/flux-pro/v1.1` and `…/v1.1-ultra` get their real
+ *      numbers instead of sharing the model's headline price.
+ *   3. `receipt`— the offering's `sourceUrl` is a model page carrying the id.
+ *   4. `provider-id` — `offering.providerModelId`, when it names a model
+ *      NodeTool ships. GenSpend often fills this with its own slug, so it is
+ *      only taken when the inventory recognizes it — never on faith.
  *
- * An alias file can pin or block either. Anything left over is reported, not
- * guessed: a wrong number here would gate a run's budget on a price the user
- * never agreed to pay.
+ * Failing all four, the model's normalized name (or an `aliases[]` entry) is
+ * matched against the provider's own listing, which is the `catalog` tier and
+ * the only one that interprets anything. Its guards are below.
  */
 
 import {
+  capabilityForModelId,
   isNonGenerationTask,
   modelKeys,
   normalize
@@ -51,6 +56,15 @@ const RECEIPT_PATTERNS = {
 /** GenSpend modality → the inventory modality it can price. */
 const MODALITY_ALIASES = { image: "image", video: "video", audio: "audio" };
 
+/** How much each route can be trusted, high wins. See the module docs. */
+export const MATCH_RANK = {
+  alias: 5,
+  variant: 4,
+  receipt: 3,
+  "provider-id": 2,
+  catalog: 1
+};
+
 /**
  * A GenSpend model matching more ids than this is a name too generic to price
  * anything precisely (a family name hitting every variant). Reported, dropped.
@@ -68,29 +82,39 @@ export function extractReceiptModelId(providerSlug, sourceUrl) {
 
 /**
  * Index a provider inventory (`{provider: {modality: [{id, name}]}}`) by
- * comparison key, so a GenSpend name can be looked up in one step.
+ * comparison key and by exact id, so a GenSpend name can be looked up in one
+ * step and a claimed id can be verified in another.
  *
  * Endpoints for a task GenSpend does not price — upscalers, lip-sync, voice
- * cloning — are left out of the index entirely.
+ * cloning — are left out entirely.
  */
 export function buildInventoryIndex(inventory) {
   const index = {};
   for (const [providerId, modalities] of Object.entries(inventory ?? {})) {
-    index[providerId] = {};
+    const byKey = {};
+    const byId = new Map();
     for (const [modality, entries] of Object.entries(modalities ?? {})) {
-      const byKey = new Map();
+      const keyMap = new Map();
       for (const entry of entries ?? []) {
         if (!entry?.id) continue;
         if (isNonGenerationTask(entry.id, entry.name)) continue;
+        byId.set(entry.id.toLowerCase(), { id: entry.id, name: entry.name, modality });
         for (const key of modelKeys(entry.id, entry.name)) {
-          if (!byKey.has(key)) byKey.set(key, new Set());
-          byKey.get(key).add(entry.id);
+          if (!keyMap.has(key)) keyMap.set(key, new Set());
+          keyMap.get(key).add(entry.id);
         }
       }
-      index[providerId][modality] = byKey;
+      byKey[modality] = keyMap;
     }
+    index[providerId] = { byKey, byId };
   }
   return index;
+}
+
+/** The inventory entry for a claimed model id, or null when NodeTool lacks it. */
+function verifyId(index, providerId, claimedId) {
+  if (typeof claimedId !== "string" || !claimedId.trim()) return null;
+  return index?.[providerId]?.byId?.get(claimedId.trim().toLowerCase()) ?? null;
 }
 
 /**
@@ -108,13 +132,47 @@ function aliasIdsFor(aliases, providerId, slug) {
 }
 
 /**
- * The model ids one offering prices, with how they were resolved.
- *
- * Returns `{ ids, match, reason }` — `ids` empty when nothing resolved, and
- * `reason` naming why (`"blocked"`, `"ambiguous"`, `"unmatched"`,
- * `"unmapped-provider"`) so the run can report what it could not price.
+ * True when the model's published capabilities refute the task an endpoint
+ * performs. `null`/absent is unknown, not refuted — GenSpend's flags are
+ * receipted, so only an explicit `false` blocks a match.
  */
-export function resolveOfferingIds({
+function capabilitiesRefuteTask(model, entry) {
+  const tasks = model?.capabilities?.tasks;
+  if (!tasks) return false;
+  const capability = capabilityForModelId(entry.id, entry.name);
+  return capability ? tasks[capability] === false : false;
+}
+
+/**
+ * Audio splits into speech and music, and a provider's TTS listing is the only
+ * audio inventory NodeTool has. A music model must not be priced against it.
+ */
+function audioKindMismatch(model, modality) {
+  return modality === "audio" && model?.capabilities?.kind === "music";
+}
+
+const priceEntry = (modelId, unitPrice, unitClass, match, variant = null) => ({
+  modelId,
+  unitPrice,
+  unitClass,
+  match,
+  variantSpec: variant?.spec ?? null,
+  tier: variant?.tier ?? null,
+  resolution: variant?.resolution ?? null
+});
+
+const isFiniteNumber = (value) =>
+  typeof value === "number" && Number.isFinite(value);
+
+/**
+ * The priced model ids one offering resolves to.
+ *
+ * Returns `{ providerId, entries, reason }` — `entries` empty when nothing
+ * resolved, and `reason` naming why (`"blocked"`, `"ambiguous"`,
+ * `"unmatched"`, `"unmapped-provider"`) so the run can report what it could
+ * not price. When several routes name the same id, the most trusted one wins.
+ */
+export function resolveOfferingPrices({
   model,
   offering,
   index,
@@ -124,37 +182,107 @@ export function resolveOfferingIds({
   const providerSlug = offering?.provider?.slug;
   const providerId = PROVIDER_IDS_BY_GENSPEND_SLUG[providerSlug];
   if (!providerId) {
-    return { ids: [], match: null, providerId: null, reason: "unmapped-provider" };
+    return { providerId: null, entries: [], reason: "unmapped-provider" };
   }
+
+  const headlinePrice = offering.priceUsd;
+  const headlineClass =
+    typeof offering.unitClass === "string" ? offering.unitClass : "";
 
   const alias = aliasIdsFor(aliases, providerId, model.slug);
   if (alias === null) {
-    return { ids: [], match: null, providerId, reason: "blocked" };
+    return { providerId, entries: [], reason: "blocked" };
   }
   if (alias && alias.length > 0) {
-    return { ids: [...alias].sort(), match: "alias", providerId, reason: null };
+    return {
+      providerId,
+      entries: alias.map((id) =>
+        priceEntry(id, headlinePrice, headlineClass, "alias")
+      ),
+      reason: null
+    };
+  }
+
+  // Exact routes. Each claimed id is checked against the provider's own
+  // listing, so a slug echoed into `providerModelId` resolves to nothing
+  // rather than to a model NodeTool cannot run.
+  const byId = new Map();
+  const claim = (entry) => {
+    const existing = byId.get(entry.modelId);
+    if (!existing || MATCH_RANK[entry.match] > MATCH_RANK[existing.match]) {
+      byId.set(entry.modelId, entry);
+    }
+  };
+
+  for (const variant of Array.isArray(offering.variants) ? offering.variants : []) {
+    const found = verifyId(index, providerId, variant?.spec);
+    if (!found) continue;
+    const price = isFiniteNumber(variant.priceUsd) ? variant.priceUsd : headlinePrice;
+    const unitClass =
+      typeof variant.unitClass === "string" && variant.unitClass
+        ? variant.unitClass
+        : headlineClass;
+    claim(priceEntry(found.id, price, unitClass, "variant", variant));
   }
 
   const receiptId = extractReceiptModelId(providerSlug, offering.sourceUrl);
   if (receiptId) {
-    return { ids: [receiptId], match: "receipt", providerId, reason: null };
+    claim(priceEntry(receiptId, headlinePrice, headlineClass, "receipt"));
   }
 
+  const claimed = verifyId(index, providerId, offering.providerModelId);
+  if (claimed) {
+    claim(priceEntry(claimed.id, headlinePrice, headlineClass, "provider-id"));
+  }
+
+  if (byId.size > 0) {
+    return {
+      providerId,
+      entries: [...byId.values()].sort((a, b) =>
+        a.modelId.localeCompare(b.modelId)
+      ),
+      reason: null
+    };
+  }
+
+  // Name matching — the only interpreting route, and the only one that needs
+  // the modality, capability and ambiguity guards.
   const modality = MODALITY_ALIASES[normalize(model.modality)];
-  const byKey = modality ? index?.[providerId]?.[modality] : undefined;
-  if (!byKey) {
-    return { ids: [], match: null, providerId, reason: "unmatched" };
+  const keyMap = modality ? index?.[providerId]?.byKey?.[modality] : undefined;
+  if (!keyMap || audioKindMismatch(model, modality)) {
+    return { providerId, entries: [], reason: "unmatched" };
   }
 
   const hits = new Set();
-  for (const key of modelKeys(model.slug, model.name, model.shortName)) {
-    for (const id of byKey.get(key) ?? []) hits.add(id);
+  for (const key of modelKeys(
+    model.slug,
+    model.name,
+    model.shortName,
+    ...(Array.isArray(model.aliases) ? model.aliases : [])
+  )) {
+    for (const id of keyMap.get(key) ?? []) hits.add(id);
   }
   if (hits.size === 0) {
-    return { ids: [], match: null, providerId, reason: "unmatched" };
+    return { providerId, entries: [], reason: "unmatched" };
   }
   if (hits.size > maxIds) {
-    return { ids: [], match: null, providerId, reason: "ambiguous" };
+    return { providerId, entries: [], reason: "ambiguous" };
   }
-  return { ids: [...hits].sort(), match: "catalog", providerId, reason: null };
+
+  const allowed = [...hits]
+    .map((id) => index[providerId].byId.get(id.toLowerCase()))
+    .filter((entry) => entry && !capabilitiesRefuteTask(model, entry));
+  if (allowed.length === 0) {
+    return { providerId, entries: [], reason: "refuted-by-capabilities" };
+  }
+
+  return {
+    providerId,
+    entries: allowed
+      .map((entry) =>
+        priceEntry(entry.id, headlinePrice, headlineClass, "catalog")
+      )
+      .sort((a, b) => a.modelId.localeCompare(b.modelId)),
+    reason: null
+  };
 }
