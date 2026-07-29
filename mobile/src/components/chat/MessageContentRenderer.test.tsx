@@ -123,8 +123,9 @@ describe('MessageContentRenderer', () => {
       const styleAt320 = StyleSheet.flatten(screen.getByLabelText('Image content').props.style);
       expect(styleAt320.width).toBeLessThanOrEqual(bubbleContentWidth(320));
       // Height follows the media's ratio instead of a fixed 200pt letterbox.
-      expect(styleAt320.height).toBeUndefined();
-      expect(styleAt320.aspectRatio).toBeGreaterThan(0);
+      const ratio = (styleAt320.width as number) / (styleAt320.height as number);
+      expect(ratio).toBeCloseTo(4 / 3);
+      expect(styleAt320.height as number).toBeLessThanOrEqual(360);
 
       // A width change (rotation, split view) is picked up without a re-mount —
       // the old module-level Dimensions.get value never was.

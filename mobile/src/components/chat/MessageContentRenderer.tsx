@@ -3,7 +3,7 @@
  * Adapted from web/src/components/chat/message/MessageContentRenderer.tsx
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -69,8 +69,8 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
         return <Text style={[styles.errorText, { color: colors.textSecondary }]}>Unable to load image</Text>;
       }
       return (
-        <View style={[styles.mediaContainer, { width: mediaWidth }]}>
-          <MessageImage uri={imageUri} width={mediaWidth} />
+        <View style={[styles.mediaContainer, { maxWidth: mediaWidth }]}>
+          <MessageImage uri={imageUri} maxWidth={mediaWidth} />
         </View>
       );
     }
@@ -117,25 +117,42 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
 MessageContentRenderer.displayName = "MessageContentRenderer";
 
 /**
- * Image that keeps its natural aspect ratio inside whatever width the bubble
- * gives it. The ratio is only known once the source reports its dimensions, so
- * it starts on a landscape fallback and settles on load.
+ * Image sized to its own aspect ratio inside the width the bubble allows, with
+ * the height capped. Both edges are computed from the ratio, so a portrait image
+ * gets a portrait box instead of being letterboxed inside a landscape one. The
+ * ratio is only known once the source reports its dimensions, so it starts on a
+ * landscape fallback and settles on load.
  */
-const MessageImage: React.FC<{ uri: string; width: number }> = ({ uri, width }) => {
+const MessageImage: React.FC<{ uri: string; maxWidth: number }> = ({ uri, maxWidth }) => {
   const [aspectRatio, setAspectRatio] = useState(FALLBACK_ASPECT_RATIO);
+
+  useEffect(() => {
+    let cancelled = false;
+    Image.getSize(
+      uri,
+      (naturalWidth, naturalHeight) => {
+        if (!cancelled && naturalWidth > 0 && naturalHeight > 0) {
+          setAspectRatio(naturalWidth / naturalHeight);
+        }
+      },
+      // A source that cannot be measured keeps the fallback ratio; the <Image>
+      // below reports its own failure.
+      () => {}
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [uri]);
+
+  const width = Math.min(maxWidth, MAX_MEDIA_HEIGHT * aspectRatio);
+  const height = width / aspectRatio;
 
   return (
     <Image
       source={{ uri }}
-      style={[styles.image, { width, aspectRatio }]}
+      style={[styles.image, { width, height }]}
       resizeMode="contain"
       accessibilityLabel="Image content"
-      onLoad={(event) => {
-        const source = event.nativeEvent?.source;
-        if (source && source.width > 0 && source.height > 0) {
-          setAspectRatio(source.width / source.height);
-        }
-      }}
     />
   );
 };
@@ -233,8 +250,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   image: {
-    maxWidth: '100%',
-    maxHeight: MAX_MEDIA_HEIGHT,
     borderRadius: 8,
   },
   video: {
