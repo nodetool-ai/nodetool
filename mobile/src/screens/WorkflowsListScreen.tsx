@@ -267,7 +267,7 @@ export default function WorkflowsListScreen({ navigation }: WorkflowsListScreenP
             data={filteredWorkflows}
             renderItem={renderWorkflowItem}
             keyExtractor={(item: Workflow) => item.id}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 24 }]}
             refreshControl={
               <RefreshControl
                 refreshing={isRefetching}

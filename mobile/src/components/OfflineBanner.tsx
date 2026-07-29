@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { AccessibilityInfo, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useTheme } from '../hooks/useTheme';
 
@@ -16,6 +17,7 @@ const OFFLINE_MESSAGE = 'No internet connection. Showing saved data.';
 export function OfflineBanner() {
   const { isOffline } = useNetworkStatus();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (isOffline) {
@@ -30,7 +32,12 @@ export function OfflineBanner() {
 
   return (
     <View
-      style={[styles.banner, { backgroundColor: colors.warning }]}
+      style={[
+        styles.banner,
+        // Mounted at the very bottom of the root column, so without the inset
+        // the whole banner sits inside the home-indicator band.
+        { backgroundColor: colors.warning, paddingBottom: insets.bottom + 6 },
+      ]}
       accessibilityRole="alert"
       accessibilityLiveRegion="polite"
       accessibilityLabel={OFFLINE_MESSAGE}

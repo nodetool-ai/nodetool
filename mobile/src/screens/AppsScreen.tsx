@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../hooks/useTheme';
@@ -31,7 +32,9 @@ type AppsScreenProps = {
 
 export default function AppsScreen({ navigation }: AppsScreenProps) {
   const { colors, shadows } = useTheme();
+  const insets = useSafeAreaInsets();
   const { data, isLoading, isRefetching, error, refetch } = useApplications();
+  const apps = data ?? [];
 
   const openApp = useCallback(
     (app: ApplicationListItem) => {
@@ -101,10 +104,14 @@ export default function AppsScreen({ navigation }: AppsScreenProps) {
         </View>
       ) : null}
       <FlatList
-        data={data ?? []}
+        data={apps}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingBottom: insets.bottom + 24 },
+          apps.length === 0 && styles.listContentEmpty,
+        ]}
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
@@ -132,6 +139,12 @@ const styles = StyleSheet.create({
   listContent: {
     padding: 16,
     gap: 10,
+  },
+  // A content container only grows to its content, so the empty block's
+  // `flex: 1` has nothing to fill. Let it take the list's height instead.
+  listContentEmpty: {
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   center: {
     flex: 1,

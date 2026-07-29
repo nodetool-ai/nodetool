@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { normalizeModels } from '../services/api';
 import { trpc } from '../trpc/client';
 import { useChatStore } from '../stores/ChatStore';
@@ -27,6 +28,7 @@ export default function LanguageModelSelectionScreen() {
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const { colors, shadows } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const providersQuery = trpc.models.providers.useQuery(undefined, {
     select: (all) =>
@@ -214,7 +216,7 @@ export default function LanguageModelSelectionScreen() {
           data={filteredProviders}
           renderItem={renderProviderItem}
           keyExtractor={(item: Provider) => item.provider}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 24 }]}
           ListEmptyComponent={renderEmptyList('providers')}
         />
       ) : (
@@ -222,7 +224,7 @@ export default function LanguageModelSelectionScreen() {
           data={filteredModels}
           renderItem={renderModelItem}
           keyExtractor={(item: LanguageModel) => item.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 24 }]}
           ListEmptyComponent={renderEmptyList('models')}
         />
       )}

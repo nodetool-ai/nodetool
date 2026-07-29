@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bannerText: { fontSize: 13, fontWeight: '500' },
+  bannerText: { fontSize: 13, fontWeight: '500', flexShrink: 1 },
   list: { padding: 16 },
   card: {
     borderRadius: 12,
