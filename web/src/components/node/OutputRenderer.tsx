@@ -559,8 +559,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             // Raw RGBA can't be decoded by <img>; encode to a PNG data URL.
             imageSource = rawRgbaToPngDataUrl(
               v.data,
-              v.width as number,
-              v.height as number
+              v.width,
+              v.height
             );
           } else if (typeof v.uri === "string" && v.uri !== "" && !v.uri.startsWith("memory://")) {
             imageSource = signedValueUrl;
@@ -850,7 +850,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 style={SCROLL_CONTAINER_STYLE}
               >
                 <List sx={LIST_WRAPPER_SX}>
-                  {(arr as string[]).map((item) => (
+                  {arr.map((item) => (
                     <ListItem
                       key={withOccurrenceSuffix(
                         stableKeyForOutputValue(item),
@@ -1093,7 +1093,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         return <JSONRenderer value={v} showActions={showTextActions} />;
       default:
         if (value !== null && typeof value === "object") {
-          return <JSONRenderer value={value as Record<string, unknown>} showActions={showTextActions} />;
+          return <JSONRenderer value={value} showActions={showTextActions} />;
         }
         return (
           <TextRenderer

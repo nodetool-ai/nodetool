@@ -75,7 +75,7 @@ export const flattenComponents = (
       }
     }
   };
-  walk(data.content as ComponentNode[], null, null);
+  walk(data.content, null, null);
   return out;
 };
 
@@ -112,7 +112,7 @@ const mapTree = (
 };
 
 const withContent = (data: Data, content: ComponentNode[]): Data =>
-  ({ ...data, content } as Data);
+  ({ ...data, content });
 
 export const makeComponentId = (
   type: string,
@@ -147,14 +147,14 @@ export const addComponent = (
 
   if (!input.parentId) {
     return {
-      data: withContent(data, insertInto(data.content as ComponentNode[])),
+      data: withContent(data, insertInto(data.content)),
       node
     };
   }
 
   const slotName = input.slot;
   const content = mapTree(
-    data.content as ComponentNode[],
+    data.content,
     slotFields,
     (n) => {
       if (n.props.id !== input.parentId) return n;
@@ -180,7 +180,7 @@ export const updateComponentProps = (
   props: Record<string, unknown>
 ): { data: Data; node: ComponentNode | null } => {
   let found: ComponentNode | null = null;
-  const content = mapTree(data.content as ComponentNode[], slotFields, (n) => {
+  const content = mapTree(data.content, slotFields, (n) => {
     if (n.props.id !== id) return n;
     // Never let a caller overwrite the id.
     const { id: _ignored, ...rest } = props;
@@ -196,7 +196,7 @@ export const removeComponent = (
   id: string
 ): { data: Data; removed: boolean } => {
   let removed = false;
-  const content = mapTree(data.content as ComponentNode[], slotFields, (n) => {
+  const content = mapTree(data.content, slotFields, (n) => {
     if (n.props.id === id) {
       removed = true;
       return null;

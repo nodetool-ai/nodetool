@@ -113,7 +113,7 @@ const ToolCallCard: React.FC<{
     (tc.args as Record<string, unknown> | null | undefined) ?? null;
   const pickString = (key: string) =>
     typeof rawArgs?.[key] === "string"
-      ? (rawArgs[key] as string).trim() || null
+      ? rawArgs[key].trim() || null
       : null;
   const subtaskTitle = isSubtask
     ? (pickString("description") ?? pickString("title"))
@@ -589,8 +589,8 @@ export const MessageView: React.FC<
           const contentBlock = block as MessageContent;
           if (contentBlock.type === "text") {
             return (
-              typeof (contentBlock as MessageTextContent).text === "string" &&
-              (contentBlock as MessageTextContent).text.trim().length > 0
+              typeof contentBlock.text === "string" &&
+              contentBlock.text.trim().length > 0
             );
           }
           return true;
@@ -638,7 +638,7 @@ export const MessageView: React.FC<
               Array.isArray(message.tool_calls) &&
               !message.agent_execution_id && ( // Don't render tool cards for agent tasks here (they are in AgentExecutionView)
                 <ToolCallGroup
-                  toolCalls={message.tool_calls as ToolCall[]}
+                  toolCalls={message.tool_calls}
                   toolResultsByCallId={toolResultsByCallId}
                   messageCreatedAt={message.created_at}
                 />
@@ -655,14 +655,7 @@ export const MessageView: React.FC<
                     }
                   ).media_generation?.mode ?? "chat") !== "chat" ||
                     content.length > 1) ? (
-                    <MediaOutputGroup
-                      message={
-                        message as Message & {
-                          media_generation?: MediaGenerationRequest | null;
-                        }
-                      }
-                      mediaContents={content as MessageContent[]}
-                    />
+                    <MediaOutputGroup message={message} mediaContents={content} />
                   ) : (
                     content.map((c: MessageContent, i: number) => {
                       // Guard against null / non-object blocks so the renderer's
