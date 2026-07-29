@@ -295,16 +295,22 @@ jobs:
           npm run prepare-mcpb
           npx electron-builder --config electron-builder.json --win --x64 --dir --publish never
 
-      # Boot the staged backend before anything is signed or uploaded. The
-      # Quality Gate runs the same check, but only on Linux — the native
-      # prebuilds staged into the bundle are per-OS, so a Windows- or
-      # macOS-only staging fault is invisible until here. Smoke-launch below
-      # can't cover it: it spawns the Electron main process, which outlives a
-      # backend child that dies on import.
+      # Boot the backend out of the packed app before anything is signed or
+      # uploaded. The Quality Gate runs the same check, but only on Linux and
+      # only on the staged bundle — the native binaries are per-OS, so a
+      # Windows- or macOS-only fault is invisible until here. Smoke-launch
+      # below can't cover it either: it spawns the Electron main process, which
+      # outlives a backend child that dies on import.
+      #
+      # It must be the *packed* tree, not electron/backend-bundle: afterPack is
+      # what pins the backend's native modules to the bundled Node
+      # (NODE_RUNTIME_VERSION) and drops that Node at backend/runtime/node.
+      # electron-builder's npmRebuild leaves the workspace copies on Electron's
+      # ABI, so the staged tree is not a runnable artifact at this point.
       - name: Smoke-boot packaged backend (Windows)
         if: matrix.os == 'windows-2022'
         shell: bash -l {0}
-        run: node scripts/smoke-backend-bundle.mjs electron/backend-bundle
+        run: node scripts/smoke-backend-bundle.mjs electron/dist/win-unpacked/resources/backend
 
       - name: Resolve Windows artifacts (paths)
         if: matrix.os == 'windows-2022'
@@ -568,12 +574,26 @@ jobs:
           npm run prepare-mcpb
           npx electron-builder --config electron-builder.json --publish never
 
-      # See the Windows step above: per-OS native prebuilds mean the Linux
-      # Quality Gate run doesn't cover the macOS bundle.
+      # See the Windows step above. Only the first matching layout is booted:
+      # on macOS the x64 app is cross-built on an arm64 runner, and its bundled
+      # Node can't run natively there.
       - name: Smoke-boot packaged backend (macOS/Linux)
         if: matrix.os != 'windows-2022'
         shell: bash
-        run: node scripts/smoke-backend-bundle.mjs electron/backend-bundle
+        run: |
+          set -euo pipefail
+          for candidate in \
+            "electron/dist/mac-arm64/Nodetool.app/Contents/Resources/backend" \
+            "electron/dist/mac/Nodetool.app/Contents/Resources/backend" \
+            "electron/dist/linux-unpacked/resources/backend"; do
+            if [ -f "$candidate/server.mjs" ]; then
+              node scripts/smoke-backend-bundle.mjs "$candidate"
+              exit $?
+            fi
+          done
+          echo "::error::No packed backend found under electron/dist — nothing was smoke-booted."
+          find electron/dist -maxdepth 2 -type d | head -50
+          exit 1
 
       - name: Smoke-launch macOS .app
         if: matrix.os == 'macos-latest'
