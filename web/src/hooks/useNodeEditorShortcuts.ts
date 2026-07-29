@@ -22,7 +22,8 @@ import { useRightPanelStore } from "../stores/RightPanelStore";
 import { usePanelStore } from "../stores/PanelStore";
 import { NodeData } from "../stores/NodeData";
 import { useToggleCollapse } from "./nodes/useToggleCollapse";
-import { Node } from "@xyflow/react";
+import { Node, type Edge } from "@xyflow/react";
+import type { NodeStoreState } from "../stores/NodeStore";
 import { isMac } from "../utils/platform";
 import { useFindInWorkflowStore } from "../stores/FindInWorkflowStore";
 import { useSelectionActions } from "./useSelectionActions";
@@ -98,13 +99,26 @@ export const useNodeEditorShortcuts = (
   const openFind = useFindInWorkflowStore((state) => state.openFind);
   const nodeFocus = useNodeFocus();
 
-  const selectedEdgeCount = useNodes((state) => {
-    let count = 0;
-    for (const edge of state.edges) {
-      if (edge.selected) count++;
-    }
-    return count;
-  });
+  // Cached on the `edges` array identity. A node drag pushes a fresh `nodes`
+  // array ~60x/s and re-runs every NodeStore selector, so counting inline walked
+  // every edge each frame even though edge selection cannot change during a drag.
+  const selectedEdgeCountSelector = useMemo(() => {
+    let lastEdges: Edge[] | null = null;
+    let lastCount = 0;
+    return (state: NodeStoreState) => {
+      if (state.edges === lastEdges) {
+        return lastCount;
+      }
+      lastEdges = state.edges;
+      let count = 0;
+      for (const edge of state.edges) {
+        if (edge.selected) count++;
+      }
+      lastCount = count;
+      return count;
+    };
+  }, []);
+  const selectedEdgeCount = useNodes(selectedEdgeCountSelector);
 
   const { handleCopy, handlePaste, handleCut } = copyPaste;
   const { openNodeMenu, closeNodeMenu, isMenuOpen } = nodeMenuStore;

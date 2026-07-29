@@ -14,11 +14,12 @@
  * Mounted once per editor; only the active editor drives the sync, and a
  * module-level guard de-dupes concurrent enables across tabs and renders.
  */
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { findBuiltinPackForNodeType } from "@nodetool-ai/protocol";
 
 import { useNodes } from "../contexts/NodeContext";
+import type { NodeStoreState } from "../stores/NodeStore";
 import { useSecrets } from "./useSecrets";
 import usePacksStore from "../stores/PacksStore";
 import { getRequiredKeyForBuiltinPack } from "../utils/providerPacks";
@@ -28,9 +29,23 @@ const enabling = new Set<string>();
 
 export const useAutoEnableNodePacks = (active: boolean): void => {
   const { secrets } = useSecrets();
-  const nodeTypes = useNodes(
-    useShallow((state) => state.nodes.map((node) => node.type))
-  );
+  // Compare against the previous types in place and only allocate when they
+  // actually differ. `useShallow` built a fresh N-element array on every
+  // NodeStore write before comparing, and a node drag pushes one ~60x/s.
+  const nodeTypesSelector = useMemo(() => {
+    let lastResult: (string | undefined)[] = [];
+    return (state: NodeStoreState) => {
+      if (
+        state.nodes.length === lastResult.length &&
+        state.nodes.every((node, i) => node.type === lastResult[i])
+      ) {
+        return lastResult;
+      }
+      lastResult = state.nodes.map((node) => node.type);
+      return lastResult;
+    };
+  }, []);
+  const nodeTypes = useNodes(nodeTypesSelector);
   const { builtins, fetchBuiltins, setBuiltinEnabled } = usePacksStore(
     useShallow((state) => ({
       builtins: state.builtins,
