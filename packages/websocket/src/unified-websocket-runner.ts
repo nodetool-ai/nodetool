@@ -3333,19 +3333,19 @@ export class UnifiedWebSocketRunner {
       }
     }
 
+    // The authoritative terminal snapshot is consumed in every event-detail
+    // mode. Keep it just as client-safe as streamed output_update values;
+    // otherwise Outputs/Full can replace a working temp URL with raw media.
+    if (Object.keys(finalOutputs).length > 0) {
+      finalOutputs = await this.normalizeFinalOutputs(active, finalOutputs);
+    }
+
     if (
       active.executionOptions.eventDetail !== "terminal" &&
       !outputUpdateSeen &&
       Object.keys(finalOutputs).length > 0
     ) {
       await this.sendOutputUpdates(active, finalOutputs);
-    }
-
-    if (
-      active.executionOptions.eventDetail === "terminal" &&
-      Object.keys(finalOutputs).length > 0
-    ) {
-      finalOutputs = await this.normalizeFinalOutputs(active, finalOutputs);
     }
 
     const relayCompletedAt = performance.now();

@@ -463,6 +463,45 @@ describe("UnifiedWebSocketRunner run_job — streamJobMessages relay", () => {
     ).toBe(true);
   });
 
+  it("outputs detail also normalizes the authoritative final outputs", async () => {
+    const rawImage = {
+      type: "image",
+      data: new Uint8Array([1, 2, 3])
+    };
+    const normalizedImage = {
+      type: "image",
+      uri: "/api/storage/temp/sdk-image.png"
+    };
+    const active = makeActive({
+      jobId: "J7-MEDIA",
+      nodes: [{ id: "out", type: "nodetool.output.Output" }],
+      messages: [
+        { type: "output_update", node_id: "out", value: rawImage }
+      ],
+      executionOptions: { event_detail: "outputs" }
+    });
+    active.context.normalizeOutputValue.mockImplementation(
+      async (value: unknown) => value === rawImage ? normalizedImage : value
+    );
+
+    await streamTo(
+      runner,
+      active,
+      Promise.resolve({
+        status: "completed",
+        outputs: { image: [rawImage] }
+      })
+    );
+
+    const terminal = decodeAll(ws).find(
+      (message) =>
+        message.type === "job_update" && message.status === "completed"
+    );
+    expect((terminal?.result as any).outputs).toEqual({
+      image: [normalizedImage]
+    });
+  });
+
   it("terminal detail emits only lifecycle/errors and normalizes final outputs", async () => {
     const active = makeActive({
       jobId: "J8",
