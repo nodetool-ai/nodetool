@@ -2,8 +2,9 @@ import { usePanelStore } from '../PanelStore';
 
 describe('PanelStore', () => {
   const initialState = usePanelStore.getState();
-  const { minWidth, maxWidth, defaultWidth } = initialState.panel;
-  const minPanelSize = defaultWidth - 100;
+  const { minWidth, maxWidth } = initialState.panel;
+  // Store MIN_PANEL_SIZE — the usable minimum restored when reopening.
+  const minPanelSize = 160;
 
   afterEach(() => {
     usePanelStore.setState(initialState, true);

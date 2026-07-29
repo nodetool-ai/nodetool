@@ -72,7 +72,7 @@ describe("PanelStore actions", () => {
     it("clamps to minimum panel size", () => {
       usePanelStore.getState().initializePanelSize(10);
       const { panel } = usePanelStore.getState();
-      expect(panel.panelSize).toBeGreaterThanOrEqual(panel.defaultWidth - 100);
+      expect(panel.panelSize).toBeGreaterThanOrEqual(160);
     });
 
     it("clamps to maximum panel size", () => {
@@ -137,7 +137,7 @@ describe("PanelStore actions", () => {
     });
 
     it("reopens and expands collapsed panel for same view", () => {
-      const { minWidth, defaultWidth } = usePanelStore.getState().panel;
+      const { minWidth } = usePanelStore.getState().panel;
       usePanelStore.setState({
         ...usePanelStore.getState(),
         panel: {
@@ -152,7 +152,7 @@ describe("PanelStore actions", () => {
 
       const { panel } = usePanelStore.getState();
       expect(panel.isVisible).toBe(true);
-      expect(panel.panelSize).toBeGreaterThanOrEqual(defaultWidth - 100);
+      expect(panel.panelSize).toBeGreaterThanOrEqual(160);
     });
   });
 

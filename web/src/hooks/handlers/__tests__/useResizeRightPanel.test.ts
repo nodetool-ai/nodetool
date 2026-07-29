@@ -3,7 +3,7 @@ import { useRightPanelStore } from "../../../stores/RightPanelStore";
 import { useResizeRightPanel } from "../useResizeRightPanel";
 
 const DEFAULT_PANEL_SIZE = 350;
-const MIN_DRAG_SIZE = 60;
+const MIN_PANEL_SIZE = 130;
 const MAX_PANEL_SIZE = 600;
 
 const createMouseEvent = (clientX: number) =>
@@ -125,7 +125,7 @@ describe("useResizeRightPanel", () => {
     expect(useRightPanelStore.getState().panel.isVisible).toBe(false);
   });
 
-  it("dragging below threshold collapses panel", () => {
+  it("dragging below minimum clamps size and stays open", () => {
     const { result } = renderHook(() => useResizeRightPanel("right"));
 
     act(() => {
@@ -150,8 +150,8 @@ describe("useResizeRightPanel", () => {
     });
 
     const state = useRightPanelStore.getState().panel;
-    expect(state.panelSize).toBe(MIN_DRAG_SIZE);
-    expect(state.isVisible).toBe(false);
+    expect(state.panelSize).toBe(MIN_PANEL_SIZE);
+    expect(state.isVisible).toBe(true);
   });
 
   it("clamps size at MAX_PANEL_SIZE", () => {

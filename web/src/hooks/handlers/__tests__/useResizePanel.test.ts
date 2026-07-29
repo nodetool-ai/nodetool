@@ -141,7 +141,7 @@ describe("useResizePanel", () => {
     });
   });
 
-  it("clamps size to MIN_DRAG_SIZE", () => {
+  it("clamps size to MIN_PANEL_SIZE", () => {
     usePanelStore.setState({
       panel: {
         ...usePanelStore.getState().panel,
@@ -163,7 +163,8 @@ describe("useResizePanel", () => {
       document.dispatchEvent(new MouseEvent("mousemove", { clientX: 0 }));
     });
 
-    expect(usePanelStore.getState().panel.panelSize).toBe(60);
+    // 160px minimum; the panel clamps rather than collapsing.
+    expect(usePanelStore.getState().panel.panelSize).toBe(160);
 
     act(() => {
       document.dispatchEvent(new MouseEvent("mouseup"));
@@ -197,7 +198,7 @@ describe("useResizePanel", () => {
     expect(usePanelStore.getState().panel.isVisible).toBe(false);
   });
 
-  it("mouseup after drag below MIN_PANEL_SIZE collapses and hides panel", () => {
+  it("mouseup after drag below MIN_PANEL_SIZE clamps size and stays open", () => {
     usePanelStore.setState({
       panel: {
         ...usePanelStore.getState().panel,
@@ -224,8 +225,8 @@ describe("useResizePanel", () => {
       document.dispatchEvent(new MouseEvent("mouseup"));
     });
 
-    expect(usePanelStore.getState().panel.panelSize).toBe(60);
-    expect(usePanelStore.getState().panel.isVisible).toBe(false);
+    expect(usePanelStore.getState().panel.panelSize).toBe(160);
+    expect(usePanelStore.getState().panel.isVisible).toBe(true);
   });
 
   it("mouseup after drag sets isDragging to false", () => {
