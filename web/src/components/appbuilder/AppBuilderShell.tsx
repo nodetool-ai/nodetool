@@ -1,8 +1,19 @@
 import React, { useCallback, useEffect, useState } from "react";
 import type { Data } from "@puckeditor/core";
 import { type AppDocMeta } from "@nodetool-ai/app-runtime";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import CloseIcon from "@mui/icons-material/Close";
+import useMediaQuery from "@mui/material/useMediaQuery";
 
-import { Box, FlexColumn, FlexRow, BORDER_RADIUS } from "../ui_primitives";
+import {
+  Box,
+  CircularActionButton,
+  FlexColumn,
+  FlexRow,
+  BORDER_RADIUS,
+  SPACING,
+  Z_INDEX
+} from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import FrontendToolRuntimeSync from "../panels/FrontendToolRuntimeSync";
@@ -34,6 +45,15 @@ export interface AppBuilderShellProps {
   onClose?: () => void;
 }
 
+/**
+ * Puck folds its header actions — the "Ask Agent" and "App Data" toggles among
+ * them — into a chevron menu below 638px, so on a phone the only way to reach
+ * the agent is to find that menu. Below that width the shell surfaces the agent
+ * behind a floating button of its own, and the panel covers the whole surface:
+ * docking a 360px panel beside the canvas leaves too little of either.
+ */
+const NARROW_QUERY = "(max-width: 637.98px)";
+
 /** Shared framing for the panels that dock beside the canvas. */
 const sidePanelSx = {
   width: { xs: "min(100vw, 360px)", lg: 420 },
@@ -43,6 +63,18 @@ const sidePanelSx = {
   borderColor: "divider",
   overflow: "hidden",
   borderTopLeftRadius: BORDER_RADIUS.lg
+} as const;
+
+/** The same panel, covering the canvas instead of docking beside it. */
+const overlayPanelSx = {
+  ...sidePanelSx,
+  position: "absolute",
+  inset: 0,
+  width: "100%",
+  borderLeft: "none",
+  borderTopLeftRadius: 0,
+  backgroundColor: "background.default",
+  zIndex: Z_INDEX.overlay
 } as const;
 
 /**
@@ -86,6 +118,8 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
   }));
   const [agentOpen, setAgentOpen] = useState(false);
   const toggleAgent = useCallback(() => setAgentOpen((open) => !open), []);
+  const narrow = useMediaQuery(NARROW_QUERY);
+  const panelSx = narrow ? overlayPanelSx : sidePanelSx;
   const [dataOpen, setDataOpen] = useState(false);
   const toggleData = useCallback(() => setDataOpen((open) => !open), []);
 
@@ -120,7 +154,10 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
   );
 
   return (
-    <FlexRow gap={0} sx={{ width: "100%", height: "100%", minHeight: 0 }}>
+    <FlexRow
+      gap={0}
+      sx={{ width: "100%", height: "100%", minHeight: 0, position: "relative" }}
+    >
       {/* Syncs workflow tools to this workflow so the agent can edit the graph. */}
       <FrontendToolRuntimeSync />
       <FlexColumn sx={{ flex: 1, minWidth: 0, height: "100%", minHeight: 0 }}>
@@ -143,7 +180,7 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
         </Box>
       </FlexColumn>
       {dataOpen && (
-        <Box sx={sidePanelSx}>
+        <Box sx={panelSx}>
           <AppDataPanel
             meta={meta}
             onChange={setMeta}
@@ -153,12 +190,26 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
         </Box>
       )}
       {agentOpen && agentWorkflowId && (
-        <Box sx={sidePanelSx}>
+        <Box sx={panelSx}>
           <AppBuilderAgentPanel
             applicationId={applicationId}
             workflowId={agentWorkflowId}
           />
         </Box>
+      )}
+      {narrow && agentWorkflowId && (
+        <CircularActionButton
+          icon={agentOpen ? <CloseIcon /> : <AutoAwesomeIcon />}
+          onClick={toggleAgent}
+          ariaLabel={agentOpen ? "Close agent" : "Ask Agent"}
+          tooltip={agentOpen ? "Close agent" : "Ask Agent"}
+          tooltipPlacement="top"
+          size={48}
+          position="absolute"
+          bottom={SPACING.xl}
+          right={SPACING.xl}
+          zIndex={Z_INDEX.overlay + 1}
+        />
       )}
     </FlexRow>
   );

@@ -111,7 +111,10 @@ the existing worker path.
   documents.
 - `AppBuilderShell.tsx` — the editing surface, independent of storage: it seeds
   Puck from a document, holds the operations/resources/variables beside it, and
-  emits the **whole** document on save.
+  emits the **whole** document on save. Below 638px — where Puck folds its
+  header actions, the **Ask Agent** toggle included, into a chevron menu — the
+  shell renders its own floating agent toggle and the panels cover the canvas
+  instead of docking beside it.
 - `ApplicationAppBuilder.tsx` — the container over an `applications` record:
   loads with `applications.get`, saves with `applications.update` carrying
   `baseUpdatedAt`. A lost compare-and-swap raises an alert and a banner with a
