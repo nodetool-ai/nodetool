@@ -68,7 +68,7 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
       overrides[pinned.workflowId] = pinnedWorkflow(
         pinned.workflowId,
         application?.name ?? pinned.workflowId,
-        pinned.graph as unknown as Workflow["graph"]
+        pinned.graph
       );
     }
     return overrides;

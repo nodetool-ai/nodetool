@@ -26,31 +26,25 @@ export type WorkerStatus =
   | "terminated"
   | "error";
 
-export interface WorkerProfile {
-  id: string;
-  name: string;
+// Derived from the router so a server schema change breaks the build here.
+// Only the columns the DB stores as a bare `string` are re-declared, narrowed
+// to the unions the UI switches on.
+export interface WorkerProfile
+  extends Omit<
+    RouterOutputs["worker"]["profiles"]["list"][number],
+    "target" | "token_policy"
+  > {
   target: WorkerTarget;
-  image: string;
-  spec: Record<string, unknown>;
   token_policy: TokenPolicy;
-  idle_timeout_minutes: number | null;
-  max_lifetime_minutes: number | null;
-  created_at: string;
-  updated_at: string;
 }
 
-export interface WorkerInstance {
-  id: string;
-  profile_name: string;
+export interface WorkerInstance
+  extends Omit<
+    RouterOutputs["worker"]["instances"]["list"][number],
+    "target" | "status"
+  > {
   target: WorkerTarget;
-  provider_ref: string;
-  ws_url: string;
-  token: string | null;
   status: WorkerStatus;
-  attached_to: string | null;
-  created_at: string;
-  last_activity_at: string;
-  estimated_cost_usd: number | null;
 }
 
 export interface CreateWorkerProfileInput {
@@ -63,29 +57,15 @@ export interface CreateWorkerProfileInput {
   max_lifetime_minutes?: number | null;
 }
 
-export interface WorkerConnection {
-  wsUrl: string;
-  token: string | null;
-}
+export type WorkerConnection = RouterOutputs["worker"]["attach"];
 
 /** Readiness of a `running` worker, from the backend health probe. */
-export interface WorkerHealth {
-  /** True once the worker answered the bridge handshake (truly serving). */
-  healthy: boolean;
-  protocolVersion?: number;
-  error?: string;
-}
+export type WorkerHealth = RouterOutputs["worker"]["health"];
 
-export interface WorkerOrphan {
-  providerRef: string;
-  target: string;
-}
+export type ReconcileSummary = RouterOutputs["worker"]["reconcile"];
 
-export interface ReconcileSummary {
-  orphans: WorkerOrphan[];
-  liveCount: number;
-  estimatedCostUsd: number;
-}
+/** A provider-live worker the registry doesn't track — billing out-of-band. */
+export type WorkerOrphan = ReconcileSummary["orphans"][number];
 
 /** Hierarchical query keys so a single action can target the right cache. */
 const workerQueryKeys = {
@@ -111,8 +91,8 @@ const EMPTY_INSTANCES: WorkerInstance[] = [];
 export const useWorkerHealth = (
   id: string,
   enabled: boolean
-): UseQueryResult<RouterOutputs["worker"]["health"], Error> =>
-  useQuery<RouterOutputs["worker"]["health"], Error>({
+): UseQueryResult<WorkerHealth, Error> =>
+  useQuery<WorkerHealth, Error>({
     queryKey: workerQueryKeys.health(id),
     queryFn: () => trpcClient.worker.health.query({ id }),
     enabled,
@@ -165,8 +145,7 @@ export const useWorkers = (): UseWorkersResult => {
 
   const apiKeyStatusQuery = useQuery<Record<WorkerTarget, boolean>, Error>({
     queryKey: workerQueryKeys.apiKeyStatus,
-    queryFn: () =>
-      trpcClient.worker.apiKeyStatus.query() as Promise<Record<WorkerTarget, boolean>>
+    queryFn: () => trpcClient.worker.apiKeyStatus.query()
   });
 
   const invalidateInstances = useCallback(
@@ -249,7 +228,7 @@ export const useWorkers = (): UseWorkersResult => {
     async (id: string): Promise<WorkerConnection> => {
       const connection = await trpcClient.worker.attach.mutate({ id });
       await invalidateInstances();
-      return connection as WorkerConnection;
+      return connection;
     },
     [invalidateInstances]
   );
@@ -262,7 +241,7 @@ export const useWorkers = (): UseWorkersResult => {
   const reconcile = useCallback(async (): Promise<ReconcileSummary> => {
     const summary = await trpcClient.worker.reconcile.mutate();
     await invalidateInstances();
-    return summary as ReconcileSummary;
+    return summary;
   }, [invalidateInstances]);
 
   const instances = instancesQuery.data ?? EMPTY_INSTANCES;

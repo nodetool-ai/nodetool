@@ -16,7 +16,6 @@ import {
 
 import { trpc } from "../trpc/client";
 import { fetchWorkflowById, workflowQueryKey } from "../serverState/useWorkflow";
-import type { Workflow } from "../stores/ApiTypes";
 
 const LIST_STALE_TIME = 30_000;
 const WORKFLOW_STALE_TIME = 60_000;
@@ -218,7 +217,7 @@ export const useLinkedWorkflows = (
 
   const links = workflowIds.map((id, index) => {
     const result = results[index];
-    const workflow = result?.data as Workflow | undefined;
+    const workflow = result?.data;
     const pin = pins.get(id);
     return {
       workflowId: id,
@@ -229,7 +228,7 @@ export const useLinkedWorkflows = (
       pinnedVersion: pin?.version ?? null,
       isPinned: pin?.pinned ?? false,
       isLoading: result?.isLoading ?? false,
-      error: (result?.error as Error | null) ?? null
+      error: result?.error ?? null
     };
   });
 

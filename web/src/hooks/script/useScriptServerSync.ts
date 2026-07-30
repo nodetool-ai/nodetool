@@ -25,11 +25,10 @@ type ScriptResponse = Awaited<ReturnType<typeof trpcClient.scripts.get.query>>;
 type ScriptWireDocument = ScriptResponse["document"];
 
 /** The saved payload: the script minus identity and transient UI state. */
-const scriptToDocument = (script: ScriptDraft): ScriptWireDocument =>
-  ({
-    cast: script.cast,
-    sections: script.sections
-  }) as unknown as ScriptWireDocument;
+const scriptToDocument = (script: ScriptDraft): ScriptWireDocument => ({
+  cast: script.cast,
+  sections: script.sections
+});
 
 const responseToScript = (
   res: ScriptResponse
@@ -37,8 +36,8 @@ const responseToScript = (
   const doc = res.document;
   return {
     title: res.name === "Untitled script" ? "" : res.name,
-    cast: doc.cast as unknown as ScriptDraft["cast"],
-    sections: doc.sections as unknown as ScriptDraft["sections"],
+    cast: doc.cast,
+    sections: doc.sections,
     timelineId: res.timelineId ?? null
   };
 };
