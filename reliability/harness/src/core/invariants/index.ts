@@ -26,11 +26,21 @@ import type { InvariantCheck } from "./types.js";
  * Every invariant module keyed by the family name journeys declare in
  * `journey.json`'s `assertions.invariants` (§4). C4's runner is expected to
  * look names up here rather than importing each module by hand.
+ *
+ * `lifecycle-pairing` and `cleanup-leaks` are aliases for `lifecycle` and
+ * `leaks`: the seed journeys under `reliability/journeys/*.json` (C1/C2) were
+ * authored against §6's prose section headers ("Lifecycle", "Cleanup and
+ * leaks") rather than this module's own key names, and the manifest schema
+ * (`core/journey.ts`) only checks that `invariants` is a non-empty array of
+ * strings, not that each name resolves — so both spellings need to resolve
+ * for those journeys' declared invariants to actually run under `compare.ts`.
  */
 export const INVARIANT_CHECKS: Readonly<Record<string, InvariantCheck>> = {
   lifecycle: checkLifecycle,
+  "lifecycle-pairing": checkLifecycle,
   "terminal-uniqueness": checkTerminalUniqueness,
   leaks: checkLeaks,
+  "cleanup-leaks": checkLeaks,
   "state-machine": checkStateMachine,
   "protocol-validity": checkProtocolValidity
 };

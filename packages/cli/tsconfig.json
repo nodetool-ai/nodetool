@@ -62,6 +62,9 @@
       "path": "../protocol"
     },
     {
+      "path": "../../reliability/harness"
+    },
+    {
       "path": "../replicate-nodes"
     },
     {

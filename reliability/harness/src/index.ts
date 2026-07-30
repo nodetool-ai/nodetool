@@ -2,3 +2,7 @@ export * from "./core/journey.js";
 export * from "./core/record.js";
 export * from "./core/normalize.js";
 export * from "./core/diff.js";
+export * from "./core/invariants/index.js";
+export * from "./drivers/index.js";
+export * from "./compare.js";
+export * from "./cli.js";
