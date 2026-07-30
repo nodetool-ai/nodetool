@@ -18,6 +18,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  ScrollView,
   StyleSheet,
   LayoutAnimation,
   Platform,
@@ -412,9 +413,16 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
 
       {/* Result preview (visible even when collapsed) */}
       {outputValue !== undefined && !isRunning && !isError && (
-        <View style={styles.resultPreview}>
+        // The cap has to sit on a scroller: as a plain View it clipped
+        // everything past 300pt with no way to reach the rest of the result.
+        <ScrollView
+          style={styles.resultPreview}
+          contentContainerStyle={styles.resultPreviewContent}
+          nestedScrollEnabled
+          showsVerticalScrollIndicator
+        >
           <OutputRenderer value={outputValue} />
-        </View>
+        </ScrollView>
       )}
 
       {/* Expanded content */}
@@ -547,11 +555,17 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 14,
     borderWidth: 1.5,
-    overflow: "hidden",
+    // No `overflow: hidden` here: on iOS masksToBounds also clips the layer's
+    // own shadow, so it would silently cancel `shadows.small`. The only child
+    // that reaches the card's edge is the progress track, which rounds its own
+    // top corners instead.
   },
   progressTrack: {
     height: 3,
     width: "100%",
+    // Card radius minus the 1.5 border.
+    borderTopLeftRadius: 12.5,
+    borderTopRightRadius: 12.5,
     overflow: "hidden",
   },
   progressFill: {
@@ -588,9 +602,11 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   resultPreview: {
+    maxHeight: 300,
+  },
+  resultPreviewContent: {
     paddingHorizontal: 14,
     paddingBottom: 12,
-    maxHeight: 300,
   },
   header: {
     flexDirection: "row",

@@ -22,6 +22,8 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  type StyleProp,
+  type TextStyle,
 } from "react-native";
 import {
   composeUserMessage,
@@ -340,12 +342,53 @@ export const tableColumns = (rows: ReadonlyArray<unknown>): string[] => {
   return columns;
 };
 
+/**
+ * One explicit width per column, so the header row and the body rows lay their
+ * cells out on the same grid. Sizing each cell independently (a `minWidth` /
+ * `maxWidth` range) lets a column's header and its data settle at different
+ * widths, which shears the labels off their column and breaks the hairlines.
+ *
+ * The width is derived from the longest string in the column — a one-pass
+ * estimate at ~7.5pt per character for the 14pt cell font, clamped to the same
+ * 120–240 range the old per-cell style used. An estimate is enough here:
+ * correctness only needs header and body to agree, and `onLayout` measurement
+ * would cost a render round-trip per table.
+ */
+export const tableColumnWidths = (
+  headers: ReadonlyArray<string>,
+  rows: ReadonlyArray<ReadonlyArray<string>>,
+  charWidth = 7.5,
+  padding = 24,
+  min = 120,
+  max = 240
+): number[] =>
+  headers.map((header, index) => {
+    let longest = header.length;
+    for (const row of rows) {
+      longest = Math.max(longest, (row[index] ?? "").length);
+    }
+    return Math.min(max, Math.max(min, Math.round(longest * charWidth) + padding));
+  });
+
 /** Lays an array value out as rows — what a run that emits N results needs. */
 const TableWidget: React.FC<WidgetProps> = (widget) => {
   const { colors } = useTheme();
   const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
   const rows = asItems(value);
   const columns = useMemo(() => tableColumns(rows), [rows]);
+  const body = useMemo(
+    () =>
+      rows.map((row) =>
+        columns.length === 0
+          ? [cellText(row)]
+          : columns.map((column) => (isRow(row) ? cellText(row[column]) : ""))
+      ),
+    [columns, rows]
+  );
+  const widths = useMemo(
+    () => tableColumnWidths(columns.length === 0 ? [""] : columns, body),
+    [body, columns]
+  );
 
   if (rows.length === 0) {
     return (
@@ -356,28 +399,27 @@ const TableWidget: React.FC<WidgetProps> = (widget) => {
     );
   }
 
-  const cells = (row: unknown): string[] =>
-    columns.length === 0
-      ? [cellText(row)]
-      : columns.map((column) => (isRow(row) ? cellText(row[column]) : ""));
-
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
       <View style={[styles.table, { borderColor: colors.border }]}>
         {columns.length > 0 ? (
           <View style={[styles.tableRow, { backgroundColor: colors.inputBg }]}>
-            {columns.map((column) => (
+            {columns.map((column, columnIndex) => (
               <Text
                 key={column}
                 numberOfLines={1}
-                style={[styles.tableCell, styles.tableHeader, { color: colors.text }]}
+                style={[
+                  styles.tableCell,
+                  styles.tableHeader,
+                  { color: colors.text, width: widths[columnIndex] },
+                ]}
               >
                 {column}
               </Text>
             ))}
           </View>
         ) : null}
-        {rows.map((row, index) => (
+        {body.map((cells, index) => (
           <View
             key={index}
             style={[
@@ -387,11 +429,14 @@ const TableWidget: React.FC<WidgetProps> = (widget) => {
                 : null,
             ]}
           >
-            {cells(row).map((text, cellIndex) => (
+            {cells.map((text, cellIndex) => (
               <Text
                 key={cellIndex}
                 numberOfLines={3}
-                style={[styles.tableCell, { color: colors.textSecondary }]}
+                style={[
+                  styles.tableCell,
+                  { color: colors.textSecondary, width: widths[cellIndex] },
+                ]}
               >
                 {text}
               </Text>
@@ -447,12 +492,20 @@ const ProgressWidget: React.FC<WidgetProps> = (widget) => {
   );
 };
 
-const FieldLabel: React.FC<{ text: string; colors: ThemeColors }> = ({
-  text,
-  colors,
-}) =>
+const FieldLabel: React.FC<{
+  text: string;
+  colors: ThemeColors;
+  /** Set when the label shares a row with a control, so it can shrink. */
+  style?: StyleProp<TextStyle>;
+  numberOfLines?: number;
+}> = ({ text, colors, style, numberOfLines }) =>
   text ? (
-    <Text style={[styles.label, { color: colors.text }]}>{text}</Text>
+    <Text
+      numberOfLines={numberOfLines}
+      style={[styles.label, { color: colors.text }, style]}
+    >
+      {text}
+    </Text>
   ) : null;
 
 /** A bound value shown as a message. Empty binding renders nothing. */
@@ -896,8 +949,16 @@ const SliderWidget: React.FC<WidgetProps> = (widget) => {
   return (
     <View style={styles.field}>
       <View style={styles.row}>
-        <FieldLabel text={str(widget.props.label)} colors={colors} />
-        <Text style={[styles.label, { color: colors.textSecondary }]}>
+        <FieldLabel
+          text={str(widget.props.label)}
+          colors={colors}
+          style={styles.rowLabel}
+          numberOfLines={2}
+        />
+        <Text
+          numberOfLines={1}
+          style={[styles.label, styles.rowValue, { color: colors.textSecondary }]}
+        >
           {current}
         </Text>
       </View>
@@ -925,7 +986,12 @@ const SwitchWidget: React.FC<WidgetProps> = (widget) => {
   });
   return (
     <View style={[styles.field, styles.row]}>
-      <FieldLabel text={str(widget.props.label)} colors={colors} />
+      <FieldLabel
+        text={str(widget.props.label)}
+        colors={colors}
+        style={styles.rowLabel}
+        numberOfLines={2}
+      />
       <Switch
         value={value === true}
         disabled={widget.disabled}
@@ -1576,6 +1642,14 @@ const DataFrameInputWidget: React.FC<WidgetProps> = (widget) => {
   });
   const grid = useMemo(() => readGrid(value), [value]);
   const maxHeight = numOr(widget.props.maxHeight, 280);
+  const widths = useMemo(
+    () =>
+      tableColumnWidths(
+        grid.columns,
+        grid.rows.map((row) => row.map(cellText))
+      ),
+    [grid]
+  );
 
   const commit = useCallback(
     (rows: unknown[][]) => {
@@ -1604,11 +1678,15 @@ const DataFrameInputWidget: React.FC<WidgetProps> = (widget) => {
         <ScrollView style={{ maxHeight }} nestedScrollEnabled>
           <View style={[styles.table, { borderColor: colors.border }]}>
             <View style={[styles.tableRow, { backgroundColor: colors.inputBg }]}>
-              {grid.columns.map((column) => (
+              {grid.columns.map((column, columnIndex) => (
                 <Text
                   key={column}
                   numberOfLines={1}
-                  style={[styles.tableCell, styles.tableHeader, { color: colors.text }]}
+                  style={[
+                    styles.tableCell,
+                    styles.tableHeader,
+                    { color: colors.text, width: widths[columnIndex] },
+                  ]}
                 >
                   {column}
                 </Text>
@@ -1632,7 +1710,7 @@ const DataFrameInputWidget: React.FC<WidgetProps> = (widget) => {
                     style={[
                       styles.tableCell,
                       styles.cellInput,
-                      { color: colors.text },
+                      { color: colors.text, width: widths[cellIndex] },
                     ]}
                     editable={!widget.disabled}
                     value={cellText(row[cellIndex])}
@@ -1853,7 +1931,11 @@ const ChatThreadWidget: React.FC<WidgetProps> = (widget) => {
           colors={colors}
         />
       ) : (
-        <ScrollView style={{ maxHeight }} contentContainerStyle={styles.stack}>
+        <ScrollView
+          style={{ maxHeight }}
+          contentContainerStyle={styles.stack}
+          nestedScrollEnabled
+        >
           {messages.map((message, index) => (
             <View
               key={index}
@@ -2283,6 +2365,16 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
+  /**
+   * A label sharing `row` with a fixed-size control. RN's default flexShrink is
+   * 0, so without this a long label pushes the control off the trailing edge.
+   */
+  rowLabel: {
+    flex: 1,
+  },
+  rowValue: {
+    flexShrink: 0,
+  },
   heading: {
     fontWeight: "700",
     letterSpacing: -0.3,
@@ -2380,8 +2472,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
   },
   tableCell: {
-    minWidth: 120,
-    maxWidth: 240,
+    // Width comes from tableColumnWidths() so header and body share a grid.
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,

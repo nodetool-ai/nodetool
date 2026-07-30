@@ -9,9 +9,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   Text,
-  SafeAreaView,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
@@ -145,8 +145,13 @@ export default function ChatScreen({ navigation, route }: Props) {
     }
   }, [connect]);
 
+  // The navigator header owns the top inset and the composer paints its own
+  // bottom inset, so this only guards the horizontal (landscape notch) edges.
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['left', 'right']}
+    >
       <StatusBar barStyle={mode === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <ChatView
         status={status}

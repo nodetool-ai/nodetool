@@ -80,6 +80,33 @@ read the comment at the top of `metro.config.js` before changing any of it.
   sets `coverageProvider: 'v8'` and keeps `coverageThreshold.global` below the measured numbers
   so the gate is honest and enforceable; raise it as coverage grows.
 
+## Screenshotting every screen
+
+`scripts/screenshot-screens.mjs` drives the **Expo web** build with Playwright and
+captures one PNG per screen, walking the deep-link paths in
+`navigation/linking.ts`. It's how layout regressions get caught without a device.
+
+```bash
+npm run dev:server                                   # repo root: API on :7777
+npm --prefix mobile run web                          # Expo web on :8081
+node mobile/scripts/screenshot-screens.mjs --out ./mobile-shots
+node mobile/scripts/screenshot-screens.mjs --width 320   # narrow-phone pass
+```
+
+Two things to know:
+
+- **Auth**: `App.tsx` treats an unconfigured Supabase as logged in
+  (`isSupabaseConfigured`), so temporarily drop `extra.supabaseUrl` /
+  `extra.supabaseAnonKey` from `app.json` — otherwise every route lands on the
+  login wall. Restore it afterwards.
+- **Parameterized routes** (a document, an asset, a job) need real ids; pass them
+  with `--ids ids.json` (keys: `workflowId`, `threadId`, `applicationId`,
+  `assetId`, `jobId`, `scriptId`, `storyboardId`, `timelineId`, `sketchId`,
+  `noteId`). Routes whose id is missing are skipped, so a partial seed still runs.
+
+The emitted `report.json` flags any screen whose document scrolls horizontally —
+a reliable signal that a row is clipped off the right edge on a phone.
+
 ## Rules
 
 - TypeScript strict, no `any`; throw `Error` objects, not strings.
