@@ -123,15 +123,16 @@ export const useDropHandler = (): UseDropHandlerResult => {
 
       if (dragData?.type === "create-node") {
         const nodeMeta = dragData.payload as NodeMetadata;
-        const { node: newNode, afterAdd } = instantiatePaletteNode(
-          nodeMeta,
-          position,
-          createNode
-        );
+        const {
+          node: newNode,
+          afterAdd,
+          onAdded
+        } = instantiatePaletteNode(nodeMeta, position, createNode);
         addNode(newNode);
         if (afterAdd) {
           updateNodeData(newNode.id, afterAdd);
         }
+        onAdded?.(newNode.id);
         // Track this node as recently used
         addRecentNode(nodeMeta.node_type);
         return;

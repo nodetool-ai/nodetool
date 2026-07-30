@@ -80,16 +80,17 @@ export function usePaneEvents({ pendingNodeType, placementLabel: _placementLabel
           x: event.clientX,
           y: event.clientY
         });
-        const { node: newNode, afterAdd } = instantiatePaletteNode(
-          metadata,
-          position,
-          nodeActions.createNode
-        );
+        const {
+          node: newNode,
+          afterAdd,
+          onAdded
+        } = instantiatePaletteNode(metadata, position, nodeActions.createNode);
         newNode.selected = true;
         nodeActions.addNode(newNode);
         if (afterAdd) {
           nodeActions.updateNodeData(newNode.id, afterAdd);
         }
+        onAdded?.(newNode.id);
         cancelPlacement();
         if (isMenuOpen) {
           closeNodeMenu();

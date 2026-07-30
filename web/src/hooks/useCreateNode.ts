@@ -41,15 +41,16 @@ export const useCreateNode = (
       const rfPos = reactFlowInstance.screenToFlowPosition(position);
 
       // Snippet virtual nodes → create a real Code node with pre-filled code
-      const { node: newNode, afterAdd } = instantiatePaletteNode(
-        metadata,
-        rfPos,
-        createNode
-      );
+      const {
+        node: newNode,
+        afterAdd,
+        onAdded
+      } = instantiatePaletteNode(metadata, rfPos, createNode);
       addNode(newNode);
       if (afterAdd) {
         updateNodeData(newNode.id, afterAdd);
       }
+      onAdded?.(newNode.id);
 
       addRecentNode(metadata.node_type);
       closeNodeMenu();
