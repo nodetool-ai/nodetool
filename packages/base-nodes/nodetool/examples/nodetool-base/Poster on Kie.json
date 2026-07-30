@@ -1,0 +1,153 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-06-21T16:03:52.969Z",
+  "updated_at": "2026-06-21T16:55:51.256Z",
+  "name": "Poster on Kie",
+  "tool_name": null,
+  "description": "Generate a poster-style image through Kie's Seedream 4.5. Kie fronts several model families behind one key, so this is the shortest path to checking a Kie credential actually works.",
+  "tags": [
+    "image",
+    "example"
+  ],
+  "thumbnail": "Poster on Kie.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "subject",
+          "value": "A brutalist concert hall at dusk, long shadows, single figure on the steps",
+          "description": "What to picture"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Subject"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "img",
+        "type": "nodetool.image.TextToImage",
+        "data": {
+          "model": {
+            "type": "image_model",
+            "provider": "kie",
+            "id": "seedream/4.5-text-to-image",
+            "name": "Seedream 4.5",
+            "path": null,
+            "supported_tasks": []
+          },
+          "negative_prompt": "text, watermark, logo",
+          "entities": [],
+          "aspect_ratio": "16:9",
+          "resolution": "1080p"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 400,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Render"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "poster"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 760,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "3  Poster"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "img",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e2",
+        "source": "img",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "subject": {
+        "type": "string",
+        "default": "A brutalist concert hall at dusk, long shadows, single figure on the steps",
+        "label": ""
+      }
+    },
+    "required": [
+      "subject"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "poster": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "const": "image"
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      }
+    },
+    "required": [
+      "poster"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "e31acfae86ee104dbf9df243c9ba6084"
+}

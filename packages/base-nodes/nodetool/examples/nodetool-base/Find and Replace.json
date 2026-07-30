@@ -1,0 +1,196 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-06-21T16:03:52.969Z",
+  "updated_at": "2026-06-21T16:55:51.256Z",
+  "name": "Find and Replace",
+  "tool_name": null,
+  "description": "Swap one substring for another across a block of text. The find and replace terms are inputs rather than baked into the node, so the same graph can be reused from the API without editing it.",
+  "tags": [
+    "data",
+    "utility",
+    "example"
+  ],
+  "thumbnail": "Find and Replace.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "text",
+          "value": "The quick brown fox jumps over the lazy dog",
+          "description": "Text to edit"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "old",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "find",
+          "value": "lazy",
+          "description": "The substring to replace"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Find"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "new",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "replace_with",
+          "value": "energetic",
+          "description": "What to put in its place"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 500
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Replace with"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "rp",
+        "type": "nodetool.text.Replace",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 400,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Replace"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "edited"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 760,
+            "y": 320
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "5  Result"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "rp",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e2",
+        "source": "old",
+        "sourceHandle": "output",
+        "target": "rp",
+        "targetHandle": "old"
+      },
+      {
+        "id": "e3",
+        "source": "new",
+        "sourceHandle": "output",
+        "target": "rp",
+        "targetHandle": "new_value"
+      },
+      {
+        "id": "e4",
+        "source": "rp",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "default": "The quick brown fox jumps over the lazy dog",
+        "label": ""
+      },
+      "find": {
+        "type": "string",
+        "default": "lazy",
+        "label": ""
+      },
+      "replace_with": {
+        "type": "string",
+        "default": "energetic",
+        "label": ""
+      }
+    },
+    "required": [
+      "text",
+      "find",
+      "replace_with"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "edited": {
+        "type": "string",
+        "default": "",
+        "label": ""
+      }
+    },
+    "required": [
+      "edited"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "e31acfae86ee104dbf9df243c9ba6084"
+}

@@ -1,0 +1,92 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-06-21T16:03:52.969Z",
+  "updated_at": "2026-06-21T16:55:51.256Z",
+  "name": "JSON to a Table",
+  "tool_name": null,
+  "description": "Turn a JSON array into a dataframe. The usual shape of an API response, made queryable by the rest of the data nodes.",
+  "tags": [
+    "data",
+    "utility",
+    "example"
+  ],
+  "thumbnail": "JSON to a Table.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "j",
+        "type": "nodetool.data.JSONToDataframe",
+        "data": {
+          "text": "[{\"sku\": \"A1\", \"qty\": 3}, {\"sku\": \"B2\", \"qty\": 9}, {\"sku\": \"C3\", \"qty\": 1}]"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 340,
+          "selectable": true,
+          "title": "1  JSON"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "table"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 420,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "2  Table"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "j",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {}
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "table": {
+        "type": "object",
+        "label": ""
+      }
+    },
+    "required": [
+      "table"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "e31acfae86ee104dbf9df243c9ba6084"
+}

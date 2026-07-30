@@ -1,0 +1,183 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-06-21T16:03:52.969Z",
+  "updated_at": "2026-06-21T16:55:51.256Z",
+  "name": "Blur a Channel",
+  "tool_name": null,
+  "description": "Pull one colour channel, then blur it. A deliberately odd chain: it exists to check that single-channel output stays a valid image for the next node rather than silently losing its mode.",
+  "tags": [
+    "image",
+    "utility",
+    "example"
+  ],
+  "thumbnail": "Blur a Channel.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "picture",
+          "value": null,
+          "description": "The image to process"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ch",
+        "type": "nodetool.image.Channels",
+        "data": {
+          "channel": "G"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 360,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Green channel"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "bl",
+        "type": "nodetool.image.Blur",
+        "data": {
+          "blur_type": "gaussian",
+          "size": 8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Blur"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "result"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1080,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "4  Result"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "ch",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e2",
+        "source": "ch",
+        "sourceHandle": "output",
+        "target": "bl",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e3",
+        "source": "bl",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "picture": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "const": "image"
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      }
+    },
+    "required": [
+      "picture"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "const": "image"
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      }
+    },
+    "required": [
+      "result"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "e31acfae86ee104dbf9df243c9ba6084"
+}

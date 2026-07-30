@@ -1,0 +1,96 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-06-21T16:03:52.969Z",
+  "updated_at": "2026-06-21T16:55:51.256Z",
+  "name": "Read Stderr from Code",
+  "tool_name": null,
+  "description": "Capture a snippet's stderr rather than its stdout. Worth having as its own template: a code node that 'returns nothing' is usually one whose real message went to the other stream.",
+  "tags": [
+    "code",
+    "utility",
+    "example"
+  ],
+  "thumbnail": "Read Stderr from Code.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "py",
+        "type": "nodetool.code.ExecutePython",
+        "data": {
+          "code": "import sys\nprint('this goes to stdout')\nprint('WARN: low sample count', file=sys.stderr)\nprint('WARN: using defaults', file=sys.stderr)",
+          "image": "",
+          "execution_mode": "subprocess",
+          "stdin": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 360,
+          "selectable": true,
+          "title": "1  Execute"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "stderr"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 440,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "2  Stderr"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "py",
+        "sourceHandle": "stderr",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {}
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "stderr": {
+        "type": "string",
+        "default": "",
+        "label": ""
+      }
+    },
+    "required": [
+      "stderr"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "e31acfae86ee104dbf9df243c9ba6084"
+}

@@ -1,0 +1,164 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-06-21T16:03:52.969Z",
+  "updated_at": "2026-06-21T16:55:51.256Z",
+  "name": "Upscale a Still",
+  "tool_name": null,
+  "description": "Enlarge an image without the softness a plain resize gives you. ESRGAN on fal reconstructs detail rather than interpolating it, which is what makes a 4x blow-up hold together in print. Billed per image.",
+  "tags": [
+    "image",
+    "example"
+  ],
+  "thumbnail": "Upscale a Still.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "picture",
+          "value": null,
+          "description": "The image to enlarge"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "up",
+        "type": "nodetool.image.Upscale",
+        "data": {
+          "model": {
+            "type": "image_model",
+            "provider": "fal_ai",
+            "id": "fal-ai/esrgan",
+            "name": "ESRGAN",
+            "path": null,
+            "supported_tasks": []
+          },
+          "scale": 4,
+          "prompt": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 360,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Upscale 4x"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "enlarged"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "3  Result"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "up",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e2",
+        "source": "up",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "picture": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "const": "image"
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      }
+    },
+    "required": [
+      "picture"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "enlarged": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "const": "image"
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      }
+    },
+    "required": [
+      "enlarged"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "e31acfae86ee104dbf9df243c9ba6084"
+}

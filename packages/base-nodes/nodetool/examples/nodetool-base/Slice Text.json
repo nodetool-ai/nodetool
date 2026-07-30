@@ -1,0 +1,132 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-06-21T16:03:52.969Z",
+  "updated_at": "2026-06-21T16:55:51.256Z",
+  "name": "Slice Text",
+  "tool_name": null,
+  "description": "Take a fixed range out of a string by index, with an optional step. The blunt way to truncate a caption to a length limit, or to sample every nth character.",
+  "tags": [
+    "data",
+    "utility",
+    "example"
+  ],
+  "thumbnail": "Slice Text.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "text",
+          "value": "0123456789abcdefghij",
+          "description": "Text to slice"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "sl",
+        "type": "nodetool.text.Slice",
+        "data": {
+          "start": 0,
+          "stop": 10,
+          "step": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Slice"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "excerpt"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "3  Excerpt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "sl",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e2",
+        "source": "sl",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "default": "0123456789abcdefghij",
+        "label": ""
+      }
+    },
+    "required": [
+      "text"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "excerpt": {
+        "type": "string",
+        "default": "",
+        "label": ""
+      }
+    },
+    "required": [
+      "excerpt"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "e31acfae86ee104dbf9df243c9ba6084"
+}

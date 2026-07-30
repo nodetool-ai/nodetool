@@ -1,0 +1,228 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-06-21T16:03:52.969Z",
+  "updated_at": "2026-06-21T16:55:51.256Z",
+  "name": "Bring a Still to Life",
+  "tool_name": null,
+  "description": "Turn one image into a short moving shot. The brief forbids restyling so the model may move the camera and add atmosphere but not redraw the subject - the same constraint the product templates rely on.",
+  "tags": [
+    "image",
+    "video",
+    "example"
+  ],
+  "thumbnail": "Bring a Still to Life.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "still",
+          "value": null,
+          "description": "A still to bring to life"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Still"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "mo",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "motion",
+          "value": "Slow push in with a gentle parallax drift",
+          "description": "How the camera should move"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Motion"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "tpl",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "Animate this still. Camera: {{ motion }}. Preserve the subject, framing and colour exactly; add camera movement and subtle atmosphere only."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 400,
+            "y": 260
+          },
+          "zIndex": 0,
+          "width": 320,
+          "selectable": true,
+          "title": "3  Motion brief"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "vid",
+        "type": "nodetool.video.ImageToVideo",
+        "data": {
+          "model": {
+            "type": "video_model",
+            "provider": "fal_ai",
+            "id": "fal-ai/ltx-2.3/image-to-video/fast",
+            "name": "LTX-2.3 Image to Video Fast",
+            "path": null,
+            "supported_tasks": []
+          },
+          "negative_prompt": "warping, melting, drifting detail",
+          "aspect_ratio": "16:9",
+          "resolution": "1080p",
+          "duration": 6,
+          "timeout_seconds": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 800,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Animate"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "animated"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1160,
+            "y": 220
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "5  Clip"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "mo",
+        "sourceHandle": "output",
+        "target": "tpl",
+        "targetHandle": "motion"
+      },
+      {
+        "id": "e2",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "vid",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e3",
+        "source": "tpl",
+        "sourceHandle": "output",
+        "target": "vid",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e4",
+        "source": "vid",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "still": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "const": "image"
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      },
+      "motion": {
+        "type": "string",
+        "default": "Slow push in with a gentle parallax drift",
+        "label": ""
+      }
+    },
+    "required": [
+      "still",
+      "motion"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "animated": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "const": "video"
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      }
+    },
+    "required": [
+      "animated"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "e31acfae86ee104dbf9df243c9ba6084"
+}

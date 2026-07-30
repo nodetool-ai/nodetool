@@ -1,0 +1,165 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-06-21T16:03:52.969Z",
+  "updated_at": "2026-06-21T16:55:51.256Z",
+  "name": "Inspect a Clip's Audio",
+  "tool_name": null,
+  "description": "Read sample rate, channel count, duration and format from a clip's audio track. Worth running before a lip-sync or transcription step, both of which are picky about what they are fed.",
+  "tags": [
+    "audio",
+    "data",
+    "utility",
+    "example"
+  ],
+  "thumbnail": "Inspect a Clip's Audio.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.VideoInput",
+        "data": {
+          "name": "clip",
+          "value": null,
+          "description": "The clip to inspect"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Clip"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ex",
+        "type": "nodetool.video.ExtractAudio",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Extract audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "info",
+        "type": "nodetool.audio.GetAudioInfo",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Read the header"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "sample_rate"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "4  Sample rate"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "ex",
+        "targetHandle": "video"
+      },
+      {
+        "id": "e2",
+        "source": "ex",
+        "sourceHandle": "output",
+        "target": "info",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e3",
+        "source": "info",
+        "sourceHandle": "sample_rate",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "clip": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "const": "video"
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      }
+    },
+    "required": [
+      "clip"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "sample_rate": {
+        "type": "integer",
+        "label": ""
+      }
+    },
+    "required": [
+      "sample_rate"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "e31acfae86ee104dbf9df243c9ba6084"
+}

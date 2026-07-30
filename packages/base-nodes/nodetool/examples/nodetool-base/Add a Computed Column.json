@@ -1,0 +1,126 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-06-21T16:03:52.969Z",
+  "updated_at": "2026-06-21T16:55:51.256Z",
+  "name": "Add a Computed Column",
+  "tool_name": null,
+  "description": "Append a column of values to a table. The values arrive as a list, so anything that can produce a list - a code node, a generator, another table - can widen a dataframe.",
+  "tags": [
+    "data",
+    "utility",
+    "example"
+  ],
+  "thumbnail": "Add a Computed Column.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "csv",
+        "type": "nodetool.data.ImportCSV",
+        "data": {
+          "csv_data": "region,rep,units,price\nnorth,ada,12,9.5\nsouth,bo,7,9.5\nnorth,cy,19,11.0\neast,ada,4,12.5\nsouth,bo,7,9.5\nwest,dee,22,8.0\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 320,
+          "selectable": true,
+          "title": "1  Sample CSV"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "add",
+        "type": "nodetool.data.AddColumn",
+        "data": {
+          "column_name": "tier",
+          "values": [
+            "A",
+            "B",
+            "A",
+            "C",
+            "B",
+            "A"
+          ]
+        },
+        "ui_properties": {
+          "position": {
+            "x": 400,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Add column"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "widened"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 760,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "3  Table"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "csv",
+        "sourceHandle": "output",
+        "target": "add",
+        "targetHandle": "dataframe"
+      },
+      {
+        "id": "e2",
+        "source": "add",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {}
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "widened": {
+        "type": "object",
+        "label": ""
+      }
+    },
+    "required": [
+      "widened"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "e31acfae86ee104dbf9df243c9ba6084"
+}

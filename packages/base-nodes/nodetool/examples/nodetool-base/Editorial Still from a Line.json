@@ -1,0 +1,182 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-06-21T16:03:52.969Z",
+  "updated_at": "2026-06-21T16:55:51.256Z",
+  "name": "Editorial Still from a Line",
+  "tool_name": null,
+  "description": "One line of subject text becomes a finished editorial photograph. A Template node holds the house look so the caller only supplies the subject. Billed per image, but FLUX.2 [klein] at six steps is among the cheapest ways to get a usable frame.",
+  "tags": [
+    "image",
+    "example"
+  ],
+  "thumbnail": "Editorial Still from a Line.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "subject",
+          "value": "A lone lighthouse on a basalt cliff under moving storm light",
+          "description": "What to picture"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Subject"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "tpl",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "{{ subject }}. Editorial photograph, natural light, shallow depth of field, fine detail. No text, no logo, no watermark."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 320,
+          "selectable": true,
+          "title": "2  Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "img",
+        "type": "nodetool.image.TextToImage",
+        "data": {
+          "model": {
+            "type": "image_model",
+            "provider": "fal_ai",
+            "id": "fal-ai/flux-2/klein/9b",
+            "name": "FLUX.2 [klein] 9B",
+            "path": null,
+            "supported_tasks": []
+          },
+          "negative_prompt": "text, watermark, logo",
+          "width": 1280,
+          "height": 720,
+          "guidance_scale": 7.5,
+          "num_inference_steps": 6,
+          "seed": -1,
+          "safety_check": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Render"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "picture"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1080,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "4  Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "tpl",
+        "targetHandle": "subject"
+      },
+      {
+        "id": "e2",
+        "source": "tpl",
+        "sourceHandle": "output",
+        "target": "img",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e3",
+        "source": "img",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "subject": {
+        "type": "string",
+        "default": "A lone lighthouse on a basalt cliff under moving storm light",
+        "label": ""
+      }
+    },
+    "required": [
+      "subject"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "picture": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "const": "image"
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      }
+    },
+    "required": [
+      "picture"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "e31acfae86ee104dbf9df243c9ba6084"
+}

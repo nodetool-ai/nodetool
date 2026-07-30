@@ -1,0 +1,176 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-06-21T16:03:52.969Z",
+  "updated_at": "2026-06-21T16:55:51.256Z",
+  "name": "Transcribe a Clip",
+  "tool_name": null,
+  "description": "Pull the spoken words out of a video. Audio is extracted locally, then transcribed. Note the provider choice: fal and Replicate both list speech-to-text models in their manifests, but neither provider implements the transcription capability, so those entries cannot execute. OpenAI, Gemini, HuggingFace, MiniMax and Together do implement it.",
+  "tags": [
+    "audio",
+    "data",
+    "example"
+  ],
+  "thumbnail": "Transcribe a Clip.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.VideoInput",
+        "data": {
+          "name": "clip",
+          "value": null,
+          "description": "The clip to transcribe"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Clip"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ex",
+        "type": "nodetool.video.ExtractAudio",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Extract audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "asr",
+        "type": "nodetool.text.AutomaticSpeechRecognition",
+        "data": {
+          "model": {
+            "type": "asr_model",
+            "provider": "openai",
+            "id": "gpt-4o-mini-transcribe",
+            "name": "GPT-4o Mini Transcribe",
+            "path": null
+          },
+          "language": "en",
+          "prompt": "",
+          "temperature": 0.0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Transcribe"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "transcript"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1040,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "4  Transcript"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "ex",
+        "targetHandle": "video"
+      },
+      {
+        "id": "e2",
+        "source": "ex",
+        "sourceHandle": "output",
+        "target": "asr",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e3",
+        "source": "asr",
+        "sourceHandle": "text",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "clip": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "const": "video"
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      }
+    },
+    "required": [
+      "clip"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "transcript": {
+        "type": "string",
+        "default": "",
+        "label": ""
+      }
+    },
+    "required": [
+      "transcript"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "e31acfae86ee104dbf9df243c9ba6084"
+}

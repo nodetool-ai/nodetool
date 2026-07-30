@@ -1,0 +1,206 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-06-21T16:03:52.969Z",
+  "updated_at": "2026-06-21T16:55:51.256Z",
+  "name": "Picture in Picture",
+  "tool_name": null,
+  "description": "Inset one clip over another - a webcam corner over a screen recording, or a reaction shot over the footage being reacted to. The inset's audio is muted by default so the main track stays clean.",
+  "tags": [
+    "video",
+    "utility",
+    "example"
+  ],
+  "thumbnail": "Picture in Picture.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "main",
+        "type": "nodetool.input.VideoInput",
+        "data": {
+          "name": "main_clip",
+          "value": null,
+          "description": "The background clip"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 140
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Main clip"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "pip",
+        "type": "nodetool.input.VideoInput",
+        "data": {
+          "name": "inset_clip",
+          "value": null,
+          "description": "The clip to inset"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 320
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Inset clip"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ov",
+        "type": "nodetool.video.Overlay",
+        "data": {
+          "x": 40,
+          "y": 40,
+          "scale": 0.28,
+          "overlay_audio_volume": 0.0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 400,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Composite"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "composited"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 780,
+            "y": 220
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "4  Result"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "main",
+        "sourceHandle": "output",
+        "target": "ov",
+        "targetHandle": "main_video"
+      },
+      {
+        "id": "e2",
+        "source": "pip",
+        "sourceHandle": "output",
+        "target": "ov",
+        "targetHandle": "overlay_video"
+      },
+      {
+        "id": "e3",
+        "source": "ov",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "main_clip": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "const": "video"
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      },
+      "inset_clip": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "const": "video"
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      }
+    },
+    "required": [
+      "main_clip",
+      "inset_clip"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "composited": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "const": "video"
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      }
+    },
+    "required": [
+      "composited"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "e31acfae86ee104dbf9df243c9ba6084"
+}
