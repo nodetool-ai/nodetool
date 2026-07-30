@@ -54,8 +54,32 @@ import {
   MIN_BRIDGE_PROTOCOL_VERSION,
   MIN_NODETOOL_CORE_VERSION
 } from "@nodetool-ai/protocol/bridge-protocol";
+import { validateBridgeFrame } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.runtime.python-bridge-base");
+
+/**
+ * Inbound bridge-frame validation gate (task B3). Every frame
+ * `_handleMessage` dispatches is safe-parsed against its
+ * `@nodetool-ai/protocol` schema first when this returns true; a frame that
+ * fails gets a structured, non-fatal rejection (see
+ * {@link PythonBridgeBase._handleInvalidFrame}) instead of silently
+ * dispatching malformed data.
+ *
+ * Mirrors `shouldValidateOutboundWs` in
+ * `packages/websocket/src/unified-websocket-runner.ts`: set
+ * `NODETOOL_VALIDATE_BRIDGE_FRAMES=1`/`=0` to force on/off; unset, it
+ * defaults to on under `NODE_ENV=test`/Vitest and off otherwise, so a worker
+ * bug that emits a malformed frame fails the test that exercised it rather
+ * than risking a perf hit validating every frame in production before the
+ * mechanism has burned in.
+ */
+function shouldValidateBridgeFrames(): boolean {
+  const override = process.env["NODETOOL_VALIDATE_BRIDGE_FRAMES"]?.trim();
+  if (override === "1" || override === "true") return true;
+  if (override === "0" || override === "false") return false;
+  return process.env["NODE_ENV"] === "test" || Boolean(process.env["VITEST"]);
+}
 import type {
   PythonNodeMetadata,
   ExecuteResult,
@@ -187,6 +211,14 @@ export abstract class PythonBridgeBase
     const type = msg.type as string;
     const requestId = msg.request_id as string | null;
 
+    if (shouldValidateBridgeFrames()) {
+      const validation = validateBridgeFrame(msg);
+      if (!validation.success) {
+        this._handleInvalidFrame(type, requestId, validation.error);
+        return;
+      }
+    }
+
     if (type === "discover" && requestId) {
       const pending = this._pending.get(requestId);
       if (pending) {
@@ -285,6 +317,53 @@ export abstract class PythonBridgeBase
       if (onEvent) {
         onEvent(msg.data as ComfyEvent);
       }
+    }
+  }
+
+  /**
+   * A frame decoded fine off the wire (valid msgpack) but failed its
+   * `@nodetool-ai/protocol` schema — a worker-side protocol bug, not a
+   * transport desync. Unlike an undecodable frame (bad length prefix,
+   * corrupt msgpack — see each transport's `_failProtocol`), this does NOT
+   * tear down the connection: only the request the malformed frame carries
+   * a `request_id` for is failed, so a concurrent request already in flight
+   * still settles normally.
+   *
+   * A frame with no (or non-string) `request_id` can't be attributed to any
+   * pending request — logged and dropped, matching the dispatcher's
+   * existing silent-ignore behavior for frame types/ids it doesn't
+   * recognize.
+   */
+  private _handleInvalidFrame(
+    type: string | undefined,
+    requestId: string | null,
+    reason: string | undefined
+  ): void {
+    log.warn(
+      `Rejected malformed Python bridge frame (type=${type ?? "<unknown>"}, request_id=${
+        requestId ?? "<none>"
+      }): ${reason ?? "failed schema validation"}`
+    );
+    if (!requestId) return;
+
+    const err = new Error(
+      `Received malformed '${type ?? "<unknown>"}' frame from Python worker: ${
+        reason ?? "failed schema validation"
+      }`
+    );
+
+    const streamReq = this._pendingStream.get(requestId);
+    if (streamReq) {
+      this._pendingStream.delete(requestId);
+      this._pendingComfyEvents.delete(requestId);
+      streamReq.reject(err);
+      return;
+    }
+
+    const pending = this._pending.get(requestId);
+    if (pending) {
+      this._pending.delete(requestId);
+      pending.reject(err);
     }
   }
 
