@@ -74,22 +74,36 @@ User-authored JS from `MiniJSAgentTool` and `nodetool.code.Code` runs in a
 in its own WASM heap, so runaway or malicious code can't corrupt the host V8
 heap the way it could under the previous `node:vm` implementation.
 
-Hard limits enforced by the runtime:
+Hard limits enforced by the runtime. Each row's default can be overridden per
+invocation via `RunSandboxOptions.limits`, clamped to the ceiling in the last
+column by `resolveSandboxLimits`:
 
-| Limit | Value | Configured by |
-|-------|-------|---------------|
-| Execution time | `timeoutMs` (default 30 s) | `setInterruptHandler` (CPU budget) + wall-clock race |
-| Guest heap | `GUEST_MEMORY_LIMIT` = 64 MB | `runtime.setMemoryLimit` |
-| Call stack | `GUEST_STACK_LIMIT` = 512 KB | `runtime.setMaxStackSize` |
-| Fetch calls | `MAX_FETCH_CALLS` = 20 per run | counter inside bridge |
-| Fetch body | `MAX_RESPONSE_BODY_SIZE` = 1 MB | truncation inside bridge |
-| Output | `MAX_OUTPUT_SIZE` = 100 KB | `serializeResult` truncation |
+| Limit | Default | Configured by | Ceiling |
+|-------|---------|---------------|---------|
+| Execution time | `timeoutMs` (30 s) | `setInterruptHandler` (CPU budget) + wall-clock race | — |
+| Guest heap | `GUEST_MEMORY_LIMIT` = 64 MB | `runtime.setMemoryLimit` (`limits.memoryLimitBytes`) | 512 MB |
+| Call stack | `GUEST_STACK_LIMIT` = 512 KB | `runtime.setMaxStackSize` (`limits.stackLimitBytes`) | 8 MB |
+| Fetch calls | `MAX_FETCH_CALLS` = 20 per run | counter inside bridge (`limits.maxFetchCalls`) | 100 |
+| Fetch body | `MAX_RESPONSE_BODY_SIZE` = 1 MB | truncation inside bridge (`limits.maxResponseBodyBytes`) | 50 MB |
+| Fetch timeout | `FETCH_TIMEOUT_MS` = 15 s | per-request `AbortController` (`limits.fetchTimeoutMs`) | 120 s |
+| Output | `MAX_OUTPUT_SIZE` = 100 KB | `serializeResult` truncation (`limits.maxOutputSize`) | 10 MB |
+| Random bytes | `MAX_RANDOM_BYTES` = 64 KB | `crypto.getRandomValues` clamp | — |
+
+QuickJS's memory limiter counts its own heap objects; string and typed-array
+payloads are not charged against it, so `memoryLimitBytes` bites on object
+allocation, not on `new Uint8Array(n)`.
 
 Exposed guest surface: `console`, `fetch`, `uuid`, `sleep`, `getSecret`,
-`workspace.{read,write,list}` (requires a `ProcessingContext`), and any
-caller-supplied `globals`. `eval` and `Function` are deleted at init so the
-user cannot re-enter dynamic code generation. Core JS (`JSON`, `Math`, `Date`,
-`Map`, `URL`, `TextEncoder`, etc.) is QuickJS's native implementation, not a
+`crypto.{randomUUID,getRandomValues,digest,hmac}` (WebCrypto-backed — `digest`
+and `hmac` take SHA-1/256/384/512 and accept string or `Uint8Array` input, both
+returning a `Uint8Array`), `workspace.{read,write,list,readBytes,writeBytes,
+stat,mkdir,remove}` (requires a `ProcessingContext`; `remove` deletes one file
+or one empty directory, never a tree), the pure guest-side helpers
+`toBase64`/`fromBase64`/`toHex`/`fromHex`/`utf8Encode`/`utf8Decode`, and any
+caller-supplied `globals`. `fetch` sends a `Uint8Array` body as raw bytes
+instead of JSON. `eval` and `Function` are deleted at init so the user cannot
+re-enter dynamic code generation. Core JS (`JSON`, `Math`, `Date`, `Map`,
+`URL`, `TextEncoder`, etc.) is QuickJS's native implementation, not a
 host-bridged version.
 
 **State sync-back**: object-typed globals are deep-replaced on the host after
@@ -104,6 +118,12 @@ Primitive globals pass by value (no sync).
   prelude rewraps into a real `throw`. Working around a known handle leak in
   `@sebastianwessel/quickjs@3.0.1` (tracked as `list_empty(&rt->gc_obj_list)`
   assertion on runtime dispose).
+- Binary crosses the boundary asymmetrically. Guest → host is handled by the
+  typed-array serializers (`addSerializer`), so a guest `Uint8Array` reaches a
+  bridge as a native one. Host → guest is not: a returned `Uint8Array` arrives
+  in the guest as a numeric-keyed plain object. Bridges that produce bytes
+  therefore return a base64 marker object and the guest prelude rebuilds a real
+  `Uint8Array` — the pattern to follow for any new binary bridge.
 
 ## Running Agents from CLI
 

@@ -8,7 +8,14 @@
  *
  * The exposed surface is a small curated one: vanilla JavaScript plus a handful
  * of bridge functions (`fetch`, `workspace`, `getSecret`, `uuid`, `sleep`,
- * `assetToSandbox`, `sandboxToAsset`, `console`). Library-powered helpers
+ * `assetToSandbox`, `sandboxToAsset`, `crypto`, `console`) and a few pure
+ * guest-side binary helpers (`toBase64`, `fromBase64`, `toHex`, `fromHex`,
+ * `utf8Encode`, `utf8Decode`). `crypto` covers `randomUUID`,
+ * `getRandomValues`, `digest`, and `hmac` (WebCrypto-backed);
+ * `workspace` covers text and binary reads/writes plus `stat`, `mkdir`, and
+ * `remove`. Every quantitative limit (fetch calls, response body, output size,
+ * guest heap, stack, fetch timeout) is overridable per invocation through
+ * `RunSandboxOptions.limits`, clamped to hard ceilings. Library-powered helpers
  * (lodash, dayjs, cheerio, csv-parse,
  * validator) are intentionally NOT exposed here — use the dedicated workflow
  * nodes instead (lib.datetime.*, lib.html.*, lib.data.ParseCSV,
@@ -43,6 +50,75 @@ export const MAX_RESPONSE_BODY_SIZE = 1_000_000;
 export const GUEST_MEMORY_LIMIT = 64 * 1024 * 1024;
 /** Guest stack cap — protects against deeply recursive code. */
 export const GUEST_STACK_LIMIT = 512 * 1024;
+/** Per-request wall-clock cap for the fetch bridge. */
+export const FETCH_TIMEOUT_MS = 15_000;
+/** Largest `crypto.getRandomValues` request the bridge will serve. */
+export const MAX_RANDOM_BYTES = 65_536;
+
+/**
+ * Per-invocation limit overrides. Every field defaults to the module constant
+ * above and is clamped to a hard ceiling, so a caller can tighten a limit or
+ * raise it within bounds but never switch a protection off.
+ */
+export interface SandboxLimits {
+  maxFetchCalls?: number;
+  maxResponseBodyBytes?: number;
+  maxOutputSize?: number;
+  memoryLimitBytes?: number;
+  stackLimitBytes?: number;
+  fetchTimeoutMs?: number;
+}
+
+export type ResolvedSandboxLimits = Required<SandboxLimits>;
+
+function clampLimit(
+  value: number | undefined,
+  fallback: number,
+  min: number,
+  max: number
+): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+  return Math.min(Math.max(Math.floor(value), min), max);
+}
+
+/** Apply defaults and ceilings to a caller-supplied {@link SandboxLimits}. */
+export function resolveSandboxLimits(
+  limits?: SandboxLimits
+): ResolvedSandboxLimits {
+  return {
+    maxFetchCalls: clampLimit(limits?.maxFetchCalls, MAX_FETCH_CALLS, 0, 100),
+    maxResponseBodyBytes: clampLimit(
+      limits?.maxResponseBodyBytes,
+      MAX_RESPONSE_BODY_SIZE,
+      1024,
+      50 * 1024 * 1024
+    ),
+    maxOutputSize: clampLimit(
+      limits?.maxOutputSize,
+      MAX_OUTPUT_SIZE,
+      1024,
+      10 * 1024 * 1024
+    ),
+    memoryLimitBytes: clampLimit(
+      limits?.memoryLimitBytes,
+      GUEST_MEMORY_LIMIT,
+      1024 * 1024,
+      512 * 1024 * 1024
+    ),
+    stackLimitBytes: clampLimit(
+      limits?.stackLimitBytes,
+      GUEST_STACK_LIMIT,
+      16 * 1024,
+      8 * 1024 * 1024
+    ),
+    fetchTimeoutMs: clampLimit(
+      limits?.fetchTimeoutMs,
+      FETCH_TIMEOUT_MS,
+      100,
+      120_000
+    )
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Engine bootstrap — one WASM module shared by every invocation.
@@ -105,6 +181,39 @@ function getEngine(): ReturnType<typeof loadQuickJs> {
  * behaviour (the user still gets a thrown Error with name + message).
  */
 const SANDBOX_ERROR_MARKER = "__nodetool_sandbox_error__";
+
+/**
+ * Marker key carrying base64 bytes from host to guest. Host→guest is the
+ * asymmetric direction: a guest `Uint8Array` reaches the host as a native one
+ * (see the typed-array serializers), but a host `Uint8Array` returned through
+ * `expose` arrives in the guest as a plain numeric-keyed object — indexable,
+ * yet not a real typed array. Bridges that produce binary therefore return
+ * `{ [SANDBOX_BYTES_MARKER]: "<base64>" }` and the guest prelude reconstructs a
+ * genuine `Uint8Array`, so the guest-visible API is binary all the way through.
+ */
+const SANDBOX_BYTES_MARKER = "__nodetool_sandbox_bytes__";
+
+const BASE64_ALPHABET =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+function encodeBase64(bytes: Uint8Array): string {
+  let out = "";
+  for (let i = 0; i < bytes.length; i += 3) {
+    const c =
+      (bytes[i] << 16) | ((bytes[i + 1] ?? 0) << 8) | (bytes[i + 2] ?? 0);
+    out +=
+      BASE64_ALPHABET[(c >> 18) & 63] +
+      BASE64_ALPHABET[(c >> 12) & 63] +
+      (i + 1 < bytes.length ? BASE64_ALPHABET[(c >> 6) & 63] : "=") +
+      (i + 2 < bytes.length ? BASE64_ALPHABET[c & 63] : "=");
+  }
+  return out;
+}
+
+/** Tag bytes for the guest prelude to turn back into a real `Uint8Array`. */
+function toGuestBytes(bytes: Uint8Array): Record<string, string> {
+  return { [SANDBOX_BYTES_MARKER]: encodeBase64(bytes) };
+}
 
 function neverReject<Args extends unknown[], R>(
   fn: (...args: Args) => Promise<R>
@@ -210,12 +319,30 @@ async function assertWorkspaceContained(
   if (await within(root, fullPath)) return;
   if (isWrite) {
     // Target may not exist yet — lstat detects a dangling symlink entry, and
-    // otherwise the containing directory must be inside the workspace.
+    // otherwise the nearest existing ancestor must be inside the workspace.
+    // Walking up covers writes and mkdirs that create several levels at once;
+    // path segments that don't exist yet cannot be symlinks, so nothing along
+    // the way can redirect the write.
     try {
       await fs.lstat(fullPath);
       // Exists (real file or symlink) but failed containment → outside root.
     } catch {
-      if (await within(root, nodePath.dirname(fullPath))) return;
+      let dir = nodePath.dirname(fullPath);
+      for (;;) {
+        let exists = true;
+        try {
+          await fs.lstat(dir);
+        } catch {
+          exists = false;
+        }
+        if (exists) {
+          if (await within(root, dir)) return;
+          break;
+        }
+        const parent = nodePath.dirname(dir);
+        if (parent === dir) break;
+        dir = parent;
+      }
     }
   }
   throw new Error(`workspace path resolves outside the workspace: ${fullPath}`);
@@ -348,7 +475,7 @@ function isTypedArray(value: unknown): boolean {
   );
 }
 
-function toNativeUint8Array(value: unknown): Uint8Array {
+function toNativeUint8Array(value: unknown): Uint8Array<ArrayBuffer> {
   const v = value as {
     length?: number;
     byteLength?: number;
@@ -360,11 +487,65 @@ function toNativeUint8Array(value: unknown): Uint8Array {
   return arr;
 }
 
+const DIGEST_ALGORITHMS: Record<string, string> = {
+  "SHA-1": "SHA-1",
+  SHA1: "SHA-1",
+  "SHA-256": "SHA-256",
+  SHA256: "SHA-256",
+  "SHA-384": "SHA-384",
+  SHA384: "SHA-384",
+  "SHA-512": "SHA-512",
+  SHA512: "SHA-512"
+};
+
+function normalizeDigestAlgorithm(algorithm: unknown): string {
+  const key = String(algorithm ?? "")
+    .trim()
+    .toUpperCase();
+  const resolved = DIGEST_ALGORITHMS[key];
+  if (!resolved) {
+    throw new Error(
+      `crypto: unsupported algorithm "${String(algorithm)}" (use SHA-1, SHA-256, SHA-384 or SHA-512)`
+    );
+  }
+  return resolved;
+}
+
+/** Accept a guest string or byte-like value as host bytes. */
+function coerceBytesInput(
+  value: unknown,
+  label: string
+): Uint8Array<ArrayBuffer> {
+  if (typeof value === "string") return new TextEncoder().encode(value);
+  if (value instanceof Uint8Array) return Uint8Array.from(value);
+  if (isTypedArray(value)) return toNativeUint8Array(value);
+  if (Array.isArray(value)) return Uint8Array.from(value.map(Number));
+  if (
+    value &&
+    typeof value === "object" &&
+    typeof (value as { length?: unknown }).length === "number"
+  ) {
+    return toNativeUint8Array(value);
+  }
+  throw new Error(`crypto: ${label} must be a string or Uint8Array`);
+}
+
+function webCryptoSubtle(): SubtleCrypto {
+  const subtle = globalThis.crypto?.subtle;
+  if (!subtle) {
+    throw new Error("crypto: WebCrypto (crypto.subtle) is not available");
+  }
+  return subtle;
+}
+
 /**
  * Recursively serialize a value returned from the sandbox, converting typed
  * arrays to native Uint8Array and enforcing output size limits.
  */
-export function serializeResult(result: unknown): unknown {
+export function serializeResult(
+  result: unknown,
+  maxOutputSize: number = MAX_OUTPUT_SIZE
+): unknown {
   if (result === undefined) return null;
   if (result === null) return null;
   if (
@@ -372,8 +553,8 @@ export function serializeResult(result: unknown): unknown {
     typeof result === "number" ||
     typeof result === "boolean"
   ) {
-    if (typeof result === "string" && result.length > MAX_OUTPUT_SIZE) {
-      return truncate(result, MAX_OUTPUT_SIZE);
+    if (typeof result === "string" && result.length > maxOutputSize) {
+      return truncate(result, maxOutputSize);
     }
     return result;
   }
@@ -405,8 +586,8 @@ export function serializeResult(result: unknown): unknown {
     }
     try {
       const json = JSON.stringify(result);
-      if (json.length > MAX_OUTPUT_SIZE) {
-        return truncate(json, MAX_OUTPUT_SIZE);
+      if (json.length > maxOutputSize) {
+        return truncate(json, maxOutputSize);
       }
       return JSON.parse(json);
     } catch {
@@ -459,12 +640,16 @@ export interface SandboxResult {
  *                 `workspace.*` and `getSecret()` APIs.
  * @param signal   Optional external cancellation. Aborts in-flight host
  *                 operations and makes `sleep` return immediately.
+ * @param limits   Optional per-invocation limit overrides, clamped by
+ *                 {@link resolveSandboxLimits}.
  */
 export function buildSandbox(
   context?: ProcessingContext,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  limits?: SandboxLimits
 ): SandboxResult {
   const logs: string[] = [];
+  const resolvedLimits = resolveSandboxLimits(limits);
   let fetchCount = 0;
 
   const console = {
@@ -487,9 +672,9 @@ export function buildSandbox(
     options?: Record<string, unknown>
   ): Promise<Record<string, unknown>> => {
     fetchCount++;
-    if (fetchCount > MAX_FETCH_CALLS) {
+    if (fetchCount > resolvedLimits.maxFetchCalls) {
       throw new Error(
-        `Fetch limit exceeded (max ${MAX_FETCH_CALLS} requests per execution)`
+        `Fetch limit exceeded (max ${resolvedLimits.maxFetchCalls} requests per execution)`
       );
     }
     if (typeof url !== "string" || !url) {
@@ -501,9 +686,12 @@ export function buildSandbox(
     assertFetchUrlAllowed(url);
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15_000);
+    const timer = setTimeout(
+      () => controller.abort(),
+      resolvedLimits.fetchTimeoutMs
+    );
     // Cancelling the run kills an in-flight request rather than waiting out
-    // the 15s cap.
+    // the per-request timeout.
     const onExternalAbort = (): void => controller.abort();
     if (signal?.aborted) controller.abort();
     else signal?.addEventListener("abort", onExternalAbort, { once: true });
@@ -518,10 +706,17 @@ export function buildSandbox(
         fetchOptions.headers = options.headers as Record<string, string>;
       }
       if (options?.body !== undefined) {
-        fetchOptions.body =
-          typeof options.body === "string"
-            ? options.body
-            : JSON.stringify(options.body);
+        const body = options.body;
+        if (typeof body === "string") {
+          fetchOptions.body = body;
+        } else if (isTypedArray(body)) {
+          // Binary request body. A guest Uint8Array reaches the host as a
+          // native one via the typed-array serializers, but normalize anyway
+          // so a numeric-keyed object is sent as raw bytes, not as JSON.
+          fetchOptions.body = toNativeUint8Array(body) as unknown as BodyInit;
+        } else {
+          fetchOptions.body = JSON.stringify(body);
+        }
       }
 
       const response = await fetch(url, fetchOptions);
@@ -531,7 +726,7 @@ export function buildSandbox(
       const rawBytes = await readBodyCapped(
         response,
         controller,
-        MAX_RESPONSE_BODY_SIZE
+        resolvedLimits.maxResponseBodyBytes
       );
       const ok = response.ok;
       const status = response.status;
@@ -543,8 +738,9 @@ export function buildSandbox(
         if (cachedText === null) {
           const decoded = new TextDecoder().decode(rawBytes);
           cachedText =
-            decoded.length > MAX_RESPONSE_BODY_SIZE
-              ? decoded.slice(0, MAX_RESPONSE_BODY_SIZE) + "...[truncated]"
+            decoded.length > resolvedLimits.maxResponseBodyBytes
+              ? decoded.slice(0, resolvedLimits.maxResponseBodyBytes) +
+                "...[truncated]"
               : decoded;
         }
         return cachedText;
@@ -565,12 +761,10 @@ export function buildSandbox(
         body: getText(),
         json: parsedJson,
         text: async () => getText(),
-        arrayBuffer: async () =>
-          rawBytes.buffer.slice(
-            rawBytes.byteOffset,
-            rawBytes.byteOffset + rawBytes.byteLength
-          ),
-        bytes: async () => rawBytes
+        // Both binary accessors return the bytes marker; the guest prelude's
+        // fetch wrapper turns them back into a Uint8Array / ArrayBuffer.
+        arrayBuffer: async () => toGuestBytes(rawBytes),
+        bytes: async () => toGuestBytes(rawBytes)
       };
     } finally {
       clearTimeout(timer);
@@ -578,7 +772,52 @@ export function buildSandbox(
     }
   };
 
-  const uuid = () => crypto.randomUUID();
+  const uuid = () => globalThis.crypto.randomUUID();
+
+  // WebCrypto exists in both Node >= 20 and browsers, so no node:crypto import
+  // is needed and the sandbox stays browser-safe. `getRandomValues` is the one
+  // synchronous member: it clamps instead of throwing, since a host throw does
+  // not go through the never-reject convention.
+  const sandboxCrypto = {
+    randomUUID: (): string => globalThis.crypto.randomUUID(),
+    getRandomValues: (length: number): Record<string, string> => {
+      const requested = Number(length);
+      const size = Number.isFinite(requested)
+        ? Math.min(Math.max(Math.floor(requested), 0), MAX_RANDOM_BYTES)
+        : 0;
+      const bytes = new Uint8Array(size);
+      if (size > 0) globalThis.crypto.getRandomValues(bytes);
+      return toGuestBytes(bytes);
+    },
+    digest: async (
+      algorithm: string,
+      data: unknown
+    ): Promise<Record<string, string>> => {
+      const algo = normalizeDigestAlgorithm(algorithm);
+      const bytes = coerceBytesInput(data, "data");
+      const digest = await webCryptoSubtle().digest(algo, bytes);
+      return toGuestBytes(new Uint8Array(digest));
+    },
+    hmac: async (
+      algorithm: string,
+      key: unknown,
+      data: unknown
+    ): Promise<Record<string, string>> => {
+      const algo = normalizeDigestAlgorithm(algorithm);
+      const keyBytes = coerceBytesInput(key, "key");
+      const dataBytes = coerceBytesInput(data, "data");
+      const subtle = webCryptoSubtle();
+      const cryptoKey = await subtle.importKey(
+        "raw",
+        keyBytes,
+        { name: "HMAC", hash: algo },
+        false,
+        ["sign"]
+      );
+      const signature = await subtle.sign("HMAC", cryptoKey, dataBytes);
+      return toGuestBytes(new Uint8Array(signature));
+    }
+  };
 
   const getSecret = context
     ? async (name: string): Promise<string | undefined> => {
@@ -623,6 +862,71 @@ export function buildSandbox(
             false
           );
           return fs.readdir(fullPath);
+        },
+        readBytes: async (path: string): Promise<Record<string, string>> => {
+          const fullPath = context.resolveWorkspacePath(path);
+          const fs = await loadFsPromises();
+          const nodePath = await loadNodePath();
+          await assertWorkspaceContained(
+            context,
+            fs,
+            nodePath,
+            fullPath,
+            false
+          );
+          return toGuestBytes(new Uint8Array(await fs.readFile(fullPath)));
+        },
+        writeBytes: async (path: string, data: unknown): Promise<void> => {
+          const fullPath = context.resolveWorkspacePath(path);
+          const bytes =
+            data instanceof Uint8Array ? data : toNativeUint8Array(data);
+          const fs = await loadFsPromises();
+          const nodePath = await loadNodePath();
+          await assertWorkspaceContained(context, fs, nodePath, fullPath, true);
+          await fs.mkdir(nodePath.dirname(fullPath), { recursive: true });
+          await fs.writeFile(fullPath, bytes);
+        },
+        stat: async (path: string): Promise<Record<string, unknown>> => {
+          const fullPath = context.resolveWorkspacePath(path);
+          const fs = await loadFsPromises();
+          const nodePath = await loadNodePath();
+          await assertWorkspaceContained(
+            context,
+            fs,
+            nodePath,
+            fullPath,
+            false
+          );
+          const info = await fs.stat(fullPath);
+          return {
+            size: info.size,
+            isDirectory: info.isDirectory(),
+            isFile: info.isFile(),
+            modifiedMs: info.mtimeMs
+          };
+        },
+        mkdir: async (path: string): Promise<void> => {
+          const fullPath = context.resolveWorkspacePath(path);
+          const fs = await loadFsPromises();
+          const nodePath = await loadNodePath();
+          await assertWorkspaceContained(context, fs, nodePath, fullPath, true);
+          await fs.mkdir(fullPath, { recursive: true });
+        },
+        remove: async (path: string): Promise<void> => {
+          const fullPath = context.resolveWorkspacePath(path);
+          const fs = await loadFsPromises();
+          const nodePath = await loadNodePath();
+          // Treated as a write for containment. `recursive: false` keeps this
+          // to one file or one empty directory — guest code cannot delete a
+          // whole workspace subtree in a single call.
+          await assertWorkspaceContained(context, fs, nodePath, fullPath, true);
+          const info = await fs.lstat(fullPath);
+          if (info.isDirectory()) {
+            // rmdir refuses a non-empty directory, which is the point.
+            await fs.rmdir(fullPath);
+          } else {
+            await fs.rm(fullPath, { recursive: false });
+          }
         }
       }
     : {
@@ -634,6 +938,25 @@ export function buildSandbox(
         },
         list: async (_path: string): Promise<string[]> => {
           throw new Error("workspace.list is not available without a context");
+        },
+        readBytes: async (_path: string): Promise<Record<string, string>> => {
+          throw new Error(
+            "workspace.readBytes is not available without a context"
+          );
+        },
+        writeBytes: async (_path: string, _data: unknown): Promise<void> => {
+          throw new Error(
+            "workspace.writeBytes is not available without a context"
+          );
+        },
+        stat: async (_path: string): Promise<Record<string, unknown>> => {
+          throw new Error("workspace.stat is not available without a context");
+        },
+        mkdir: async (_path: string): Promise<void> => {
+          throw new Error("workspace.mkdir is not available without a context");
+        },
+        remove: async (_path: string): Promise<void> => {
+          throw new Error("workspace.remove is not available without a context");
         }
       };
 
@@ -717,6 +1040,7 @@ export function buildSandbox(
     setInterval: undefined,
     // Bridge functions — the only non-native surface the sandbox exposes.
     fetch: sandboxedFetch,
+    crypto: sandboxCrypto,
     uuid,
     sleep,
     getSecret,
@@ -762,6 +1086,12 @@ export interface RunSandboxOptions {
    * for it.
    */
   signal?: AbortSignal;
+  /**
+   * Per-invocation limit overrides (fetch calls, response body, output size,
+   * guest heap, stack, fetch timeout). Each is clamped to a hard ceiling, so a
+   * caller can tune a limit but not disable a protection.
+   */
+  limits?: SandboxLimits;
 }
 
 export interface RunSandboxResult {
@@ -797,12 +1127,20 @@ function replaceInPlace(target: unknown, source: unknown): void {
 const RESERVED_SANDBOX_NAMES = new Set([
   "console",
   "fetch",
+  "crypto",
   "uuid",
   "sleep",
   "getSecret",
   "workspace",
   "assetToSandbox",
   "sandboxToAsset",
+  // Pure guest-side helpers defined by the prelude.
+  "toBase64",
+  "fromBase64",
+  "toHex",
+  "fromHex",
+  "utf8Encode",
+  "utf8Decode",
   "__maxIter"
 ]);
 
@@ -816,6 +1154,7 @@ const RESERVED_SANDBOX_NAMES = new Set([
 const EXPOSED_BRIDGE_NAMES = [
   "console",
   "fetch",
+  "crypto",
   "uuid",
   "sleep",
   "getSecret",
@@ -839,8 +1178,10 @@ export async function runInSandbox(
     context,
     timeoutMs = DEFAULT_TIMEOUT_MS,
     globals,
-    signal
+    signal,
+    limits
   } = options;
+  const resolvedLimits = resolveSandboxLimits(limits);
 
   if (!code.trim()) {
     return { success: false, error: "No code provided", logs: [] };
@@ -850,7 +1191,7 @@ export async function runInSandbox(
     return { success: false, error: "Execution cancelled", logs: [] };
   }
 
-  const { sandbox, getLogs } = buildSandbox(context, signal);
+  const { sandbox, getLogs } = buildSandbox(context, signal, resolvedLimits);
 
   // User-supplied globals (dynamic inputs from CodeNode etc.) layer on top of
   // the core surface, but must not clobber the bridge functions themselves.
@@ -900,15 +1241,28 @@ export async function runInSandbox(
         bridges.getSecret = wrap(bridges.getSecret as never);
         bridges.assetToSandbox = wrap(bridges.assetToSandbox as never);
         bridges.sandboxToAsset = wrap(bridges.sandboxToAsset as never);
-        const ws = bridges.workspace as {
-          read: (p: string) => Promise<string>;
-          write: (p: string, c: string) => Promise<void>;
-          list: (p: string) => Promise<string[]>;
+        const ws = bridges.workspace as Record<
+          string,
+          (...a: never[]) => Promise<unknown>
+        >;
+        const wrappedWorkspace: Record<string, unknown> = {};
+        for (const [name, fn] of Object.entries(ws)) {
+          wrappedWorkspace[name] = wrap(fn as never);
+        }
+        bridges.workspace = wrappedWorkspace;
+        const hostCrypto = bridges.crypto as {
+          randomUUID: () => string;
+          getRandomValues: (n: number) => Record<string, string>;
+          digest: (...a: never[]) => Promise<unknown>;
+          hmac: (...a: never[]) => Promise<unknown>;
         };
-        bridges.workspace = {
-          read: wrap(ws.read),
-          write: wrap(ws.write),
-          list: wrap(ws.list)
+        bridges.crypto = {
+          // randomUUID/getRandomValues are synchronous and never throw, so they
+          // stay unwrapped; the async pair follows the never-reject convention.
+          randomUUID: hostCrypto.randomUUID,
+          getRandomValues: hostCrypto.getRandomValues,
+          digest: wrap(hostCrypto.digest),
+          hmac: wrap(hostCrypto.hmac)
         };
         // Caller-injected globals (ScriptRunner's __runAgent/__log/…) are host
         // functions too — guard the async ones or a cancelled script keeps
@@ -935,6 +1289,61 @@ export async function runInSandbox(
         // throws ReferenceError — same for `Function`.
         await evalCode(
           `const __marker = "${SANDBOX_ERROR_MARKER}";
+const __bytesMarker = "${SANDBOX_BYTES_MARKER}";
+const __b64chars = "${BASE64_ALPHABET}";
+const __hasTE = typeof TextEncoder === "function";
+globalThis.utf8Encode = (s) => {
+  if (__hasTE) return new TextEncoder().encode(String(s));
+  const esc = encodeURIComponent(String(s));
+  const out = [];
+  for (let i = 0; i < esc.length; i++) {
+    if (esc[i] === "%") { out.push(parseInt(esc.substr(i + 1, 2), 16)); i += 2; }
+    else out.push(esc.charCodeAt(i));
+  }
+  return new Uint8Array(out);
+};
+globalThis.utf8Decode = (b) => {
+  if (__hasTE) return new TextDecoder().decode(b instanceof Uint8Array ? b : Uint8Array.from(b));
+  let esc = "";
+  for (let i = 0; i < b.length; i++) esc += "%" + (b[i] < 16 ? "0" : "") + b[i].toString(16);
+  return decodeURIComponent(esc);
+};
+globalThis.toBase64 = (input) => {
+  const b = typeof input === "string" ? globalThis.utf8Encode(input) : input;
+  let out = "";
+  for (let i = 0; i < b.length; i += 3) {
+    const c = (b[i] << 16) | ((b[i + 1] || 0) << 8) | (b[i + 2] || 0);
+    out += __b64chars[(c >> 18) & 63] + __b64chars[(c >> 12) & 63] +
+      (i + 1 < b.length ? __b64chars[(c >> 6) & 63] : "=") +
+      (i + 2 < b.length ? __b64chars[c & 63] : "=");
+  }
+  return out;
+};
+globalThis.fromBase64 = (s) => {
+  const clean = String(s).replace(/-/g, "+").replace(/_/g, "/").replace(/[^A-Za-z0-9+/]/g, "");
+  const out = new Uint8Array((clean.length * 6) >> 3);
+  let acc = 0, bits = 0, o = 0;
+  for (let i = 0; i < clean.length; i++) {
+    acc = (acc << 6) | __b64chars.indexOf(clean[i]);
+    bits += 6;
+    if (bits >= 8) { bits -= 8; out[o++] = (acc >> bits) & 255; }
+  }
+  return out;
+};
+globalThis.toHex = (b) => {
+  let s = "";
+  for (let i = 0; i < b.length; i++) s += (b[i] < 16 ? "0" : "") + b[i].toString(16);
+  return s;
+};
+globalThis.fromHex = (s) => {
+  const t = String(s).replace(/[^0-9a-fA-F]/g, "");
+  const out = new Uint8Array(t.length >> 1);
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(t.substr(i * 2, 2), 16);
+  return out;
+};
+const __revive = (v) => (v && typeof v === "object" && typeof v[__bytesMarker] === "string")
+  ? globalThis.fromBase64(v[__bytesMarker])
+  : v;
 const __wrap = (fn) => async (...args) => {
   const r = await fn(...args);
   if (r && r[__marker]) {
@@ -942,9 +1351,18 @@ const __wrap = (fn) => async (...args) => {
     e.name = r.name;
     throw e;
   }
+  return __revive(r);
+};
+const __rawFetch = __wrap(globalThis.fetch);
+globalThis.fetch = async (...args) => {
+  const r = await __rawFetch(...args);
+  if (r && typeof r === "object") {
+    const rb = r.bytes, rab = r.arrayBuffer;
+    if (typeof rb === "function") r.bytes = async () => __revive(await rb());
+    if (typeof rab === "function") r.arrayBuffer = async () => __revive(await rab()).buffer;
+  }
   return r;
 };
-globalThis.fetch = __wrap(globalThis.fetch);
 globalThis.sleep = __wrap(globalThis.sleep);
 globalThis.getSecret = __wrap(globalThis.getSecret);
 globalThis.assetToSandbox = __wrap(globalThis.assetToSandbox);
@@ -953,7 +1371,25 @@ const __ws = globalThis.workspace;
 globalThis.workspace = {
   read: __wrap(__ws.read),
   write: __wrap(__ws.write),
-  list: __wrap(__ws.list)
+  list: __wrap(__ws.list),
+  readBytes: __wrap(__ws.readBytes),
+  writeBytes: __wrap(__ws.writeBytes),
+  stat: __wrap(__ws.stat),
+  mkdir: __wrap(__ws.mkdir),
+  remove: __wrap(__ws.remove)
+};
+const __crypto = globalThis.crypto;
+globalThis.crypto = {
+  randomUUID: () => __crypto.randomUUID(),
+  getRandomValues: (n) => {
+    const len = Number(n);
+    if (!Number.isFinite(len) || len < 0) {
+      throw new TypeError("crypto.getRandomValues: length must be a non-negative number");
+    }
+    return __revive(__crypto.getRandomValues(Math.floor(len)));
+  },
+  digest: __wrap(__crypto.digest),
+  hmac: __wrap(__crypto.hmac)
 };
 delete globalThis.eval;
 delete globalThis.Function;
@@ -1002,8 +1438,8 @@ export default true;`,
       },
       {
         executionTimeout: timeoutMs,
-        memoryLimit: GUEST_MEMORY_LIMIT,
-        maxStackSize: GUEST_STACK_LIMIT
+        memoryLimit: resolvedLimits.memoryLimitBytes,
+        maxStackSize: resolvedLimits.stackLimitBytes
       }
     );
 
@@ -1051,7 +1487,7 @@ export default true;`,
 
     return {
       success: true,
-      result: serializeResult(evalResponse.data),
+      result: serializeResult(evalResponse.data, resolvedLimits.maxOutputSize),
       logs: logs.length > 0 ? logs : undefined
     };
   } catch (e: unknown) {
