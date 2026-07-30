@@ -45,9 +45,10 @@ changes removed most of what the earlier draft of this plan had to build:
 | Monaco editor | `web/src/components/node_types/CodeBody.tsx` | Untouched. Ask AI is a button beside it. |
 | Snippets | `web/src/config/codeSnippets.ts`, `snippetMetadata.ts` | Untouched. |
 | Model preferences | `ModelPreferencesStore.ts` generic `defaults` map | Add a `code_model` key. No schema change. |
-| Provider abstraction | `BaseProvider.generateMessageTraced` in `packages/runtime` | Reuse for the generation call. |
+| Planner infrastructure | `GraphPlanner` + `SubmitGraphTool`, `Tool` base class, `withAgentSpanGen`, eval harness (`packages/agents/src`) | Code generation is a mini-planner on this machinery — submit tool, validation-as-tool-result feedback rounds, tracing, evals. |
+| Provider abstraction | `BaseProvider.generateMessageTraced` in `packages/runtime` | Reused via the planner loop. |
 | Single-node / inline execution | `useRunSingleNode.ts`, `runInlineGraphJob.ts` | Preview runs through the normal execution path. |
-| tRPC routers | `packages/websocket/src/trpc/routers/` | One new router with one mutation. |
+| Agent serving path | `packages/websocket/src/agent/` (runs `GraphPlanner` today) | First choice for serving `CodePlanner`; a thin tRPC mutation is the fallback. |
 
 ## What the earlier draft built that this plan drops
 
@@ -106,18 +107,26 @@ fixed `stdout`/`stderr` shape and need their own generator later.
 
 ## Design
 
-### One generation service
+### One generation service, built as a mini-planner
 
-A single protected tRPC mutation, `codeGen.generate`:
+Don't hand-roll a request/repair function. `GraphPlanner`
+(`packages/agents/src/graph-planner.ts` + `tools/submit-graph-tool.ts`)
+already implements the exact loop this feature needs: a system prompt, a
+forced submit tool, validation run **inside** the tool, and failures
+returned as tool results so the model resubmits over feedback rounds — with
+`withAgentSpanGen` tracing, abort linking, retry caps, and an eval harness
+attached. Code generation is the same shape with a smaller payload.
 
-1. Accepts: instruction, input slots (name, type, description — seeded from
-   connected handles), optional expected output (name + type, when launched
-   from a destination handle), optional current code + slots (for edits),
-   optional user-approved sample values, and the resolved model.
-2. Builds the prompt from the sandbox capability manifest and the guidance
+Add a **`CodePlanner`** beside `graph-planner.ts` with one
+**`SubmitCodeTool`** (the `submit_code` analog of `submit_graph`):
+
+1. The planner accepts: instruction, input slots (name, type, description —
+   seeded from connected handles), optional expected output (name + type,
+   when launched from a destination handle), optional current code + slots
+   (for edits), optional user-approved sample values, provider, and model.
+2. The prompt is built from the sandbox capability manifest and the guidance
    above.
-3. Calls the provider via `generateMessageTraced` with one required tool,
-   `submit_code`, whose arguments are:
+3. The model must call `submit_code`, whose arguments are:
 
    ```ts
    interface CodeGenSubmission {
@@ -129,17 +138,25 @@ A single protected tRPC mutation, `codeGen.generate`:
    }
    ```
 
-4. Validates the arguments with Zod (valid JS identifiers, NodeTool type
-   metadata shapes, unique names, ≥1 output, bounded sizes), parses the code
-   with acorn, and checks that every declared output is assigned on every
-   statically visible return path.
-5. On failure, makes one repair attempt with the errors attached.
-6. Returns the submission or a discriminated error (provider unavailable,
-   aborted, malformed response, invalid code, internal).
+4. `SubmitCodeTool` validates the arguments with Zod (valid JS identifiers,
+   NodeTool type metadata shapes, unique names, ≥1 output, bounded sizes),
+   parses the code with acorn, and checks that every declared output is
+   assigned on every statically visible return path. Failures come back as
+   the tool result — same feedback-round mechanism as `submit_graph` — with
+   rounds capped at 3.
+5. The planner returns the accepted submission or a discriminated error
+   (provider unavailable, aborted, no valid submission, internal).
 
-Prompt building and validation are pure functions in
-`@nodetool-ai/agents/src/code-gen/` so they test without Fastify. The
-frontend never scrapes code fences from chat text.
+Free text and code fences are never scraped; only the accepted tool call's
+arguments count. Prompt building and analysis stay pure functions in
+`packages/agents/src/code-gen/` so they test without a server, and the
+`Tool` base class, provider handling, and tracing come from the existing
+planner infrastructure rather than new code.
+
+The editor **chat agent is not the transport**: the dialog needs an atomic
+validated result with no thread state. But because `CodePlanner` is an
+ordinary planner, the chat agent can later invoke it as a tool without a
+second implementation.
 
 Telemetry keeps provider, model, tokens, cost, duration, and failure code;
 it does not record instructions, samples, or generated code.
@@ -235,32 +252,41 @@ node renders and edits exactly like any Code Node.
   per direction, ≥1 output, size limits on instruction/ports/samples/code.
 - Transport validation only — no JS parser in protocol.
 
-### 3. Generation core
+### 3. Generation core (`CodePlanner`)
 
-**Files:** `packages/agents/src/code-gen/{prompt,parse,analyze,generate}.ts`
-+ scripted-provider tests; add `acorn` to the agents package.
+**Files:** `packages/agents/src/code-planner.ts`,
+`packages/agents/src/tools/submit-code-tool.ts`,
+`packages/agents/src/code-gen/{prompt,analyze}.ts` + scripted-provider
+tests; add `acorn` to the agents package.
 
-- Prompt builder (manifest + guidance + inputs + expected output + optional
-  samples), `submit_code` tool definition, forced via `toolChoice`.
-- Read only the named tool call; free text, code fences, and extra calls are
-  invalid responses.
+- Follow the `GraphPlanner` / `SubmitGraphTool` pattern: extend the `Tool`
+  base class, validate inside the tool, return failures as tool results,
+  cap feedback rounds at 3, trace with `withAgentSpanGen`, link aborts with
+  the existing helper.
+- Prompt builder: manifest + guidance + inputs + expected output + optional
+  samples. Only the accepted `submit_code` call's arguments count; free
+  text and code fences are ignored.
 - acorn analysis: syntax, every declared output assigned on every visible
   return path. Ternaries, `if`/`else`, partitions into always-emitted
   outputs all pass; a branch omitting a declared output fails with a pointer
   to the control nodes.
-- One repair attempt; typed failure codes; `AbortSignal` threaded through.
+- Typed failure codes on the planner result.
 
-### 4. API mutation
+### 4. Serving path
 
-**Files:** `packages/websocket/src/trpc/routers/code-gen.ts`, router index,
-tests.
+**Files:** `packages/websocket/src/agent/` or a thin
+`trpc/routers/code-gen.ts`, tests.
 
-- Protected mutation; resolve provider through the existing registry and
-  secret resolver; call `generateMessageTraced`.
-- Suppress message/sample/code bodies from spans and failure logs for this
-  endpoint while keeping usage metadata.
-- Per-user in-flight cap with a stable rate-limited error. Non-streaming,
-  with cancellation; no chat thread, no message history writes.
+- First choice: serve `CodePlanner` through the existing agent WebSocket
+  path (`packages/websocket/src/agent/`), which already handles provider
+  resolution, secrets, cancellation, and progress streaming for
+  `GraphPlanner`. Check whether a one-shot request/response fits that
+  channel cleanly.
+- Fallback if it doesn't: a thin protected tRPC mutation that instantiates
+  `CodePlanner` — glue only, no generation logic in the router.
+- Either way: suppress instruction/sample/code bodies from spans and failure
+  logs while keeping usage metadata; per-user in-flight cap with a stable
+  rate-limited error; no chat thread, no message history writes.
 
 ### 5. Model preference
 
@@ -331,7 +357,7 @@ integration, component tests.
 
 ## Phase 2 — Edit and repair (after Phase 1 ships)
 
-- **Edit:** the same mutation with the current code + slots attached; the
+- **Edit:** the same planner call with the current code + slots attached; the
   model returns a full replacement submission. Confirm before applying an
   edit that removes, renames, or retypes a connected handle (show affected
   edges: keep, remap, or disconnect). Per-dialog transcript in UI state
