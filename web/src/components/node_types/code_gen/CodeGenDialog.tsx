@@ -45,6 +45,10 @@ import {
   useGenerateCode,
   type CodeGenFailure
 } from "../../../serverState/codeGen";
+import CodeGenPreviewPanel from "./CodeGenPreviewPanel";
+import CodeGenSamplesSection from "./CodeGenSamplesSection";
+import { sampleValuesOf, serializeSampleValues } from "./codeGenSamples";
+import { useCodeGenSamples } from "./useCodeGenSamples";
 
 /** Settings tab holding the Default Models section. */
 const DEFAULT_MODELS_SETTINGS_PATH = "/settings?tab=0";
@@ -165,6 +169,15 @@ const CodeGenDialogInner = ({
   const { MonacoEditor, monacoLoadError, isMonacoLoading, loadMonacoIfNeeded } =
     useMonacoEditor();
 
+  // Samples stay local unless the user opts in, and the exact payload is shown
+  // and acknowledged before the first request that carries it.
+  const [sampleEpoch, setSampleEpoch] = useState(0);
+  const [includeSamples, setIncludeSamples] = useState(false);
+  const [payloadAcknowledged, setPayloadAcknowledged] = useState(false);
+  const [hasSentSamples, setHasSentSamples] = useState(false);
+  const samples = useCodeGenSamples(nodeId, sampleEpoch);
+  const { reset: resetSamples } = samples;
+
   // Every open starts from a blank slate — a submission from a previous open
   // would otherwise be applicable to a node the user has since edited. Guarded
   // on the closed→open transition so a re-render never wipes what is typed.
@@ -173,26 +186,61 @@ const CodeGenDialogInner = ({
     if (open && !wasOpen.current) {
       setInstruction("");
       setIsCodeOpen(false);
+      setIncludeSamples(false);
+      setPayloadAcknowledged(false);
+      setHasSentSamples(false);
+      setSampleEpoch((epoch) => epoch + 1);
+      resetSamples();
       reset();
     }
     wasOpen.current = open;
-  }, [open, reset]);
+  }, [open, reset, resetSamples]);
 
   const submission = result?.status === "ok" ? result.submission : null;
   const failure = result?.status === "error" ? result.error : null;
 
+  const requestPorts = useMemo(() => inputs ?? [], [inputs]);
+  const requestEntries = samples.entriesFor(requestPorts);
+  const previewEntries = samples.entriesFor(submission?.inputs ?? []);
+
+  const payload = useMemo(
+    () => serializeSampleValues(sampleValuesOf(requestEntries)),
+    [requestEntries]
+  );
+
+  const needsAcknowledgement =
+    includeSamples && !hasSentSamples && !payloadAcknowledged;
+  const samplesBlockGeneration =
+    includeSamples && (payload.exceedsLimit || needsAcknowledgement);
+
   const handleGenerate = useCallback(() => {
-    if (!model) {
+    if (!model || samplesBlockGeneration) {
       return;
     }
+    const sampleValues = includeSamples
+      ? sampleValuesOf(requestEntries)
+      : undefined;
     generate({
       instruction: instruction.trim(),
       inputs: inputs ? [...inputs] : [],
       ...(expectedOutput ? { expectedOutput } : {}),
+      ...(sampleValues ? { sampleValues } : {}),
       provider: model.provider,
       model: model.id
     });
-  }, [generate, instruction, inputs, expectedOutput, model]);
+    if (sampleValues) {
+      setHasSentSamples(true);
+    }
+  }, [
+    generate,
+    instruction,
+    inputs,
+    expectedOutput,
+    model,
+    includeSamples,
+    requestEntries,
+    samplesBlockGeneration
+  ]);
 
   const handleApply = useCallback(() => {
     if (!submission) {
@@ -224,7 +272,11 @@ const CodeGenDialogInner = ({
     return "";
   }, [isPending, submission, failure]);
 
-  const canGenerate = !!model && instruction.trim().length > 0 && !isPending;
+  const canGenerate =
+    !!model &&
+    instruction.trim().length > 0 &&
+    !isPending &&
+    !samplesBlockGeneration;
 
   return (
     <Dialog
@@ -265,6 +317,18 @@ const CodeGenDialogInner = ({
         {expectedOutput && (
           <PortList label="Expected output" ports={[expectedOutput]} />
         )}
+
+        <CodeGenSamplesSection
+          entries={requestEntries}
+          onChange={samples.setValue}
+          onRevert={samples.clearValue}
+          include={includeSamples}
+          onIncludeChange={setIncludeSamples}
+          payload={payload}
+          needsAcknowledgement={needsAcknowledgement}
+          onAcknowledge={() => setPayloadAcknowledged(true)}
+          disabled={isPending || isBlocked}
+        />
 
         <FlexRow gap={SPACING.md} align="center">
           <Label>Model</Label>
@@ -387,11 +451,12 @@ const CodeGenDialogInner = ({
               </Box>
             </CollapsibleSection>
 
-            {/*
-              Task 8 seam: the preview panel (sample editors, inline run,
-              per-output results, "include sample values") mounts here, between
-              the reviewed submission and the Apply action.
-            */}
+            <CodeGenPreviewPanel
+              submission={submission}
+              entries={previewEntries}
+              onSampleChange={samples.setValue}
+              onSampleRevert={samples.clearValue}
+            />
           </FlexColumn>
         )}
       </FlexColumn>

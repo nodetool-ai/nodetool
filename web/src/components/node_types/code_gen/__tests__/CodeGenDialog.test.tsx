@@ -11,10 +11,36 @@ import mockTheme from "../../../../__mocks__/themeMock";
 import type { CodeGenResult } from "../../../../serverState/codeGen";
 
 const mockApply = jest.fn();
+let mockStoreState: Record<string, unknown> = {
+  edges: [],
+  workflow: { id: "wf-1" },
+  findNode: () => undefined
+};
 jest.mock("../../../../contexts/NodeContext", () => ({
   useNodes: (selector: (state: unknown) => unknown) =>
-    selector({ applyCodeGenSubmission: mockApply })
+    selector({ applyCodeGenSubmission: mockApply }),
+  useNodeStoreRef: () => ({ getState: () => mockStoreState })
 }));
+
+jest.mock("../../../../lib/workflow/runInlineGraphJob", () => ({
+  runInlineGraphJob: jest.fn(() =>
+    Promise.resolve({ success: true, outputs: {} })
+  )
+}));
+
+jest.mock("../../../../lib/websocket/GlobalWebSocketManager", () => ({
+  globalWebSocketManager: { subscribe: () => jest.fn() }
+}));
+
+jest.mock("../../../../stores/nodeGenerationAccessor", () => ({
+  getNodeGenerations: (_workflowId: string, nodeId: string) =>
+    mockGenerations[nodeId] ?? []
+}));
+
+let mockGenerations: Record<
+  string,
+  Array<{ id: string; status: string; outputs: Record<string, unknown> }>
+> = {};
 
 const mockGenerate = jest.fn();
 const mockCancel = jest.fn();
@@ -91,6 +117,12 @@ describe("CodeGenDialog", () => {
     jest.clearAllMocks();
     mockResult = undefined;
     mockIsPending = false;
+    mockGenerations = {};
+    mockStoreState = {
+      edges: [],
+      workflow: { id: "wf-1" },
+      findNode: () => undefined
+    };
     mockModelState = {
       model: { provider: "anthropic", id: "claude-sonnet-5", name: "Sonnet" },
       source: "code_preference",
@@ -288,6 +320,130 @@ describe("CodeGenDialog", () => {
       };
       renderDialog();
       expect(screen.getByText(/wait about 5s/i)).toBeInTheDocument();
+    });
+  });
+
+  describe("sample values", () => {
+    const rowsInput: codeGen.CodeGenInputPort[] = [
+      { name: "rows", type: { type: "list", type_args: [] } }
+    ];
+
+    const connectLatestRun = (value: unknown): void => {
+      mockStoreState = {
+        edges: [
+          {
+            id: "e1",
+            source: "src",
+            sourceHandle: "output",
+            target: "code-1",
+            targetHandle: "rows"
+          }
+        ],
+        workflow: { id: "wf-1" },
+        findNode: () => ({ id: "src", data: {} })
+      };
+      mockGenerations = {
+        src: [{ id: "g1", status: "completed", outputs: { output: value } }]
+      };
+    };
+
+    const openSamples = async (
+      user: ReturnType<typeof userEvent.setup>
+    ): Promise<void> => {
+      await user.click(screen.getByRole("button", { name: /sample values/i }));
+    };
+
+    it("defaults to off and sends names and types only", async () => {
+      const user = userEvent.setup();
+      connectLatestRun([1, 2, 3]);
+      renderDialog({ inputs: rowsInput });
+
+      await openSamples(user);
+      expect(
+        screen.getByRole("checkbox", {
+          name: /include sample values in the prompt/i
+        })
+      ).not.toBeChecked();
+      expect(
+        screen.queryByLabelText("Sample values payload")
+      ).not.toBeInTheDocument();
+
+      await user.type(
+        screen.getByLabelText(/what should this node do/i),
+        "merge"
+      );
+      await user.click(screen.getByRole("button", { name: /^generate$/i }));
+
+      expect(mockGenerate).toHaveBeenCalledWith(
+        expect.not.objectContaining({ sampleValues: expect.anything() })
+      );
+    });
+
+    it("labels a connected value as coming from the latest run", async () => {
+      const user = userEvent.setup();
+      connectLatestRun([1, 2, 3]);
+      renderDialog({ inputs: rowsInput });
+
+      await openSamples(user);
+      expect(screen.getAllByText("from latest run").length).toBeGreaterThan(0);
+    });
+
+    it("shows the exact payload and gates the first send on it", async () => {
+      const user = userEvent.setup();
+      connectLatestRun([1, 2, 3]);
+      renderDialog({ inputs: rowsInput });
+
+      await user.type(
+        screen.getByLabelText(/what should this node do/i),
+        "merge"
+      );
+      await openSamples(user);
+      await user.click(
+        screen.getByRole("checkbox", {
+          name: /include sample values in the prompt/i
+        })
+      );
+
+      const disclosure = screen.getByLabelText("Sample values payload");
+      expect(disclosure).toHaveTextContent('"rows"');
+      expect(disclosure).toHaveTextContent("1");
+      expect(disclosure).toHaveTextContent("3");
+      expect(screen.getByRole("button", { name: /^generate$/i })).toBeDisabled();
+
+      await user.click(
+        screen.getByRole("button", { name: /send these values/i })
+      );
+      await user.click(screen.getByRole("button", { name: /^generate$/i }));
+
+      expect(mockGenerate).toHaveBeenCalledWith(
+        expect.objectContaining({ sampleValues: { rows: [1, 2, 3] } })
+      );
+    });
+
+    it("reports an oversize payload instead of truncating it", async () => {
+      const user = userEvent.setup();
+      connectLatestRun(["x".repeat(40_000)]);
+      renderDialog({ inputs: rowsInput });
+
+      await user.type(
+        screen.getByLabelText(/what should this node do/i),
+        "merge"
+      );
+      await openSamples(user);
+      await user.click(
+        screen.getByRole("checkbox", {
+          name: /include sample values in the prompt/i
+        })
+      );
+
+      expect(
+        screen.getByText(/sample payload is too large/i)
+      ).toBeInTheDocument();
+      expect(screen.getByText(/nothing is truncated/i)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /^generate$/i })).toBeDisabled();
+      expect(
+        screen.queryByRole("button", { name: /send these values/i })
+      ).not.toBeInTheDocument();
     });
   });
 });
