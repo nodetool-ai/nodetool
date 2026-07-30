@@ -237,6 +237,85 @@ function formatNames(names: readonly string[]): string {
   return names.map((name) => `"${name}"`).join(", ");
 }
 
+/** Names a binding pattern introduces (`const { a, b: [c] } = x`). */
+function patternNames(pattern: unknown, out: Set<string>): void {
+  if (typeof pattern !== "object" || pattern === null) return;
+  const node = pattern as acorn.AnyNode;
+  switch (node.type) {
+    case "Identifier":
+      out.add(node.name);
+      return;
+    case "ObjectPattern":
+      for (const property of node.properties) {
+        patternNames(
+          property.type === "RestElement" ? property.argument : property.value,
+          out
+        );
+      }
+      return;
+    case "ArrayPattern":
+      for (const element of node.elements) patternNames(element, out);
+      return;
+    case "AssignmentPattern":
+      patternNames(node.left, out);
+      return;
+    case "RestElement":
+      patternNames(node.argument, out);
+      return;
+    default:
+      return;
+  }
+}
+
+/**
+ * Every name the code itself binds — variables, functions, classes, parameters,
+ * catch clauses. A reference to anything else has to come from the sandbox, so
+ * this is the allowlist a caller subtracts before deciding a name was invented.
+ */
+export function collectBoundNames(code: string): string[] {
+  const parsed = parseBody(code);
+  if ("error" in parsed) return [];
+  const names = new Set<string>();
+
+  const walk = (node: unknown): void => {
+    if (typeof node !== "object" || node === null) return;
+    if (Array.isArray(node)) {
+      for (const item of node) walk(item);
+      return;
+    }
+    const candidate = node as { type?: unknown };
+    if (typeof candidate.type !== "string") return;
+    const astNode = node as acorn.AnyNode;
+    switch (astNode.type) {
+      case "VariableDeclarator":
+        patternNames(astNode.id, names);
+        break;
+      case "FunctionDeclaration":
+      case "FunctionExpression":
+      case "ArrowFunctionExpression":
+        if ("id" in astNode && astNode.id) names.add(astNode.id.name);
+        for (const param of astNode.params) patternNames(param, names);
+        break;
+      case "ClassDeclaration":
+      case "ClassExpression":
+        if (astNode.id) names.add(astNode.id.name);
+        break;
+      case "CatchClause":
+        if (astNode.param) patternNames(astNode.param, names);
+        break;
+      default:
+        break;
+    }
+    for (const [key, value] of Object.entries(astNode)) {
+      if (key === "type" || key === "start" || key === "end") continue;
+      walk(value);
+    }
+  };
+
+  walk(parsed.statements);
+  return [...names];
+}
+
 /**
  * Check that generated code parses and that every declared output is present on
  * every return path the parser can see. Returns errors as text so the caller can

@@ -42,6 +42,7 @@ import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import NodeItem from "../node_menu/NodeItem";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import { useCodeGenFromHandle } from "../../hooks/useCodeGenFromHandle";
+import { isCodeGenerationEnabled } from "../../lib/runtimeConfig";
 
 const NODE_ROW_HEIGHT = 28;
 
@@ -617,6 +618,9 @@ const InputContextMenu: React.FC = () => {
   );
 
   const { createValue } = useCodeGenFromHandle();
+  // Off until the deployment enables AI authoring — the entry point is absent,
+  // not disabled.
+  const codeGenEnabled = isCodeGenerationEnabled();
 
   const handleCreateValueWithAI = useCallback(
     (event?: React.MouseEvent<HTMLElement>) => {
@@ -1056,7 +1060,7 @@ const InputContextMenu: React.FC = () => {
               <Text size="small">Prompt</Text>
             </Box>
           )}
-          {type != null && handleId != null && (
+          {codeGenEnabled && type != null && handleId != null && (
             <Box
               component="button"
               type="button"

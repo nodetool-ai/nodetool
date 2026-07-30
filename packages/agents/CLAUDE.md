@@ -439,6 +439,30 @@ npm run dev:nodetool -- eval graph-planner -p anthropic -m ... --min-success 0.8
 
 Harness tests (scripted provider, no network): `tests/graph-planner-eval.test.ts`.
 
+### Code node authoring eval (`code-gen`)
+
+`src/evals/code-gen-{cases,eval}.ts` drives the real `CodePlanner` over eight
+cases — one per authoring shape the feature targets (reshape, merge/join,
+compute, extract/parse, split, format, validate, seed) — and scores each
+accepted `submit_code` submission structurally: declared outputs present and
+typed, inputs limited to the slots the dialog offered, the destination-handle
+case's expected output present with the right type, every declared output
+assigned on every visible return path (`analyzeGeneratedCode`), no `state`/
+`yield` when nobody asked, and no name that is neither sandbox API
+(`unknownApiReferences`) nor bound by the code itself (`collectBoundNames`).
+
+Acceptance is reported twice: **first-pass** (accepted on round 1, before the
+tool fed anything back) and **post-repair** (accepted at all within the round
+cap). `--min-success` gates on post-repair.
+
+```bash
+npm run dev:nodetool -- eval code-gen --list
+npm run dev:nodetool -- eval code-gen -p anthropic -m claude-sonnet-5
+npm run dev:nodetool -- eval code-gen -p openai -m gpt-5.4-mini --min-success 0.9
+```
+
+Harness tests (scripted provider, no network): `tests/code-gen-eval.test.ts`.
+
 ### Planning-mode eval suites (`task-planner`, `script-planner`)
 
 The graph-planner suite covers graph mode. The other two planning modes have a
