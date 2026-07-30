@@ -1,0 +1,101 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-30T14:00:00.000Z",
+  "updated_at": "2026-07-30T14:00:00.000Z",
+  "name": "Crush It to 8 Bits",
+  "tool_name": null,
+  "description": "Quantise to fewer bits and decimate the sample rate. Two independent controls: bit depth is the vertical resolution, sample-rate reduction the horizontal.",
+  "tags": [
+    "audio",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.AudioInput",
+        "data": {
+          "name": "audio",
+          "value": null,
+          "description": "The audio to crush"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "bc",
+        "type": "lib.audio.Bitcrush",
+        "data": {
+          "bit_depth": 6,
+          "sample_rate_reduction": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Bitcrush"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "crushed"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 640,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Result"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "bc",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e2",
+        "source": "bc",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

@@ -1,0 +1,161 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-30T16:00:00.000Z",
+  "updated_at": "2026-07-30T16:00:00.000Z",
+  "name": "Localise a Script and Revoice It",
+  "tool_name": null,
+  "description": "Translation and voice in one pass. The output is audio in the target language, which is what a localised cut actually needs \u2014 a translated document still leaves the recording to do.",
+  "tags": [
+    "text",
+    "audio",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "script",
+          "value": "",
+          "description": "The English script"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1  Script"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ag",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
+          "mode": "loop",
+          "system": "You translate scripts into natural spoken Spanish. Return only the translated script, no notes, no English.",
+          "prompt": "",
+          "tools": [],
+          "image": [],
+          "audio": [],
+          "history": [],
+          "thread_id": "",
+          "max_tokens": 16384,
+          "max_turns": 100
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "2  Translate"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "tts",
+        "type": "nodetool.audio.TextToSpeech",
+        "data": {
+          "model": {
+            "type": "tts_model",
+            "provider": "openai",
+            "id": "tts-1",
+            "name": "TTS 1",
+            "path": null,
+            "voices": [
+              "alloy",
+              "echo",
+              "fable",
+              "onyx",
+              "nova",
+              "shimmer"
+            ],
+            "selected_voice": "nova"
+          },
+          "text": "",
+          "speed": 1.0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "3  Voice it"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "spanish_audio"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 990,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "4  Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "ag",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e2",
+        "source": "ag",
+        "sourceHandle": "text",
+        "target": "tts",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e3",
+        "source": "tts",
+        "sourceHandle": "audio",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

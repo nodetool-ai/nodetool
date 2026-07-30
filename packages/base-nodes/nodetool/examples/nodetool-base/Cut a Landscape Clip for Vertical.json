@@ -1,0 +1,101 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-30T16:00:00.000Z",
+  "updated_at": "2026-07-30T16:00:00.000Z",
+  "name": "Cut a Landscape Clip for Vertical",
+  "tool_name": null,
+  "description": "Footage arrives 16:9 and the channel wants 9:16. Resizing to the vertical frame is the unglamorous step between having a film and being able to post it.",
+  "tags": [
+    "video",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.VideoInput",
+        "data": {
+          "name": "clip",
+          "value": null,
+          "description": "The landscape clip"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1  Clip"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "rs",
+        "type": "nodetool.video.Resize",
+        "data": {
+          "width": 1080,
+          "height": 1920
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "2  To 9:16"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "vertical"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "3  Vertical"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "rs",
+        "targetHandle": "video"
+      },
+      {
+        "id": "e2",
+        "source": "rs",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

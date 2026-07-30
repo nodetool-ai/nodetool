@@ -1,0 +1,118 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-30T16:00:00.000Z",
+  "updated_at": "2026-07-30T16:00:00.000Z",
+  "name": "Write a Listing from the Product Photo",
+  "tool_name": null,
+  "description": "Hand the model the photograph rather than a description of it. Marketplace copy written from the actual image catches details a spec sheet omits \u2014 finish, proportion, what it sits next to.",
+  "tags": [
+    "text",
+    "image",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "photo",
+          "value": null,
+          "description": "The product photo"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1  Photo"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ag",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
+          "mode": "loop",
+          "system": "You write marketplace listings. Lead with the concrete: material, size cues, finish. No superlatives, no invented specifications.",
+          "prompt": "Write a product title under 70 characters and a description of about 80 words for the product in this image.",
+          "tools": [],
+          "image": [],
+          "audio": [],
+          "history": [],
+          "thread_id": "",
+          "max_tokens": 16384,
+          "max_turns": 100
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "2  Copywriter"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "listing"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "3  Listing"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "ag",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e2",
+        "source": "ag",
+        "sourceHandle": "text",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

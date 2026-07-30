@@ -78,6 +78,25 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "fanout1",
+        "type": "nodetool.control.Collection",
+        "data": {
+          "items": []
+        },
+        "ui_properties": {
+          "position": {
+            "x": 160,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Fan out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       }
     ],
     "edges": [
@@ -85,8 +104,8 @@
         "id": "e1",
         "source": "src",
         "sourceHandle": "output",
-        "target": "op",
-        "targetHandle": "input_item"
+        "target": "fanout1",
+        "targetHandle": "items"
       },
       {
         "id": "e2",
@@ -94,6 +113,13 @@
         "sourceHandle": "output",
         "target": "out",
         "targetHandle": "value"
+      },
+      {
+        "id": "e3",
+        "source": "fanout1",
+        "sourceHandle": "output",
+        "target": "op",
+        "targetHandle": "input_item"
       }
     ]
   },

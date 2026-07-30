@@ -1,0 +1,147 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-30T16:00:00.000Z",
+  "updated_at": "2026-07-30T16:00:00.000Z",
+  "name": "Put a Product on a Studio Backdrop",
+  "tool_name": null,
+  "description": "Cut the product out, then place it in a described setting. Two steps rather than one prompt, because generating around an existing product is what keeps the product itself unchanged \u2014 the thing a customer is actually buying.",
+  "tags": [
+    "image",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "photo",
+          "value": null,
+          "description": "The product photo"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1  Photo"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "bg",
+        "type": "nodetool.image.RemoveBackground",
+        "data": {
+          "model": {
+            "type": "image_model",
+            "provider": "fal_ai",
+            "id": "fal-ai/bria/background/remove",
+            "name": "Bria Background Remove",
+            "path": null,
+            "supported_tasks": []
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "2  Cut out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "comp",
+        "type": "nodetool.image.ImageToImage",
+        "data": {
+          "model": {
+            "type": "image_model",
+            "provider": "fal_ai",
+            "id": "fal-ai/flux/dev",
+            "name": "FLUX.1 Dev",
+            "path": null,
+            "supported_tasks": []
+          },
+          "image": [],
+          "prompt": "product centred on a warm concrete plinth, soft studio light, shallow depth of field",
+          "negative_prompt": "",
+          "entities": [],
+          "strength": 0.45,
+          "aspect_ratio": "1:1",
+          "resolution": "1K"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "3  Place on backdrop"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "styled"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 990,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "4  Result"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "bg",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e2",
+        "source": "bg",
+        "sourceHandle": "output",
+        "target": "comp",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e3",
+        "source": "comp",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

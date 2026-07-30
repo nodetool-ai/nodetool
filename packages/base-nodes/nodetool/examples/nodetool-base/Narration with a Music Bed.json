@@ -1,0 +1,176 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-30T16:00:00.000Z",
+  "updated_at": "2026-07-30T16:00:00.000Z",
+  "name": "Narration with a Music Bed",
+  "tool_name": null,
+  "description": "Voice at full level, music at 0.35 underneath, mixed rather than replaced. The ratio is the entire craft of the thing.",
+  "tags": [
+    "audio",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "script",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "script",
+          "value": "",
+          "description": "The narration"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1  Script"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "tts",
+        "type": "nodetool.audio.TextToSpeech",
+        "data": {
+          "model": {
+            "type": "tts_model",
+            "provider": "openai",
+            "id": "tts-1",
+            "name": "TTS 1",
+            "path": null,
+            "voices": [
+              "alloy",
+              "echo",
+              "fable",
+              "onyx",
+              "nova",
+              "shimmer"
+            ],
+            "selected_voice": "nova"
+          },
+          "text": "",
+          "speed": 1.0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "2  Narrate"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "mus",
+        "type": "nodetool.audio.TextToMusic",
+        "data": {
+          "model": {
+            "type": "music_model",
+            "provider": "fal_ai",
+            "id": "fal-ai/stable-audio-25/text-to-audio",
+            "name": "Stable Audio 2.5",
+            "path": null
+          },
+          "prompt": "calm ambient bed, no percussion, unobtrusive",
+          "lyrics": "",
+          "duration": 12.0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "3  Bed"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ov",
+        "type": "nodetool.audio.OverlayAudio",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 990,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "4  Mix"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "narration"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "5  Narration"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "script",
+        "sourceHandle": "output",
+        "target": "tts",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e2",
+        "source": "tts",
+        "sourceHandle": "audio",
+        "target": "ov",
+        "targetHandle": "a"
+      },
+      {
+        "id": "e3",
+        "source": "mus",
+        "sourceHandle": "audio",
+        "target": "ov",
+        "targetHandle": "b"
+      },
+      {
+        "id": "e4",
+        "source": "ov",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

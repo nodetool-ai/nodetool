@@ -1,0 +1,177 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-30T16:00:00.000Z",
+  "updated_at": "2026-07-30T16:00:00.000Z",
+  "name": "Action Items from a Meeting Recording",
+  "tool_name": null,
+  "description": "A recording becomes a list of commitments with owners. Anything without a clear owner is listed separately rather than assigned to someone the model guessed at.",
+  "tags": [
+    "audio",
+    "text",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.VideoInput",
+        "data": {
+          "name": "recording",
+          "value": null,
+          "description": "The recording to work from"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1  Recording"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ex",
+        "type": "nodetool.video.ExtractAudio",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "2  Extract audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "asr",
+        "type": "nodetool.text.AutomaticSpeechRecognition",
+        "data": {
+          "model": {
+            "type": "asr_model",
+            "provider": "openai",
+            "id": "gpt-4o-mini-transcribe",
+            "name": "GPT-4o Mini Transcribe",
+            "path": null
+          },
+          "language": "en",
+          "prompt": "",
+          "temperature": 0.0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "3  Transcribe"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ag",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
+          "mode": "loop",
+          "system": "You extract action items from meeting transcripts. Give owner, action and any stated deadline. Put items with no clear owner under 'Unassigned'.",
+          "prompt": "",
+          "tools": [],
+          "image": [],
+          "audio": [],
+          "history": [],
+          "thread_id": "",
+          "max_tokens": 16384,
+          "max_turns": 100
+        },
+        "ui_properties": {
+          "position": {
+            "x": 990,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "4  Agent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "action_items"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "5  Output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "ex",
+        "targetHandle": "video"
+      },
+      {
+        "id": "e2",
+        "source": "ex",
+        "sourceHandle": "output",
+        "target": "asr",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e3",
+        "source": "asr",
+        "sourceHandle": "text",
+        "target": "ag",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e4",
+        "source": "ag",
+        "sourceHandle": "text",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

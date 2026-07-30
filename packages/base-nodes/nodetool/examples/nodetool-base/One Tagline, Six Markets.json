@@ -1,0 +1,117 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-30T16:00:00.000Z",
+  "updated_at": "2026-07-30T16:00:00.000Z",
+  "name": "One Tagline, Six Markets",
+  "tool_name": null,
+  "description": "A tagline in six languages with a back-translation for each, so someone who reads none of them can still see what was actually said.",
+  "tags": [
+    "text",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "tagline",
+          "value": "",
+          "description": "The tagline to localise"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1  Input"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ag",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
+          "mode": "loop",
+          "system": "You localise taglines into German, French, Spanish, Italian, Japanese and Brazilian Portuguese. For each: the tagline, then a literal back-translation into English in brackets.",
+          "prompt": "",
+          "tools": [],
+          "image": [],
+          "audio": [],
+          "history": [],
+          "thread_id": "",
+          "max_tokens": 16384,
+          "max_turns": 100
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "2  Agent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "localised"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "3  Output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "ag",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e2",
+        "source": "ag",
+        "sourceHandle": "text",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

@@ -1,0 +1,206 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-30T14:00:00.000Z",
+  "updated_at": "2026-07-30T14:00:00.000Z",
+  "name": "Every Combination",
+  "tool_name": null,
+  "description": "Cross product of two streams \u2014 every left item against every right one. The sweep you build before a batch of paid renders, so you can see the count before you pay for it.",
+  "tags": [
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "a",
+        "type": "nodetool.constant.List",
+        "data": {
+          "value": [
+            "portrait",
+            "landscape"
+          ]
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Framings"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "b",
+        "type": "nodetool.constant.List",
+        "data": {
+          "value": [
+            "dawn",
+            "noon",
+            "dusk"
+          ]
+        },
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Times"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "x",
+        "type": "nodetool.control.Cross",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 640,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Cross"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ol",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "framing"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 960,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Framing"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "orr",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "time_of_day"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "5  Time"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "fanout1",
+        "type": "nodetool.control.Collection",
+        "data": {
+          "items": []
+        },
+        "ui_properties": {
+          "position": {
+            "x": 160,
+            "y": 240
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Fan out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "fanout2",
+        "type": "nodetool.control.Collection",
+        "data": {
+          "items": []
+        },
+        "ui_properties": {
+          "position": {
+            "x": 480,
+            "y": 240
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Fan out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "a",
+        "sourceHandle": "output",
+        "target": "fanout1",
+        "targetHandle": "items"
+      },
+      {
+        "id": "e2",
+        "source": "b",
+        "sourceHandle": "output",
+        "target": "fanout2",
+        "targetHandle": "items"
+      },
+      {
+        "id": "e3",
+        "source": "x",
+        "sourceHandle": "left",
+        "target": "ol",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e4",
+        "source": "x",
+        "sourceHandle": "right",
+        "target": "orr",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e5",
+        "source": "fanout1",
+        "sourceHandle": "output",
+        "target": "x",
+        "targetHandle": "left"
+      },
+      {
+        "id": "e6",
+        "source": "fanout2",
+        "sourceHandle": "output",
+        "target": "x",
+        "targetHandle": "right"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}
