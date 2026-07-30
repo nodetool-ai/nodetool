@@ -38,6 +38,12 @@
  * - `FAKE_WORKER_NODE_TYPE=<type>`      node_type reported by discover (default
  *                                       "fake.TestNode")
  * - `FAKE_WORKER_READY_DELAY_MS=<ms>`   delay before emitting the ready signal
+ * - `FAKE_WORKER_PROTOCOL_VERSION=<n>`  `protocol_version` reported by discover
+ *                                       (default 1 — the real value). Set below
+ *                                       `MIN_BRIDGE_PROTOCOL_VERSION` (task D3's
+ *                                       `bridge-version-mismatch` fault) to
+ *                                       exercise the bridge's hard-floor
+ *                                       rejection in `python-bridge-base.ts`.
  *
  * `FAKE_WORKER_CLOSE_STDIN_AFTER_MS` / `FAKE_WORKER_CLOSE_STDOUT_AFTER_MS`
  * (broken-pipe / close-stdout-early faults) are handled by
@@ -61,6 +67,7 @@ const splitFrames = process.env.FAKE_WORKER_SPLIT_FRAMES === "1";
 const coalesceFiller = process.env.FAKE_WORKER_COALESCE_FILLER === "1";
 const nodeType = process.env.FAKE_WORKER_NODE_TYPE ?? "fake.TestNode";
 const readyDelayMs = Number(process.env.FAKE_WORKER_READY_DELAY_MS ?? 0);
+const protocolVersion = Number(process.env.FAKE_WORKER_PROTOCOL_VERSION ?? 1);
 
 type Frame = Record<string, unknown>;
 
@@ -111,7 +118,7 @@ function discoverReply(requestId: string): Frame {
           required_settings: []
         }
       ],
-      protocol_version: 1,
+      protocol_version: protocolVersion,
       load_errors: []
     }
   };

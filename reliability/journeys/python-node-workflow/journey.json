@@ -1,0 +1,21 @@
+{
+  "name": "python-node-workflow",
+  "description": "Journey #7 (docs/RELIABILITY_ARCHITECTURE.md §5, §9; task D3): a Python-worker node (`fake.TestNode`) run over the real stdio bridge protocol against E2's faithful length-prefixed fake (`packages/runtime/tests/fixtures/fake-python-stdio-worker.ts`), on both the kernel and ws-server surfaces (`drivers/python-bridge.ts` wires `connectPythonBridgeForGraph`/`resolvePythonNodeExecutor` into both). Happy path completes normally and round-trips the value through the bridge; the fault matrix below (`nodetool reliability run python-node-workflow --faults <name>`) exercises each of §9's bridge faults and must still end in a sane failed terminal with zero orphan actors on every surface. The real-worker half of this journey (against actual `nodetool-core`, not the fake) is nightly-ring scope, out of scope here.",
+  "workflow": { "ref": "workflow.json" },
+  "params": {},
+  "interactions": "interactions.json",
+  "surfaces": ["kernel", "ws-server"],
+  "faults": [
+    { "type": "bridge-exit-mid-request" },
+    { "type": "bridge-framing-violation" },
+    { "type": "bridge-never-ready" },
+    { "type": "bridge-epipe" },
+    { "type": "bridge-version-mismatch" }
+  ],
+  "timeoutMs": 20000,
+  "assertions": {
+    "invariants": ["lifecycle-pairing", "terminal-uniqueness", "cleanup-leaks"],
+    "outputs": true,
+    "streamShape": false
+  }
+}

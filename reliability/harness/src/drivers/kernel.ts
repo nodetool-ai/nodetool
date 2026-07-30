@@ -5,7 +5,13 @@
  *
  * Runs a journey's scripted `interactions` against a real `ExecutionSession`
  * over a fresh, fully-hermetic registry (`registry.ts`: real base nodes +
- * the harness's own fixture nodes, no Python bridge). Every emitted
+ * the harness's own fixture nodes). The bridge factory is
+ * `journeyPythonBridgeFactory` (`python-bridge.ts`, task D3) — a real Python
+ * worker is never spawned; a graph with an unresolved node type (journey 7,
+ * `python-node-workflow`) gets E2's faithful stdio fake instead, everything
+ * else gets no bridge at all (`connectPythonBridgeForGraph` only spawns when
+ * the graph actually needs one), so this driver stays hermetic either way.
+ * Every emitted
  * `ProcessingMessage` is recorded as a `server_to_client` frame. The kernel
  * has no wire, so `pushInput`/`cancel` are in-process method calls, not real
  * frames — but this driver still records a synthetic `client_to_server`
@@ -17,15 +23,20 @@
  * ignores this direction entirely (`onlyServerToClient` in `compare.ts`), so
  * these synthetic frames can never cause a false divergence.
  */
-import { ExecutionSession, type RawGraphInput } from "@nodetool-ai/execution";
+import { randomUUID } from "node:crypto";
+import {
+  ExecutionSession,
+  type ExecutionSessionOptions,
+  type RawGraphInput
+} from "@nodetool-ai/execution";
+import { InMemoryStorageAdapter, ProcessingContext } from "@nodetool-ai/runtime";
 import type { Journey, JourneyInteraction } from "../core/journey.js";
 import { makeFrame, type RunFrame, type RunRecord } from "../core/record.js";
 import { AnchorWaiter } from "./anchors.js";
 import { buildJourneyRegistry } from "./registry.js";
+import { journeyPythonBridgeFactory } from "./python-bridge.js";
+import { getInjectedHostStorage } from "../faults/host-faults.js";
 import type { RunDriver } from "./types.js";
-
-/** Hermetic: this driver never spawns/dials a Python worker. */
-const NO_BRIDGE = async (): Promise<null> => null;
 
 async function pumpMessages(
   session: ExecutionSession,
@@ -70,10 +81,10 @@ export class KernelDriver implements RunDriver {
 
       switch (interaction.action) {
         case "run": {
-          session = await ExecutionSession.create({
+          const sessionOptions: ExecutionSessionOptions = {
             graph: journey.workflow as unknown as RawGraphInput,
             registry,
-            bridgeFactory: NO_BRIDGE,
+            bridgeFactory: journeyPythonBridgeFactory,
             workflowId: journey.manifest.name,
             params: journey.manifest.params,
             // §12: "strict mode is a kernel flag... the harness always sets
@@ -81,7 +92,25 @@ export class KernelDriver implements RunDriver {
             // checks (pending inbox work, pending control responses) are
             // always thrown violations, not log warnings.
             strict: true
+          };
+          // Every kernel run gets a working (in-memory, hermetic) storage
+          // adapter — `ExecutionSession`'s own default context wires none at
+          // all, but a journey like `host-disk-full-write` (task D3) needs
+          // one to write through on its happy-path run before the fault
+          // matrix below swaps it for an ENOSPC-throwing one
+          // (`faults/host-faults.ts`'s `host-disk-full`,
+          // {@link getInjectedHostStorage}). No shipped journey before this
+          // one wrote an asset, so giving every run a real (if unused)
+          // adapter instead of `null` changes nothing else.
+          const jobId = randomUUID();
+          sessionOptions.jobId = jobId;
+          sessionOptions.context = new ProcessingContext({
+            jobId,
+            workflowId: journey.manifest.name,
+            userId: "1",
+            storage: getInjectedHostStorage() ?? new InMemoryStorageAdapter()
           });
+          session = await ExecutionSession.create(sessionOptions);
           pump = pumpMessages(session, frames, waiter, () => seq++);
           break;
         }

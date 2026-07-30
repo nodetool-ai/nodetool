@@ -88,10 +88,26 @@ export function checkTerminalUniqueness(record: RunRecord): Violation[] {
     return status === "error" || status === "failed";
   });
 
+  // Task D3: some failures never reach a per-node lifecycle event at all —
+  // e.g. an unresolvable executor (a Python bridge that failed to connect,
+  // `python-node-workflow`'s `bridge-never-ready`/`bridge-epipe`/
+  // `bridge-version-mismatch` faults) throws while *resolving* the node,
+  // before the actor ever emits its own `node_update running`. That's a
+  // legitimate "failed" terminal with real evidence — the terminal
+  // `job_update` itself carries a non-empty `error` string explaining why —
+  // just not evidence `hasNodeError` (a `node_update` scan) can see. Gated on
+  // `terminalStatus === "failed"` already being the actual value, so this can
+  // only ever confirm an already-"failed" terminal as expected — it can never
+  // flip what a "completed"/"cancelled"/"suspended" run expects.
+  const hasJobLevelError =
+    terminalStatus === "failed" &&
+    typeof terminalMessage["error"] === "string" &&
+    (terminalMessage["error"] as string).trim().length > 0;
+
   let expected: string;
   if (hasCancelRequest) expected = "cancelled";
   else if (hasSuspendedNode) expected = "suspended";
-  else if (hasNodeError) expected = "failed";
+  else if (hasNodeError || hasJobLevelError) expected = "failed";
   else expected = "completed";
 
   const actual = canonicalTerminalStatus(terminalStatus);

@@ -18,11 +18,19 @@ import {
   packWebSocketMessage,
   unpackWebSocketMessage
 } from "@nodetool-ai/websocket";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { registerBaseNodes } from "@nodetool-ai/base-nodes";
+import {
+  resolvePythonNodeExecutor,
+  type PythonBridgeBase
+} from "@nodetool-ai/runtime";
 import type { Journey, JourneyInteraction } from "../core/journey.js";
 import { makeFrame, type RunFrame, type RunRecord } from "../core/record.js";
 import { AnchorWaiter } from "./anchors.js";
 import { registerFixtureNodes } from "./fixture-nodes.js";
+import { journeyPythonBridgeFactory } from "./python-bridge.js";
 import type { RunDriver } from "./types.js";
+import { maybeFrontWithProxy, type WsProxyFrontEnd } from "../faults/ws-proxy.js";
 
 const TERMINAL_JOB_STATUSES = new Set([
   "completed",
@@ -91,14 +99,97 @@ export class WsServerDriver implements RunDriver {
   readonly name = "ws-server";
 
   async run(journey: Journey): Promise<RunRecord> {
+    // Task D3: mirror the kernel driver's Python-bridge wiring
+    // (`python-bridge.ts`) so journey 7 (`python-node-workflow`) behaves the
+    // same on both surfaces. `createTestUiServer`'s default `resolveExecutor`
+    // only ever calls `registry.resolve` — unlike `ExecutionSession`, it has
+    // no built-in bridge fallback — so this driver builds one itself: a
+    // throwaway registry (same real base nodes + harness fixtures the actual
+    // server registry ends up with, via `configureRegistry` below) just to
+    // answer "can the TS registry resolve this type", exactly the predicate
+    // `connectPythonBridgeForGraph` needs. A graph with no unresolved node
+    // type (every journey but #7) never spawns anything.
+    const bridgeCheckRegistry = new NodeRegistry();
+    registerBaseNodes(bridgeCheckRegistry);
+    registerFixtureNodes(bridgeCheckRegistry);
+    const workflowNodes = ((journey.workflow as { nodes?: unknown }).nodes ??
+      []) as ReadonlyArray<{ type?: unknown }>;
+    const bridge: PythonBridgeBase | null = await journeyPythonBridgeFactory(
+      workflowNodes,
+      (t: string) => bridgeCheckRegistry.has(t)
+    );
+
+    let liveRegistry: NodeRegistry | null = null;
     const srv = createTestUiServer({
       host: "127.0.0.1",
       port: 0,
-      configureRegistry: (registry) => registerFixtureNodes(registry)
+      configureRegistry: (registry) => {
+        registerFixtureNodes(registry);
+        liveRegistry = registry;
+      },
+      resolveExecutor: (node) => {
+        const registry = liveRegistry;
+        if (registry?.has(node.type)) return registry.resolve(node);
+        const pythonExecutor = resolvePythonNodeExecutor(bridge, node);
+        if (pythonExecutor) return pythonExecutor;
+        // Falls through to the registry's own "Unknown node type" error —
+        // same failure shape a bridge-less run would produce.
+        return registry!.resolve(node);
+      },
+      // Without this, `Graph.loadFromDict` (node-sdk) silently drops a
+      // bridge-only node type (and its edges) during hydration — it never
+      // even reaches `resolveExecutor` above, so a bridge CONNECT failure
+      // (never-ready/epipe/version-mismatch: `bridge` ends up `null`) would
+      // otherwise make the node vanish from the graph entirely instead of
+      // failing at execution the way the kernel driver's
+      // `hydrateGraphNodeFlags` does (it defaults metadata for ANY
+      // class-less node rather than dropping it — see that function's own
+      // doc comment). Mirrors that: bridge metadata when connected, a
+      // generic pass-through shape when not, so either way the node stays in
+      // the graph and the real failure surfaces later, at
+      // `resolveExecutor`/`execute()` — the same failure shape on both
+      // surfaces, just like the kernel driver.
+      resolveUnknownNodeType: async (nodeType) => {
+        const meta = bridge?.hasNodeType(nodeType)
+          ? bridge.getNodeMetadata().find((m) => m.node_type === nodeType)
+          : undefined;
+        if (meta) {
+          return {
+            nodeType,
+            propertyTypes: Object.fromEntries(
+              meta.properties.map((p) => [p.name, p.type.type])
+            ),
+            outputs: Object.fromEntries(
+              meta.outputs.map((o) => [o.name, o.type.type])
+            ),
+            supportsDynamicInputs: false,
+            descriptorDefaults: {}
+          };
+        }
+        return {
+          nodeType,
+          propertyTypes: { value: "any" },
+          outputs: { out: "any" },
+          supportsDynamicInputs: true,
+          descriptorDefaults: {}
+        };
+      }
     });
     await srv.listen();
     const address = srv.server.address();
-    const port = typeof address === "object" && address !== null ? address.port : 7777;
+    const serverPort = typeof address === "object" && address !== null ? address.port : 7777;
+
+    // Task D2: when a ws-* fault (`faults/ws-faults.ts`) is currently active,
+    // front the real server with a `WsFaultProxy` and connect this driver's
+    // client to the proxy instead — every ws-* fault applies transparently
+    // to this one client-connection code path below. `wsFrontEnd` stays
+    // `null` (the overwhelming majority of runs) when no ws fault is
+    // configured, in which case this is exactly the pre-D2 direct connection.
+    const wsFrontEnd: WsProxyFrontEnd | null = await maybeFrontWithProxy(
+      "127.0.0.1",
+      serverPort
+    );
+    const port = wsFrontEnd ? wsFrontEnd.port : serverPort;
 
     const frames: RunFrame[] = [];
     let seq = 0;
@@ -240,10 +331,35 @@ export class WsServerDriver implements RunDriver {
         }
       }
 
-      await terminalPromise;
+      // Task D2: a black-hole-style ws fault (`ws-drop-no-fin`,
+      // `ws-stall-reads`) can leave `terminalPromise` unresolved forever —
+      // the whole point of those faults is that no more frames arrive. §9's
+      // "no run hangs forever" applies to fault runs too, so race the wait
+      // against the journey's own declared timeout instead of adding one
+      // only for the happy path.
+      let timedOut = false;
+      let timeoutTimer: NodeJS.Timeout | undefined;
+      await Promise.race([
+        terminalPromise,
+        new Promise<void>((resolve) => {
+          timeoutTimer = setTimeout(() => {
+            timedOut = true;
+            resolve();
+          }, journey.manifest.timeoutMs);
+        })
+      ]);
+      clearTimeout(timeoutTimer);
+      if (timedOut && terminalStatus === null) {
+        terminalStatus = "timeout";
+        terminalError =
+          `journey "${journey.manifest.name}": ws-server driver timed out after ` +
+          `${journey.manifest.timeoutMs}ms waiting for a terminal job_update`;
+      }
     } finally {
       ws.close();
+      await wsFrontEnd?.close();
       await srv.close();
+      bridge?.close();
     }
 
     return {

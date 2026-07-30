@@ -20,6 +20,7 @@ import {
   type StreamingInputs,
   type StreamingOutputs
 } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 /**
  * External input node whose output is structurally streaming (the trivial
@@ -132,10 +133,45 @@ export class ReliabilityCancelProbeNode extends BaseNode {
   }
 }
 
+/**
+ * Writes bytes through `context.storage` — the one write op every real
+ * asset-producing node eventually calls. Exists purely as a deterministic,
+ * hermetic target for task D3's `host-disk-full` fault: no shipped node
+ * writes an asset without also touching media-ref plumbing this fixture
+ * doesn't need to exercise. A missing `context.storage` (the normal
+ * fault-free hermetic default — `ExecutionSession`'s own minimal context
+ * wires none) is a configuration error for a journey using this node, not a
+ * silent no-op, so it throws rather than skipping the write.
+ */
+export class ReliabilityStorageWriteNode extends BaseNode {
+  static readonly nodeType = "test.reliability.StorageWrite";
+  static readonly title = "Reliability Storage Write";
+  static readonly description =
+    "Test fixture: writes bytes through context.storage (task D3's host-disk-full fault).";
+
+  @prop({ type: "str", default: "reliability-fixture" })
+  declare key: string;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    if (!context?.storage) {
+      throw new Error(
+        "ReliabilityStorageWriteNode requires a ProcessingContext with storage wired"
+      );
+    }
+    const uri = await context.storage.store(
+      `${this.key}.bin`,
+      new Uint8Array([1, 2, 3]),
+      "application/octet-stream"
+    );
+    return { output: uri };
+  }
+}
+
 export const RELIABILITY_FIXTURE_NODES = [
   ReliabilityStreamingInputNode,
   ReliabilityStreamSinkNode,
-  ReliabilityCancelProbeNode
+  ReliabilityCancelProbeNode,
+  ReliabilityStorageWriteNode
 ] as const;
 
 /** Registers the harness's own fixture nodes into a live registry. Idempotent

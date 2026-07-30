@@ -13,7 +13,18 @@
 export * from "./types.js";
 export * from "./registry.js";
 export * from "./provider-faults.js";
+export * from "./net-proxy.js";
+export * from "./ws-proxy.js";
+export * from "./ws-faults.js";
+export * from "./bridge-faults.js";
+export * from "./host-faults.js";
 
 import { registerProviderFaultModules } from "./provider-faults.js";
+import { registerWsFaultModules } from "./ws-faults.js";
+import { registerBridgeFaultModules } from "./bridge-faults.js";
+import { registerHostFaultModules } from "./host-faults.js";
 
 registerProviderFaultModules();
+registerWsFaultModules();
+registerBridgeFaultModules();
+registerHostFaultModules();

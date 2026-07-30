@@ -67,6 +67,24 @@ child.on("error", (err) => {
   process.exit(1);
 });
 
+// `PythonStdioBridge.close()` sends this process a plain SIGTERM (no fixture
+// override for that). Node's default action for an unhandled SIGTERM is
+// immediate termination — no JS runs, so without an explicit handler here
+// `child` (the actual fake worker process, task D3 found it accumulating as
+// a PPID-1 orphan across repeated bridge-fault test runs) would never be
+// told to exit and gets reparented to init instead of reaped. SIGINT too,
+// for the same reason (Ctrl-C / a test runner's own SIGINT propagation).
+for (const signal of ["SIGTERM", "SIGINT"]) {
+  process.on(signal, () => {
+    try {
+      child.kill("SIGKILL");
+    } catch {
+      // already gone
+    }
+    process.exit(0);
+  });
+}
+
 if (closeStdinAfterMs !== null) {
   setTimeout(() => {
     // `process.stdin.destroy()` only detaches Node's stream wrapper — it does
