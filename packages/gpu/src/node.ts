@@ -93,9 +93,27 @@ export async function createNodeGPUDevice(): Promise<GPUDevice> {
   retainedDawnInstances.push(gpu);
   const adapter = await gpu.requestAdapter();
   if (!adapter) {
-    throw new Error("No WebGPU adapter available (Node/Dawn)");
+    throw new Error(
+      "No WebGPU adapter available (Node/Dawn). " + adapterHelpForPlatform()
+    );
   }
   return adapter.requestDevice();
+}
+
+/**
+ * Dawn reaches the GPU through a platform driver and ships no software
+ * fallback, so "no adapter" almost always means a missing driver rather than a
+ * missing GPU. On Linux that is a Vulkan ICD: with none installed the loader
+ * fails `vkCreateInstance` with `VK_ERROR_INCOMPATIBLE_DRIVER`, which surfaces
+ * here as a null adapter and says nothing about the cause. Name the fix.
+ */
+function adapterHelpForPlatform(): string {
+  return (
+    "On headless Linux this usually means no Vulkan driver (ICD) is installed — " +
+    "Dawn has no software fallback of its own. Install a software rasterizer " +
+    "with `apt-get install mesa-vulkan-drivers` (lavapipe), or point the loader " +
+    "at an existing one with VK_DRIVER_FILES=/path/to/icd.json."
+  );
 }
 
 /**

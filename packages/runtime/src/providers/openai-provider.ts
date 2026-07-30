@@ -9,6 +9,14 @@ import { createLogger, importHidden } from "@nodetool-ai/config";
 import { BaseProvider, splitToolResultImages } from "./base-provider.js";
 import { hashSystemPrompt } from "./provider-session.js";
 import { sniffAudioMime } from "./audio-mime.js";
+
+/** Extension for each mime `sniffAudioMime` can return; anything else is mp3. */
+const AUDIO_MIME_EXT: Record<string, string> = {
+  "audio/wav": "wav",
+  "audio/ogg": "ogg",
+  "audio/flac": "flac",
+  "audio/mpeg": "mp3"
+};
 import {
   extractResponsesImages,
   extractResponsesText,
@@ -1987,11 +1995,17 @@ export class OpenAIProvider extends BaseProvider {
     const temperature = Math.max(0, Math.min(1, args.temperature ?? 0));
 
     const audioPart = new Uint8Array(args.audio);
+    // Label the upload with what the bytes actually are. Hardcoding audio/mpeg
+    // made OpenAI reject anything that was not MP3 with "400 Audio file might
+    // be corrupted or unsupported" — which is every clip coming through
+    // `nodetool.video.ExtractAudio`, since that writes PCM WAV.
+    const audioMime = sniffAudioMime(audioPart);
+    const audioName = `audio.${AUDIO_MIME_EXT[audioMime] ?? "mp3"}`;
     const fileLike =
       typeof File !== "undefined"
-        ? new File([audioPart], "audio.mp3", { type: "audio/mpeg" })
-        : Object.assign(new Blob([audioPart], { type: "audio/mpeg" }), {
-            name: "audio.mp3"
+        ? new File([audioPart], audioName, { type: audioMime })
+        : Object.assign(new Blob([audioPart], { type: audioMime }), {
+            name: audioName
           });
 
     const isDiarizationModel = args.model.startsWith(

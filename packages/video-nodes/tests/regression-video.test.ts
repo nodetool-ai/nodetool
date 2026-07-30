@@ -204,8 +204,15 @@ describe("DenoiseVideoNode — uses nlmeans filter with strength param", () => {
 
 // ─── 2. Stabilize ──────────────────────────────────────────────────────────────
 
-describe("StabilizeVideoNode — uses deshake with smooth param", () => {
-  it("constructs deshake filter with smooth parameter", async () => {
+// `deshake` has no `smooth` option — that belongs to `vidstabtransform`, which
+// needs a libvidstab build we can't assume. The node emitted `deshake=smooth=N`
+// and ffmpeg rejected every invocation with "Option not found". These tests
+// asserted that exact string, so they passed while the node could not run at
+// all: they string-matched the args and never executed ffmpeg. `smoothing` now
+// maps onto deshake's real control, rx/ry, which ffmpeg requires to be a
+// multiple of 16 in 0–64 (0 disables the search, so the floor is 16).
+describe("StabilizeVideoNode — maps smoothing onto deshake rx/ry", () => {
+  it("snaps smoothing to a legal rx/ry step", async () => {
     const node = new StabilizeVideoNode();
     node.assign({
       video: videoRef([1, 2, 3, 4]),
@@ -216,7 +223,23 @@ describe("StabilizeVideoNode — uses deshake with smooth param", () => {
 
     const args = ffmpegArgString();
     expect(args).toContain("deshake");
-    expect(args).toContain("smooth=15");
+    expect(args).toContain("rx=16");
+    expect(args).toContain("ry=16");
+    expect(args).not.toContain("smooth=");
+  });
+
+  it("clamps a large smoothing to the 64 ceiling", async () => {
+    const node = new StabilizeVideoNode();
+    node.assign({
+      video: videoRef([1, 2, 3, 4]),
+      smoothing: 200,
+      crop_black: false
+    });
+    await node.process().catch(() => undefined);
+
+    const args = ffmpegArgString();
+    expect(args).toContain("rx=64");
+    expect(args).toContain("ry=64");
   });
 
   it("includes cropdetect and crop when crop_black=true", async () => {
@@ -230,7 +253,7 @@ describe("StabilizeVideoNode — uses deshake with smooth param", () => {
 
     const args = ffmpegArgString();
     expect(args).toContain("deshake");
-    expect(args).toContain("smooth=10");
+    expect(args).toContain("rx=16");
     expect(args).toContain("cropdetect");
     expect(args).toContain("crop");
   });
