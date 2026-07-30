@@ -40,6 +40,7 @@
     "@nodetool-ai/config": "*",
     "@nodetool-ai/dsl": "*",
     "@nodetool-ai/elevenlabs-nodes": "*",
+    "@nodetool-ai/execution": "*",
     "@nodetool-ai/fal-nodes": "*",
     "@nodetool-ai/huggingface": "*",
     "@nodetool-ai/huggingface-nodes": "*",

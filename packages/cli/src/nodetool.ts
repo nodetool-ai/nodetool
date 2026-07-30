@@ -33,13 +33,8 @@ import {
 import { readCachedHfModels, searchCachedHfModels } from "@nodetool-ai/huggingface";
 import { initMasterKey } from "@nodetool-ai/security";
 import { getDefaultDbPath, getDefaultAssetsPath } from "@nodetool-ai/config";
-import { WorkflowRunner } from "@nodetool-ai/kernel";
-import {
-  hydrateGraphNodeFlags,
-  isEditorOnlyType,
-  NodeRegistry
-} from "@nodetool-ai/node-sdk";
-import type { GraphData } from "@nodetool-ai/protocol";
+import { ExecutionSession } from "@nodetool-ai/execution";
+import { isEditorOnlyType, NodeRegistry } from "@nodetool-ai/node-sdk";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
 import { registerMinimaxNodes } from "@nodetool-ai/minimax-nodes";
@@ -51,9 +46,7 @@ import { registerHuggingFaceNodes } from "@nodetool-ai/huggingface-nodes";
 import {
   ProcessingContext,
   FileStorageAdapter,
-  initTelemetry,
-  connectPythonBridgeForGraph,
-  resolvePythonNodeExecutor
+  initTelemetry
 } from "@nodetool-ai/runtime";
 import type { AssetOutputMode } from "@nodetool-ai/runtime";
 import { mkdirSync } from "node:fs";
@@ -740,44 +733,24 @@ workflows
           }
         });
 
-        // Connect a Python worker bridge when the graph has non-TS (Python)
-        // nodes. Transport: NODETOOL_WORKER_URL (+ NODETOOL_WORKER_TOKEN) →
-        // remote worker; unset → local stdio worker. Pure-TS graphs get none.
-        const pythonBridge = await connectPythonBridgeForGraph(
-          graph.nodes,
-          (t) => registry.has(t)
-        );
-
-        const runner = new WorkflowRunner(jobId, {
-          resolveExecutor: (node: { id: string; type: string }) => {
-            if (registry.has(node.type)) return registry.resolve(node);
-            const py = resolvePythonNodeExecutor(pythonBridge, node);
-            if (py) return py;
-            throw new Error(`Unknown node type: ${node.type}`);
-          },
-          executionContext: context
-        });
-
         console.error(
           `Running workflow${workflowId ? ` ${workflowId}` : ""}...`
         );
 
-        const result = await (async () => {
-          try {
-            return await runner.run(
-              {
-                job_id: jobId,
-                workflow_id: workflowId ?? undefined,
-                params
-              },
-              // Saved workflow JSON carries no behavior flags; stamp them
-              // from the registry or streaming nodes run as one-shots.
-              hydrateGraphNodeFlags(graph as GraphData, registry)
-            );
-          } finally {
-            pythonBridge?.close();
-          }
-        })();
+        // ExecutionSession owns graph hydration, Python-bridge connection
+        // (NODETOOL_WORKER_URL/NODETOOL_WORKER_TOKEN → remote worker; unset →
+        // local stdio worker; pure-TS graphs get none), and executor
+        // resolution (registry → Python bridge → throw).
+        const session = await ExecutionSession.create({
+          graph,
+          registry,
+          jobId,
+          workflowId,
+          params,
+          context
+        });
+
+        const result = await session.result;
 
         if (opts.json) {
           console.log(JSON.stringify(result, null, 2));

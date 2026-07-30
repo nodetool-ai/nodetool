@@ -38,6 +38,9 @@
       "path": "../elevenlabs-nodes"
     },
     {
+      "path": "../execution"
+    },
+    {
       "path": "../minimax-nodes"
     },
     {

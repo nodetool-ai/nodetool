@@ -1,23 +1,17 @@
 /**
- * Headless ("server") debug surface: runs a workflow through the kernel
- * `WorkflowRunner` exactly as `nodetool workflows run` does, but captures the
- * full processing-message stream and the OpenTelemetry trace instead of just the
- * final outputs.
+ * Headless ("server") debug surface: runs a workflow through
+ * `@nodetool-ai/execution`'s `ExecutionSession` exactly as
+ * `nodetool workflows run` does, but captures the full processing-message
+ * stream and the OpenTelemetry trace instead of just the final outputs.
  *
  * This is integration code — it pulls in the node registries, runtime context,
  * and Python bridge — so it is exercised end-to-end rather than unit-tested.
  */
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
 import { getSecret } from "@nodetool-ai/models";
-import { WorkflowRunner } from "@nodetool-ai/kernel";
-import { hydrateGraphNodeFlags, isEditorOnlyType } from "@nodetool-ai/node-sdk";
-import type { GraphData, ProcessingMessage } from "@nodetool-ai/protocol";
-import {
-  ProcessingContext,
-  FileStorageAdapter,
-  connectPythonBridgeForGraph,
-  resolvePythonNodeExecutor
-} from "@nodetool-ai/runtime";
+import { ExecutionSession } from "@nodetool-ai/execution";
+import type { ProcessingMessage } from "@nodetool-ai/protocol";
+import { ProcessingContext, FileStorageAdapter } from "@nodetool-ai/runtime";
 import { buildFullRegistry } from "../node-registry.js";
 import { collectExecutionSummary } from "./collector.js";
 import { readTraceSummary } from "./trace.js";
@@ -38,40 +32,8 @@ export interface ServerRunOutcome {
   rawMessages: ProcessingMessage[];
 }
 
-/** Settle to a synthetic failed result if the run exceeds `timeoutMs`. */
-function withTimeout<T>(
-  promise: Promise<T>,
-  timeoutMs: number | undefined,
-  onTimeout: () => T
-): Promise<T> {
-  if (!timeoutMs || timeoutMs <= 0) return promise;
-  return new Promise<T>((resolvePromise, rejectPromise) => {
-    const timer = setTimeout(() => resolvePromise(onTimeout()), timeoutMs);
-    promise.then(
-      (value) => {
-        clearTimeout(timer);
-        resolvePromise(value);
-      },
-      (err) => {
-        clearTimeout(timer);
-        rejectPromise(err);
-      }
-    );
-  });
-}
-
 export async function runOnServer(input: ServerRunInput): Promise<ServerRunOutcome> {
-  const { graph: rawGraph, workflowId, params } = input;
-  // Editor-only nodes (Comment/Group/Reroute) carry no executable class; the
-  // web editor prunes them at serialize time, so the headless surface must do
-  // the same or every commented example dies with "Unknown node type".
-  const executableNodes = rawGraph.nodes.filter((n) => !isEditorOnlyType(String(n.type)));
-  const keep = new Set(executableNodes.map((n) => n.id));
-  const graph = {
-    ...rawGraph,
-    nodes: executableNodes,
-    edges: rawGraph.edges.filter((e) => keep.has(e.source) && keep.has(e.target))
-  };
+  const { graph, workflowId, params } = input;
   const startedAt = Date.now();
 
   const registry = buildFullRegistry();
@@ -94,55 +56,42 @@ export async function runOnServer(input: ServerRunInput): Promise<ServerRunOutco
     workspaceStorage: workspaceDir ? new FileStorageAdapter(workspaceDir) : null
   });
 
-  const pythonBridge = await connectPythonBridgeForGraph(graph.nodes, (t) =>
-    registry.has(t)
-  );
-
-  const runner = new WorkflowRunner(jobId, {
-    resolveExecutor: (node: { id: string; type: string }) => {
-      if (registry.has(node.type)) return registry.resolve(node);
-      const py = resolvePythonNodeExecutor(pythonBridge, node);
-      if (py) return py;
-      throw new Error(`Unknown node type: ${node.type}`);
-    },
-    executionContext: context
+  // ExecutionSession owns editor-only-node pruning (Comment/Group/Reroute —
+  // the web editor prunes them at serialize time; without this every
+  // commented example would die with "Unknown node type"), graph hydration,
+  // Python-bridge connection, and executor resolution (registry → Python
+  // bridge → throw) — the three steps this surface used to hand-roll.
+  // `limits.runTimeoutMs` replaces the old `withTimeout` race: instead of
+  // resolving a synthetic result while abandoning a still-running kernel, the
+  // facade calls `session.cancel("timeout")`, which actually tears the run
+  // down, and `session.result` only settles once that teardown completes.
+  const session = await ExecutionSession.create({
+    graph,
+    registry,
+    jobId,
+    workflowId,
+    params,
+    context,
+    limits: { runTimeoutMs: input.timeoutMs }
   });
 
-  let result: Awaited<ReturnType<WorkflowRunner["run"]>>;
-  try {
-    result = await withTimeout(
-      runner.run(
-        { job_id: jobId, workflow_id: workflowId ?? undefined, params },
-        hydrateGraphNodeFlags(graph as unknown as GraphData, registry)
-      ),
-      input.timeoutMs,
-      () => ({
-        status: "failed" as const,
-        error: `Debug server run exceeded timeout (${input.timeoutMs}ms)`,
-        outputs: {},
-        messages: [...context.getMessages()]
-      })
-    );
-  } catch (err) {
-    // A thrown run (e.g. an unknown node type, or a graph that fails
-    // pre-flight) is exactly when the debug bundle matters most — capture it as
-    // a failed result instead of letting it abort the harness.
-    result = {
-      status: "failed",
-      error: err instanceof Error ? err.message : String(err),
-      outputs: {},
-      messages: [...context.getMessages()]
-    };
-  } finally {
-    pythonBridge?.close();
-  }
+  // `session.result` never rejects — kernel failures (including an unknown
+  // node type surfaced during executor resolution) resolve as `status:
+  // "failed"` instead of throwing, so no try/catch is needed here.
+  const result = await session.result;
+  const timedOut = session.cancelReason === "timeout";
 
   const messages = (result.messages ?? []) as ProcessingMessage[];
   const summary = collectExecutionSummary(messages);
   // The runner's RunResult status is authoritative; fall back to the message
-  // stream's view if it's missing (e.g. on the synthetic timeout result).
+  // stream's view if it's missing.
   summary.status = result.status ?? summary.status;
-  if (result.error && !summary.error) summary.error = result.error;
+  const error =
+    result.error ??
+    (timedOut
+      ? `Debug server run exceeded timeout (${input.timeoutMs}ms)`
+      : undefined);
+  if (error && !summary.error) summary.error = error;
 
   // Spans are written eagerly via SimpleSpanProcessor, but the underlying
   // WriteStream flushes async — give it a beat before reading the file back.
@@ -156,7 +105,7 @@ export async function runOnServer(input: ServerRunInput): Promise<ServerRunOutco
     surface: "server",
     ok: result.status === "completed",
     status: result.status ?? summary.status,
-    error: result.error ?? summary.error,
+    error: error ?? summary.error,
     durationMs: Date.now() - startedAt,
     summary,
     trace
