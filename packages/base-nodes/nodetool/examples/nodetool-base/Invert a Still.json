@@ -1,0 +1,98 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-30T14:00:00.000Z",
+  "updated_at": "2026-07-30T14:00:00.000Z",
+  "name": "Invert a Still",
+  "tool_name": null,
+  "description": "A straight negative \u2014 every channel flipped. The cheapest way to see whether a filter chain is operating on the pixels you think it is.",
+  "tags": [
+    "image",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "picture",
+          "value": null,
+          "description": "The image to invert"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "f",
+        "type": "lib.image.filter.Invert",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Invert"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "inverted"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 640,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Result"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "f",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e2",
+        "source": "f",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

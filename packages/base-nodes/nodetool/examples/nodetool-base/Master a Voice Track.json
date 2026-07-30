@@ -1,0 +1,158 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-30T14:00:00.000Z",
+  "updated_at": "2026-07-30T14:00:00.000Z",
+  "name": "Master a Voice Track",
+  "tool_name": null,
+  "description": "The three-stage chain a voice gets before it ships: compress to even out the peaks, lift the level, then limit so nothing clips. Order matters \u2014 limiting first would leave nothing for the compressor.",
+  "tags": [
+    "audio",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.AudioInput",
+        "data": {
+          "name": "audio",
+          "value": null,
+          "description": "The recorded voice"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "cmp",
+        "type": "lib.audio.Compress",
+        "data": {
+          "threshold": -18.0,
+          "ratio": 3.0,
+          "attack": 5.0,
+          "release": 60.0,
+          "auto_gain": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Compress"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "gain",
+        "type": "lib.audio.Gain",
+        "data": {
+          "gain_db": 3.0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 640,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Lift 3 dB"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "lim",
+        "type": "lib.audio.Limiter",
+        "data": {
+          "threshold_db": -1.0,
+          "release_ms": 200.0,
+          "auto_gain": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 960,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Limit"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "mastered"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "5  Result"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "cmp",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e2",
+        "source": "cmp",
+        "sourceHandle": "output",
+        "target": "gain",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e3",
+        "source": "gain",
+        "sourceHandle": "output",
+        "target": "lim",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e4",
+        "source": "lim",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

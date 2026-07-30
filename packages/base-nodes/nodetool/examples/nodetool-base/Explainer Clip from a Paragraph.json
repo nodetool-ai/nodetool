@@ -1,0 +1,233 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-30T16:00:00.000Z",
+  "updated_at": "2026-07-30T16:00:00.000Z",
+  "name": "Explainer Clip from a Paragraph",
+  "tool_name": null,
+  "description": "A paragraph of explanation becomes narration and a matching visual. The agent writes the shot description, so the picture follows the words rather than being prompted separately and drifting from them.",
+  "tags": [
+    "video",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "topic",
+          "value": "",
+          "description": "What to explain"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1  Topic"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ag",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
+          "mode": "loop",
+          "system": "You write a single sentence describing a literal, filmable scene that illustrates the given text. No metaphors, no text on screen.",
+          "prompt": "",
+          "tools": [],
+          "image": [],
+          "audio": [],
+          "history": [],
+          "thread_id": "",
+          "max_tokens": 16384,
+          "max_turns": 100
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "2  Shot description"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "tts",
+        "type": "nodetool.audio.TextToSpeech",
+        "data": {
+          "model": {
+            "type": "tts_model",
+            "provider": "openai",
+            "id": "tts-1",
+            "name": "TTS 1",
+            "path": null,
+            "voices": [
+              "alloy",
+              "echo",
+              "fable",
+              "onyx",
+              "nova",
+              "shimmer"
+            ],
+            "selected_voice": "nova"
+          },
+          "text": "",
+          "speed": 1.0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "3  Narration"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "vid",
+        "type": "nodetool.video.TextToVideo",
+        "data": {
+          "model": {
+            "type": "video_model",
+            "provider": "fal_ai",
+            "id": "fal-ai/ltx-2.3/text-to-video/fast",
+            "name": "LTX-2.3 Fast",
+            "path": null,
+            "supported_tasks": []
+          },
+          "prompt": "",
+          "negative_prompt": "",
+          "aspect_ratio": "16:9",
+          "resolution": "720p",
+          "duration": 6,
+          "timeout_seconds": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 990,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "4  Footage"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "mix",
+        "type": "nodetool.video.AddAudio",
+        "data": {
+          "volume": 1.0,
+          "mix": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "5  Combine"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "explainer"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 330
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "6  Clip"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "ag",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e2",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "tts",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e3",
+        "source": "ag",
+        "sourceHandle": "text",
+        "target": "vid",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e4",
+        "source": "vid",
+        "sourceHandle": "output",
+        "target": "mix",
+        "targetHandle": "video"
+      },
+      {
+        "id": "e5",
+        "source": "tts",
+        "sourceHandle": "audio",
+        "target": "mix",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e6",
+        "source": "mix",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}
