@@ -1,0 +1,40 @@
+{
+  "id": "python-node-workflow",
+  "name": "Python node workflow",
+  "nodes": [
+    {
+      "id": "const1",
+      "type": "nodetool.constant.String",
+      "name": "const1",
+      "properties": { "value": "hello python bridge" }
+    },
+    {
+      "id": "py1",
+      "type": "fake.TestNode",
+      "name": "py1",
+      "properties": {}
+    },
+    {
+      "id": "out1",
+      "type": "nodetool.output.Output",
+      "name": "out1",
+      "properties": { "name": "result" }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "const1",
+      "sourceHandle": "output",
+      "target": "py1",
+      "targetHandle": "value"
+    },
+    {
+      "id": "e2",
+      "source": "py1",
+      "sourceHandle": "out",
+      "target": "out1",
+      "targetHandle": "value"
+    }
+  ]
+}

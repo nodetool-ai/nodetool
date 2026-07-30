@@ -9,9 +9,11 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "build": "node ../../scripts/build-typescript-workspace.mjs && npm run generate:processing-messages-schema",
     "generate:sdk-protocol": "tsx scripts/generate-sdk-protocol.ts",
     "check:sdk-protocol": "tsx scripts/generate-sdk-protocol.ts --check",
+    "generate:processing-messages-schema": "tsx scripts/generate-processing-messages-schema.ts",
+    "check:processing-messages-schema": "tsx scripts/generate-processing-messages-schema.ts --check",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit"

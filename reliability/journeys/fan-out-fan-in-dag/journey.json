@@ -1,0 +1,15 @@
+{
+  "name": "fan-out-fan-in-dag",
+  "description": "Journey #3 (docs/RELIABILITY_ARCHITECTURE.md §5): fan-out to two branches — one direct, one with an extra hop (structurally slower, no wall-clock timing) — and fan-in through Collect. Exercises completion detection, EOS dedup, and Promise.allSettled-style join semantics.",
+  "workflow": { "ref": "workflow.json" },
+  "params": {},
+  "interactions": "interactions.json",
+  "surfaces": ["kernel", "ws-server"],
+  "faults": [],
+  "timeoutMs": 30000,
+  "assertions": {
+    "invariants": ["lifecycle-pairing", "terminal-uniqueness", "cleanup-leaks"],
+    "outputs": false,
+    "streamShape": false
+  }
+}

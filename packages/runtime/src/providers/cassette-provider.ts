@@ -37,6 +37,74 @@ export type CassetteMode = "record" | "replay" | "auto";
 
 export type CassetteMethod = "generateMessage" | "generateMessages";
 
+// ---------------------------------------------------------------------------
+// Scripted provider faults (docs/RELIABILITY_TASKS.md D1)
+// ---------------------------------------------------------------------------
+
+/**
+ * The seven provider-seam faults docs/RELIABILITY_ARCHITECTURE.md §9 names.
+ * `http-429`/`http-500`/`timeout` fail the call outright before touching the
+ * cassette or inner provider; `truncated-stream`/`malformed-chunk`/
+ * `slow-drip`/`cost-omission` let the call proceed (cassette replay or inner
+ * delegation, same as today) and perturb the resulting stream/usage.
+ */
+export type ProviderFaultKind =
+  | "http-429"
+  | "http-500"
+  | "timeout"
+  | "truncated-stream"
+  | "malformed-chunk"
+  | "slow-drip"
+  | "cost-omission";
+
+/** One scripted fault, applied to every call this provider instance serves. */
+export interface ProviderFault {
+  kind: ProviderFaultKind;
+  /** `truncated-stream`: chunks yielded before the stream throws (default 2). */
+  afterChunks?: number;
+  /** `slow-drip`: delay in ms injected before each yielded stream item (default 10). */
+  delayMs?: number;
+  /** `timeout`: ms waited before throwing the synthetic timeout error (default 50). */
+  timeoutMs?: number;
+  /** `http-429`: surfaced in the synthetic error message, not otherwise enforced. */
+  retryAfterSeconds?: number;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Immediate-failure faults: thrown before the cassette/inner provider is
+ * ever consulted. Returns null for faults that don't fail the call outright. */
+async function throwImmediateFault(fault: ProviderFault): Promise<void> {
+  if (fault.kind === "http-429") {
+    const err = new Error(
+      `CassetteProvider fault: upstream rate limited (429 too many requests)` +
+        (fault.retryAfterSeconds
+          ? `; retry after ${fault.retryAfterSeconds}s`
+          : "")
+    ) as Error & { status?: number };
+    err.status = 429;
+    throw err;
+  }
+  if (fault.kind === "http-500") {
+    const err = new Error(
+      "CassetteProvider fault: upstream server error (500 internal server error)"
+    ) as Error & { status?: number };
+    err.status = 500;
+    throw err;
+  }
+  if (fault.kind === "timeout") {
+    const ms = fault.timeoutMs ?? 50;
+    await sleep(ms);
+    const err = new Error(
+      `CassetteProvider fault: request timed out after ${ms}ms`
+    ) as Error & { code?: string };
+    err.code = "ETIMEDOUT";
+    throw err;
+  }
+}
+
 /**
  * Normalized, hashable summary of a chat request. Only the fields that change
  * the model's output are kept; runtime-only fields (signals, callbacks, history
@@ -80,6 +148,18 @@ export interface CassetteInteraction {
   response: ProviderStreamItem[] | Message;
   /** Usage captured during recording, reproduced on replay for cost parity. */
   usage?: UsageInfo;
+  /**
+   * Scripted failure: when present, replay throws this instead of returning
+   * `response` (which is ignored). Lets a cassette pin "the upstream call
+   * failed this way" for error-taxonomy tests
+   * (`BaseProvider.isRateLimitError`/`isAuthError`/`isContextLengthError`)
+   * without a live provider ever producing the failure. This is a minimal,
+   * single-shot failure — the full HTTP-fault matrix (mid-stream truncation,
+   * malformed SSE, slow-drip, cost-field omission) is Track D's job
+   * (`docs/RELIABILITY_TASKS.md` D1); this field only needs to exist so a
+   * contract cassette can represent "the request failed" at all.
+   */
+  error?: { message: string; status?: number };
 }
 
 /** A serializable cassette: an ordered list of interactions. */
@@ -291,6 +371,12 @@ export interface CassetteProviderOptions {
   cassette?: Cassette;
   /** Disk path to persist to. When set, `save()` writes here. */
   path?: string;
+  /**
+   * Scripted fault (docs/RELIABILITY_TASKS.md D1) applied to every call this
+   * instance serves, on top of whatever `mode` would otherwise do. Absent by
+   * default — existing cassettes and callers are unaffected.
+   */
+  fault?: ProviderFault;
 }
 
 /**
@@ -305,6 +391,7 @@ export class CassetteProvider extends BaseProvider {
   readonly mode: CassetteMode;
   readonly cassette: Cassette;
   private readonly path?: string;
+  private readonly fault?: ProviderFault;
   /**
    * Per-hash replay cursor. Among interactions sharing a hash, successive
    * replays cycle through them in record order (FIFO), wrapping around so two
@@ -321,6 +408,50 @@ export class CassetteProvider extends BaseProvider {
     this.mode = options.mode ?? "auto";
     this.cassette = options.cassette ?? createEmptyCassette();
     this.path = options.path;
+    this.fault = options.fault;
+  }
+
+  /**
+   * Wraps a stream (a cassette hit's recorded items or the inner provider's
+   * live generator) with the non-immediate faults: `truncated-stream` throws
+   * after `afterChunks` items (simulating a dropped connection mid-stream),
+   * `slow-drip` delays before every yield, `malformed-chunk` throws after the
+   * underlying stream ends (simulating an unparseable trailing SSE event).
+   * A no-op passthrough when no fault — or an immediate-failure fault — is set.
+   */
+  private async *applyStreamFault(
+    items: AsyncIterable<ProviderStreamItem>
+  ): AsyncGenerator<ProviderStreamItem> {
+    const fault = this.fault;
+    if (!fault) {
+      yield* items;
+      return;
+    }
+    const limit = fault.kind === "truncated-stream" ? fault.afterChunks ?? 2 : null;
+    let count = 0;
+    for await (const item of items) {
+      if (limit !== null && count >= limit) {
+        throw new Error(
+          `CassetteProvider fault: stream truncated after ${limit} chunk(s) (connection reset)`
+        );
+      }
+      if (fault.kind === "slow-drip") {
+        await sleep(fault.delayMs ?? 10);
+      }
+      yield item;
+      count++;
+    }
+    if (fault.kind === "malformed-chunk") {
+      throw new SyntaxError(
+        "CassetteProvider fault: malformed SSE event (unparseable chunk)"
+      );
+    }
+  }
+
+  /** `cost-omission`: usage is never tracked/reproduced, even though the
+   * underlying call (real or replayed) succeeded normally. */
+  private get omitCost(): boolean {
+    return this.fault?.kind === "cost-omission";
   }
 
   /**
@@ -385,13 +516,16 @@ export class CassetteProvider extends BaseProvider {
   async generateMessage(
     args: Parameters<BaseProvider["generateMessage"]>[0]
   ): Promise<Message> {
+    if (this.fault) await throwImmediateFault(this.fault);
+
     const request = normalizeRequest(args);
     const hash = hashRequest("generateMessage", request);
 
     if (this.mode === "replay" || this.mode === "auto") {
       const hit = this.matchInteraction("generateMessage", hash);
       if (hit) {
-        if (hit.usage) this.trackUsage(request.model, hit.usage);
+        if (hit.error) throw reconstructScriptedError(hit.error);
+        if (hit.usage && !this.omitCost) this.trackUsage(request.model, hit.usage);
         return cloneMessage(hit.response as Message);
       }
       if (this.mode === "replay") {
@@ -406,7 +540,7 @@ export class CassetteProvider extends BaseProvider {
     // provider's tracked usage so replay reproduces the same cost.
     const { runInSlot, getUsage } = createUsageSlot();
     const result = await runInSlot(() => this.inner.generateMessage(args));
-    const usage = usageFromSlot(getUsage());
+    const usage = this.omitCost ? undefined : usageFromSlot(getUsage());
     if (usage) this.trackUsage(request.model, usage);
     this.cassette.interactions.push({
       hash,
@@ -425,20 +559,25 @@ export class CassetteProvider extends BaseProvider {
   async *generateMessages(
     args: Parameters<BaseProvider["generateMessages"]>[0]
   ): AsyncGenerator<ProviderStreamItem> {
+    if (this.fault) await throwImmediateFault(this.fault);
+
     const request = normalizeRequest(args);
     const hash = hashRequest("generateMessages", request);
 
     if (this.mode === "replay" || this.mode === "auto") {
       const hit = this.matchInteraction("generateMessages", hash);
       if (hit) {
+        if (hit.error) throw reconstructScriptedError(hit.error);
         const items = hit.response as ProviderStreamItem[];
-        for (const item of items) {
-          yield cloneStreamItem(item);
-        }
+        yield* this.applyStreamFault(
+          (async function* () {
+            for (const item of items) yield cloneStreamItem(item);
+          })()
+        );
         // Reproduce recorded usage AFTER the stream so a consumer that reads
         // cost post-iteration (the common case) sees the same total a live run
         // produced. trackUsage also feeds the tracing/cost slot.
-        if (hit.usage) this.trackUsage(request.model, hit.usage);
+        if (hit.usage && !this.omitCost) this.trackUsage(request.model, hit.usage);
         return;
       }
       if (this.mode === "replay") {
@@ -455,13 +594,20 @@ export class CassetteProvider extends BaseProvider {
     const { runInSlot, getUsage } = createUsageSlot();
     const captured: ProviderStreamItem[] = [];
     const source = this.inner.generateMessages(args);
-    while (true) {
-      const next = await runInSlot(() => source.next());
-      if (next.done) break;
-      captured.push(cloneStreamItem(next.value));
-      yield next.value;
+    const faulted = this.applyStreamFault(
+      (async function* () {
+        while (true) {
+          const next = await runInSlot(() => source.next());
+          if (next.done) return;
+          yield next.value;
+        }
+      })()
+    );
+    for await (const item of faulted) {
+      captured.push(cloneStreamItem(item));
+      yield item;
     }
-    const usage = usageFromSlot(getUsage());
+    const usage = this.omitCost ? undefined : usageFromSlot(getUsage());
     if (usage) this.trackUsage(request.model, usage);
     this.cassette.interactions.push({
       hash,
@@ -506,6 +652,16 @@ function usageFromSlot(
     info.cacheWriteTokens = usage.cacheWriteTokens;
   }
   return info;
+}
+
+/** Rebuild an Error from a scripted {@link CassetteInteraction.error}. */
+function reconstructScriptedError(error: {
+  message: string;
+  status?: number;
+}): Error {
+  const err = new Error(error.message) as Error & { status?: number };
+  if (error.status !== undefined) err.status = error.status;
+  return err;
 }
 
 function cloneMessage(message: Message): Message {

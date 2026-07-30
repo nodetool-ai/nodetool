@@ -1006,6 +1006,122 @@ describe("PythonBridgeBase — models & comfy proxy RPCs", () => {
   });
 });
 
+describe("PythonBridgeBase — inbound frame validation (B3)", () => {
+  let bridge: TestBridge;
+  beforeEach(async () => {
+    bridge = makeBridge();
+    await connectBridge(bridge);
+  });
+
+  it("rejects only the affected request when its result frame fails schema validation", async () => {
+    const p1 = bridge.execute("n.T", {}, {}, {});
+    const id1 = bridge.reqIdOf("execute");
+    bridge.sent = [];
+    const p2 = bridge.execute("n.T", {}, {}, {});
+    const id2 = bridge.reqIdOf("execute");
+
+    // A malformed result for request 1 — `data` itself is not an object, so
+    // no known `result` payload shape (including the permissive fallback)
+    // can match it.
+    bridge.handle({
+      type: "result",
+      request_id: id1,
+      data: "not-an-object" as unknown as Record<string, unknown>
+    });
+    await expect(p1).rejects.toThrow(/malformed 'result' frame/);
+
+    // Request 2 is unaffected and still settles normally.
+    bridge.handle({
+      type: "result",
+      request_id: id2,
+      data: { outputs: { out: 1 }, blobs: {} }
+    });
+    await expect(p2).resolves.toEqual({ outputs: { out: 1 }, blobs: {} });
+    expect(bridge.pendingSize()).toBe(0);
+  });
+
+  it("rejects only the affected request when its error frame fails schema validation", async () => {
+    const p = bridge.execute("n.T", {}, {}, {});
+    const id = bridge.reqIdOf("execute");
+    bridge.handle({
+      type: "error",
+      request_id: id,
+      // Wrong type for `error` (should be a string).
+      data: { error: 42 }
+    });
+    await expect(p).rejects.toThrow(/malformed 'error' frame/);
+    expect(bridge.pendingSize()).toBe(0);
+  });
+
+  it("does not tear down the connection or reject other pending work", async () => {
+    const p1 = bridge.execute("n.T", {}, {}, {});
+    const id1 = bridge.reqIdOf("execute");
+    bridge.sent = [];
+    const p2 = bridge.execute("n.T", {}, {}, {});
+    const id2 = bridge.reqIdOf("execute");
+
+    bridge.handle({
+      type: "error",
+      request_id: id1,
+      data: { error: 42 }
+    });
+    await expect(p1).rejects.toThrow();
+
+    expect(bridge.isConnected).toBe(true);
+    expect(bridge.closed).toBe(false);
+
+    bridge.handle({
+      type: "result",
+      request_id: id2,
+      data: { outputs: { out: "fine" }, blobs: {} }
+    });
+    await expect(p2).resolves.toEqual({ outputs: { out: "fine" }, blobs: {} });
+  });
+
+  it("logs and drops a malformed frame that carries no request_id, without throwing", () => {
+    expect(() =>
+      bridge.handle({
+        type: "error",
+        // No request_id at all — nothing to attribute the failure to.
+        data: { error: 42 }
+      })
+    ).not.toThrow();
+  });
+
+  it("still dispatches a well-formed frame when validation is on", async () => {
+    const p = bridge.execute("n.T", {}, {}, {});
+    const id = bridge.reqIdOf("execute");
+    bridge.handle({
+      type: "result",
+      request_id: id,
+      data: { outputs: { out: "ok" }, blobs: {} }
+    });
+    await expect(p).resolves.toEqual({ outputs: { out: "ok" }, blobs: {} });
+  });
+
+  it("skips validation entirely when NODETOOL_VALIDATE_BRIDGE_FRAMES=0", async () => {
+    const prev = process.env["NODETOOL_VALIDATE_BRIDGE_FRAMES"];
+    process.env["NODETOOL_VALIDATE_BRIDGE_FRAMES"] = "0";
+    try {
+      const p = bridge.execute("n.T", {}, {}, {});
+      const id = bridge.reqIdOf("execute");
+      // Malformed per the schema (`data` must be an object), but since
+      // validation is forced off this reaches the raw dispatch logic
+      // instead, which reads `data.outputs`/`data.blobs` off the string and
+      // resolves with `undefined`/`{}`.
+      bridge.handle({
+        type: "result",
+        request_id: id,
+        data: "not-an-object" as unknown as Record<string, unknown>
+      });
+      await expect(p).resolves.toEqual({ outputs: undefined, blobs: {} });
+    } finally {
+      if (prev === undefined) delete process.env["NODETOOL_VALIDATE_BRIDGE_FRAMES"];
+      else process.env["NODETOOL_VALIDATE_BRIDGE_FRAMES"] = prev;
+    }
+  });
+});
+
 describe("PythonBridgeBase — pending cleanup", () => {
   it("_rejectAllPending rejects and clears every pending map", async () => {
     const bridge = makeBridge();

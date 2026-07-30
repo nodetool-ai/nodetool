@@ -1,0 +1,15 @@
+{"type":"job_update","status":"running","job_id":"debug-1785396985706","workflow_id":"linear-text-pipeline"}
+{"type":"node_update","node_id":"const1","node_name":"nodetool.constant.String","node_type":"nodetool.constant.String","status":"running","result":null,"error":null,"properties":{"value":"hello reliability"},"provider_cost":null}
+{"type":"node_update","node_id":"upper1","node_name":"nodetool.text.ToUppercase","node_type":"nodetool.text.ToUppercase","status":"running","result":null,"error":null,"properties":{},"provider_cost":null}
+{"type":"node_update","node_id":"out1","node_name":"nodetool.output.Output","node_type":"nodetool.output.Output","status":"running","result":null,"error":null,"properties":{"name":"result"},"provider_cost":null}
+{"type":"edge_update","job_id":"debug-1785396985706","edge_id":"e1","status":"active","counter":1}
+{"type":"node_update","node_id":"const1","node_name":"nodetool.constant.String","node_type":"nodetool.constant.String","status":"completed","result":null,"error":null,"properties":{"value":"hello reliability"},"provider_cost":null}
+{"type":"edge_update","job_id":"debug-1785396985706","edge_id":"e1","status":"completed","counter":1}
+{"type":"edge_update","job_id":"debug-1785396985706","edge_id":"e2","status":"active","counter":1}
+{"type":"generation_complete","node_id":"upper1","node_name":"nodetool.text.ToUppercase","node_type":"nodetool.text.ToUppercase","outputs":{"output":"HELLO RELIABILITY"},"properties":{"text":"hello reliability"}}
+{"type":"node_update","node_id":"upper1","node_name":"nodetool.text.ToUppercase","node_type":"nodetool.text.ToUppercase","status":"completed","result":{"output":"HELLO RELIABILITY"},"error":null,"properties":{},"provider_cost":null}
+{"type":"edge_update","job_id":"debug-1785396985706","edge_id":"e2","status":"completed","counter":1}
+{"type":"output_update","node_id":"out1","node_name":"out1","output_name":"result","value":"HELLO RELIABILITY","output_type":"any","metadata":{},"disposition":"append"}
+{"type":"generation_complete","node_id":"out1","node_name":"nodetool.output.Output","node_type":"nodetool.output.Output","outputs":{"output":"HELLO RELIABILITY"},"properties":{"name":"result","value":"HELLO RELIABILITY"}}
+{"type":"node_update","node_id":"out1","node_name":"nodetool.output.Output","node_type":"nodetool.output.Output","status":"completed","result":{"output":"HELLO RELIABILITY"},"error":null,"properties":{"name":"result"},"provider_cost":null}
+{"type":"job_update","status":"completed","job_id":"debug-1785396985706","workflow_id":"linear-text-pipeline"}

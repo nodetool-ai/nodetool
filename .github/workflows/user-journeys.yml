@@ -1,16 +1,27 @@
 name: User Journeys
 
-# Nightly and on demand — deliberately NOT a pull-request gate.
+# Nightly + on demand (browser journeys) and on every push to main (the new
+# reliability-ring1 job) — the browser suite is deliberately NOT a
+# pull-request gate; the reliability-ring1 job IS a merge-to-main gate (see
+# below), which is why this workflow now also triggers on `push`.
 #
 # The journey suite drives whole flows through a real browser (build a graph and
 # run it, send a chat message, run a mini app, browse the library), so it is
 # slower and has more moving parts than the page-load smoke suite. Running it
 # nightly first lets it prove it is stable before it is allowed to block a
-# merge. Promote it to `pull_request` once it has a clean streak.
+# merge.
+#
+# Required from 2026-08-15 as a Ring 1 (merge-to-main) check — flip
+# continue-on-error to false then. Tracked in .github/workflows/README.md.
 on:
   schedule:
     # 03:30 UTC daily.
     - cron: "30 3 * * *"
+  push:
+    # Only to run the reliability-ring1 job (below) as a merge-to-main gate —
+    # the legacy `journeys` job below skips on `push` and stays nightly/manual
+    # until its own 2026-08-15 promotion.
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -25,9 +36,14 @@ jobs:
     name: Drive the app the way a user does
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    # Nightly/manual only — `push` fires this workflow purely for
+    # reliability-ring1 (below), which gates fly-deploy.yml on its own. Keeps
+    # this job's cadence unchanged by that addition.
+    if: github.event_name != 'push'
     # Report failures without failing the workflow run, so a flaky night does
-    # not page anyone while the suite is still earning trust. Remove this when
-    # promoting the suite to a required check.
+    # not page anyone while the suite is still earning trust. Required from
+    # 2026-08-15 — flip this to false then. Tracked in
+    # .github/workflows/README.md.
     continue-on-error: true
 
     steps:
@@ -80,3 +96,46 @@ jobs:
             web/playwright-report/
             web/test-results/
           retention-days: 14
+
+  reliability-ring1:
+    name: Reliability Ring 1 (full hermetic suite + differential + packaged)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # Runs on every push to main, on schedule (alongside the nightly browser
+    # suite), and on manual dispatch. Never `continue-on-error`: this job is
+    # the Ring 1 gate docs/RELIABILITY_ARCHITECTURE.md §11 describes — a
+    # failure here must fail this workflow run, because fly-deploy.yml's gate
+    # job (below) reads this workflow's overall conclusion for the pushed
+    # commit before deploying.
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build workspace packages
+        run: npm run build:packages
+
+      - name: Install system libraries for keytar
+        # electron/scripts/prepare-backend.mjs's staging step (used by the
+        # packaged-journey run below) shells out through the electron
+        # workspace, which needs keytar's native build deps present.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsecret-1-dev
+
+      # Full hermetic suite (every reliability/journeys/* journey) on kernel
+      # (oracle, strict) + ws-server, cross-surface diffed (`--diff`), plus
+      # one packaged-backend journey (§5 item 15's pattern: journey 1 against
+      # the staged `server.mjs`) — `--packaged` stages the bundle first via
+      # the same `npm run prepare-backend --workspace=electron` entry point
+      # `backend:smoke` uses.
+      - name: Run full reliability suite (kernel + ws-server + packaged)
+        run: npm run reliability:ring1 -- --packaged

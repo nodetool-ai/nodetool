@@ -1,14 +1,13 @@
 /**
- * Headless job start — run a workflow through the kernel `WorkflowRunner`
- * without a WebSocket connection.
+ * Headless job start — run a workflow through `@nodetool-ai/execution`'s
+ * `ExecutionSession` without a WebSocket connection.
  *
- * This is the minimal load-graph → `Job.create` → `WorkflowRunner` →
+ * This is the minimal load-graph → `Job.create` → `ExecutionSession` →
  * persist-terminal-status path, shared by the trigger dispatcher (which wakes
  * a workflow up for a stored trigger event) and, later, an HTTP run route.
- * Graph hydration follows the CLI's headless run (`nodetool workflows run`):
- * normalize the saved graph into the kernel's descriptor shape, stamp behavior
- * flags from the registry, and resolve Python nodes through a lazily-connected
- * worker bridge.
+ * Graph hydration, executor resolution, and the Python-bridge connection are
+ * owned by the facade, same as the CLI's headless run
+ * (`nodetool workflows run`).
  *
  * The `Job` row is created with status `running` *before* the run starts, so
  * the job is visible in the jobs UI / tRPC list while it executes; the
@@ -18,17 +17,15 @@
  */
 
 import { createLogger, getDefaultAssetsPath } from "@nodetool-ai/config";
-import { WorkflowRunner } from "@nodetool-ai/kernel";
+import {
+  ExecutionSession,
+  normalizeGraph,
+  type RawGraphInput,
+  type RunResult
+} from "@nodetool-ai/execution";
 import { Job, Workflow, getSecret } from "@nodetool-ai/models";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import { hydrateGraphNodeFlags, isEditorOnlyType } from "@nodetool-ai/node-sdk";
-import type { GraphData } from "@nodetool-ai/protocol";
-import {
-  FileStorageAdapter,
-  ProcessingContext,
-  connectPythonBridgeForGraph,
-  resolvePythonNodeExecutor
-} from "@nodetool-ai/runtime";
+import { FileStorageAdapter, ProcessingContext } from "@nodetool-ai/runtime";
 import { resolveWorkflowWorkspace } from "./lib/workflow-workspace.js";
 
 const log = createLogger("nodetool.websocket.headless-job");
@@ -74,11 +71,6 @@ export interface HeadlessJobResult {
   outputs: Record<string, unknown[]>;
 }
 
-type RunnableGraph = {
-  nodes: Array<Record<string, unknown>>;
-  edges: Array<Record<string, unknown>>;
-};
-
 // Lazily bootstrap the full registry only when no registry is injected, so
 // callers that already hold the server's registry (dispatcher, tests) never
 // pay for pack loading.
@@ -93,45 +85,10 @@ async function getDefaultRegistry(): Promise<NodeRegistry> {
   return defaultRegistryPromise;
 }
 
-/**
- * Normalize a saved graph into the kernel's descriptor contract: node
- * properties under `properties` (the editor stores them under `data`), edges
- * carrying `edge_type`, and editor-only nodes (Comment/Group/Reroute) pruned
- * the way the web editor prunes them at serialize time.
- */
-function normalizeRunnableGraph(graph: {
-  nodes: unknown[];
-  edges: unknown[];
-}): RunnableGraph {
-  const executable = (graph.nodes as Array<Record<string, unknown>>).filter(
-    (n) => !isEditorOnlyType(String(n.type ?? ""))
-  );
-  const keep = new Set(executable.map((n) => String(n.id ?? "")));
-  const nodes = executable.map((n) => {
-    if (n.properties === undefined && n.data !== undefined) {
-      const { data, ...rest } = n;
-      return { ...rest, properties: data };
-    }
-    return n;
-  });
-  const edges = (graph.edges as Array<Record<string, unknown>>)
-    .filter(
-      (e) =>
-        keep.has(String(e.source ?? "")) && keep.has(String(e.target ?? ""))
-    )
-    .map((edge) => {
-      const rawEdgeType = edge.edge_type ?? edge.type;
-      const edge_type = rawEdgeType === "control" ? "control" : "data";
-      const { type: _type, ...rest } = edge;
-      return { ...rest, edge_type };
-    });
-  return { nodes, edges };
-}
-
 /** Persist the runner's terminal status onto the Job row. */
 async function persistTerminalStatus(
   jobId: string,
-  result: Awaited<ReturnType<WorkflowRunner["run"]>>
+  result: RunResult
 ): Promise<void> {
   try {
     const job = (await Job.get(jobId)) as Job | null;
@@ -177,7 +134,7 @@ export async function startHeadlessJob(
     throw new Error(`Workflow not found: ${workflowId}`);
   }
 
-  const graph = normalizeRunnableGraph(workflow.getGraph());
+  const graph = normalizeGraph(workflow.getGraph());
   const registry = options.registry ?? (await getDefaultRegistry());
   const params = options.params ?? {};
 
@@ -191,7 +148,7 @@ export async function startHeadlessJob(
     name: options.jobName ?? workflow.name ?? "",
     started_at: new Date().toISOString(),
     params,
-    graph
+    graph: graph as unknown as Record<string, unknown>
   })) as Job;
 
   // The run is accepted from here on: everything above could still reject and
@@ -216,55 +173,29 @@ export async function startHeadlessJob(
     workspaceStorage: workspaceDir ? new FileStorageAdapter(workspaceDir) : null
   });
 
-  // Python nodes go through a lazily-connected worker bridge, exactly like the
-  // CLI's `workflows run`. Pure-TS graphs get no bridge at all.
-  const pythonBridge = await connectPythonBridgeForGraph(graph.nodes, (t) =>
-    registry.has(t)
-  );
-
-  const runner = new WorkflowRunner(job.id, {
-    resolveExecutor: (node) => {
-      if (registry.has(node.type)) {
-        return registry.resolve(
-          node as { id: string; type: string; [key: string]: unknown }
-        );
-      }
-      const py = resolvePythonNodeExecutor(pythonBridge, node);
-      if (py) return py;
-      throw new Error(`Unknown node type: ${node.type}`);
-    },
-    executionContext: context
-  });
-
   log.info("Headless job started", {
     jobId: job.id,
     workflowId,
     triggered: Boolean(options.triggerEvent)
   });
 
-  let result: Awaited<ReturnType<WorkflowRunner["run"]>>;
-  try {
-    result = await runner.run(
-      {
-        job_id: job.id,
-        workflow_id: workflowId,
-        params,
-        ...(options.triggerEvent ? { trigger_event: options.triggerEvent } : {})
-      },
-      hydrateGraphNodeFlags(graph as unknown as GraphData, registry)
-    );
-  } catch (err) {
-    // A thrown run (unknown node type, pre-flight failure) still settles the
-    // job as failed rather than leaving a phantom "running" row behind.
-    result = {
-      status: "failed",
-      error: err instanceof Error ? err.message : String(err),
-      outputs: {},
-      messages: []
-    };
-  } finally {
-    pythonBridge?.close();
-  }
+  // ExecutionSession owns graph hydration, the Python-bridge connection
+  // (lazily connected, exactly like the CLI's `workflows run`; pure-TS graphs
+  // get no bridge at all), and executor resolution (registry → Python bridge
+  // → throw). `session.result` never rejects — kernel failures (including an
+  // unknown node type) resolve as `status: "failed"` instead of throwing, so
+  // the job still settles instead of leaving a phantom "running" row behind.
+  const session = await ExecutionSession.create({
+    graph: graph as unknown as RawGraphInput,
+    registry,
+    jobId: job.id,
+    workflowId,
+    params,
+    triggerEvent: options.triggerEvent ?? null,
+    context
+  });
+
+  const result = await session.result;
 
   await persistTerminalStatus(job.id, result);
   log.info("Headless job finished", { jobId: job.id, status: result.status });

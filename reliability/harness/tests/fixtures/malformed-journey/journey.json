@@ -1,0 +1,8 @@
+{
+  "name": "malformed",
+  "workflow": { "ref": "workflow.json" },
+  "surfaces": [],
+  "assertions": {
+    "invariants": ["lifecycle-pairing"]
+  }
+}

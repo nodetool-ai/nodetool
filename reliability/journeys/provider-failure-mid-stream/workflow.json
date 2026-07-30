@@ -1,0 +1,38 @@
+{
+  "id": "provider-failure-mid-stream",
+  "name": "Provider failure mid-stream",
+  "nodes": [
+    {
+      "id": "summarize",
+      "type": "nodetool.agents.Summarizer",
+      "name": "summarize",
+      "properties": {
+        "model": {
+          "type": "language_model",
+          "provider": "reliability-fault-llm",
+          "id": "reliability-fault-model",
+          "name": "",
+          "path": null,
+          "supported_tasks": []
+        },
+        "text": "This is the reliability harness's fixture input text for the provider-failure-mid-stream journey (docs/RELIABILITY_ARCHITECTURE.md §5, journey 8).",
+        "max_sentences": 2
+      }
+    },
+    {
+      "id": "out1",
+      "type": "nodetool.output.Output",
+      "name": "out1",
+      "properties": { "name": "summary" }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "summarize",
+      "sourceHandle": "text",
+      "target": "out1",
+      "targetHandle": "value"
+    }
+  ]
+}

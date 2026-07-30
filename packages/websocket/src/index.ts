@@ -6,6 +6,10 @@ export {
   type RunJobRequest
 } from "./unified-websocket-runner.js";
 export {
+  packWebSocketMessage,
+  unpackWebSocketMessage
+} from "./messagepack.js";
+export {
   handleApiRequest,
   handleNodeHttpRequest,
   createHttpApiServer,

@@ -959,6 +959,21 @@ export interface TestUiServerOptions extends HttpApiOptions {
    * that use test-only node types such as `test.Input`.
    */
   passthroughUnknownNodes?: boolean;
+  /**
+   * Extends node-TYPE resolution (property/output shape used during graph
+   * hydration — distinct from `resolveExecutor`, which only resolves how a
+   * node EXECUTES) for a type the base registry can't resolve. Consulted
+   * after the registry and before `passthroughUnknownNodes`'s permissive
+   * fallback. Needed because `Graph.loadFromDict` (node-sdk) silently DROPS a
+   * node (and its edges) whose type this resolver can't answer for at all —
+   * so a caller pairing a custom `resolveExecutor` with a node type the
+   * registry doesn't know (e.g. the reliability harness's Python-bridge-fake
+   * node, task D3) must also answer here, or the node never reaches
+   * `resolveExecutor` in the first place.
+   */
+  resolveUnknownNodeType?: (
+    nodeType: string
+  ) => Promise<import("@nodetool-ai/kernel").ResolvedNodeType | null>;
 }
 
 function detectMetadataRootsFromPip(): string[] {
@@ -1258,23 +1273,26 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
   // `test.Input` / `nodetool.input.*` as external inputs and dispatches the
   // run params by node name; declaring `name` keeps that property through
   // hydration.
-  const graphNodeTypeResolver: typeof baseGraphNodeTypeResolver = options
-    .passthroughUnknownNodes
-    ? {
-        resolveNodeType: async (nodeType: string) => {
-          const resolved =
-            await baseGraphNodeTypeResolver.resolveNodeType(nodeType);
-          if (resolved) return resolved;
-          return {
-            nodeType,
-            propertyTypes: { name: "str", value: "any" },
-            outputs: {},
-            supportsDynamicInputs: true,
-            descriptorDefaults: {}
-          };
+  const graphNodeTypeResolver: typeof baseGraphNodeTypeResolver =
+    options.resolveUnknownNodeType || options.passthroughUnknownNodes
+      ? {
+          resolveNodeType: async (nodeType: string) => {
+            const resolved =
+              await baseGraphNodeTypeResolver.resolveNodeType(nodeType);
+            if (resolved) return resolved;
+            const extended = await options.resolveUnknownNodeType?.(nodeType);
+            if (extended) return extended;
+            if (!options.passthroughUnknownNodes) return null;
+            return {
+              nodeType,
+              propertyTypes: { name: "str", value: "any" },
+              outputs: {},
+              supportsDynamicInputs: true,
+              descriptorDefaults: {}
+            };
+          }
         }
-      }
-    : baseGraphNodeTypeResolver;
+      : baseGraphNodeTypeResolver;
 
   // Passthrough executor for unknown node types: echo inputs back so values
   // flow downstream. For `test.Input` the kernel calls process({ value }) and

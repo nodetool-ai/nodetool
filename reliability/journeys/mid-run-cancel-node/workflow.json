@@ -1,0 +1,13 @@
+{
+  "id": "mid-run-cancel-node",
+  "name": "Mid-run cancel — during node",
+  "nodes": [
+    {
+      "id": "probe",
+      "type": "test.reliability.CancelProbe",
+      "name": "probe",
+      "properties": {}
+    }
+  ],
+  "edges": []
+}

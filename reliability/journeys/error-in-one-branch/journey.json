@@ -1,0 +1,15 @@
+{
+  "name": "error-in-one-branch",
+  "description": "Journey #13 (docs/RELIABILITY_ARCHITECTURE.md §5): one branch throws (ParseJSON on invalid input), the sibling branch completes normally, and the terminal job_update reports the failed node while the sibling's output is still collected.",
+  "workflow": { "ref": "workflow.json" },
+  "params": {},
+  "interactions": "interactions.json",
+  "surfaces": ["kernel", "ws-server"],
+  "faults": [],
+  "timeoutMs": 30000,
+  "assertions": {
+    "invariants": ["lifecycle-pairing", "terminal-uniqueness", "cleanup-leaks"],
+    "outputs": false,
+    "streamShape": false
+  }
+}

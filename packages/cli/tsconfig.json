@@ -38,6 +38,9 @@
       "path": "../elevenlabs-nodes"
     },
     {
+      "path": "../execution"
+    },
+    {
       "path": "../minimax-nodes"
     },
     {
@@ -57,6 +60,9 @@
     },
     {
       "path": "../protocol"
+    },
+    {
+      "path": "../../reliability/harness"
     },
     {
       "path": "../replicate-nodes"

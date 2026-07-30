@@ -1,0 +1,27 @@
+{
+  "id": "host-disk-full-write",
+  "name": "Host disk-full write",
+  "nodes": [
+    {
+      "id": "write1",
+      "type": "test.reliability.StorageWrite",
+      "name": "write1",
+      "properties": { "key": "reliability-disk-full" }
+    },
+    {
+      "id": "out1",
+      "type": "nodetool.output.Output",
+      "name": "out1",
+      "properties": { "name": "result" }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "write1",
+      "sourceHandle": "output",
+      "target": "out1",
+      "targetHandle": "value"
+    }
+  ]
+}

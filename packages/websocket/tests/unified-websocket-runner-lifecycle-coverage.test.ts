@@ -107,7 +107,7 @@ describe("UnifiedWebSocketRunner lifecycle — handleCommand dispatch guards", (
       jobId: "J",
       workflowId: "wf",
       status: "running",
-      runner: { pushInputValue: vi.fn() }
+      session: { pushInput: vi.fn() }
     });
     expect(
       (
@@ -120,7 +120,7 @@ describe("UnifiedWebSocketRunner lifecycle — handleCommand dispatch guards", (
   });
 
   it("stream_input pushes a value and surfaces executor errors", async () => {
-    const pushInputValue = vi
+    const pushInput = vi
       .fn()
       .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(new Error("push boom"));
@@ -128,14 +128,14 @@ describe("UnifiedWebSocketRunner lifecycle — handleCommand dispatch guards", (
       jobId: "J",
       workflowId: "wf",
       status: "running",
-      runner: { pushInputValue }
+      session: { pushInput }
     });
     const ok = await runner.handleCommand({
       command: "stream_input",
       data: { job_id: "J", input: "in", value: 7, handle: "h" }
     });
     expect(ok?.message).toBe("Input item streamed");
-    expect(pushInputValue).toHaveBeenCalledWith("in", 7, "h");
+    expect(pushInput).toHaveBeenCalledWith("in", 7, "h");
 
     const err = await runner.handleCommand({
       command: "stream_input",
@@ -163,7 +163,7 @@ describe("UnifiedWebSocketRunner lifecycle — handleCommand dispatch guards", (
       jobId: "J",
       workflowId: "wf",
       status: "running",
-      runner: { finishInputStream }
+      session: { finishInputStream }
     });
     expect(
       (
@@ -186,7 +186,7 @@ describe("UnifiedWebSocketRunner lifecycle — handleCommand dispatch guards", (
       jobId: "J",
       workflowId: "wf",
       status: "running",
-      runner: {
+      session: {
         finishInputStream: () => {
           throw new Error("finish boom");
         }
@@ -235,7 +235,7 @@ describe("UnifiedWebSocketRunner lifecycle — handleCommand dispatch guards", (
       jobId: "J",
       workflowId: "wf",
       status: "running",
-      runner: { updateNodeProperties }
+      session: { updateNodeProperties }
     });
     const res = await runner.handleCommand({
       command: "update_node_properties",
@@ -392,7 +392,7 @@ describe("UnifiedWebSocketRunner lifecycle — handleCommand dispatch guards", (
       workflowId: "wf",
       status: "running",
       finished: false,
-      runner: { cancel }
+      session: { cancel }
     };
     asAny(runner).activeJobs.set("J", active);
     const cancelToolScope = vi.spyOn(asAny(runner).toolBridge, "cancelScope");
@@ -480,7 +480,7 @@ describe("UnifiedWebSocketRunner lifecycle — job status/cancel/reconnect", () 
       workflowId: "wf-a",
       status: "running",
       finished: false,
-      runner: { cancel }
+      session: { cancel }
     });
     const res = await runner.cancelJob("J");
     expect(res.message).toBe("Job cancellation requested");
@@ -508,7 +508,13 @@ describe("UnifiedWebSocketRunner lifecycle — job status/cancel/reconnect", () 
       status: "running",
       context: {
         getNodeStatuses: () => ({
-          n1: { type: "node_update", node_id: "n1", status: "completed" }
+          n1: {
+            type: "node_update",
+            node_id: "n1",
+            node_name: "n1",
+            node_type: "test.Node",
+            status: "completed"
+          }
         }),
         getEdgeStatuses: () => ({
           e1: { type: "edge_update", edge_id: "e1", status: "message_sent" }
@@ -630,6 +636,11 @@ describe("UnifiedWebSocketRunner lifecycle — sendMessage encoding", () => {
     await runner.connect(ws);
     await runner.sendMessage({
       type: "output_update",
+      node_id: "n1",
+      node_name: "n1",
+      output_name: "output",
+      output_type: "audio",
+      metadata: {},
       value: { type: "chunk", content: new Float32Array([1, 2]) }
     });
     const out = unpack(ws.sentBytes[0]) as Record<string, any>;
@@ -944,7 +955,7 @@ describe("UnifiedWebSocketRunner lifecycle — disconnect cleanup", () => {
       jobId: "J",
       workflowId: "wf",
       status: "running",
-      runner: { cancel }
+      session: { cancel }
     });
     await runner.disconnect();
     expect(cancel).toHaveBeenCalledOnce();

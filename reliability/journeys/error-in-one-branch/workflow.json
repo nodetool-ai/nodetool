@@ -1,0 +1,53 @@
+{
+  "id": "error-in-one-branch",
+  "name": "Error in one branch",
+  "nodes": [
+    {
+      "id": "const1",
+      "type": "nodetool.constant.String",
+      "name": "const1",
+      "properties": { "value": "not valid json" }
+    },
+    {
+      "id": "okBranch",
+      "type": "nodetool.text.ToUppercase",
+      "name": "okBranch",
+      "properties": {}
+    },
+    {
+      "id": "failBranch",
+      "type": "nodetool.text.ParseJSON",
+      "name": "failBranch",
+      "properties": {}
+    },
+    {
+      "id": "outOk",
+      "type": "nodetool.output.Output",
+      "name": "outOk",
+      "properties": { "name": "ok_result" }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "const1",
+      "sourceHandle": "output",
+      "target": "okBranch",
+      "targetHandle": "text"
+    },
+    {
+      "id": "e2",
+      "source": "const1",
+      "sourceHandle": "output",
+      "target": "failBranch",
+      "targetHandle": "text"
+    },
+    {
+      "id": "e3",
+      "source": "okBranch",
+      "sourceHandle": "output",
+      "target": "outOk",
+      "targetHandle": "value"
+    }
+  ]
+}

@@ -174,6 +174,22 @@ export interface WorkflowRunnerOptions {
    * a callback compatible with this signature.
    */
   validateNode?: NodeValidator;
+
+  /**
+   * Strict mode (docs/RELIABILITY_ARCHITECTURE.md §12: "strict mode is a
+   * kernel flag, not a fork"). Default `false` (advisory-only, current
+   * behavior).
+   *
+   * When `true`, the checks that are otherwise logged as advisory warnings —
+   * `_checkPendingInboxWork` finding undelivered messages, a controlled node
+   * completing with pending `sendControlEvent` responses still unresolved,
+   * and `_drainActiveEdges` finding an edge still buffered/open after the
+   * graph settled — throw an `Error` instead. The error is caught by the
+   * same top-level handler that reports node/graph failures, so a strict
+   * violation surfaces as `RunResult.status === "failed"` with a message
+   * naming every offending node/edge, exactly like any other run failure.
+   */
+  strict?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -622,7 +638,7 @@ export class WorkflowRunner {
       await this._processGraph();
 
       // Post-completion: drain any edges that still have pending/open state
-      this._drainActiveEdges();
+      this._enforceCleanEdgeDrain(this._drainActiveEdges());
 
       // A suspension is a distinct terminal outcome (suspended, not failed).
       // Precedence is cancel > suspend > failed > completed: cancel is
@@ -1321,12 +1337,46 @@ export class WorkflowRunner {
     // Check for in-flight messages after all actors complete (Python parity: _check_pending_inbox_work)
     const pendingNodes = this._checkPendingInboxWork();
     if (pendingNodes.length > 0) {
+      if (this._options.strict && !this._cancelled && !this._suspend) {
+        throw new Error(
+          `Strict mode: pending inbox work detected after all actors ` +
+            `completed for node(s): ${pendingNodes.join(", ")}`
+        );
+      }
       log.warn(
         // Stryker disable next-line StringLiteral: diagnostic log args only
         "Pending inbox work detected after all actors completed — possible data loss",
         // Stryker disable next-line ObjectLiteral: diagnostic log args only
         {
           pendingNodes
+        }
+      );
+    }
+
+    // Check for controlled-node control events whose response never arrived
+    // (the target actor completed — or was never reachable — while a
+    // `sendControlEvent` waiter was still registered for it). Every
+    // completion path (actor completion handler, the completion race guard
+    // in `sendControlEvent`) rejects its own waiters, so a non-empty queue
+    // here means a waiter was registered for a node whose actor never ran at
+    // all, or another gap in that bookkeeping — either way, "zero pending
+    // control responses" (§6) is violated.
+    const pendingControlNodes = [...this._pendingControlResponses.entries()]
+      .filter(([, queue]) => queue.length > 0)
+      .map(([nodeId]) => nodeId);
+    if (pendingControlNodes.length > 0) {
+      if (this._options.strict && !this._cancelled && !this._suspend) {
+        throw new Error(
+          `Strict mode: pending control-event responses never resolved for ` +
+            `node(s): ${pendingControlNodes.join(", ")}`
+        );
+      }
+      log.warn(
+        // Stryker disable next-line StringLiteral: diagnostic log args only
+        "Pending control-event responses after all actors completed — possible hang",
+        // Stryker disable next-line ObjectLiteral: diagnostic log args only
+        {
+          pendingControlNodes
         }
       );
     }
@@ -1895,9 +1945,17 @@ export class WorkflowRunner {
    * buffered items or open upstream sources. Called during post-completion
    * cleanup to ensure front-end consumers stop listening to streams and
    * clear any spinners.
+   *
+   * Returns the ids of edges found in that leftover state — §6's "zero
+   * pending work" is violated whenever this is non-empty after a normal
+   * (non-error) completion. The caller decides what strict mode does with
+   * that list; this method's own emit-and-continue behavior never changes,
+   * since it also runs on the error/cancellation cleanup path where a
+   * partial graph is expected to have open edges.
    */
-  private _drainActiveEdges(): void {
-    if (!this._graph || this._graph.edges.length === 0) return;
+  private _drainActiveEdges(): string[] {
+    const leftoverEdgeIds: string[] = [];
+    if (!this._graph || this._graph.edges.length === 0) return leftoverEdgeIds;
     // Settle the throttled counters first; a "drained" update below may then
     // override the status for still-open edges.
     this._flushEdgeCounters();
@@ -1917,6 +1975,7 @@ export class WorkflowRunner {
           inbox.hasBuffered(edge.targetHandle) ||
           inbox.isOpen(edge.targetHandle)
         ) {
+          leftoverEdgeIds.push(edgeId);
           this._emit({
             type: "edge_update",
             job_id: this._effectiveJobId,
@@ -1929,6 +1988,42 @@ export class WorkflowRunner {
         // Best effort — ignore errors during draining
       }
     }
+    return leftoverEdgeIds;
+  }
+
+  /**
+   * Strict-mode gate for `_drainActiveEdges`'s findings (§12). Split out from
+   * its one call site (the success path in `_runImpl`, right after
+   * `_processGraph`) so it is unit-testable without a full graph run: in
+   * practice any leftover edge state this reports was already caught by the
+   * node-level `_checkPendingInboxWork` gate inside `_processGraph` (an
+   * inbox's `hasPendingWork()` covers every handle, edge-targeted ones
+   * included) and would have thrown before this method is ever reached —
+   * this gate exists for the state `_checkPendingInboxWork` cannot see (e.g.
+   * a driver that calls `_drainActiveEdges` directly after bypassing
+   * `_processGraph`) and as a second line of defense should that ordering
+   * ever change.
+   *
+   * A cancelled or suspended run, or one with node errors, legitimately
+   * leaves edges mid-flight — that is what the drain reports to the
+   * frontend in every mode. Only a run that is otherwise clean but still has
+   * leftover edge state is a §6 violation ("zero pending work" after a
+   * normal completion).
+   */
+  private _enforceCleanEdgeDrain(leftoverEdgeIds: string[]): void {
+    if (
+      !this._options.strict ||
+      leftoverEdgeIds.length === 0 ||
+      this._cancelled ||
+      this._suspend ||
+      this._nodeErrors.size > 0
+    ) {
+      return;
+    }
+    throw new Error(
+      `Strict mode: edge(s) still had buffered/open state after a clean ` +
+        `run completion: ${leftoverEdgeIds.join(", ")}`
+    );
   }
 
   // -----------------------------------------------------------------------

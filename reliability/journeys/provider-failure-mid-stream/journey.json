@@ -1,0 +1,23 @@
+{
+  "name": "provider-failure-mid-stream",
+  "description": "Journey #8 (docs/RELIABILITY_ARCHITECTURE.md §5, §9; task D1): a Summarizer node streams from the harness's fault-capable cassette provider (`reliability-fault-llm`, wired by `faults/provider-faults.ts`). Run once per fault in the matrix below (via `nodetool reliability run provider-failure-mid-stream --faults <name>`, or the harness's own `tests/journeys/provider-failure-mid-stream.test.ts`): the immediate faults (429/500/timeout) and the mid-stream faults (truncated-stream, malformed-sse) end the run with a terminal `job_update failed` and a sane error; slow-drip and cost-omission complete normally, just slower / with no usage. Every fault's record must pass the declared invariants with zero violations and leave no orphan actors.",
+  "workflow": { "ref": "workflow.json" },
+  "params": {},
+  "interactions": "interactions.json",
+  "surfaces": ["kernel", "ws-server"],
+  "faults": [
+    { "type": "provider-429" },
+    { "type": "provider-500" },
+    { "type": "provider-timeout" },
+    { "type": "provider-truncated-stream" },
+    { "type": "provider-malformed-sse" },
+    { "type": "provider-slow-drip" },
+    { "type": "provider-cost-omission" }
+  ],
+  "timeoutMs": 30000,
+  "assertions": {
+    "invariants": ["lifecycle-pairing", "terminal-uniqueness", "cleanup-leaks"],
+    "outputs": false,
+    "streamShape": false
+  }
+}

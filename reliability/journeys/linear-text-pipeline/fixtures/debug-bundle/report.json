@@ -1,0 +1,141 @@
+{
+  "generatedAt": "2026-07-30T07:36:25.648Z",
+  "target": {
+    "ref": "reliability/journeys/linear-text-pipeline/workflow.json",
+    "source": "json",
+    "workflowId": "linear-text-pipeline",
+    "nodeCount": 3,
+    "edgeCount": 2
+  },
+  "workflow": {
+    "nodes": [
+      {
+        "id": "const1",
+        "type": "nodetool.constant.String",
+        "properties": {
+          "value": "hello reliability"
+        }
+      },
+      {
+        "id": "upper1",
+        "type": "nodetool.text.ToUppercase",
+        "properties": {}
+      },
+      {
+        "id": "out1",
+        "type": "nodetool.output.Output",
+        "properties": {
+          "name": "result"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "const1",
+        "sourceHandle": "output",
+        "target": "upper1",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e2",
+        "source": "upper1",
+        "sourceHandle": "output",
+        "target": "out1",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "server": {
+    "surface": "server",
+    "ok": true,
+    "status": "completed",
+    "error": null,
+    "durationMs": 445,
+    "summary": {
+      "status": "completed",
+      "error": null,
+      "nodes": [
+        {
+          "nodeId": "const1",
+          "nodeType": "nodetool.constant.String",
+          "nodeName": "nodetool.constant.String",
+          "status": "completed",
+          "error": null,
+          "outputs": [],
+          "cost": null
+        },
+        {
+          "nodeId": "upper1",
+          "nodeType": "nodetool.text.ToUppercase",
+          "nodeName": "nodetool.text.ToUppercase",
+          "status": "completed",
+          "error": null,
+          "outputs": [
+            {
+              "outputName": "output",
+              "outputType": "string",
+              "value": "HELLO RELIABILITY"
+            }
+          ],
+          "cost": null
+        },
+        {
+          "nodeId": "out1",
+          "nodeType": "nodetool.output.Output",
+          "nodeName": "nodetool.output.Output",
+          "status": "completed",
+          "error": null,
+          "outputs": [
+            {
+              "outputName": "output",
+              "outputType": "string",
+              "value": "HELLO RELIABILITY"
+            }
+          ],
+          "cost": null
+        }
+      ],
+      "logs": [],
+      "edges": [
+        {
+          "edgeId": "e1",
+          "status": "completed",
+          "counter": 1
+        },
+        {
+          "edgeId": "e2",
+          "status": "completed",
+          "counter": 1
+        }
+      ],
+      "llmCalls": [],
+      "outputs": [
+        {
+          "nodeId": "out1",
+          "outputName": "result",
+          "outputType": "any",
+          "value": "HELLO RELIABILITY"
+        }
+      ],
+      "counts": {
+        "nodes": 3,
+        "completed": 3,
+        "errored": 0,
+        "logs": 0,
+        "outputs": 1,
+        "llmCalls": 0
+      },
+      "errors": []
+    },
+    "trace": null,
+    "messagesFile": "server/messages.jsonl"
+  },
+  "browser": null,
+  "verdict": {
+    "ok": true,
+    "headline": "Workflow ran clean on server.",
+    "issues": []
+  },
+  "bundleDir": "/tmp/claude-0/-home-user-nodetool/3cea6fed-9932-587d-9f8c-195c6952c4fa/scratchpad/linear-bundle"
+}

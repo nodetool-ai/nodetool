@@ -1,0 +1,15 @@
+{
+  "name": "fan-in-shared-list-handle",
+  "description": "A5 (docs/RELIABILITY_TASKS.md Track A): two constants fanned into ONE list[str] handle — unlike fan-out-fan-in-dag's `join` node, which uses two distinct handles as a workaround for the hydration gap where a hydration path without `propertyTypes` couldn't tell a genuine list fan-in from an invalid one (correlation analysis rejected both identically). Regression for that gap: the kernel driver's resolveNodeType-backed hydration must resolve `propertyTypes` the same way the ws-server driver's Graph.loadFromDict path always has, so this shared-handle fan-in completes identically on both surfaces instead of only on ws-server.",
+  "workflow": { "ref": "workflow.json" },
+  "params": {},
+  "interactions": "interactions.json",
+  "surfaces": ["kernel", "ws-server"],
+  "faults": [],
+  "timeoutMs": 30000,
+  "assertions": {
+    "invariants": ["lifecycle-pairing", "terminal-uniqueness", "cleanup-leaks"],
+    "outputs": true,
+    "streamShape": false
+  }
+}

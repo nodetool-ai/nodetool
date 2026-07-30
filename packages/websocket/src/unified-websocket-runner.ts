@@ -27,12 +27,15 @@ import {
 } from "./resolve-media-urls.js";
 import {
   Graph,
-  WorkflowRunner,
   withExplicitNodeFlags,
   type NodeExecutor,
   type NodeTypeResolver,
   type NodeValidator
 } from "@nodetool-ai/kernel";
+import {
+  ExecutionSession,
+  type RawGraphInput as ExecutionSessionRawGraph
+} from "@nodetool-ai/execution";
 import {
   Application,
   Asset,
@@ -100,6 +103,14 @@ import type {
   UiContext,
   UiDocumentRef,
   UiSurfaceType
+} from "@nodetool-ai/protocol";
+import {
+  webSocketCommandEnvelopeSchema,
+  commandDataSchemas,
+  controlMessageInSchemas,
+  outboundControlMessageSchemas,
+  processingMessageSchemas,
+  type ControlMessageInType
 } from "@nodetool-ai/protocol";
 import { Tool } from "@nodetool-ai/agents";
 import {
@@ -170,6 +181,58 @@ function getMaxWsMessageBytes(): number {
     "NODETOOL_WS_MAX_MESSAGE_BYTES",
     DEFAULT_MAX_WS_MESSAGE_BYTES
   );
+}
+
+/**
+ * Outbound (server→client) frame validation gate. Every message `sendMessage`
+ * emits whose `type` matches a known `ProcessingMessage` variant or one of
+ * the small set of non-`ProcessingMessage` server frames (`pong`,
+ * `rpc_response`, `system_stats`, `resource_change`) is safe-parsed against
+ * its Zod schema before it goes on the wire; frames with an unrecognized (or
+ * absent) `type` — the ad hoc `{ error, details }` command replies — are left
+ * alone, as they always have been.
+ *
+ * Set `NODETOOL_VALIDATE_OUTBOUND_WS=1` to force validation on, `=0` to force
+ * it off. Unset, it defaults to on under `NODE_ENV=test` or Vitest (`VITEST`)
+ * and off everywhere else — a server bug that produces a malformed frame
+ * should fail the test that exercised it, not corrupt a production
+ * connection with a thrown error mid-stream. On failure it throws (the
+ * caller — `sendMessage` — is already inside the code path the bug is in, so
+ * failing loudly there is what surfaces it to the test).
+ */
+function shouldValidateOutboundWs(): boolean {
+  const override = process.env["NODETOOL_VALIDATE_OUTBOUND_WS"]?.trim();
+  if (override === "1" || override === "true") return true;
+  if (override === "0" || override === "false") return false;
+  return (
+    process.env["NODE_ENV"] === "test" || Boolean(process.env["VITEST"])
+  );
+}
+
+/**
+ * Throws when outbound validation is enabled and `message` carries a `type`
+ * this package can validate but fails to conform to its schema. No-op for
+ * unrecognized/absent `type` values — see {@link shouldValidateOutboundWs}.
+ */
+function assertValidOutboundMessage(message: Record<string, unknown>): void {
+  if (!shouldValidateOutboundWs()) return;
+  const type = typeof message["type"] === "string" ? message["type"] : null;
+  if (!type) return;
+  const schema =
+    processingMessageSchemas[type as keyof typeof processingMessageSchemas] ??
+    outboundControlMessageSchemas[
+      type as keyof typeof outboundControlMessageSchemas
+    ];
+  if (!schema) return;
+  const parsed = schema.safeParse(message);
+  if (!parsed.success) {
+    throw new Error(
+      `Outbound WebSocket message failed protocol validation (type: "${type}"): ` +
+        parsed.error.issues
+          .map((issue) => `${issue.path.join(".") || "<root>"}: ${issue.message}`)
+          .join("; ")
+    );
+  }
 }
 
 /**
@@ -1481,7 +1544,7 @@ interface ActiveJob {
   jobId: string;
   workflowId: string | null;
   context: ProcessingContext;
-  runner: WorkflowRunner;
+  session: ExecutionSession;
   graph: HydratedGraphData;
   finished: boolean;
   status: "running" | "completed" | "failed" | "cancelled" | "suspended";
@@ -1658,7 +1721,7 @@ export interface UnifiedWebSocketRunnerOptions {
   /** Resolve node metadata by type — used for auto_save_asset detection. */
   getNodeMetadata?: (nodeType: string) => NodeMetadata | undefined;
   /**
-   * Optional pre-flight per-node validator. Forwarded to WorkflowRunner so
+   * Optional pre-flight per-node validator. Forwarded through ExecutionSession to WorkflowRunner so
    * missing required fields and unset model selections abort the run before
    * any actor is spawned. `NodeRegistry.createNodeValidator()` from
    * `@nodetool-ai/node-sdk` produces a compatible callback.
@@ -1939,8 +2002,8 @@ export class UnifiedWebSocketRunner {
     this.cancelChatTurn();
     this.currentTask = null;
     for (const [jobId, job] of this.activeJobs) {
-      if (job.runner) {
-        job.runner.cancel();
+      if (job.session) {
+        job.session.cancel();
       }
       this.activeJobs.delete(jobId);
     }
@@ -2010,6 +2073,8 @@ export class UnifiedWebSocketRunner {
     ) {
       return;
     }
+
+    assertValidOutboundMessage(message);
 
     // Resolve storage keys in content to browser-accessible URLs before
     // sending over the wire.  This keeps DB storage URL-agnostic while
@@ -2801,12 +2866,26 @@ export class UnifiedWebSocketRunner {
       );
     }
 
-    const runner = new WorkflowRunner(jobId, {
+    // A5 (docs/RELIABILITY_TASKS.md Track A): the facade replaces the direct
+    // `new WorkflowRunner` + later `runner.run()` pair — `graph` is already
+    // hydrated/output-name-rewritten above, so this call re-hydrates it
+    // (idempotent: `withExplicitNodeFlags`, used because this class has no
+    // `NodeRegistry` of its own, passes every already-resolved field through
+    // unchanged via `...node`) and starts the run immediately. `resolveExecutor`
+    // is passed through as-is (not rebuilt from a registry+bridge) because
+    // this class only ever holds the bootstrap-injected closure, never a
+    // `NodeRegistry` instance.
+    const session = await ExecutionSession.create({
+      graph: graph as unknown as ExecutionSessionRawGraph,
       resolveExecutor: (node) =>
         this.resolveExecutor(
           node as { id: string; type: string; [key: string]: unknown }
         ),
-      executionContext: context,
+      bridgeFactory: async () => null,
+      jobId,
+      workflowId,
+      context,
+      params: req.params ?? {},
       validateNode: this.validateNode
     });
 
@@ -2814,7 +2893,7 @@ export class UnifiedWebSocketRunner {
       jobId,
       workflowId,
       context,
-      runner,
+      session,
       graph,
       finished: false,
       status: "running",
@@ -2889,14 +2968,10 @@ export class UnifiedWebSocketRunner {
     active.timings.persistenceMs = performance.now() - phaseStartedAt;
     active.timings.kernelStartedAt = performance.now();
 
-    const executePromise = runner.run(
-      {
-        job_id: jobId,
-        workflow_id: workflowId ?? undefined,
-        params: req.params ?? {}
-      },
-      graph
-    );
+    // The run itself already started inside `ExecutionSession.create()`
+    // above (before this persistence block) — `session.result` is the same
+    // never-rejecting terminal-result promise `runner.run()` used to return.
+    const executePromise = session.result;
 
     // `streamJobMessages` handles its own failures, but nothing awaits this
     // promise — attach a terminal handler so a bug there can never surface as
@@ -3535,8 +3610,8 @@ export class UnifiedWebSocketRunner {
       };
     }
 
-    if (active.runner) {
-      active.runner.cancel();
+    if (active.session) {
+      active.session.cancel();
     }
     active.status = "cancelled";
 
@@ -4107,7 +4182,8 @@ export class UnifiedWebSocketRunner {
 
   /**
    * Execute a single node by type and return its output. Builds a one-node
-   * graph and runs it through a fresh {@link WorkflowRunner}, then returns the
+   * graph and runs it through a fresh `ExecutionSession` (@nodetool-ai/execution),
+   * then returns the
    * node's completed result. Backs the `run_node` chat tool.
    */
   private async runSingleNode(
@@ -4172,16 +4248,19 @@ export class UnifiedWebSocketRunner {
       );
     }
 
-    const runner = new WorkflowRunner(jobId, {
+    const session = await ExecutionSession.create({
+      graph: graph as unknown as ExecutionSessionRawGraph,
       resolveExecutor: (node) =>
         this.resolveExecutor(
           node as { id: string; type: string; [key: string]: unknown }
         ),
-      executionContext: context,
+      bridgeFactory: async () => null,
+      jobId,
+      context,
+      params: {},
       validateNode: this.validateNode
     });
-
-    const result = await runner.run({ job_id: jobId, params: {} }, graph);
+    const result = await session.result;
 
     // Capture the node's completed result from the streamed updates.
     let nodeResult: unknown;
@@ -5137,6 +5216,13 @@ export class UnifiedWebSocketRunner {
     const amount = (providerCost as { amount?: unknown }).amount;
     if (typeof amount === "number" && Number.isFinite(amount)) {
       active.providerCostTotal = (active.providerCostTotal ?? 0) + amount;
+    } else {
+      // A non-finite amount (NaN/Infinity from a buggy provider call) can't
+      // be persisted or accumulated above, and JSON can't even represent it
+      // faithfully (`JSON.stringify(NaN)` silently becomes `null`). Rather
+      // than ship a `provider_cost` the wire contract calls a real number,
+      // drop it — the rest of the `node_update` still reports normally.
+      delete outbound.provider_cost;
     }
   }
 
@@ -5380,7 +5466,7 @@ export class UnifiedWebSocketRunner {
    *   1. Load workflow from DB
    *   2. Detect message input node names from graph
    *   3. Prepare params (serialized message + history)
-   *   4. Run workflow via WorkflowRunner
+   *   4. Run workflow via ExecutionSession (@nodetool-ai/execution)
    *   5. Stream events (job_update, node_update, output_update)
    *   6. Collect output_update results
    *   7. Send done chunk + response message with typed content
@@ -6307,13 +6393,19 @@ export class UnifiedWebSocketRunner {
         );
       }
 
-      // Create and run workflow
-      const runner = new WorkflowRunner(jobId, {
+      // Create and run workflow (A5: via the ExecutionSession facade — see
+      // the identical note in `startJobInner`).
+      const session = await ExecutionSession.create({
+        graph: graph as unknown as ExecutionSessionRawGraph,
         resolveExecutor: (node) =>
           this.resolveExecutor(
             node as { id: string; type: string; [key: string]: unknown }
           ),
-        executionContext: context,
+        bridgeFactory: async () => null,
+        jobId,
+        workflowId,
+        context,
+        params,
         validateNode: this.validateNode
       });
 
@@ -6321,7 +6413,7 @@ export class UnifiedWebSocketRunner {
         jobId,
         workflowId,
         context,
-        runner,
+        session,
         graph,
         finished: false,
         status: "running",
@@ -6353,11 +6445,8 @@ export class UnifiedWebSocketRunner {
         this.logError("workflow job persistence failed", error);
       }
 
-      // Execute workflow and stream messages
-      const executePromise = runner.run(
-        { job_id: jobId, workflow_id: workflowId, params },
-        graph
-      );
+      // The run already started inside `ExecutionSession.create()` above.
+      const executePromise = session.result;
 
       // Stream events, collect output_update results
       const result: Record<string, unknown> = {};
@@ -6408,7 +6497,7 @@ export class UnifiedWebSocketRunner {
       // below to come back around — the run may be parked inside a long node.
       const onAbort = (): void => {
         try {
-          active.runner.cancel();
+          active.session.cancel();
         } catch {
           // best-effort cancel
         }
@@ -6424,7 +6513,7 @@ export class UnifiedWebSocketRunner {
       while (!active.finished || active.context.hasMessages()) {
         if (superseded()) {
           try {
-            active.runner.cancel();
+            active.session.cancel();
           } catch {
             // best-effort cancel
           }
@@ -7240,7 +7329,7 @@ export class UnifiedWebSocketRunner {
           const handle =
             typeof data.handle === "string" ? data.handle : undefined;
           try {
-            await active.runner.pushInputValue(inputName, value, handle);
+            await active.session.pushInput(inputName, value, handle);
             return {
               message: "Input item streamed",
               job_id: jobId,
@@ -7267,7 +7356,7 @@ export class UnifiedWebSocketRunner {
           const handle =
             typeof data.handle === "string" ? data.handle : undefined;
           try {
-            active.runner.finishInputStream(inputName, handle);
+            active.session.finishInputStream(inputName, handle);
             return {
               message: "Input stream ended",
               job_id: jobId,
@@ -7299,7 +7388,7 @@ export class UnifiedWebSocketRunner {
         }
         const active = this.activeJobs.get(jobId);
         const applied =
-          active?.runner.updateNodeProperties(
+          active?.session.updateNodeProperties(
             nodeId,
             properties as Record<string, unknown>
           ) ?? false;
@@ -7363,7 +7452,7 @@ export class UnifiedWebSocketRunner {
         if (jobId) {
           const active = this.activeJobs.get(jobId);
           if (active) {
-            active.runner.cancel();
+            active.session.cancel();
             active.status = "cancelled";
           }
         }
@@ -7663,10 +7752,50 @@ export class UnifiedWebSocketRunner {
 
   async receiveMessages(): Promise<void> {
     while (true) {
-      const data = await this.receiveMessage();
+      let data: Record<string, unknown> | null;
+      try {
+        data = await this.receiveMessage();
+      } catch (err) {
+        // A frame that fails to even decode (truncated msgpack, an
+        // oversized payload past NODETOOL_WS_MAX_MESSAGE_BYTES, …) must not
+        // kill the connection or this loop — it's just one bad frame from a
+        // client that may otherwise be mid-job. Reject it and keep reading.
+        this.logError("Failed to receive/decode WebSocket frame", err);
+        if (
+          this.websocket &&
+          this.websocket.clientState !== "disconnected" &&
+          this.websocket.applicationState !== "disconnected"
+        ) {
+          await this.sendMessage({
+            error: "invalid_frame",
+            message: err instanceof Error ? err.message : String(err)
+          }).catch((sendErr) => {
+            this.logError("Failed to notify client of invalid frame", sendErr);
+          });
+          continue;
+        }
+        break;
+      }
       if (data === null) break;
 
       const msgType = typeof data.type === "string" ? data.type : null;
+      if (msgType !== null && msgType in controlMessageInSchemas) {
+        const schema =
+          controlMessageInSchemas[msgType as ControlMessageInType];
+        const parsed = schema.safeParse(data);
+        if (!parsed.success) {
+          await this.sendMessage({
+            error: "invalid_message",
+            message:
+              `Malformed '${msgType}' frame: ` +
+              parsed.error.issues
+                .map((issue) => `${issue.path.join(".") || "<root>"}: ${issue.message}`)
+                .join("; ")
+          });
+          continue;
+        }
+      }
+
       if (msgType === "client_tools_manifest") {
         const tools = Array.isArray(data.tools) ? data.tools : [];
         this.clientToolsManifest = {};
@@ -7720,6 +7849,37 @@ export class UnifiedWebSocketRunner {
       }
 
       if (typeof data.command === "string") {
+        const envelopeParsed = webSocketCommandEnvelopeSchema.safeParse(data);
+        if (!envelopeParsed.success) {
+          await this.sendMessage({
+            error: "invalid_command",
+            details:
+              "Malformed command envelope: " +
+              envelopeParsed.error.issues
+                .map((issue) => `${issue.path.join(".") || "<root>"}: ${issue.message}`)
+                .join("; ")
+          });
+          continue;
+        }
+        // Commands this build doesn't recognize fall through to
+        // handleCommand's own `{ error: "Unknown command" }` reply below —
+        // only known commands get their `data` payload schema-checked here.
+        const dataSchema =
+          commandDataSchemas[envelopeParsed.data.command as UnifiedCommandType];
+        if (dataSchema) {
+          const dataParsed = dataSchema.safeParse(envelopeParsed.data.data ?? {});
+          if (!dataParsed.success) {
+            await this.sendMessage({
+              error: "invalid_command",
+              details:
+                `Malformed '${envelopeParsed.data.command}' data: ` +
+                dataParsed.error.issues
+                  .map((issue) => `${issue.path.join(".") || "<root>"}: ${issue.message}`)
+                  .join("; ")
+            });
+            continue;
+          }
+        }
         try {
           const command = data as unknown as WebSocketCommandEnvelope;
           const response = await this.handleCommand(command);

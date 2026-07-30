@@ -11,6 +11,7 @@ import { AddressInfo } from "node:net";
 import { pack, unpack } from "msgpackr";
 
 import { BRIDGE_PROTOCOL_VERSION } from "@nodetool-ai/protocol/bridge-protocol";
+import { assertValidBridgeFrame } from "./fixtures/bridge-frame-schemas.js";
 
 export const FAKE_NODE = {
   node_type: "fake.TestNode",
@@ -223,6 +224,7 @@ export function startFakeWorker(
       list.push(msg);
       receivedByType.set(type, list);
       const send = (m: Record<string, unknown>) => {
+        assertValidBridgeFrame(m);
         ws.send(pack(m));
       };
 

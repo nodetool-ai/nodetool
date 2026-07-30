@@ -1,0 +1,10 @@
+{
+  "name": "assert-nothing",
+  "workflow": { "ref": "workflow.json" },
+  "surfaces": ["kernel"],
+  "assertions": {
+    "invariants": [],
+    "outputs": false,
+    "streamShape": false
+  }
+}
