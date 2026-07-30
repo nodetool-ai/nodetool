@@ -67,7 +67,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🐲 Pokemon Maker\n\nName a few animals, pick an art style, and get a batch of four original collectible creatures — each one a believable fusion of the animals you chose, all rendered in the same style.\n\n**Pipeline:** Animals + Style → Design brief → Creature prompts → Render → Gallery\n\n**Try this:** mix an unlikely pair (axolotl + hummingbird) and switch the style to see the whole set restyle at once."
+          "comment": "# \ud83d\udc32 Pokemon Maker\n\nName a few animals, pick an art style, and get a batch of four original collectible creatures \u2014 each one a believable fusion of the animals you chose, all rendered in the same style.\n\n**Pipeline:** Animals + Style \u2192 Design brief \u2192 Creature prompts \u2192 Render \u2192 Gallery\n\n**Try this:** mix an unlikely pair (axolotl + hummingbird) and switch the style to see the whole set restyle at once."
         },
         "ui_properties": {
           "selected": false,
@@ -89,7 +89,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "animals",
-          "description": "Which real animals should the creatures be built from? List two or three, comma-separated — mixing distant species gives the most striking hybrids.",
+          "description": "Which real animals should the creatures be built from? List two or three, comma-separated \u2014 mixing distant species gives the most striking hybrids.",
           "value": "lion, eagle, koi fish"
         },
         "ui_properties": {
@@ -100,7 +100,7 @@
           },
           "zIndex": 0,
           "width": 220,
-          "title": "1️⃣ Animal inspiration",
+          "title": "1\ufe0f\u20e3 Animal inspiration",
           "selectable": true,
           "bypassed": false
         },
@@ -131,7 +131,7 @@
           },
           "zIndex": 0,
           "width": 220,
-          "title": "1️⃣ Art style",
+          "title": "1\ufe0f\u20e3 Art style",
           "selectable": true,
           "bypassed": false
         },
@@ -142,7 +142,7 @@
         "id": "464a17c1-c916-4b24-8e23-856160732293",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "You are a creature designer for an original monster-collecting game. Invent FOUR distinct collectible creatures, each a believable fusion of these real animals: {{animals}}.\n\nFor every creature, write ONE self-contained image-generation prompt — a single vivid paragraph, no title, no numbering, no creature name — that describes:\n- Body and silhouette: proportions, stance, and how the source animals fuse into one coherent form\n- Surface detail: dominant colors, patterns, and one or two standout features (horns, fins, glowing markings, plating)\n- Framing: the creature centered on a clean, uncluttered studio background so it reads clearly\n\nRender all four in this consistent art style: {{style}}.\n\nReturn exactly four prompts — one creature each, no two alike."
+          "prompt": "You are a creature designer for an original monster-collecting game. Invent FOUR distinct collectible creatures, each a believable fusion of these real animals: {{animals}}.\n\nFor every creature, write ONE self-contained image-generation prompt \u2014 a single vivid paragraph, no title, no numbering, no creature name \u2014 that describes:\n- Body and silhouette: proportions, stance, and how the source animals fuse into one coherent form\n- Surface detail: dominant colors, patterns, and one or two standout features (horns, fins, glowing markings, plating)\n- Framing: the creature centered on a clean, uncluttered studio background so it reads clearly\n\nRender all four in this consistent art style: {{style}}.\n\nReturn exactly four prompts \u2014 one creature each, no two alike."
         },
         "ui_properties": {
           "selected": false,
@@ -152,7 +152,7 @@
           },
           "zIndex": 0,
           "width": 351,
-          "title": "2️⃣ Build design brief",
+          "title": "2\ufe0f\u20e3 Build design brief",
           "selectable": true,
           "bypassed": false
         },
@@ -187,7 +187,7 @@
           "width": 291,
           "selectable": true,
           "bypassed": false,
-          "title": "3️⃣ Write four creature prompts"
+          "title": "3\ufe0f\u20e3 Write four creature prompts"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -198,7 +198,7 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "huggingface_fal_ai",
+            "provider": "fal_ai",
             "id": "fal-ai/flux/schnell",
             "name": "FLUX.1 Schnell",
             "path": null,
@@ -223,7 +223,7 @@
           "selectable": true,
           "bypassed": false,
           "height": 400,
-          "title": "4️⃣ Render each creature"
+          "title": "4\ufe0f\u20e3 Render each creature"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}

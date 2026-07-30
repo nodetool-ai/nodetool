@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { BaseNode } from "../src/base-node.js";
+import { BaseNode, coerceToDeclaredType } from "../src/base-node.js";
 import { prop } from "../src/decorators.js";
 
 // --- Test node classes ---
@@ -188,5 +188,47 @@ describe("BaseNode — list-type coercion", () => {
     const node = new ListNode();
     node.assign({ images: null });
     expect(node.images).toBeNull();
+  });
+});
+
+describe("coerceToDeclaredType — asset refs from URI strings", () => {
+  it("wraps a URI string into a ref for an asset-typed property", () => {
+    expect(coerceToDeclaredType("file:///clip.mp4", "video")).toEqual({
+      type: "video",
+      uri: "file:///clip.mp4"
+    });
+  });
+
+  it("covers every asset kind", () => {
+    for (const t of ["image", "audio", "document", "folder", "model_3d"]) {
+      expect(coerceToDeclaredType(`https://x/y`, t)).toEqual({
+        type: t,
+        uri: "https://x/y"
+      });
+    }
+  });
+
+  // A prompt is a string on a str property; converting it would be nonsense.
+  it("leaves non-asset properties alone", () => {
+    expect(coerceToDeclaredType("file:///clip.mp4", "str")).toBe(
+      "file:///clip.mp4"
+    );
+  });
+
+  // Without a scheme it is prose, not a location — converting would turn a
+  // caption into a broken ref that silently reads no bytes.
+  it("ignores strings that carry no scheme", () => {
+    expect(coerceToDeclaredType("a photo of a fox", "image")).toBe(
+      "a photo of a fox"
+    );
+  });
+
+  it("passes an already-formed ref through untouched", () => {
+    const ref = { type: "image", uri: "file:///a.png", asset_id: "x" };
+    expect(coerceToDeclaredType(ref, "image")).toBe(ref);
+  });
+
+  it("still wraps a scalar for a list-typed property", () => {
+    expect(coerceToDeclaredType(3, "list[int]")).toEqual([3]);
   });
 });

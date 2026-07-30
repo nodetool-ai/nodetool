@@ -5,7 +5,7 @@
   "updated_at": "2026-07-08T10:44:38.859Z",
   "name": "Music Video Visualizer",
   "tool_name": null,
-  "description": "Turn any song into a mood-matched music video. Whisper transcribes the lyrics, an LLM creative director reads the emotional arc, writes one image prompt per frame, FLUX renders every frame, and they are stitched back to your original audio. Differentiator: a full transcribe → analyze → fan-out → render → reassemble media pipeline in a single graph — no chat box can do this. Cost note: generates one image per frame (default 8) plus a Whisper transcription, so a run costs several fal-ai calls.",
+  "description": "Turn any song into a mood-matched music video. Whisper transcribes the lyrics, an LLM creative director reads the emotional arc, writes one image prompt per frame, FLUX renders every frame, and they are stitched back to your original audio. Differentiator: a full transcribe \u2192 analyze \u2192 fan-out \u2192 render \u2192 reassemble media pipeline in a single graph \u2014 no chat box can do this. Cost note: generates one image per frame (default 8) plus a Whisper transcription, so a run costs several fal-ai calls.",
   "tags": [
     "video",
     "audio",
@@ -159,7 +159,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎵 Music Video Visualizer\n\nTurn a song into a music video. Whisper transcribes the lyrics, a creative-director agent reads the emotional arc, then we fan out one image prompt per frame, render each with FLUX, and stitch the frames back to your audio.\n\n**Why the graph branches:** the mood analysis fans out into N frame prompts (ListGenerator), each prompt is rendered in parallel (ForEach → TextToImage), then Collect + FrameToVideo re-assemble the sequence and AddAudio re-attaches the original track. That fan-out / re-assemble is the part a chat box can't do.\n\n**Pipeline:** Audio → Transcribe → Mood agent → Frame prompts → Images → Video + Audio\n\n**Try this:** change the visual style or genre, or raise the frame count for a longer clip."
+          "comment": "# \ud83c\udfb5 Music Video Visualizer\n\nTurn a song into a music video. Whisper transcribes the lyrics, a creative-director agent reads the emotional arc, then we fan out one image prompt per frame, render each with FLUX, and stitch the frames back to your audio.\n\n**Why the graph branches:** the mood analysis fans out into N frame prompts (ListGenerator), each prompt is rendered in parallel (ForEach \u2192 TextToImage), then Collect + FrameToVideo re-assemble the sequence and AddAudio re-attaches the original track. That fan-out / re-assemble is the part a chat box can't do.\n\n**Pipeline:** Audio \u2192 Transcribe \u2192 Mood agent \u2192 Frame prompts \u2192 Images \u2192 Video + Audio\n\n**Try this:** change the visual style or genre, or raise the frame count for a longer clip."
         },
         "ui_properties": {
           "position": {
@@ -193,7 +193,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "1️⃣ Song audio",
+          "title": "1\ufe0f\u20e3 Song audio",
           "selectable": true,
           "bypassed": false
         },
@@ -285,7 +285,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "2️⃣ Transcribe lyrics",
+          "title": "2\ufe0f\u20e3 Transcribe lyrics",
           "selectable": true,
           "bypassed": false
         },
@@ -328,7 +328,7 @@
             "path": null,
             "supported_tasks": []
           },
-          "system": "You are an award-winning music-video creative director. You translate how a song feels into concrete visual language — mood, energy, color, and motion. Answer with tight, evocative direction only; never restate or acknowledge the request, and never add headings or lists unless asked."
+          "system": "You are an award-winning music-video creative director. You translate how a song feels into concrete visual language \u2014 mood, energy, color, and motion. Answer with tight, evocative direction only; never restate or acknowledge the request, and never add headings or lists unless asked."
         },
         "ui_properties": {
           "position": {
@@ -337,7 +337,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "3️⃣ Analyze mood",
+          "title": "3\ufe0f\u20e3 Analyze mood",
           "selectable": true,
           "bypassed": false
         },
@@ -391,7 +391,7 @@
           "zIndex": 0,
           "width": 280,
           "height": 340,
-          "title": "4️⃣ Generate frame prompts",
+          "title": "4\ufe0f\u20e3 Generate frame prompts",
           "selectable": true,
           "bypassed": false
         },
@@ -421,7 +421,7 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "huggingface_fal_ai",
+            "provider": "fal_ai",
             "id": "fal-ai/flux/schnell",
             "name": "FLUX.1 Schnell",
             "path": null,
@@ -440,7 +440,7 @@
           "zIndex": 0,
           "width": 384,
           "height": 400,
-          "title": "5️⃣ Render frames",
+          "title": "5\ufe0f\u20e3 Render frames",
           "selectable": true,
           "bypassed": false
         },
@@ -478,7 +478,7 @@
           "zIndex": 0,
           "width": 416,
           "height": 360,
-          "title": "6️⃣ Frames to video",
+          "title": "6\ufe0f\u20e3 Frames to video",
           "selectable": true,
           "bypassed": false
         },
@@ -500,7 +500,7 @@
           "zIndex": 0,
           "width": 416,
           "height": 360,
-          "title": "7️⃣ Add audio",
+          "title": "7\ufe0f\u20e3 Add audio",
           "selectable": true,
           "bypassed": false
         },

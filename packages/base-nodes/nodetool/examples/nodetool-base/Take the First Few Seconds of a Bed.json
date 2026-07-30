@@ -1,0 +1,108 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-30T12:00:00.000Z",
+  "updated_at": "2026-07-30T12:00:00.000Z",
+  "name": "Take the First Few Seconds of a Bed",
+  "tool_name": null,
+  "description": "Generate music and slice a short section out of it. Cheaper than regenerating when you only need a sting rather than a full bed.",
+  "tags": [
+    "audio",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "mus",
+        "type": "nodetool.audio.TextToMusic",
+        "data": {
+          "model": {
+            "type": "music_model",
+            "provider": "replicate",
+            "id": "meta/musicgen",
+            "name": "MusicGen",
+            "path": null
+          },
+          "prompt": "bright synth arpeggio, upbeat, clean",
+          "lyrics": "",
+          "duration": 8.0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Generate bed"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "sl",
+        "type": "nodetool.audio.SliceAudio",
+        "data": {
+          "start": 0.0,
+          "end": 3.0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  First 3 s"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "sting"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 640,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Sting"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "mus",
+        "sourceHandle": "audio",
+        "target": "sl",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e2",
+        "source": "sl",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

@@ -106,6 +106,12 @@ export interface GraphValidationRegistry {
     },
     connectedHandles?: ReadonlySet<string>
   ): NodePropertyValidationIssue[];
+  /**
+   * Provider ids the runtime can actually construct. Optional: a caller that
+   * cannot reach the provider registry (the browser) omits it and the
+   * provider check is skipped rather than guessing.
+   */
+  listProviderIds?(): readonly string[];
 }
 
 /**
@@ -198,6 +204,24 @@ function normalizeEdge(raw: GraphValidationEdge, index: number): NormEdge {
   };
 }
 
+/**
+ * Provider id of a model-reference property value, or undefined when the value
+ * is not one. Model refs are tagged objects whose `type` ends in `_model`
+ * (`image_model`, `asr_model`, `tts_model`, `language_model`, …), so keying on
+ * that suffix avoids reacting to any unrelated object that happens to carry a
+ * `provider` field. A blank provider is left to the existing unselected-model
+ * check rather than reported as unknown.
+ */
+function modelProviderOf(value: unknown): string | undefined {
+  if (typeof value !== "object" || value === null) return undefined;
+  const rec = value as Record<string, unknown>;
+  const kind = rec.type;
+  if (typeof kind !== "string" || !kind.endsWith("_model")) return undefined;
+  const provider = rec.provider;
+  if (typeof provider !== "string" || provider === "") return undefined;
+  return provider;
+}
+
 export function validateGraph(
   graph: GraphValidationInput,
   registry: GraphValidationRegistry
@@ -256,6 +280,12 @@ export function validateGraph(
     set.add(e.targetHandle);
   }
 
+  const providerIds = registry.listProviderIds?.();
+  // An empty list means the registry could not be reached, not that zero
+  // providers exist — checking against it would flag every model in the graph.
+  const knownProviders =
+    providerIds && providerIds.length > 0 ? new Set(providerIds) : null;
+
   for (const node of nodes) {
     const id = String(node.id ?? "");
     const type = String(node.type ?? "");
@@ -280,6 +310,31 @@ export function validateGraph(
         nodeType: type,
         message: pi.message
       });
+    }
+
+    // A model property naming a provider the runtime cannot construct fails
+    // only once the node runs — after the rest of the graph has already been
+    // paid for. The id is right there in the saved property, so check it here.
+    if (knownProviders) {
+      const props = (node.properties ?? node.data ?? {}) as Record<
+        string,
+        unknown
+      >;
+      for (const [propName, value] of Object.entries(props)) {
+        const provider = modelProviderOf(value);
+        if (provider === undefined || knownProviders.has(provider)) continue;
+        issues.push({
+          severity: "error",
+          code: "unknown_provider",
+          nodeId: id,
+          nodeType: type,
+          message:
+            `Property "${propName}" selects provider "${provider}", which is ` +
+            `not registered. Known providers: ${[...knownProviders]
+              .sort()
+              .join(", ")}`
+        });
+      }
     }
   }
 

@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Product Mockup Generator",
   "tool_name": null,
-  "description": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then each scene is rendered with FLUX and finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
+  "description": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then each scene is rendered with FLUX and finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set \u2014 not one prompt, one image.",
   "tags": [
     "product-mockup",
     "mockup",
@@ -136,7 +136,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🖼️ Product Mockup Generator\n\nOne product photo in, a coordinated set of lifestyle mockups out.\n\n**Why the extra stages:** a single image prompt gives you one look. Here an art-director agent first invents *distinct* scene concepts from the product brief (studio, lifestyle, flat-lay, outdoor…), a second prompt turns each concept into a photography-grade image prompt, and a list generator splits them so every scene renders in parallel.\n\n**Two outputs per scene:** a pure text-to-image render (the *scene*), and an image-to-image pass that composites your real product photo into it (the *mockup*), finished with a brightness/contrast polish.\n\n**Try this:** raise the scene count, or change the target audience to shift the whole shot list."
+          "comment": "# \ud83d\uddbc\ufe0f Product Mockup Generator\n\nOne product photo in, a coordinated set of lifestyle mockups out.\n\n**Why the extra stages:** a single image prompt gives you one look. Here an art-director agent first invents *distinct* scene concepts from the product brief (studio, lifestyle, flat-lay, outdoor\u2026), a second prompt turns each concept into a photography-grade image prompt, and a list generator splits them so every scene renders in parallel.\n\n**Two outputs per scene:** a pure text-to-image render (the *scene*), and an image-to-image pass that composites your real product photo into it (the *mockup*), finished with a brightness/contrast polish.\n\n**Try this:** raise the scene count, or change the target audience to shift the whole shot list."
         },
         "ui_properties": {
           "selected": false,
@@ -169,7 +169,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "©️ Final color adjust → mockup"
+          "title": "\u00a9\ufe0f Final color adjust \u2192 mockup"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -190,7 +190,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "🅱️ Brightness / contrast polish"
+          "title": "\ud83c\udd71\ufe0f Brightness / contrast polish"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -201,7 +201,7 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "huggingface_fal_ai",
+            "provider": "fal_ai",
             "id": "fal-ai/flux/schnell",
             "name": "FLUX.1 Schnell",
             "path": null,
@@ -227,7 +227,7 @@
           "selectable": true,
           "bypassed": false,
           "height": 400,
-          "title": "🅰️ Composite product into scene (image-to-image)"
+          "title": "\ud83c\udd70\ufe0f Composite product into scene (image-to-image)"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -255,7 +255,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "3️⃣ Product image"
+          "title": "3\ufe0f\u20e3 Product image"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -284,7 +284,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "9️⃣ Split into per-scene prompts"
+          "title": "9\ufe0f\u20e3 Split into per-scene prompts"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -304,7 +304,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "8️⃣ Build image prompt"
+          "title": "8\ufe0f\u20e3 Build image prompt"
         },
         "dynamic_properties": {
           "scenes": "Studio shot on a matte black surface with soft key lighting; lifestyle scene on a wooden desk beside a laptop",
@@ -325,7 +325,7 @@
             "path": null,
             "supported_tasks": []
           },
-          "system": "You are a professional product photographer and commercial art director.\n\nFrom a product brief you invent distinct, sales-ready photography scene concepts. Follow these rules:\n- Make every concept visibly different in setting, lighting, and mood — no two should read as the same shot.\n- Stay faithful to the product's real materials, colors, and features; never invent capabilities you were not given.\n- Ground each concept for the stated target audience.\n- Be concrete and shootable: name the environment, the light, the props, the camera angle, and the atmosphere.\n\nReturn only the scene concepts, one complete concept per line, no numbering or commentary.",
+          "system": "You are a professional product photographer and commercial art director.\n\nFrom a product brief you invent distinct, sales-ready photography scene concepts. Follow these rules:\n- Make every concept visibly different in setting, lighting, and mood \u2014 no two should read as the same shot.\n- Stay faithful to the product's real materials, colors, and features; never invent capabilities you were not given.\n- Ground each concept for the stated target audience.\n- Be concrete and shootable: name the environment, the light, the props, the camera angle, and the atmosphere.\n\nReturn only the scene concepts, one complete concept per line, no numbering or commentary.",
           "image": {
             "type": "image",
             "uri": "",
@@ -353,7 +353,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "7️⃣ Scene concept agent"
+          "title": "7\ufe0f\u20e3 Scene concept agent"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -373,7 +373,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "6️⃣ Build scene prompt"
+          "title": "6\ufe0f\u20e3 Build scene prompt"
         },
         "dynamic_properties": {
           "name": "Premium Wireless Headphones",
@@ -400,7 +400,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "1️⃣ Product name"
+          "title": "1\ufe0f\u20e3 Product name"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -422,7 +422,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "5️⃣ Product description"
+          "title": "5\ufe0f\u20e3 Product description"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -444,7 +444,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "4️⃣ Target audience"
+          "title": "4\ufe0f\u20e3 Target audience"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -468,7 +468,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "2️⃣ Scene count"
+          "title": "2\ufe0f\u20e3 Scene count"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -479,7 +479,7 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "huggingface_fal_ai",
+            "provider": "fal_ai",
             "id": "fal-ai/flux/schnell",
             "name": "FLUX.1 Schnell",
             "path": null,
@@ -503,7 +503,7 @@
           "selectable": true,
           "bypassed": false,
           "height": 400,
-          "title": "🔟 Render scene (text-to-image)"
+          "title": "\ud83d\udd1f Render scene (text-to-image)"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}

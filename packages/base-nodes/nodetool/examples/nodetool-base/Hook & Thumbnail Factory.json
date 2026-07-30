@@ -5,7 +5,7 @@
   "updated_at": "2026-07-17T12:00:00.000Z",
   "name": "Hook & Thumbnail Factory",
   "tool_name": null,
-  "description": "One video topic in, a full thumbnail pack out: scroll-stopping hook lines plus a color-graded, ready-to-post thumbnail for each. The differentiator is the fan-out — one hook stream drives a whole gallery of matching images in a single run. Uses fal-ai/flux/schnell (cheap, fast).",
+  "description": "One video topic in, a full thumbnail pack out: scroll-stopping hook lines plus a color-graded, ready-to-post thumbnail for each. The differentiator is the fan-out \u2014 one hook stream drives a whole gallery of matching images in a single run. Uses fal-ai/flux/schnell (cheap, fast).",
   "tags": [
     "image",
     "content",
@@ -155,7 +155,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎬 Hook & Thumbnail Factory\n\nGive a video topic and audience. The graph writes scroll-stopping hook lines and, for **each** hook, generates a matching thumbnail — color-graded for punch and collected into a gallery. A whole thumbnail pack from one run.\n\n**Why a graph, not a chat box:** the hook stream fans out. `List Generator` emits one hook at a time; each hook flows through its own prompt → image → color-grade branch, so N hooks become N finished thumbnails in parallel. A chat box can list hooks; it can't hand you the images.\n\n**Pipeline:** Topic + audience + count → hook brief → List Generator (streams hooks) → per-hook thumbnail prompt → Text-to-Image → color grade → collect gallery\n\n**Try this:** change the topic, audience, or number of hooks; tweak the thumbnail style in the prompt. Pick a text model on the List Generator and an image model on Text-to-Image first."
+          "comment": "# \ud83c\udfac Hook & Thumbnail Factory\n\nGive a video topic and audience. The graph writes scroll-stopping hook lines and, for **each** hook, generates a matching thumbnail \u2014 color-graded for punch and collected into a gallery. A whole thumbnail pack from one run.\n\n**Why a graph, not a chat box:** the hook stream fans out. `List Generator` emits one hook at a time; each hook flows through its own prompt \u2192 image \u2192 color-grade branch, so N hooks become N finished thumbnails in parallel. A chat box can list hooks; it can't hand you the images.\n\n**Pipeline:** Topic + audience + count \u2192 hook brief \u2192 List Generator (streams hooks) \u2192 per-hook thumbnail prompt \u2192 Text-to-Image \u2192 color grade \u2192 collect gallery\n\n**Try this:** change the topic, audience, or number of hooks; tweak the thumbnail style in the prompt. Pick a text model on the List Generator and an image model on Text-to-Image first."
         },
         "ui_properties": {
           "selected": false,
@@ -188,7 +188,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "1️⃣ Video topic",
+          "title": "1\ufe0f\u20e3 Video topic",
           "selectable": true,
           "bypassed": false
         },
@@ -200,7 +200,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "Target Audience",
-          "description": "Who you are making it for — shapes tone and references.",
+          "description": "Who you are making it for \u2014 shapes tone and references.",
           "value": "Gen Z just starting to invest"
         },
         "ui_properties": {
@@ -211,7 +211,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "2️⃣ Target audience",
+          "title": "2\ufe0f\u20e3 Target audience",
           "selectable": true,
           "bypassed": false
         },
@@ -236,7 +236,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "3️⃣ How many hooks",
+          "title": "3\ufe0f\u20e3 How many hooks",
           "selectable": true,
           "bypassed": false
         },
@@ -258,7 +258,7 @@
           "zIndex": 0,
           "width": 340,
           "height": 460,
-          "title": "4️⃣ Build hook brief",
+          "title": "4\ufe0f\u20e3 Build hook brief",
           "selectable": true,
           "bypassed": false
         },
@@ -292,7 +292,7 @@
           "zIndex": 0,
           "width": 360,
           "height": 420,
-          "title": "5️⃣ Stream hooks",
+          "title": "5\ufe0f\u20e3 Stream hooks",
           "selectable": true,
           "bypassed": false
         },
@@ -314,7 +314,7 @@
           "zIndex": 0,
           "width": 340,
           "height": 460,
-          "title": "6️⃣ Build thumbnail prompt",
+          "title": "6\ufe0f\u20e3 Build thumbnail prompt",
           "selectable": true,
           "bypassed": false
         },
@@ -330,7 +330,7 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "huggingface_fal_ai",
+            "provider": "fal_ai",
             "id": "fal-ai/flux/schnell",
             "name": "FLUX.1 Schnell",
             "path": null,
@@ -350,7 +350,7 @@
           "zIndex": 0,
           "width": 320,
           "height": 360,
-          "title": "7️⃣ Generate thumbnail",
+          "title": "7\ufe0f\u20e3 Generate thumbnail",
           "selectable": true,
           "bypassed": false
         },
@@ -372,7 +372,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "8️⃣ Color grade for punch",
+          "title": "8\ufe0f\u20e3 Color grade for punch",
           "selectable": true,
           "bypassed": false
         },
@@ -393,7 +393,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "9️⃣ Collect gallery",
+          "title": "9\ufe0f\u20e3 Collect gallery",
           "selectable": true,
           "bypassed": false
         },
@@ -414,7 +414,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "🖼️ Thumbnail gallery",
+          "title": "\ud83d\uddbc\ufe0f Thumbnail gallery",
           "selectable": true,
           "bypassed": false
         },
@@ -436,7 +436,7 @@
           "zIndex": 0,
           "width": 360,
           "height": 300,
-          "title": "🪝 Hook ideas",
+          "title": "\ud83e\ude9d Hook ideas",
           "selectable": true,
           "bypassed": false
         },
@@ -458,7 +458,7 @@
           "zIndex": 0,
           "width": 360,
           "height": 320,
-          "title": "🖼️ Latest thumbnail",
+          "title": "\ud83d\uddbc\ufe0f Latest thumbnail",
           "selectable": true,
           "bypassed": false
         },
