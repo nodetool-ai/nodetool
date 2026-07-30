@@ -149,6 +149,13 @@ import { handleSdkV1LifecycleRpc } from "./sdk/sdk-lifecycle-rpc-handler.js";
 const log = createLogger("nodetool.websocket.runner");
 const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
 const MAX_ERROR_TEXT_LENGTH = 4000;
+const TERMINAL_JOB_STATUSES = [
+  "completed",
+  "failed",
+  "cancelled",
+  "error",
+  "suspended"
+];
 
 /**
  * Largest binary (MsgPack) frame accepted from a client before deserialization.
@@ -3058,9 +3065,10 @@ export class UnifiedWebSocketRunner {
     // N-variant run does one query per node, not one per variant (RFC D8).
     const persistedIndexByNode = new Map<string, Set<number>>();
 
-    // The kernel emits the same running update once graph validation begins.
-    // Authoritative SDK runs can use that update and avoid an otherwise
-    // duplicate WebSocket frame. Legacy clients keep the eager acknowledgement.
+    // The kernel opens every run with the same running update. Authoritative
+    // SDK runs relay that one and avoid an otherwise duplicate WebSocket
+    // frame. Legacy clients keep the eager acknowledgement.
+    let runningSeen = false;
     if (!active.requireTerminalResult) {
       await this.sendMessage({
         type: "job_update",
@@ -3068,7 +3076,23 @@ export class UnifiedWebSocketRunner {
         job_id: active.jobId,
         workflow_id: active.workflowId
       });
+      runningSeen = true;
     }
+    // Guard the framing contract for authoritative runs: a terminal update
+    // must never be the first job_update a client sees. The kernel emits
+    // running before it can fail, but a run that dies before the kernel
+    // starts — or a future reordering there — must not silently drop the
+    // acknowledgement.
+    const ensureRunningFrame = async (): Promise<void> => {
+      if (runningSeen) return;
+      runningSeen = true;
+      await this.sendMessage({
+        type: "job_update",
+        status: "running",
+        job_id: active.jobId,
+        workflow_id: active.workflowId
+      });
+    };
 
     const executionSettled = executePromise
       .then((result) => {
@@ -3313,14 +3337,17 @@ export class UnifiedWebSocketRunner {
           status === "completed" &&
           outbound.result === undefined;
         if (!suppressProvisionalCompletion) {
+          if (outbound.type === "job_update") {
+            if (status === "running") {
+              runningSeen = true;
+            } else if (TERMINAL_JOB_STATUSES.includes(status)) {
+              await ensureRunningFrame();
+            }
+          }
           await this.sendMessage(outbound);
         }
         if (outbound.type === "job_update" && !suppressProvisionalCompletion) {
-          if (
-            ["completed", "failed", "cancelled", "error", "suspended"].includes(
-              status
-            )
-          ) {
+          if (TERMINAL_JOB_STATUSES.includes(status)) {
             terminalSeen = true;
             if (outbound.result !== undefined) {
               terminalWithResultSeen = true;
@@ -3354,6 +3381,7 @@ export class UnifiedWebSocketRunner {
       !terminalSeen ||
       (!terminalWithResultSeen && Object.keys(finalOutputs).length > 0)
     ) {
+      await ensureRunningFrame();
       await this.sendMessage({
         type: "job_update",
         status: active.status,
