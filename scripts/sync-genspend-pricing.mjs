@@ -194,7 +194,13 @@ export function buildCatalog({
     etag: unchanged ? previous.etag ?? null : etag ?? previous?.etag ?? null,
     catalogModels: Array.isArray(models) ? models.length : 0,
     catalogOfferings: offeringCount,
-    providers: Object.keys(coverage).sort(),
+    // Providers that actually carry a price, read off the keys rather than from
+    // `coverage` — a provider whose every offering went unresolved (xAI, whose
+    // model listing needs a live API call) is covered by the sync but priced by
+    // nothing, and listing it here would overstate what the catalog answers.
+    providers: [
+      ...new Set(Object.keys(prices).map((key) => key.slice(0, key.indexOf(":"))))
+    ].sort(),
     pricedModels: Object.keys(prices).length,
     prices
   };

@@ -619,4 +619,23 @@ describe("buildCatalog", () => {
       source: "https://genspend.io/api/v1/models"
     });
   });
+
+  it("leaves out a provider it covered but could not price", () => {
+    // xAI is walked every run, but its model listing needs a live API call, so
+    // nothing resolves. Listing it as a priced provider would overstate what
+    // the catalog can answer.
+    const { catalog } = build(
+      [
+        model(),
+        model({
+          slug: "grok-imagine-video",
+          name: "Grok Imagine Video",
+          offerings: [offering({ provider: { slug: "xai", name: "xAI" } })]
+        })
+      ],
+      null,
+      "2026-01-01T00:00:00.000Z"
+    );
+    expect(catalog.providers).toEqual(["atlascloud"]);
+  });
 });

@@ -16,8 +16,7 @@
     "minimax",
     "openai",
     "replicate",
-    "together",
-    "xai"
+    "together"
   ],
   "pricedModels": 283,
   "prices": {
