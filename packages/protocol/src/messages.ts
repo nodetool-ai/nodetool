@@ -9,7 +9,23 @@
  *
  * Every message is discriminated by a literal `type` field so that
  * consumers can switch on `msg.type` for exhaustive handling.
+ *
+ * Zod is the source of truth: every `ProcessingMessage` variant (and the
+ * types it embeds) is defined as a Zod schema first, with its TypeScript
+ * type derived via `z.infer`. Where Zod's inference can't reproduce a
+ * shape exactly — index signatures, `unknown` fields whose optionality
+ * must stay exact — the TypeScript interface is still hand-written and
+ * exported as before, and the schema is annotated `z.ZodType<ThatType>`
+ * so the two never drift silently.
+ *
+ * `processingMessageSchema` (a `z.discriminatedUnion` on `type`) is the
+ * single runtime validator for the whole union; `packages/protocol`'s
+ * build emits it as JSON Schema to `dist/processing-messages.schema.json`
+ * (see `scripts/generate-processing-messages-schema.ts`) for non-TS
+ * consumers (the Python worker, external SDKs) to validate against.
  */
+
+import { z } from "zod";
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -27,16 +43,22 @@ export enum TaskUpdateEvent {
   TaskFailed = "task_failed"
 }
 
-export type Severity = "info" | "warning" | "error";
+/** Zod schema for {@link TaskUpdateEvent}. */
+export const taskUpdateEventSchema = z.enum(TaskUpdateEvent);
 
-export type ContentType =
-  | "text"
-  | "audio"
-  | "image"
-  | "video"
-  | "document"
-  | "tool_call"
-  | "agent_status";
+export const severitySchema = z.enum(["info", "warning", "error"]);
+export type Severity = z.infer<typeof severitySchema>;
+
+export const contentTypeSchema = z.enum([
+  "text",
+  "audio",
+  "image",
+  "video",
+  "document",
+  "tool_call",
+  "agent_status"
+]);
+export type ContentType = z.infer<typeof contentTypeSchema>;
 
 export type EdgeType = "data" | "control";
 
@@ -71,6 +93,15 @@ export interface RunStateInfo {
   is_resumable: boolean;
 }
 
+export const runStateInfoSchema: z.ZodType<RunStateInfo> = z.object({
+  status: z.string(),
+  suspended_node_id: z.string().nullable().optional(),
+  suspension_reason: z.string().nullable().optional(),
+  error_message: z.string().nullable().optional(),
+  execution_strategy: z.string().nullable().optional(),
+  is_resumable: z.boolean()
+});
+
 /**
  * Minimal Task / Step references used by TaskUpdate and StepResult.
  * Full definitions live in the agent layer; here we keep only the
@@ -104,85 +135,126 @@ export interface StepRef {
   [key: string]: unknown;
 }
 
+// `TaskRef`/`StepRef` are mutually recursive and carry an index signature
+// (`[key: string]: unknown`) on top of explicit optional fields — a shape
+// `z.infer` cannot reproduce exactly (Zod's `.catchall()` would also widen
+// the explicit fields' key type). The interfaces above remain the source
+// of truth for the TS types; these schemas are hand-annotated to them and
+// validate the same shape at runtime. `z.lazy` breaks the recursive cycle.
+export const stepRefSchema: z.ZodType<StepRef> = z.lazy(() =>
+  z
+    .object({
+      id: z.string().optional(),
+      name: z.string().optional(),
+      instructions: z.string().optional(),
+      status: z.string().optional(),
+      tool: z.string().nullable().optional(),
+      result: z.unknown().optional(),
+      error: z.string().nullable().optional(),
+      completed: z.boolean().optional(),
+      start_time: z.number().optional()
+    })
+    .catchall(z.unknown())
+);
+
+export const taskRefSchema: z.ZodType<TaskRef> = z.lazy(() =>
+  z
+    .object({
+      id: z.string().optional(),
+      name: z.string().optional(),
+      title: z.string().optional(),
+      description: z.string().optional(),
+      instructions: z.string().optional(),
+      status: z.string().optional(),
+      steps: z.array(stepRefSchema).optional(),
+      result: z.unknown().optional(),
+      error: z.string().nullable().optional()
+    })
+    .catchall(z.unknown())
+);
+
 // ---------------------------------------------------------------------------
 // Server → Client messages
 // ---------------------------------------------------------------------------
 
-export interface JobUpdate {
-  type: "job_update";
-  status: string;
-  job_id?: string | null;
-  workflow_id?: string | null;
-  message?: string | null;
-  result?: Record<string, unknown> | null;
-  error?: string | null;
-  traceback?: string | null;
-  run_state?: RunStateInfo | null;
-  duration?: number | null;
+export const validationIssueSchema = z.object({
+  node_id: z.string(),
+  node_type: z.string().nullable().optional(),
+  property: z.string(),
+  message: z.string()
+});
+export type ValidationIssue = z.infer<typeof validationIssueSchema>;
+
+export const jobUpdateSchema = z.object({
+  type: z.literal("job_update"),
+  status: z.string(),
+  job_id: z.string().nullable().optional(),
+  workflow_id: z.string().nullable().optional(),
+  message: z.string().nullable().optional(),
+  result: z.record(z.string(), z.unknown()).nullable().optional(),
+  error: z.string().nullable().optional(),
+  traceback: z.string().nullable().optional(),
+  run_state: runStateInfoSchema.nullable().optional(),
+  duration: z.number().nullable().optional(),
   /**
    * 1-based position in the server's pending-run queue. Present when
    * `status === "queued"` because the client already has
    * `MAX_CONCURRENT_JOBS` runs in flight. The run starts automatically
    * (a `running` update follows) once an earlier run finishes.
    */
-  queue_position?: number | null;
+  queue_position: z.number().nullable().optional(),
   /**
    * Per-property issues from pre-flight graph validation. Present when
    * `status === "failed"` and the failure was caused by a validation error
    * (not a runtime exception). Frontend uses this to highlight specific
    * fields on the offending nodes instead of showing a node-level banner.
    */
-  validation_issues?: ValidationIssue[] | null;
+  validation_issues: z.array(validationIssueSchema).nullable().optional(),
   /**
    * Machine-readable reason for a `failed` status, when one exists. Set to
    * `BUDGET_EXCEEDED` when an app's spend budget refused the run — a websocket
    * client has no other way to tell that apart from a node crash, since both
    * arrive as `failed` with prose in `error`. Absent for ordinary failures.
    */
-  error_code?: string | null;
-}
+  error_code: z.string().nullable().optional()
+});
+export type JobUpdate = z.infer<typeof jobUpdateSchema>;
 
-export interface ValidationIssue {
-  node_id: string;
-  node_type?: string | null;
-  property: string;
-  message: string;
-}
-
-export interface ProviderCost {
-  provider: string;
-  amount: number;
-  unit: string;
+export const providerCostSchema = z.object({
+  provider: z.string(),
+  amount: z.number(),
+  unit: z.string(),
   /** Provider model / endpoint the charge applies to (e.g. a FAL endpoint id). */
-  model?: string | null;
+  model: z.string().nullable().optional(),
   /** Billing unit the provider prices by (e.g. "megapixels", "seconds", "images"). */
-  billing_unit?: string | null;
+  billing_unit: z.string().nullable().optional(),
   /** Number of billing units consumed. */
-  quantity?: number | null;
+  quantity: z.number().nullable().optional(),
   /** Price per billing unit, in `unit`/currency terms. */
-  unit_price?: number | null;
+  unit_price: z.number().nullable().optional(),
   /** ISO 4217 currency of `amount`/`unit_price` (e.g. "USD"). */
-  currency?: string | null;
+  currency: z.string().nullable().optional(),
   /**
    * Provider-side request identifier (e.g. a FAL queue request id). Lets the
    * runner reconcile the initial estimate against the provider's actual billed
    * cost after the fact. `amount` is an estimate until reconciled.
    */
-  provider_request_id?: string | null;
-}
+  provider_request_id: z.string().nullable().optional()
+});
+export type ProviderCost = z.infer<typeof providerCostSchema>;
 
-export interface NodeUpdate {
-  type: "node_update";
-  node_id: string;
-  node_name: string;
-  node_type: string;
-  status: string;
-  error?: string | null;
-  result?: Record<string, unknown> | null;
-  properties?: Record<string, unknown> | null;
+export const nodeUpdateSchema = z.object({
+  type: z.literal("node_update"),
+  node_id: z.string(),
+  node_name: z.string(),
+  node_type: z.string(),
+  status: z.string(),
+  error: z.string().nullable().optional(),
+  result: z.record(z.string(), z.unknown()).nullable().optional(),
+  properties: z.record(z.string(), z.unknown()).nullable().optional(),
   /** Actual provider charge for the last completed run (when reported by the node). */
-  provider_cost?: ProviderCost | null;
-  workflow_id?: string | null;
+  provider_cost: providerCostSchema.nullable().optional(),
+  workflow_id: z.string().nullable().optional(),
   /**
    * Run identity. Stamped downstream by the relay (the unified websocket runner
    * and the browser runner), not by the kernel actor, so it is optional on the
@@ -190,8 +262,9 @@ export interface NodeUpdate {
    * second tab, the editor running the same workflow — key off this to keep
    * runs from contaminating each other.
    */
-  job_id?: string | null;
-}
+  job_id: z.string().nullable().optional()
+});
+export type NodeUpdate = z.infer<typeof nodeUpdateSchema>;
 
 /**
  * A generator committed one complete artifact (one `process()` result, or one
@@ -202,19 +275,19 @@ export interface NodeUpdate {
  * unified websocket runner / browser runner), so both are optional on the wire
  * — see the generation-events RFC §4.2 / §5 / Decision 8.
  */
-export interface GenerationComplete {
-  type: "generation_complete";
-  node_id: string;
-  node_name: string;
-  node_type: string;
+export const generationCompleteSchema = z.object({
+  type: z.literal("generation_complete"),
+  node_id: z.string(),
+  node_name: z.string(),
+  node_type: z.string(),
   /**
    * k-th committed generation of this node in this run. Stamped downstream by
    * the relay (DB ordering on the server, arrival order in the browser), absent
    * on the bare actor emit.
    */
-  index?: number;
+  index: z.number().optional(),
   /** The complete result dict for this artifact (same shape as a process() return). */
-  outputs: Record<string, unknown>;
+  outputs: z.record(z.string(), z.unknown()),
   /**
    * Scalar input properties resolved for this run — declared props, user-typed
    * dynamic props, and edge inputs, filtered to strings/numbers/booleans. The
@@ -222,80 +295,89 @@ export interface GenerationComplete {
    * `prompt` that produced an image) into auto-saved asset metadata. Absent when
    * the node has no scalar inputs.
    */
-  properties?: Record<string, unknown> | null;
+  properties: z.record(z.string(), z.unknown()).nullable().optional(),
   /** Stamped downstream by the runner relay, NOT by the actor. */
-  job_id?: string | null;
-  workflow_id?: string | null;
-}
+  job_id: z.string().nullable().optional(),
+  workflow_id: z.string().nullable().optional()
+});
+export type GenerationComplete = z.infer<typeof generationCompleteSchema>;
 
-export interface NodeProgress {
-  type: "node_progress";
-  node_id: string;
-  progress: number;
-  total: number;
-  chunk?: string;
-  workflow_id?: string | null;
+export const nodeProgressSchema = z.object({
+  type: z.literal("node_progress"),
+  node_id: z.string(),
+  progress: z.number(),
+  total: z.number(),
+  chunk: z.string().optional(),
+  workflow_id: z.string().nullable().optional(),
   /** Run identity, stamped downstream by the relay. See {@link NodeUpdate.job_id}. */
-  job_id?: string | null;
-}
+  job_id: z.string().nullable().optional()
+});
+export type NodeProgress = z.infer<typeof nodeProgressSchema>;
 
-export interface EdgeUpdate {
-  type: "edge_update";
+export const edgeUpdateSchema = z.object({
+  type: z.literal("edge_update"),
   // Both ids are stamped by the unified websocket runner if absent. The kernel
   // emits `job_id` (the run id); `workflow_id` is backfilled from the active
   // run. Edge animations are scoped per run, so consumers key off `job_id`.
-  workflow_id?: string;
-  job_id?: string;
-  edge_id: string;
-  status: string;
-  counter?: number | null;
-}
+  workflow_id: z.string().optional(),
+  job_id: z.string().optional(),
+  edge_id: z.string(),
+  status: z.string(),
+  counter: z.number().nullable().optional()
+});
+export type EdgeUpdate = z.infer<typeof edgeUpdateSchema>;
 
-export interface OutputUpdate {
-  type: "output_update";
-  node_id: string;
-  node_name: string;
-  output_name: string;
-  value: unknown;
-  output_type: string;
-  metadata: Record<string, unknown>;
+export const outputUpdateSchema = z.object({
+  type: z.literal("output_update"),
+  node_id: z.string(),
+  node_name: z.string(),
+  output_name: z.string(),
+  value: z.unknown(),
+  output_type: z.string(),
+  metadata: z.record(z.string(), z.unknown()),
   /**
    * NEW. "append" = `value` is a chunk to concatenate onto the live display
    * buffer; "replace" = `value` is a whole snapshot that overwrites it. Absent
    * ⇒ treated as "append" (today's behavior) for back-compat.
    */
-  disposition?: "append" | "replace";
+  disposition: z.enum(["append", "replace"]).optional(),
   /** NEW (optional). Marks the final chunk of an append stream. */
-  done?: boolean;
-  workflow_id?: string | null;
+  done: z.boolean().optional(),
+  workflow_id: z.string().nullable().optional(),
   /** Run identity, stamped downstream by the relay. See {@link NodeUpdate.job_id}. */
-  job_id?: string | null;
-}
+  job_id: z.string().nullable().optional()
+});
+export type OutputUpdate = z.infer<typeof outputUpdateSchema>;
 
-export interface SaveUpdate {
-  type: "save_update";
-  node_id: string;
-  name: string;
-  value: unknown;
-  output_type: string;
-  metadata: Record<string, unknown>;
-}
+export const saveUpdateSchema = z.object({
+  type: z.literal("save_update"),
+  node_id: z.string(),
+  name: z.string(),
+  value: z.unknown(),
+  output_type: z.string(),
+  metadata: z.record(z.string(), z.unknown())
+});
+export type SaveUpdate = z.infer<typeof saveUpdateSchema>;
 
-export interface BinaryUpdate {
-  type: "binary_update";
-  node_id: string;
-  output_name: string;
-  binary: Uint8Array;
-}
+// `binary: Uint8Array` needs `z.instanceof`, which Zod infers exactly as
+// `Uint8Array` — plain `z.infer` is fine here, no hand-written type needed.
+export const binaryUpdateSchema = z.object({
+  type: z.literal("binary_update"),
+  node_id: z.string(),
+  output_name: z.string(),
+  binary: z.instanceof(Uint8Array)
+});
+export type BinaryUpdate = z.infer<typeof binaryUpdateSchema>;
 
-export interface LogUpdate {
-  type: "log_update";
-  node_id: string;
-  node_name: string;
-  content: string;
-  severity: Severity;
-  workflow_id?: string | null;
-}
+export const logUpdateSchema = z.object({
+  type: z.literal("log_update"),
+  node_id: z.string(),
+  node_name: z.string(),
+  content: z.string(),
+  severity: severitySchema,
+  workflow_id: z.string().nullable().optional()
+});
+export type LogUpdate = z.infer<typeof logUpdateSchema>;
 
 /**
  * Raw terminal output streamed from a node that drives an interactive
@@ -304,117 +386,125 @@ export interface LogUpdate {
  * terminal emulator (xterm.js) — NOT for plain-text rendering. Kept separate
  * from `Chunk` so text-chunk consumers never see escape sequences.
  */
-export interface TerminalUpdate {
-  type: "terminal_update";
-  node_id: string;
-  workflow_id?: string | null;
+export const terminalUpdateSchema = z.object({
+  type: z.literal("terminal_update"),
+  node_id: z.string(),
+  workflow_id: z.string().nullable().optional(),
   /** Raw terminal output, including ANSI escape sequences. */
-  content: string;
+  content: z.string(),
   /** Terminal grid size, for sizing the client-side emulator. */
-  cols?: number;
-  rows?: number;
+  cols: z.number().optional(),
+  rows: z.number().optional(),
   /**
    * When true, `content` is a full-screen snapshot: the client should reset
    * its terminal state before writing (used on attach and to compact the
    * stream after large bursts).
    */
-  reset?: boolean;
-}
+  reset: z.boolean().optional()
+});
+export type TerminalUpdate = z.infer<typeof terminalUpdateSchema>;
 
-export interface Notification {
-  type: "notification";
-  node_id: string;
-  content: string;
-  severity: Severity;
-  workflow_id?: string | null;
-}
+export const notificationSchema = z.object({
+  type: z.literal("notification"),
+  node_id: z.string(),
+  content: z.string(),
+  severity: severitySchema,
+  workflow_id: z.string().nullable().optional()
+});
+export type Notification = z.infer<typeof notificationSchema>;
 
-export interface ErrorMessage {
-  type: "error";
-  message: string;
-  thread_id?: string | null;
-  workflow_id?: string | null;
-}
+export const errorMessageSchema = z.object({
+  type: z.literal("error"),
+  message: z.string(),
+  thread_id: z.string().nullable().optional(),
+  workflow_id: z.string().nullable().optional()
+});
+export type ErrorMessage = z.infer<typeof errorMessageSchema>;
 
-export interface ToolCallUpdate {
-  type: "tool_call_update";
-  node_id?: string | null;
-  thread_id?: string | null;
-  workflow_id?: string | null;
-  tool_call_id?: string | null;
-  name: string;
-  args: Record<string, unknown>;
-  message?: string | null;
-  step_id?: string | null;
-  agent_execution_id?: string | null;
+export const toolCallUpdateSchema = z.object({
+  type: z.literal("tool_call_update"),
+  node_id: z.string().nullable().optional(),
+  thread_id: z.string().nullable().optional(),
+  workflow_id: z.string().nullable().optional(),
+  tool_call_id: z.string().nullable().optional(),
+  name: z.string(),
+  args: z.record(z.string(), z.unknown()),
+  message: z.string().nullable().optional(),
+  step_id: z.string().nullable().optional(),
+  agent_execution_id: z.string().nullable().optional(),
   /**
    * The tool_call_id of an enclosing `run_subtask` call, if this event was
    * emitted from inside a subtask. Null/undefined at the root level. Used by
    * the renderer to nest tool-call cards.
    */
-  parent_tool_call_id?: string | null;
+  parent_tool_call_id: z.string().nullable().optional(),
   /**
    * Recursion depth: 0 at the chat root, 1 inside a top-level run_subtask, etc.
    * Optional — renderers that don't care can ignore it.
    */
-  subtask_depth?: number | null;
-}
+  subtask_depth: z.number().nullable().optional()
+});
+export type ToolCallUpdate = z.infer<typeof toolCallUpdateSchema>;
 
-export interface ToolResultUpdate {
-  type: "tool_result_update";
-  node_id: string;
-  thread_id?: string | null;
-  workflow_id?: string | null;
-  result: Record<string, unknown>;
-  tool_call_id?: string | null;
-  name?: string | null;
-  is_error?: boolean;
-  parent_tool_call_id?: string | null;
-  subtask_depth?: number | null;
-}
+export const toolResultUpdateSchema = z.object({
+  type: z.literal("tool_result_update"),
+  node_id: z.string(),
+  thread_id: z.string().nullable().optional(),
+  workflow_id: z.string().nullable().optional(),
+  result: z.record(z.string(), z.unknown()),
+  tool_call_id: z.string().nullable().optional(),
+  name: z.string().nullable().optional(),
+  is_error: z.boolean().optional(),
+  parent_tool_call_id: z.string().nullable().optional(),
+  subtask_depth: z.number().nullable().optional()
+});
+export type ToolResultUpdate = z.infer<typeof toolResultUpdateSchema>;
 
-export interface TaskUpdate {
-  type: "task_update";
-  node_id?: string | null;
-  thread_id?: string | null;
-  workflow_id?: string | null;
-  task: TaskRef;
-  step?: StepRef | null;
-  event: TaskUpdateEvent;
-}
+export const taskUpdateSchema = z.object({
+  type: z.literal("task_update"),
+  node_id: z.string().nullable().optional(),
+  thread_id: z.string().nullable().optional(),
+  workflow_id: z.string().nullable().optional(),
+  task: taskRefSchema,
+  step: stepRefSchema.nullable().optional(),
+  event: taskUpdateEventSchema
+});
+export type TaskUpdate = z.infer<typeof taskUpdateSchema>;
 
-export interface StepResult {
-  type: "step_result";
-  step: StepRef;
-  result: unknown;
-  error?: string | null;
-  is_task_result?: boolean;
-  thread_id?: string | null;
-  workflow_id?: string | null;
-}
+export const stepResultSchema = z.object({
+  type: z.literal("step_result"),
+  step: stepRefSchema,
+  result: z.unknown(),
+  error: z.string().nullable().optional(),
+  is_task_result: z.boolean().optional(),
+  thread_id: z.string().nullable().optional(),
+  workflow_id: z.string().nullable().optional()
+});
+export type StepResult = z.infer<typeof stepResultSchema>;
 
-export interface PlanningUpdate {
-  type: "planning_update";
-  node_id?: string | null;
-  thread_id?: string | null;
-  workflow_id?: string | null;
-  phase: string;
-  status: string;
-  content?: string | null;
-}
+export const planningUpdateSchema = z.object({
+  type: z.literal("planning_update"),
+  node_id: z.string().nullable().optional(),
+  thread_id: z.string().nullable().optional(),
+  workflow_id: z.string().nullable().optional(),
+  phase: z.string(),
+  status: z.string(),
+  content: z.string().nullable().optional()
+});
+export type PlanningUpdate = z.infer<typeof planningUpdateSchema>;
 
-export interface Chunk {
-  type: "chunk";
-  node_id?: string | null;
-  thread_id?: string | null;
-  workflow_id?: string | null;
+export const chunkSchema = z.object({
+  type: z.literal("chunk"),
+  node_id: z.string().nullable().optional(),
+  thread_id: z.string().nullable().optional(),
+  workflow_id: z.string().nullable().optional(),
   /**
    * Run identity, stamped downstream by the relay for workflow-sourced chunks.
    * Absent on chat chunks, which are scoped by `thread_id` instead.
    * See {@link NodeUpdate.job_id}.
    */
-  job_id?: string | null;
-  content_type?: ContentType;
+  job_id: z.string().nullable().optional(),
+  content_type: contentTypeSchema.optional(),
   /**
    * Text chunks and externally-sourced audio carry a string (base64 for
    * binary payloads). In-process audio/CV chunks carry their samples as a
@@ -423,18 +513,19 @@ export interface Chunk {
    * "f32le"`) at the wire boundary; worker postMessage structured-clones
    * them natively.
    */
-  content: string | Float32Array;
-  content_metadata?: Record<string, unknown>;
-  done?: boolean;
-  thinking?: boolean;
+  content: z.union([z.string(), z.instanceof(Float32Array)]),
+  content_metadata: z.record(z.string(), z.unknown()).optional(),
+  done: z.boolean().optional(),
+  thinking: z.boolean().optional(),
   /**
    * The tool_call_id of an enclosing `run_subtask` call when this chunk was
    * emitted from inside a subtask. Null/undefined at the root.
    */
-  parent_tool_call_id?: string | null;
+  parent_tool_call_id: z.string().nullable().optional(),
   /** Recursion depth: 0 at the chat root, 1 inside run_subtask, etc. */
-  subtask_depth?: number | null;
-}
+  subtask_depth: z.number().nullable().optional()
+});
+export type Chunk = z.infer<typeof chunkSchema>;
 
 /**
  * Opaque, provider-agnostic continuation token for resuming an upstream
@@ -454,79 +545,95 @@ export interface Chunk {
  * after ~30 days; the Agent SDK's session JSONL can be deleted), so a failed
  * resume must fall back to a fresh session rather than erroring.
  */
-export interface ProviderSession {
+export const providerSessionSchema = z.object({
   /** Provider that owns the token (e.g. `PROVIDER_IDS.CLAUDE_AGENT_SDK`). */
-  providerId: string;
+  providerId: z.string(),
   /** Model the session was created with; a mismatch forces a fresh session. */
-  model: string;
+  model: z.string(),
   /**
    * The opaque continuation token: the Agent SDK `session_id` here;
    * `previous_response_id` for an OpenAI Responses provider.
    */
-  token: string;
+  token: z.string(),
   /**
    * Count of conversation messages already absorbed by this session — the
    * resume cut point. The next turn sends only `messages.slice(checkpoint)`.
    */
-  checkpoint: number;
+  checkpoint: z.number(),
   /** Optional hash of the system prompt; a mismatch invalidates the session. */
-  systemHash?: string;
-}
+  systemHash: z.string().optional()
+});
+export type ProviderSession = z.infer<typeof providerSessionSchema>;
 
-export type TodoStatus = "pending" | "in_progress" | "completed";
+export const todoStatusSchema = z.enum(["pending", "in_progress", "completed"]);
+export type TodoStatus = z.infer<typeof todoStatusSchema>;
 
-export interface TodoItem {
-  content: string;
-  status: TodoStatus;
-}
+export const todoItemSchema = z.object({
+  content: z.string(),
+  status: todoStatusSchema
+});
+export type TodoItem = z.infer<typeof todoItemSchema>;
 
-export interface TodoUpdate {
-  type: "todo_update";
-  thread_id?: string | null;
-  workflow_id?: string | null;
-  node_id?: string | null;
-  todos: TodoItem[];
-}
+export const todoUpdateSchema = z.object({
+  type: z.literal("todo_update"),
+  thread_id: z.string().nullable().optional(),
+  workflow_id: z.string().nullable().optional(),
+  node_id: z.string().nullable().optional(),
+  todos: z.array(todoItemSchema)
+});
+export type TodoUpdate = z.infer<typeof todoUpdateSchema>;
 
-export interface Prediction {
-  type: "prediction";
-  id: string;
-  user_id: string;
-  node_id: string;
-  workflow_id?: string | null;
-  provider?: string | null;
-  model?: string | null;
-  version?: string | null;
-  node_type?: string | null;
-  status: string;
-  params?: Record<string, unknown>;
-  data?: unknown | null;
-  cost?: number | null;
-  logs?: string | null;
-  error?: string | null;
-  duration?: number | null;
-  created_at?: string | null;
-  started_at?: string | null;
-  completed_at?: string | null;
-  [key: string]: unknown;
-}
+/**
+ * `Prediction` mixes fully-typed known fields with an index signature for
+ * provider-specific extras. `.catchall(z.unknown())` matches that shape.
+ */
+export const predictionSchema = z
+  .object({
+    type: z.literal("prediction"),
+    id: z.string(),
+    user_id: z.string(),
+    node_id: z.string(),
+    workflow_id: z.string().nullable().optional(),
+    provider: z.string().nullable().optional(),
+    model: z.string().nullable().optional(),
+    version: z.string().nullable().optional(),
+    node_type: z.string().nullable().optional(),
+    status: z.string(),
+    params: z.record(z.string(), z.unknown()).optional(),
+    data: z.unknown().nullable().optional(),
+    cost: z.number().nullable().optional(),
+    logs: z.string().nullable().optional(),
+    error: z.string().nullable().optional(),
+    duration: z.number().nullable().optional(),
+    created_at: z.string().nullable().optional(),
+    started_at: z.string().nullable().optional(),
+    completed_at: z.string().nullable().optional()
+  })
+  .catchall(z.unknown());
+export type Prediction = z.infer<typeof predictionSchema>;
 
-export interface LLMCallUpdate {
-  type: "llm_call";
-  node_id: string;
-  node_name?: string | null;
-  provider: string;
-  model: string;
-  messages: Array<{ role: string; content: unknown }>;
-  response: unknown;
-  tool_calls?: Array<{ id: string; name: string; args: unknown }> | null;
-  tokens_input?: number | null;
-  tokens_output?: number | null;
-  cost?: number | null;
-  duration_ms: number;
-  error?: string | null;
-  timestamp: string;
-}
+export const llmCallUpdateSchema = z.object({
+  type: z.literal("llm_call"),
+  node_id: z.string(),
+  node_name: z.string().nullable().optional(),
+  provider: z.string(),
+  model: z.string(),
+  messages: z.array(
+    z.object({ role: z.string(), content: z.unknown() })
+  ),
+  response: z.unknown(),
+  tool_calls: z
+    .array(z.object({ id: z.string(), name: z.string(), args: z.unknown() }))
+    .nullable()
+    .optional(),
+  tokens_input: z.number().nullable().optional(),
+  tokens_output: z.number().nullable().optional(),
+  cost: z.number().nullable().optional(),
+  duration_ms: z.number(),
+  error: z.string().nullable().optional(),
+  timestamp: z.string()
+});
+export type LLMCallUpdate = z.infer<typeof llmCallUpdateSchema>;
 
 // ---------------------------------------------------------------------------
 // Unified websocket command/control/update types
@@ -764,28 +871,37 @@ export type WebSocketServerMessage =
 // Discriminated union – matches Python ProcessingMessage
 // ---------------------------------------------------------------------------
 
-export type ProcessingMessage =
-  | JobUpdate
-  | NodeUpdate
-  | GenerationComplete
-  | NodeProgress
-  | EdgeUpdate
-  | OutputUpdate
-  | SaveUpdate
-  | BinaryUpdate
-  | LogUpdate
-  | TerminalUpdate
-  | Notification
-  | ErrorMessage
-  | ToolCallUpdate
-  | ToolResultUpdate
-  | TaskUpdate
-  | StepResult
-  | PlanningUpdate
-  | Chunk
-  | Prediction
-  | LLMCallUpdate
-  | TodoUpdate;
+/**
+ * Single runtime validator for the whole `ProcessingMessage` union,
+ * discriminated on `type`. `packages/protocol`'s build converts this to
+ * JSON Schema (see `scripts/generate-processing-messages-schema.ts`) so
+ * non-TypeScript consumers can validate the same shapes.
+ */
+export const processingMessageSchema = z.discriminatedUnion("type", [
+  jobUpdateSchema,
+  nodeUpdateSchema,
+  generationCompleteSchema,
+  nodeProgressSchema,
+  edgeUpdateSchema,
+  outputUpdateSchema,
+  saveUpdateSchema,
+  binaryUpdateSchema,
+  logUpdateSchema,
+  terminalUpdateSchema,
+  notificationSchema,
+  errorMessageSchema,
+  toolCallUpdateSchema,
+  toolResultUpdateSchema,
+  taskUpdateSchema,
+  stepResultSchema,
+  planningUpdateSchema,
+  chunkSchema,
+  predictionSchema,
+  llmCallUpdateSchema,
+  todoUpdateSchema
+]);
+
+export type ProcessingMessage = z.infer<typeof processingMessageSchema>;
 
 /**
  * Literal union of every `type` discriminator value.
@@ -802,6 +918,128 @@ export type MessageOfType<T extends MessageType> = Extract<
   ProcessingMessage,
   { type: T }
 >;
+
+// ---------------------------------------------------------------------------
+// Per-type schema lookup + type guards
+// ---------------------------------------------------------------------------
+
+/** Every per-type schema, keyed by its `type` discriminator. */
+export const processingMessageSchemas = {
+  job_update: jobUpdateSchema,
+  node_update: nodeUpdateSchema,
+  generation_complete: generationCompleteSchema,
+  node_progress: nodeProgressSchema,
+  edge_update: edgeUpdateSchema,
+  output_update: outputUpdateSchema,
+  save_update: saveUpdateSchema,
+  binary_update: binaryUpdateSchema,
+  log_update: logUpdateSchema,
+  terminal_update: terminalUpdateSchema,
+  notification: notificationSchema,
+  error: errorMessageSchema,
+  tool_call_update: toolCallUpdateSchema,
+  tool_result_update: toolResultUpdateSchema,
+  task_update: taskUpdateSchema,
+  step_result: stepResultSchema,
+  planning_update: planningUpdateSchema,
+  chunk: chunkSchema,
+  prediction: predictionSchema,
+  llm_call: llmCallUpdateSchema,
+  todo_update: todoUpdateSchema
+} as const satisfies Record<MessageType, z.ZodType<ProcessingMessage>>;
+
+/**
+ * Cheap discriminant check shared by every `is*` guard below: narrows on
+ * `type` alone (no field validation) so guards stay usable in hot paths.
+ * Use `processingMessageSchemas[type].safeParse(value)` when a caller needs
+ * full structural validation instead of just narrowing an already-trusted
+ * `ProcessingMessage`.
+ */
+function hasType<T extends MessageType>(
+  value: unknown,
+  type: T
+): value is { type: T } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as { type?: unknown }).type === type
+  );
+}
+
+export function isJobUpdate(value: unknown): value is JobUpdate {
+  return hasType(value, "job_update");
+}
+export function isNodeUpdate(value: unknown): value is NodeUpdate {
+  return hasType(value, "node_update");
+}
+export function isGenerationComplete(
+  value: unknown
+): value is GenerationComplete {
+  return hasType(value, "generation_complete");
+}
+export function isNodeProgress(value: unknown): value is NodeProgress {
+  return hasType(value, "node_progress");
+}
+export function isEdgeUpdate(value: unknown): value is EdgeUpdate {
+  return hasType(value, "edge_update");
+}
+export function isOutputUpdate(value: unknown): value is OutputUpdate {
+  return hasType(value, "output_update");
+}
+export function isSaveUpdate(value: unknown): value is SaveUpdate {
+  return hasType(value, "save_update");
+}
+export function isBinaryUpdate(value: unknown): value is BinaryUpdate {
+  return hasType(value, "binary_update");
+}
+export function isLogUpdate(value: unknown): value is LogUpdate {
+  return hasType(value, "log_update");
+}
+export function isTerminalUpdate(value: unknown): value is TerminalUpdate {
+  return hasType(value, "terminal_update");
+}
+export function isNotification(value: unknown): value is Notification {
+  return hasType(value, "notification");
+}
+export function isErrorMessage(value: unknown): value is ErrorMessage {
+  return hasType(value, "error");
+}
+export function isToolCallUpdate(value: unknown): value is ToolCallUpdate {
+  return hasType(value, "tool_call_update");
+}
+export function isToolResultUpdate(
+  value: unknown
+): value is ToolResultUpdate {
+  return hasType(value, "tool_result_update");
+}
+export function isTaskUpdate(value: unknown): value is TaskUpdate {
+  return hasType(value, "task_update");
+}
+export function isStepResult(value: unknown): value is StepResult {
+  return hasType(value, "step_result");
+}
+export function isPlanningUpdate(value: unknown): value is PlanningUpdate {
+  return hasType(value, "planning_update");
+}
+export function isChunk(value: unknown): value is Chunk {
+  return hasType(value, "chunk");
+}
+export function isPrediction(value: unknown): value is Prediction {
+  return hasType(value, "prediction");
+}
+export function isLLMCallUpdate(value: unknown): value is LLMCallUpdate {
+  return hasType(value, "llm_call");
+}
+export function isTodoUpdate(value: unknown): value is TodoUpdate {
+  return hasType(value, "todo_update");
+}
+
+/** True when `value` is a structurally valid `ProcessingMessage`. */
+export function isProcessingMessage(
+  value: unknown
+): value is ProcessingMessage {
+  return processingMessageSchema.safeParse(value).success;
+}
 
 // ---------------------------------------------------------------------------
 // Utility functions
