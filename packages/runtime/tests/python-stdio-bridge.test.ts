@@ -149,4 +149,27 @@ describe("PythonStdioBridge against the faithful stdio fake", () => {
     await expect(bridge.connect()).rejects.toThrow(/frame exceeds max size/i);
     expect(bridge.isConnected).toBe(false);
   });
+
+  it("delivers valid frames that precede a corrupt one in the same chunk before failing", async () => {
+    const bridge = track(
+      makeBridge({ FAKE_WORKER_BAD_LENGTH_AFTER_COUNT: "2" })
+    );
+    await bridge.connect();
+    expect(bridge.isConnected).toBe(true);
+
+    // The fake worker buffers both `execute` results and writes them to
+    // stdout together with a trailing bad-length frame in a single chunk:
+    // both requests below must still resolve with their own results before
+    // the connection is failed by the corrupt frame that follows them.
+    const [first, second] = await Promise.all([
+      bridge.execute("fake.TestNode", { value: "a" }, {}, {}),
+      bridge.execute("fake.TestNode", { value: "b" }, {}, {})
+    ]);
+    expect(first.outputs.out).toBe("a");
+    expect(second.outputs.out).toBe("b");
+
+    // The connection is then failed by the corrupt frame that followed them.
+    await new Promise((r) => setTimeout(r, 50));
+    expect(bridge.isConnected).toBe(false);
+  });
 });

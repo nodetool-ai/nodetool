@@ -123,6 +123,47 @@ describe("strict mode: _checkPendingInboxWork", () => {
     expect(result.error).toContain("pending inbox work");
     expect(result.error).toContain("consumer");
   });
+
+  it("strict: a cancelled run terminates as cancelled, not failed, despite pending inbox work", async () => {
+    const { nodes, edges } = deadConsumerGraph();
+    let runner!: WorkflowRunner;
+    runner = new WorkflowRunner("job-pending-cancel", {
+      bufferLimit: 1,
+      strict: true,
+      resolveExecutor: (node) => {
+        if (node.id === "producer") {
+          return {
+            async *genProcess() {
+              for (let i = 0; i < 10; i++) {
+                yield { value: i };
+              }
+            },
+            process: async () => ({})
+          } as unknown as NodeExecutor;
+        }
+        if (node.id === "consumer") {
+          return {
+            async run() {
+              // Cancel the run before the consumer actor dies, so the
+              // pending-inbox-work gate observes a cancelled run rather
+              // than an ordinary node error.
+              runner.cancel();
+              throw new Error("consumer died");
+            },
+            process: async () => ({})
+          } as unknown as NodeExecutor;
+        }
+        return { process: async (i: Record<string, unknown>) => i };
+      }
+    });
+
+    const result = await runner.run(
+      { job_id: "job-pending-cancel", params: { trig: 0 } },
+      { nodes, edges }
+    );
+
+    expect(result.status).toBe("cancelled");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -210,6 +251,34 @@ describe("strict mode: pending control-event responses", () => {
     expect(result.error).toContain("Strict mode");
     expect(result.error).toContain("pending control-event responses");
     expect(result.error).toContain("ghost-node");
+  });
+
+  it("strict: a cancelled run terminates as cancelled despite an unresolved control response", async () => {
+    let runner!: WorkflowRunner;
+    runner = new WorkflowRunner("job-control-cancel", {
+      strict: true,
+      resolveExecutor: () => ({
+        async process() {
+          (
+            runner as unknown as {
+              _pendingControlResponses: Map<
+                string,
+                Array<{ resolve: () => void; reject: (e: Error) => void }>
+              >;
+            }
+          )._pendingControlResponses.set("ghost-node", [
+            { resolve: () => {}, reject: () => {} }
+          ]);
+          runner.cancel();
+          return { value: 1 };
+        }
+      })
+    });
+
+    const { nodes, edges } = ghostControlResponseGraph();
+    const result = await runner.run({ job_id: "job-control-cancel" }, { nodes, edges });
+
+    expect(result.status).toBe("cancelled");
   });
 });
 

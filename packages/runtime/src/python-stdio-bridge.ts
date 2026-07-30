@@ -300,9 +300,19 @@ export class PythonStdioBridge extends PythonBridgeBase {
 
   /** Extract complete length-prefixed frames from a stdout chunk. */
   private _drainFrames(chunk: Buffer): void {
-    let frames: Buffer[];
+    // Dispatch every valid frame as soon as `FrameDecoder.push` extracts it,
+    // so frames preceding a corrupt one (a bad length prefix later in the
+    // same chunk) still reach `_handleMessage` — only the protocol failure
+    // itself is deferred to after dispatch.
     try {
-      frames = this._frameDecoder.push(chunk);
+      this._frameDecoder.push(chunk, (payload) => {
+        try {
+          const msg = unpack(payload) as Record<string, unknown>;
+          this._handleMessage(msg);
+        } catch (err) {
+          throw new Error(`Failed to decode msgpack frame: ${err}`);
+        }
+      });
     } catch (err) {
       if (err instanceof FrameSizeError) {
         const stderrHint = this.getRecentStderrSummary(6);
@@ -318,18 +328,6 @@ export class PythonStdioBridge extends PythonBridgeBase {
         return;
       }
       this._failProtocol(err instanceof Error ? err : new Error(String(err)));
-      return;
-    }
-    for (const payload of frames) {
-      try {
-        const msg = unpack(payload) as Record<string, unknown>;
-        this._handleMessage(msg);
-      } catch (err) {
-        this._failProtocol(
-          new Error(`Failed to decode msgpack frame: ${err}`)
-        );
-        return;
-      }
     }
   }
 

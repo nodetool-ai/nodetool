@@ -1334,7 +1334,7 @@ export class WorkflowRunner {
     // Check for in-flight messages after all actors complete (Python parity: _check_pending_inbox_work)
     const pendingNodes = this._checkPendingInboxWork();
     if (pendingNodes.length > 0) {
-      if (this._options.strict) {
+      if (this._options.strict && !this._cancelled && !this._suspend) {
         throw new Error(
           `Strict mode: pending inbox work detected after all actors ` +
             `completed for node(s): ${pendingNodes.join(", ")}`
@@ -1362,7 +1362,7 @@ export class WorkflowRunner {
       .filter(([, queue]) => queue.length > 0)
       .map(([nodeId]) => nodeId);
     if (pendingControlNodes.length > 0) {
-      if (this._options.strict) {
+      if (this._options.strict && !this._cancelled && !this._suspend) {
         throw new Error(
           `Strict mode: pending control-event responses never resolved for ` +
             `node(s): ${pendingControlNodes.join(", ")}`

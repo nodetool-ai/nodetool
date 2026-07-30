@@ -17,10 +17,14 @@
  */
 
 import { createLogger, getDefaultAssetsPath } from "@nodetool-ai/config";
-import { ExecutionSession, type RunResult } from "@nodetool-ai/execution";
+import {
+  ExecutionSession,
+  normalizeGraph,
+  type RawGraphInput,
+  type RunResult
+} from "@nodetool-ai/execution";
 import { Job, Workflow, getSecret } from "@nodetool-ai/models";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import { isEditorOnlyType } from "@nodetool-ai/node-sdk";
 import { FileStorageAdapter, ProcessingContext } from "@nodetool-ai/runtime";
 import { resolveWorkflowWorkspace } from "./lib/workflow-workspace.js";
 
@@ -67,11 +71,6 @@ export interface HeadlessJobResult {
   outputs: Record<string, unknown[]>;
 }
 
-type RunnableGraph = {
-  nodes: Array<Record<string, unknown>>;
-  edges: Array<Record<string, unknown>>;
-};
-
 // Lazily bootstrap the full registry only when no registry is injected, so
 // callers that already hold the server's registry (dispatcher, tests) never
 // pay for pack loading.
@@ -84,41 +83,6 @@ async function getDefaultRegistry(): Promise<NodeRegistry> {
     );
   }
   return defaultRegistryPromise;
-}
-
-/**
- * Normalize a saved graph into the kernel's descriptor contract: node
- * properties under `properties` (the editor stores them under `data`), edges
- * carrying `edge_type`, and editor-only nodes (Comment/Group/Reroute) pruned
- * the way the web editor prunes them at serialize time.
- */
-function normalizeRunnableGraph(graph: {
-  nodes: unknown[];
-  edges: unknown[];
-}): RunnableGraph {
-  const executable = (graph.nodes as Array<Record<string, unknown>>).filter(
-    (n) => !isEditorOnlyType(String(n.type ?? ""))
-  );
-  const keep = new Set(executable.map((n) => String(n.id ?? "")));
-  const nodes = executable.map((n) => {
-    if (n.properties === undefined && n.data !== undefined) {
-      const { data, ...rest } = n;
-      return { ...rest, properties: data };
-    }
-    return n;
-  });
-  const edges = (graph.edges as Array<Record<string, unknown>>)
-    .filter(
-      (e) =>
-        keep.has(String(e.source ?? "")) && keep.has(String(e.target ?? ""))
-    )
-    .map((edge) => {
-      const rawEdgeType = edge.edge_type ?? edge.type;
-      const edge_type = rawEdgeType === "control" ? "control" : "data";
-      const { type: _type, ...rest } = edge;
-      return { ...rest, edge_type };
-    });
-  return { nodes, edges };
 }
 
 /** Persist the runner's terminal status onto the Job row. */
@@ -170,7 +134,7 @@ export async function startHeadlessJob(
     throw new Error(`Workflow not found: ${workflowId}`);
   }
 
-  const graph = normalizeRunnableGraph(workflow.getGraph());
+  const graph = normalizeGraph(workflow.getGraph());
   const registry = options.registry ?? (await getDefaultRegistry());
   const params = options.params ?? {};
 
@@ -184,7 +148,7 @@ export async function startHeadlessJob(
     name: options.jobName ?? workflow.name ?? "",
     started_at: new Date().toISOString(),
     params,
-    graph
+    graph: graph as unknown as Record<string, unknown>
   })) as Job;
 
   // The run is accepted from here on: everything above could still reject and
@@ -222,7 +186,7 @@ export async function startHeadlessJob(
   // unknown node type) resolve as `status: "failed"` instead of throwing, so
   // the job still settles instead of leaving a phantom "running" row behind.
   const session = await ExecutionSession.create({
-    graph,
+    graph: graph as unknown as RawGraphInput,
     registry,
     jobId: job.id,
     workflowId,

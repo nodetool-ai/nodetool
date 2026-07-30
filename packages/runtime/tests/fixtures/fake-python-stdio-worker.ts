@@ -24,6 +24,12 @@
  * - `FAKE_WORKER_BAD_LENGTH_ON_TYPE=<type>` reply to this request type with a
  *                                       frame whose length prefix is absurdly large
  *                                       instead of a real frame (framing-violation fault)
+ * - `FAKE_WORKER_BAD_LENGTH_AFTER_COUNT=<n>` buffer valid `execute` result frames
+ *                                       instead of sending them immediately; once `n`
+ *                                       have been buffered, write all of them plus a
+ *                                       trailing bad-length frame in a single stdout
+ *                                       write — valid frames followed by a corrupt one,
+ *                                       in one chunk (frame-loss-before-desync fault)
  * - `FAKE_WORKER_SPLIT_FRAMES=1`        split every outgoing frame into two writes with
  *                                       a tick in between (frame-split-across-chunks)
  * - `FAKE_WORKER_COALESCE_FILLER=1`     bundle an extra harmless frame with the discover
@@ -47,6 +53,10 @@ const mode = process.env.FAKE_WORKER_MODE ?? "normal";
 const exitOnType = process.env.FAKE_WORKER_EXIT_ON_TYPE;
 const ignoreType = process.env.FAKE_WORKER_IGNORE_TYPE;
 const badLengthOnType = process.env.FAKE_WORKER_BAD_LENGTH_ON_TYPE;
+const badLengthAfterCount = Number(
+  process.env.FAKE_WORKER_BAD_LENGTH_AFTER_COUNT ?? 0
+);
+let bufferedResults: Frame[] = [];
 const splitFrames = process.env.FAKE_WORKER_SPLIT_FRAMES === "1";
 const coalesceFiller = process.env.FAKE_WORKER_COALESCE_FILLER === "1";
 const nodeType = process.env.FAKE_WORKER_NODE_TYPE ?? "fake.TestNode";
@@ -159,14 +169,32 @@ function handle(msg: Frame): void {
       break;
     case "execute": {
       const data = msg.data as { fields?: Record<string, unknown> };
-      sendFrame({
+      const result: Frame = {
         type: "result",
         request_id: requestId,
         data: {
           outputs: { out: (data.fields?.value as string) ?? "executed" },
           blobs: {}
         }
-      });
+      };
+      if (badLengthAfterCount > 0) {
+        bufferedResults.push(result);
+        if (bufferedResults.length >= badLengthAfterCount) {
+          const framesBuf = bufferedResults.map(toBuffer);
+          bufferedResults = [];
+          const badHeader = Buffer.alloc(4);
+          badHeader.writeUInt32BE(0xffffffff, 0);
+          process.stdout.write(
+            Buffer.concat([
+              ...framesBuf,
+              badHeader,
+              Buffer.from("not-a-real-frame")
+            ])
+          );
+        }
+        break;
+      }
+      sendFrame(result);
       break;
     }
     case "cancel":
@@ -179,21 +207,19 @@ function handle(msg: Frame): void {
 function start(): void {
   const decoder = new FrameDecoder();
   process.stdin.on("data", (chunk: Buffer) => {
-    let frames: Buffer[];
     try {
-      frames = decoder.push(chunk);
+      decoder.push(chunk, (payload) => {
+        let msg: Frame;
+        try {
+          msg = unpack(payload) as Frame;
+        } catch {
+          return;
+        }
+        handle(msg);
+      });
     } catch {
       process.exit(1);
       return;
-    }
-    for (const payload of frames) {
-      let msg: Frame;
-      try {
-        msg = unpack(payload) as Frame;
-      } catch {
-        continue;
-      }
-      handle(msg);
     }
   });
 }

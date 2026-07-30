@@ -34,7 +34,7 @@ import { readCachedHfModels, searchCachedHfModels } from "@nodetool-ai/huggingfa
 import { initMasterKey } from "@nodetool-ai/security";
 import { getDefaultDbPath, getDefaultAssetsPath } from "@nodetool-ai/config";
 import { ExecutionSession } from "@nodetool-ai/execution";
-import { isEditorOnlyType, NodeRegistry } from "@nodetool-ai/node-sdk";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
 import { registerMinimaxNodes } from "@nodetool-ai/minimax-nodes";
@@ -600,24 +600,10 @@ workflows
           throw new Error("Invalid workflow: missing nodes or edges");
         }
 
-        // Drop editor-only nodes (Comment, Group, Reroute). They are
-        // annotations the editor draws and carry no executable class, so
-        // resolveExecutor below would reject them as "Unknown node type" and
-        // fail the whole run — which is what happened to every shipped example
-        // containing a Comment. The headless job runner and `nodetool debug`
-        // already filter them at their own entry points.
-        graph.nodes = graph.nodes.filter(
-          (n: Record<string, unknown>) => !isEditorOnlyType(String(n.type ?? ""))
-        );
-
-        // Normalize graph: convert node.data → node.properties (kernel format)
-        graph.nodes = graph.nodes.map((n: Record<string, unknown>) => {
-          if (n.properties === undefined && n.data !== undefined) {
-            const { data, ...rest } = n;
-            return { ...rest, properties: data };
-          }
-          return n;
-        });
+        // Editor-only nodes (Comment, Group, Reroute) and the data→properties
+        // rename are handled by `ExecutionSession.create` below, which runs
+        // the graph through `normalizeGraph` (@nodetool-ai/execution) — no
+        // need to duplicate that here.
 
         const registry = new NodeRegistry();
         registerBaseNodes(registry);

@@ -69,24 +69,30 @@ export class FrameDecoder {
 
   /**
    * Append `chunk` to the internal buffer and extract every complete frame
-   * now available. Returns the raw (still msgpack-packed) payload of each
-   * frame, in arrival order. Throws {@link FrameSizeError} — leaving the
-   * decoder's buffer untouched beyond the append — when a declared length
-   * exceeds the configured ceiling.
+   * now available, invoking `onFrame` with each raw (still msgpack-packed)
+   * payload as soon as it is extracted — in arrival order, before any later
+   * frame in the same chunk is even looked at. This matters when a chunk
+   * contains one or more valid frames followed by a corrupt length prefix:
+   * every frame extracted before the corrupt one has already reached
+   * `onFrame` by the time {@link FrameSizeError} is thrown, so a caller
+   * dispatching responses from `onFrame` does not lose them.
+   *
+   * Throws {@link FrameSizeError} — leaving the decoder's buffer untouched
+   * beyond the append — when a declared length exceeds the configured
+   * ceiling.
    */
-  push(chunk: Buffer): Buffer[] {
+  push(chunk: Buffer, onFrame: (frame: Buffer) => void): void {
     this._buffer = Buffer.concat([this._buffer, chunk]);
-    const frames: Buffer[] = [];
     while (this._buffer.length >= 4) {
       const length = this._buffer.readUInt32BE(0);
       if (length > this._maxFrameSize) {
         throw new FrameSizeError(length, this._maxFrameSize);
       }
       if (this._buffer.length < 4 + length) break; // incomplete frame
-      frames.push(this._buffer.subarray(4, 4 + length));
+      const frame = this._buffer.subarray(4, 4 + length);
       this._buffer = this._buffer.subarray(4 + length);
+      onFrame(frame);
     }
-    return frames;
   }
 
   /** Drop any buffered partial frame. Call when the transport is torn down. */
