@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, delimiter, join } from "node:path";
 
 import { NodeRegistry } from "../src/registry.js";
 import {
@@ -248,10 +248,10 @@ describe("discoverPacks", () => {
     writeManifest("exp-default", { name: "exp-default", exports: { ".": { default: "./d.js" } }, nodetool: {} }, "d.js");
     writeManifest("main-only", { name: "main-only", main: "./m.js", nodetool: {} }, "m.js");
     const byName = Object.fromEntries(discoverPacks([nodeModules]).map((p) => [p.name, p.entry]));
-    expect(byName["exp-str"].endsWith("/e.js")).toBe(true);
-    expect(byName["exp-import"].endsWith("/i.js")).toBe(true);
-    expect(byName["exp-default"].endsWith("/d.js")).toBe(true);
-    expect(byName["main-only"].endsWith("/m.js")).toBe(true);
+    expect(basename(byName["exp-str"])).toBe("e.js");
+    expect(basename(byName["exp-import"])).toBe("i.js");
+    expect(basename(byName["exp-default"])).toBe("d.js");
+    expect(basename(byName["main-only"])).toBe("m.js");
   });
 
   it("honours a custom register export name from the manifest", () => {
@@ -300,12 +300,12 @@ describe("discoverPacks error and edge paths", () => {
 
   it("defaults the entry to index.js when no main or exports are given", () => {
     writeManifest("bareentry", { name: "bareentry", nodetool: {} });
-    expect(discoverPacks([nodeModules])[0].entry.endsWith("/index.js")).toBe(true);
+    expect(basename(discoverPacks([nodeModules])[0].entry)).toBe("index.js");
   });
 
   it("resolves a dot-export object lacking import/default via main", () => {
     writeManifest("emptyexp", { name: "emptyexp", exports: { ".": {} }, main: "./m.js", nodetool: {} }, "m.js");
-    expect(discoverPacks([nodeModules])[0].entry.endsWith("/m.js")).toBe(true);
+    expect(basename(discoverPacks([nodeModules])[0].entry)).toBe("m.js");
   });
 
   it("resolves a nested import condition object to its default target", () => {
@@ -320,7 +320,7 @@ describe("discoverPacks error and edge paths", () => {
     );
     const found = discoverPacks([nodeModules]);
     expect(found).toHaveLength(1);
-    expect(found[0].entry.endsWith("/nested.js")).toBe(true);
+    expect(basename(found[0].entry)).toBe("nested.js");
   });
 
   it("resolves main when exports['.'] is null", () => {
@@ -329,7 +329,7 @@ describe("discoverPacks error and edge paths", () => {
     writeManifest("nulldot", { name: "nulldot", exports: { ".": null }, main: "./n.js", nodetool: {} }, "n.js");
     const found = discoverPacks([nodeModules]);
     expect(found).toHaveLength(1);
-    expect(found[0].entry.endsWith("/n.js")).toBe(true);
+    expect(basename(found[0].entry)).toBe("n.js");
   });
 
   it("resolves main when there is no exports field at all", () => {
@@ -338,7 +338,7 @@ describe("discoverPacks error and edge paths", () => {
     writeManifest("mainonly", { name: "mainonly", main: "./only.js", nodetool: {} }, "only.js");
     const found = discoverPacks([nodeModules]);
     expect(found).toHaveLength(1);
-    expect(found[0].entry.endsWith("/only.js")).toBe(true);
+    expect(basename(found[0].entry)).toBe("only.js");
   });
 
   it("ignores both .bin and .cache directories", () => {
@@ -504,14 +504,16 @@ describe("defaultPackSearchPaths env handling", () => {
   it("includes existing env-supplied node_modules dirs, trimming and dropping empties", () => {
     const a = join(root, "extraA");
     const b = join(root, "extraB");
+    const missing = join(root, "does-not-exist");
     mkdirSync(a, { recursive: true });
     mkdirSync(b, { recursive: true });
     // whitespace around entries and an empty segment must be handled.
-    process.env.NODETOOL_PACK_SEARCH_PATHS = ` ${a} ;;${b}:/does/not/exist`;
+    process.env.NODETOOL_PACK_SEARCH_PATHS =
+      [` ${a} `, "", b, missing].join(delimiter);
     const paths = defaultPackSearchPaths(root);
     expect(paths).toContain(a);
     expect(paths).toContain(b);
-    expect(paths).not.toContain("/does/not/exist");
+    expect(paths).not.toContain(missing);
     // every returned path actually exists (no non-existent candidates leak in).
     expect(paths.every((p) => existsSync(p))).toBe(true);
   });
