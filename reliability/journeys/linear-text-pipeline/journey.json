@@ -1,0 +1,15 @@
+{
+  "name": "linear-text-pipeline",
+  "description": "Journey #1 (docs/RELIABILITY_ARCHITECTURE.md §5): input -> transform -> output. The baseline — if this diverges across surfaces, everything is suspect.",
+  "workflow": { "ref": "workflow.json" },
+  "params": {},
+  "interactions": "interactions.json",
+  "surfaces": ["kernel"],
+  "faults": [],
+  "timeoutMs": 30000,
+  "assertions": {
+    "invariants": ["lifecycle-pairing", "terminal-uniqueness"],
+    "outputs": true,
+    "streamShape": true
+  }
+}

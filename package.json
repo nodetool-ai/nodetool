@@ -12,6 +12,7 @@
     "packages/models",
     "packages/node-sdk",
     "packages/execution",
+    "reliability/harness",
     "packages/base-nodes",
     "packages/dsl",
     "packages/sdk",

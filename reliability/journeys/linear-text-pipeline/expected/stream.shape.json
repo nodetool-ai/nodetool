@@ -1,0 +1,200 @@
+[
+  {
+    "channel": "job",
+    "message": {
+      "type": "job_update",
+      "status": "running",
+      "job_id": "<job:0>",
+      "workflow_id": "<workflow:0>"
+    }
+  },
+  {
+    "channel": "node:const1",
+    "message": {
+      "type": "node_update",
+      "node_id": "<node:0>",
+      "node_name": "nodetool.constant.String",
+      "node_type": "nodetool.constant.String",
+      "status": "running",
+      "result": null,
+      "error": null,
+      "properties": {
+        "value": "hello reliability"
+      },
+      "provider_cost": null
+    }
+  },
+  {
+    "channel": "node:upper1",
+    "message": {
+      "type": "node_update",
+      "node_id": "<node:1>",
+      "node_name": "nodetool.text.ToUppercase",
+      "node_type": "nodetool.text.ToUppercase",
+      "status": "running",
+      "result": null,
+      "error": null,
+      "properties": {},
+      "provider_cost": null
+    }
+  },
+  {
+    "channel": "node:out1",
+    "message": {
+      "type": "node_update",
+      "node_id": "<node:2>",
+      "node_name": "nodetool.output.Output",
+      "node_type": "nodetool.output.Output",
+      "status": "running",
+      "result": null,
+      "error": null,
+      "properties": {
+        "name": "result"
+      },
+      "provider_cost": null
+    }
+  },
+  {
+    "channel": "control",
+    "message": {
+      "type": "edge_update",
+      "job_id": "<job:0>",
+      "edge_id": "<edge:0>",
+      "status": "active",
+      "counter": 1
+    }
+  },
+  {
+    "channel": "node:const1",
+    "message": {
+      "type": "node_update",
+      "node_id": "<node:0>",
+      "node_name": "nodetool.constant.String",
+      "node_type": "nodetool.constant.String",
+      "status": "completed",
+      "result": null,
+      "error": null,
+      "properties": {
+        "value": "hello reliability"
+      },
+      "provider_cost": null
+    }
+  },
+  {
+    "channel": "control",
+    "message": {
+      "type": "edge_update",
+      "job_id": "<job:0>",
+      "edge_id": "<edge:0>",
+      "status": "completed",
+      "counter": 1
+    }
+  },
+  {
+    "channel": "control",
+    "message": {
+      "type": "edge_update",
+      "job_id": "<job:0>",
+      "edge_id": "<edge:1>",
+      "status": "active",
+      "counter": 1
+    }
+  },
+  {
+    "channel": "node:upper1",
+    "message": {
+      "type": "generation_complete",
+      "node_id": "<node:1>",
+      "node_name": "nodetool.text.ToUppercase",
+      "node_type": "nodetool.text.ToUppercase",
+      "outputs": {
+        "output": "HELLO RELIABILITY"
+      },
+      "properties": {
+        "text": "hello reliability"
+      }
+    }
+  },
+  {
+    "channel": "node:upper1",
+    "message": {
+      "type": "node_update",
+      "node_id": "<node:1>",
+      "node_name": "nodetool.text.ToUppercase",
+      "node_type": "nodetool.text.ToUppercase",
+      "status": "completed",
+      "result": {
+        "output": "HELLO RELIABILITY"
+      },
+      "error": null,
+      "properties": {},
+      "provider_cost": null
+    }
+  },
+  {
+    "channel": "control",
+    "message": {
+      "type": "edge_update",
+      "job_id": "<job:0>",
+      "edge_id": "<edge:1>",
+      "status": "completed",
+      "counter": 1
+    }
+  },
+  {
+    "channel": "node:out1",
+    "message": {
+      "type": "output_update",
+      "node_id": "<node:2>",
+      "node_name": "out1",
+      "output_name": "result",
+      "value": "HELLO RELIABILITY",
+      "output_type": "any",
+      "metadata": {},
+      "disposition": "append"
+    }
+  },
+  {
+    "channel": "node:out1",
+    "message": {
+      "type": "generation_complete",
+      "node_id": "<node:2>",
+      "node_name": "nodetool.output.Output",
+      "node_type": "nodetool.output.Output",
+      "outputs": {
+        "output": "HELLO RELIABILITY"
+      },
+      "properties": {
+        "name": "result",
+        "value": "HELLO RELIABILITY"
+      }
+    }
+  },
+  {
+    "channel": "node:out1",
+    "message": {
+      "type": "node_update",
+      "node_id": "<node:2>",
+      "node_name": "nodetool.output.Output",
+      "node_type": "nodetool.output.Output",
+      "status": "completed",
+      "result": {
+        "output": "HELLO RELIABILITY"
+      },
+      "error": null,
+      "properties": {
+        "name": "result"
+      },
+      "provider_cost": null
+    }
+  },
+  {
+    "channel": "job",
+    "message": {
+      "type": "job_update",
+      "status": "completed",
+      "job_id": "<job:0>",
+      "workflow_id": "<workflow:0>"
+    }
+  }
+]

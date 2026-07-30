@@ -1,0 +1,37 @@
+{
+  "id": "linear-text-pipeline",
+  "name": "Linear text pipeline",
+  "nodes": [
+    {
+      "id": "const1",
+      "type": "nodetool.constant.String",
+      "properties": { "value": "hello reliability" }
+    },
+    {
+      "id": "upper1",
+      "type": "nodetool.text.ToUppercase",
+      "properties": {}
+    },
+    {
+      "id": "out1",
+      "type": "nodetool.output.Output",
+      "properties": { "name": "result" }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "const1",
+      "sourceHandle": "output",
+      "target": "upper1",
+      "targetHandle": "text"
+    },
+    {
+      "id": "e2",
+      "source": "upper1",
+      "sourceHandle": "output",
+      "target": "out1",
+      "targetHandle": "value"
+    }
+  ]
+}
