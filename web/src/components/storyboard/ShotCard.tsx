@@ -168,6 +168,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   isLast
 }) => {
   const theme = useTheme();
+  const cardStyles = useMemo(() => styles(theme), [theme]);
   const toggleShotEntity = useStoryboardStore((state) => state.toggleShotEntity);
   const moveShot = useStoryboardStore((state) => state.moveShot);
   const removeShot = useStoryboardStore((state) => state.removeShot);
@@ -232,7 +233,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
     <Card
       variant="outlined"
       padding="compact"
-      css={styles(theme)}
+      css={cardStyles}
       className={`shot-card${isGenerating ? " generating" : ""}`}
     >
       <div className="preview">

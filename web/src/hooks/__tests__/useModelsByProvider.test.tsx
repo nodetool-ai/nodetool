@@ -178,4 +178,20 @@ describe("useImageModelsByProvider — task filter", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.models).toHaveLength(CATALOG.length);
   });
+
+  // The model menu ranks, groups and buckets this array in useMemos keyed on
+  // it. A new identity per render silently re-runs all of them.
+  it("keeps the same models array across re-renders", async () => {
+    const { result, rerender } = renderHook(
+      () => useImageModelsByProvider({ task: "text_to_image" }),
+      { wrapper: wrapper() }
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const first = result.current.models;
+    rerender();
+    rerender();
+
+    expect(result.current.models).toBe(first);
+  });
 });
