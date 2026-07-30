@@ -38,8 +38,6 @@ const SampleValueEditorInner = ({
   disabled = false
 }: SampleValueEditorProps) => {
   const { name, type, value, source } = entry;
-  const isJson =
-    !NUMERIC.has(type.type) && !TEXTUAL.has(type.type) && type.type !== "bool";
 
   const serialized = useMemo(
     () => JSON.stringify(value ?? null, null, 2),
