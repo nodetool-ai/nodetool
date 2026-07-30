@@ -29,6 +29,7 @@ import {
   type ExecutionSessionOptions,
   type RawGraphInput
 } from "@nodetool-ai/execution";
+import { createGraphNodeTypeResolver } from "@nodetool-ai/node-sdk";
 import { InMemoryStorageAdapter, ProcessingContext } from "@nodetool-ai/runtime";
 import type { Journey, JourneyInteraction } from "../core/journey.js";
 import { makeFrame, type RunFrame, type RunRecord } from "../core/record.js";
@@ -81,12 +82,67 @@ export class KernelDriver implements RunDriver {
 
       switch (interaction.action) {
         case "run": {
+          // A5 hydration-gap fix (docs/RELIABILITY_TASKS.md Track A):
+          // connect the bridge here (not inside `ExecutionSession.create`)
+          // so its discovered metadata can back a `resolveNodeType` fallback
+          // — the same shape `unified-websocket-runner.ts`'s ws-server driver
+          // gets via `createTestUiServer`'s `resolveUnknownNodeType`. Without
+          // `propertyTypes`/`outputs` resolved, the oracle surface can't tell
+          // a genuine multi-edge list-typed fan-in from an invalid non-list
+          // one (correlation analysis rejects both identically when
+          // `propertyTypes` is absent) — a real cross-surface divergence this
+          // journey manifest used to work around with distinct handles
+          // instead of a shared list handle. `ExecutionSession` still owns
+          // closing this bridge (its `bridgeFactory` just hands back the
+          // instance already connected here, never reconnecting).
+          const workflowNodes = ((journey.workflow as { nodes?: unknown })
+            .nodes ?? []) as ReadonlyArray<{ type?: unknown }>;
+          const bridge = await journeyPythonBridgeFactory(workflowNodes, (t) =>
+            registry.has(t)
+          );
+          const baseResolver = createGraphNodeTypeResolver(registry);
+          const resolveNodeType = async (nodeType: string) => {
+            const resolved = await baseResolver.resolveNodeType(nodeType);
+            if (resolved) return resolved;
+            // Mirrors the ws-server driver's `resolveUnknownNodeType`
+            // exactly: real bridge metadata when the bridge knows the type,
+            // else a permissive generic descriptor — never `null`. Returning
+            // `null` here would make `Graph.loadFromDict` silently DROP the
+            // node (its default `skipErrors: true`) instead of letting it
+            // reach `resolveExecutor`/execution, where an unresolvable or
+            // fault-injected bridge node is actually supposed to fail.
+            const meta = bridge?.hasNodeType(nodeType)
+              ? bridge.getNodeMetadata().find((m) => m.node_type === nodeType)
+              : undefined;
+            if (meta) {
+              return {
+                nodeType,
+                propertyTypes: Object.fromEntries(
+                  meta.properties.map((p) => [p.name, p.type.type])
+                ),
+                outputs: Object.fromEntries(
+                  meta.outputs.map((o) => [o.name, o.type.type])
+                ),
+                supportsDynamicInputs: false,
+                descriptorDefaults: {}
+              };
+            }
+            return {
+              nodeType,
+              propertyTypes: { value: "any" },
+              outputs: { out: "any" },
+              supportsDynamicInputs: true,
+              descriptorDefaults: {}
+            };
+          };
+
           const sessionOptions: ExecutionSessionOptions = {
             graph: journey.workflow as unknown as RawGraphInput,
             registry,
-            bridgeFactory: journeyPythonBridgeFactory,
+            bridgeFactory: async () => bridge,
             workflowId: journey.manifest.name,
             params: journey.manifest.params,
+            resolveNodeType,
             // §12: "strict mode is a kernel flag... the harness always sets
             // it" — the kernel driver is the oracle surface, so its advisory
             // checks (pending inbox work, pending control responses) are

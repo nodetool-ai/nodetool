@@ -7,7 +7,12 @@ import type {
   NodeDescriptor,
   ProcessingMessage
 } from "@nodetool-ai/protocol";
-import type { NodeValidator, RunResult } from "@nodetool-ai/kernel";
+import type {
+  NodeExecutor,
+  NodeTypeResolver,
+  NodeValidator,
+  RunResult
+} from "@nodetool-ai/kernel";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PythonBridgeBase, ProcessingContext } from "@nodetool-ai/runtime";
 
@@ -62,8 +67,44 @@ export interface ExecutionLimits {
 export interface ExecutionSessionOptions {
   /** Raw saved graph JSON. Hydration (`hydrateGraphNodeFlags`) happens once, here. */
   graph: RawGraphInput;
-  /** Node registry used for both hydration and TS executor resolution. */
-  registry: NodeRegistry;
+  /**
+   * Node registry used for both hydration and TS executor resolution.
+   * Optional only for a host that injects its own `resolveExecutor` (below)
+   * AND has no `NodeRegistry` instance of its own to hand the facade — e.g.
+   * `unified-websocket-runner.ts`'s `resolveExecutor` is wired in wholesale at
+   * server bootstrap, closing over a registry this class never sees. Without
+   * a registry, hydration falls back to `withExplicitNodeFlags` (flags
+   * default to `false` rather than being resolved from a registered class) —
+   * correct here because the WS runner always hydrates its own richer copy of
+   * the graph via `Graph.loadFromDict` *before* handing it to this facade, so
+   * every flag this fallback would have resolved (and `propertyTypes`) is
+   * already present on the incoming graph and passes through unchanged.
+   */
+  registry?: NodeRegistry;
+  /**
+   * Bypass the facade's own registry-based executor resolution
+   * (`createExecutorResolver`) entirely and use this instead. Required when
+   * `registry` is omitted. Exists for hosts whose executor resolution isn't
+   * "registry, else Python bridge, else throw" — `unified-websocket-runner.ts`
+   * injects its own `resolveExecutor` at bootstrap (a closure over a registry
+   * and an already-connected bridge this class never sees), so migrating it
+   * onto `ExecutionSession` means using its resolver as-is rather than
+   * building a second, possibly-divergent one from a `bridgeFactory`.
+   */
+  resolveExecutor?: (node: NodeDescriptor) => NodeExecutor;
+  /**
+   * Optional richer hydration path, mirroring `Graph.loadFromDict`'s async
+   * metadata resolver (`createGraphNodeTypeResolver` in `@nodetool-ai/node-sdk`).
+   * When provided, hydration resolves each node's `propertyTypes`/`outputs`
+   * from registry metadata (including a namespace not yet loaded, via the
+   * resolver's own lazy-load hook) in addition to the streaming/control flags
+   * `hydrateGraphNodeFlags` always resolves. This is what makes multi-edge
+   * fan-in into a non-list property correctly skip aggregation (the kernel's
+   * `_classify_list_inputs` parity check only gates on a populated
+   * `propertyTypes` map). Omit to keep the lighter, synchronous
+   * `hydrateGraphNodeFlags`-only path (no `propertyTypes`/`outputs`).
+   */
+  resolveNodeType?: NodeTypeResolver;
   /** See {@link BridgeFactory}. Omit to use the default TS-graph-aware connector. */
   bridgeFactory?: BridgeFactory;
   /** Fixed job id; a random one is generated when omitted. */

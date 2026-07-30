@@ -64,6 +64,21 @@ export class Double extends BaseNode {
   }
 }
 
+/** Sums a list-typed input — the multi-edge-list-fan-in target for hydration-gap tests. */
+export class ListSum extends BaseNode {
+  static readonly nodeType = "test.execution.ListSum";
+  static readonly title = "List Sum";
+  static readonly description = "Sums a list of numbers";
+
+  @prop({ type: "list[int]", default: [] })
+  declare items: unknown;
+
+  async process(): Promise<Record<string, unknown>> {
+    const list = Array.isArray(this.items) ? this.items : [this.items];
+    return { output: list.reduce((sum: number, v) => sum + Number(v ?? 0), 0) };
+  }
+}
+
 /** Collects every value streamed on its input into a single terminal array. */
 export class StreamSink extends BaseNode {
   static readonly nodeType = "test.execution.StreamSink";
@@ -108,6 +123,7 @@ export function buildTestRegistry(): NodeRegistry {
   registry.register(ValueInput);
   registry.register(StreamingValueInput);
   registry.register(Double);
+  registry.register(ListSum);
   registry.register(StreamSink);
   registry.register(Loop);
   return registry;

@@ -1,0 +1,53 @@
+{
+  "id": "fan-in-shared-list-handle",
+  "name": "Fan-in shared list handle",
+  "nodes": [
+    {
+      "id": "const1",
+      "type": "nodetool.constant.String",
+      "name": "const1",
+      "properties": { "value": "alpha" }
+    },
+    {
+      "id": "const2",
+      "type": "nodetool.constant.String",
+      "name": "const2",
+      "properties": { "value": "beta" }
+    },
+    {
+      "id": "join",
+      "type": "test.reliability.ListJoin",
+      "name": "join",
+      "properties": {}
+    },
+    {
+      "id": "out1",
+      "type": "nodetool.output.Output",
+      "name": "out1",
+      "properties": { "name": "result" }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "const1",
+      "sourceHandle": "output",
+      "target": "join",
+      "targetHandle": "items"
+    },
+    {
+      "id": "e2",
+      "source": "const2",
+      "sourceHandle": "output",
+      "target": "join",
+      "targetHandle": "items"
+    },
+    {
+      "id": "e3",
+      "source": "join",
+      "sourceHandle": "output",
+      "target": "out1",
+      "targetHandle": "value"
+    }
+  ]
+}

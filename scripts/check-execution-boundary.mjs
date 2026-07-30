@@ -36,12 +36,19 @@ const ALWAYS_ALLOWED_PACKAGES = new Set(["kernel", "execution"]);
 // `ExecutionSession` (A5 for the WS runner; follow-up tasks for the rest).
 // Do not add new entries — a new direct `WorkflowRunner` construction site
 // should use `@nodetool-ai/execution` instead.
+// A5 (docs/RELIABILITY_TASKS.md Track A) migrated
+// `packages/websocket/src/unified-websocket-runner.ts` onto
+// `ExecutionSession` — it no longer imports `WorkflowRunner` at all, so it's
+// removed from this list rather than left in place. `http-api.ts` and
+// `mcp-server.ts` construct `WorkflowRunner` through their own, independent
+// `getWorkflowRuntimeEnvironment`/`getRuntimeEnvironment` helper (a third
+// executor-resolution pattern, per the execution package README's inventory
+// table) — a separate migration, not part of A5, so they stay listed.
 const ALLOWLIST = new Set([
   "packages/agents/src/agent-workflow-runner.ts",
   "packages/core-nodes/src/nodes/run-inner-graph.ts",
   "packages/dsl/src/core.ts",
   "packages/websocket/src/mcp-server.ts",
-  "packages/websocket/src/unified-websocket-runner.ts",
   "packages/websocket/src/http-api.ts",
   "packages/workflow-runner/src/run.ts"
 ]);

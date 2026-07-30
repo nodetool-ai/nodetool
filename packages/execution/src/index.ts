@@ -14,3 +14,4 @@ export type {
   RawGraphInput,
   RunResult
 } from "./types.js";
+export type { NodeTypeResolver, ResolvedNodeType } from "@nodetool-ai/kernel";

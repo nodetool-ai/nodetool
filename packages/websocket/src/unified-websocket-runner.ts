@@ -27,12 +27,15 @@ import {
 } from "./resolve-media-urls.js";
 import {
   Graph,
-  WorkflowRunner,
   withExplicitNodeFlags,
   type NodeExecutor,
   type NodeTypeResolver,
   type NodeValidator
 } from "@nodetool-ai/kernel";
+import {
+  ExecutionSession,
+  type RawGraphInput as ExecutionSessionRawGraph
+} from "@nodetool-ai/execution";
 import {
   Application,
   Asset,
@@ -1534,7 +1537,7 @@ interface ActiveJob {
   jobId: string;
   workflowId: string | null;
   context: ProcessingContext;
-  runner: WorkflowRunner;
+  session: ExecutionSession;
   graph: HydratedGraphData;
   finished: boolean;
   status: "running" | "completed" | "failed" | "cancelled" | "suspended";
@@ -1711,7 +1714,7 @@ export interface UnifiedWebSocketRunnerOptions {
   /** Resolve node metadata by type — used for auto_save_asset detection. */
   getNodeMetadata?: (nodeType: string) => NodeMetadata | undefined;
   /**
-   * Optional pre-flight per-node validator. Forwarded to WorkflowRunner so
+   * Optional pre-flight per-node validator. Forwarded through ExecutionSession to WorkflowRunner so
    * missing required fields and unset model selections abort the run before
    * any actor is spawned. `NodeRegistry.createNodeValidator()` from
    * `@nodetool-ai/node-sdk` produces a compatible callback.
@@ -1992,8 +1995,8 @@ export class UnifiedWebSocketRunner {
     this.cancelChatTurn();
     this.currentTask = null;
     for (const [jobId, job] of this.activeJobs) {
-      if (job.runner) {
-        job.runner.cancel();
+      if (job.session) {
+        job.session.cancel();
       }
       this.activeJobs.delete(jobId);
     }
@@ -2856,12 +2859,26 @@ export class UnifiedWebSocketRunner {
       );
     }
 
-    const runner = new WorkflowRunner(jobId, {
+    // A5 (docs/RELIABILITY_TASKS.md Track A): the facade replaces the direct
+    // `new WorkflowRunner` + later `runner.run()` pair — `graph` is already
+    // hydrated/output-name-rewritten above, so this call re-hydrates it
+    // (idempotent: `withExplicitNodeFlags`, used because this class has no
+    // `NodeRegistry` of its own, passes every already-resolved field through
+    // unchanged via `...node`) and starts the run immediately. `resolveExecutor`
+    // is passed through as-is (not rebuilt from a registry+bridge) because
+    // this class only ever holds the bootstrap-injected closure, never a
+    // `NodeRegistry` instance.
+    const session = await ExecutionSession.create({
+      graph: graph as unknown as ExecutionSessionRawGraph,
       resolveExecutor: (node) =>
         this.resolveExecutor(
           node as { id: string; type: string; [key: string]: unknown }
         ),
-      executionContext: context,
+      bridgeFactory: async () => null,
+      jobId,
+      workflowId,
+      context,
+      params: req.params ?? {},
       validateNode: this.validateNode
     });
 
@@ -2869,7 +2886,7 @@ export class UnifiedWebSocketRunner {
       jobId,
       workflowId,
       context,
-      runner,
+      session,
       graph,
       finished: false,
       status: "running",
@@ -2944,14 +2961,10 @@ export class UnifiedWebSocketRunner {
     active.timings.persistenceMs = performance.now() - phaseStartedAt;
     active.timings.kernelStartedAt = performance.now();
 
-    const executePromise = runner.run(
-      {
-        job_id: jobId,
-        workflow_id: workflowId ?? undefined,
-        params: req.params ?? {}
-      },
-      graph
-    );
+    // The run itself already started inside `ExecutionSession.create()`
+    // above (before this persistence block) — `session.result` is the same
+    // never-rejecting terminal-result promise `runner.run()` used to return.
+    const executePromise = session.result;
 
     // `streamJobMessages` handles its own failures, but nothing awaits this
     // promise — attach a terminal handler so a bug there can never surface as
@@ -3569,8 +3582,8 @@ export class UnifiedWebSocketRunner {
       };
     }
 
-    if (active.runner) {
-      active.runner.cancel();
+    if (active.session) {
+      active.session.cancel();
     }
     active.status = "cancelled";
 
@@ -4141,7 +4154,8 @@ export class UnifiedWebSocketRunner {
 
   /**
    * Execute a single node by type and return its output. Builds a one-node
-   * graph and runs it through a fresh {@link WorkflowRunner}, then returns the
+   * graph and runs it through a fresh `ExecutionSession` (@nodetool-ai/execution),
+   * then returns the
    * node's completed result. Backs the `run_node` chat tool.
    */
   private async runSingleNode(
@@ -4206,16 +4220,19 @@ export class UnifiedWebSocketRunner {
       );
     }
 
-    const runner = new WorkflowRunner(jobId, {
+    const session = await ExecutionSession.create({
+      graph: graph as unknown as ExecutionSessionRawGraph,
       resolveExecutor: (node) =>
         this.resolveExecutor(
           node as { id: string; type: string; [key: string]: unknown }
         ),
-      executionContext: context,
+      bridgeFactory: async () => null,
+      jobId,
+      context,
+      params: {},
       validateNode: this.validateNode
     });
-
-    const result = await runner.run({ job_id: jobId, params: {} }, graph);
+    const result = await session.result;
 
     // Capture the node's completed result from the streamed updates.
     let nodeResult: unknown;
@@ -5421,7 +5438,7 @@ export class UnifiedWebSocketRunner {
    *   1. Load workflow from DB
    *   2. Detect message input node names from graph
    *   3. Prepare params (serialized message + history)
-   *   4. Run workflow via WorkflowRunner
+   *   4. Run workflow via ExecutionSession (@nodetool-ai/execution)
    *   5. Stream events (job_update, node_update, output_update)
    *   6. Collect output_update results
    *   7. Send done chunk + response message with typed content
@@ -6348,13 +6365,19 @@ export class UnifiedWebSocketRunner {
         );
       }
 
-      // Create and run workflow
-      const runner = new WorkflowRunner(jobId, {
+      // Create and run workflow (A5: via the ExecutionSession facade — see
+      // the identical note in `startJobInner`).
+      const session = await ExecutionSession.create({
+        graph: graph as unknown as ExecutionSessionRawGraph,
         resolveExecutor: (node) =>
           this.resolveExecutor(
             node as { id: string; type: string; [key: string]: unknown }
           ),
-        executionContext: context,
+        bridgeFactory: async () => null,
+        jobId,
+        workflowId,
+        context,
+        params,
         validateNode: this.validateNode
       });
 
@@ -6362,7 +6385,7 @@ export class UnifiedWebSocketRunner {
         jobId,
         workflowId,
         context,
-        runner,
+        session,
         graph,
         finished: false,
         status: "running",
@@ -6394,11 +6417,8 @@ export class UnifiedWebSocketRunner {
         this.logError("workflow job persistence failed", error);
       }
 
-      // Execute workflow and stream messages
-      const executePromise = runner.run(
-        { job_id: jobId, workflow_id: workflowId, params },
-        graph
-      );
+      // The run already started inside `ExecutionSession.create()` above.
+      const executePromise = session.result;
 
       // Stream events, collect output_update results
       const result: Record<string, unknown> = {};
@@ -6449,7 +6469,7 @@ export class UnifiedWebSocketRunner {
       // below to come back around — the run may be parked inside a long node.
       const onAbort = (): void => {
         try {
-          active.runner.cancel();
+          active.session.cancel();
         } catch {
           // best-effort cancel
         }
@@ -6465,7 +6485,7 @@ export class UnifiedWebSocketRunner {
       while (!active.finished || active.context.hasMessages()) {
         if (superseded()) {
           try {
-            active.runner.cancel();
+            active.session.cancel();
           } catch {
             // best-effort cancel
           }
@@ -7281,7 +7301,7 @@ export class UnifiedWebSocketRunner {
           const handle =
             typeof data.handle === "string" ? data.handle : undefined;
           try {
-            await active.runner.pushInputValue(inputName, value, handle);
+            await active.session.pushInput(inputName, value, handle);
             return {
               message: "Input item streamed",
               job_id: jobId,
@@ -7308,7 +7328,7 @@ export class UnifiedWebSocketRunner {
           const handle =
             typeof data.handle === "string" ? data.handle : undefined;
           try {
-            active.runner.finishInputStream(inputName, handle);
+            active.session.finishInputStream(inputName, handle);
             return {
               message: "Input stream ended",
               job_id: jobId,
@@ -7340,7 +7360,7 @@ export class UnifiedWebSocketRunner {
         }
         const active = this.activeJobs.get(jobId);
         const applied =
-          active?.runner.updateNodeProperties(
+          active?.session.updateNodeProperties(
             nodeId,
             properties as Record<string, unknown>
           ) ?? false;
@@ -7404,7 +7424,7 @@ export class UnifiedWebSocketRunner {
         if (jobId) {
           const active = this.activeJobs.get(jobId);
           if (active) {
-            active.runner.cancel();
+            active.session.cancel();
             active.status = "cancelled";
           }
         }

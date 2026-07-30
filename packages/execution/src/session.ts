@@ -8,7 +8,12 @@
 import { randomUUID } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
 import { hydrateGraphNodeFlags } from "@nodetool-ai/node-sdk";
-import { WorkflowRunner, type RunResult } from "@nodetool-ai/kernel";
+import {
+  Graph,
+  WorkflowRunner,
+  withExplicitNodeFlags,
+  type RunResult
+} from "@nodetool-ai/kernel";
 import { ProcessingContext, connectPythonBridgeForGraph } from "@nodetool-ai/runtime";
 import type { HydratedGraphData, ProcessingMessage } from "@nodetool-ai/protocol";
 import { createExecutorResolver } from "./executor-resolver.js";
@@ -99,14 +104,31 @@ export class ExecutionSession {
       );
     }
 
+    if (!options.registry && !options.resolveExecutor) {
+      throw new Error(
+        "ExecutionSession: either registry or resolveExecutor must be provided " +
+          "(registry builds the default registry+bridge resolver; resolveExecutor " +
+          "bypasses it for a host with its own resolution, e.g. the WS runner)."
+      );
+    }
+
     const jobId = options.jobId ?? randomUUID();
     const workflowId = options.workflowId ?? null;
     const registry = options.registry;
 
     const normalized = normalizeGraph(options.graph);
 
-    const bridgeFactory = options.bridgeFactory ?? connectPythonBridgeForGraph;
-    const bridge = await bridgeFactory(normalized.nodes, (t) => registry.has(t));
+    // A caller injecting its own `resolveExecutor` (see the option doc)
+    // typically also owns its own Python bridge — never connect a second one
+    // behind its back. `bridgeFactory` remains available for that caller to
+    // opt back in explicitly (e.g. handing this facade an already-connected
+    // bridge instance to close on its behalf).
+    const bridgeFactory =
+      options.bridgeFactory ??
+      (options.resolveExecutor ? async () => null : connectPythonBridgeForGraph);
+    const bridge = await bridgeFactory(normalized.nodes, (t) =>
+      registry ? registry.has(t) : false
+    );
     let bridgeClosed = false;
     const closeBridge = (): void => {
       if (bridgeClosed) return;
@@ -116,7 +138,28 @@ export class ExecutionSession {
 
     let hydrated: HydratedGraphData;
     try {
-      hydrated = hydrateGraphNodeFlags(normalized, registry);
+      if (options.resolveNodeType) {
+        // Richer path: resolves `propertyTypes`/`outputs` from registry
+        // metadata too (async — the resolver may lazy-load a namespace),
+        // matching `unified-websocket-runner.ts`'s `Graph.loadFromDict`
+        // hydration. Without this, multi-edge fan-in into a non-list
+        // property is misclassified as list aggregation (the kernel only
+        // gates on a populated `propertyTypes` map).
+        const loaded = await Graph.loadFromDict(normalized, {
+          resolver: options.resolveNodeType
+        });
+        hydrated = { nodes: [...loaded.nodes], edges: [...loaded.edges] };
+      } else if (registry) {
+        hydrated = hydrateGraphNodeFlags(normalized, registry);
+      } else {
+        // No registry and no resolveNodeType: the caller hydrates its own
+        // graph before handing it to this facade (see the `registry` option
+        // doc) — default absent flags to `false` rather than guessing.
+        // `...node` on every field `withExplicitNodeFlags` doesn't touch
+        // means an already-resolved `propertyTypes`/`outputs` passes through
+        // unchanged.
+        hydrated = withExplicitNodeFlags(normalized);
+      }
     } catch (err) {
       closeBridge();
       throw err;
@@ -134,7 +177,8 @@ export class ExecutionSession {
         userId: "1"
       });
 
-    const resolveExecutor = createExecutorResolver(registry, bridge);
+    const resolveExecutor =
+      options.resolveExecutor ?? createExecutorResolver(registry!, bridge);
 
     const runner = new WorkflowRunner(jobId, {
       resolveExecutor,
@@ -194,6 +238,21 @@ export class ExecutionSession {
   /** Signal end-of-stream for a live input node (mirrors `end_input_stream`). */
   finishInputStream(inputName: string, sourceHandle?: string): void {
     this.runner.finishInputStream(inputName, sourceHandle);
+  }
+
+  /**
+   * Push property updates into a running node's executor instance (live
+   * parameter changes, e.g. a synth knob while a patch plays — mirrors the
+   * WS runner's `update_node_properties` command). Returns `true` when the
+   * node's executor exists and supports live updates; `false` is not an
+   * error — the caller's own state already holds the new value for the next
+   * run.
+   */
+  updateNodeProperties(
+    nodeId: string,
+    properties: Record<string, unknown>
+  ): boolean {
+    return this.runner.updateNodeProperties(nodeId, properties);
   }
 
   /**

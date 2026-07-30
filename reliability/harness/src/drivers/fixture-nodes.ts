@@ -167,11 +167,37 @@ export class ReliabilityStorageWriteNode extends BaseNode {
   }
 }
 
+/**
+ * Joins a `list[str]` property — the shared-list-handle multi-edge fan-in
+ * target for the `fan-in-shared-list-handle` journey (A5,
+ * docs/RELIABILITY_TASKS.md Track A). Unlike `fan-out-fan-in-dag`'s `join`
+ * node (two edges into two *distinct* handles, a workaround for the
+ * hydration gap where a hydration path without `propertyTypes` couldn't
+ * distinguish a genuine list fan-in from an invalid one), this node takes
+ * two edges into the SAME `items` handle — the case that gap used to reject
+ * outright on any surface hydrating without a metadata resolver.
+ */
+export class ReliabilityListJoinNode extends BaseNode {
+  static readonly nodeType = "test.reliability.ListJoin";
+  static readonly title = "Reliability List Join";
+  static readonly description =
+    "Test fixture: joins a list[str] input fed by a shared multi-edge handle.";
+
+  @prop({ type: "list[str]", default: [] })
+  declare items: unknown;
+
+  async process(): Promise<Record<string, unknown>> {
+    const list = Array.isArray(this.items) ? this.items : [this.items];
+    return { output: [...list].map((v) => String(v ?? "")).sort().join(",") };
+  }
+}
+
 export const RELIABILITY_FIXTURE_NODES = [
   ReliabilityStreamingInputNode,
   ReliabilityStreamSinkNode,
   ReliabilityCancelProbeNode,
-  ReliabilityStorageWriteNode
+  ReliabilityStorageWriteNode,
+  ReliabilityListJoinNode
 ] as const;
 
 /** Registers the harness's own fixture nodes into a live registry. Idempotent
