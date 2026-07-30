@@ -888,6 +888,7 @@ function createRuntimeContext(opts: {
     | "storage_url"
     | "workspace"
     | "raw";
+  persistOutputAssets?: boolean;
 }): RuntimeProcessingContext {
   const storagePath = getAssetStoragePath();
   const tempAdapter = getTempAdapter();
@@ -1460,6 +1461,13 @@ export function resolveRunJobExecutionOptions(
         ? "temporary"
         : "auto"
   };
+}
+
+export function resolveRunJobUserId(
+  requestUserId: string | undefined,
+  connectionUserId: string | null
+): string {
+  return requestUserId?.trim() || connectionUserId?.trim() || "1";
 }
 
 interface ActiveJob {
@@ -2579,7 +2587,7 @@ export class UnifiedWebSocketRunner {
           await Job.create({
             id: jobId,
             workflow_id: req.workflow_id ?? "",
-            user_id: req.user_id ?? this.userId ?? "1",
+            user_id: resolveRunJobUserId(req.user_id, this.userId),
             status: "queued",
             name: req.job_name ?? "",
             params: req.params ?? {},
@@ -2700,7 +2708,7 @@ export class UnifiedWebSocketRunner {
     req: RunJobRequest,
     releaseSlot: () => void
   ): Promise<void> {
-    const userId = req.user_id ?? this.userId ?? "1";
+    const userId = resolveRunJobUserId(req.user_id, this.userId);
     const workflowId = req.workflow_id ?? null;
     const jobId = req.job_id ?? randomUUID();
     const executionOptions = resolveRunJobExecutionOptions(
@@ -2759,7 +2767,8 @@ export class UnifiedWebSocketRunner {
       workflowId,
       userId,
       workspaceDir,
-      assetOutputMode: this.mode === "text" ? "data_uri" : "temp_url"
+      assetOutputMode: this.mode === "text" ? "data_uri" : "temp_url",
+      persistOutputAssets: executionOptions.assetPersistence === "auto"
     });
     // Agents planning inside this run pause for user approval over this
     // socket before executing their plan.
@@ -3324,19 +3333,19 @@ export class UnifiedWebSocketRunner {
       }
     }
 
+    // The authoritative terminal snapshot is consumed in every event-detail
+    // mode. Keep it just as client-safe as streamed output_update values;
+    // otherwise Outputs/Full can replace a working temp URL with raw media.
+    if (Object.keys(finalOutputs).length > 0) {
+      finalOutputs = await this.normalizeFinalOutputs(active, finalOutputs);
+    }
+
     if (
       active.executionOptions.eventDetail !== "terminal" &&
       !outputUpdateSeen &&
       Object.keys(finalOutputs).length > 0
     ) {
       await this.sendOutputUpdates(active, finalOutputs);
-    }
-
-    if (
-      active.executionOptions.eventDetail === "terminal" &&
-      Object.keys(finalOutputs).length > 0
-    ) {
-      finalOutputs = await this.normalizeFinalOutputs(active, finalOutputs);
     }
 
     const relayCompletedAt = performance.now();

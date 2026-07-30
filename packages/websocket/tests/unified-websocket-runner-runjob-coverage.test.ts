@@ -26,10 +26,12 @@ import {
   DEFAULT_RUN_JOB_EXECUTION_OPTIONS,
   UnifiedWebSocketRunner,
   resolveRunJobExecutionOptions,
+  resolveRunJobUserId,
   type WebSocketConnection,
   type WebSocketReceiveFrame
 } from "../src/unified-websocket-runner.js";
 import { initTestDb, Job } from "@nodetool-ai/models";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 // Autosave persists bytes to storage; make that a no-op so tests touch only DB.
 vi.mock("../src/lib/thumbnail.js", () => ({
@@ -167,6 +169,18 @@ describe("run_job execution option defaults", () => {
     expect(
       resolveRunJobExecutionOptions({ asset_persistence: "auto" }, true)
     ).toEqual(DEFAULT_RUN_JOB_EXECUTION_OPTIONS);
+  });
+
+  it("treats a blank request user id as absent", () => {
+    expect(resolveRunJobUserId("", "connection-user")).toBe(
+      "connection-user"
+    );
+    expect(resolveRunJobUserId("   ", "connection-user")).toBe(
+      "connection-user"
+    );
+    expect(resolveRunJobUserId("request-user", "connection-user")).toBe(
+      "request-user"
+    );
   });
 });
 
@@ -447,6 +461,45 @@ describe("UnifiedWebSocketRunner run_job — streamJobMessages relay", () => {
     expect(
       frames.some((m) => m.type === "node_update" && m.status === "error")
     ).toBe(true);
+  });
+
+  it("outputs detail also normalizes the authoritative final outputs", async () => {
+    const rawImage = {
+      type: "image",
+      data: new Uint8Array([1, 2, 3])
+    };
+    const normalizedImage = {
+      type: "image",
+      uri: "/api/storage/temp/sdk-image.png"
+    };
+    const active = makeActive({
+      jobId: "J7-MEDIA",
+      nodes: [{ id: "out", type: "nodetool.output.Output" }],
+      messages: [
+        { type: "output_update", node_id: "out", value: rawImage }
+      ],
+      executionOptions: { event_detail: "outputs" }
+    });
+    active.context.normalizeOutputValue.mockImplementation(
+      async (value: unknown) => value === rawImage ? normalizedImage : value
+    );
+
+    await streamTo(
+      runner,
+      active,
+      Promise.resolve({
+        status: "completed",
+        outputs: { image: [rawImage] }
+      })
+    );
+
+    const terminal = decodeAll(ws).find(
+      (message) =>
+        message.type === "job_update" && message.status === "completed"
+    );
+    expect((terminal?.result as any).outputs).toEqual({
+      image: [normalizedImage]
+    });
   });
 
   it("terminal detail emits only lifecycle/errors and normalizes final outputs", async () => {
@@ -876,6 +929,83 @@ describe("UnifiedWebSocketRunner run_job — startJobInner branches", () => {
     await initTestDb();
     vi.clearAllMocks();
     ws = new MockWebSocket();
+  });
+
+  it("uses the connection user and temporary media policy for an SDK session run", async () => {
+    let outputContext: ProcessingContext | undefined;
+    const runner = new UnifiedWebSocketRunner({
+      resolveExecutor: (node) => {
+        if (node.type === "nodetool.constant.String") {
+          return {
+            async process(inputs: Record<string, unknown>) {
+              return { output: inputs.value ?? "hello" };
+            }
+          };
+        }
+        return {
+          async process(
+            inputs: Record<string, unknown>,
+            context?: ProcessingContext
+          ) {
+            outputContext = context;
+            return { output: inputs.value ?? null };
+          }
+        };
+      }
+    });
+    await runner.connect(ws, "connection-user");
+
+    await runner.runJob({
+      job_id: "SDK_TEMPORARY_SESSION",
+      workflow_id: "wf",
+      user_id: "",
+      require_terminal_result: true,
+      execution_options: {
+        persistence: "session",
+        event_detail: "outputs",
+        asset_persistence: "temporary"
+      },
+      graph: {
+        nodes: [
+          ...graph.nodes,
+          {
+            id: "out",
+            type: "nodetool.output.Output",
+            name: "result",
+            properties: { name: "result" }
+          }
+        ],
+        edges: [
+          {
+            id: "edge",
+            source: "n1",
+            target: "out",
+            sourceHandle: "output",
+            targetHandle: "value",
+            edge_type: "data"
+          }
+        ]
+      }
+    });
+
+    for (
+      let i = 0;
+      i < 100 &&
+      !decodeAll(ws).some(
+        (message) =>
+          message.type === "job_update" &&
+          message.status === "completed" &&
+          message.job_id === "SDK_TEMPORARY_SESSION"
+      );
+      i++
+    ) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+
+    expect(outputContext?.userId).toBe("connection-user");
+    expect(outputContext?.persistOutputAssets).toBe(false);
+    expect(await Job.get("SDK_TEMPORARY_SESSION")).toBeNull();
+    await runner.disconnect();
   });
 
   it("honors a DB-only cancellation and does not resurrect a cancelled queued job", async () => {

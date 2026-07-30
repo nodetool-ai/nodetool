@@ -1047,6 +1047,11 @@ export class ProcessingContext {
   readonly userId: string;
   readonly workspaceDir: string | null;
   readonly assetOutputMode: AssetOutputMode;
+  /**
+   * Whether Output nodes should turn transient media into durable Asset rows.
+   * Hosts can disable this for explicitly temporary SDK executions.
+   */
+  readonly persistOutputAssets: boolean;
   readonly environment: Record<string, string>;
   /** Bearer token for authenticated calls back to the owning NodeTool API. */
   readonly authToken: string | null;
@@ -1084,6 +1089,16 @@ export class ProcessingContext {
 
   /** Message listeners (for real-time streaming). */
   private _messageListeners = new Set<(msg: ProcessingMessage) => void>();
+
+  /**
+   * One media object can appear in both a live output_update and the
+   * authoritative terminal result. Reuse its materialization within this
+   * execution instead of encoding/storing the same large payload twice.
+   */
+  private readonly _normalizedOutputAssets = new WeakMap<
+    object,
+    Map<AssetOutputMode, Promise<Record<string, unknown>>>
+  >();
 
   /** Cache adapter. */
   readonly cache: CacheAdapter;
@@ -1182,6 +1197,7 @@ export class ProcessingContext {
     userId?: string;
     workspaceDir?: string | null;
     assetOutputMode?: AssetOutputMode;
+    persistOutputAssets?: boolean;
     cache?: CacheAdapter;
     storage?: StorageAdapter | null;
     workspaceStorage?: StorageAdapter | null;
@@ -1223,6 +1239,7 @@ export class ProcessingContext {
     this.userId = opts.userId ?? "default";
     this.workspaceDir = opts.workspaceDir ?? null;
     this.assetOutputMode = opts.assetOutputMode ?? "native";
+    this.persistOutputAssets = opts.persistOutputAssets ?? true;
     this.cache = opts.cache ?? new MemoryCache();
     this.storage = opts.storage ?? null;
     this.workspaceStorage = opts.workspaceStorage ?? null;
@@ -1254,6 +1271,7 @@ export class ProcessingContext {
       userId: this.userId,
       workspaceDir: this.workspaceDir,
       assetOutputMode: this.assetOutputMode,
+      persistOutputAssets: this.persistOutputAssets,
       cache: this.cache,
       storage: this.storage,
       workspaceStorage: this.workspaceStorage,
@@ -3336,7 +3354,23 @@ export class ProcessingContext {
     }
 
     if (ProcessingContext.isAssetLike(value)) {
-      return this.materializeAsset(value, mode);
+      let byMode = this._normalizedOutputAssets.get(value);
+      if (!byMode) {
+        byMode = new Map();
+        this._normalizedOutputAssets.set(value, byMode);
+      }
+      let normalized = byMode.get(mode);
+      if (!normalized) {
+        normalized = this.materializeAsset(value, mode);
+        byMode.set(mode, normalized);
+      }
+      try {
+        return await normalized;
+      } catch (error) {
+        // A transient storage failure must remain retryable.
+        if (byMode.get(mode) === normalized) byMode.delete(mode);
+        throw error;
+      }
     }
 
     if (typeof value === "object") {

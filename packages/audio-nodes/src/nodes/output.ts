@@ -81,6 +81,15 @@ async function persistMediaAsAsset(
   nodeId: string | null
 ): Promise<unknown> {
   if (typeof context.createAsset !== "function") return value;
+  if (
+    (
+      context as ProcessingContext & {
+        readonly persistOutputAssets?: boolean;
+      }
+    ).persistOutputAssets === false
+  ) {
+    return value;
+  }
   if (!value || typeof value !== "object") return value;
   const ref = value as Record<string, unknown>;
   const kind = typeof ref.type === "string" ? ref.type : "";
