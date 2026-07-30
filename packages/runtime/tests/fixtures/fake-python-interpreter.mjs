@@ -40,11 +40,21 @@ const child = spawn(process.execPath, ["--import", "tsx", fixture], {
   env: process.env
 });
 
-// Closing fd 0/1 out from under these streams (below) can otherwise surface
-// as an unhandled 'error' and crash this process — sink it.
-process.stdin.on("error", () => {});
-process.stdout.on("error", () => {});
-child.stdin.on("error", () => {});
+// Closing fd 0/1 out from under these streams (below, via closeStdinAfterMs /
+// closeStdoutAfterMs) is an INTENTIONAL fault and always produces an 'error'
+// here — an unhandled one would crash this process instead of letting the
+// fault land on the bridge under test. Log rather than silently swallow: a
+// genuinely unexpected error (a real bug, not one of the two knobs) should be
+// visible on stderr instead of just making a test hang with no clue why. Every
+// source stream in the two `.pipe()` calls below needs one of these — an
+// unhandled error on a pipe's SOURCE does not propagate to the destination.
+const logPipeError = (label) => (err) => {
+  process.stderr.write(`fake-python-interpreter: ${label} stream error: ${err}\n`);
+};
+process.stdin.on("error", logPipeError("stdin"));
+process.stdout.on("error", logPipeError("stdout"));
+child.stdin.on("error", logPipeError("child.stdin"));
+child.stdout.on("error", logPipeError("child.stdout"));
 
 process.stdin.pipe(child.stdin);
 child.stdout.pipe(process.stdout);
