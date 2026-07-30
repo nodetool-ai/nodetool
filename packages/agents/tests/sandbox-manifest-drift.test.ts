@@ -12,6 +12,10 @@ import {
   unknownApiReferences,
   extractApiReferences
 } from "../src/code-gen/sandbox-prompt.js";
+import {
+  buildCodeGenSystemPrompt,
+  buildCodeGenUserPrompt
+} from "../src/code-gen/prompt.js";
 
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -104,6 +108,19 @@ describe("authoring instructions name only APIs the sandbox has", () => {
 
   it("holds for the rendered API reference", () => {
     expect(unknownApiReferences(renderSandboxApiReference())).toEqual([]);
+  });
+
+  it("holds for the code-generation prompts", () => {
+    expect(unknownApiReferences(buildCodeGenSystemPrompt())).toEqual([]);
+    expect(
+      unknownApiReferences(
+        buildCodeGenUserPrompt({
+          instruction: "Count the words in the text.",
+          inputs: [{ name: "text", type: { type: "str" } }],
+          expectedOutput: { name: "count", type: { type: "int" } }
+        })
+      )
+    ).toEqual([]);
   });
 
   it("holds for the editor chat sandbox docs", () => {

@@ -321,6 +321,18 @@ export {
   extractApiReferences,
   unknownApiReferences
 } from "./code-gen/sandbox-prompt.js";
+export {
+  buildCodeGenSystemPrompt,
+  buildCodeGenUserPrompt,
+  buildCodeGenRetryPrompt
+} from "./code-gen/prompt.js";
+export type { CodeGenPromptInput } from "./code-gen/prompt.js";
+export { analyzeGeneratedCode } from "./code-gen/analyze.js";
+export type { CodeAnalysis } from "./code-gen/analyze.js";
+export { SubmitCodeTool } from "./tools/submit-code-tool.js";
+export type { SubmitCodeToolOptions } from "./tools/submit-code-tool.js";
+export { CodePlanner } from "./code-planner.js";
+export type { CodePlannerOptions } from "./code-planner.js";
 
 // Constants
 export { MAX_TOOL_RESULT_CHARS, truncateToolResult } from "./constants.js";
