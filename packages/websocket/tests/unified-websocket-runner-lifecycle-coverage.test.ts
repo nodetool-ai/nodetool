@@ -508,7 +508,13 @@ describe("UnifiedWebSocketRunner lifecycle — job status/cancel/reconnect", () 
       status: "running",
       context: {
         getNodeStatuses: () => ({
-          n1: { type: "node_update", node_id: "n1", status: "completed" }
+          n1: {
+            type: "node_update",
+            node_id: "n1",
+            node_name: "n1",
+            node_type: "test.Node",
+            status: "completed"
+          }
         }),
         getEdgeStatuses: () => ({
           e1: { type: "edge_update", edge_id: "e1", status: "message_sent" }
@@ -630,6 +636,11 @@ describe("UnifiedWebSocketRunner lifecycle — sendMessage encoding", () => {
     await runner.connect(ws);
     await runner.sendMessage({
       type: "output_update",
+      node_id: "n1",
+      node_name: "n1",
+      output_name: "output",
+      output_type: "audio",
+      metadata: {},
       value: { type: "chunk", content: new Float32Array([1, 2]) }
     });
     const out = unpack(ws.sentBytes[0]) as Record<string, any>;

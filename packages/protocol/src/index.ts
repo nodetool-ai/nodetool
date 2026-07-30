@@ -3,6 +3,7 @@
  */
 
 export * from "./messages.js";
+export * from "./ws-commands.js";
 export * from "./graph.js";
 export * from "./api-types.js";
 export * from "./package-assets.js";

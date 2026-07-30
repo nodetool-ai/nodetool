@@ -89,8 +89,56 @@ function decodeAll(ws: MockWebSocket): Record<string, unknown>[] {
  * processing messages, then reports empty. `normalizeOutputValue` is an identity
  * spy so in-place asset mutations stay visible while still asserting the call.
  */
+/**
+ * Fill in the required-but-tangential protocol fields these fixtures omit
+ * (real `node_update`/`output_update` frames always carry `node_name`/
+ * `node_type`/`output_name`/`output_type`/`metadata` — the kernel stamps them
+ * on every emit) so the outbound Zod validation gate
+ * (`NODETOOL_VALIDATE_OUTBOUND_WS`, on under vitest) doesn't reject an
+ * otherwise-fine test fixture for omitting a field the test doesn't care
+ * about.
+ */
+function withRequiredProtocolFields(
+  message: Record<string, unknown>
+): Record<string, unknown> {
+  const nodeId = typeof message.node_id === "string" ? message.node_id : "n";
+  if (message.type === "node_update") {
+    return {
+      node_name: nodeId,
+      node_type: "test.Node",
+      ...message
+    };
+  }
+  if (message.type === "output_update") {
+    return {
+      node_name: nodeId,
+      output_name: "output",
+      output_type: "any",
+      metadata: {},
+      ...message
+    };
+  }
+  if (message.type === "generation_complete") {
+    return {
+      node_name: nodeId,
+      node_type: "test.Node",
+      outputs: {},
+      ...message
+    };
+  }
+  if (message.type === "notification") {
+    return {
+      node_id: nodeId,
+      content: "",
+      severity: "info",
+      ...message
+    };
+  }
+  return message;
+}
+
 function fakeContext(messages: Record<string, unknown>[]) {
-  const q = [...messages];
+  const q = [...messages.map(withRequiredProtocolFields)];
   const listeners = new Set<() => void>();
   return {
     hasMessages: () => q.length > 0,
@@ -100,7 +148,7 @@ function fakeContext(messages: Record<string, unknown>[]) {
       return () => listeners.delete(listener);
     },
     emit: (message: Record<string, unknown>) => {
-      q.push(message);
+      q.push(withRequiredProtocolFields(message));
       for (const listener of listeners) listener();
     },
     normalizeOutputValue: vi.fn(async (v: unknown) => v),
@@ -667,6 +715,7 @@ describe("UnifiedWebSocketRunner run_job — provider cost", () => {
           provider_cost: {
             provider: "kie",
             amount: 0.5,
+            unit: "USD",
             currency: "USD"
           }
         }

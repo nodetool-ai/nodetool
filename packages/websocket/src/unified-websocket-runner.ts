@@ -101,6 +101,14 @@ import type {
   UiDocumentRef,
   UiSurfaceType
 } from "@nodetool-ai/protocol";
+import {
+  webSocketCommandEnvelopeSchema,
+  commandDataSchemas,
+  controlMessageInSchemas,
+  outboundControlMessageSchemas,
+  processingMessageSchemas,
+  type ControlMessageInType
+} from "@nodetool-ai/protocol";
 import { Tool } from "@nodetool-ai/agents";
 import {
   RunSubtaskTool,
@@ -163,6 +171,58 @@ function getMaxWsMessageBytes(): number {
     "NODETOOL_WS_MAX_MESSAGE_BYTES",
     DEFAULT_MAX_WS_MESSAGE_BYTES
   );
+}
+
+/**
+ * Outbound (server→client) frame validation gate. Every message `sendMessage`
+ * emits whose `type` matches a known `ProcessingMessage` variant or one of
+ * the small set of non-`ProcessingMessage` server frames (`pong`,
+ * `rpc_response`, `system_stats`, `resource_change`) is safe-parsed against
+ * its Zod schema before it goes on the wire; frames with an unrecognized (or
+ * absent) `type` — the ad hoc `{ error, details }` command replies — are left
+ * alone, as they always have been.
+ *
+ * Set `NODETOOL_VALIDATE_OUTBOUND_WS=1` to force validation on, `=0` to force
+ * it off. Unset, it defaults to on under `NODE_ENV=test` or Vitest (`VITEST`)
+ * and off everywhere else — a server bug that produces a malformed frame
+ * should fail the test that exercised it, not corrupt a production
+ * connection with a thrown error mid-stream. On failure it throws (the
+ * caller — `sendMessage` — is already inside the code path the bug is in, so
+ * failing loudly there is what surfaces it to the test).
+ */
+function shouldValidateOutboundWs(): boolean {
+  const override = process.env["NODETOOL_VALIDATE_OUTBOUND_WS"]?.trim();
+  if (override === "1" || override === "true") return true;
+  if (override === "0" || override === "false") return false;
+  return (
+    process.env["NODE_ENV"] === "test" || Boolean(process.env["VITEST"])
+  );
+}
+
+/**
+ * Throws when outbound validation is enabled and `message` carries a `type`
+ * this package can validate but fails to conform to its schema. No-op for
+ * unrecognized/absent `type` values — see {@link shouldValidateOutboundWs}.
+ */
+function assertValidOutboundMessage(message: Record<string, unknown>): void {
+  if (!shouldValidateOutboundWs()) return;
+  const type = typeof message["type"] === "string" ? message["type"] : null;
+  if (!type) return;
+  const schema =
+    processingMessageSchemas[type as keyof typeof processingMessageSchemas] ??
+    outboundControlMessageSchemas[
+      type as keyof typeof outboundControlMessageSchemas
+    ];
+  if (!schema) return;
+  const parsed = schema.safeParse(message);
+  if (!parsed.success) {
+    throw new Error(
+      `Outbound WebSocket message failed protocol validation (type: "${type}"): ` +
+        parsed.error.issues
+          .map((issue) => `${issue.path.join(".") || "<root>"}: ${issue.message}`)
+          .join("; ")
+    );
+  }
 }
 
 /**
@@ -2003,6 +2063,8 @@ export class UnifiedWebSocketRunner {
     ) {
       return;
     }
+
+    assertValidOutboundMessage(message);
 
     // Resolve storage keys in content to browser-accessible URLs before
     // sending over the wire.  This keeps DB storage URL-agnostic while
@@ -5109,6 +5171,13 @@ export class UnifiedWebSocketRunner {
     const amount = (providerCost as { amount?: unknown }).amount;
     if (typeof amount === "number" && Number.isFinite(amount)) {
       active.providerCostTotal = (active.providerCostTotal ?? 0) + amount;
+    } else {
+      // A non-finite amount (NaN/Infinity from a buggy provider call) can't
+      // be persisted or accumulated above, and JSON can't even represent it
+      // faithfully (`JSON.stringify(NaN)` silently becomes `null`). Rather
+      // than ship a `provider_cost` the wire contract calls a real number,
+      // drop it — the rest of the `node_update` still reports normally.
+      delete outbound.provider_cost;
     }
   }
 
@@ -7635,10 +7704,50 @@ export class UnifiedWebSocketRunner {
 
   async receiveMessages(): Promise<void> {
     while (true) {
-      const data = await this.receiveMessage();
+      let data: Record<string, unknown> | null;
+      try {
+        data = await this.receiveMessage();
+      } catch (err) {
+        // A frame that fails to even decode (truncated msgpack, an
+        // oversized payload past NODETOOL_WS_MAX_MESSAGE_BYTES, …) must not
+        // kill the connection or this loop — it's just one bad frame from a
+        // client that may otherwise be mid-job. Reject it and keep reading.
+        this.logError("Failed to receive/decode WebSocket frame", err);
+        if (
+          this.websocket &&
+          this.websocket.clientState !== "disconnected" &&
+          this.websocket.applicationState !== "disconnected"
+        ) {
+          await this.sendMessage({
+            error: "invalid_frame",
+            message: err instanceof Error ? err.message : String(err)
+          }).catch((sendErr) => {
+            this.logError("Failed to notify client of invalid frame", sendErr);
+          });
+          continue;
+        }
+        break;
+      }
       if (data === null) break;
 
       const msgType = typeof data.type === "string" ? data.type : null;
+      if (msgType !== null && msgType in controlMessageInSchemas) {
+        const schema =
+          controlMessageInSchemas[msgType as ControlMessageInType];
+        const parsed = schema.safeParse(data);
+        if (!parsed.success) {
+          await this.sendMessage({
+            error: "invalid_message",
+            message:
+              `Malformed '${msgType}' frame: ` +
+              parsed.error.issues
+                .map((issue) => `${issue.path.join(".") || "<root>"}: ${issue.message}`)
+                .join("; ")
+          });
+          continue;
+        }
+      }
+
       if (msgType === "client_tools_manifest") {
         const tools = Array.isArray(data.tools) ? data.tools : [];
         this.clientToolsManifest = {};
@@ -7692,6 +7801,37 @@ export class UnifiedWebSocketRunner {
       }
 
       if (typeof data.command === "string") {
+        const envelopeParsed = webSocketCommandEnvelopeSchema.safeParse(data);
+        if (!envelopeParsed.success) {
+          await this.sendMessage({
+            error: "invalid_command",
+            details:
+              "Malformed command envelope: " +
+              envelopeParsed.error.issues
+                .map((issue) => `${issue.path.join(".") || "<root>"}: ${issue.message}`)
+                .join("; ")
+          });
+          continue;
+        }
+        // Commands this build doesn't recognize fall through to
+        // handleCommand's own `{ error: "Unknown command" }` reply below —
+        // only known commands get their `data` payload schema-checked here.
+        const dataSchema =
+          commandDataSchemas[envelopeParsed.data.command as UnifiedCommandType];
+        if (dataSchema) {
+          const dataParsed = dataSchema.safeParse(envelopeParsed.data.data ?? {});
+          if (!dataParsed.success) {
+            await this.sendMessage({
+              error: "invalid_command",
+              details:
+                `Malformed '${envelopeParsed.data.command}' data: ` +
+                dataParsed.error.issues
+                  .map((issue) => `${issue.path.join(".") || "<root>"}: ${issue.message}`)
+                  .join("; ")
+            });
+            continue;
+          }
+        }
         try {
           const command = data as unknown as WebSocketCommandEnvelope;
           const response = await this.handleCommand(command);

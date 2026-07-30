@@ -319,8 +319,8 @@ export const edgeUpdateSchema = z.object({
   // Both ids are stamped by the unified websocket runner if absent. The kernel
   // emits `job_id` (the run id); `workflow_id` is backfilled from the active
   // run. Edge animations are scoped per run, so consumers key off `job_id`.
-  workflow_id: z.string().optional(),
-  job_id: z.string().optional(),
+  workflow_id: z.string().nullable().optional(),
+  job_id: z.string().nullable().optional(),
   edge_id: z.string(),
   status: z.string(),
   counter: z.number().nullable().optional()
