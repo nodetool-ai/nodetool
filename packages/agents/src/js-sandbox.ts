@@ -9,7 +9,7 @@
  * The exposed surface is a small curated one: vanilla JavaScript plus a handful
  * of bridge functions (`fetch`, `workspace`, `getSecret`, `uuid`, `sleep`,
  * `assetToSandbox`, `sandboxToAsset`, `crypto`, `console`, `progress`,
- * `format`) and a few pure guest-side binary helpers (`toBase64`,
+ * `format`, `data`) and a few pure guest-side binary helpers (`toBase64`,
  * `fromBase64`, `toHex`, `fromHex`, `utf8Encode`, `utf8Decode`). `crypto`
  * covers `randomUUID`, `getRandomValues`, `digest`, and `hmac`
  * (WebCrypto-backed); `workspace` covers text and binary reads/writes plus
@@ -18,13 +18,16 @@
  * relative-time and list formatting, which QuickJS itself does not ship.
  * Every quantitative limit (fetch calls, response body, output size,
  * guest heap, stack, fetch timeout) is overridable per invocation through
- * `RunSandboxOptions.limits`, clamped to hard ceilings. Library-powered helpers
- * (lodash, dayjs, cheerio, csv-parse,
- * validator) are intentionally NOT exposed here — use the dedicated workflow
- * nodes instead (lib.datetime.*, lib.html.*, lib.data.ParseCSV,
- * lib.validate.*, etc.). Keeping the sandbox lib-free makes snippet behaviour
- * identical between dev and packaged Electron, and avoids shipping those
- * packages into the user-code surface.
+ * `RunSandboxOptions.limits`, clamped to hard ceilings.
+ *
+ * The guest itself stays module-free — there is no loader, so user code cannot
+ * `import`/`require` anything. Library-backed capabilities reach it only
+ * through narrow host bridges that take and return plain data:
+ * `data.parseCsv` (papaparse), `data.selectHtml` (cheerio), `format.*` (Intl)
+ * and `crypto.*` (WebCrypto). The libraries run host-side, are imported lazily
+ * on first use, and are never handed to the guest — so the snippet surface is
+ * the same string-in/plain-data-out contract in dev, in packaged Electron, and
+ * in the browser runner, which bundles this module too.
  */
 
 import { addSerializer, expose, loadQuickJs } from "@sebastianwessel/quickjs";
@@ -65,6 +68,12 @@ export const MAX_PROGRESS_CALLS = 1000;
 export const PROGRESS_MIN_INTERVAL_MS = 100;
 /** Longest progress message forwarded to the host. */
 export const MAX_PROGRESS_MESSAGE_CHARS = 500;
+/** Largest CSV/HTML payload the `data` bridges accept, in characters. */
+export const MAX_DATA_INPUT_CHARS = 5 * 1024 * 1024;
+/** Default number of `data.selectHtml` matches returned. */
+export const DEFAULT_SELECT_HTML_LIMIT = 100;
+/** Ceiling for `data.selectHtml`'s `limit` option. */
+export const MAX_SELECT_HTML_LIMIT = 1000;
 
 /** Host sink for guest `progress()` calls. */
 export type SandboxProgressCallback = (
@@ -363,6 +372,78 @@ async function assertWorkspaceContained(
     }
   }
   throw new Error(`workspace path resolves outside the workspace: ${fullPath}`);
+}
+
+/**
+ * Minimal structural views of papaparse and cheerio — only the members the
+ * `data` bridges call. Declaring them here keeps the packages out of the type
+ * graph, so a consumer that never installs them (the browser runner) still
+ * typechecks.
+ */
+interface PapaparseLike {
+  parse: (
+    input: string,
+    config: Record<string, unknown>
+  ) => { data?: unknown; errors?: { message?: string }[] };
+}
+
+interface CheerioSelection {
+  length: number;
+  eq: (index: number) => CheerioSelection;
+  text: () => string;
+  attr: (name: string) => string | undefined;
+}
+
+interface CheerioLike {
+  load: (html: string) => (selector: string) => CheerioSelection;
+}
+
+/**
+ * Resolve the module object a bridge needs from a lazily imported package,
+ * unwrapping a CJS `default` interop wrapper. Throws a bridge-named Error when
+ * the library isn't usable, which `neverReject` turns into a guest-side throw.
+ *
+ * The imports below are deliberately dynamic and inside the bridge functions:
+ * nothing is loaded until guest code calls one, and neither library reaches a
+ * bundle's entry graph. They are NOT hidden from the bundler (unlike
+ * `loadFsPromises`) — esbuild must inline them into the packaged backend's
+ * single-file `server.mjs`, and Vite must pick cheerio's `browser` build for
+ * the in-browser runner. Both packages resolve on every target we ship.
+ */
+function unwrapLibrary<T>(
+  mod: unknown,
+  bridge: string,
+  specifier: string,
+  isModule: (value: unknown) => boolean
+): T {
+  const candidate =
+    mod && !isModule(mod) ? (mod as { default?: unknown }).default : mod;
+  if (!isModule(candidate)) {
+    throw new Error(
+      `${bridge}: the "${specifier}" library is not available in this runtime`
+    );
+  }
+  return candidate as T;
+}
+
+async function loadPapaparse(): Promise<PapaparseLike> {
+  const mod: unknown = await import("papaparse");
+  return unwrapLibrary<PapaparseLike>(
+    mod,
+    "data.parseCsv",
+    "papaparse",
+    (v) => typeof (v as PapaparseLike | undefined)?.parse === "function"
+  );
+}
+
+async function loadCheerio(): Promise<CheerioLike> {
+  const mod: unknown = await import("cheerio");
+  return unwrapLibrary<CheerioLike>(
+    mod,
+    "data.selectHtml",
+    "cheerio",
+    (v) => typeof (v as CheerioLike | undefined)?.load === "function"
+  );
 }
 
 /** True if a literal IPv4/IPv6 host is loopback, link-local, or private. */
@@ -1125,6 +1206,98 @@ export function buildSandbox(
     }
   };
 
+  // Narrow structured-data bridges. The libraries stay host-side: the guest
+  // hands over text and gets plain arrays back, so nothing library-shaped
+  // crosses the boundary. Both are async and never-reject-wrapped like the
+  // rest, and both cap their input so a huge string can't pin the host heap.
+  const data = {
+    parseCsv: async (
+      text: string,
+      options?: Record<string, unknown>
+    ): Promise<unknown[]> => {
+      if (typeof text !== "string") {
+        throw new Error("data.parseCsv: text must be a string");
+      }
+      if (text.length > MAX_DATA_INPUT_CHARS) {
+        throw new Error(
+          `data.parseCsv: input exceeds the ${MAX_DATA_INPUT_CHARS} character limit`
+        );
+      }
+      const opts = options ?? {};
+      const header = opts.header === undefined ? true : Boolean(opts.header);
+      // papaparse treats "" as auto-detect.
+      const delimiter =
+        opts.delimiter === undefined || opts.delimiter === null
+          ? ""
+          : String(opts.delimiter);
+      if (delimiter.length > 1) {
+        throw new Error("data.parseCsv: delimiter must be a single character");
+      }
+      const papa = await loadPapaparse();
+      // Values stay strings so a column never changes shape between runs;
+      // guest code converts what it needs with Number()/Date.
+      const parsed = papa.parse(text, {
+        header,
+        delimiter,
+        dynamicTyping: false,
+        skipEmptyLines: true
+      });
+      const rows = Array.isArray(parsed.data) ? parsed.data : [];
+      return header
+        ? rows.filter((row) => row !== null && typeof row === "object")
+        : rows.filter((row) => Array.isArray(row));
+    },
+    selectHtml: async (
+      html: string,
+      selector: string,
+      options?: Record<string, unknown>
+    ): Promise<string[]> => {
+      if (typeof html !== "string") {
+        throw new Error("data.selectHtml: html must be a string");
+      }
+      if (html.length > MAX_DATA_INPUT_CHARS) {
+        throw new Error(
+          `data.selectHtml: input exceeds the ${MAX_DATA_INPUT_CHARS} character limit`
+        );
+      }
+      if (typeof selector !== "string" || !selector.trim()) {
+        throw new Error("data.selectHtml: selector must be a non-empty string");
+      }
+      const opts = options ?? {};
+      const attr =
+        opts.attr === undefined || opts.attr === null
+          ? undefined
+          : String(opts.attr);
+      const rawLimit = Number(opts.limit ?? DEFAULT_SELECT_HTML_LIMIT);
+      const limit = Number.isFinite(rawLimit)
+        ? Math.min(Math.max(Math.floor(rawLimit), 0), MAX_SELECT_HTML_LIMIT)
+        : DEFAULT_SELECT_HTML_LIMIT;
+      const cheerio = await loadCheerio();
+      const $ = cheerio.load(html);
+      let matches: CheerioSelection;
+      try {
+        matches = $(selector);
+      } catch (e) {
+        throw new Error(
+          `data.selectHtml: invalid selector "${selector}" (${
+            e instanceof Error ? e.message : String(e)
+          })`
+        );
+      }
+      const out: string[] = [];
+      for (let i = 0; i < matches.length && out.length < limit; i++) {
+        const el = matches.eq(i);
+        if (attr) {
+          const value = el.attr(attr);
+          if (value !== undefined && value !== null) out.push(String(value));
+        } else {
+          out.push(el.text().trim());
+        }
+      }
+      return out;
+    }
+  };
+
   const sandbox: Record<string, unknown> = {
     // Core JS globals are native in QuickJS; we still reflect them in the
     // descriptor so callers that inspect `sandbox.JSON` / `sandbox.Math`
@@ -1179,6 +1352,7 @@ export function buildSandbox(
     sandboxToAsset,
     progress,
     format,
+    data,
     __maxIter: MAX_LOOP_ITERATIONS
   };
 
@@ -1275,6 +1449,7 @@ const RESERVED_SANDBOX_NAMES = new Set([
   "sandboxToAsset",
   "progress",
   "format",
+  "data",
   // Pure guest-side helpers defined by the prelude.
   "toBase64",
   "fromBase64",
@@ -1304,6 +1479,7 @@ const EXPOSED_BRIDGE_NAMES = [
   "sandboxToAsset",
   "progress",
   "format",
+  "data",
   "__maxIter"
 ] as const;
 
@@ -1404,6 +1580,7 @@ export async function runInSandbox(
         };
         bridges.workspace = wrapAllMembers(bridges.workspace);
         bridges.format = wrapAllMembers(bridges.format);
+        bridges.data = wrapAllMembers(bridges.data);
         const hostCrypto = bridges.crypto as {
           randomUUID: () => string;
           getRandomValues: (n: number) => Record<string, string>;
@@ -1538,6 +1715,11 @@ globalThis.format = {
   date: __wrap(__fmt.date),
   relativeTime: __wrap(__fmt.relativeTime),
   list: __wrap(__fmt.list)
+};
+const __data = globalThis.data;
+globalThis.data = {
+  parseCsv: __wrap(__data.parseCsv),
+  selectHtml: __wrap(__data.selectHtml)
 };
 const __crypto = globalThis.crypto;
 globalThis.crypto = {

@@ -20,7 +20,12 @@ interface RunCodeResult {
 export class RunCodeTool extends Tool {
   readonly name = "run_code";
   readonly description =
-    "Execute JavaScript code in a sandboxed QuickJS environment. Only javascript is supported.";
+    "Execute JavaScript code in a sandboxed QuickJS environment. Only javascript is supported. " +
+    "Vanilla JS plus bridges: fetch(), console.*, workspace.read/write/list/readBytes/writeBytes/" +
+    "stat/mkdir/remove(), getSecret(), uuid(), sleep(), progress(), crypto.randomUUID/" +
+    "getRandomValues/digest/hmac, format.number/date/relativeTime/list, " +
+    "data.parseCsv(text, {delimiter, header}), data.selectHtml(html, selector, {attr, limit}), " +
+    "toBase64/fromBase64/toHex/fromHex. No imports — there is no module loader.";
   readonly jsonSchema: Record<string, unknown> = {
     type: "object",
     properties: {

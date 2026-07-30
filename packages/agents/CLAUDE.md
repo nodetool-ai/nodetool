@@ -89,6 +89,8 @@ column by `resolveSandboxLimits`:
 | Output | `MAX_OUTPUT_SIZE` = 100 KB | `serializeResult` truncation (`limits.maxOutputSize`) | 10 MB |
 | Random bytes | `MAX_RANDOM_BYTES` = 64 KB | `crypto.getRandomValues` clamp | — |
 | Progress reports | `MAX_PROGRESS_CALLS` = 1000 per run, one per `PROGRESS_MIN_INTERVAL_MS` = 100 ms | counter + timestamp inside the bridge | — |
+| `data.*` input | `MAX_DATA_INPUT_CHARS` = 5 MB of text | length check inside each bridge | — |
+| `data.selectHtml` matches | `DEFAULT_SELECT_HTML_LIMIT` = 100 | `options.limit` | `MAX_SELECT_HTML_LIMIT` = 1000 |
 
 QuickJS's memory limiter counts its own heap objects; string and typed-array
 payloads are not charged against it, so `memoryLimitBytes` bites on object
@@ -101,9 +103,9 @@ returning a `Uint8Array`), `workspace.{read,write,list,readBytes,writeBytes,
 stat,mkdir,remove}` (requires a `ProcessingContext`; `remove` deletes one file
 or one empty directory, never a tree), the pure guest-side helpers
 `toBase64`/`fromBase64`/`toHex`/`fromHex`/`utf8Encode`/`utf8Decode`,
-`progress(percent, message?)`, `format.{number,date,relativeTime,list}`, and any
-caller-supplied `globals`. `fetch` sends a `Uint8Array` body as raw bytes
-instead of JSON.
+`progress(percent, message?)`, `format.{number,date,relativeTime,list}`,
+`data.{parseCsv,selectHtml}`, and any caller-supplied `globals`. `fetch` sends a
+`Uint8Array` body as raw bytes instead of JSON.
 
 `progress` is fire-and-forget: it reports to
 `RunSandboxOptions.onProgress`, clamped to 0–100 with the message truncated to
@@ -111,6 +113,19 @@ instead of JSON.
 wires it to `context.postMessage({ type: "node_progress", … })`, the same
 channel the Python worker uses, so a long-running snippet drives the node's
 progress bar.
+
+`data` is the structured-parsing pair: `parseCsv(text, {delimiter, header})`
+returns records keyed by the header row (default) or raw string arrays with
+`header: false`, and `selectHtml(html, selector, {attr, limit})` runs a CSS
+selector and returns trimmed text — or the named attribute, skipping matches
+that lack it. Both are host bridges over papaparse and cheerio,
+`await import`ed on first use inside the bridge — lazily, so neither library
+sits in any entry graph, but visibly, so esbuild inlines them into the packaged
+backend's single-file `server.mjs` and Vite picks cheerio's `browser` build for
+the in-browser runner. CSV values stay strings (no `dynamicTyping`) so a column
+never changes shape between runs. The guest itself has no module loader —
+`import`/`require` do not exist — so a host bridge is the only way
+library-backed behaviour reaches user code.
 
 `format` exists because QuickJS ships no `Intl`: each member is a host bridge
 over `Intl.NumberFormat`, `Intl.DateTimeFormat`, `Intl.RelativeTimeFormat` and
