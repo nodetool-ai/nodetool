@@ -11,6 +11,7 @@
     "packages/runtime",
     "packages/models",
     "packages/node-sdk",
+    "packages/execution",
     "packages/base-nodes",
     "packages/dsl",
     "packages/sdk",

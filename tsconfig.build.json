@@ -18,6 +18,7 @@
     { "path": "packages/models" },
     { "path": "packages/code-runners" },
     { "path": "packages/node-sdk" },
+    { "path": "packages/execution" },
     { "path": "packages/fal-codegen" },
     { "path": "packages/fal-nodes" },
     { "path": "packages/replicate-codegen" },
