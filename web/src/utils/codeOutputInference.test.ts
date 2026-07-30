@@ -199,15 +199,18 @@ describe("inferInputKeysFromCode", () => {
     expect(inputs).toHaveLength(3);
   });
 
-  it("excludes sandbox-provided utility libs", () => {
+  it("excludes the data bridge but not names the sandbox lacks", () => {
+    // `_` and `dayjs` are not bridged into the guest, so a reference to one is
+    // an ordinary undefined variable and becomes an input. `data` is a real
+    // bridge (data.parseCsv / data.selectHtml) and is not.
     const code = `
-      const result = _.map(data, (x) => x * 2);
+      const rows = await data.parseCsv(text);
+      const result = _.map(rows, (x) => x * 2);
       const d = dayjs();
       return { result, d }
     `;
     const inputs = inferInputKeysFromCode(code);
-    expect(inputs).toContain("data");
-    expect(inputs).not.toContain("_");
-    expect(inputs).not.toContain("dayjs");
+    expect(inputs).not.toContain("data");
+    expect(inputs).toEqual(expect.arrayContaining(["_", "dayjs", "text"]));
   });
 });
