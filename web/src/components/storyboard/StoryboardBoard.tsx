@@ -209,6 +209,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   assembleError
 }) => {
   const theme = useTheme();
+  const boardStyles = useMemo(() => styles(theme), [theme]);
   const {
     title,
     brief,
@@ -307,7 +308,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   }, [pendingClips, generateClip, boardId]);
 
   return (
-    <div css={styles(theme)} className="storyboard-board">
+    <div css={boardStyles} className="storyboard-board">
       {!readOnly && (
         <Panel padding="normal" className="header-fields">
           <FlexColumn gap={4}>
