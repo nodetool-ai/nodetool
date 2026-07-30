@@ -7,6 +7,7 @@ import EmbeddingModelSelect from "../properties/EmbeddingModelSelect";
 import TTSModelSelect from "../properties/TTSModelSelect";
 import ASRModelSelect from "../properties/ASRModelSelect";
 import VideoModelSelect from "../properties/VideoModelSelect";
+import { CODE_MODEL_PREFERENCE } from "../../hooks/useCodeAuthoringModel";
 
 const MODEL_TYPE_CONFIG = [
   {
@@ -30,7 +31,15 @@ const MODEL_TYPE_CONFIG = [
     label: "Speech Recognition Model",
     Select: ASRModelSelect
   },
-  { type: "video_model", label: "Video Model", Select: VideoModelSelect }
+  { type: "video_model", label: "Video Model", Select: VideoModelSelect },
+  {
+    type: CODE_MODEL_PREFERENCE,
+    label: "Code Generation",
+    Select: LanguageModelSelect,
+    // The submission is a tool call, so non-tool-capable models are hidden.
+    selectProps: { placeholder: "Use chat model", requireToolSupport: true },
+    hint: "Writes Code Node code. Falls back to the chat model when unset."
+  }
 ] as const;
 
 function DefaultModelsMenu() {
@@ -49,13 +58,15 @@ function DefaultModelsMenu() {
       </Text>
 
       <div className="default-models-list">
-        {MODEL_TYPE_CONFIG.map(({ type, label, Select }) => (
+        {MODEL_TYPE_CONFIG.map((config) => (
           <DefaultModelRow
-            key={type}
-            modelType={type}
-            label={label}
-            Select={Select}
-            current={defaults[type]}
+            key={config.type}
+            modelType={config.type}
+            label={config.label}
+            Select={config.Select}
+            selectProps={"selectProps" in config ? config.selectProps : undefined}
+            hint={"hint" in config ? config.hint : undefined}
+            current={defaults[config.type]}
             onSelect={setDefault}
             onClear={clearDefault}
           />
@@ -65,13 +76,22 @@ function DefaultModelsMenu() {
   );
 }
 
+interface ModelSelectExtraProps {
+  placeholder?: string;
+  requireToolSupport?: boolean;
+}
+
 interface DefaultModelRowProps {
   modelType: string;
   label: string;
-  Select: React.ComponentType<{
-    onChange: (value: unknown) => void;
-    value: string;
-  }>;
+  Select: React.ComponentType<
+    {
+      onChange: (value: unknown) => void;
+      value: string;
+    } & ModelSelectExtraProps
+  >;
+  selectProps?: ModelSelectExtraProps;
+  hint?: string;
   current?: { provider: string; id: string; name: string };
   onSelect: (
     modelType: string,
@@ -84,6 +104,8 @@ function DefaultModelRow({
   modelType,
   label,
   Select,
+  selectProps,
+  hint,
   current,
   onSelect,
   onClear
@@ -108,9 +130,16 @@ function DefaultModelRow({
 
   return (
     <div className="default-model-row" id={`default-model-${modelType}`}>
-      <Text weight={600}>{label}</Text>
+      <div>
+        <Text weight={600}>{label}</Text>
+        {hint && <Text className="description">{hint}</Text>}
+      </div>
       <FlexRow align="center" gap={1}>
-        <Select onChange={handleChange} value={current?.id || ""} />
+        <Select
+          onChange={handleChange}
+          value={current?.id || ""}
+          {...selectProps}
+        />
         {current && (
           <EditorButton size="small" onClick={handleClear}>
             Clear

@@ -1,5 +1,8 @@
 import useModelPreferencesStore from "../stores/ModelPreferencesStore";
 
+// Property types stamped with the user's default model on node creation.
+// `code_model` is deliberately absent: it selects the model that authors Code
+// Node code and is never stored on a node.
 const MODEL_TYPES = new Set([
   "language_model",
   "image_model",
