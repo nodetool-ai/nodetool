@@ -373,3 +373,132 @@ describe("CassetteProvider provider id", () => {
     expect(provider.provider).toBe("fake");
   });
 });
+
+describe("CassetteProvider scripted faults (docs/RELIABILITY_TASKS.md D1)", () => {
+  function streamingFake(): FakeProvider {
+    return new FakeProvider({
+      textResponse: "one two three four five six seven",
+      shouldStream: true,
+      chunkSize: 4
+    });
+  }
+
+  it("http-429 throws immediately, before touching the inner provider", async () => {
+    const provider = new CassetteProvider(new PoisonProvider(), {
+      mode: "auto",
+      fault: { kind: "http-429" }
+    });
+    await expect(
+      collect(provider.generateMessages({ messages: USER, model: "m" }))
+    ).rejects.toMatchObject({ status: 429, message: expect.stringMatching(/429/) });
+    await expect(
+      provider.generateMessage({ messages: USER, model: "m" })
+    ).rejects.toMatchObject({ status: 429 });
+  });
+
+  it("http-500 throws immediately with a 500 status", async () => {
+    const provider = new CassetteProvider(new PoisonProvider(), {
+      mode: "auto",
+      fault: { kind: "http-500" }
+    });
+    await expect(
+      collect(provider.generateMessages({ messages: USER, model: "m" }))
+    ).rejects.toMatchObject({ status: 500 });
+  });
+
+  it("timeout throws a tagged ETIMEDOUT error after the configured delay", async () => {
+    const provider = new CassetteProvider(new PoisonProvider(), {
+      mode: "auto",
+      fault: { kind: "timeout", timeoutMs: 5 }
+    });
+    await expect(
+      collect(provider.generateMessages({ messages: USER, model: "m" }))
+    ).rejects.toMatchObject({ code: "ETIMEDOUT" });
+  });
+
+  it("truncated-stream yields only the first N chunks then throws", async () => {
+    const provider = new CassetteProvider(streamingFake(), {
+      mode: "record",
+      fault: { kind: "truncated-stream", afterChunks: 2 }
+    });
+    const items: unknown[] = [];
+    await expect(
+      (async () => {
+        for await (const item of provider.generateMessages({
+          messages: USER,
+          model: "m"
+        })) {
+          items.push(item);
+        }
+      })()
+    ).rejects.toThrow(/truncated after 2 chunk/);
+    expect(items).toHaveLength(2);
+    // A truncated call records no interaction — nothing to replay.
+    expect(provider.cassette.interactions).toHaveLength(0);
+  });
+
+  it("malformed-chunk lets the stream finish, then throws a SyntaxError", async () => {
+    const provider = new CassetteProvider(streamingFake(), {
+      mode: "record",
+      fault: { kind: "malformed-chunk" }
+    });
+    const items: unknown[] = [];
+    await expect(
+      (async () => {
+        for await (const item of provider.generateMessages({
+          messages: USER,
+          model: "m"
+        })) {
+          items.push(item);
+        }
+      })()
+    ).rejects.toThrow(SyntaxError);
+    expect(items.length).toBeGreaterThan(0);
+  });
+
+  it("slow-drip delays each yield but still completes and reports usage", async () => {
+    const provider = new CassetteProvider(streamingFake(), {
+      mode: "record",
+      fault: { kind: "slow-drip", delayMs: 1 }
+    });
+    const items = await collect(
+      provider.generateMessages({ messages: USER, model: "m" })
+    );
+    expect(items.length).toBeGreaterThan(0);
+    expect(provider.cassette.interactions).toHaveLength(1);
+  });
+
+  it("cost-omission completes normally but never tracks usage", async () => {
+    const provider = new CassetteProvider(new UsageProvider(), {
+      mode: "record",
+      fault: { kind: "cost-omission" }
+    });
+    await collect(
+      provider.generateMessages({ messages: USER, model: "gpt-4o" })
+    );
+    expect(provider.getTotalCost()).toBe(0);
+    // The underlying call still succeeded and was recorded, just with no
+    // usage attached, so a later replay reproduces the same cost-omission.
+    expect(provider.cassette.interactions[0].usage).toBeUndefined();
+  });
+
+  it("faults are backward compatible: an interaction with no fault option behaves as before", async () => {
+    const cassette = createEmptyCassette();
+    const recorder = new CassetteProvider(streamingFake(), {
+      mode: "record",
+      cassette
+    });
+    const recorded = await collect(
+      recorder.generateMessages({ messages: USER, model: "m" })
+    );
+    expect(recorded.length).toBeGreaterThan(1);
+    const replayer = new CassetteProvider(new PoisonProvider(), {
+      mode: "replay",
+      cassette
+    });
+    const replayed = await collect(
+      replayer.generateMessages({ messages: USER, model: "m" })
+    );
+    expect(replayed).toEqual(recorded);
+  });
+});

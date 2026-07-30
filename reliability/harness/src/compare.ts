@@ -6,12 +6,19 @@
  * per surface. Produces one structured report plus a human-readable
  * formatter for `nodetool reliability run`.
  */
-import type { Journey } from "./core/journey.js";
+import type { Journey, JourneyFault } from "./core/journey.js";
 import { diffNormalizedRecords, formatStreamDiff, streamDiffIsEmpty, type StreamDiff } from "./core/diff.js";
 import { INVARIANT_CHECKS, type Violation } from "./core/invariants/index.js";
 import { normalizeRunRecord, type NormalizedRunRecord } from "./core/normalize.js";
 import type { RunRecord } from "./core/record.js";
 import type { RunDriver } from "./drivers/types.js";
+import { getFaultModule } from "./faults/registry.js";
+import type { FaultTeardown } from "./faults/types.js";
+// Side-effecting import: registers every built-in fault module (task D1's
+// "faults/index.ts registers on import" contract) so `getFaultModule` below
+// resolves journey-declared fault names without every caller of
+// `compareJourney` remembering to import the fault barrel itself.
+import "./faults/index.js";
 
 /** A `RunDriver` that additionally knows whether it applies to a given
  * journey (added additively by C4 — `supports` is optional on the base
@@ -40,6 +47,10 @@ export interface SurfaceCompareResult {
    * check said no) — distinct from a real failure so a report can render it
    * as "n/a" rather than "FAIL". */
   notApplicable: boolean;
+  /** Fault names actually configured for this surface's run (task D1) — a
+   * subset of the journey's declared/`--faults`-selected faults, filtered by
+   * each fault's optional `surface` restriction and by module availability. */
+  faultsApplied: string[];
   ok: boolean;
 }
 
@@ -50,6 +61,10 @@ export interface CompareReport {
    * recognizes — a journey-authoring mistake, surfaced instead of silently
    * skipped. */
   unknownInvariants: string[];
+  /** Fault names requested (via the journey's `faults` block or `--faults`)
+   * that no `FaultModule` is registered for (task D1) — surfaced the same
+   * way `unknownInvariants` is, instead of silently no-oping the fault. */
+  unknownFaults: string[];
   surfaces: SurfaceCompareResult[];
   verdict: { ok: boolean; issues: string[] };
 }
@@ -62,17 +77,69 @@ function onlyServerToClient(record: NormalizedRunRecord): NormalizedRunRecord {
 }
 
 /**
+ * Applies every fault in `faults` whose optional `surface` restriction either
+ * matches `surfaceName` or is unset (applies everywhere), in order, and
+ * returns one teardown that undoes them all in reverse — so a single
+ * `finally` block at each call site fully unwinds the fault's process-global
+ * side effects (today: the provider registry) regardless of how the driver
+ * run in between went. A fault name with no registered `FaultModule` is
+ * skipped and reported back via `unknownFaults` (its own return value), never
+ * silently ignored or thrown.
+ */
+async function applyFaults(
+  journey: Journey,
+  surfaceName: string,
+  faults: JourneyFault[]
+): Promise<{ applied: string[]; unknown: string[]; teardown: FaultTeardown }> {
+  const applicable = faults.filter(
+    (f) => f.surface === undefined || f.surface === surfaceName
+  );
+  const applied: string[] = [];
+  const unknown: string[] = [];
+  const teardowns: FaultTeardown[] = [];
+
+  for (const fault of applicable) {
+    const module = getFaultModule(fault.type);
+    if (!module) {
+      unknown.push(fault.type);
+      continue;
+    }
+    const teardown = await module.configure({ journey, surface: surfaceName, fault });
+    teardowns.push(teardown);
+    applied.push(fault.type);
+  }
+
+  return {
+    applied,
+    unknown,
+    teardown: async () => {
+      for (const teardown of teardowns.reverse()) {
+        await teardown();
+      }
+    }
+  };
+}
+
+/**
  * Runs `journey` on every driver in `drivers`, diffing each non-oracle
  * surface's normalized `server_to_client` stream against the oracle's (the
  * one driver named `options.oracleName`, default `"kernel"` — §12's "the
  * kernel surface is the oracle"). `drivers` must include the oracle driver
  * itself; it both anchors the diff and is reported as its own (trivially
  * clean) surface.
+ *
+ * `options.faults` (task D1) selects the fault matrix for this run — default
+ * is the journey's own declared `faults` block (`journey.json`), so callers
+ * that don't care about fault injection get the journey's authored behavior
+ * unchanged. Each applicable fault (its `surface` restriction, if any,
+ * matched against the driver about to run) is configured immediately before
+ * that driver's `run()` and torn down immediately after, so faults never
+ * leak across drivers or across `compareJourney` calls.
  */
 export async function compareJourney(
   journey: Journey,
   drivers: CompareDriver[],
-  options: { oracleName?: string } = {}
+  options: { oracleName?: string; faults?: JourneyFault[] } = {}
 ): Promise<CompareReport> {
   const oracleName = options.oracleName ?? "kernel";
   const oracleDriver = drivers.find((d) => d.name === oracleName);
@@ -83,6 +150,8 @@ export async function compareJourney(
         .join(", ")}] — the oracle driver must be included`
     );
   }
+
+  const faults = options.faults ?? journey.manifest.faults;
 
   const invariantNames = journey.manifest.assertions.invariants;
   const checks = invariantNames
@@ -97,10 +166,27 @@ export async function compareJourney(
     );
   }
 
+  const unknownFaultsSeen = new Set<string>();
+
+  /** Runs one driver with its applicable faults configured/torn down around
+   * the call — shared by the oracle (run once, up front) and every other
+   * surface's loop iteration below. */
+  const runWithFaults = async (driver: CompareDriver): Promise<{ record: RunRecord; faultsApplied: string[] }> => {
+    const { applied, unknown, teardown } = await applyFaults(journey, driver.name, faults);
+    for (const name of unknown) unknownFaultsSeen.add(name);
+    try {
+      const record = await driver.run(journey);
+      return { record, faultsApplied: applied };
+    } finally {
+      await teardown();
+    }
+  };
+
   // Run the oracle first — every other surface's diff needs its normalized
   // record, and running it once (not per-surface) keeps an N-driver compare
   // to N+1 runs, not 2N.
-  const oracleRecord = await oracleDriver.run(journey);
+  const { record: oracleRecord, faultsApplied: oracleFaultsApplied } =
+    await runWithFaults(oracleDriver);
   const oracleNormalized = onlyServerToClient(normalizeRunRecord(oracleRecord));
 
   const surfaces: SurfaceCompareResult[] = [];
@@ -115,17 +201,22 @@ export async function compareJourney(
         diffVsOracle: null,
         diffVsOracleEmpty: true,
         notApplicable: true,
+        faultsApplied: [],
         ok: true
       });
       continue;
     }
 
     let record: RunRecord;
+    let faultsApplied: string[];
     if (driver.name === oracleDriver.name) {
       record = oracleRecord;
+      faultsApplied = oracleFaultsApplied;
     } else {
       try {
-        record = await driver.run(journey);
+        const result = await runWithFaults(driver);
+        record = result.record;
+        faultsApplied = result.faultsApplied;
       } catch (err) {
         const skipReason = `run failed: ${err instanceof Error ? err.message : String(err)}`;
         surfaces.push({
@@ -136,6 +227,7 @@ export async function compareJourney(
           diffVsOracle: null,
           diffVsOracleEmpty: false,
           notApplicable: false,
+          faultsApplied: [],
           ok: false
         });
         issues.push(`${driver.name}: ${skipReason}`);
@@ -170,16 +262,23 @@ export async function compareJourney(
       diffVsOracle: diff,
       diffVsOracleEmpty: diffEmpty,
       notApplicable: false,
+      faultsApplied,
       ok
     });
+  }
+
+  const unknownFaults = Array.from(unknownFaultsSeen);
+  if (unknownFaults.length > 0) {
+    issues.push(`fault(s) requested with no registered module: ${unknownFaults.join(", ")}`);
   }
 
   return {
     journeyId: journey.manifest.name,
     oracle: oracleDriver.name,
     unknownInvariants,
+    unknownFaults,
     surfaces,
-    verdict: { ok: surfaces.every((s) => s.ok), issues }
+    verdict: { ok: surfaces.every((s) => s.ok) && unknownFaults.length === 0, issues }
   };
 }
 
@@ -203,6 +302,7 @@ export function formatCompareReport(
     const mark = s.ok ? "✓" : "✗";
     const bits = [String(s.status)];
     if (s.error) bits.push(`error: ${s.error}`);
+    if (s.faultsApplied.length > 0) bits.push(`faults: ${s.faultsApplied.join(", ")}`);
     if (s.violations.length > 0) bits.push(`${s.violations.length} violation(s)`);
     if (!s.diffVsOracleEmpty) {
       bits.push(
@@ -221,6 +321,9 @@ export function formatCompareReport(
   }
   if (report.unknownInvariants.length > 0) {
     lines.push(`  ! unknown invariant(s) declared: ${report.unknownInvariants.join(", ")}`);
+  }
+  if (report.unknownFaults.length > 0) {
+    lines.push(`  ! unknown fault(s) requested: ${report.unknownFaults.join(", ")}`);
   }
   lines.push(
     report.verdict.ok

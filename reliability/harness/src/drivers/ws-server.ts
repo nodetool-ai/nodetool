@@ -47,13 +47,19 @@ const TERMINAL_JOB_STATUSES = new Set([
 const RELAY_ONLY_JOB_ID_TYPES = new Set([
   "node_update",
   "generation_complete",
-  "output_update"
+  "output_update",
+  // `llm_call` (task D1, journey 8 — the first journey to run a real LLM
+  // node): the relay backfills `job_id`/`workflow_id` here the same way it
+  // does for `node_update`; the kernel's own `llm_call` emission
+  // (`BaseProvider`'s tracing helper) never carries either.
+  "llm_call"
 ]);
 const RELAY_ONLY_WORKFLOW_ID_TYPES = new Set([
   "node_update",
   "generation_complete",
   "output_update",
-  "edge_update"
+  "edge_update",
+  "llm_call"
 ]);
 
 /** Strips fields this driver's relay adds that the kernel driver's raw

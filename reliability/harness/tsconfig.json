@@ -24,6 +24,9 @@
       "path": "../../packages/execution"
     },
     {
+      "path": "../../packages/runtime"
+    },
+    {
       "path": "../../packages/websocket"
     }
   ]

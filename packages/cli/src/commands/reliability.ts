@@ -38,7 +38,10 @@ export function registerReliabilityCommands(program: Command): void {
     )
     .option(
       "--faults <name>",
-      "Inject this fault (repeatable) — validated only; Track D implements the fault modules",
+      "Inject this fault (repeatable), replacing the journey's own declared fault matrix for " +
+        "this run — provider-seam faults (provider-429/500/timeout/truncated-stream/" +
+        "malformed-sse/slow-drip/cost-omission) are implemented (task D1); ws/bridge/host/" +
+        "client fault names are recognized but report as unimplemented until D2/D3 land",
       (value: string, previous: string[] = []) => [...previous, value],
       [] as string[]
     )

@@ -19,6 +19,7 @@
     "@nodetool-ai/execution": "*",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/runtime": "*",
     "@nodetool-ai/websocket": "*",
     "ws": "^8.18.0",
     "zod": "^4.0.0"

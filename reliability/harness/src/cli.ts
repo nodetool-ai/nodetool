@@ -8,7 +8,7 @@ import { existsSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadJourney, type Journey } from "./core/journey.js";
+import { loadJourney, type Journey, type JourneyFault } from "./core/journey.js";
 import { compareJourney, formatCompareReport, type CompareDriver, type CompareReport } from "./compare.js";
 import { KernelDriver } from "./drivers/kernel.js";
 import { WsServerDriver } from "./drivers/ws-server.js";
@@ -16,6 +16,12 @@ import { CliDriver } from "./drivers/cli.js";
 import { BrowserDriver } from "./drivers/browser.js";
 import { AppHeadlessDriver } from "./drivers/app-headless.js";
 import { PackagedDriver } from "./drivers/packaged.js";
+import { listFaultModuleNames } from "./faults/registry.js";
+// Side-effecting import: registers every built-in fault module, same
+// contract as `compare.ts`'s own import — needed here too since
+// `listFaultModuleNames()`/name validation below run before `compareJourney`
+// would otherwise trigger it.
+import "./faults/index.js";
 
 /** Every surface `nodetool reliability run --surface` accepts, keyed to a
  * fresh driver instance — fresh per call so two `runJourney` calls (e.g. the
@@ -31,9 +37,13 @@ export const DRIVER_FACTORIES: Readonly<Record<string, () => CompareDriver>> = {
 };
 
 /**
- * §9's fault seams, named. Track D (docs/RELIABILITY_TASKS.md) implements the
- * actual fault modules; `--faults` here only validates the name and reports
- * that injection isn't wired yet, per C4 item 6.
+ * §9's fault seams, named — the full target vocabulary across D1 (provider,
+ * shipped)/D2 (ws)/D3 (bridge, host, client). `--faults` validates a
+ * requested name against this list (a typo is a CLI error, not a silent
+ * no-op); whether the name actually does anything at runtime depends on
+ * whether a `FaultModule` is registered for it (`faults/registry.ts`) — see
+ * `runJourney`'s `unknownFaults` handling for names in this list a module
+ * hasn't shipped for yet.
  */
 export const KNOWN_FAULT_TYPES: readonly string[] = [
   "provider-429",
@@ -118,9 +128,32 @@ export interface RunJourneyOptions {
    * (`kernel`) is always included even if omitted — `compareJourney` needs it
    * present to diff against. */
   surfaces?: string[];
-  /** Fault names to inject (§9) — validated against `KNOWN_FAULT_TYPES` only;
-   * Track D wires the actual fault modules. */
+  /**
+   * Fault names to inject (§9), replacing the journey's own declared `faults`
+   * block for this run — validated against `KNOWN_FAULT_TYPES`, then resolved
+   * to `FaultModule`s by `compareJourney` (task D1). A name the journey
+   * already declares (with a `surface` restriction or `params`) is reused
+   * as-is; a name given here that the journey doesn't declare runs
+   * unrestricted (every surface) with no params.
+   */
   faults?: string[];
+}
+
+/** Resolves `--faults` names against the journey's own declared `faults`
+ * block: reuse a matching entry (keeping its `surface`/`params`) when one
+ * exists, else synthesize an unrestricted, param-less entry. Passing no
+ * `--faults` at all keeps the journey's full declared matrix unchanged. */
+function resolveFaultSelection(
+  journey: Journey,
+  requestedNames: string[] | undefined
+): JourneyFault[] {
+  if (!requestedNames || requestedNames.length === 0) {
+    return journey.manifest.faults;
+  }
+  return requestedNames.map((type) => {
+    const declared = journey.manifest.faults.find((f) => f.type === type);
+    return declared ?? { type };
+  });
 }
 
 async function resolveJourney(journeyName: string, journeysDir: string): Promise<Journey> {
@@ -162,16 +195,17 @@ export async function runJourney(
   }
 
   const drivers = surfaceNames.map((name) => DRIVER_FACTORIES[name]());
-  const report = await compareJourney(journey, drivers);
-
-  if ((options.faults ?? []).length > 0) {
-    report.verdict.issues.push(
-      `fault injection requested (${options.faults!.join(", ")}) but no fault modules are ` +
-        `implemented yet — ran without faults (Track D)`
-    );
-  }
+  const faults = resolveFaultSelection(journey, options.faults);
+  const report = await compareJourney(journey, drivers, { faults });
 
   return report;
+}
+
+/** Every fault name a `FaultModule` is actually registered for right now —
+ * a subset of `KNOWN_FAULT_TYPES` until D2/D3 ship their seams. Exposed for
+ * `nodetool reliability list --faults`-style introspection. */
+export function listImplementedFaultTypes(): string[] {
+  return listFaultModuleNames();
 }
 
 export { formatCompareReport, type CompareReport };

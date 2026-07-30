@@ -120,7 +120,9 @@ export type {
   CassetteRequest,
   CassetteInteraction,
   Cassette,
-  CassetteProviderOptions
+  CassetteProviderOptions,
+  ProviderFault,
+  ProviderFaultKind
 } from "./cassette-provider.js";
 export {
   ScriptedProvider,
