@@ -95,6 +95,14 @@ export interface ExecutionSessionOptions {
   requireTerminalResult?: boolean;
   /** Forwarded to `WorkflowRunnerOptions.validateNode`. */
   validateNode?: NodeValidator;
+  /**
+   * Forwarded to `WorkflowRunnerOptions.strict` (docs/RELIABILITY_ARCHITECTURE.md
+   * §12): turns advisory lifecycle checks (`_checkPendingInboxWork`, pending
+   * control responses) into thrown violations instead of log warnings. The
+   * reliability harness's kernel driver always sets this — it is the oracle
+   * surface and the one place strict mode is meant to be on by default.
+   */
+  strict?: boolean;
 }
 
 export type { NodeDescriptor, Edge, ProcessingMessage, RunResult };

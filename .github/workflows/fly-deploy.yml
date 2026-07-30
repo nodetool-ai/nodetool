@@ -12,39 +12,108 @@ name: Deploy to Fly
 # newer commit and we'd deploy the wrong image. `:latest` is used only for a
 # manual re-deploy (workflow_dispatch).
 #
+# Ring 1 gate (docs/RELIABILITY_ARCHITECTURE.md §11, docs/RELIABILITY_TASKS.md
+# F2): a deploy must also wait on "User Journeys"' `reliability-ring1` job —
+# the full hermetic + differential + packaged-journey suite — for the SAME
+# commit, not just on the Docker build. Both "Docker" and "User Journeys" fire
+# independently off the same `push: main`, so this workflow now also
+# workflow_run-triggers on "User Journeys" completion; whichever of the two
+# finishes second is the one that actually reaches the `deploy` job, because
+# the `gate` job below polls the OTHER workflow's status for the same
+# head_sha and only proceeds once both are green. This is the least invasive
+# option that doesn't require restructuring either upstream workflow into a
+# reusable `workflow_call` (which would also entail duplicating docker.yml's
+# and user-journeys.yml's own triggers).
+#
 # Requires a repo secret FLY_API_TOKEN scoped to the `nodetool` app:
 #   fly tokens create deploy -a nodetool --expiry 8760h
 on:
   workflow_run:
-    workflows: ["Docker"]
+    workflows: ["Docker", "User Journeys"]
     types: [completed]
     branches: [main]
   # Manual re-deploy of the current :latest image.
   workflow_dispatch:
 
-# Least privilege: this job only reads the repo to check out fly.toml. The Fly
-# release is authorized by FLY_API_TOKEN, not the GITHUB_TOKEN.
+# `gate` additionally needs `actions: read` to poll the sibling workflow's run
+# status via the GitHub API (GITHUB_TOKEN, not FLY_API_TOKEN).
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: fly-deploy
   cancel-in-progress: true
 
 jobs:
+  # Confirms BOTH "Docker" and "User Journeys" (specifically its
+  # reliability-ring1 job) succeeded for the exact commit that triggered this
+  # run, regardless of which of the two workflow_run events fired us. Polls
+  # because the two workflows run independently and finish in either order —
+  # this job is a no-op wait until the other one lands (or times out).
+  gate:
+    name: Wait for Docker build + reliability Ring 1
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+    timeout-minutes: 65
+    outputs:
+      sha: ${{ github.event.workflow_run.head_sha }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Poll for both workflows' success on this commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha="${{ github.event.workflow_run.head_sha }}"
+          repo="${{ github.repository }}"
+
+          conclusion_for() {
+            local workflow_file="$1"
+            gh api "repos/${repo}/actions/workflows/${workflow_file}/runs?head_sha=${sha}&status=completed&per_page=1" \
+              --jq '.workflow_runs[0].conclusion // "pending"'
+          }
+
+          for attempt in $(seq 1 60); do
+            docker_conclusion="$(conclusion_for docker.yml)"
+            journeys_conclusion="$(conclusion_for user-journeys.yml)"
+            echo "attempt ${attempt}/60: docker.yml=${docker_conclusion} user-journeys.yml=${journeys_conclusion}"
+
+            if [ "${docker_conclusion}" = "success" ] && [ "${journeys_conclusion}" = "success" ]; then
+              echo "Both workflows succeeded for ${sha}."
+              exit 0
+            fi
+            if [ "${docker_conclusion}" = "failure" ] || [ "${docker_conclusion}" = "cancelled" ]; then
+              echo "::error::docker.yml concluded '${docker_conclusion}' for ${sha}; not deploying."
+              exit 1
+            fi
+            if [ "${journeys_conclusion}" = "failure" ] || [ "${journeys_conclusion}" = "cancelled" ]; then
+              echo "::error::user-journeys.yml (reliability-ring1) concluded '${journeys_conclusion}' for ${sha}; not deploying."
+              exit 1
+            fi
+            sleep 60
+          done
+
+          echo "::error::Timed out waiting for docker.yml and user-journeys.yml to both complete for ${sha}."
+          exit 1
+
   deploy:
     name: Deploy server
+    needs: [gate]
     runs-on: ubuntu-latest
-    # Skip when the image build failed/was cancelled (workflow_dispatch always runs).
+    # Skip when the image build (or the reliability Ring 1 gate) failed/was
+    # cancelled. workflow_dispatch always runs (manual re-deploy); on
+    # workflow_run, `gate` must have completed successfully.
     if: >
-      github.event_name == 'workflow_dispatch' ||
-      github.event.workflow_run.conclusion == 'success'
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
+       needs.gate.result == 'success')
     steps:
       - uses: actions/checkout@v7
         with:
           # Deploy the fly.toml as it was at the built commit (falls back to the
           # dispatch ref for manual runs).
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ needs.gate.outputs.sha || github.sha }}
 
       - name: Resolve image tag
         id: img

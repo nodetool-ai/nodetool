@@ -140,7 +140,8 @@ export class ExecutionSession {
       resolveExecutor,
       executionContext: context,
       validateNode: options.validateNode,
-      bufferLimit: options.limits?.bufferLimit ?? null
+      bufferLimit: options.limits?.bufferLimit ?? null,
+      strict: options.strict
     });
 
     try {

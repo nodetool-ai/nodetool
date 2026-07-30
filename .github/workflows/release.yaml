@@ -312,6 +312,17 @@ jobs:
         shell: bash -l {0}
         run: node scripts/smoke-backend-bundle.mjs electron/dist/win-unpacked/resources/backend
 
+      # Ring 2 (docs/RELIABILITY_ARCHITECTURE.md §11; docs/RELIABILITY_TASKS.md
+      # F2): the health-check smoke above only proves server.mjs boots — this
+      # runs journey 1 (linear-text-pipeline) through it over the real WS
+      # protocol, per OS, and diffs it against the kernel oracle. Runs right
+      # after the smoke boot, on the same packed tree, before anything is
+      # signed or uploaded.
+      - name: Reliability Ring 2 packed-backend journey (Windows)
+        if: matrix.os == 'windows-2022'
+        shell: bash -l {0}
+        run: node scripts/reliability-packed-journey.mjs electron/dist/win-unpacked/resources/backend
+
       - name: Resolve Windows artifacts (paths)
         if: matrix.os == 'windows-2022'
         shell: bash -l {0}
@@ -592,6 +603,27 @@ jobs:
             fi
           done
           echo "::error::No packed backend found under electron/dist — nothing was smoke-booted."
+          find electron/dist -maxdepth 2 -type d | head -50
+          exit 1
+
+      # Ring 2 (docs/RELIABILITY_ARCHITECTURE.md §11; docs/RELIABILITY_TASKS.md
+      # F2) — see the Windows step's comment above; same per-OS packed tree,
+      # same candidate-search pattern as the smoke-boot step just above.
+      - name: Reliability Ring 2 packed-backend journey (macOS/Linux)
+        if: matrix.os != 'windows-2022'
+        shell: bash
+        run: |
+          set -euo pipefail
+          for candidate in \
+            "electron/dist/mac-arm64/Nodetool.app/Contents/Resources/backend" \
+            "electron/dist/mac/Nodetool.app/Contents/Resources/backend" \
+            "electron/dist/linux-unpacked/resources/backend"; do
+            if [ -f "$candidate/server.mjs" ]; then
+              node scripts/reliability-packed-journey.mjs "$candidate"
+              exit $?
+            fi
+          done
+          echo "::error::No packed backend found under electron/dist — nothing was journey-tested."
           find electron/dist -maxdepth 2 -type d | head -50
           exit 1
 

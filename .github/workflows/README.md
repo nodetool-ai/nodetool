@@ -21,27 +21,30 @@ marketing site builds, packaging side-channels (AUR, Flatpak, EAS), and
 one-off maintenance triggers — is **none/maintenance**: useful, but not
 part of the release gate and not held to the Ring 0 flake budget.
 
-**Promotion tracked here**: `user-journeys.yml` runs nightly today with
-`continue-on-error: true` so a flaky night doesn't page anyone while the
-suite earns trust. It becomes a **required** Ring 1 check, and
-`continue-on-error` flips to `false`, **from 2026-08-15**. That date lives
-in this file and in the workflow's own header comment — update both
-together if it moves.
+**Promotion tracked here**: `user-journeys.yml`'s legacy `journeys` job (the
+browser suite) runs nightly today with `continue-on-error: true` so a flaky
+night doesn't page anyone while the suite earns trust. It becomes a
+**required** Ring 1 check, and `continue-on-error` flips to `false`, **from
+2026-08-15**. That date lives in this file and in the workflow's own header
+comment — update both together if it moves. The same workflow's
+**`reliability-ring1`** job (added by F2) is a *separate* job with no such
+grace period: it runs on every push to `main` and is required from day one —
+see below.
 
 | Workflow | Purpose | Ring | Required today? |
 |---|---|---|---|
 | `test.yml` | Full quality gate (typecheck, lint, tests) via `quality-checks.yml` | 0 | Required |
-| `quality-checks.yml` | Reusable gate: deps/lint static legs, one shared build, typecheck/parity/package+app test legs | 0 | Required (infra called by `test.yml`) |
+| `quality-checks.yml` | Reusable gate: deps/lint static legs, one shared build, typecheck/parity/package+app/reliability test legs | 0 | Required (infra called by `test.yml`) |
 | `page-load-smoke.yml` | Playwright: every route loads against a seeded backend | 0 | Required |
 | `chromatic.yml` | Storybook visual regression via Chromatic (TurboSnap) | 0 | Advisory (`exitZeroOnChanges`) |
 | `visual-regression.yml` | Playwright screenshot diffs for the web UI | 0 | Advisory (`continue-on-error`, baselines still maturing) |
 | `e2e-runner.yml` | Browser-driven e2e_runner suite against the real backend stack | 1 | Required (also gates PRs today, ahead of the ring split) |
 | `docker.yml` | Build and push the GHCR image (main, `preview/**`, tags) | 1 | Required |
-| `fly-deploy.yml` | Deploy the GHCR image to Fly.io after a successful Docker build | 1 | Required |
+| `fly-deploy.yml` | Deploy the GHCR image to Fly.io, gated on `docker.yml` + `user-journeys.yml`'s `reliability-ring1` both succeeding for the same commit | 1 | Required |
 | `web-deploy.yml` | Build the web app and deploy to Cloudflare Pages | 1 | Required |
-| `user-journeys.yml` | Nightly Playwright journey suite: build a graph and run it, chat, mini app, library | 1 | Advisory until 2026-08-15, then required |
-| `release.yaml` | Cross-platform signed release artifacts, packed-tree smoke, updater assets | 2 | Required |
-| `example-smoke-debug.yml` | Manual real-provider smoke via `nodetool debug` | 2 (target) | Advisory, dispatch-only |
+| `user-journeys.yml` | `journeys`: nightly Playwright journey suite (build a graph and run it, chat, mini app, library). `reliability-ring1` (on push to `main`, schedule, dispatch): full `reliability/journeys/*` suite on kernel+ws-server with `--diff`, plus one packaged-backend journey — gates `fly-deploy.yml` | 1 | `journeys`: advisory until 2026-08-15, then required. `reliability-ring1`: required |
+| `release.yaml` | Cross-platform signed release artifacts, packed-tree smoke, a packed-backend reliability journey per OS, updater assets | 2 | Required |
+| `example-smoke-debug.yml` | Nightly + manual real-provider smoke via `nodetool debug` | 2 | Nightly (spend-capped), also dispatch-only |
 | `aur-publish.yml` | Publish the AUR package on a GitHub release | none/maintenance | Required for its own job |
 | `claude-code-review.yml` | Claude reviews new/updated PRs | none/maintenance | Advisory |
 | `claude.yml` | Claude responds to `@claude` mentions and comments | none/maintenance | Advisory |
@@ -72,12 +75,40 @@ together if it moves.
 
 38 workflow files, 12 in the three rings (5 Ring 0, 5 Ring 1, 2 Ring 2), 26 none/maintenance.
 
-F2 wires this table into the actual gates: Ring 0 journeys (1/3/6/13/14,
-kernel surface, strict mode) land in `quality-checks.yml`; Ring 1 gains the
-full hermetic + differential + packaged-journey run gating
-`fly-deploy.yml`; Ring 2 extends `release.yaml` with per-OS packed-backend
-journeys and promotes `example-smoke-debug.yml` to a scheduled,
-spend-capped nightly.
+F2 wires this table into the actual gates:
+
+- **Ring 0**: `quality-checks.yml`'s `built` matrix gained a `reliability`
+  leg (`npm run reliability:ring0`) running the five journeys that exist
+  under `reliability/journeys/` — linear-text-pipeline, fan-out-fan-in-dag,
+  error-in-one-branch, mid-run-cancel-node, mid-run-cancel-streaming
+  (journeys 1/3/6a/6b/13) — on the kernel surface, strict lifecycle mode
+  always on (`reliability/harness/src/drivers/kernel.ts` passes
+  `strict: true`, forwarded end-to-end via a new
+  `ExecutionSessionOptions.strict` → `WorkflowRunnerOptions.strict`). Journey
+  14 (malformed-protocol) has no harness journey directory yet — that
+  coverage lives as `packages/websocket` tests. The leg counts toward the
+  aggregate `quality` job the same way `bundle`/`examples` do.
+- **Ring 1**: `user-journeys.yml` gained a `reliability-ring1` job (`npm run
+  reliability:ring1 -- --packaged`) — every journey's cross-surface diff
+  (kernel oracle vs. ws-server, `--diff`) plus one packaged-backend journey
+  (linear-text-pipeline against a freshly staged `server.mjs`, the same
+  staging `backend:smoke` uses). It runs on push to `main`, on the existing
+  nightly schedule, and on dispatch, and is never `continue-on-error` — a
+  failure fails the workflow run outright. `fly-deploy.yml` now
+  workflow_run-triggers on both `docker.yml` and `user-journeys.yml`
+  completing, and its new `gate` job polls the GitHub API for both
+  workflows' conclusion on the triggering commit before `deploy` runs —
+  whichever of the two finishes second is the run that actually reaches
+  `deploy` (the other is superseded by `fly-deploy`'s existing
+  `cancel-in-progress` concurrency group).
+- **Ring 2**: `release.yaml` gained a per-OS "Reliability Ring 2
+  packed-backend journey" step right after each OS's existing smoke-boot
+  step, running linear-text-pipeline against that OS's packed backend
+  (`scripts/reliability-packed-journey.mjs`) — same packed tree, same
+  candidate-search pattern as the smoke-boot step. `example-smoke-debug.yml`
+  is promoted from dispatch-only to a 04:15 UTC nightly (still keyless/local
+  today, so no real spend yet — its header comment requires an explicit
+  per-run cost budget on any future paid-model addition).
 
 ## Manual Trigger
 

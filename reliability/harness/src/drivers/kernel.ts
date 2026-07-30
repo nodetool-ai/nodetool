@@ -6,9 +6,16 @@
  * Runs a journey's scripted `interactions` against a real `ExecutionSession`
  * over a fresh, fully-hermetic registry (`registry.ts`: real base nodes +
  * the harness's own fixture nodes, no Python bridge). Every emitted
- * `ProcessingMessage` is recorded as a `server_to_client` frame; there is no
- * `client_to_server` direction on this surface — the kernel has no wire, so
- * `pushInput`/`cancel` calls are in-process method calls, not frames.
+ * `ProcessingMessage` is recorded as a `server_to_client` frame. The kernel
+ * has no wire, so `pushInput`/`cancel` are in-process method calls, not real
+ * frames — but this driver still records a synthetic `client_to_server`
+ * envelope (same `{command, data}` shape the ws-server/packaged drivers send
+ * over the wire) for each one, purely so surface-agnostic invariant checks
+ * that key off command intent (e.g. `terminal-uniqueness`'s
+ * `hasCancelRequest`, which looks for a `cancel_job` command frame) see the
+ * same evidence on every surface. `compareJourney`'s cross-surface diff
+ * ignores this direction entirely (`onlyServerToClient` in `compare.ts`), so
+ * these synthetic frames can never cause a false divergence.
  */
 import { ExecutionSession, type RawGraphInput } from "@nodetool-ai/execution";
 import type { Journey, JourneyInteraction } from "../core/journey.js";
@@ -68,22 +75,34 @@ export class KernelDriver implements RunDriver {
             registry,
             bridgeFactory: NO_BRIDGE,
             workflowId: journey.manifest.name,
-            params: journey.manifest.params
+            params: journey.manifest.params,
+            // §12: "strict mode is a kernel flag... the harness always sets
+            // it" — the kernel driver is the oracle surface, so its advisory
+            // checks (pending inbox work, pending control responses) are
+            // always thrown violations, not log warnings.
+            strict: true
           });
           pump = pumpMessages(session, frames, waiter, () => seq++);
           break;
         }
-        case "cancel":
+        case "cancel": {
           if (!session) {
             throw new Error(
               `journey "${journey.manifest.name}": "cancel" interaction before "run"`
             );
           }
-          session.cancel(
-            typeof interaction.value === "string" ? interaction.value : "journey-cancel"
+          const reason =
+            typeof interaction.value === "string" ? interaction.value : "journey-cancel";
+          frames.push(
+            makeFrame(seq++, "kernel", "client_to_server", {
+              command: "cancel_job",
+              data: { job_id: session.jobId, reason }
+            })
           );
+          session.cancel(reason);
           break;
-        case "stream_input":
+        }
+        case "stream_input": {
           if (!session) {
             throw new Error(
               `journey "${journey.manifest.name}": "stream_input" interaction before "run"`
@@ -94,9 +113,16 @@ export class KernelDriver implements RunDriver {
               `journey "${journey.manifest.name}": "stream_input" interaction needs nodeId`
             );
           }
+          frames.push(
+            makeFrame(seq++, "kernel", "client_to_server", {
+              command: "stream_input",
+              data: { job_id: session.jobId, input: interaction.nodeId, value: interaction.value }
+            })
+          );
           await session.pushInput(interaction.nodeId, interaction.value);
           break;
-        case "end_input_stream":
+        }
+        case "end_input_stream": {
           if (!session) {
             throw new Error(
               `journey "${journey.manifest.name}": "end_input_stream" interaction before "run"`
@@ -107,8 +133,15 @@ export class KernelDriver implements RunDriver {
               `journey "${journey.manifest.name}": "end_input_stream" interaction needs nodeId`
             );
           }
+          frames.push(
+            makeFrame(seq++, "kernel", "client_to_server", {
+              command: "end_input_stream",
+              data: { job_id: session.jobId, input: interaction.nodeId }
+            })
+          );
           session.finishInputStream(interaction.nodeId);
           break;
+        }
         case "reconnect":
           // The kernel has no transport to drop/reconnect — this surface has
           // nothing to exercise for a reconnect interaction.

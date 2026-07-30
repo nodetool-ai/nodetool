@@ -1,21 +1,30 @@
 name: Example Smoke Debug
 
-# Manual-only execution smoke tier for shipped examples (docs/plans/
-# examples-revamp.md, Phase 0). `nodetool validate` (the "examples" leg of
-# quality-checks.yml) is static and runs on every PR; this job actually
-# executes a curated list of keyless/local examples on the kernel runner
-# (`nodetool debug`, server surface only) to catch runtime drift static
-# validation can't see.
+# Ring 2 real-provider nightly (docs/RELIABILITY_ARCHITECTURE.md §11;
+# docs/RELIABILITY_TASKS.md F2) plus on-demand execution smoke tier for
+# shipped examples (docs/plans/examples-revamp.md, Phase 0). `nodetool
+# validate` (the "examples" leg of quality-checks.yml) is static and runs on
+# every PR; this job actually executes a curated list of examples on the
+# kernel runner (`nodetool debug`, server surface only) to catch runtime
+# drift static validation can't see.
 #
-# Deliberately workflow_dispatch only, never on push/pull_request: unlike
-# validate, this costs real runtime, and any example that isn't genuinely
-# keyless would cost real API spend against repo secrets. The curated list
-# lives in scripts/smoke-examples.mjs — extend it as Phase 3 lands local
-# examples, and never add a paid-model template to it.
+# Never on push/pull_request: unlike validate, this costs real runtime. The
+# curated list in scripts/smoke-examples.mjs is keyless/local today, so the
+# nightly schedule costs no real API spend yet — extend the list (Phase 3
+# lands local examples) with a SPEND CAP in mind: this is the ring meant to
+# graduate to real-provider journeys (2/7/8 against live APIs) per §11, and
+# any paid-model template added here must carry an explicit per-run cost
+# budget in its own comment, not rely on this header. Never add a paid-model
+# template without one.
 #
 # Local equivalent: `npm run examples:smoke`.
 
 on:
+  schedule:
+    # 04:15 UTC daily — after the 03:30 user-journeys.yml nightly, before the
+    # 09:00 release.yaml nightly build, so a regression here is visible
+    # before the nightly release cuts.
+    - cron: "15 4 * * *"
   workflow_dispatch:
 
 jobs:
