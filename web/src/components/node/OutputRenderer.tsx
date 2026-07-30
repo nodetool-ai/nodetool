@@ -876,7 +876,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             );
           }
           if (typeof arr[0] === "object") {
-            if (arr.every((item: unknown) => isAudioChunkLike(item))) {
+            if (arr.every(isAudioChunkLike)) {
               const seen = new Map<string, number>();
               return (
                 <div
@@ -886,7 +886,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                   style={SCROLL_CONTAINER_STYLE}
                 >
                   <List sx={LIST_WRAPPER_SX}>
-                    {(arr as { timestamp: [number, number]; text: string }[]).map((chunk) => {
+                    {arr.map((chunk) => {
                       const key = withOccurrenceSuffix(
                         `audio-chunk:${chunk.timestamp[0]}:${chunk.timestamp[1]}:${hashStringBounded(chunk.text)}`,
                         seen
@@ -1000,7 +1000,10 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 <AssetGrid values={arr as AssetRef[]} onOpenIndex={onDoubleClickAsset} />
               );
             }
-            if (["audio", "video", "html", "sketch"].includes(first.type as string)) {
+            if (
+              typeof first.type === "string" &&
+              ["audio", "video", "html", "sketch"].includes(first.type)
+            ) {
               const seen = new Map<string, number>();
               return (
                 <Container>

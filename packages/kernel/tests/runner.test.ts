@@ -129,6 +129,30 @@ describe("WorkflowRunner – job status messages", () => {
     expect(jobMsgs.some((m) => m.status === "running")).toBe(true);
     expect(jobMsgs.some((m) => m.status === "completed")).toBe(true);
   });
+
+  it("emits running before failing graph validation", async () => {
+    const nodes: NodeDescriptor[] = [{ id: "loop", type: "test.Loop" }];
+    // Self-loop edges are rejected by Graph.validate(), which runs before any
+    // actor is spawned.
+    const edges: Edge[] = [
+      {
+        source: "loop",
+        sourceHandle: "value",
+        target: "loop",
+        targetHandle: "value"
+      }
+    ];
+
+    const runner = makeRunner({});
+    const result = await runner.run({ job_id: "j-validate" }, { nodes, edges });
+
+    expect(result.status).toBe("failed");
+
+    const statuses = (
+      result.messages.filter((m) => m.type === "job_update") as JobUpdate[]
+    ).map((m) => m.status);
+    expect(statuses).toEqual(["running", "failed"]);
+  });
 });
 
 describe("WorkflowRunner – error handling", () => {

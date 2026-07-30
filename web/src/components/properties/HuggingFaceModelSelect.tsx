@@ -58,9 +58,9 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
     enabled: !recommendedModelsFromProps && !!recommendedTask,
     queryFn: async () => {
       if (recommendedTask === "text_to_image") {
-        return trpc.models.recommendedImageTextToImage.query() as Promise<UnifiedModel[]>;
+        return trpc.models.recommendedImageTextToImage.query();
       } else if (recommendedTask === "image_to_image") {
-        return trpc.models.recommendedImageImageToImage.query() as Promise<UnifiedModel[]>;
+        return trpc.models.recommendedImageImageToImage.query();
       }
       return [];
     },

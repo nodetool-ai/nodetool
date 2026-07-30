@@ -1,9 +1,11 @@
-import { useMemo } from "react";
-import { useQueries } from "@tanstack/react-query";
+import { useCallback, useMemo } from "react";
 import { trpc } from "../lib/trpc";
 import type { EmbeddingModel } from "../stores/ApiTypes";
 import { useEmbeddingProviders } from "./useProviders";
-import type { ModelsByProviderResult } from "./useModelsByProvider";
+import {
+  useAggregatedProviderModels,
+  type ModelsByProviderResult
+} from "./useModelsByProvider";
 
 /**
  * Fetch embedding models from all configured (optionally filtered) providers in
@@ -23,32 +25,18 @@ export const useEmbeddingModelsByProvider = (options?: {
     );
   }, [allProviders, options?.allowedProviders]);
 
-  const queries = useQueries({
-    queries: providers.map((provider) => ({
-      queryKey: ["embedding-models", provider.provider],
-      queryFn: async () => {
-        const providerValue = provider.provider;
-        const data = await trpc.models.embeddingByProvider.query({
-          provider: providerValue
-        });
-        return {
-          provider: providerValue,
-          models: (data || []) as EmbeddingModel[]
-        };
-      },
-      enabled: !providersLoading && providers.length > 0,
-      staleTime: 5 * 60 * 1000,
-      refetchOnWindowFocus: false
-    }))
-  });
+  const fetchModels = useCallback(
+    async (provider: string) =>
+      ((await trpc.models.embeddingByProvider.query({ provider })) ||
+        []) as EmbeddingModel[],
+    []
+  );
 
-  const isLoading = providersLoading || queries.some((q) => q.isLoading);
-  const isFetching = queries.some((q) => q.isFetching);
-  const error = queries.find((q) => q.error)?.error;
-
-  const allModels = useMemo(
-    () => queries.flatMap((q) => q.data?.models ?? []),
-    [queries]
+  const aggregated = useAggregatedProviderModels(
+    providers,
+    providersLoading,
+    "embedding-models",
+    fetchModels
   );
 
   const providerIds = useMemo(
@@ -56,19 +44,16 @@ export const useEmbeddingModelsByProvider = (options?: {
     [providers]
   );
 
-  const refetch = useMemo(
-    () => async () => {
-      await Promise.all(queries.map((q) => q.refetch()));
-    },
-    [queries]
+  const isLoading = providersLoading || aggregated.isLoading;
+  return useMemo(
+    () => ({
+      models: aggregated.models,
+      providers: providerIds,
+      isLoading,
+      isFetching: aggregated.isFetching,
+      error: aggregated.error,
+      refetch: aggregated.refetch
+    }),
+    [aggregated, providerIds, isLoading]
   );
-
-  return useMemo(() => ({
-    models: allModels,
-    providers: providerIds,
-    isLoading,
-    isFetching,
-    error,
-    refetch
-  }), [allModels, providerIds, isLoading, isFetching, error, refetch]);
 };

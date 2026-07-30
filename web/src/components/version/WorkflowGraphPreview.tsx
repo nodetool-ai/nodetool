@@ -34,12 +34,7 @@ import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode"
 import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
 import { NodeContext } from "../../contexts/NodeContext";
 import type { NodeStore } from "../../stores/NodeStore";
-import type {
-  Graph,
-  Workflow,
-  Node as GraphNode,
-  Edge as GraphEdge
-} from "../../stores/ApiTypes";
+import type { Graph, Workflow } from "../../stores/ApiTypes";
 import GroupNode from "../node/GroupNode";
 import CommentNode from "../node/CommentNode";
 import PlaceholderNode from "../node_types/PlaceholderNode";
@@ -171,8 +166,8 @@ export const WorkflowGraphPreview: React.FC<WorkflowGraphPreviewProps> = ({
   height = 320
 }) => {
   const data = useMemo(() => {
-    const graphNodes = (graph?.nodes || []) as GraphNode[];
-    const graphEdges = (graph?.edges || []) as GraphEdge[];
+    const graphNodes = graph?.nodes || [];
+    const graphEdges = graph?.edges || [];
     // graphNodeToReactFlowNode only reads workflow.id
     const workflow = { id: workflowId } as Workflow;
     const nodes = graphNodes.map((n) =>

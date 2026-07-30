@@ -312,7 +312,13 @@ describe("WorkersPanel", () => {
 
   it("Reconcile button calls reconcile and warns about orphans", async () => {
     const reconcile = jest.fn(async () => ({
-      orphans: [{ providerRef: "pod-x", target: "runpod" as const }],
+      orphans: [
+        {
+          providerRef: "pod-x",
+          target: "runpod" as const,
+          status: "running" as const
+        }
+      ],
       liveCount: 2,
       estimatedCostUsd: 1.23
     }));

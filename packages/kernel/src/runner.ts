@@ -556,6 +556,17 @@ export class WorkflowRunner {
         jobId: request.job_id,
         workflowId: request.workflow_id
       });
+
+      // Emit job_update: running before any validation. A run that dies in
+      // graph validation still gets the running acknowledgement first, so
+      // clients never see a terminal update for a job they were never told
+      // started.
+      this._emit({
+        type: "job_update",
+        status: "running",
+        job_id: request.job_id,
+        workflow_id: request.workflow_id ?? null
+      });
       // Rewrite the graph to route around nodes marked
       // `ui_properties.bypassed === true`. Each outgoing edge of a
       // bypassed node is re-attached to the matching upstream source
@@ -595,14 +606,6 @@ export class WorkflowRunner {
       // Pre-flight node validation: catch missing required fields and
       // unset model selections before spawning any actors.
       this._validateNodes();
-
-      // Emit job_update: running
-      this._emit({
-        type: "job_update",
-        status: "running",
-        job_id: request.job_id,
-        workflow_id: request.workflow_id ?? null
-      });
 
       // Detect multi-edge list inputs
       this._detectMultiEdgeListInputs();

@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
+import type { UseQueryResult } from "@tanstack/react-query";
 import { trpc } from "../lib/trpc";
 import type {
   LanguageModel,
@@ -8,6 +9,7 @@ import type {
   ASRModel,
   MusicModel,
   VideoModel,
+  ProviderInfo,
   UnifiedModel
 } from "../stores/ApiTypes";
 import {
@@ -45,6 +47,103 @@ export interface ModelsByProviderResult<T> {
   refetch: () => Promise<void>;
 }
 
+interface ProviderModels<T> {
+  provider: string;
+  models: T[];
+}
+
+interface AggregatedProviderModels<T> {
+  models: T[];
+  isLoading: boolean;
+  isFetching: boolean;
+  error: Error | null | undefined;
+  providerErrors: Array<{ provider: string; error: unknown }>;
+  loadingProgress: { total: number; loaded: number; loading: number };
+  refetch: () => Promise<void>;
+}
+
+const MODEL_STALE_TIME = 5 * 60 * 1000;
+
+/**
+ * Fan one per-provider fetch out across `providers` and flatten the results.
+ *
+ * The flattening must live in `combine`, not in a `useMemo` over the returned
+ * results array: that array is rebuilt every render, so a `useMemo` keyed on it
+ * never hits. `combine` is cached against the underlying query results, so
+ * `models` keeps a stable identity until a provider's models change.
+ */
+export const useAggregatedProviderModels = <T>(
+  providers: ProviderInfo[],
+  providersLoading: boolean,
+  queryKeyPrefix: string,
+  fetchModels: (provider: string) => Promise<T[]>
+): AggregatedProviderModels<T> => {
+  const combine = useCallback(
+    (
+      results: Array<UseQueryResult<ProviderModels<T>, Error>>
+    ): AggregatedProviderModels<T> => {
+      const models: T[] = [];
+      const providerErrors: Array<{ provider: string; error: unknown }> = [];
+      let loaded = 0;
+      let loading = 0;
+      let isFetching = false;
+      let error: Error | null | undefined;
+      results.forEach((result, index) => {
+        if (result.data) {
+          for (const model of result.data.models) {
+            models.push(model);
+          }
+        }
+        if (result.error) {
+          error ??= result.error;
+          const provider = providers[index]?.provider;
+          if (provider) {
+            providerErrors.push({ provider, error: result.error });
+          }
+        }
+        if (result.data || result.error) {
+          loaded += 1;
+        }
+        if (result.isLoading) {
+          loading += 1;
+        }
+        if (result.isFetching) {
+          isFetching = true;
+        }
+      });
+      return {
+        models,
+        isLoading: loading > 0,
+        isFetching,
+        error,
+        providerErrors,
+        loadingProgress: { total: providers.length, loaded, loading },
+        refetch: async () => {
+          await Promise.all(results.map((result) => result.refetch()));
+        }
+      };
+    },
+    [providers]
+  );
+
+  const queries = useMemo(
+    () =>
+      providers.map((provider) => ({
+        queryKey: [queryKeyPrefix, provider.provider],
+        queryFn: async (): Promise<ProviderModels<T>> => ({
+          provider: provider.provider,
+          models: await fetchModels(provider.provider)
+        }),
+        enabled: !providersLoading && providers.length > 0,
+        staleTime: MODEL_STALE_TIME,
+        refetchOnWindowFocus: false
+      })),
+    [providers, providersLoading, queryKeyPrefix, fetchModels]
+  );
+
+  return useQueries({ queries, combine });
+};
+
 interface LanguageModelsByProviderResult extends ModelsByProviderResult<LanguageModel> {
   providerErrors: Array<{ provider: string; error: unknown }>;
   loadingProgress: { total: number; loaded: number; loading: number };
@@ -75,59 +174,27 @@ export const useLanguageModelsByProvider = (options?: {
     );
   }, [allProviders, options?.allowedProviders]);
 
-  const queries = useQueries({
-    queries: providers.map((provider) => ({
-      queryKey: ["language-models", provider.provider],
-      queryFn: async () => {
-        const providerValue = provider.provider;
-        const data = await trpc.models.llmByProvider.query({ provider: providerValue });
-        return {
-          provider: providerValue,
-          models: (data || []) as LanguageModel[]
-        };
-      },
-      enabled: !providersLoading && providers.length > 0,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      refetchOnWindowFocus: false
-    }))
-  });
+  const fetchModels = useCallback(
+    async (provider: string) =>
+      ((await trpc.models.llmByProvider.query({ provider })) ||
+        []) as LanguageModel[],
+    []
+  );
 
-  const isLoading = providersLoading || queries.some((q) => q.isLoading);
-  const isFetching = queries.some((q) => q.isFetching);
-  const error = queries.find((q) => q.error)?.error;
+  const aggregated = useAggregatedProviderModels(
+    providers,
+    providersLoading,
+    "language-models",
+    fetchModels
+  );
 
-  const allModels = useMemo(() => {
-    const aggregated = queries.flatMap((q) => q.data?.models ?? []);
-    return options?.requireToolSupport
-      ? aggregated.filter((m) => m.supports_tools !== false)
-      : aggregated;
-  }, [queries, options?.requireToolSupport]);
-
-  const providerErrors = useMemo(() => {
-    const errors: Array<{ provider: string; error: unknown }> = [];
-    queries.forEach((q, idx) => {
-      if (q.error && providers[idx]) {
-        errors.push({
-          provider: providers[idx].provider,
-          error: q.error
-        });
-      }
-    });
-    return errors;
-  }, [queries, providers]);
-
-  const loadingProgress = useMemo(() => {
-    const total = providers.length;
-    const loaded = queries.filter((q) => q.data || q.error).length;
-    const loading = queries.filter((q) => q.isLoading).length;
-    return { total, loaded, loading };
-  }, [providers.length, queries]);
-
-  const refetch = useMemo(
-    () => async () => {
-      await Promise.all(queries.map((q) => q.refetch()));
-    },
-    [queries]
+  const requireToolSupport = options?.requireToolSupport;
+  const allModels = useMemo(
+    () =>
+      requireToolSupport
+        ? aggregated.models.filter((m) => m.supports_tools !== false)
+        : aggregated.models,
+    [aggregated.models, requireToolSupport]
   );
 
   const providerNames = useMemo(
@@ -136,15 +203,15 @@ export const useLanguageModelsByProvider = (options?: {
   );
 
   return {
-    models: allModels || [],
+    models: allModels,
     providers: providerNames,
-    isLoading,
-    isFetching,
-    error,
-    providerErrors,
-    loadingProgress,
+    isLoading: providersLoading || aggregated.isLoading,
+    isFetching: aggregated.isFetching,
+    error: aggregated.error,
+    providerErrors: aggregated.providerErrors,
+    loadingProgress: aggregated.loadingProgress,
     allowedProviders: options?.allowedProviders,
-    refetch
+    refetch: aggregated.refetch
   };
 };
 
@@ -196,55 +263,35 @@ const modelMatchesTask = (
 export const useImageModelsByProvider = (opts?: { task?: ImageModelTask | ImageModelTask[] }): ModelsByProviderResult<ImageModel> => {
   const { providers, isLoading: providersLoading, error: providersError } = useImageModelProviders();
 
-  const queries = useQueries({
-    queries: providers.length > 0 ? providers.map((provider) => ({
-      queryKey: ["image-models", provider.provider],
-      queryFn: async () => {
-        try {
-          const providerValue = provider.provider;
-          const data = await trpc.models.imageByProvider.query({ provider: providerValue });
-          return {
-            provider: providerValue,
-            models: (data || []) as ImageModel[]
-          };
-        } catch {
-          // Return empty array for this provider instead of failing completely
-          return {
-            provider: provider.provider,
-            models: [] as ImageModel[]
-          };
-        }
-      },
-      enabled: !providersLoading && providers.length > 0,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      refetchOnWindowFocus: false
-    })) : []
-  });
+  const fetchModels = useCallback(async (provider: string) => {
+    try {
+      return ((await trpc.models.imageByProvider.query({ provider })) ||
+        []) as ImageModel[];
+    } catch {
+      // Return empty array for this provider instead of failing completely
+      return [] as ImageModel[];
+    }
+  }, []);
 
-  const isLoading = providersLoading || queries.some((q) => q.isLoading);
-  const isFetching = queries.some((q) => q.isFetching);
-  const error = providersError || queries.find((q) => q.error)?.error;
+  const aggregated = useAggregatedProviderModels(
+    providers,
+    providersLoading,
+    "image-models",
+    fetchModels
+  );
 
   const task = opts?.task;
   // Key by content so an inline task array doesn't recompute every render.
   const taskKey = Array.isArray(task) ? task.join(",") : task;
   const allModels = useMemo(() => {
-    const aggregated = queries.flatMap((q) => q.data?.models ?? []);
     if (!taskKey) {
-      return aggregated;
+      return aggregated.models;
     }
     const tasks = taskKey.split(",");
-    return aggregated.filter((m) =>
+    return aggregated.models.filter((m) =>
       tasks.some((t) => modelMatchesTask(m.supported_tasks, t))
     );
-  }, [queries, taskKey]);
-
-  const refetch = useMemo(
-    () => async () => {
-      await Promise.all(queries.map((q) => q.refetch()));
-    },
-    [queries]
-  );
+  }, [aggregated.models, taskKey]);
 
   const providerNames = useMemo(
     () => providers.map((p) => p.provider),
@@ -252,12 +299,12 @@ export const useImageModelsByProvider = (opts?: { task?: ImageModelTask | ImageM
   );
 
   return {
-    models: allModels || [],
+    models: allModels,
     providers: providerNames,
-    isLoading,
-    isFetching,
-    error,
-    refetch
+    isLoading: providersLoading || aggregated.isLoading,
+    isFetching: aggregated.isFetching,
+    error: providersError || aggregated.error,
+    refetch: aggregated.refetch
   };
 };
 
@@ -292,37 +339,18 @@ export const useMediaOptions = (opts: {
 export const useTTSModelsByProvider = (): ModelsByProviderResult<TTSModel> => {
   const { providers, isLoading: providersLoading } = useTTSProviders();
 
-  const queries = useQueries({
-    queries: providers.map((provider) => ({
-      queryKey: ["tts-models", provider.provider],
-      queryFn: async () => {
-        const providerValue = provider.provider;
-        const data = await trpc.models.ttsByProvider.query({ provider: providerValue });
-        return {
-          provider: providerValue,
-          models: (data || []) as TTSModel[]
-        };
-      },
-      enabled: !providersLoading && providers.length > 0,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      refetchOnWindowFocus: false
-    }))
-  });
-
-  const isLoading = providersLoading || queries.some((q) => q.isLoading);
-  const isFetching = queries.some((q) => q.isFetching);
-  const error = queries.find((q) => q.error)?.error;
-
-  const allModels = useMemo(
-    () => queries.filter((q) => q.data).flatMap((q) => q.data?.models ?? []),
-    [queries]
+  const fetchModels = useCallback(
+    async (provider: string) =>
+      ((await trpc.models.ttsByProvider.query({ provider })) ||
+        []) as TTSModel[],
+    []
   );
 
-  const refetch = useMemo(
-    () => async () => {
-      await Promise.all(queries.map((q) => q.refetch()));
-    },
-    [queries]
+  const aggregated = useAggregatedProviderModels(
+    providers,
+    providersLoading,
+    "tts-models",
+    fetchModels
   );
 
   const providerNames = useMemo(
@@ -331,12 +359,12 @@ export const useTTSModelsByProvider = (): ModelsByProviderResult<TTSModel> => {
   );
 
   return {
-    models: allModels || [],
+    models: aggregated.models,
     providers: providerNames,
-    isLoading,
-    isFetching,
-    error,
-    refetch
+    isLoading: providersLoading || aggregated.isLoading,
+    isFetching: aggregated.isFetching,
+    error: aggregated.error,
+    refetch: aggregated.refetch
   };
 };
 
@@ -347,37 +375,18 @@ export const useTTSModelsByProvider = (): ModelsByProviderResult<TTSModel> => {
 export const useASRModelsByProvider = (): ModelsByProviderResult<ASRModel> => {
   const { providers, isLoading: providersLoading } = useASRProviders();
 
-  const queries = useQueries({
-    queries: providers.map((provider) => ({
-      queryKey: ["asr-models", provider.provider],
-      queryFn: async () => {
-        const providerValue = provider.provider;
-        const data = await trpc.models.asrByProvider.query({ provider: providerValue });
-        return {
-          provider: providerValue,
-          models: (data || []) as ASRModel[]
-        };
-      },
-      enabled: !providersLoading && providers.length > 0,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      refetchOnWindowFocus: false
-    }))
-  });
-
-  const isLoading = providersLoading || queries.some((q) => q.isLoading);
-  const isFetching = queries.some((q) => q.isFetching);
-  const error = queries.find((q) => q.error)?.error;
-
-  const allModels = useMemo(
-    () => queries.filter((q) => q.data).flatMap((q) => q.data?.models ?? []),
-    [queries]
+  const fetchModels = useCallback(
+    async (provider: string) =>
+      ((await trpc.models.asrByProvider.query({ provider })) ||
+        []) as ASRModel[],
+    []
   );
 
-  const refetch = useMemo(
-    () => async () => {
-      await Promise.all(queries.map((q) => q.refetch()));
-    },
-    [queries]
+  const aggregated = useAggregatedProviderModels(
+    providers,
+    providersLoading,
+    "asr-models",
+    fetchModels
   );
 
   const providerNames = useMemo(
@@ -386,12 +395,12 @@ export const useASRModelsByProvider = (): ModelsByProviderResult<ASRModel> => {
   );
 
   return {
-    models: allModels || [],
+    models: aggregated.models,
     providers: providerNames,
-    isLoading,
-    isFetching,
-    error,
-    refetch
+    isLoading: providersLoading || aggregated.isLoading,
+    isFetching: aggregated.isFetching,
+    error: aggregated.error,
+    refetch: aggregated.refetch
   };
 };
 
@@ -402,39 +411,18 @@ export const useASRModelsByProvider = (): ModelsByProviderResult<ASRModel> => {
 export const useMusicModelsByProvider = (): ModelsByProviderResult<MusicModel> => {
   const { providers, isLoading: providersLoading } = useMusicProviders();
 
-  const queries = useQueries({
-    queries: providers.map((provider) => ({
-      queryKey: ["music-models", provider.provider],
-      queryFn: async () => {
-        const providerValue = provider.provider;
-        const data = await trpc.models.musicByProvider.query({
-          provider: providerValue
-        });
-        return {
-          provider: providerValue,
-          models: (data || []) as MusicModel[]
-        };
-      },
-      enabled: !providersLoading && providers.length > 0,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      refetchOnWindowFocus: false
-    }))
-  });
-
-  const isLoading = providersLoading || queries.some((q) => q.isLoading);
-  const isFetching = queries.some((q) => q.isFetching);
-  const error = queries.find((q) => q.error)?.error;
-
-  const allModels = useMemo(
-    () => queries.filter((q) => q.data).flatMap((q) => q.data?.models ?? []),
-    [queries]
+  const fetchModels = useCallback(
+    async (provider: string) =>
+      ((await trpc.models.musicByProvider.query({ provider })) ||
+        []) as MusicModel[],
+    []
   );
 
-  const refetch = useMemo(
-    () => async () => {
-      await Promise.all(queries.map((q) => q.refetch()));
-    },
-    [queries]
+  const aggregated = useAggregatedProviderModels(
+    providers,
+    providersLoading,
+    "music-models",
+    fetchModels
   );
 
   const providerNames = useMemo(
@@ -443,12 +431,12 @@ export const useMusicModelsByProvider = (): ModelsByProviderResult<MusicModel> =
   );
 
   return {
-    models: allModels || [],
+    models: aggregated.models,
     providers: providerNames,
-    isLoading,
-    isFetching,
-    error,
-    refetch
+    isLoading: providersLoading || aggregated.isLoading,
+    isFetching: aggregated.isFetching,
+    error: aggregated.error,
+    refetch: aggregated.refetch
   };
 };
 
@@ -459,40 +447,29 @@ export const useMusicModelsByProvider = (): ModelsByProviderResult<MusicModel> =
 export const useVideoModelsByProvider = (opts?: { task?: VideoModelTask }): ModelsByProviderResult<VideoModel> => {
   const { providers, isLoading: providersLoading } = useVideoProviders();
 
-  const queries = useQueries({
-    queries: providers.map((provider) => ({
-      queryKey: ["video-models", provider.provider],
-      queryFn: async () => {
-        const providerValue = provider.provider;
-        const data = await trpc.models.videoByProvider.query({ provider: providerValue });
-        return {
-          provider: providerValue,
-          models: (data || []) as VideoModel[]
-        };
-      },
-      enabled: !providersLoading && providers.length > 0,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      refetchOnWindowFocus: false
-    }))
-  });
+  const fetchModels = useCallback(
+    async (provider: string) =>
+      ((await trpc.models.videoByProvider.query({ provider })) ||
+        []) as VideoModel[],
+    []
+  );
 
-  const isLoading = providersLoading || queries.some((q) => q.isLoading);
-  const isFetching = queries.some((q) => q.isFetching);
-  const error = queries.find((q) => q.error)?.error;
+  const aggregated = useAggregatedProviderModels(
+    providers,
+    providersLoading,
+    "video-models",
+    fetchModels
+  );
 
   const videoTask = opts?.task;
-  const allModels = useMemo(() => {
-    const aggregated = queries.flatMap((q) => q.data?.models ?? []);
-    return videoTask
-      ? aggregated.filter((m) => modelMatchesTask(m.supported_tasks, videoTask))
-      : aggregated;
-  }, [queries, videoTask]);
-
-  const refetch = useMemo(
-    () => async () => {
-      await Promise.all(queries.map((q) => q.refetch()));
-    },
-    [queries]
+  const allModels = useMemo(
+    () =>
+      videoTask
+        ? aggregated.models.filter((m) =>
+            modelMatchesTask(m.supported_tasks, videoTask)
+          )
+        : aggregated.models,
+    [aggregated.models, videoTask]
   );
 
   const providerNames = useMemo(
@@ -501,12 +478,12 @@ export const useVideoModelsByProvider = (opts?: { task?: VideoModelTask }): Mode
   );
 
   return {
-    models: allModels || [],
+    models: allModels,
     providers: providerNames,
-    isLoading,
-    isFetching,
-    error,
-    refetch
+    isLoading: providersLoading || aggregated.isLoading,
+    isFetching: aggregated.isFetching,
+    error: aggregated.error,
+    refetch: aggregated.refetch
   };
 };
 

@@ -147,6 +147,8 @@ const QuickViewButton: React.FC<QuickViewButtonProps> = ({
   </ListItemButton>
 );
 
+const EMPTY_MODELS: never[] = [];
+
 function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   open,
   onClose,
@@ -184,8 +186,9 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   const cacheVersion = useHfCacheStatusStore((s) => s.version);
   const ensureStatuses = useHfCacheStatusStore((s) => s.ensureStatuses);
 
+  // A fresh `[]` fallback would re-key every memo in useModelMenuData.
   const { providers: providersFromModels, filteredModels, favoriteModels, recentModels } =
-    useModelMenuData<TModel>(models || [], storeHook);
+    useModelMenuData<TModel>(models ?? EMPTY_MODELS, storeHook);
 
   const providers = modelData.providers ?? providersFromModels;
 

@@ -71,9 +71,9 @@ const IconFor: React.FC<{ kind: Kind; severity: string }> = ({
 };
 
 export const AgentStatusRenderer: React.FC<Props> = memo(({ chunk }) => {
-  const theme = useTheme() as Theme;
-  const meta = (chunk.content_metadata ?? {}) as Record<string, unknown>;
-  const kind = ((meta.kind as Kind) ?? "log") as Kind;
+  const theme = useTheme();
+  const meta = chunk.content_metadata ?? {};
+  const kind = (meta.kind as Kind) ?? "log";
   const severity = String(meta.severity ?? "info");
   const color = palette(theme, kind, severity);
   const label = labelFor(kind, meta);

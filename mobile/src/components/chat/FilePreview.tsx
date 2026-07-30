@@ -72,6 +72,8 @@ export const FilePreview: React.FC<FilePreviewProps> = ({ file, onRemove }) => {
         onPress={onRemove}
         accessibilityLabel={`Remove file ${file.name}`}
         accessibilityRole="button"
+        // 20pt icon + 12pt slop on each side = a 44pt effective touch target.
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
       >
         <Ionicons name="close-circle" size={20} color="#FF453A" />
       </TouchableOpacity>

@@ -3,7 +3,15 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent, act, waitFor } from '@testing-library/react-native';
+import {
+  render as rtlRender,
+  screen,
+  fireEvent,
+  act,
+  waitFor,
+} from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
   ExpoSpeechRecognitionModule,
   useSpeechRecognitionEvent,
@@ -20,6 +28,23 @@ const speech = ExpoSpeechRecognitionModule as unknown as {
   abort: jest.Mock;
 };
 const eventHook = useSpeechRecognitionEvent as unknown as jest.Mock;
+
+/**
+ * The composer reads the real bottom inset, so every render needs a provider
+ * with metrics — a notched phone here, so the inset is non-zero.
+ */
+const SafeAreaWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <SafeAreaProvider
+    initialMetrics={{
+      frame: { x: 0, y: 0, width: 390, height: 844 },
+      insets: { top: 47, left: 0, right: 0, bottom: 34 },
+    }}
+  >
+    {children}
+  </SafeAreaProvider>
+);
+
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: SafeAreaWrapper });
 
 type Listener = (event: unknown) => void;
 let speechListeners: Record<string, Listener>;
@@ -47,6 +72,13 @@ describe('ChatComposer', () => {
   });
 
   describe('Rendering', () => {
+    it('pads the bottom by the real safe-area inset, not a hardcoded platform value', () => {
+      render(<ChatComposer status="connected" onSendMessage={mockOnSendMessage} />);
+
+      const container = screen.getByTestId('composer-container');
+      expect(StyleSheet.flatten(container.props.style).paddingBottom).toBe(34 + 8);
+    });
+
     it('renders input field', () => {
       render(
         <ChatComposer

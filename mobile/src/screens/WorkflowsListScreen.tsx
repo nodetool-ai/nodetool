@@ -142,9 +142,9 @@ export default function WorkflowsListScreen({ navigation }: WorkflowsListScreenP
           paddingTop: insets.top + 12,
         }
       ]}>
-        <View>
-          <Text style={[styles.title, { color: colors.text }]}>Workflows</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+        <View style={styles.headerTitleBlock}>
+          <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>Workflows</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]} numberOfLines={1}>
             {workflows.length > 0 ? `${workflows.length} available` : 'Your workflows'}
           </Text>
         </View>
@@ -267,7 +267,7 @@ export default function WorkflowsListScreen({ navigation }: WorkflowsListScreenP
             data={filteredWorkflows}
             renderItem={renderWorkflowItem}
             keyExtractor={(item: Workflow) => item.id}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 24 }]}
             refreshControl={
               <RefreshControl
                 refreshing={isRefetching}
@@ -305,21 +305,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 24,
   },
+  // The six destinations don't fit beside the title on a narrow phone, so the
+  // header stacks: title row, then a nav rail whose buttons share the width.
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 12,
+  },
+  headerTitleBlock: {
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
   },
   headerButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   headerButton: {
-    width: 40,
+    flex: 1,
     height: 40,
     borderRadius: 12,
     justifyContent: 'center',

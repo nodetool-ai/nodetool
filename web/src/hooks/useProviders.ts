@@ -10,6 +10,10 @@ interface UseProvidersResult {
   error: Error | null;
 }
 
+/** Keeps `providers` referentially stable before the query resolves, so the
+ *  per-capability filters below hold their memo while loading. */
+const EMPTY_PROVIDERS: ProviderInfo[] = [];
+
 export const useProviders = (): UseProvidersResult => {
   const {
     data: providers,
@@ -24,7 +28,7 @@ export const useProviders = (): UseProvidersResult => {
   });
 
   return {
-    providers: providers || [],
+    providers: providers || EMPTY_PROVIDERS,
     isLoading,
     isFetching,
     error

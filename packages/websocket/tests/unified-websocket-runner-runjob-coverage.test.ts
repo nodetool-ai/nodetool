@@ -307,6 +307,37 @@ describe("UnifiedWebSocketRunner run_job — streamJobMessages relay", () => {
     expect(runningUpdates).toHaveLength(1);
   });
 
+  it("acknowledges an authoritative SDK run that fails before the kernel emits running", async () => {
+    // Graph validation can fail before the kernel's running update, leaving the
+    // failed job_update as the only kernel frame. The client must still see the
+    // run acknowledged before the terminal update.
+    const active = makeActive({
+      jobId: "J-SDK-INVALID",
+      workflowId: "wf-sdk-invalid",
+      messages: [
+        {
+          type: "job_update",
+          status: "failed",
+          error: "Correlation analysis failed",
+          validation_issues: [
+            { node_id: "n1", node_type: "test.Node", property: "", message: "x" }
+          ]
+        }
+      ],
+      requireTerminalResult: true
+    });
+
+    await streamTo(
+      runner,
+      active,
+      Promise.resolve({ status: "failed", error: "Correlation analysis failed" })
+    );
+
+    const jobUpdates = decodeAll(ws).filter((m) => m.type === "job_update");
+    expect(jobUpdates.map((m) => m.status)).toEqual(["running", "failed"]);
+    expect(jobUpdates[1]?.validation_issues).toBeDefined();
+  });
+
   it("waits for execution activity without scheduling a polling timer", async () => {
     vi.useFakeTimers();
     try {

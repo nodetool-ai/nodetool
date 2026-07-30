@@ -50,11 +50,10 @@ export function toUint8Array(
   }
 
   if (ArrayBuffer.isView(value)) {
-    const view = value as ArrayBufferView<ArrayBufferLike>;
     return new Uint8Array(
-      view.buffer.slice(
-        view.byteOffset,
-        view.byteOffset + view.byteLength
+      value.buffer.slice(
+        value.byteOffset,
+        value.byteOffset + value.byteLength
       ) as ArrayBuffer
     );
   }
@@ -191,7 +190,7 @@ function isVideoValue(value: unknown): value is VideoValue {
     typeof value === "object" &&
     value !== null &&
     "type" in value &&
-    (value as TypedValue).type === "video"
+    value.type === "video"
   );
 }
 
@@ -202,7 +201,7 @@ function isImageValueArray(value: unknown): value is ImageValue[] {
     typeof value[0] === "object" &&
     value[0] !== null &&
     "type" in value[0] &&
-    (value[0] as TypedValue).type === "image"
+    value[0].type === "image"
   );
 }
 
@@ -235,7 +234,7 @@ export function useImageAssets(value: unknown): { assets: Asset[]; urls: string[
     const imageValues = value;
     const urls: string[] = [];
     const assets: Asset[] = imageValues.map(
-      (imageItem: ImageValue, index: number) => {
+      (imageItem: ImageValue, index: number): Asset => {
         const contentType = "image/png";
         let url = "";
         if (imageItem.uri) {
@@ -249,7 +248,7 @@ export function useImageAssets(value: unknown): { assets: Asset[]; urls: string[
           try {
             // Ensure the typed array is backed by a non-shared ArrayBuffer (BlobPart typing)
             const safeBytes: Uint8Array<ArrayBuffer> = new Uint8Array(
-              imageItem.data as Uint8Array<ArrayBufferLike>
+              imageItem.data
             );
             const blob = new Blob([safeBytes], {
               type: contentType
@@ -287,7 +286,7 @@ export function useImageAssets(value: unknown): { assets: Asset[]; urls: string[
           get_url: url,
           thumb_url: url,
           duration: null
-        } as Asset;
+        };
       }
     );
     return { assets, urls };
