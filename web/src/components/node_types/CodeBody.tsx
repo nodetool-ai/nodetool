@@ -25,6 +25,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type * as monaco from "monaco-editor";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 
 import {
   BORDER_RADIUS,
@@ -57,6 +58,8 @@ import {
   isCodeNode
 } from "../node/codeNodeUi";
 import { resolveExposedInputNames } from "../../utils/exposedInputs";
+import { nodeInputsToCodeGenPorts } from "../../utils/codeGenSubmission";
+import CodeGenDialog from "./code_gen/CodeGenDialog";
 
 export interface CodeBodyProps {
   id: string;
@@ -201,6 +204,7 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
   const [value, setValue] = useState(storeCode);
   const [isFocused, setIsFocused] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isCodeGenOpen, setIsCodeGenOpen] = useState(false);
 
   // Keep the editor in sync with external store changes (undo/redo, snippet
   // load, agent edits) while the user is not actively typing.
@@ -346,6 +350,17 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
     [setProperty, setPropertyComplete, inferIO, findNode, updateNodeData, id]
   );
 
+  // AI authoring targets the universal Code node only. The other
+  // `nodetool.code.*` executors run real interpreters with a fixed
+  // stdout/stderr shape and need their own generator.
+  const supportsCodeGen = isCodeNode(nodeType);
+  const codeGenInputs = useMemo(
+    () => nodeInputsToCodeGenPorts(data.dynamic_inputs),
+    [data.dynamic_inputs]
+  );
+  const openCodeGen = useCallback(() => setIsCodeGenOpen(true), []);
+  const closeCodeGen = useCallback(() => setIsCodeGenOpen(false), []);
+
   const isDynamic =
     nodeMetadata.supports_dynamic_inputs ||
     nodeMetadata.supports_dynamic_outputs;
@@ -362,6 +377,19 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
         <div className="code-toolbar">
           <span className="code-language">{languageLabel}</span>
           <div className="code-actions">
+            {supportsCodeGen && (
+              <ToolbarIconButton
+                tooltip="Ask AI"
+                aria-label="Ask AI"
+                icon={
+                  <AutoAwesomeIcon
+                    sx={{ fontSize: "var(--fontSizeNormal)" }}
+                  />
+                }
+                onClick={openCodeGen}
+                size="small"
+              />
+            )}
             <ToolbarIconButton
               tooltip="Open Editor"
               icon={<OpenInFullIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />}
@@ -458,6 +486,15 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
           onClose={toggleExpand}
           propertyName="code"
           propertyDescription=""
+        />
+      )}
+
+      {supportsCodeGen && isCodeGenOpen && (
+        <CodeGenDialog
+          open
+          nodeId={id}
+          onClose={closeCodeGen}
+          inputs={codeGenInputs}
         />
       )}
     </FlexColumn>
