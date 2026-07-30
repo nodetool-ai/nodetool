@@ -280,8 +280,19 @@ export { LocalGetNodeInfoTool } from "./tools/local-get-node-info-tool.js";
 export { LocalListNodesTool } from "./tools/local-list-nodes-tool.js";
 
 // Shared JS sandbox engine
-export { buildSandbox, runInSandbox, serializeResult } from "./js-sandbox.js";
-export type { RunSandboxOptions, RunSandboxResult } from "./js-sandbox.js";
+export {
+  buildSandbox,
+  runInSandbox,
+  serializeResult,
+  resolveSandboxLimits
+} from "./js-sandbox.js";
+export type {
+  RunSandboxOptions,
+  RunSandboxResult,
+  SandboxLimits,
+  ResolvedSandboxLimits,
+  SandboxProgressCallback
+} from "./js-sandbox.js";
 
 // Constants
 export { MAX_TOOL_RESULT_CHARS, truncateToolResult } from "./constants.js";

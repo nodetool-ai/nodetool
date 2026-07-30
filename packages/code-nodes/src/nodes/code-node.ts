@@ -2,9 +2,11 @@
  * Universal Code Node — sandboxed JavaScript execution via QuickJS WASM.
  *
  * Runs user code in an isolated QuickJS WebAssembly guest (see
- * `@nodetool-ai/agents/js-sandbox`) with standard JavaScript plus fetch(),
- * workspace, getSecret(), uuid(), and sleep() APIs.
- * Dynamic inputs are injected as global variables in the sandbox.
+ * `@nodetool-ai/agents/js-sandbox`) with standard JavaScript plus the bridge
+ * APIs: fetch(), workspace (text/bytes/stat/mkdir/remove), getSecret(), uuid(),
+ * sleep(), progress(), crypto, format, data (CSV/HTML parsing) and the
+ * base64/hex helpers. Dynamic inputs are injected as global variables in the
+ * sandbox.
  *
  * Example:
  *   // inputs: { x: 5, text: "hello" }
@@ -99,9 +101,12 @@ export class CodeNode extends BaseNode {
   static readonly title = "Code";
   static readonly description =
     "Execute vanilla JavaScript in a sandboxed environment. " +
-    "APIs: fetch(), workspace.read/write/list(), getSecret(), uuid(), sleep(). " +
-    "Dynamic inputs become global variables; return an object to define outputs. " +
-    "For date/HTML/CSV/validation work use the dedicated workflow nodes.\n    code, javascript, function, script, dynamic";
+    "APIs: fetch(), workspace.read/write/list/readBytes/writeBytes/stat/mkdir/remove(), " +
+    "getSecret(), uuid(), sleep(), progress(), crypto.digest/hmac/randomUUID/getRandomValues, " +
+    "format.number/date/relativeTime/list, data.parseCsv/selectHtml, " +
+    "toBase64/fromBase64/toHex/fromHex. " +
+    "Dynamic inputs become global variables; return an object to define outputs." +
+    "\n    code, javascript, function, script, dynamic";
   static readonly inlineFields = ["code"];
   static readonly inputFields = [];
   static readonly supportsDynamicInputs = true;
@@ -117,7 +122,13 @@ export class CodeNode extends BaseNode {
     description:
       "JavaScript code to execute. " +
       "Dynamic inputs are available as variables. " +
-      "APIs: fetch(), workspace.read/write/list(), getSecret(), uuid(), sleep(). " +
+      "APIs: fetch(url, options), workspace.read/write/list/readBytes/writeBytes/stat/mkdir/remove, " +
+      "getSecret(name), uuid(), sleep(ms), progress(percent, message), " +
+      "crypto.randomUUID/getRandomValues/digest/hmac, " +
+      "format.number/date/relativeTime/list, " +
+      "data.parseCsv(text, {delimiter, header}), data.selectHtml(html, selector, {attr, limit}), " +
+      "toBase64/fromBase64/toHex/fromHex. Await fetch, sleep, workspace, getSecret, format, " +
+      "data and crypto.digest/hmac; the rest are synchronous. " +
       "A persistent `state` object survives across streaming invocations. " +
       "Return an object — its keys become output handles."
   })
@@ -133,6 +144,27 @@ export class CodeNode extends BaseNode {
 
   async initialize(): Promise<void> {
     this._state = {};
+  }
+
+  /**
+   * Forward guest `progress(percent, message)` calls to the kernel as
+   * `node_progress` messages — the same channel the Python worker and the
+   * ComfyUI node use, so the editor's node progress bar picks them up.
+   */
+  private progressSink(
+    context?: ProcessingContext
+  ): ((progress: number, message?: string) => void) | undefined {
+    if (!context || !this.__node_id) return undefined;
+    return (progress: number, message?: string) => {
+      context.postMessage({
+        type: "node_progress",
+        node_id: this.__node_id,
+        progress,
+        total: 100,
+        chunk: message,
+        workflow_id: context.workflowId
+      });
+    };
   }
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
@@ -157,7 +189,8 @@ export class CodeNode extends BaseNode {
       code: body,
       context,
       timeoutMs: timeout > 0 ? timeout * 1000 : undefined,
-      globals
+      globals,
+      onProgress: this.progressSink(context)
     });
 
     if (!sandboxResult.success) {
@@ -200,7 +233,8 @@ export class CodeNode extends BaseNode {
       code: wrappedBody,
       context,
       timeoutMs: timeout > 0 ? timeout * 1000 : undefined,
-      globals
+      globals,
+      onProgress: this.progressSink(context)
     });
 
     if (!sandboxResult.success) {

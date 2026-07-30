@@ -74,22 +74,66 @@ User-authored JS from `MiniJSAgentTool` and `nodetool.code.Code` runs in a
 in its own WASM heap, so runaway or malicious code can't corrupt the host V8
 heap the way it could under the previous `node:vm` implementation.
 
-Hard limits enforced by the runtime:
+Hard limits enforced by the runtime. Each row's default can be overridden per
+invocation via `RunSandboxOptions.limits`, clamped to the ceiling in the last
+column by `resolveSandboxLimits`:
 
-| Limit | Value | Configured by |
-|-------|-------|---------------|
-| Execution time | `timeoutMs` (default 30 s) | `setInterruptHandler` (CPU budget) + wall-clock race |
-| Guest heap | `GUEST_MEMORY_LIMIT` = 64 MB | `runtime.setMemoryLimit` |
-| Call stack | `GUEST_STACK_LIMIT` = 512 KB | `runtime.setMaxStackSize` |
-| Fetch calls | `MAX_FETCH_CALLS` = 20 per run | counter inside bridge |
-| Fetch body | `MAX_RESPONSE_BODY_SIZE` = 1 MB | truncation inside bridge |
-| Output | `MAX_OUTPUT_SIZE` = 100 KB | `serializeResult` truncation |
+| Limit | Default | Configured by | Ceiling |
+|-------|---------|---------------|---------|
+| Execution time | `timeoutMs` (30 s) | `setInterruptHandler` (CPU budget) + wall-clock race | — |
+| Guest heap | `GUEST_MEMORY_LIMIT` = 64 MB | `runtime.setMemoryLimit` (`limits.memoryLimitBytes`) | 512 MB |
+| Call stack | `GUEST_STACK_LIMIT` = 512 KB | `runtime.setMaxStackSize` (`limits.stackLimitBytes`) | 8 MB |
+| Fetch calls | `MAX_FETCH_CALLS` = 20 per run | counter inside bridge (`limits.maxFetchCalls`) | 100 |
+| Fetch body | `MAX_RESPONSE_BODY_SIZE` = 1 MB | truncation inside bridge (`limits.maxResponseBodyBytes`) | 50 MB |
+| Fetch timeout | `FETCH_TIMEOUT_MS` = 15 s | per-request `AbortController` (`limits.fetchTimeoutMs`) | 120 s |
+| Output | `MAX_OUTPUT_SIZE` = 100 KB | `serializeResult` truncation (`limits.maxOutputSize`) | 10 MB |
+| Random bytes | `MAX_RANDOM_BYTES` = 64 KB | `crypto.getRandomValues` clamp | — |
+| Progress reports | `MAX_PROGRESS_CALLS` = 1000 per run, one per `PROGRESS_MIN_INTERVAL_MS` = 100 ms | counter + timestamp inside the bridge | — |
+| `data.*` input | `MAX_DATA_INPUT_CHARS` = 5 MB of text | length check inside each bridge | — |
+| `data.selectHtml` matches | `DEFAULT_SELECT_HTML_LIMIT` = 100 | `options.limit` | `MAX_SELECT_HTML_LIMIT` = 1000 |
+
+QuickJS's memory limiter counts its own heap objects; string and typed-array
+payloads are not charged against it, so `memoryLimitBytes` bites on object
+allocation, not on `new Uint8Array(n)`.
 
 Exposed guest surface: `console`, `fetch`, `uuid`, `sleep`, `getSecret`,
-`workspace.{read,write,list}` (requires a `ProcessingContext`), and any
-caller-supplied `globals`. `eval` and `Function` are deleted at init so the
-user cannot re-enter dynamic code generation. Core JS (`JSON`, `Math`, `Date`,
-`Map`, `URL`, `TextEncoder`, etc.) is QuickJS's native implementation, not a
+`crypto.{randomUUID,getRandomValues,digest,hmac}` (WebCrypto-backed — `digest`
+and `hmac` take SHA-1/256/384/512 and accept string or `Uint8Array` input, both
+returning a `Uint8Array`), `workspace.{read,write,list,readBytes,writeBytes,
+stat,mkdir,remove}` (requires a `ProcessingContext`; `remove` deletes one file
+or one empty directory, never a tree), the pure guest-side helpers
+`toBase64`/`fromBase64`/`toHex`/`fromHex`/`utf8Encode`/`utf8Decode`,
+`progress(percent, message?)`, `format.{number,date,relativeTime,list}`,
+`data.{parseCsv,selectHtml}`, and any caller-supplied `globals`. `fetch` sends a
+`Uint8Array` body as raw bytes instead of JSON.
+
+`progress` is fire-and-forget: it reports to
+`RunSandboxOptions.onProgress`, clamped to 0–100 with the message truncated to
+500 chars, and is a no-op when the caller passes no sink. `nodetool.code.Code`
+wires it to `context.postMessage({ type: "node_progress", … })`, the same
+channel the Python worker uses, so a long-running snippet drives the node's
+progress bar.
+
+`data` is the structured-parsing pair: `parseCsv(text, {delimiter, header})`
+returns records keyed by the header row (default) or raw string arrays with
+`header: false`, and `selectHtml(html, selector, {attr, limit})` runs a CSS
+selector and returns trimmed text — or the named attribute, skipping matches
+that lack it. Both are host bridges over papaparse and cheerio,
+`await import`ed on first use inside the bridge — lazily, so neither library
+sits in any entry graph, but visibly, so esbuild inlines them into the packaged
+backend's single-file `server.mjs` and Vite picks cheerio's `browser` build for
+the in-browser runner. CSV values stay strings (no `dynamicTyping`) so a column
+never changes shape between runs. The guest itself has no module loader —
+`import`/`require` do not exist — so a host bridge is the only way
+library-backed behaviour reaches user code.
+
+`format` exists because QuickJS ships no `Intl`: each member is a host bridge
+over `Intl.NumberFormat`, `Intl.DateTimeFormat`, `Intl.RelativeTimeFormat` and
+`Intl.ListFormat`, defaulting to locale `en-US`. All four are async (they follow
+the never-reject convention), so a bad locale or option arrives in the guest as
+a thrown `Error` carrying Intl's own message. `eval` and `Function` are deleted at init so the user cannot
+re-enter dynamic code generation. Core JS (`JSON`, `Math`, `Date`, `Map`,
+`URL`, `TextEncoder`, etc.) is QuickJS's native implementation, not a
 host-bridged version.
 
 **State sync-back**: object-typed globals are deep-replaced on the host after
@@ -104,6 +148,12 @@ Primitive globals pass by value (no sync).
   prelude rewraps into a real `throw`. Working around a known handle leak in
   `@sebastianwessel/quickjs@3.0.1` (tracked as `list_empty(&rt->gc_obj_list)`
   assertion on runtime dispose).
+- Binary crosses the boundary asymmetrically. Guest → host is handled by the
+  typed-array serializers (`addSerializer`), so a guest `Uint8Array` reaches a
+  bridge as a native one. Host → guest is not: a returned `Uint8Array` arrives
+  in the guest as a numeric-keyed plain object. Bridges that produce bytes
+  therefore return a base64 marker object and the guest prelude rebuilds a real
+  `Uint8Array` — the pattern to follow for any new binary bridge.
 
 ## Running Agents from CLI
 

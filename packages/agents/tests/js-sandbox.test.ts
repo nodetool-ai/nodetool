@@ -16,7 +16,10 @@ import {
   truncate,
   cleanStack,
   wrapCode,
-  MAX_OUTPUT_SIZE
+  resolveSandboxLimits,
+  MAX_OUTPUT_SIZE,
+  MAX_FETCH_CALLS,
+  GUEST_MEMORY_LIMIT
 } from "../src/js-sandbox.js";
 
 // ---------------------------------------------------------------------------
@@ -824,5 +827,843 @@ describe("runInSandbox cancellation of CPU-bound guests", () => {
     await new Promise((r) => setTimeout(r, 300));
     expect(hostCalls).toBeLessThanOrEqual(callsAtCancel + 1);
     expect(hostCalls).toBeLessThan(12);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// crypto bridge
+// ---------------------------------------------------------------------------
+
+describe("runInSandbox crypto bridge", () => {
+  it("digests a string with the known SHA-256 vector for 'abc'", async () => {
+    const result = await runInSandbox({
+      code: `
+        const d = await crypto.digest("SHA-256", "abc");
+        return { hex: toHex(d), isBytes: d instanceof Uint8Array, len: d.length };
+      `
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({
+      hex: "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+      isBytes: true,
+      len: 32
+    });
+  });
+
+  it("digests a Uint8Array and matches the string form", async () => {
+    const result = await runInSandbox({
+      code: `
+        const a = await crypto.digest("SHA-1", "abc");
+        const b = await crypto.digest("sha1", utf8Encode("abc"));
+        return { a: toHex(a), b: toHex(b) };
+      `
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({
+      a: "a9993e364706816aba3e25717850c26c9cd0d89d",
+      b: "a9993e364706816aba3e25717850c26c9cd0d89d"
+    });
+  });
+
+  it("supports SHA-384 and SHA-512", async () => {
+    const result = await runInSandbox({
+      code: `
+        const a = await crypto.digest("SHA-384", "abc");
+        const b = await crypto.digest("SHA-512", "abc");
+        return { a: a.length, b: b.length };
+      `
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({ a: 48, b: 64 });
+  });
+
+  it("rejects an unsupported algorithm with a clear error", async () => {
+    const result = await runInSandbox({
+      code: `return await crypto.digest("MD5", "abc");`
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/unsupported algorithm/i);
+  });
+
+  it("rejects non-string, non-byte digest input", async () => {
+    const result = await runInSandbox({
+      code: `return await crypto.digest("SHA-256", 42);`
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/must be a string or Uint8Array/i);
+  });
+
+  it("computes the known HMAC-SHA256 vector", async () => {
+    const result = await runInSandbox({
+      code: `
+        const mac = await crypto.hmac(
+          "SHA-256",
+          "key",
+          "The quick brown fox jumps over the lazy dog"
+        );
+        return toHex(mac);
+      `
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe(
+      "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8"
+    );
+  });
+
+  it("accepts binary keys and data for hmac", async () => {
+    const result = await runInSandbox({
+      code: `
+        const mac = await crypto.hmac("SHA-256", utf8Encode("key"), utf8Encode("msg"));
+        const mac2 = await crypto.hmac("SHA-256", "key", "msg");
+        return { same: toHex(mac) === toHex(mac2), len: mac.length };
+      `
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({ same: true, len: 32 });
+  });
+
+  it("getRandomValues returns a real Uint8Array of the requested length", async () => {
+    const result = await runInSandbox({
+      code: `
+        const b = crypto.getRandomValues(16);
+        return { len: b.length, isBytes: b instanceof Uint8Array, allZero: b.every(v => v === 0) };
+      `
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toMatchObject({ len: 16, isBytes: true });
+    expect((result.result as { allZero: boolean }).allZero).toBe(false);
+  });
+
+  it("caps getRandomValues at 65536 bytes", async () => {
+    const result = await runInSandbox({
+      code: `return crypto.getRandomValues(200000).length;`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe(65_536);
+  });
+
+  it("crypto.randomUUID returns a UUID", async () => {
+    const result = await runInSandbox({ code: `return crypto.randomUUID();` });
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// base64 / hex / utf8 guest helpers
+// ---------------------------------------------------------------------------
+
+describe("runInSandbox binary helpers", () => {
+  it("round-trips base64", async () => {
+    const result = await runInSandbox({
+      code: `
+        const b64 = toBase64("hello world");
+        const back = fromBase64(b64);
+        return { b64, text: utf8Decode(back), isBytes: back instanceof Uint8Array };
+      `
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({
+      b64: Buffer.from("hello world").toString("base64"),
+      text: "hello world",
+      isBytes: true
+    });
+  });
+
+  it("base64-encodes every byte value correctly", async () => {
+    const result = await runInSandbox({
+      code: `
+        const bytes = new Uint8Array(256);
+        for (let i = 0; i < 256; i++) bytes[i] = i;
+        const b64 = toBase64(bytes);
+        const back = fromBase64(b64);
+        let same = back.length === 256;
+        for (let i = 0; i < 256 && same; i++) same = back[i] === i;
+        return { b64, same };
+      `
+    });
+    expect(result.success).toBe(true);
+    const expected = Buffer.from(
+      Array.from({ length: 256 }, (_, i) => i)
+    ).toString("base64");
+    expect(result.result).toEqual({ b64: expected, same: true });
+  });
+
+  it("round-trips hex", async () => {
+    const result = await runInSandbox({
+      code: `
+        const hex = toHex(utf8Encode("nodetool"));
+        const back = fromHex(hex);
+        return { hex, text: utf8Decode(back) };
+      `
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({
+      hex: Buffer.from("nodetool").toString("hex"),
+      text: "nodetool"
+    });
+  });
+
+  it("round-trips non-ASCII text through utf8Encode/utf8Decode", async () => {
+    const result = await runInSandbox({
+      code: `
+        const bytes = utf8Encode("héllo — 世界");
+        return { len: bytes.length, text: utf8Decode(bytes) };
+      `
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({
+      len: Buffer.from("héllo — 世界").length,
+      text: "héllo — 世界"
+    });
+  });
+
+  it("accepts base64url input in fromBase64", async () => {
+    const result = await runInSandbox({
+      code: `return utf8Decode(fromBase64("aGVsbG8_d29ybGQ-"));`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe(
+      Buffer.from("aGVsbG8/d29ybGQ+", "base64").toString("utf-8")
+    );
+  });
+
+  it("does not let a caller global clobber the helpers", async () => {
+    const result = await runInSandbox({
+      code: `return typeof toBase64;`,
+      globals: { toBase64: 5 }
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe("function");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// workspace binary + metadata I/O
+// ---------------------------------------------------------------------------
+
+describe("runInSandbox workspace binary I/O", () => {
+  const withWorkspace = async (
+    fn: (ctx: import("@nodetool-ai/runtime").ProcessingContext, dir: string) => Promise<void>
+  ): Promise<void> => {
+    const { mkdtemp, rm } = await import("node:fs/promises");
+    const { tmpdir } = await import("node:os");
+    const { join, isAbsolute } = await import("node:path");
+    const dir = await mkdtemp(join(tmpdir(), "sbx-bin-"));
+    const context = {
+      resolveWorkspacePath: (p: string) => (isAbsolute(p) ? p : join(dir, p))
+    } as unknown as import("@nodetool-ai/runtime").ProcessingContext;
+    try {
+      await fn(context, dir);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  };
+
+  it("round-trips bytes through writeBytes/readBytes", async () => {
+    await withWorkspace(async (context, dir) => {
+      const result = await runInSandbox({
+        code: `
+          const data = new Uint8Array([0, 1, 2, 250, 255]);
+          await workspace.writeBytes("nested/blob.bin", data);
+          const back = await workspace.readBytes("nested/blob.bin");
+          return { isBytes: back instanceof Uint8Array, values: Array.from(back) };
+        `,
+        context
+      });
+      expect(result.success).toBe(true);
+      expect(result.result).toEqual({
+        isBytes: true,
+        values: [0, 1, 2, 250, 255]
+      });
+      const { readFile } = await import("node:fs/promises");
+      const { join } = await import("node:path");
+      const onDisk = await readFile(join(dir, "nested/blob.bin"));
+      expect(Array.from(onDisk)).toEqual([0, 1, 2, 250, 255]);
+    });
+  });
+
+  it("stats files and directories", async () => {
+    await withWorkspace(async (context) => {
+      const result = await runInSandbox({
+        code: `
+          await workspace.write("a.txt", "hello");
+          await workspace.mkdir("sub/dir");
+          const f = await workspace.stat("a.txt");
+          const d = await workspace.stat("sub/dir");
+          return {
+            size: f.size,
+            fileIsFile: f.isFile,
+            fileIsDir: f.isDirectory,
+            hasMtime: typeof f.modifiedMs === "number" && f.modifiedMs > 0,
+            dirIsDir: d.isDirectory
+          };
+        `,
+        context
+      });
+      expect(result.success).toBe(true);
+      expect(result.result).toEqual({
+        size: 5,
+        fileIsFile: true,
+        fileIsDir: false,
+        hasMtime: true,
+        dirIsDir: true
+      });
+    });
+  });
+
+  it("removes a file and an empty directory but not a populated tree", async () => {
+    await withWorkspace(async (context) => {
+      const result = await runInSandbox({
+        code: `
+          await workspace.write("gone.txt", "x");
+          await workspace.remove("gone.txt");
+          await workspace.mkdir("empty");
+          await workspace.remove("empty");
+          await workspace.write("tree/keep.txt", "x");
+          let treeError = null;
+          try { await workspace.remove("tree"); } catch (e) { treeError = e.message; }
+          return { after: await workspace.list("."), treeError: treeError !== null };
+        `,
+        context
+      });
+      expect(result.success).toBe(true);
+      expect(result.result).toMatchObject({ treeError: true });
+      expect((result.result as { after: string[] }).after).toEqual(["tree"]);
+    });
+  });
+
+  it("blocks binary writes through an escaping symlink", async () => {
+    const { mkdtemp, rm, writeFile, symlink, readFile } =
+      await import("node:fs/promises");
+    const { tmpdir } = await import("node:os");
+    const { join, isAbsolute } = await import("node:path");
+    const ws = await mkdtemp(join(tmpdir(), "sbx-ws-"));
+    const outside = await mkdtemp(join(tmpdir(), "sbx-out-"));
+    try {
+      await writeFile(join(outside, "secret.bin"), "SECRET");
+      await symlink(join(outside, "secret.bin"), join(ws, "link.bin"));
+      const context = {
+        resolveWorkspacePath: (p: string) => (isAbsolute(p) ? p : join(ws, p))
+      } as never;
+      const { sandbox } = buildSandbox(context);
+      const workspace = sandbox.workspace as {
+        readBytes: (p: string) => Promise<unknown>;
+        writeBytes: (p: string, d: Uint8Array) => Promise<void>;
+        remove: (p: string) => Promise<void>;
+      };
+      await expect(workspace.readBytes("link.bin")).rejects.toThrow(
+        /outside the workspace/i
+      );
+      await expect(
+        workspace.writeBytes("link.bin", new Uint8Array([1]))
+      ).rejects.toThrow(/outside the workspace/i);
+      await expect(workspace.remove("link.bin")).rejects.toThrow(
+        /outside the workspace/i
+      );
+      expect(await readFile(join(outside, "secret.bin"), "utf-8")).toBe(
+        "SECRET"
+      );
+    } finally {
+      await rm(ws, { recursive: true, force: true });
+      await rm(outside, { recursive: true, force: true });
+    }
+  });
+
+  it("new workspace members throw helpfully without a context", async () => {
+    const { sandbox } = buildSandbox();
+    const ws = sandbox.workspace as Record<
+      string,
+      (...a: never[]) => Promise<unknown>
+    >;
+    for (const name of ["readBytes", "writeBytes", "stat", "mkdir", "remove"]) {
+      await expect(ws[name]("x" as never)).rejects.toThrow(
+        "not available without a context"
+      );
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// fetch binary bodies + limits
+// ---------------------------------------------------------------------------
+
+describe("runInSandbox fetch binary bodies", () => {
+  const originalFetch = globalThis.fetch;
+  afterEach(() => {
+    (globalThis as { fetch: typeof originalFetch }).fetch = originalFetch;
+  });
+
+  it("sends a Uint8Array body as raw bytes, not JSON", async () => {
+    let sentBody: unknown;
+    (globalThis as { fetch: unknown }).fetch = vi.fn(
+      async (_u: string, init: RequestInit) => {
+        sentBody = init.body;
+        return new Response("ok", { status: 200 });
+      }
+    );
+    const result = await runInSandbox({
+      code: `
+        const r = await fetch("https://example.com", {
+          method: "POST",
+          body: new Uint8Array([1, 2, 3, 4])
+        });
+        return r.status;
+      `
+    });
+    expect(result.success).toBe(true);
+    expect(sentBody).toBeInstanceOf(Uint8Array);
+    expect(Array.from(sentBody as Uint8Array)).toEqual([1, 2, 3, 4]);
+  });
+
+  it("still JSON-encodes plain object bodies", async () => {
+    let sentBody: unknown;
+    (globalThis as { fetch: unknown }).fetch = vi.fn(
+      async (_u: string, init: RequestInit) => {
+        sentBody = init.body;
+        return new Response("ok", { status: 200 });
+      }
+    );
+    const result = await runInSandbox({
+      code: `return (await fetch("https://example.com", { method: "POST", body: { a: 1 } })).status;`
+    });
+    expect(result.success).toBe(true);
+    expect(sentBody).toBe('{"a":1}');
+  });
+
+  it("delivers bytes() and arrayBuffer() as real binary in the guest", async () => {
+    (globalThis as { fetch: unknown }).fetch = vi.fn(
+      async () => new Response(new Uint8Array([222, 173, 190, 239]))
+    );
+    const result = await runInSandbox({
+      code: `
+        const r = await fetch("https://example.com/bin");
+        const b = await r.bytes();
+        const ab = await r.arrayBuffer();
+        return {
+          isBytes: b instanceof Uint8Array,
+          hex: toHex(b),
+          abBytes: ab.byteLength
+        };
+      `
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({
+      isBytes: true,
+      hex: "deadbeef",
+      abBytes: 4
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// configurable limits
+// ---------------------------------------------------------------------------
+
+describe("resolveSandboxLimits", () => {
+  it("defaults to the module constants", () => {
+    const limits = resolveSandboxLimits();
+    expect(limits.maxFetchCalls).toBe(MAX_FETCH_CALLS);
+    expect(limits.maxOutputSize).toBe(MAX_OUTPUT_SIZE);
+    expect(limits.memoryLimitBytes).toBe(GUEST_MEMORY_LIMIT);
+  });
+
+  it("clamps values above the hard ceilings", () => {
+    const limits = resolveSandboxLimits({
+      maxFetchCalls: 10_000,
+      maxResponseBodyBytes: 1024 ** 4,
+      maxOutputSize: 1024 ** 4,
+      memoryLimitBytes: 1024 ** 4,
+      stackLimitBytes: 1024 ** 4,
+      fetchTimeoutMs: 10 * 60_000
+    });
+    expect(limits.maxFetchCalls).toBe(100);
+    expect(limits.maxResponseBodyBytes).toBe(50 * 1024 * 1024);
+    expect(limits.maxOutputSize).toBe(10 * 1024 * 1024);
+    expect(limits.memoryLimitBytes).toBe(512 * 1024 * 1024);
+    expect(limits.stackLimitBytes).toBe(8 * 1024 * 1024);
+    expect(limits.fetchTimeoutMs).toBe(120_000);
+  });
+
+  it("ignores non-numeric overrides", () => {
+    const limits = resolveSandboxLimits({
+      maxFetchCalls: Number.NaN,
+      maxOutputSize: undefined
+    });
+    expect(limits.maxFetchCalls).toBe(MAX_FETCH_CALLS);
+    expect(limits.maxOutputSize).toBe(MAX_OUTPUT_SIZE);
+  });
+});
+
+describe("runInSandbox limits option", () => {
+  const originalFetch = globalThis.fetch;
+  afterEach(() => {
+    (globalThis as { fetch: typeof originalFetch }).fetch = originalFetch;
+  });
+
+  it("maxFetchCalls=1 blocks the second request", async () => {
+    (globalThis as { fetch: unknown }).fetch = vi.fn(
+      async () => new Response("{}", { status: 200 })
+    );
+    const result = await runInSandbox({
+      code: `
+        await fetch("https://example.com/1");
+        await fetch("https://example.com/2");
+        return "ok";
+      `,
+      limits: { maxFetchCalls: 1 }
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Fetch limit exceeded \(max 1 /i);
+  });
+
+  it("maxOutputSize truncates the returned value", async () => {
+    const result = await runInSandbox({
+      code: `return "x".repeat(20000);`,
+      limits: { maxOutputSize: 2000 }
+    });
+    expect(result.success).toBe(true);
+    expect((result.result as string).length).toBeLessThan(3000);
+    expect(result.result as string).toContain("[truncated]");
+  });
+
+  it("memoryLimitBytes override fails a large allocation", async () => {
+    // Allocate JS objects: QuickJS's memory limiter counts its own heap
+    // objects, not string or typed-array payloads.
+    const code = `
+      const items = [];
+      for (let i = 0; i < 200000; i++) items.push({ i });
+      return items.length;
+    `;
+    const tight = await runInSandbox({
+      code,
+      limits: { memoryLimitBytes: 2 * 1024 * 1024 }
+    });
+    expect(tight.success).toBe(false);
+    expect(tight.error).toMatch(/out of memory/i);
+    const roomy = await runInSandbox({ code, timeoutMs: 20_000 });
+    expect(roomy.success).toBe(true);
+    expect(roomy.result).toBe(200000);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// progress reporting
+// ---------------------------------------------------------------------------
+
+describe("progress bridge", () => {
+  it("forwards a report to the host callback", async () => {
+    const seen: Array<[number, string | undefined]> = [];
+    const result = await runInSandbox({
+      code: `progress(42, "halfway"); return "done";`,
+      onProgress: (p, m) => seen.push([p, m])
+    });
+    expect(result.success).toBe(true);
+    expect(seen).toEqual([[42, "halfway"]]);
+  });
+
+  it("clamps percentages to 0-100 and coerces non-finite to 0", () => {
+    const seen: number[] = [];
+    const { sandbox } = buildSandbox(undefined, undefined, undefined, (p) =>
+      seen.push(p)
+    );
+    const report = sandbox.progress as (p: number, m?: string) => void;
+    // Rate limiting drops reports inside the 100 ms window, so drive the host
+    // function directly with a wide enough gap between calls.
+    vi.useFakeTimers();
+    try {
+      report(-5);
+      vi.advanceTimersByTime(200);
+      report(150);
+      vi.advanceTimersByTime(200);
+      report(Number.NaN);
+      vi.advanceTimersByTime(200);
+      report(Number.POSITIVE_INFINITY);
+    } finally {
+      vi.useRealTimers();
+    }
+    // Infinity is not finite, so it coerces to 0 rather than clamping to 100.
+    expect(seen).toEqual([0, 100, 0, 0]);
+  });
+
+  it("truncates the message to 500 characters", () => {
+    const seen: Array<string | undefined> = [];
+    const { sandbox } = buildSandbox(undefined, undefined, undefined, (_p, m) =>
+      seen.push(m)
+    );
+    const report = sandbox.progress as (p: number, m?: string) => void;
+    report(1, "y".repeat(2000));
+    expect(seen[0]).toHaveLength(500);
+  });
+
+  it("rate-limits a tight loop of reports", async () => {
+    const seen: number[] = [];
+    const result = await runInSandbox({
+      code: `for (let i = 0; i < 200; i++) progress(i / 2); return "ok";`,
+      onProgress: (p) => seen.push(p)
+    });
+    expect(result.success).toBe(true);
+    // The loop runs well inside one 100 ms window, so only the first report
+    // (and at most a handful more on a very slow machine) gets through.
+    expect(seen.length).toBeGreaterThanOrEqual(1);
+    expect(seen.length).toBeLessThan(20);
+    expect(seen[0]).toBe(0);
+  });
+
+  it("stops forwarding once the run is cancelled", () => {
+    const seen: number[] = [];
+    const controller = new AbortController();
+    const { sandbox } = buildSandbox(
+      undefined,
+      controller.signal,
+      undefined,
+      (p) => seen.push(p)
+    );
+    const report = sandbox.progress as (p: number, m?: string) => void;
+    report(10);
+    controller.abort();
+    report(20);
+    expect(seen).toEqual([10]);
+  });
+
+  it("is a no-op without a callback", async () => {
+    const result = await runInSandbox({
+      code: `progress(10, "no sink"); return progress(20) === undefined;`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Intl-backed format bridge
+// ---------------------------------------------------------------------------
+
+describe("format bridge", () => {
+  it("formats numbers with grouping", async () => {
+    const result = await runInSandbox({
+      code: `return await format.number(1234.5, { locale: "en-US" });`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe("1,234.5");
+  });
+
+  it("formats currency and percent", async () => {
+    const result = await runInSandbox({
+      code: `return {
+        usd: await format.number(12.5, { locale: "en-US", style: "currency", currency: "USD" }),
+        pct: await format.number(0.256, { locale: "en-US", style: "percent", maximumFractionDigits: 1 }),
+        plain: await format.number(1234.5, { locale: "en-US", useGrouping: false })
+      };`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({
+      usd: "$12.50",
+      pct: "25.6%",
+      plain: "1234.5"
+    });
+  });
+
+  it("formats a date in a fixed time zone", async () => {
+    const result = await runInSandbox({
+      code: `return await format.date(0, {
+        locale: "en-US",
+        dateStyle: "medium",
+        timeZone: "UTC"
+      });`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe("Jan 1, 1970");
+  });
+
+  it("rejects a non-finite epoch", async () => {
+    const result = await runInSandbox({
+      code: `try { await format.date(NaN); return "no throw"; }
+             catch (e) { return e.message; }`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/epochMs must be a finite number/);
+  });
+
+  it("formats relative time", async () => {
+    const result = await runInSandbox({
+      code: `return await format.relativeTime(-1, "day", { locale: "en-US" });`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe("1 day ago");
+  });
+
+  it("formats a list as a conjunction and a disjunction", async () => {
+    const result = await runInSandbox({
+      code: `return {
+        and: await format.list(["a", "b", "c"], { locale: "en-US" }),
+        or: await format.list(["a", "b"], { locale: "en-US", type: "disjunction" })
+      };`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({ and: "a, b, and c", or: "a or b" });
+  });
+
+  it("surfaces an invalid locale as a guest-side Error", async () => {
+    const result = await runInSandbox({
+      code: `try { await format.number(1, { locale: "not a locale" }); return "no throw"; }
+             catch (e) { return e.message; }`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/locale/i);
+  });
+
+  it("defaults to en-US when no locale is given", async () => {
+    const result = await runInSandbox({
+      code: `return await format.number(1234567.891);`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe("1,234,567.891");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Structured-data bridges (papaparse / cheerio, host-side)
+// ---------------------------------------------------------------------------
+
+describe("data.parseCsv bridge", () => {
+  it("parses to records keyed by the header row by default", async () => {
+    const result = await runInSandbox({
+      code: `return await data.parseCsv("name,age\\nada,36\\nlin,41");`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual([
+      { name: "ada", age: "36" },
+      { name: "lin", age: "41" }
+    ]);
+  });
+
+  it("returns string arrays with header: false", async () => {
+    const result = await runInSandbox({
+      code: `return await data.parseCsv("a,b\\n1,2", { header: false });`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual([
+      ["a", "b"],
+      ["1", "2"]
+    ]);
+  });
+
+  it("honours a custom delimiter", async () => {
+    const result = await runInSandbox({
+      code: `return await data.parseCsv("a;b\\n1;2", { delimiter: ";" });`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual([{ a: "1", b: "2" }]);
+  });
+
+  it("keeps quoted fields containing the delimiter and newlines intact", async () => {
+    const result = await runInSandbox({
+      code: `return await data.parseCsv('a,b\\n"x,y","line1\\nline2"');`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual([{ a: "x,y", b: "line1\nline2" }]);
+  });
+
+  it("rejects a multi-character delimiter", async () => {
+    const result = await runInSandbox({
+      code: `try { await data.parseCsv("a,b", { delimiter: "||" }); return "no throw"; }
+             catch (e) { return e.message; }`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/single character/);
+  });
+
+  it("rejects a non-string input", async () => {
+    const result = await runInSandbox({
+      code: `try { await data.parseCsv(42); return "no throw"; }
+             catch (e) { return e.message; }`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/text must be a string/);
+  });
+
+  it("rejects an oversized input", async () => {
+    const result = await runInSandbox({
+      code: `try { await data.parseCsv("x".repeat(5 * 1024 * 1024 + 1)); return "no throw"; }
+             catch (e) { return e.message; }`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/exceeds the \d+ character limit/);
+  });
+});
+
+describe("data.selectHtml bridge", () => {
+  const HTML = `<ul>
+    <li class="item"> alpha </li>
+    <li class="item">beta</li>
+    <li class="item">gamma</li>
+  </ul>
+  <a href="https://example.com/a" id="first">A</a>
+  <a id="second">B</a>`;
+
+  it("extracts trimmed text for each match", async () => {
+    const result = await runInSandbox({
+      code: `return await data.selectHtml(html, "li.item");`,
+      globals: { html: HTML }
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual(["alpha", "beta", "gamma"]);
+  });
+
+  it("extracts an attribute and drops matches lacking it", async () => {
+    const result = await runInSandbox({
+      code: `return await data.selectHtml(html, "a", { attr: "href" });`,
+      globals: { html: HTML }
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual(["https://example.com/a"]);
+  });
+
+  it("caps the result count with limit", async () => {
+    const result = await runInSandbox({
+      code: `return await data.selectHtml(html, "li.item", { limit: 2 });`,
+      globals: { html: HTML }
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual(["alpha", "beta"]);
+  });
+
+  it("returns an empty array when nothing matches", async () => {
+    const result = await runInSandbox({
+      code: `return await data.selectHtml(html, "table td");`,
+      globals: { html: HTML }
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual([]);
+  });
+
+  it("rejects an empty selector", async () => {
+    const result = await runInSandbox({
+      code: `try { await data.selectHtml("<p>x</p>", "  "); return "no throw"; }
+             catch (e) { return e.message; }`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/selector must be a non-empty string/);
+  });
+
+  it("surfaces an unparseable selector as a guest-side Error", async () => {
+    const result = await runInSandbox({
+      code: `try { await data.selectHtml("<p>x</p>", "li:::"); return "no throw"; }
+             catch (e) { return e.message; }`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/invalid selector/);
+  });
+
+  it("rejects an oversized input", async () => {
+    const result = await runInSandbox({
+      code: `try { await data.selectHtml("x".repeat(5 * 1024 * 1024 + 1), "p"); return "no throw"; }
+             catch (e) { return e.message; }`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/exceeds the \d+ character limit/);
   });
 });

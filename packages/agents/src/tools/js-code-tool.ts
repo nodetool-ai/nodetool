@@ -26,8 +26,9 @@ Vanilla JavaScript with full syntax: variables, loops, conditionals, functions, 
 destructuring, spread, template literals, try/catch, async/await, Map, Set, RegExp, URL, \
 URLSearchParams, Date, Math, JSON, Array methods (map, filter, reduce, find, every, some, etc).
 
-Third-party helpers (lodash, dayjs, cheerio, csv-parse, validator) are NOT available. \
-Use vanilla JS equivalents, or call dedicated tools/nodes when richer behaviour is needed.
+There is no module loader — \`import\`/\`require\` do not exist and no third-party library is in \
+scope. Library-backed work reaches you only through the narrow bridges below (\`data\`, \`format\`, \
+\`crypto\`); for anything else use vanilla JS or a dedicated tool/node.
 
 ## Bridge APIs
 
@@ -42,7 +43,30 @@ const items = res.json.results;
 Output appears in the "logs" field of the result.
 
 ### workspace.read(path) / .write(path, content) / .list(path)
-Read/write files in the agent workspace.
+Read/write files in the agent workspace. Also .readBytes / .writeBytes (Uint8Array),
+.stat(path) → {size, isDirectory, isFile, modifiedMs}, .mkdir(path), .remove(path)
+(one file or one empty directory).
+
+### data.parseCsv(text, {delimiter?, header?}) → object[] | string[][]
+Parse CSV. \`header\` defaults to true (records keyed by the header row); with \`header: false\`
+you get arrays of strings. Values are always strings. Input capped at 5 MB.
+
+### data.selectHtml(html, selector, {attr?, limit?}) → string[]
+Run a CSS selector over HTML and get each match's trimmed text, or the named attribute's value
+when \`attr\` is set (matches without it are skipped). \`limit\` defaults to 100, max 1000.
+Input capped at 5 MB.
+
+### format.number(value, opts?) / .date(epochMs, opts?) / .relativeTime(value, unit, opts?) / .list(items, opts?)
+Locale-aware formatting (Intl-backed; defaults to en-US).
+
+### crypto.randomUUID() / .getRandomValues(n) / .digest(algo, data) / .hmac(algo, key, data)
+SHA-1/256/384/512. \`digest\` and \`hmac\` are async and return a Uint8Array.
+
+### toBase64(x) / fromBase64(s) / toHex(bytes) / fromHex(s) / utf8Encode(s) / utf8Decode(bytes)
+Binary and text conversion helpers (synchronous, guest-side).
+
+### progress(percent, message?)
+Report progress to the caller (0–100). Fire-and-forget.
 
 ### assetToSandbox(assetId, path)
 Copy a persistent platform asset into the sandbox workspace at the given path.
