@@ -4,7 +4,7 @@
   "workflow": { "ref": "workflow.json" },
   "params": {},
   "interactions": "interactions.json",
-  "surfaces": ["kernel"],
+  "surfaces": ["kernel", "ws-server"],
   "faults": [],
   "timeoutMs": 30000,
   "assertions": {

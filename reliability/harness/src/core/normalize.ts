@@ -36,6 +36,47 @@ export const DURATION_FIELDS: readonly string[] = [
   "duration_ms"
 ];
 
+/**
+ * Field values treated as interchangeable "nothing here" signals (added by
+ * C2): a node with zero declared `@prop` fields (the harness's own fixture
+ * nodes in `drivers/fixture-nodes.ts` — no shipped node has none) serializes
+ * its `properties` as `null` on the raw kernel stream but as `{}` once
+ * relayed through the ws-server. Canonicalizing `null` to `{}` for these
+ * keys make the two the same "no properties" value.
+ */
+export const NULLABLE_OBJECT_FIELDS: readonly string[] = ["properties"];
+
+/**
+ * Node type prefixes whose `node_update`/`generation_complete` frames are
+ * dropped from comparison (added by C2). This mirrors a real, documented,
+ * intentional ws-server behavior (`unified-websocket-runner.ts`: "Skip
+ * messages for constant/input nodes — they produce trivial outputs that
+ * don't need to be relayed to the frontend") that the raw kernel stream has
+ * no equivalent for — the kernel emits every node's lifecycle unconditionally.
+ * Normalizing both sides down to what a real frontend actually receives is
+ * the honest comparison; dropping the frames here (not filtering in
+ * `diff.ts`) keeps the diff itself surface-agnostic.
+ */
+export const TRIVIAL_NODE_TYPE_PREFIXES: readonly string[] = [
+  "nodetool.constant.",
+  "nodetool.input."
+];
+
+const TRIVIAL_FRAME_MESSAGE_TYPES: ReadonlySet<string> = new Set([
+  "node_update",
+  "generation_complete"
+]);
+
+/** True when `frame` is one `TRIVIAL_NODE_TYPE_PREFIXES` says to drop. */
+function isTrivialNodeFrame(message: Record<string, unknown>): boolean {
+  if (!TRIVIAL_FRAME_MESSAGE_TYPES.has(String(message["type"]))) return false;
+  const nodeType = message["node_type"];
+  return (
+    typeof nodeType === "string" &&
+    TRIVIAL_NODE_TYPE_PREFIXES.some((prefix) => nodeType.startsWith(prefix))
+  );
+}
+
 /** Asset references: `asset://…`, an `/assets/…` URL, or an inline data URI. */
 const ASSET_URL_PATTERN =
   /^(asset:\/\/|https?:\/\/[^\s]+\/assets\/|data:[^;]+;base64,)/;
@@ -75,6 +116,9 @@ function normalizeValue(value: unknown, key: string | null, mapper: IdMapper): u
   if (key && DURATION_FIELDS.includes(key)) {
     return value == null ? value : "<duration>";
   }
+  if (key && NULLABLE_OBJECT_FIELDS.includes(key) && value === null) {
+    return {};
+  }
   if (typeof value === "string" && ASSET_URL_PATTERN.test(value)) {
     return "<asset>";
   }
@@ -91,12 +135,31 @@ function normalizeValue(value: unknown, key: string | null, mapper: IdMapper): u
   return value;
 }
 
+/**
+ * `job_update`'s optional `result` field (added by C2): the ws-server relay
+ * appends an "authoritative terminal snapshot" `job_update` carrying the
+ * full `result.outputs` whenever the relayed kernel terminal frame lacked
+ * one (`unified-websocket-runner.ts`'s `terminalWithResultSeen` check) — the
+ * kernel's own `job_update` emissions (`runner.ts`) never set `result` at
+ * all. Dropped only on `job_update` (not `node_update`, whose own `result`
+ * is real per-node data the outputs assertion depends on).
+ */
+function stripJobUpdateResult(message: Record<string, unknown>): Record<string, unknown> {
+  if (message["type"] !== "job_update" || !("result" in message)) return message;
+  const rest = { ...message };
+  delete rest["result"];
+  return rest;
+}
+
 /** Normalizes one message (a frame's payload) in place-equivalent (returns a new object). */
 export function normalizeMessage(
   message: Record<string, unknown>,
   mapper: IdMapper
 ): Record<string, unknown> {
-  return normalizeValue(message, null, mapper) as Record<string, unknown>;
+  return normalizeValue(stripJobUpdateResult(message), null, mapper) as Record<
+    string,
+    unknown
+  >;
 }
 
 export interface NormalizedRunFrame {
@@ -128,13 +191,15 @@ export function normalizeRunRecord(
   record: RunRecord,
   mapper: IdMapper = new IdMapper()
 ): NormalizedRunRecord {
-  const frames: NormalizedRunFrame[] = record.frames.map((frame) => ({
-    seq: frame.seq,
-    channel: frame.channel,
-    direction: frame.direction,
-    surface: frame.surface,
-    message: normalizeMessage(frame.message as Record<string, unknown>, mapper)
-  }));
+  const frames: NormalizedRunFrame[] = record.frames
+    .filter((frame) => !isTrivialNodeFrame(frame.message as Record<string, unknown>))
+    .map((frame) => ({
+      seq: frame.seq,
+      channel: frame.channel,
+      direction: frame.direction,
+      surface: frame.surface,
+      message: normalizeMessage(frame.message as Record<string, unknown>, mapper)
+    }));
 
   return {
     journeyId: record.journeyId,

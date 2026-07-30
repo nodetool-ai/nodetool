@@ -5,16 +5,19 @@
     {
       "id": "const1",
       "type": "nodetool.constant.String",
+      "name": "const1",
       "properties": { "value": "hello reliability" }
     },
     {
       "id": "upper1",
       "type": "nodetool.text.ToUppercase",
+      "name": "upper1",
       "properties": {}
     },
     {
       "id": "out1",
       "type": "nodetool.output.Output",
+      "name": "out1",
       "properties": { "name": "result" }
     }
   ],

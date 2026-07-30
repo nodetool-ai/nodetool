@@ -1,0 +1,15 @@
+{
+  "name": "mid-run-cancel-node",
+  "description": "Journey #6a (docs/RELIABILITY_ARCHITECTURE.md §5): cancel while a node is actively running (anchored on that node's node_update reaching 'running', never a wall-clock delay). Asserts the run reaches 'cancelled' and cleanup ran.",
+  "workflow": { "ref": "workflow.json" },
+  "params": {},
+  "interactions": "interactions.json",
+  "surfaces": ["kernel", "ws-server"],
+  "faults": [],
+  "timeoutMs": 30000,
+  "assertions": {
+    "invariants": ["lifecycle-pairing", "terminal-uniqueness", "cleanup-leaks"],
+    "outputs": false,
+    "streamShape": false
+  }
+}

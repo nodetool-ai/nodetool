@@ -1,0 +1,86 @@
+{
+  "id": "fan-out-fan-in-dag",
+  "name": "Fan-out/fan-in DAG",
+  "nodes": [
+    {
+      "id": "const1",
+      "type": "nodetool.constant.String",
+      "name": "const1",
+      "properties": { "value": "abc" }
+    },
+    {
+      "id": "fast",
+      "type": "nodetool.text.ToUppercase",
+      "name": "fast",
+      "properties": {}
+    },
+    {
+      "id": "slowA",
+      "type": "nodetool.text.ToLowercase",
+      "name": "slowA",
+      "properties": {}
+    },
+    {
+      "id": "slowB",
+      "type": "nodetool.text.ToUppercase",
+      "name": "slowB",
+      "properties": {}
+    },
+    {
+      "id": "join",
+      "type": "nodetool.text.Equals",
+      "name": "join",
+      "properties": {}
+    },
+    {
+      "id": "out1",
+      "type": "nodetool.output.Output",
+      "name": "out1",
+      "properties": { "name": "result" }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "const1",
+      "sourceHandle": "output",
+      "target": "fast",
+      "targetHandle": "text"
+    },
+    {
+      "id": "e2",
+      "source": "const1",
+      "sourceHandle": "output",
+      "target": "slowA",
+      "targetHandle": "text"
+    },
+    {
+      "id": "e3",
+      "source": "slowA",
+      "sourceHandle": "output",
+      "target": "slowB",
+      "targetHandle": "text"
+    },
+    {
+      "id": "e4",
+      "source": "fast",
+      "sourceHandle": "output",
+      "target": "join",
+      "targetHandle": "text_a"
+    },
+    {
+      "id": "e5",
+      "source": "slowB",
+      "sourceHandle": "output",
+      "target": "join",
+      "targetHandle": "text_b"
+    },
+    {
+      "id": "e6",
+      "source": "join",
+      "sourceHandle": "output",
+      "target": "out1",
+      "targetHandle": "value"
+    }
+  ]
+}

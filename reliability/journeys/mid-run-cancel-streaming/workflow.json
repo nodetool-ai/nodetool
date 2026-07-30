@@ -1,0 +1,27 @@
+{
+  "id": "mid-run-cancel-streaming",
+  "name": "Mid-run cancel — during streaming",
+  "nodes": [
+    {
+      "id": "src",
+      "type": "nodetool.input.ReliabilityStreamingInput",
+      "name": "src",
+      "properties": {}
+    },
+    {
+      "id": "sink",
+      "type": "test.reliability.StreamSink",
+      "name": "sink",
+      "properties": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "src",
+      "sourceHandle": "output",
+      "target": "sink",
+      "targetHandle": "value"
+    }
+  ]
+}

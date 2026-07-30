@@ -1,0 +1,4 @@
+[
+  { "action": "run" },
+  { "action": "cancel", "at": "node_update:probe:running", "value": "mid-run-cancel-node" }
+]

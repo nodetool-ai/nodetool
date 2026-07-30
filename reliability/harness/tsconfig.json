@@ -13,6 +13,18 @@
   "references": [
     {
       "path": "../../packages/protocol"
+    },
+    {
+      "path": "../../packages/node-sdk"
+    },
+    {
+      "path": "../../packages/base-nodes"
+    },
+    {
+      "path": "../../packages/execution"
+    },
+    {
+      "path": "../../packages/websocket"
     }
   ]
 }

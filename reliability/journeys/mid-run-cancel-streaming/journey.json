@@ -1,0 +1,15 @@
+{
+  "name": "mid-run-cancel-streaming",
+  "description": "Journey #6b (docs/RELIABILITY_ARCHITECTURE.md §5): cancel while a node is blocked mid-stream, parked on `inputs.stream(...)` with zero values ever pushed via pushInput/stream_input (§7's incremental-seeding path, exercised by never calling end_input_stream) — deliberately distinct from #6a's free-running busy-loop node.",
+  "workflow": { "ref": "workflow.json" },
+  "params": {},
+  "interactions": "interactions.json",
+  "surfaces": ["kernel", "ws-server"],
+  "faults": [],
+  "timeoutMs": 30000,
+  "assertions": {
+    "invariants": ["lifecycle-pairing", "terminal-uniqueness", "cleanup-leaks"],
+    "outputs": false,
+    "streamShape": false
+  }
+}
