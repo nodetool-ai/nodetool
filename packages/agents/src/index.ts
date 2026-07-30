@@ -290,7 +290,8 @@ export type {
   RunSandboxOptions,
   RunSandboxResult,
   SandboxLimits,
-  ResolvedSandboxLimits
+  ResolvedSandboxLimits,
+  SandboxProgressCallback
 } from "./js-sandbox.js";
 
 // Constants

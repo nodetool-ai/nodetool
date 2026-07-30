@@ -88,6 +88,7 @@ column by `resolveSandboxLimits`:
 | Fetch timeout | `FETCH_TIMEOUT_MS` = 15 s | per-request `AbortController` (`limits.fetchTimeoutMs`) | 120 s |
 | Output | `MAX_OUTPUT_SIZE` = 100 KB | `serializeResult` truncation (`limits.maxOutputSize`) | 10 MB |
 | Random bytes | `MAX_RANDOM_BYTES` = 64 KB | `crypto.getRandomValues` clamp | — |
+| Progress reports | `MAX_PROGRESS_CALLS` = 1000 per run, one per `PROGRESS_MIN_INTERVAL_MS` = 100 ms | counter + timestamp inside the bridge | — |
 
 QuickJS's memory limiter counts its own heap objects; string and typed-array
 payloads are not charged against it, so `memoryLimitBytes` bites on object
@@ -99,9 +100,23 @@ and `hmac` take SHA-1/256/384/512 and accept string or `Uint8Array` input, both
 returning a `Uint8Array`), `workspace.{read,write,list,readBytes,writeBytes,
 stat,mkdir,remove}` (requires a `ProcessingContext`; `remove` deletes one file
 or one empty directory, never a tree), the pure guest-side helpers
-`toBase64`/`fromBase64`/`toHex`/`fromHex`/`utf8Encode`/`utf8Decode`, and any
+`toBase64`/`fromBase64`/`toHex`/`fromHex`/`utf8Encode`/`utf8Decode`,
+`progress(percent, message?)`, `format.{number,date,relativeTime,list}`, and any
 caller-supplied `globals`. `fetch` sends a `Uint8Array` body as raw bytes
-instead of JSON. `eval` and `Function` are deleted at init so the user cannot
+instead of JSON.
+
+`progress` is fire-and-forget: it reports to
+`RunSandboxOptions.onProgress`, clamped to 0–100 with the message truncated to
+500 chars, and is a no-op when the caller passes no sink. `nodetool.code.Code`
+wires it to `context.postMessage({ type: "node_progress", … })`, the same
+channel the Python worker uses, so a long-running snippet drives the node's
+progress bar.
+
+`format` exists because QuickJS ships no `Intl`: each member is a host bridge
+over `Intl.NumberFormat`, `Intl.DateTimeFormat`, `Intl.RelativeTimeFormat` and
+`Intl.ListFormat`, defaulting to locale `en-US`. All four are async (they follow
+the never-reject convention), so a bad locale or option arrives in the guest as
+a thrown `Error` carrying Intl's own message. `eval` and `Function` are deleted at init so the user cannot
 re-enter dynamic code generation. Core JS (`JSON`, `Math`, `Date`, `Map`,
 `URL`, `TextEncoder`, etc.) is QuickJS's native implementation, not a
 host-bridged version.

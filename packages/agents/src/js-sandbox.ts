@@ -8,12 +8,15 @@
  *
  * The exposed surface is a small curated one: vanilla JavaScript plus a handful
  * of bridge functions (`fetch`, `workspace`, `getSecret`, `uuid`, `sleep`,
- * `assetToSandbox`, `sandboxToAsset`, `crypto`, `console`) and a few pure
- * guest-side binary helpers (`toBase64`, `fromBase64`, `toHex`, `fromHex`,
- * `utf8Encode`, `utf8Decode`). `crypto` covers `randomUUID`,
- * `getRandomValues`, `digest`, and `hmac` (WebCrypto-backed);
- * `workspace` covers text and binary reads/writes plus `stat`, `mkdir`, and
- * `remove`. Every quantitative limit (fetch calls, response body, output size,
+ * `assetToSandbox`, `sandboxToAsset`, `crypto`, `console`, `progress`,
+ * `format`) and a few pure guest-side binary helpers (`toBase64`,
+ * `fromBase64`, `toHex`, `fromHex`, `utf8Encode`, `utf8Decode`). `crypto`
+ * covers `randomUUID`, `getRandomValues`, `digest`, and `hmac`
+ * (WebCrypto-backed); `workspace` covers text and binary reads/writes plus
+ * `stat`, `mkdir`, and `remove`; `progress` forwards a percentage and label to
+ * the host caller (rate-limited); `format` exposes host `Intl` number, date,
+ * relative-time and list formatting, which QuickJS itself does not ship.
+ * Every quantitative limit (fetch calls, response body, output size,
  * guest heap, stack, fetch timeout) is overridable per invocation through
  * `RunSandboxOptions.limits`, clamped to hard ceilings. Library-powered helpers
  * (lodash, dayjs, cheerio, csv-parse,
@@ -52,8 +55,22 @@ export const GUEST_MEMORY_LIMIT = 64 * 1024 * 1024;
 export const GUEST_STACK_LIMIT = 512 * 1024;
 /** Per-request wall-clock cap for the fetch bridge. */
 export const FETCH_TIMEOUT_MS = 15_000;
+/** Locale used by the `format` bridge when the caller names none. */
+export const DEFAULT_FORMAT_LOCALE = "en-US";
 /** Largest `crypto.getRandomValues` request the bridge will serve. */
 export const MAX_RANDOM_BYTES = 65_536;
+/** Progress reports forwarded to the host per run; further calls are dropped. */
+export const MAX_PROGRESS_CALLS = 1000;
+/** Minimum gap between two forwarded progress reports. */
+export const PROGRESS_MIN_INTERVAL_MS = 100;
+/** Longest progress message forwarded to the host. */
+export const MAX_PROGRESS_MESSAGE_CHARS = 500;
+
+/** Host sink for guest `progress()` calls. */
+export type SandboxProgressCallback = (
+  progress: number,
+  message?: string
+) => void;
 
 /**
  * Per-invocation limit overrides. Every field defaults to the module constant
@@ -642,11 +659,14 @@ export interface SandboxResult {
  *                 operations and makes `sleep` return immediately.
  * @param limits   Optional per-invocation limit overrides, clamped by
  *                 {@link resolveSandboxLimits}.
+ * @param onProgress Optional sink for guest `progress()` calls. Without one the
+ *                 guest function is a no-op.
  */
 export function buildSandbox(
   context?: ProcessingContext,
   signal?: AbortSignal,
-  limits?: SandboxLimits
+  limits?: SandboxLimits,
+  onProgress?: SandboxProgressCallback
 ): SandboxResult {
   const logs: string[] = [];
   const resolvedLimits = resolveSandboxLimits(limits);
@@ -995,6 +1015,116 @@ export function buildSandbox(
         throw new Error("sandboxToAsset is not available without a context");
       };
 
+  // Fire-and-forget progress reporting. Synchronous like console.log: it never
+  // throws, so it needs no never-reject wrapper. A guest that spams it cannot
+  // flood the host — reports closer together than PROGRESS_MIN_INTERVAL_MS are
+  // dropped, and the run has a lifetime cap.
+  let progressCalls = 0;
+  let lastProgressAt = 0;
+  const progress = (percent: number, message?: string): void => {
+    if (!onProgress || signal?.aborted) return;
+    if (progressCalls >= MAX_PROGRESS_CALLS) return;
+    const now = Date.now();
+    if (progressCalls > 0 && now - lastProgressAt < PROGRESS_MIN_INTERVAL_MS) {
+      return;
+    }
+    const raw = Number(percent);
+    const clamped = Number.isFinite(raw) ? Math.min(Math.max(raw, 0), 100) : 0;
+    const text =
+      message === undefined || message === null
+        ? undefined
+        : String(message).slice(0, MAX_PROGRESS_MESSAGE_CHARS);
+    progressCalls++;
+    lastProgressAt = now;
+    try {
+      onProgress(clamped, text);
+    } catch {
+      // A failing host sink must not take the guest run down with it.
+    }
+  };
+
+  // QuickJS ships no Intl, so locale-aware formatting has to come from the
+  // host. Async + never-reject like the other bridges: a bad locale or option
+  // surfaces in the guest as a thrown Error with Intl's own message.
+  const format = {
+    number: async (
+      value: number,
+      options?: Record<string, unknown>
+    ): Promise<string> => {
+      const num = Number(value);
+      if (!Number.isFinite(num)) {
+        throw new Error("format.number: value must be a finite number");
+      }
+      const opts = options ?? {};
+      return new Intl.NumberFormat(
+        (opts.locale as string) ?? DEFAULT_FORMAT_LOCALE,
+        {
+          style: opts.style as Intl.NumberFormatOptions["style"],
+          currency: opts.currency as string | undefined,
+          minimumFractionDigits: opts.minimumFractionDigits as
+            | number
+            | undefined,
+          maximumFractionDigits: opts.maximumFractionDigits as
+            | number
+            | undefined,
+          useGrouping: opts.useGrouping as boolean | undefined
+        }
+      ).format(num);
+    },
+    date: async (
+      epochMs: number,
+      options?: Record<string, unknown>
+    ): Promise<string> => {
+      const ms = Number(epochMs);
+      if (!Number.isFinite(ms)) {
+        throw new Error(
+          "format.date: epochMs must be a finite number of milliseconds"
+        );
+      }
+      const opts = options ?? {};
+      const dateStyle =
+        opts.dateStyle as Intl.DateTimeFormatOptions["dateStyle"];
+      const timeStyle =
+        opts.timeStyle as Intl.DateTimeFormatOptions["timeStyle"];
+      return new Intl.DateTimeFormat(
+        (opts.locale as string) ?? DEFAULT_FORMAT_LOCALE,
+        {
+          // Intl falls back to a date-only default when neither style is given.
+          dateStyle: dateStyle ?? (timeStyle ? undefined : "medium"),
+          timeStyle,
+          timeZone: opts.timeZone as string | undefined
+        }
+      ).format(new Date(ms));
+    },
+    relativeTime: async (
+      value: number,
+      unit: string,
+      options?: Record<string, unknown>
+    ): Promise<string> => {
+      const num = Number(value);
+      if (!Number.isFinite(num)) {
+        throw new Error("format.relativeTime: value must be a finite number");
+      }
+      const opts = options ?? {};
+      return new Intl.RelativeTimeFormat(
+        (opts.locale as string) ?? DEFAULT_FORMAT_LOCALE
+      ).format(num, unit as Intl.RelativeTimeFormatUnit);
+    },
+    list: async (
+      items: unknown,
+      options?: Record<string, unknown>
+    ): Promise<string> => {
+      if (!Array.isArray(items)) {
+        throw new Error("format.list: items must be an array of strings");
+      }
+      const opts = options ?? {};
+      return new Intl.ListFormat(
+        (opts.locale as string) ?? DEFAULT_FORMAT_LOCALE,
+        { type: opts.type as Intl.ListFormatOptions["type"] }
+      ).format(items.map((i) => String(i)));
+    }
+  };
+
   const sandbox: Record<string, unknown> = {
     // Core JS globals are native in QuickJS; we still reflect them in the
     // descriptor so callers that inspect `sandbox.JSON` / `sandbox.Math`
@@ -1047,6 +1177,8 @@ export function buildSandbox(
     workspace,
     assetToSandbox,
     sandboxToAsset,
+    progress,
+    format,
     __maxIter: MAX_LOOP_ITERATIONS
   };
 
@@ -1092,6 +1224,13 @@ export interface RunSandboxOptions {
    * caller can tune a limit but not disable a protection.
    */
   limits?: SandboxLimits;
+  /**
+   * Sink for guest `progress(percent, message?)` calls. Values are clamped to
+   * 0–100, messages truncated, and reports rate-limited to one per
+   * {@link PROGRESS_MIN_INTERVAL_MS} (at most {@link MAX_PROGRESS_CALLS} per
+   * run). Without a callback the guest function is a no-op.
+   */
+  onProgress?: SandboxProgressCallback;
 }
 
 export interface RunSandboxResult {
@@ -1134,6 +1273,8 @@ const RESERVED_SANDBOX_NAMES = new Set([
   "workspace",
   "assetToSandbox",
   "sandboxToAsset",
+  "progress",
+  "format",
   // Pure guest-side helpers defined by the prelude.
   "toBase64",
   "fromBase64",
@@ -1161,6 +1302,8 @@ const EXPOSED_BRIDGE_NAMES = [
   "workspace",
   "assetToSandbox",
   "sandboxToAsset",
+  "progress",
+  "format",
   "__maxIter"
 ] as const;
 
@@ -1179,7 +1322,8 @@ export async function runInSandbox(
     timeoutMs = DEFAULT_TIMEOUT_MS,
     globals,
     signal,
-    limits
+    limits,
+    onProgress
   } = options;
   const resolvedLimits = resolveSandboxLimits(limits);
 
@@ -1191,7 +1335,12 @@ export async function runInSandbox(
     return { success: false, error: "Execution cancelled", logs: [] };
   }
 
-  const { sandbox, getLogs } = buildSandbox(context, signal, resolvedLimits);
+  const { sandbox, getLogs } = buildSandbox(
+    context,
+    signal,
+    resolvedLimits,
+    onProgress
+  );
 
   // User-supplied globals (dynamic inputs from CodeNode etc.) layer on top of
   // the core surface, but must not clobber the bridge functions themselves.
@@ -1241,15 +1390,20 @@ export async function runInSandbox(
         bridges.getSecret = wrap(bridges.getSecret as never);
         bridges.assetToSandbox = wrap(bridges.assetToSandbox as never);
         bridges.sandboxToAsset = wrap(bridges.sandboxToAsset as never);
-        const ws = bridges.workspace as Record<
-          string,
-          (...a: never[]) => Promise<unknown>
-        >;
-        const wrappedWorkspace: Record<string, unknown> = {};
-        for (const [name, fn] of Object.entries(ws)) {
-          wrappedWorkspace[name] = wrap(fn as never);
-        }
-        bridges.workspace = wrappedWorkspace;
+        // Object bridges whose members are all async: wrap each member.
+        const wrapAllMembers = (bridge: unknown): Record<string, unknown> => {
+          const out: Record<string, unknown> = {};
+          const members = bridge as Record<
+            string,
+            (...a: never[]) => Promise<unknown>
+          >;
+          for (const [name, fn] of Object.entries(members)) {
+            out[name] = wrap(fn as never);
+          }
+          return out;
+        };
+        bridges.workspace = wrapAllMembers(bridges.workspace);
+        bridges.format = wrapAllMembers(bridges.format);
         const hostCrypto = bridges.crypto as {
           randomUUID: () => string;
           getRandomValues: (n: number) => Record<string, string>;
@@ -1377,6 +1531,13 @@ globalThis.workspace = {
   stat: __wrap(__ws.stat),
   mkdir: __wrap(__ws.mkdir),
   remove: __wrap(__ws.remove)
+};
+const __fmt = globalThis.format;
+globalThis.format = {
+  number: __wrap(__fmt.number),
+  date: __wrap(__fmt.date),
+  relativeTime: __wrap(__fmt.relativeTime),
+  list: __wrap(__fmt.list)
 };
 const __crypto = globalThis.crypto;
 globalThis.crypto = {

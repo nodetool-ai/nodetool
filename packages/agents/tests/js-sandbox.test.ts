@@ -1348,3 +1348,178 @@ describe("runInSandbox limits option", () => {
     expect(roomy.result).toBe(200000);
   });
 });
+
+// ---------------------------------------------------------------------------
+// progress reporting
+// ---------------------------------------------------------------------------
+
+describe("progress bridge", () => {
+  it("forwards a report to the host callback", async () => {
+    const seen: Array<[number, string | undefined]> = [];
+    const result = await runInSandbox({
+      code: `progress(42, "halfway"); return "done";`,
+      onProgress: (p, m) => seen.push([p, m])
+    });
+    expect(result.success).toBe(true);
+    expect(seen).toEqual([[42, "halfway"]]);
+  });
+
+  it("clamps percentages to 0-100 and coerces non-finite to 0", () => {
+    const seen: number[] = [];
+    const { sandbox } = buildSandbox(undefined, undefined, undefined, (p) =>
+      seen.push(p)
+    );
+    const report = sandbox.progress as (p: number, m?: string) => void;
+    // Rate limiting drops reports inside the 100 ms window, so drive the host
+    // function directly with a wide enough gap between calls.
+    vi.useFakeTimers();
+    try {
+      report(-5);
+      vi.advanceTimersByTime(200);
+      report(150);
+      vi.advanceTimersByTime(200);
+      report(Number.NaN);
+      vi.advanceTimersByTime(200);
+      report(Number.POSITIVE_INFINITY);
+    } finally {
+      vi.useRealTimers();
+    }
+    // Infinity is not finite, so it coerces to 0 rather than clamping to 100.
+    expect(seen).toEqual([0, 100, 0, 0]);
+  });
+
+  it("truncates the message to 500 characters", () => {
+    const seen: Array<string | undefined> = [];
+    const { sandbox } = buildSandbox(undefined, undefined, undefined, (_p, m) =>
+      seen.push(m)
+    );
+    const report = sandbox.progress as (p: number, m?: string) => void;
+    report(1, "y".repeat(2000));
+    expect(seen[0]).toHaveLength(500);
+  });
+
+  it("rate-limits a tight loop of reports", async () => {
+    const seen: number[] = [];
+    const result = await runInSandbox({
+      code: `for (let i = 0; i < 200; i++) progress(i / 2); return "ok";`,
+      onProgress: (p) => seen.push(p)
+    });
+    expect(result.success).toBe(true);
+    // The loop runs well inside one 100 ms window, so only the first report
+    // (and at most a handful more on a very slow machine) gets through.
+    expect(seen.length).toBeGreaterThanOrEqual(1);
+    expect(seen.length).toBeLessThan(20);
+    expect(seen[0]).toBe(0);
+  });
+
+  it("stops forwarding once the run is cancelled", () => {
+    const seen: number[] = [];
+    const controller = new AbortController();
+    const { sandbox } = buildSandbox(
+      undefined,
+      controller.signal,
+      undefined,
+      (p) => seen.push(p)
+    );
+    const report = sandbox.progress as (p: number, m?: string) => void;
+    report(10);
+    controller.abort();
+    report(20);
+    expect(seen).toEqual([10]);
+  });
+
+  it("is a no-op without a callback", async () => {
+    const result = await runInSandbox({
+      code: `progress(10, "no sink"); return progress(20) === undefined;`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Intl-backed format bridge
+// ---------------------------------------------------------------------------
+
+describe("format bridge", () => {
+  it("formats numbers with grouping", async () => {
+    const result = await runInSandbox({
+      code: `return await format.number(1234.5, { locale: "en-US" });`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe("1,234.5");
+  });
+
+  it("formats currency and percent", async () => {
+    const result = await runInSandbox({
+      code: `return {
+        usd: await format.number(12.5, { locale: "en-US", style: "currency", currency: "USD" }),
+        pct: await format.number(0.256, { locale: "en-US", style: "percent", maximumFractionDigits: 1 }),
+        plain: await format.number(1234.5, { locale: "en-US", useGrouping: false })
+      };`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({
+      usd: "$12.50",
+      pct: "25.6%",
+      plain: "1234.5"
+    });
+  });
+
+  it("formats a date in a fixed time zone", async () => {
+    const result = await runInSandbox({
+      code: `return await format.date(0, {
+        locale: "en-US",
+        dateStyle: "medium",
+        timeZone: "UTC"
+      });`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe("Jan 1, 1970");
+  });
+
+  it("rejects a non-finite epoch", async () => {
+    const result = await runInSandbox({
+      code: `try { await format.date(NaN); return "no throw"; }
+             catch (e) { return e.message; }`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/epochMs must be a finite number/);
+  });
+
+  it("formats relative time", async () => {
+    const result = await runInSandbox({
+      code: `return await format.relativeTime(-1, "day", { locale: "en-US" });`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe("1 day ago");
+  });
+
+  it("formats a list as a conjunction and a disjunction", async () => {
+    const result = await runInSandbox({
+      code: `return {
+        and: await format.list(["a", "b", "c"], { locale: "en-US" }),
+        or: await format.list(["a", "b"], { locale: "en-US", type: "disjunction" })
+      };`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({ and: "a, b, and c", or: "a or b" });
+  });
+
+  it("surfaces an invalid locale as a guest-side Error", async () => {
+    const result = await runInSandbox({
+      code: `try { await format.number(1, { locale: "not a locale" }); return "no throw"; }
+             catch (e) { return e.message; }`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/locale/i);
+  });
+
+  it("defaults to en-US when no locale is given", async () => {
+    const result = await runInSandbox({
+      code: `return await format.number(1234567.891);`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe("1,234,567.891");
+  });
+});
