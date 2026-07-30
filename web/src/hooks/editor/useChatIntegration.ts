@@ -157,33 +157,44 @@ export function useChatIntegration(params: {
     const isCode = language === "javascript" || language === "typescript";
     const sandboxDocs = isCode
       ? `\n<sandbox_api>
-The Code node runs JavaScript in a sandboxed VM with these APIs:
+The Code node runs JavaScript in a QuickJS sandbox. Only these names exist — there are no libraries and no module loader.
 
 GLOBALS: console.log/warn/error/info, JSON, Math, Date, RegExp, Array, Object, String, Number, Boolean, Map, Set, Promise, Error, parseInt, parseFloat, isNaN, isFinite, encodeURIComponent, decodeURIComponent, btoa, atob, structuredClone, TextEncoder, TextDecoder, URL, URLSearchParams
 
-LIBRARIES:
-- _ (lodash): full lodash-es library. Use _.get, _.groupBy, _.chunk, _.sortBy, _.pick, _.omit, _.mapValues, etc.
-- dayjs(date?) — lightweight date library. dayjs().add(7,"day").format("YYYY-MM-DD"), dayjs("2024-01-01").diff(dayjs(),"days"), .startOf("month"), .isBefore(), .isAfter()
-- cheerio — jQuery-like HTML parser. const $ = cheerio.load(html); $("a").map((i,el) => $(el).attr("href")).get(); $("table tr").each(...)
-- csvParse(text, {columns:true, skip_empty_lines:true}) — robust CSV parser that handles quoted fields, returns array of objects
-- validator — string validation: validator.isEmail(s), validator.isURL(s), validator.isIP(s), validator.isUUID(s), validator.isJSON(s), validator.isMobilePhone(s), validator.isPostalCode(s,"US"), etc.
+DATA:
+- await data.parseCsv(text, options?) → array of records keyed by the header row; pass header false for raw rows. Handles quoted fields. Values stay strings.
+- await data.selectHtml(html, selector, options?) → trimmed text of each CSS match, or the named attribute with attr. Options: attr, limit.
+
+FORMATTING (there is no Intl; these are host calls, default locale en-US):
+- await format.number(value, options?) — locale, style, currency, minimumFractionDigits, maximumFractionDigits, useGrouping
+- await format.date(epochMs, options?) — locale, dateStyle, timeStyle, timeZone
+- await format.relativeTime(value, unit, options?) — for example -3 with unit day
+- await format.list(items, options?) — locale, type
+
+CRYPTO AND BINARY:
+- crypto.randomUUID() → string; crypto.getRandomValues(length) → Uint8Array
+- await crypto.digest(algorithm, data) and await crypto.hmac(algorithm, key, data) → Uint8Array; SHA-1/256/384/512
+- toBase64, fromBase64, toHex, fromHex, utf8Encode, utf8Decode — synchronous conversions between strings and Uint8Array
 
 ASYNC APIS:
-- fetch(url, options?) → { ok, status, statusText, headers, body, json } — limited to 20 calls, 15s timeout each, 1MB response limit
-- sleep(ms) → Promise — capped at 5000ms
-- getSecret(name) → Promise<string|undefined> — read secrets by name
-- uuid() → string — generate a UUID v4
+- await fetch(url, options?) → { ok, status, statusText, headers, body, json, text, bytes, arrayBuffer } — 20 calls per run, 15s timeout each, 1MB response cap. Private and loopback addresses are refused.
+- await sleep(ms) — the only timer, capped at 5000ms
+- await getSecret(name) → string or undefined
+- uuid() → string
+- progress(percent, message?) — drives the node progress bar; fire-and-forget
 
-WORKSPACE (file I/O):
-- workspace.read(path) → Promise<string>
-- workspace.write(path, content) → Promise<void>
-- workspace.list(path) → Promise<string[]>
+WORKSPACE (file I/O, needs a workspace context):
+- await workspace.read(path) → string; await workspace.write(path, content)
+- await workspace.readBytes(path) → Uint8Array; await workspace.writeBytes(path, bytes)
+- await workspace.list(path) → string[]; await workspace.stat(path) → { size, isDirectory, isFile, modifiedMs }
+- await workspace.mkdir(path); await workspace.remove(path) — one file or one empty directory
+- await assetToSandbox(assetId, path) → workspace path; await sandboxToAsset(path) → asset reference
 
-STREAMING: Use yield({ output: value }) to emit multiple results. Use state.xxx to persist data across stream invocations.
+STREAMING: yield an object to emit multiple results, and use the state object to persist data across invocations.
 
 RETURN FORMAT: Always return an object like { output: value } or { key1: val1, key2: val2 }. Each key becomes a named output port on the node.
 
-BLOCKED: setTimeout, setInterval, eval, require, import, process, __dirname, __filename
+BLOCKED: setTimeout, setInterval, eval, Function, require, import, process
 </sandbox_api>`
       : "";
     return (

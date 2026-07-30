@@ -97,14 +97,34 @@ return { output: x + y + z };`;
     expect(result).not.toContain("y");
   });
 
-  it("ignores library globals (_, dayjs, etc.)", () => {
-    const code = `const upper = _.toUpper(text);
-const now = dayjs();
-return { upper };`;
+  it("ignores sandbox bridges and guest helpers", () => {
+    const code = `const rows = await data.parseCsv(text);
+const when = await format.date(Date.now());
+const hash = toHex(await crypto.digest("SHA-256", text));
+progress(50);
+return { rows, when, hash };`;
     const result = inferInputKeysFromCode(code);
     expect(result).toContain("text");
-    expect(result).not.toContain("_");
-    expect(result).not.toContain("dayjs");
+    for (const bridge of [
+      "data",
+      "format",
+      "crypto",
+      "progress",
+      "toHex",
+      "Date"
+    ]) {
+      expect(result).not.toContain(bridge);
+    }
+  });
+
+  it("treats names the sandbox does not provide as inputs", () => {
+    // `_` and `dayjs` were never bridged into the guest; they are ordinary
+    // undefined variables and must surface as input handles.
+    const code = `const upper = _.toUpper(text);
+const now = dayjs();
+return { upper, now };`;
+    const result = inferInputKeysFromCode(code);
+    expect(result).toEqual(expect.arrayContaining(["_", "dayjs", "text"]));
   });
 
   it("ignores identifiers in comments and strings", () => {

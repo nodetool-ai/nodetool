@@ -286,13 +286,41 @@ export {
   serializeResult,
   resolveSandboxLimits
 } from "./js-sandbox.js";
+export {
+  DEFAULT_TIMEOUT_MS,
+  MAX_OUTPUT_SIZE,
+  MAX_LOOP_ITERATIONS,
+  EXPOSED_BRIDGE_NAMES,
+  GUEST_HELPER_NAMES,
+  RESERVED_SANDBOX_NAMES
+} from "./js-sandbox.js";
 export type {
   RunSandboxOptions,
   RunSandboxResult,
   SandboxLimits,
   ResolvedSandboxLimits,
-  SandboxProgressCallback
+  SandboxProgressCallback,
+  ExposedBridgeName,
+  GuestHelperName
 } from "./js-sandbox.js";
+
+// Code Node authoring: the sandbox capability manifest and prompt rendering
+export {
+  getSandboxManifest,
+  sandboxManifestNames,
+  SANDBOX_MANIFEST_NODE_TYPE
+} from "./code-gen/sandbox-manifest.js";
+export type {
+  SandboxManifest,
+  SandboxBridgeDoc,
+  SandboxMemberDoc,
+  SandboxLimitDoc
+} from "./code-gen/sandbox-manifest.js";
+export {
+  renderSandboxApiReference,
+  extractApiReferences,
+  unknownApiReferences
+} from "./code-gen/sandbox-prompt.js";
 
 // Constants
 export { MAX_TOOL_RESULT_CHARS, truncateToolResult } from "./constants.js";
