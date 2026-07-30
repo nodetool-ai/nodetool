@@ -47,6 +47,41 @@ export interface RunFrame {
   message: ProcessingMessage | Record<string, unknown>;
 }
 
+/**
+ * Point-in-time snapshot of the leak-accounting counters §6's "Cleanup and
+ * leaks" section names: zero live actors, zero pending control responses,
+ * zero timers beyond the trigger timeout, zero pending Python-bridge
+ * requests, and WS slot accounting (`activeJobs`/`startingJobs`) back to
+ * empty. `at` distinguishes a baseline snapshot (taken before the run, so a
+ * driver can express "returned to its starting count" rather than
+ * "reached exactly zero" for a long-lived process) from the post-run one
+ * `leaks.ts` actually asserts against.
+ */
+export interface ResourceCounterSnapshot {
+  at: "before" | "after";
+  liveActors: number;
+  pendingControlResponses: number;
+  pendingTimers: number;
+  pythonBridgePendingRequests: number;
+  activeJobs: number;
+  startingJobs: number;
+}
+
+/**
+ * One recorded client `WebSocketManager` state transition (§6 "State
+ * transitions", `WebSocketManager.ts:95`'s `STATE_TRANSITIONS`). `action` and
+ * `from`/`to` mirror that table's shape so `state-machine.ts` can replay the
+ * sequence against the declared machine.
+ */
+export interface RecordedTransition {
+  /** Ordering key — a frame `seq` this transition is anchored to, or a plain
+   * incrementing index when the driver has no frame to anchor on. */
+  at: number;
+  action: string;
+  from: string;
+  to: string;
+}
+
 export interface RunRecord {
   /** Journey this record was captured for, when known. */
   journeyId?: string;
@@ -63,6 +98,20 @@ export interface RunRecord {
   error: string | null;
   params: Record<string, unknown>;
   frames: RunFrame[];
+  /**
+   * Leak-accounting snapshots (§6), additive over C1's shape. Absent when the
+   * driver that produced this record doesn't instrument these counters (e.g.
+   * a debug-bundle conversion) — `leaks.ts` reports no violations rather than
+   * treating absence itself as a leak.
+   */
+  resourceCounters?: ResourceCounterSnapshot[];
+  /**
+   * Client `WebSocketManager` transitions observed during this run (§6),
+   * additive over C1's shape. Absent when the driver never touches a real
+   * client connection (e.g. the kernel driver) — `state-machine.ts` reports
+   * no violations rather than treating absence itself as a violation.
+   */
+  transitions?: RecordedTransition[];
 }
 
 function messageNodeId(message: Record<string, unknown>): string | null {
