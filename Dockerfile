@@ -91,6 +91,18 @@ ENV NODE_ENV=production \
 #   pandoc            — document conversion nodes
 #   postgresql-client — psql/pg_dump for DATABASE_URL deployments
 #   jq/zip/unzip      — everyday shell plumbing for agents
+#   mesa-vulkan-drivers — lavapipe, a software Vulkan device. The image nodes
+#                     run their shaders on Dawn, which reaches the GPU only
+#                     through a Vulkan ICD and bundles no software fallback of
+#                     its own. With no ICD installed, `vkCreateInstance` fails
+#                     outright (VK_ERROR_INCOMPATIBLE_DRIVER) and every
+#                     nodetool.image.* node dies on "No WebGPU adapter
+#                     available" — crop and resize included. Containers have no
+#                     GPU, so lavapipe is what makes them runnable at all.
+#                     Pinned to bookworm-backports: bookworm ships Mesa 22.3,
+#                     whose lavapipe Dawn rejects with "Vulkan
+#                     shaderUniform*ArrayDynamicIndexing required" and still
+#                     hands back a null adapter. 25.0 satisfies it.
 #
 # The image doubles as the agent sandbox (see the sandbox entrypoint below),
 # so it also carries the sandbox desktop/browser stack:
@@ -99,7 +111,9 @@ ENV NODE_ENV=production \
 #   xdotool/scrot/xterm                  — desktop_* tools (input, screenshots)
 #   imagemagick/tesseract-ocr/weasyprint — screenshot post-processing, OCR, PDF
 #   tmux/wget                            — shell tool conveniences
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN echo 'deb http://deb.debian.org/debian bookworm-backports main' \
+      > /etc/apt/sources.list.d/backports.list \
+    && apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl wget tmux \
     ffmpeg git jq zip unzip \
     poppler-utils qpdf pandoc \
@@ -111,6 +125,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
     libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
     libgbm1 libpango-1.0-0 libcairo2 libasound2 \
+    && apt-get install -y --no-install-recommends -t bookworm-backports \
+    mesa-vulkan-drivers \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /workspace \
     && chown node:node /workspace

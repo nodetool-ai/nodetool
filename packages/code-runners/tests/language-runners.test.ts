@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { accessSync, constants } from "node:fs";
+import { delimiter, join } from "node:path";
 import { BashDockerRunner } from "../src/bash-runner.js";
 import { JavaScriptDockerRunner } from "../src/javascript-runner.js";
 import { PythonDockerRunner } from "../src/python-runner.js";
@@ -199,6 +201,34 @@ describe("PythonDockerRunner", () => {
   it("uses python:3.11-slim as default image", () => {
     const runner = new PythonDockerRunner();
     expect(runner.image).toBe("python:3.11-slim");
+  });
+
+  // Subprocess mode reuses buildContainerCommand, whose `python` exists in the
+  // image but not on a host that ships only `python3` — Debian, Ubuntu, macOS.
+  // That spawned ENOENT everywhere. Assert the invariant that actually matters
+  // (the interpreter resolves on this machine) rather than a literal name,
+  // which would just re-encode one platform's answer.
+  it("resolves a python that exists on PATH for subprocess mode", () => {
+    const runner = new PythonDockerRunner();
+    const [command] = runner.wrapSubprocessCommand(
+      runner.buildContainerCommand("pass", {})
+    );
+    const dirs = (process.env.PATH ?? "").split(delimiter).filter(Boolean);
+    const found = dirs.some((dir) => {
+      try {
+        accessSync(join(dir, command[0]), constants.X_OK);
+        return true;
+      } catch {
+        return false;
+      }
+    });
+    expect(["python", "python3"]).toContain(command[0]);
+    expect(found).toBe(true);
+  });
+
+  it("leaves the container command on `python` for Docker mode", () => {
+    const runner = new PythonDockerRunner();
+    expect(runner.buildContainerCommand("pass", {})[0]).toBe("python");
   });
 
   it("accepts a custom image", () => {

@@ -1167,6 +1167,7 @@ export class KieProvider extends BaseProvider {
     log.debug("Kie textToImage", { model: modelId });
     const apiKey = this.requireApiKey();
     const { pollInterval, maxAttempts } = this.pollConfig(modelId);
+    this.applyRequiredDefaults(input, fields);
     const taskId = await submitTaskWithWebhook(apiKey, modelId, input);
     await waitForCompletion(apiKey, taskId, pollInterval, maxAttempts);
     return downloadResultBytes(apiKey, taskId);
@@ -1256,6 +1257,7 @@ export class KieProvider extends BaseProvider {
     log.debug("Kie imageToImage", { model: modelId, images: imageUrls.length });
 
     const { pollInterval, maxAttempts } = this.pollConfig(modelId);
+    this.applyRequiredDefaults(input, fields);
     const taskId = await submitTaskWithWebhook(apiKey, modelId, input);
     await waitForCompletion(apiKey, taskId, pollInterval, maxAttempts);
     return downloadResultBytes(apiKey, taskId);
@@ -1299,6 +1301,7 @@ export class KieProvider extends BaseProvider {
     log.debug("Kie inpaint", { model: modelId, images: imageUrls.length });
 
     const { pollInterval, maxAttempts } = this.pollConfig(modelId);
+    this.applyRequiredDefaults(input, fields);
     const taskId = await submitTaskWithWebhook(apiKey, modelId, input);
     await waitForCompletion(apiKey, taskId, pollInterval, maxAttempts);
     return downloadResultBytes(apiKey, taskId);

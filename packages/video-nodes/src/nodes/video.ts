@@ -1789,7 +1789,20 @@ export class StabilizeVideoNode extends VideoTransformNode {
     const smoothing = Math.max(1, Number(this.smoothing ?? 10));
     const cropBlack = Boolean(this.crop_black ?? true);
 
-    const deshake = `deshake=smooth=${smoothing}`;
+    // ffmpeg's `deshake` filter has no `smooth` option. Passing one fails the
+    // whole filtergraph with "Error applying option 'smooth' to filter
+    // 'deshake': Option not found", so this node could never run. `smooth`
+    // belongs to vidstabtransform, which needs a libvidstab-enabled ffmpeg we
+    // cannot assume is present. Map the smoothing dial onto deshake's actual
+    // control — the rx/ry search range, which sets how much motion it can
+    // track between frames. deshake rejects a range that is not a multiple of
+    // 16 ("rx must be a multiple of 16"), so snap to the nearest legal step and
+    // keep at least one: rx=0 disables the search entirely.
+    const searchRange = Math.min(
+      64,
+      Math.max(16, Math.round(smoothing / 16) * 16)
+    );
+    const deshake = `deshake=rx=${searchRange}:ry=${searchRange}`;
 
     if (!cropBlack) {
       const transformed = await ffmpegTransform(bytes, [

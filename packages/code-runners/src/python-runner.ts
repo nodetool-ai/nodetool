@@ -1,3 +1,5 @@
+import { delimiter, join } from "node:path";
+import { accessSync, constants } from "node:fs";
 import {
   StreamRunnerBase,
   type StreamRunnerOptions
@@ -26,6 +28,48 @@ export class PythonDockerRunner extends StreamRunnerBase {
     code += userCode;
     return ["python", "-c", code];
   }
+
+  /**
+   * Subprocess mode reuses `buildContainerCommand`, whose `python` is correct
+   * inside `python:3.11-slim` but not on a host. Debian, Ubuntu and macOS ship
+   * only `python3` — no unsuffixed shim — so the container name spawns ENOENT
+   * there. Called on the subprocess path only, so Docker keeps `python`.
+   */
+  override wrapSubprocessCommand(command: string[]): [string[], unknown] {
+    if (command[0] !== "python") return super.wrapSubprocessCommand(command);
+    return super.wrapSubprocessCommand([
+      resolvePythonExecutable(),
+      ...command.slice(1)
+    ]);
+  }
+}
+
+let cachedPythonExecutable: string | undefined;
+
+/**
+ * First of `python`/`python3` present on PATH, preferring the unsuffixed name
+ * so an explicit shim (pyenv, a venv, conda) still wins. Falls back to
+ * `python3` when neither resolves, which gives the clearer error of the two.
+ */
+function resolvePythonExecutable(): string {
+  if (cachedPythonExecutable !== undefined) return cachedPythonExecutable;
+  const dirs = (process.env.PATH ?? "").split(delimiter).filter(Boolean);
+  const suffixes = process.platform === "win32" ? [".exe", ".bat", ""] : [""];
+  for (const name of ["python", "python3"]) {
+    for (const dir of dirs) {
+      for (const suffix of suffixes) {
+        try {
+          accessSync(join(dir, name + suffix), constants.X_OK);
+          cachedPythonExecutable = name;
+          return name;
+        } catch {
+          // Not executable here — keep looking.
+        }
+      }
+    }
+  }
+  cachedPythonExecutable = "python3";
+  return cachedPythonExecutable;
 }
 
 /**
