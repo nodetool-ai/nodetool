@@ -41,6 +41,7 @@
 
 import { pack, unpack } from "msgpackr";
 import { encodeFrame, FrameDecoder } from "../../src/python-bridge-framing.js";
+import { assertValidBridgeFrame } from "./bridge-frame-schemas.js";
 
 const mode = process.env.FAKE_WORKER_MODE ?? "normal";
 const exitOnType = process.env.FAKE_WORKER_EXIT_ON_TYPE;
@@ -59,6 +60,7 @@ function toBuffer(msg: Frame): Buffer {
 
 /** Send one frame, honoring the split-frames fault knob. */
 function sendFrame(msg: Frame): void {
+  assertValidBridgeFrame(msg);
   const frame = toBuffer(msg);
   if (splitFrames) {
     const mid = Math.max(1, Math.floor(frame.length / 2));
@@ -73,6 +75,7 @@ function sendFrame(msg: Frame): void {
 
 /** Send several frames concatenated into a single stdout write. */
 function sendFramesCoalesced(msgs: Frame[]): void {
+  for (const msg of msgs) assertValidBridgeFrame(msg);
   process.stdout.write(Buffer.concat(msgs.map(toBuffer)));
 }
 

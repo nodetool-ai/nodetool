@@ -29,10 +29,12 @@ import {
   autoScript,
   registerProvider,
   listRegisteredProviderIds,
-  type BaseProvider
+  type BaseProvider,
+  type ProviderStreamItem
 } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { NodeExecutor } from "@nodetool-ai/kernel";
+import { chunkSchema } from "@nodetool-ai/protocol";
 
 /** Valid 1x1 transparent PNG — bytes for faked image/media outputs, so
  *  downstream nodes that decode them don't choke. */
@@ -54,6 +56,23 @@ function debug(message: string): void {
 }
 
 // ── Provider faking ─────────────────────────────────────────────────────────
+
+/**
+ * Validate a `Chunk` a fake provider is about to yield against the B1
+ * protocol schema (`packages/protocol/src/messages.ts`) and throw a
+ * descriptive error on mismatch. Called unconditionally — this module only
+ * ever runs in tests, so there is no production cost to always-on validation.
+ * See RELIABILITY_ARCHITECTURE.md §8 point 5 ("Fakes derive from contracts").
+ */
+export function assertValidFakeChunk(chunk: unknown): void {
+  const result = chunkSchema.safeParse(chunk);
+  if (!result.success) {
+    throw new Error(
+      `[fake-runtime] FakeProvider emitted a Chunk that fails processingMessageSchemas.chunk: ${result.error.message}\n` +
+        `Chunk: ${JSON.stringify(chunk)}`
+    );
+  }
+}
 
 /** A provider that returns deterministic scripted responses; ignores kwargs. */
 export class FakeProvider extends ScriptedProvider {
@@ -77,6 +96,24 @@ export class FakeProvider extends ScriptedProvider {
         return inner(messages, tools);
       }
     ]);
+  }
+
+  /**
+   * Validate every yielded `Chunk` (the only `ProcessingMessage`-shaped
+   * payload a fake provider emits — tool calls and session updates carry no
+   * `type: "chunk"` discriminator) against the B1 schema before it reaches
+   * downstream consumers.
+   */
+  override async *generateMessages(
+    args: Parameters<ScriptedProvider["generateMessages"]>[0]
+  ): AsyncGenerator<ProviderStreamItem> {
+    for await (const item of super.generateMessages(args)) {
+      if (typeof item === "object" && item !== null && "type" in item) {
+        const type = (item as { type?: unknown }).type;
+        if (type === "chunk") assertValidFakeChunk(item);
+      }
+      yield item;
+    }
   }
 }
 
