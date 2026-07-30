@@ -63,6 +63,7 @@ export class AudioToChunksNode extends BaseNode {
   static readonly metadataOutputTypes = {
     chunk: "chunk"
   };
+  static readonly outputStreamKinds = { chunk: "audio" } as const;
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     chunk: { kind: "iteration", source: "__execution__", group: "stream" }
   };
@@ -197,6 +198,7 @@ export class AudioOutputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     chunk: "chunk"
   };
+  static readonly outputStreamKinds = { chunk: "audio" } as const;
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["chunk"];
   static readonly isStreamingInput = true;
@@ -241,6 +243,7 @@ export class StreamingGainNode extends BaseNode {
   static readonly metadataOutputTypes = {
     chunk: "chunk"
   };
+  static readonly outputStreamKinds = { chunk: "audio" } as const;
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["chunk"];
   static readonly isStreamingInput = true;
@@ -374,6 +377,7 @@ export class StreamingLowPassNode extends BaseNode {
   static readonly metadataOutputTypes = {
     chunk: "chunk"
   };
+  static readonly outputStreamKinds = { chunk: "audio" } as const;
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["chunk"];
   static readonly isStreamingInput = true;
@@ -432,6 +436,7 @@ export class StreamingHighPassNode extends BaseNode {
   static readonly metadataOutputTypes = {
     chunk: "chunk"
   };
+  static readonly outputStreamKinds = { chunk: "audio" } as const;
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["chunk"];
   static readonly isStreamingInput = true;

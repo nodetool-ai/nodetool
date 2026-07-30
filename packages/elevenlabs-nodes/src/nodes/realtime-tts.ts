@@ -21,6 +21,7 @@ export class RealtimeTextToSpeechNode extends BaseNode {
     "- Low-latency text-to-speech conversion\n" +
     "- Streaming dialogue generation";
   static readonly metadataOutputTypes = { chunk: "chunk" };
+  static readonly outputStreamKinds = { chunk: "audio" } as const;
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["chunk", "voice_id"];
   static readonly requiredSettings = ["ELEVENLABS_API_KEY"];

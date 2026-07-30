@@ -40,6 +40,24 @@ describe("public SDK v1 baseline schemas", () => {
     ).not.toThrow();
   });
 
+  it("accepts an additive workflow output stream kind", () => {
+    const response = structuredClone(
+      fixture.rest.interface.response
+    ) as {
+      outputs: Array<Record<string, unknown>>;
+    };
+    response.outputs[0] = {
+      ...response.outputs[0],
+      stream: true,
+      stream_kind: "audio"
+    };
+
+    expect(workflowInterfaceV1.parse(response).outputs[0]).toMatchObject({
+      stream: true,
+      stream_kind: "audio"
+    });
+  });
+
   it("validates the correlated WebSocket request and response", () => {
     expect(() => sdkV1RpcRequest.parse(fixture.websocket.request)).not.toThrow();
     expect(() =>

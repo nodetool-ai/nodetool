@@ -216,9 +216,12 @@ function getOutputs(nodeClass: NodeClass): OutputSlotMetadata[] {
 
   if (Object.keys(declared).length > 0) {
     for (const [name, typeName] of Object.entries(declared)) {
+      const streamKind = nodeClass.outputStreamKinds?.[name];
       outputs.push({
         name,
-        type: parseTypeString(typeName)
+        type: parseTypeString(typeName),
+        ...(streamKind !== undefined ? { stream: true } : {}),
+        ...(streamKind !== undefined ? { stream_kind: streamKind } : {})
       });
     }
     return outputs;
@@ -230,9 +233,12 @@ function getOutputs(nodeClass: NodeClass): OutputSlotMetadata[] {
     for (const [name, typeName] of Object.entries(
       descriptor.outputs as Record<string, string>
     )) {
+      const streamKind = nodeClass.outputStreamKinds?.[name];
       outputs.push({
         name,
-        type: parseTypeString(typeName)
+        type: parseTypeString(typeName),
+        ...(streamKind !== undefined ? { stream: true } : {}),
+        ...(streamKind !== undefined ? { stream_kind: streamKind } : {})
       });
     }
   }

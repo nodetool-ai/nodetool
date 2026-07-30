@@ -109,6 +109,7 @@ export class OscillatorNode extends BaseNode {
   static readonly description =
     "Voltage-controlled oscillator generating sine, saw, square, triangle or noise audio.\n    audio, synthesis, oscillator, vco, modular\n\n    Pitch CV is volts/octave: freq = frequency * 2^cv (cv in octaves). With pitch_cv or fm patched, output follows that stream's chunk cadence (sample-aligned); otherwise it free-runs wall-clock paced until the run is stopped. Naive waveforms — saw/square alias at high frequencies.\n\n    Use cases:\n    - Sound source for a modular synth voice\n    - FM/vibrato via the fm input driven by an LFO\n    - Melodic sequences via a pitch CV stream";
   static readonly metadataOutputTypes = { chunk: "chunk" };
+  static readonly outputStreamKinds = { chunk: "audio" } as const;
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["pitch_cv", "fm"];
   static readonly isStreamingInput = true;
@@ -289,6 +290,7 @@ export class LfoNode extends BaseNode {
   static readonly description =
     "Low-frequency oscillator emitting a control-voltage stream.\n    cv, synthesis, lfo, modulation, modular\n\n    Output is offset + depth * wave(phase). With a clock patched, emits one chunk per clock chunk (sample-aligned) and resets phase on each clock rising edge; otherwise free-runs wall-clock paced until the run is stopped.\n\n    Use cases:\n    - Vibrato/tremolo via Oscillator fm or VCA cv\n    - Filter sweeps via VCF cutoff_cv\n    - Slow parameter drift in generative patches";
   static readonly metadataOutputTypes = { cv: "cv" };
+  static readonly outputStreamKinds = { cv: "control" } as const;
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["clock"];
   static readonly isStreamingInput = true;
@@ -427,6 +429,7 @@ export class AdsrNode extends BaseNode {
   static readonly description =
     "ADSR envelope generator driven by a gate CV stream.\n    cv, synthesis, envelope, adsr, modular\n\n    Gate edges (threshold 0.5) are detected at exact sample offsets inside chunks; attack/decay/release run as exponential one-pole segments counted in samples, so timing is sample-accurate without any clock. Emits one envelope chunk per gate chunk (same frame count). Retriggering mid-release continues from the current level.\n\n    Use cases:\n    - Amplitude envelope via VCA cv\n    - Filter envelope via VCF cutoff_cv\n    - Click-free gating of any signal";
   static readonly metadataOutputTypes = { cv: "cv" };
+  static readonly outputStreamKinds = { cv: "control" } as const;
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["gate"];
   static readonly isStreamingInput = true;
@@ -524,6 +527,7 @@ export class GateNode extends BaseNode {
   static readonly description =
     "Generates a repeating on/off gate CV pattern — the patch's master clock.\n    cv, synthesis, gate, trigger, clock, modular\n\n    Emits `amplitude` for on_duration seconds, 0 for off_duration, cycling wall-clock paced until the run is stopped. Drive an ADSR with it; every node downstream is sample-aligned to it by construction and paced with it.\n\n    Use cases:\n    - Trigger envelopes rhythmically\n    - Master clock for clocked LFOs and sample & hold\n    - Heartbeat of a live patch";
   static readonly metadataOutputTypes = { cv: "cv" };
+  static readonly outputStreamKinds = { cv: "control" } as const;
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = [];
   static readonly isStreamingInput = true;
@@ -613,6 +617,7 @@ export class VcaNode extends BaseNode {
   static readonly description =
     "Voltage-controlled amplifier: multiplies an audio stream by a CV stream.\n    audio, cv, synthesis, vca, amplifier, modular\n\n    Output = audio * gain * max(0, cv) per sample (negative CV is clamped — a VCA doesn't invert). The audio input drives chunk cadence; the CV is frame-aligned with hold-last when it lags or ends. With nothing patched into cv, acts as a plain gain.\n\n    Use cases:\n    - Shape a note with an ADSR envelope\n    - Tremolo via an LFO\n    - Sidechain-style ducking from any CV source";
   static readonly metadataOutputTypes = { chunk: "chunk" };
+  static readonly outputStreamKinds = { chunk: "audio" } as const;
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio", "cv"];
   static readonly isStreamingInput = true;
@@ -690,6 +695,7 @@ export class VcfNode extends BaseNode {
   static readonly description =
     "Voltage-controlled filter: a biquad whose cutoff is modulated by a CV stream.\n    audio, cv, synthesis, vcf, filter, modular\n\n    Cutoff = cutoff_hz * 2^(cv * cv_amount) (volts/octave), recomputed every 64 samples (control rate); filter state persists across chunks so chunked output equals a single pass. The audio input drives chunk cadence; CV is frame-aligned with hold-last.\n\n    Use cases:\n    - Classic envelope filter sweeps (ADSR → cutoff_cv)\n    - Wah/auto-filter via an LFO\n    - Static tone shaping with nothing patched into cutoff_cv";
   static readonly metadataOutputTypes = { chunk: "chunk" };
+  static readonly outputStreamKinds = { chunk: "audio" } as const;
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio", "cutoff_cv"];
   static readonly isStreamingInput = true;
@@ -825,6 +831,7 @@ export class AttenuverterNode extends BaseNode {
   static readonly description =
     "Scales and offsets a CV (or audio) stream: out = in * scale + offset.\n    cv, synthesis, utility, attenuverter, modular\n\n    Negative scale inverts the signal. The Swiss-army CV utility — adapt an LFO's range to a pitch input, invert an envelope, add a constant bias.\n\n    Use cases:\n    - Reduce LFO depth before a pitch input\n    - Invert an envelope for ducking\n    - Add a DC offset to centre a modulation";
   static readonly metadataOutputTypes = { cv: "cv" };
+  static readonly outputStreamKinds = { cv: "control" } as const;
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["signal"];
   static readonly isStreamingInput = true;
@@ -897,6 +904,7 @@ export class SampleHoldNode extends BaseNode {
   static readonly description =
     "Samples the signal input on each trigger rising edge and holds it.\n    cv, synthesis, sample-hold, modular\n\n    On a trigger rising edge (≥ 0.5) at sample k, the held value becomes signal[k]; the output is the held value every sample. The signal input drives chunk cadence; the trigger is frame-aligned with hold-last.\n\n    Use cases:\n    - Classic random-stepped CV (noise → signal, clock → trigger)\n    - Quantize an LFO into steps\n    - Freeze a modulation value on demand";
   static readonly metadataOutputTypes = { cv: "cv" };
+  static readonly outputStreamKinds = { cv: "control" } as const;
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["signal", "trigger"];
   static readonly isStreamingInput = true;
@@ -960,6 +968,7 @@ export class MixerNode extends BaseNode {
   static readonly description =
     "Sums up to four audio streams with per-input levels.\n    audio, synthesis, mixer, modular\n\n    Output = Σ level_i * in_i, emitted as soon as every still-open input can cover the frames; inputs that have ended contribute silence. The stream ends when all connected inputs end. Assumes matching sample rates and channel counts (no resampling).\n\n    Use cases:\n    - Combine oscillators into a richer voice\n    - Mix a dry signal with a filtered copy\n    - Sub-mix several synth voices";
   static readonly metadataOutputTypes = { chunk: "chunk" };
+  static readonly outputStreamKinds = { chunk: "audio" } as const;
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = [...MIXER_HANDLES];
   static readonly isStreamingInput = true;

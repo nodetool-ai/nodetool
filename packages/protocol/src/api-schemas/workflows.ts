@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { STREAM_KINDS } from "../graph.js";
 
 // ── WorkflowRunMode ──────────────────────────────────────────────────────────
 
@@ -169,7 +170,8 @@ export const workflowInterfaceInputPin = workflowInterfacePin.extend({
 });
 
 export const workflowInterfaceOutputPin = workflowInterfacePin.extend({
-  stream: z.boolean()
+  stream: z.boolean(),
+  stream_kind: z.enum(STREAM_KINDS).optional()
 });
 
 export const workflowInterfaceV1 = z.object({

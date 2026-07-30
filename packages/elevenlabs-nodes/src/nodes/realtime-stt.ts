@@ -20,6 +20,7 @@ export class RealtimeSpeechToTextNode extends BaseNode {
     "- Voice-driven applications\n" +
     "- Interactive transcription with speaker detection";
   static readonly metadataOutputTypes = { chunk: "chunk" };
+  static readonly outputStreamKinds = { chunk: "text" } as const;
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["chunk"];
   static readonly requiredSettings = ["ELEVENLABS_API_KEY"];

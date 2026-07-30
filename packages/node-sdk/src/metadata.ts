@@ -2,7 +2,8 @@ import type {
   InputMode,
   NodeEffect,
   OutputCorrelation,
-  Platform
+  Platform,
+  StreamKind
 } from "@nodetool-ai/protocol";
 import { IS_NODE, importNodeBuiltin } from "@nodetool-ai/config";
 
@@ -64,6 +65,7 @@ export interface OutputSlotMetadata {
   type: TypeMetadata;
   name: string;
   stream?: boolean;
+  stream_kind?: StreamKind;
 }
 
 export interface NodeMetadata {

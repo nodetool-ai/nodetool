@@ -61,6 +61,18 @@ export type OutputKind =
   | "forward"
   | "aggregate";
 
+export const STREAM_KINDS = [
+  "text",
+  "audio",
+  "control",
+  "image",
+  "video",
+  "document",
+  "binary"
+] as const;
+
+export type StreamKind = (typeof STREAM_KINDS)[number];
+
 export type CollapseSpec = "innermost";
 
 export interface OutputCorrelation {

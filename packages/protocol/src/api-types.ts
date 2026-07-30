@@ -6,7 +6,12 @@
  * Used by both the backend HTTP handlers and the frontend stores.
  */
 
-import type { Edge, InputMode, OutputCorrelation } from "./graph.js";
+import type {
+  Edge,
+  InputMode,
+  OutputCorrelation,
+  StreamKind
+} from "./graph.js";
 import type { NodeEffect } from "./platform.js";
 
 // ---------------------------------------------------------------------------
@@ -769,6 +774,7 @@ export interface OutputSlot {
   type: PropertyTypeMetadata;
   name: string;
   stream: boolean;
+  stream_kind?: StreamKind;
 }
 
 /** FAL.ai list price on generated FAL nodes (API / index JSON uses snake_case). */

@@ -245,6 +245,74 @@ describe("deriveWorkflowInterfaceV1", () => {
     expect(result.diagnostics).toEqual([]);
   });
 
+  it("preserves authoritative stream kinds from static and dynamic outputs", () => {
+    const audioSource = metadata("test.AudioStream", "chunk");
+    audioSource.outputs[0] = {
+      ...audioSource.outputs[0]!,
+      stream: true,
+      stream_kind: "audio"
+    };
+
+    const result = deriveWorkflowInterfaceV1({
+      workflowId: "wf-stream-kinds",
+      registry: registry([audioSource]),
+      graph: {
+        nodes: [
+          { id: "audio-source", type: "test.AudioStream" },
+          {
+            id: "dynamic-source",
+            type: "test.DynamicStream",
+            dynamic_outputs: {
+              chunk: {
+                type: "chunk",
+                type_args: [],
+                stream: true,
+                stream_kind: "text"
+              }
+            }
+          },
+          {
+            id: "audio-out",
+            type: "nodetool.output.Output",
+            properties: { name: "audio" }
+          },
+          {
+            id: "text-out",
+            type: "nodetool.output.Output",
+            properties: { name: "text" }
+          }
+        ],
+        edges: [
+          {
+            source: "audio-source",
+            sourceHandle: "output",
+            target: "audio-out",
+            targetHandle: "value"
+          },
+          {
+            source: "dynamic-source",
+            sourceHandle: "chunk",
+            target: "text-out",
+            targetHandle: "value"
+          }
+        ]
+      }
+    });
+
+    expect(result.outputs).toEqual([
+      expect.objectContaining({
+        name: "audio",
+        stream: true,
+        stream_kind: "audio"
+      }),
+      expect.objectContaining({
+        name: "text",
+        stream: true,
+        stream_kind: "text"
+      })
+    ]);
+  });
+
   it("omits image-heavy defaults from the compact interface", () => {
     const nodeType = "nodetool.input.ImageInput";
     const result = deriveWorkflowInterfaceV1({

@@ -4,7 +4,8 @@ import type {
   NodeDescriptor,
   NodeEffect,
   OutputCorrelation,
-  Platform
+  Platform,
+  StreamKind
 } from "@nodetool-ai/protocol";
 import type { NodeExecutor } from "@nodetool-ai/kernel";
 import type {
@@ -122,6 +123,7 @@ export type NodeClass = {
   alwaysEmitOutputUpdates?: boolean;
   inputMode?: InputMode;
   outputCorrelation?: Record<string, OutputCorrelation>;
+  outputStreamKinds?: Partial<Record<string, StreamKind>>;
   supportsDynamicInputs: boolean;
   /**
    * Types a user may pick for a dynamic input slot on this node. Unset means
@@ -272,6 +274,9 @@ export abstract class BaseNode {
   static readonly inputMode: InputMode | undefined = undefined;
   static readonly outputCorrelation:
     | Record<string, OutputCorrelation>
+    | undefined = undefined;
+  static readonly outputStreamKinds:
+    | Partial<Record<string, StreamKind>>
     | undefined = undefined;
   static readonly supportsDynamicInputs: boolean = false;
   /**

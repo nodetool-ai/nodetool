@@ -33,6 +33,12 @@ The current public discovery operations are:
 The same workflow-interface services and authorization rules back all
 transports.
 
+Workflow interface outputs include `stream` and may include an additive
+`stream_kind`: `text`, `audio`, `control`, `image`, `video`, `document`, or
+`binary`. The kind describes the semantic payload so clients can select a
+host adapter; it does not change runner scheduling or delivery. Absence means
+unspecified, and clients must not infer audio from the generic `chunk` type.
+
 ## Current transport behavior
 
 MessagePack is the supported and default SDK encoding on `/ws`. The current

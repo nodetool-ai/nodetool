@@ -22,7 +22,7 @@
       "media_type": "application/schema+json",
       "path": "sdk-v1.discovery.schema.json",
       "profile": "discovery",
-      "sha256": "c012ff82562e22911cc757a51861a77357c9e9768b38dd9ef4bd089496586daa"
+      "sha256": "1ba2aee700a2ed2bd4953b082a08bc19a5a3aec906d0935a0f1530c8daedbfd8"
     }
   ],
   "default_websocket_encoding": "messagepack",

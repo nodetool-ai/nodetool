@@ -145,7 +145,9 @@ describe("mergePythonBridgeMetadata", () => {
         outputs: [
           {
             name: "output",
-            type: { type: "image", type_args: [] }
+            type: { type: "chunk", type_args: [] },
+            stream: true,
+            stream_kind: "audio"
           }
         ],
         required_settings: ["PYTHON_TEST_TOKEN"],
@@ -169,6 +171,14 @@ describe("mergePythonBridgeMetadata", () => {
         {
           name: "items",
           type: { type: "list", type_args: [{ type: "image" }] }
+        }
+      ],
+      outputs: [
+        {
+          name: "output",
+          type: { type: "chunk", type_args: [] },
+          stream: true,
+          stream_kind: "audio"
         }
       ]
     });

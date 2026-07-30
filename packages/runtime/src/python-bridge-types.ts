@@ -1,5 +1,6 @@
 import { EventEmitter } from "node:events";
 
+import type { StreamKind } from "@nodetool-ai/protocol";
 import type { ASRResult } from "./providers/types.js";
 
 export interface NodeMetadataProperty {
@@ -12,6 +13,8 @@ export interface NodeMetadataProperty {
 export interface NodeMetadataOutput {
   name: string;
   type: { type: string; type_args?: Array<{ type: string }> };
+  stream?: boolean;
+  stream_kind?: StreamKind;
 }
 
 export interface PythonNodeMetadata {

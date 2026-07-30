@@ -154,6 +154,44 @@ describe("getOutputs precedence", () => {
       { name: "meta_out", type: { type: "str", type_args: [] } }
     ]);
   });
+
+  it("publishes explicitly declared stream kinds per output", () => {
+    class StreamNode extends BaseNode {
+      static readonly nodeType = "test.StreamNode";
+      static readonly metadataOutputTypes = {
+        audio: "chunk",
+        modulation: "cv",
+        final: "audio"
+      };
+      static readonly outputStreamKinds = {
+        audio: "audio",
+        modulation: "control"
+      } as const;
+
+      async process() {
+        return {};
+      }
+    }
+
+    expect(getNodeMetadata(StreamNode).outputs).toEqual([
+      {
+        name: "audio",
+        type: { type: "chunk", type_args: [] },
+        stream: true,
+        stream_kind: "audio"
+      },
+      {
+        name: "modulation",
+        type: { type: "cv", type_args: [] },
+        stream: true,
+        stream_kind: "control"
+      },
+      {
+        name: "final",
+        type: { type: "audio", type_args: [] }
+      }
+    ]);
+  });
 });
 
 describe("getDecoratedProperties details", () => {

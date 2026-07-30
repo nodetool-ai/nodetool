@@ -776,6 +776,18 @@
                           "stream": {
                             "type": "boolean"
                           },
+                          "stream_kind": {
+                            "enum": [
+                              "text",
+                              "audio",
+                              "control",
+                              "image",
+                              "video",
+                              "document",
+                              "binary"
+                            ],
+                            "type": "string"
+                          },
                           "type": {
                             "$ref": "#/$defs/__schema0"
                           }
@@ -971,6 +983,18 @@
                                 },
                                 "stream": {
                                   "type": "boolean"
+                                },
+                                "stream_kind": {
+                                  "enum": [
+                                    "text",
+                                    "audio",
+                                    "control",
+                                    "image",
+                                    "video",
+                                    "document",
+                                    "binary"
+                                  ],
+                                  "type": "string"
                                 },
                                 "type": {
                                   "$ref": "#/$defs/__schema0"
@@ -1539,6 +1563,18 @@
               "stream": {
                 "type": "boolean"
               },
+              "stream_kind": {
+                "enum": [
+                  "text",
+                  "audio",
+                  "control",
+                  "image",
+                  "video",
+                  "document",
+                  "binary"
+                ],
+                "type": "string"
+              },
               "type": {
                 "$ref": "#/$defs/__schema0"
               }
@@ -1835,6 +1871,18 @@
                     },
                     "stream": {
                       "type": "boolean"
+                    },
+                    "stream_kind": {
+                      "enum": [
+                        "text",
+                        "audio",
+                        "control",
+                        "image",
+                        "video",
+                        "document",
+                        "binary"
+                      ],
+                      "type": "string"
                     },
                     "type": {
                       "$ref": "#/$defs/__schema0"

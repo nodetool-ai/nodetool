@@ -1,3 +1,7 @@
+import {
+  STREAM_KINDS,
+  type StreamKind
+} from "@nodetool-ai/protocol";
 import type { NodeMetadata, TypeMetadata } from "./metadata.js";
 
 export interface WorkflowInterfaceGraphNode {
@@ -51,6 +55,7 @@ export interface WorkflowInterfaceInput extends WorkflowInterfacePin {
 
 export interface WorkflowInterfaceOutput extends WorkflowInterfacePin {
   stream: boolean;
+  stream_kind?: StreamKind;
 }
 
 export interface WorkflowInterfaceV1 {
@@ -97,6 +102,10 @@ function cloneType(type: TypeMetadata): TypeMetadata {
 
 function anyType(): TypeMetadata {
   return { type: "any", optional: false, type_args: [], type_name: null };
+}
+
+function streamKind(value: unknown): StreamKind | undefined {
+  return STREAM_KINDS.find((kind) => kind === value);
 }
 
 function dedicatedOutputType(nodeType: string): TypeMetadata | null {
@@ -206,20 +215,34 @@ function outputTypeForNode(
   node: WorkflowInterfaceGraphNode,
   handle: string,
   registry: WorkflowInterfaceRegistry
-): { type: TypeMetadata; stream: boolean } | null {
+): {
+  type: TypeMetadata;
+  stream: boolean;
+  streamKind?: StreamKind;
+} | null {
   const dynamic = record(node.dynamic_outputs);
   const dynamicType = record(dynamic?.[handle]);
   if (dynamicType && typeof dynamicType.type === "string") {
+    const kind = streamKind(dynamicType.stream_kind);
     return {
       type: cloneType(dynamicType as unknown as TypeMetadata),
-      stream: false
+      stream: dynamicType.stream === true || kind !== undefined,
+      ...(kind !== undefined ? { streamKind: kind } : {})
     };
   }
 
   const nodeType = typeof node.type === "string" ? node.type : "";
   const metadata = registry.resolveMetadata(nodeType);
   const slot = metadata?.outputs.find((output) => output.name === handle);
-  return slot ? { type: cloneType(slot.type), stream: slot.stream ?? false } : null;
+  return slot
+    ? {
+        type: cloneType(slot.type),
+        stream: slot.stream ?? false,
+        ...(slot.stream_kind !== undefined
+          ? { streamKind: slot.stream_kind }
+          : {})
+      }
+    : null;
 }
 
 export function deriveWorkflowInterfaceV1(args: {
@@ -330,7 +353,11 @@ export function deriveWorkflowInterfaceV1(args: {
     }
     outputNames.add(name);
 
-    let resolved: { type: TypeMetadata; stream: boolean } | null = dedicatedType
+    let resolved: {
+      type: TypeMetadata;
+      stream: boolean;
+      streamKind?: StreamKind;
+    } | null = dedicatedType
       ? { type: dedicatedType, stream: false }
       : null;
     let incoming: WorkflowInterfaceGraphEdge[] = [];
@@ -389,13 +416,17 @@ export function deriveWorkflowInterfaceV1(args: {
         pin_name: name
       });
     }
-    outputs.push({
+    const output: WorkflowInterfaceOutput = {
       node_id: nodeId,
       name,
       description: pinText(props.description),
       type: resolved?.type ?? anyType(),
       stream: resolved?.stream ?? false
-    });
+    };
+    if (resolved?.streamKind !== undefined) {
+      output.stream_kind = resolved.streamKind;
+    }
+    outputs.push(output);
   }
 
   return {
