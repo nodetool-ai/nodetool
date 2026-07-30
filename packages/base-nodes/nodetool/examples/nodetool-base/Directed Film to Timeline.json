@@ -114,7 +114,7 @@
         "id": "comment_main",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎬 Directed Film to Timeline\n\nA brief becomes an editable rough cut in one graph:\n\n**1. Direct** — the Director agent turns your brief into a typed screenplay (shots with action, camera, and a shared style bible).\n**2. Fan out** — Screenplay Shots streams one composed prompt per shot.\n**3. Storyboard** — each prompt renders a keyframe still.\n**4. Shoot** — each keyframe is animated into a clip.\n**5. Assemble** — clips are collected, appended to a timeline sequence, and rendered to a single video.\n\nThe rendered timeline is a real editable sequence — reopen it in the timeline editor to trim, reorder, or add audio."
+          "comment": "# \ud83c\udfac Directed Film to Timeline\n\nA brief becomes an editable rough cut in one graph:\n\n**1. Direct** \u2014 the Director agent turns your brief into a typed screenplay (shots with action, camera, and a shared style bible).\n**2. Fan out** \u2014 Screenplay Shots streams one composed prompt per shot.\n**3. Storyboard** \u2014 each prompt renders a keyframe still.\n**4. Shoot** \u2014 each keyframe is animated into a clip.\n**5. Assemble** \u2014 clips are collected, appended to a timeline sequence, and rendered to a single video.\n\nThe rendered timeline is a real editable sequence \u2014 reopen it in the timeline editor to trim, reorder, or add audio."
         },
         "ui_properties": {
           "position": {
@@ -135,7 +135,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "Brief",
-          "value": "A lighthouse keeper discovers the beam of her lamp has started bending toward something beneath the waves — and tonight it refuses to point anywhere else."
+          "value": "A lighthouse keeper discovers the beam of her lamp has started bending toward something beneath the waves \u2014 and tonight it refuses to point anywhere else."
         },
         "ui_properties": {
           "position": {
@@ -144,7 +144,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "1️⃣ Brief",
+          "title": "1\ufe0f\u20e3 Brief",
           "selectable": true,
           "bypassed": false
         },
@@ -177,7 +177,7 @@
           "zIndex": 0,
           "width": 320,
           "height": 320,
-          "title": "2️⃣ Director — write the screenplay",
+          "title": "2\ufe0f\u20e3 Director \u2014 write the screenplay",
           "selectable": true,
           "bypassed": false
         },
@@ -196,7 +196,7 @@
           "zIndex": 0,
           "width": 280,
           "height": 200,
-          "title": "3️⃣ Fan out one prompt per shot",
+          "title": "3\ufe0f\u20e3 Fan out one prompt per shot",
           "selectable": true,
           "bypassed": false
         },
@@ -209,7 +209,7 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "huggingface_fal_ai",
+            "provider": "fal_ai",
             "id": "fal-ai/flux/schnell",
             "name": "FLUX.1 Schnell",
             "path": null,
@@ -229,7 +229,7 @@
           "zIndex": 0,
           "width": 320,
           "height": 320,
-          "title": "4️⃣ Storyboard keyframes",
+          "title": "4\ufe0f\u20e3 Storyboard keyframes",
           "selectable": true,
           "bypassed": false
         },
@@ -263,7 +263,7 @@
           "zIndex": 0,
           "width": 330,
           "height": 240,
-          "title": "5️⃣ Animate each shot",
+          "title": "5\ufe0f\u20e3 Animate each shot",
           "selectable": true,
           "bypassed": false
         },
@@ -282,7 +282,7 @@
           "zIndex": 0,
           "width": 160,
           "height": 140,
-          "title": "6️⃣ Collect the clips",
+          "title": "6\ufe0f\u20e3 Collect the clips",
           "selectable": true,
           "bypassed": false
         },
@@ -309,7 +309,7 @@
           "zIndex": 0,
           "width": 300,
           "height": 220,
-          "title": "7️⃣ Assemble into a timeline",
+          "title": "7\ufe0f\u20e3 Assemble into a timeline",
           "selectable": true,
           "bypassed": false
         },
@@ -335,7 +335,7 @@
           "zIndex": 0,
           "width": 300,
           "height": 200,
-          "title": "8️⃣ Render the rough cut",
+          "title": "8\ufe0f\u20e3 Render the rough cut",
           "selectable": true,
           "bypassed": false
         },
@@ -353,7 +353,7 @@
             "x": 2830,
             "y": 180
           },
-          "title": "🎬 Rough cut",
+          "title": "\ud83c\udfac Rough cut",
           "selectable": true
         },
         "dynamic_properties": {},

@@ -1,0 +1,150 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-30T12:00:00.000Z",
+  "updated_at": "2026-07-30T12:00:00.000Z",
+  "name": "Tidy Up Messy Text",
+  "tool_name": null,
+  "description": "Three cleanups in a row \u2014 collapse runs of whitespace, strip punctuation, then lowercase. The order matters, which is the point of showing it as a chain rather than one node.",
+  "tags": [
+    "text",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "s",
+        "type": "nodetool.constant.String",
+        "data": {
+          "value": "  The   QUICK, brown --- fox!!  "
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Messy"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "cw",
+        "type": "nodetool.text.CollapseWhitespace",
+        "data": {
+          "text": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Collapse spaces"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "rp",
+        "type": "nodetool.text.RemovePunctuation",
+        "data": {
+          "text": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 640,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Strip punctuation"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "lc",
+        "type": "nodetool.text.ToLowercase",
+        "data": {
+          "text": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 960,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Lowercase"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "tidy"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "5  Result"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "s",
+        "sourceHandle": "output",
+        "target": "cw",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e2",
+        "source": "cw",
+        "sourceHandle": "output",
+        "target": "rp",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e3",
+        "source": "rp",
+        "sourceHandle": "output",
+        "target": "lc",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e4",
+        "source": "lc",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

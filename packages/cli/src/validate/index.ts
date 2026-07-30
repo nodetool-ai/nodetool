@@ -5,6 +5,7 @@
  * unit-tested in node-sdk's graph-validation.test.ts.
  */
 import { validateGraph, type GraphValidationReport } from "@nodetool-ai/node-sdk";
+import { listRegisteredProviderIds } from "@nodetool-ai/runtime";
 import { buildFullRegistry } from "../node-registry.js";
 import { resolveTarget } from "../debug/index.js";
 import type { DebugGraph, DebugTargetInfo } from "../debug/types.js";
@@ -24,6 +25,14 @@ export async function runValidate(
 ): Promise<ValidateResult> {
   const resolved = await resolveTarget(ref, deps.loadFromDb);
   const registry = buildFullRegistry();
-  const report = validateGraph(resolved.graph, registry);
+  // Supplied here rather than on NodeRegistry itself: the registry also runs in
+  // the browser, which has no provider registry to reach and should not pull
+  // the runtime into its bundle for this.
+  const report = validateGraph(resolved.graph, {
+    has: (t) => registry.has(t),
+    getMetadata: (t) => registry.getMetadata(t),
+    validateNode: (d, h) => registry.validateNode(d, h),
+    listProviderIds: () => listRegisteredProviderIds()
+  });
   return { target: resolved.info, report };
 }

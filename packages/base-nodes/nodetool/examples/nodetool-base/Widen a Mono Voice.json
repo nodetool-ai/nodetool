@@ -1,0 +1,139 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-30T12:00:00.000Z",
+  "updated_at": "2026-07-30T12:00:00.000Z",
+  "name": "Widen a Mono Voice",
+  "tool_name": null,
+  "description": "Synthesise a mono voice and place it in a stereo field. Most TTS returns mono; anything mixed for stereo playback needs both channels.",
+  "tags": [
+    "audio",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "t",
+        "type": "nodetool.constant.String",
+        "data": {
+          "value": "Stereo is not louder. It is wider."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Line"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "tts",
+        "type": "nodetool.audio.TextToSpeech",
+        "data": {
+          "model": {
+            "type": "tts_model",
+            "provider": "openai",
+            "id": "tts-1",
+            "name": "TTS 1",
+            "path": null,
+            "voices": [
+              "alloy",
+              "echo",
+              "fable",
+              "onyx",
+              "nova",
+              "shimmer"
+            ],
+            "selected_voice": "nova"
+          },
+          "text": "",
+          "speed": 1.0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Speak"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ms",
+        "type": "nodetool.audio.MonoToStereo",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 640,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Mono to stereo"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "wide"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 960,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "t",
+        "sourceHandle": "output",
+        "target": "tts",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e2",
+        "source": "tts",
+        "sourceHandle": "audio",
+        "target": "ms",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e3",
+        "source": "ms",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

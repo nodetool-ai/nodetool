@@ -34,7 +34,10 @@ import { readCachedHfModels, searchCachedHfModels } from "@nodetool-ai/huggingfa
 import { initMasterKey } from "@nodetool-ai/security";
 import { getDefaultDbPath, getDefaultAssetsPath } from "@nodetool-ai/config";
 import { ExecutionSession } from "@nodetool-ai/execution";
-import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import {
+  NodeRegistry,
+  createGraphNodeTypeResolver
+} from "@nodetool-ai/node-sdk";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
 import { registerMinimaxNodes } from "@nodetool-ai/minimax-nodes";
@@ -731,6 +734,12 @@ workflows
         const session = await ExecutionSession.create({
           graph,
           registry,
+          // Registry alone hydrates node flags but not `propertyTypes`, and
+          // correlation analysis reads list-ness only from that map — so a
+          // saved workflow (which never carries it) had every list handle
+          // read as non-list, and legal fan-in into one was rejected before
+          // any node ran. The resolver fills it from node metadata.
+          resolveNodeType: createGraphNodeTypeResolver(registry).resolveNodeType,
           jobId,
           workflowId,
           params,

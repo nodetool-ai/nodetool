@@ -1,0 +1,100 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-30T12:00:00.000Z",
+  "updated_at": "2026-07-30T12:00:00.000Z",
+  "name": "Split a Log into Records",
+  "tool_name": null,
+  "description": "Regex split turns one blob into a list. The pattern is the record boundary, which is often more reliable than a fixed delimiter.",
+  "tags": [
+    "text",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "s",
+        "type": "nodetool.constant.String",
+        "data": {
+          "value": "2026-01-01 boot\n2026-01-02 sync\n2026-01-03 purge"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Log"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "rs",
+        "type": "nodetool.text.RegexSplit",
+        "data": {
+          "text": "",
+          "pattern": "\\n",
+          "maxsplit": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Split on newline"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "records"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 640,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Records"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "s",
+        "sourceHandle": "output",
+        "target": "rs",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e2",
+        "source": "rs",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

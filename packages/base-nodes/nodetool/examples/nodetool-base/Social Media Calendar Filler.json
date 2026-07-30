@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Social Media Calendar Filler",
   "tool_name": null,
-  "description": "Generate a month's worth of social media content as a structured calendar — one row per post with its own image prompt and ready-to-post caption — then render an image for every row.",
+  "description": "Generate a month's worth of social media content as a structured calendar \u2014 one row per post with its own image prompt and ready-to-post caption \u2014 then render an image for every row.",
   "tags": [
     "content",
     "social media",
@@ -135,7 +135,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 📅 Social Media Calendar Filler\n\nTurn a brand brief into a month of posts: one agent call plans the whole calendar as structured rows (day, post type, image prompt, caption) — not a prose blob — then each row's image prompt renders an image and its caption ships as-is.\n\n**Pipeline:** Brand inputs → Plan calendar (structured dataframe) → Extract image prompts / captions per row → Image per post\n\n**Try this:** change posts-per-week or brand voice, or swap the image model. Open the calendar table output to see every row before images render."
+          "comment": "# \ud83d\udcc5 Social Media Calendar Filler\n\nTurn a brand brief into a month of posts: one agent call plans the whole calendar as structured rows (day, post type, image prompt, caption) \u2014 not a prose blob \u2014 then each row's image prompt renders an image and its caption ships as-is.\n\n**Pipeline:** Brand inputs \u2192 Plan calendar (structured dataframe) \u2192 Extract image prompts / captions per row \u2192 Image per post\n\n**Try this:** change posts-per-week or brand voice, or swap the image model. Open the calendar table output to see every row before images render."
         },
         "ui_properties": {
           "selected": false,
@@ -169,7 +169,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "1️⃣ Brand name"
+          "title": "1\ufe0f\u20e3 Brand name"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -191,7 +191,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "5️⃣ Monthly theme"
+          "title": "5\ufe0f\u20e3 Monthly theme"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -213,7 +213,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "4️⃣ Target audience"
+          "title": "4\ufe0f\u20e3 Target audience"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -235,7 +235,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "3️⃣ Brand voice"
+          "title": "3\ufe0f\u20e3 Brand voice"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -259,7 +259,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "2️⃣ Posts per week"
+          "title": "2\ufe0f\u20e3 Posts per week"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -268,7 +268,7 @@
         "id": "calendar_prompt",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "You are a social media content planner for {{brand}}.\n\nBrand voice: {{voice}}\nTarget audience: {{audience}}\nMonthly theme: {{theme}}\nPosting frequency: {{frequency}} posts per week\n\nPlan a full 4-week content calendar — {{frequency}} posts per week times 4 weeks, one row per post. For every post decide:\n- day: the week and day it goes out, e.g. \"Week 1, Monday\"\n- post_type: the format, e.g. tip, behind-the-scenes, customer story, product feature, poll\n- image_prompt: a vivid, specific text-to-image prompt describing the visual — describe subject, scene, and style; no brand names or logos in the prompt\n- caption: the ready-to-post caption in the brand voice, tied to the monthly theme, ending with 3-5 relevant hashtags\n\nRules:\n- Vary post_type across the month; never repeat the same type on two consecutive posts.\n- Every image_prompt must be visually distinct from every other row.\n- Every caption must speak directly to {{audience}}.\n- No placeholder text, no commentary outside the rows."
+          "prompt": "You are a social media content planner for {{brand}}.\n\nBrand voice: {{voice}}\nTarget audience: {{audience}}\nMonthly theme: {{theme}}\nPosting frequency: {{frequency}} posts per week\n\nPlan a full 4-week content calendar \u2014 {{frequency}} posts per week times 4 weeks, one row per post. For every post decide:\n- day: the week and day it goes out, e.g. \"Week 1, Monday\"\n- post_type: the format, e.g. tip, behind-the-scenes, customer story, product feature, poll\n- image_prompt: a vivid, specific text-to-image prompt describing the visual \u2014 describe subject, scene, and style; no brand names or logos in the prompt\n- caption: the ready-to-post caption in the brand voice, tied to the monthly theme, ending with 3-5 relevant hashtags\n\nRules:\n- Vary post_type across the month; never repeat the same type on two consecutive posts.\n- Every image_prompt must be visually distinct from every other row.\n- Every caption must speak directly to {{audience}}.\n- No placeholder text, no commentary outside the rows."
         },
         "ui_properties": {
           "selected": false,
@@ -280,7 +280,7 @@
           "width": 300,
           "selectable": true,
           "bypassed": false,
-          "title": "6️⃣ Build calendar prompt"
+          "title": "6\ufe0f\u20e3 Build calendar prompt"
         },
         "dynamic_properties": {
           "brand": "TechStartup Pro",
@@ -340,7 +340,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "7️⃣ Plan calendar (structured rows)"
+          "title": "7\ufe0f\u20e3 Plan calendar (structured rows)"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -358,7 +358,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "8️⃣ View calendar table",
+          "title": "8\ufe0f\u20e3 View calendar table",
           "selectable": true,
           "bypassed": false
         },
@@ -380,7 +380,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "9️⃣ Extract image prompts"
+          "title": "9\ufe0f\u20e3 Extract image prompts"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -429,7 +429,7 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "huggingface_fal_ai",
+            "provider": "fal_ai",
             "id": "fal-ai/flux/schnell",
             "name": "FLUX.1 Schnell",
             "path": null,
@@ -450,7 +450,7 @@
           "selectable": true,
           "bypassed": false,
           "height": 400,
-          "title": "🔟 Generate post image"
+          "title": "\ud83d\udd1f Generate post image"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}

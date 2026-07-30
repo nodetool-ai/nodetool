@@ -1,0 +1,100 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-30T12:00:00.000Z",
+  "updated_at": "2026-07-30T12:00:00.000Z",
+  "name": "Trim a Blurb to Length",
+  "tool_name": null,
+  "description": "Cap text at a character budget with an ellipsis. The everyday fix for a card or preview that must not overflow.",
+  "tags": [
+    "text",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "s",
+        "type": "nodetool.constant.String",
+        "data": {
+          "value": "A visual editor for building AI workflows that run locally on your own hardware or against cloud APIs, whichever suits the job."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Blurb"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "tr",
+        "type": "nodetool.text.TruncateText",
+        "data": {
+          "text": "",
+          "max_length": 60,
+          "ellipsis": "..."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Truncate to 60"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "blurb"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 640,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Result"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "s",
+        "sourceHandle": "output",
+        "target": "tr",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e2",
+        "source": "tr",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

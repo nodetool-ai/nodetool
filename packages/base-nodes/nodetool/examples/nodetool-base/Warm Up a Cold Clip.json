@@ -1,0 +1,102 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-30T12:00:00.000Z",
+  "updated_at": "2026-07-30T12:00:00.000Z",
+  "name": "Warm Up a Cold Clip",
+  "tool_name": null,
+  "description": "Per-channel colour balance \u2014 lift red, drop blue. A grade you can apply without a GPU, since it runs through ffmpeg rather than a shader.",
+  "tags": [
+    "video",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.VideoInput",
+        "data": {
+          "name": "clip",
+          "value": null,
+          "description": "The clip to warm"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Clip"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "cb",
+        "type": "nodetool.video.ColorBalance",
+        "data": {
+          "red_adjust": 1.15,
+          "green_adjust": 1.0,
+          "blue_adjust": 0.85
+        },
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Warm grade"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "graded"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 640,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Result"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "cb",
+        "targetHandle": "video"
+      },
+      {
+        "id": "e2",
+        "source": "cb",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

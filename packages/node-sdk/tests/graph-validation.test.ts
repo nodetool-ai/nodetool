@@ -521,3 +521,58 @@ describe("validationHeadline", () => {
     ).toContain("2 error");
   });
 });
+
+describe("unknown_provider", () => {
+  const registry = {
+    has: () => true,
+    getMetadata: () => ({ properties: [], outputs: [] }) as never,
+    validateNode: () => [],
+    listProviderIds: () => ["fal_ai", "openai"]
+  };
+  const graphWith = (provider: string) => ({
+    nodes: [
+      {
+        id: "n",
+        type: "nodetool.image.TextToImage",
+        data: { model: { type: "image_model", provider, id: "x" } }
+      }
+    ],
+    edges: []
+  });
+
+  it("flags a provider the runtime cannot construct", () => {
+    const report = validateGraph(graphWith("huggingface_fal_ai"), registry);
+    const issue = report.issues.find((i) => i.code === "unknown_provider");
+    expect(issue?.message).toContain("huggingface_fal_ai");
+  });
+
+  it("accepts a registered provider", () => {
+    const report = validateGraph(graphWith("fal_ai"), registry);
+    expect(report.issues.some((i) => i.code === "unknown_provider")).toBe(false);
+  });
+
+  // Without the list there is nothing to check against; guessing would flag
+  // every model in the graph.
+  it("skips the check when the caller supplies no provider list", () => {
+    const { listProviderIds: _omit, ...noProviders } = registry;
+    const report = validateGraph(graphWith("huggingface_fal_ai"), noProviders);
+    expect(report.issues.some((i) => i.code === "unknown_provider")).toBe(false);
+  });
+
+  it("ignores non-model objects that carry a provider field", () => {
+    const report = validateGraph(
+      {
+        nodes: [
+          {
+            id: "n",
+            type: "x",
+            data: { cfg: { type: "settings", provider: "whatever" } }
+          }
+        ],
+        edges: []
+      },
+      registry
+    );
+    expect(report.issues.some((i) => i.code === "unknown_provider")).toBe(false);
+  });
+});

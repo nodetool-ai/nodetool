@@ -34,6 +34,19 @@ export function coerceToDeclaredType(
   value: unknown,
   declaredType: string
 ): unknown {
+  // A URI string standing in for an asset ref. Callers reach for the plain
+  // string — `--params '{"clip":"file:///clip.mp4"}'`, a REST body, a webhook
+  // payload — and without this the ref stays empty, the node reads no bytes,
+  // and the run reports success carrying a zero-valued result. Only strings
+  // with a scheme convert, so a prompt or a caption is never mistaken for a
+  // location.
+  if (
+    typeof value === "string" &&
+    ASSET_REF_TYPES.has(declaredType) &&
+    URI_WITH_SCHEME.test(value)
+  ) {
+    return { type: declaredType, uri: value };
+  }
   if (
     value !== null &&
     value !== undefined &&
@@ -44,6 +57,22 @@ export function coerceToDeclaredType(
   }
   return value;
 }
+
+/**
+ * Declared types whose runtime value is an asset reference — a tagged object
+ * carrying `uri`/`asset_id`/`data` rather than a bare scalar.
+ */
+const ASSET_REF_TYPES = new Set([
+  "image",
+  "video",
+  "audio",
+  "document",
+  "folder",
+  "model_3d"
+]);
+
+/** `file://`, `https://`, `asset://`, `data:` and the like. */
+const URI_WITH_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
 
 /**
  * Coerce a value against a typed dynamic slot's declared type. Slots with no

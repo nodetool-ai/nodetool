@@ -5,7 +5,7 @@
   "updated_at": "2026-07-01T00:00:00.000000",
   "name": "SEO Content Engine",
   "tool_name": null,
-  "description": "One topic in, a keyword-targeted article batch out — each article lands as typed fields (title, meta description, keywords, body) instead of one markdown blob, ready to paste straight into a CMS. A strategist agent plans the topic cluster, a list generator turns it into briefs, and every brief becomes a full article with an editorial hero image.",
+  "description": "One topic in, a keyword-targeted article batch out \u2014 each article lands as typed fields (title, meta description, keywords, body) instead of one markdown blob, ready to paste straight into a CMS. A strategist agent plans the topic cluster, a list generator turns it into briefs, and every brief becomes a full article with an editorial hero image.",
   "tags": [
     "seo",
     "content",
@@ -222,7 +222,7 @@
         "id": "comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 📈 SEO Content Engine\n\nOne topic in, a keyword-targeted article batch out — each article comes back as separate title, meta description, keyword list, and body fields (not one markdown blob), ready to drop into a CMS. A strategist agent plans the topic cluster, a list generator turns it into briefs, and every brief becomes a full article with an editorial hero image.\n\n**Pipeline:** Business + Seed topics → Strategist → Briefs → Articles (typed fields) + Hero images\n\n**Try this:** pick the language and image models, then raise the article count or point the seed topics at the next cluster."
+          "comment": "# \ud83d\udcc8 SEO Content Engine\n\nOne topic in, a keyword-targeted article batch out \u2014 each article comes back as separate title, meta description, keyword list, and body fields (not one markdown blob), ready to drop into a CMS. A strategist agent plans the topic cluster, a list generator turns it into briefs, and every brief becomes a full article with an editorial hero image.\n\n**Pipeline:** Business + Seed topics \u2192 Strategist \u2192 Briefs \u2192 Articles (typed fields) + Hero images\n\n**Try this:** pick the language and image models, then raise the article count or point the seed topics at the next cluster."
         },
         "ui_properties": {
           "position": {
@@ -243,7 +243,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "business",
-          "value": "Aurora Gear — a DTC shop for ultralight hiking equipment. The blog lives at auroragear.example/guides and supports the trail-gear collection pages.",
+          "value": "Aurora Gear \u2014 a DTC shop for ultralight hiking equipment. The blog lives at auroragear.example/guides and supports the trail-gear collection pages.",
           "description": "Who is publishing, and which pages the articles should support"
         },
         "ui_properties": {
@@ -253,7 +253,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "1️⃣ Business & site",
+          "title": "1\ufe0f\u20e3 Business & site",
           "selectable": true,
           "bypassed": false
         },
@@ -275,7 +275,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "2️⃣ Audience & seed topics",
+          "title": "2\ufe0f\u20e3 Audience & seed topics",
           "selectable": true,
           "bypassed": false
         },
@@ -299,7 +299,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "3️⃣ Article count",
+          "title": "3\ufe0f\u20e3 Article count",
           "selectable": true,
           "bypassed": false
         },
@@ -310,7 +310,7 @@
         "id": "plan_prompt",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "You are planning organic-search content for this business.\n\nBusiness: {{ BUSINESS }}\nAudience and seed topics: {{ SEEDS }}\nArticles to produce: {{ COUNT }}\n\nReturn a content plan in Markdown, no commentary:\n\nCluster: the one topic cluster these articles should own, and the money pages they support.\nKeywords: {{ COUNT }} primary keywords — each a real phrase this audience searches, one line each with intent (informational, comparison, transactional) and the searcher's actual question.\nCoverage: how the {{ COUNT }} articles divide the cluster without competing with each other.\nVoice: 2-3 lines on the tone and point of view that make this business worth reading over the top-ten listicles."
+          "prompt": "You are planning organic-search content for this business.\n\nBusiness: {{ BUSINESS }}\nAudience and seed topics: {{ SEEDS }}\nArticles to produce: {{ COUNT }}\n\nReturn a content plan in Markdown, no commentary:\n\nCluster: the one topic cluster these articles should own, and the money pages they support.\nKeywords: {{ COUNT }} primary keywords \u2014 each a real phrase this audience searches, one line each with intent (informational, comparison, transactional) and the searcher's actual question.\nCoverage: how the {{ COUNT }} articles divide the cluster without competing with each other.\nVoice: 2-3 lines on the tone and point of view that make this business worth reading over the top-ten listicles."
         },
         "ui_properties": {
           "position": {
@@ -325,7 +325,7 @@
           "bypassed": false
         },
         "dynamic_properties": {
-          "BUSINESS": "Aurora Gear — a DTC shop for ultralight hiking equipment. The blog lives at auroragear.example/guides and supports the trail-gear collection pages.",
+          "BUSINESS": "Aurora Gear \u2014 a DTC shop for ultralight hiking equipment. The blog lives at auroragear.example/guides and supports the trail-gear collection pages.",
           "SEEDS": "beginner hikers researching their first serious gear; seed topics: ultralight backpacking basics, trail runners vs hiking boots, multi-day packing lists",
           "COUNT": "4"
         },
@@ -362,7 +362,7 @@
           "zIndex": 0,
           "width": 330,
           "height": 350,
-          "title": "4️⃣ Plan the keyword cluster",
+          "title": "4\ufe0f\u20e3 Plan the keyword cluster",
           "selectable": true,
           "bypassed": false
         },
@@ -383,7 +383,7 @@
           "zIndex": 0,
           "width": 300,
           "height": 220,
-          "title": "🗺️ Content plan",
+          "title": "\ud83d\uddfa\ufe0f Content plan",
           "selectable": true,
           "bypassed": false
         },
@@ -394,7 +394,7 @@
         "id": "briefs_prompt",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "From this content plan, write exactly {{ COUNT }} article briefs, one per line — no numbering, no labels.\n\nEach line: working title | primary keyword | search intent | the 3-4 H2 sections the article needs | the one thing the reader must be able to do after reading.\n\nPlan:\n{{ PLAN }}"
+          "prompt": "From this content plan, write exactly {{ COUNT }} article briefs, one per line \u2014 no numbering, no labels.\n\nEach line: working title | primary keyword | search intent | the 3-4 H2 sections the article needs | the one thing the reader must be able to do after reading.\n\nPlan:\n{{ PLAN }}"
         },
         "ui_properties": {
           "position": {
@@ -437,7 +437,7 @@
           "zIndex": 0,
           "width": 330,
           "height": 245,
-          "title": "5️⃣ Generate article briefs",
+          "title": "5\ufe0f\u20e3 Generate article briefs",
           "selectable": true,
           "bypassed": false
         },
@@ -448,7 +448,7 @@
         "id": "article_prompt",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "Write the full article for this brief.\n\nBrief: {{ BRIEF }}\nPublishing business: {{ BUSINESS }}\n\nRules for the body:\n- 900-1200 words. Use the brief's H2 sections; add H3s where they help scanning.\n- Answer the searcher's question in the first two sentences, then earn the depth.\n- Concrete numbers, steps, and examples over generalities. First-hand point of view where credible.\n- The primary keyword appears where it belongs — write for the reader, not the crawler.\n- End with a short FAQ (3 questions) and one unforced call to action for the business."
+          "prompt": "Write the full article for this brief.\n\nBrief: {{ BRIEF }}\nPublishing business: {{ BUSINESS }}\n\nRules for the body:\n- 900-1200 words. Use the brief's H2 sections; add H3s where they help scanning.\n- Answer the searcher's question in the first two sentences, then earn the depth.\n- Concrete numbers, steps, and examples over generalities. First-hand point of view where credible.\n- The primary keyword appears where it belongs \u2014 write for the reader, not the crawler.\n- End with a short FAQ (3 questions) and one unforced call to action for the business."
         },
         "ui_properties": {
           "position": {
@@ -464,7 +464,7 @@
         },
         "dynamic_properties": {
           "BRIEF": "",
-          "BUSINESS": "Aurora Gear — a DTC shop for ultralight hiking equipment. The blog lives at auroragear.example/guides and supports the trail-gear collection pages."
+          "BUSINESS": "Aurora Gear \u2014 a DTC shop for ultralight hiking equipment. The blog lives at auroragear.example/guides and supports the trail-gear collection pages."
         },
         "dynamic_outputs": {}
       },
@@ -480,7 +480,7 @@
             "path": null,
             "supported_tasks": []
           },
-          "system": "You are a senior content writer for organic search. You write like an expert practitioner sharing what works, never like a content mill. Specific, useful, zero filler.\n\nOutput Format\n- Return a single JSON object matching the defined output schema — `title`, `meta_description`, `keywords`, and `body` are separate fields, never merged into one string.\n- `title`: the article's H1, plain text, no Markdown syntax, no surrounding quotes.\n- `meta_description`: a 150-160 character search-result snippet that earns the click, written in sentence case.\n- `keywords`: 3-6 keyword phrases as an array of strings, primary keyword first.\n- `body`: the full article body as Markdown, starting at H2 (no title line, no meta line, no keyword list) — follow the rules given in the brief.",
+          "system": "You are a senior content writer for organic search. You write like an expert practitioner sharing what works, never like a content mill. Specific, useful, zero filler.\n\nOutput Format\n- Return a single JSON object matching the defined output schema \u2014 `title`, `meta_description`, `keywords`, and `body` are separate fields, never merged into one string.\n- `title`: the article's H1, plain text, no Markdown syntax, no surrounding quotes.\n- `meta_description`: a 150-160 character search-result snippet that earns the click, written in sentence case.\n- `keywords`: 3-6 keyword phrases as an array of strings, primary keyword first.\n- `body`: the full article body as Markdown, starting at H2 (no title line, no meta line, no keyword list) \u2014 follow the rules given in the brief.",
           "audio": {
             "type": "audio",
             "uri": "",
@@ -499,7 +499,7 @@
           "zIndex": 0,
           "width": 330,
           "height": 350,
-          "title": "6️⃣ Write the articles",
+          "title": "6\ufe0f\u20e3 Write the articles",
           "selectable": true,
           "bypassed": false
         },
@@ -547,7 +547,7 @@
           "zIndex": 0,
           "width": 320,
           "height": 110,
-          "title": "📌 Article titles",
+          "title": "\ud83d\udccc Article titles",
           "selectable": true,
           "bypassed": false
         },
@@ -568,7 +568,7 @@
           "zIndex": 0,
           "width": 320,
           "height": 110,
-          "title": "🏷️ Meta descriptions",
+          "title": "\ud83c\udff7\ufe0f Meta descriptions",
           "selectable": true,
           "bypassed": false
         },
@@ -589,7 +589,7 @@
           "zIndex": 0,
           "width": 320,
           "height": 140,
-          "title": "🔑 Keywords",
+          "title": "\ud83d\udd11 Keywords",
           "selectable": true,
           "bypassed": false
         },
@@ -610,7 +610,7 @@
           "zIndex": 0,
           "width": 380,
           "height": 420,
-          "title": "📄 Article bodies",
+          "title": "\ud83d\udcc4 Article bodies",
           "selectable": true,
           "bypassed": false
         },
@@ -621,7 +621,7 @@
         "id": "hero_prompt",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "Editorial hero image for a blog article, 16:9.\n\nArticle brief: {{ BRIEF }}\n\nOne clear photographic scene that shows the article's subject in the real world — natural light, believable setting, room on one side for a headline overlay. Magazine photo-essay quality. No on-screen text, no logos, no watermarks, no illustration style, no distorted anatomy."
+          "prompt": "Editorial hero image for a blog article, 16:9.\n\nArticle brief: {{ BRIEF }}\n\nOne clear photographic scene that shows the article's subject in the real world \u2014 natural light, believable setting, room on one side for a headline overlay. Magazine photo-essay quality. No on-screen text, no logos, no watermarks, no illustration style, no distorted anatomy."
         },
         "ui_properties": {
           "position": {
@@ -646,7 +646,7 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "huggingface_fal_ai",
+            "provider": "fal_ai",
             "id": "fal-ai/flux/schnell",
             "name": "FLUX.1 Schnell",
             "path": null,
@@ -665,7 +665,7 @@
           "zIndex": 0,
           "width": 320,
           "height": 340,
-          "title": "7️⃣ Render hero images",
+          "title": "7\ufe0f\u20e3 Render hero images",
           "selectable": true,
           "bypassed": false
         },
@@ -686,7 +686,7 @@
           "zIndex": 0,
           "width": 360,
           "height": 380,
-          "title": "🖼️ Hero images",
+          "title": "\ud83d\uddbc\ufe0f Hero images",
           "selectable": true,
           "bypassed": false
         },

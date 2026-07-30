@@ -1,0 +1,191 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-30T12:00:00.000Z",
+  "updated_at": "2026-07-30T12:00:00.000Z",
+  "name": "Name a File from Its Narration",
+  "tool_name": null,
+  "description": "Transcribe a clip and turn the first words into a URL-safe slug. A small chain that shows speech becoming a filename rather than a document.",
+  "tags": [
+    "audio",
+    "text",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.VideoInput",
+        "data": {
+          "name": "clip",
+          "value": null,
+          "description": "The clip to name"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Clip"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ex",
+        "type": "nodetool.video.ExtractAudio",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Extract audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "asr",
+        "type": "nodetool.text.AutomaticSpeechRecognition",
+        "data": {
+          "model": {
+            "type": "asr_model",
+            "provider": "openai",
+            "id": "gpt-4o-mini-transcribe",
+            "name": "GPT-4o Mini Transcribe",
+            "path": null
+          },
+          "language": "en",
+          "prompt": "",
+          "temperature": 0.0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 640,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Transcribe"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "tr",
+        "type": "nodetool.text.TruncateText",
+        "data": {
+          "text": "",
+          "max_length": 60,
+          "ellipsis": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 960,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  First 60 chars"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "sl",
+        "type": "nodetool.text.Slugify",
+        "data": {
+          "text": "",
+          "separator": "-",
+          "lowercase": true,
+          "allow_unicode": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "5  Slugify"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "slug"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "6  Slug"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "ex",
+        "targetHandle": "video"
+      },
+      {
+        "id": "e2",
+        "source": "ex",
+        "sourceHandle": "output",
+        "target": "asr",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e3",
+        "source": "asr",
+        "sourceHandle": "text",
+        "target": "tr",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e4",
+        "source": "tr",
+        "sourceHandle": "output",
+        "target": "sl",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e5",
+        "source": "sl",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

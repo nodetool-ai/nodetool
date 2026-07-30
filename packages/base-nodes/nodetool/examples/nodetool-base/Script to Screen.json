@@ -334,7 +334,7 @@
         "id": "comment_main",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎬 Script to Screen\n\nThe full production spine in one graph:\n\n**1. Direction** — a Director agent turns your brief into a direction document: characters with fixed descriptors, a style bible, a numbered shot list, narration, and music direction.\n**2. Storyboard** — a style frame anchors every keyframe (image-to-image), so characters and grade stay consistent. Keyframes cost cents; check them before the video spend.\n**3. Shoot** — each keyframe is animated with its shot's motion direction.\n**4. Post** — clips are cut together, then narration and music are mixed in.\n\n**Cost control:** bypass the Animate node (right-click → Bypass) to iterate on direction and storyboard cheaply. Re-enable it when the stills look right."
+          "comment": "# \ud83c\udfac Script to Screen\n\nThe full production spine in one graph:\n\n**1. Direction** \u2014 a Director agent turns your brief into a direction document: characters with fixed descriptors, a style bible, a numbered shot list, narration, and music direction.\n**2. Storyboard** \u2014 a style frame anchors every keyframe (image-to-image), so characters and grade stay consistent. Keyframes cost cents; check them before the video spend.\n**3. Shoot** \u2014 each keyframe is animated with its shot's motion direction.\n**4. Post** \u2014 clips are cut together, then narration and music are mixed in.\n\n**Cost control:** bypass the Animate node (right-click \u2192 Bypass) to iterate on direction and storyboard cheaply. Re-enable it when the stills look right."
         },
         "ui_properties": {
           "position": {
@@ -355,7 +355,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "Brief",
-          "value": "A lighthouse keeper discovers the beam of her lamp has started bending toward something beneath the waves — and tonight it refuses to point anywhere else."
+          "value": "A lighthouse keeper discovers the beam of her lamp has started bending toward something beneath the waves \u2014 and tonight it refuses to point anywhere else."
         },
         "ui_properties": {
           "position": {
@@ -364,7 +364,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "1️⃣ Brief",
+          "title": "1\ufe0f\u20e3 Brief",
           "selectable": true,
           "bypassed": false
         },
@@ -385,7 +385,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "2️⃣ Visual style",
+          "title": "2\ufe0f\u20e3 Visual style",
           "selectable": true,
           "bypassed": false
         },
@@ -406,7 +406,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "3️⃣ Shot count",
+          "title": "3\ufe0f\u20e3 Shot count",
           "selectable": true,
           "bypassed": false
         },
@@ -417,7 +417,7 @@
         "id": "director_prompt",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "You are directing a short film. Write a complete DIRECTION DOCUMENT for this brief.\n\nBrief: {{ BRIEF }}\nVisual style: {{ STYLE }}\nShot count: {{ COUNT }}\n\nReturn Markdown with exactly these sections:\n\n## TITLE\nOne evocative title.\n\n## LOGLINE\nOne sentence.\n\n## CHARACTERS\nEach recurring character or subject on its own line as `Name: <one fixed visual descriptor sentence>`. These exact descriptor sentences will be pasted into every shot prompt, so make them concrete: age, build, hair, wardrobe, distinguishing detail.\n\n## STYLE BIBLE\n3-4 lines: palette, light, lens, texture. Consistent with the visual style above.\n\n## SHOT LIST\nExactly {{ COUNT }} numbered shots. Each shot is one line: `N. VISUAL: <subject + setting, reusing the exact character descriptors> | CAMERA: <framing, lens, angle> | MOTION: <what moves in the shot, including camera movement>`.\n\n## NARRATION\nA voiceover script read over the whole film — about 2 seconds of speech per shot, written to land against the shot order. Plain sentences, no headings.\n\n## MUSIC\nOne line describing the score: genre, mood, instrumentation, tempo."
+          "prompt": "You are directing a short film. Write a complete DIRECTION DOCUMENT for this brief.\n\nBrief: {{ BRIEF }}\nVisual style: {{ STYLE }}\nShot count: {{ COUNT }}\n\nReturn Markdown with exactly these sections:\n\n## TITLE\nOne evocative title.\n\n## LOGLINE\nOne sentence.\n\n## CHARACTERS\nEach recurring character or subject on its own line as `Name: <one fixed visual descriptor sentence>`. These exact descriptor sentences will be pasted into every shot prompt, so make them concrete: age, build, hair, wardrobe, distinguishing detail.\n\n## STYLE BIBLE\n3-4 lines: palette, light, lens, texture. Consistent with the visual style above.\n\n## SHOT LIST\nExactly {{ COUNT }} numbered shots. Each shot is one line: `N. VISUAL: <subject + setting, reusing the exact character descriptors> | CAMERA: <framing, lens, angle> | MOTION: <what moves in the shot, including camera movement>`.\n\n## NARRATION\nA voiceover script read over the whole film \u2014 about 2 seconds of speech per shot, written to land against the shot order. Plain sentences, no headings.\n\n## MUSIC\nOne line describing the score: genre, mood, instrumentation, tempo."
         },
         "ui_properties": {
           "position": {
@@ -450,7 +450,7 @@
             "path": null,
             "supported_tasks": []
           },
-          "system": "You are a film director and screenwriter. You write tight, concrete direction documents. Every line is visual and specific — no vague adjectives, no meta commentary. You keep character descriptors identical wherever they recur.",
+          "system": "You are a film director and screenwriter. You write tight, concrete direction documents. Every line is visual and specific \u2014 no vague adjectives, no meta commentary. You keep character descriptors identical wherever they recur.",
           "max_tokens": 100000
         },
         "ui_properties": {
@@ -461,7 +461,7 @@
           "zIndex": 0,
           "width": 330,
           "height": 360,
-          "title": "4️⃣ Director — write the direction",
+          "title": "4\ufe0f\u20e3 Director \u2014 write the direction",
           "selectable": true,
           "bypassed": false
         },
@@ -479,7 +479,7 @@
             "x": 1160,
             "y": -60
           },
-          "title": "📋 Direction document",
+          "title": "\ud83d\udccb Direction document",
           "selectable": true
         },
         "dynamic_properties": {},
@@ -497,7 +497,7 @@
             "path": null,
             "supported_tasks": []
           },
-          "instructions": "The context is a film direction document. Extract three fields:\n- narration: the full NARRATION section verbatim, as one block of plain text with no headings.\n- music_prompt: the MUSIC line as a single music-generation prompt (genre, mood, instrumentation, tempo). Instrumental only — state 'instrumental, no vocals'.\n- style_frame_prompt: one text-to-image prompt for a single 16:9 master style frame that establishes the film's world: the main character (exact descriptor from CHARACTERS), the key location, and the STYLE BIBLE's palette and light. No text, no titles, no watermark.",
+          "instructions": "The context is a film direction document. Extract three fields:\n- narration: the full NARRATION section verbatim, as one block of plain text with no headings.\n- music_prompt: the MUSIC line as a single music-generation prompt (genre, mood, instrumentation, tempo). Instrumental only \u2014 state 'instrumental, no vocals'.\n- style_frame_prompt: one text-to-image prompt for a single 16:9 master style frame that establishes the film's world: the main character (exact descriptor from CHARACTERS), the key location, and the STYLE BIBLE's palette and light. No text, no titles, no watermark.",
           "context": "",
           "max_tokens": 4096
         },
@@ -509,7 +509,7 @@
           "zIndex": 0,
           "width": 300,
           "height": 300,
-          "title": "5️⃣ Extract production data",
+          "title": "5\ufe0f\u20e3 Extract production data",
           "selectable": true,
           "bypassed": false
         },
@@ -538,7 +538,7 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "huggingface_fal_ai",
+            "provider": "fal_ai",
             "id": "fal-ai/flux/schnell",
             "name": "FLUX.1 Schnell",
             "path": null,
@@ -557,7 +557,7 @@
           "zIndex": 0,
           "width": 300,
           "height": 320,
-          "title": "6️⃣ Master style frame",
+          "title": "6\ufe0f\u20e3 Master style frame",
           "selectable": true,
           "bypassed": false
         },
@@ -610,7 +610,7 @@
           "zIndex": 0,
           "width": 300,
           "height": 240,
-          "title": "7️⃣ Stream the shots",
+          "title": "7\ufe0f\u20e3 Stream the shots",
           "selectable": true,
           "bypassed": false
         },
@@ -647,7 +647,7 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "huggingface_fal_ai",
+            "provider": "fal_ai",
             "id": "fal-ai/flux/schnell",
             "name": "FLUX.1 Schnell",
             "path": null,
@@ -667,7 +667,7 @@
           "zIndex": 0,
           "width": 320,
           "height": 340,
-          "title": "8️⃣ Storyboard keyframes (anchored to style frame)",
+          "title": "8\ufe0f\u20e3 Storyboard keyframes (anchored to style frame)",
           "selectable": true,
           "bypassed": false
         },
@@ -703,7 +703,7 @@
             "x": 2880,
             "y": 80
           },
-          "title": "🖼️ Storyboard — approve before video spend",
+          "title": "\ud83d\uddbc\ufe0f Storyboard \u2014 approve before video spend",
           "selectable": true
         },
         "dynamic_properties": {},
@@ -758,7 +758,7 @@
           "zIndex": 0,
           "width": 330,
           "height": 240,
-          "title": "9️⃣ Animate each shot (the expensive step)",
+          "title": "9\ufe0f\u20e3 Animate each shot (the expensive step)",
           "selectable": true,
           "bypassed": false
         },
@@ -795,7 +795,7 @@
           "zIndex": 0,
           "width": 300,
           "height": 240,
-          "title": "🎞️ Cut the shots together",
+          "title": "\ud83c\udf9e\ufe0f Cut the shots together",
           "selectable": true,
           "bypassed": false
         },
@@ -834,7 +834,7 @@
           "zIndex": 0,
           "width": 300,
           "height": 220,
-          "title": "🎙️ Narration",
+          "title": "\ud83c\udf99\ufe0f Narration",
           "selectable": true,
           "bypassed": false
         },
@@ -863,7 +863,7 @@
           "zIndex": 0,
           "width": 300,
           "height": 240,
-          "title": "🎵 Score",
+          "title": "\ud83c\udfb5 Score",
           "selectable": true,
           "bypassed": false
         },
@@ -925,7 +925,7 @@
             "x": 4350,
             "y": 560
           },
-          "title": "🎬 Final film",
+          "title": "\ud83c\udfac Final film",
           "selectable": true
         },
         "dynamic_properties": {},

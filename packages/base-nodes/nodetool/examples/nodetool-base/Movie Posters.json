@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T22:36:58.355Z",
   "name": "Movie Posters",
   "tool_name": null,
-  "description": "Turn a title, genre, and visual style into finished theatrical one-sheet posters. An art-direction agent first writes a key-art brief (positioning, palette, typography), which drives every generated poster — the differentiator is the agent-authored creative strategy, not a raw prompt.",
+  "description": "Turn a title, genre, and visual style into finished theatrical one-sheet posters. An art-direction agent first writes a key-art brief (positioning, palette, typography), which drives every generated poster \u2014 the differentiator is the agent-authored creative strategy, not a raw prompt.",
   "tags": [
     "start",
     "image",
@@ -217,7 +217,7 @@
                       "format": 0,
                       "mode": "normal",
                       "style": "",
-                      "text": "🎬 Movie Posters",
+                      "text": "\ud83c\udfac Movie Posters",
                       "type": "text",
                       "version": 1
                     }
@@ -236,7 +236,7 @@
                       "format": 0,
                       "mode": "normal",
                       "style": "",
-                      "text": "From a title, genre, and visual style, design a batch of theatrical poster concepts. An art-direction agent writes the key-art brief — positioning, palette, typography — and that brief drives every poster the image model renders.",
+                      "text": "From a title, genre, and visual style, design a batch of theatrical poster concepts. An art-direction agent writes the key-art brief \u2014 positioning, palette, typography \u2014 and that brief drives every poster the image model renders.",
                       "type": "text",
                       "version": 1
                     }
@@ -265,7 +265,7 @@
                       "format": 0,
                       "mode": "normal",
                       "style": "",
-                      "text": " Title / Genre / Style → Art-direction agent → Poster concepts → Text-to-Image",
+                      "text": " Title / Genre / Style \u2192 Art-direction agent \u2192 Poster concepts \u2192 Text-to-Image",
                       "type": "text",
                       "version": 1
                     }
@@ -334,7 +334,7 @@
         "id": "strategy_prompt_formatter",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "You are the art director on a major studio's key-art team.\n\nFilm brief:\n- Title: {{ MOVIE_TITLE }}\n- Genre: {{ GENRE }}\n- Visual style: {{ STYLE }}\n\nDesign the theatrical one-sheet strategy. Commit to bold, specific choices that fit the genre and honor the requested visual style. Return only Markdown, no preamble, with exactly these sections:\n\nPositioning: one or two sentences on the promise the poster must make at a glance.\n\nAudience Insight: who is pulled toward this film and the emotional hook that lands them.\n\nCore Visual Concept: the single big-idea image the poster is built around — the hero subject, its symbolism, and the frozen moment.\n\nDesign:\n- Color Palette: up to 5 swatches, each as Name + #hex + the emotion it carries.\n- Imagery: hero focus, composition, and lighting.\n- Typography: title font family plus its texture and mood.\nKeep every design choice consistent with the {{ STYLE }} style."
+          "prompt": "You are the art director on a major studio's key-art team.\n\nFilm brief:\n- Title: {{ MOVIE_TITLE }}\n- Genre: {{ GENRE }}\n- Visual style: {{ STYLE }}\n\nDesign the theatrical one-sheet strategy. Commit to bold, specific choices that fit the genre and honor the requested visual style. Return only Markdown, no preamble, with exactly these sections:\n\nPositioning: one or two sentences on the promise the poster must make at a glance.\n\nAudience Insight: who is pulled toward this film and the emotional hook that lands them.\n\nCore Visual Concept: the single big-idea image the poster is built around \u2014 the hero subject, its symbolism, and the frozen moment.\n\nDesign:\n- Color Palette: up to 5 swatches, each as Name + #hex + the emotion it carries.\n- Imagery: hero focus, composition, and lighting.\n- Typography: title font family plus its texture and mood.\nKeep every design choice consistent with the {{ STYLE }} style."
         },
         "ui_properties": {
           "position": {
@@ -457,7 +457,7 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "huggingface_fal_ai",
+            "provider": "fal_ai",
             "id": "fal-ai/flux/schnell",
             "name": "FLUX.1 Schnell",
             "path": null,
@@ -516,7 +516,7 @@
         "id": "923fb0f1-8bd4-406a-ba73-9ec3137c20cd",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "You are pitching poster concepts for the film \"{{ title }}\" ({{ genre }}).\n\nPositioning: {{ positioning }}\nAudience insight: {{ audience_insight }}\n\nGenerate distinct theatrical poster concepts. Each concept is ONE self-contained line describing a single striking image: the hero subject, the setting, the framing, and the mood. Vary the ideas across the set — different angles, symbols, and emotional beats — while staying true to the genre and positioning. One concept per line, no numbering and no commentary."
+          "prompt": "You are pitching poster concepts for the film \"{{ title }}\" ({{ genre }}).\n\nPositioning: {{ positioning }}\nAudience insight: {{ audience_insight }}\n\nGenerate distinct theatrical poster concepts. Each concept is ONE self-contained line describing a single striking image: the hero subject, the setting, the framing, and the mood. Vary the ideas across the set \u2014 different angles, symbols, and emotional beats \u2014 while staying true to the genre and positioning. One concept per line, no numbering and no commentary."
         },
         "ui_properties": {
           "selected": false,
@@ -542,7 +542,7 @@
         "id": "04757c8a-dad6-48f3-a45f-459f54e26b7b",
         "type": "nodetool.generators.StructuredOutputGenerator",
         "data": {
-          "system_prompt": "You are a film key-art director turning a creative brief into structured fields.\n\nGoal\n- Read <INSTRUCTIONS> (the art-direction brief) and any <CONTEXT>, then produce a single JSON object matching <JSON_SCHEMA> exactly.\n\nOutput format (MANDATORY)\n- Output exactly ONE fenced code block labeled json containing ONLY the JSON object:\n\n  ```json\n  { ...single JSON object matching <JSON_SCHEMA>... }\n  ```\n- No prose before or after the block.\n\nGeneration rules\n- Fill every field with concrete, vivid, production-ready detail — no placeholders, no hedging.\n- Keep all fields internally consistent with the film's genre and visual style.\n- Honor every constraint in <JSON_SCHEMA> (types, enums, formats).\n\nValidation\n- Ensure the final JSON validates against <JSON_SCHEMA> exactly.",
+          "system_prompt": "You are a film key-art director turning a creative brief into structured fields.\n\nGoal\n- Read <INSTRUCTIONS> (the art-direction brief) and any <CONTEXT>, then produce a single JSON object matching <JSON_SCHEMA> exactly.\n\nOutput format (MANDATORY)\n- Output exactly ONE fenced code block labeled json containing ONLY the JSON object:\n\n  ```json\n  { ...single JSON object matching <JSON_SCHEMA>... }\n  ```\n- No prose before or after the block.\n\nGeneration rules\n- Fill every field with concrete, vivid, production-ready detail \u2014 no placeholders, no hedging.\n- Keep all fields internally consistent with the film's genre and visual style.\n- Honor every constraint in <JSON_SCHEMA> (types, enums, formats).\n\nValidation\n- Ensure the final JSON validates against <JSON_SCHEMA> exactly.",
           "model": {
             "type": "language_model",
             "provider": "openai",
@@ -563,7 +563,7 @@
           },
           "zIndex": 0,
           "width": 282,
-          "title": "Art-direction brief → fields",
+          "title": "Art-direction brief \u2192 fields",
           "selectable": true,
           "bypassed": false
         },
