@@ -209,6 +209,11 @@ export default function DocumentViewerScreen({
       ) : null}
 
       <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>JSON</Text>
+      {/*
+        The block is not height-capped: its only scroller is horizontal, so a
+        cap would put everything past it out of reach on the one screen whose
+        job is inspecting the document. The page scroller carries it instead.
+      */}
       <ScrollView
         horizontal
         style={[
@@ -328,7 +333,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
-    maxHeight: 420,
   },
   jsonContent: {
     padding: 12,

@@ -3,6 +3,10 @@ import { act, render, screen } from '@testing-library/react-native';
 import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
 import { OfflineBanner } from './OfflineBanner';
 
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 34, left: 0, right: 0 }),
+}));
+
 type Listener = (state: NetInfoState) => void;
 
 const addEventListener = NetInfo.addEventListener as jest.MockedFunction<

@@ -321,6 +321,7 @@ export default function DocumentsScreen({ navigation }: DocumentsScreenProps) {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.chipScroll}
         contentContainerStyle={styles.chipRow}
       >
         <FilterChip
@@ -559,8 +560,17 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
   },
+  // A horizontal ScrollView is still a flex child of the column above it: left
+  // to grow it takes the leftover vertical space and stretches every chip to
+  // its height. Pinning it to its content and centring the row keeps the chips
+  // at their natural height.
+  chipScroll: {
+    flexGrow: 0,
+    flexShrink: 0,
+  },
   chipRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
     paddingHorizontal: 16,
     paddingTop: 12,
@@ -581,6 +591,9 @@ const styles = StyleSheet.create({
   },
   createRow: {
     flexDirection: 'row',
+    // Two buttons already fill a 320pt screen, so let them wrap instead of
+    // spilling past the edge.
+    flexWrap: 'wrap',
     gap: 8,
     paddingHorizontal: 16,
     paddingTop: 10,

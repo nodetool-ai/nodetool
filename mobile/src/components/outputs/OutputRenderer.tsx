@@ -65,6 +65,31 @@ const resolveMediaUri = (
 };
 
 /**
+ * One explicit width per column so the header row and the body rows share a
+ * grid. Sizing each cell on its own (a `minWidth`/`maxWidth` range) lets a
+ * column's header and its data settle at different widths, which shears the
+ * labels off their column and breaks the per-cell hairlines.
+ *
+ * Derived in one pass from the longest string in the column at ~6.5pt per
+ * character for the 12pt cell font, clamped to the 80–160 range the old
+ * per-cell style used. An estimate suffices: correctness only needs header and
+ * body to agree, and `onLayout` measurement would cost a render round-trip.
+ */
+const tableColumnWidths = (
+  headers: ReadonlyArray<string>,
+  rows: ReadonlyArray<ReadonlyArray<string>>
+): number[] =>
+  headers.map((header, index) => {
+    let longest = header.length;
+    for (const row of rows) {
+      longest = Math.max(longest, (row[index] ?? "").length);
+    }
+    return Math.min(160, Math.max(80, Math.round(longest * 6.5) + 16));
+  });
+
+const cellString = (cell: unknown): string => (cell == null ? "" : String(cell));
+
+/**
  * Format a Datetime object (month is 1-indexed from the API).
  */
 const formatDatetime = (dt: {
@@ -401,32 +426,36 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
       if (columns.length === 0 || data.length === 0) {
         return renderJSON(v, codeTheme, colors, mode, monoFont);
       }
+      const headers = columns.map((col) => {
+        const c = col as string | DataframeColumn;
+        return typeof c === "object" && c !== null ? String(c.name) : String(c);
+      });
+      const bodyRows = data.slice(0, 50).map((rawRow) => {
+        const row = rawRow as unknown[] | Record<string, unknown>;
+        return (Array.isArray(row) ? row : Object.values(row)).map(cellString);
+      });
+      const widths = tableColumnWidths(headers, bodyRows);
       return (
         <ScrollView horizontal showsHorizontalScrollIndicator>
           <View>
             {/* Header row */}
             <View style={[styles.tableRow, { backgroundColor: mode === "dark" ? "#2A2A2A" : "#E8E8E8" }]}>
-              {columns.map((col, i) => {
-                const c = col as string | DataframeColumn;
-                return (
+              {headers.map((header, i) => (
                 <Text
                   key={i}
                   style={[
                     styles.tableCell,
                     styles.tableHeader,
-                    { color: colors.text, borderColor: colors.border },
+                    { color: colors.text, borderColor: colors.border, width: widths[i] },
                   ]}
                   numberOfLines={1}
                 >
-                  {typeof c === "object" && c !== null ? String(c.name) : String(c)}
+                  {header}
                 </Text>
-                );
-              })}
+              ))}
             </View>
             {/* Data rows (limit to 50 for performance) */}
-            {data.slice(0, 50).map((rawRow, rowIdx) => {
-              const row = rawRow as unknown[] | Record<string, unknown>;
-              return (
+            {bodyRows.map((cells, rowIdx) => (
               <View
                 key={rowIdx}
                 style={[
@@ -436,18 +465,20 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
                     : "transparent" },
                 ]}
               >
-                {(Array.isArray(row) ? row : Object.values(row)).map((cell: unknown, cellIdx: number) => (
+                {cells.map((cell: string, cellIdx: number) => (
                   <Text
                     key={cellIdx}
-                    style={[styles.tableCell, { color: colors.text, borderColor: colors.border }]}
+                    style={[
+                      styles.tableCell,
+                      { color: colors.text, borderColor: colors.border, width: widths[cellIdx] },
+                    ]}
                     numberOfLines={2}
                   >
-                    {cell == null ? "" : String(cell)}
+                    {cell}
                   </Text>
                 ))}
               </View>
-              );
-            })}
+            ))}
             {data.length > 50 && (
               <Text style={[styles.placeholder, { color: colors.textSecondary, padding: 8 }]}>
                 Showing 50 of {data.length} rows
@@ -617,6 +648,10 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
         if (!first.type) {
           const keys = Object.keys(first);
           if (keys.length > 0) {
+            const objectRows = (arr as Record<string, unknown>[])
+              .slice(0, 50)
+              .map((row) => keys.map((k) => cellString(row[k])));
+            const objectWidths = tableColumnWidths(keys, objectRows);
             return (
               <ScrollView horizontal showsHorizontalScrollIndicator>
                 <View>
@@ -624,14 +659,18 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
                     {keys.map((k, i) => (
                       <Text
                         key={i}
-                        style={[styles.tableCell, styles.tableHeader, { color: colors.text, borderColor: colors.border }]}
+                        style={[
+                          styles.tableCell,
+                          styles.tableHeader,
+                          { color: colors.text, borderColor: colors.border, width: objectWidths[i] },
+                        ]}
                         numberOfLines={1}
                       >
                         {k}
                       </Text>
                     ))}
                   </View>
-                  {(arr as Record<string, unknown>[]).slice(0, 50).map((row, rowIdx: number) => (
+                  {objectRows.map((cells, rowIdx: number) => (
                     <View
                       key={rowIdx}
                       style={[
@@ -641,13 +680,16 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
                           : "transparent" },
                       ]}
                     >
-                      {keys.map((k, cellIdx) => (
+                      {cells.map((cell, cellIdx) => (
                         <Text
                           key={cellIdx}
-                          style={[styles.tableCell, { color: colors.text, borderColor: colors.border }]}
+                          style={[
+                            styles.tableCell,
+                            { color: colors.text, borderColor: colors.border, width: objectWidths[cellIdx] },
+                          ]}
                           numberOfLines={2}
                         >
-                          {row[k] == null ? "" : String(row[k])}
+                          {cell}
                         </Text>
                       ))}
                     </View>
@@ -742,23 +784,34 @@ function renderJSON(
         },
       ]}
     >
+      {/*
+        The cap lives on the inner vertical scroller, not on the block: a
+        maxHeight on the container alone just clips the tail of a long payload
+        with no way to reach it.
+      */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <SyntaxHighlighter
-          language="json"
-          highlighter="prism"
-          style={codeTheme}
-          customStyle={{
-            backgroundColor: "transparent",
-            padding: 0,
-            margin: 0,
-          }}
-          fontSize={12}
-          fontFamily={monoFont}
-          PreTag={View}
-          CodeTag={View}
+        <ScrollView
+          style={styles.codeBlockScroll}
+          nestedScrollEnabled
+          showsVerticalScrollIndicator
         >
-          {JSON.stringify(value, null, 2)}
-        </SyntaxHighlighter>
+          <SyntaxHighlighter
+            language="json"
+            highlighter="prism"
+            style={codeTheme}
+            customStyle={{
+              backgroundColor: "transparent",
+              padding: 0,
+              margin: 0,
+            }}
+            fontSize={12}
+            fontFamily={monoFont}
+            PreTag={View}
+            CodeTag={View}
+          >
+            {JSON.stringify(value, null, 2)}
+          </SyntaxHighlighter>
+        </ScrollView>
       </ScrollView>
     </View>
   );
@@ -819,9 +872,11 @@ const styles = StyleSheet.create({
   codeBlock: {
     padding: 12,
     borderRadius: 8,
-    maxHeight: 300,
     borderWidth: 1,
     marginVertical: 4,
+  },
+  codeBlockScroll: {
+    maxHeight: 300,
   },
   linkButton: {
     padding: 12,
@@ -896,8 +951,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
   },
   tableCell: {
-    minWidth: 80,
-    maxWidth: 160,
+    // Width comes from tableColumnWidths() so header and body share a grid.
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderWidth: StyleSheet.hairlineWidth,

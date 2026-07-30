@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { normalizeModels } from '../services/api';
 import { trpc } from '../trpc/client';
 import { useChatStore } from '../stores/ChatStore';
@@ -27,6 +28,7 @@ export default function LanguageModelSelectionScreen() {
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const { colors, shadows } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const providersQuery = trpc.models.providers.useQuery(undefined, {
     select: (all) =>
@@ -127,7 +129,13 @@ export default function LanguageModelSelectionScreen() {
       <View style={[styles.itemIconWrap, { backgroundColor: colors.primaryMuted }]}>
         <Ionicons name="cloud-outline" size={18} color={colors.primary} />
       </View>
-      <Text style={[styles.itemText, { color: colors.text }]}>{item.provider}</Text>
+      <Text
+        style={[styles.itemText, styles.itemTextFill, { color: colors.text }]}
+        numberOfLines={1}
+        ellipsizeMode="tail"
+      >
+        {item.provider}
+      </Text>
       <View style={[styles.itemChevron, { backgroundColor: colors.primaryLight }]}>
         <Ionicons name="chevron-forward" size={16} color={colors.primary} />
       </View>
@@ -146,9 +154,13 @@ export default function LanguageModelSelectionScreen() {
         <Ionicons name="sparkles-outline" size={16} color={colors.accent} />
       </View>
       <View style={styles.modelInfo}>
-        <Text style={[styles.itemText, { color: colors.text }]}>{item.name}</Text>
+        <Text style={[styles.itemText, { color: colors.text }]} numberOfLines={1} ellipsizeMode="tail">
+          {item.name}
+        </Text>
         {item.id !== item.name && (
-          <Text style={[styles.subText, { color: colors.textTertiary }]}>{item.id}</Text>
+          <Text style={[styles.subText, { color: colors.textTertiary }]} numberOfLines={1} ellipsizeMode="tail">
+            {item.id}
+          </Text>
         )}
       </View>
       <Ionicons name="checkmark-circle-outline" size={20} color={colors.textTertiary} />
@@ -204,7 +216,7 @@ export default function LanguageModelSelectionScreen() {
           data={filteredProviders}
           renderItem={renderProviderItem}
           keyExtractor={(item: Provider) => item.provider}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 24 }]}
           ListEmptyComponent={renderEmptyList('providers')}
         />
       ) : (
@@ -212,7 +224,7 @@ export default function LanguageModelSelectionScreen() {
           data={filteredModels}
           renderItem={renderModelItem}
           keyExtractor={(item: LanguageModel) => item.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 24 }]}
           ListEmptyComponent={renderEmptyList('models')}
         />
       )}
@@ -299,6 +311,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+    flexShrink: 0,
   },
   itemChevron: {
     width: 28,
@@ -306,6 +319,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    flexShrink: 0,
   },
   modelInfo: {
     flex: 1,
@@ -315,6 +329,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     letterSpacing: -0.2,
+  },
+  // Lets the label take the row's remaining width so the trailing chevron
+  // stays pinned to the right edge instead of hugging the text.
+  itemTextFill: {
+    flex: 1,
+    marginRight: 12,
   },
   subText: {
     fontSize: 12,

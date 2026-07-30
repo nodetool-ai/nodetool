@@ -10,7 +10,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Keyboard,
-  Platform,
   ScrollView,
   Modal,
   Text,
@@ -18,6 +17,7 @@ import {
   AccessibilityInfo,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { MessageContent, ChatStatus } from '../../types';
@@ -70,6 +70,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [showParamMenu, setShowParamMenu] = useState<string | null>(null);
   const { colors, shadows } = useTheme();
+  const insets = useSafeAreaInsets();
   const { droppedFiles, addDroppedFiles, removeFile, clearFiles, getFileContents } = useFileHandling();
 
   const mode = useMediaGenerationStore((s) => s.mode);
@@ -375,7 +376,17 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.surfaceHeader, borderTopColor: colors.borderLight }]}>
+    <View
+      testID="composer-container"
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.surfaceHeader,
+          borderTopColor: colors.borderLight,
+          paddingBottom: insets.bottom + 8,
+        },
+      ]}
+    >
       {/* Mode selector tabs */}
       <View style={styles.modeRow}>
         {MODE_CONFIG.map(({ mode: m, icon, label }) => {
@@ -648,7 +659,13 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
             onPress={() => setShowAttachmentMenu(false)}
           />
 
-          <View style={[styles.attachmentMenu, shadows.large, { backgroundColor: colors.surface }]}>
+          <View
+            style={[
+              styles.attachmentMenu,
+              shadows.large,
+              { backgroundColor: colors.surface, paddingBottom: insets.bottom + 20 },
+            ]}
+          >
             <View style={[styles.menuHandle, { backgroundColor: colors.border }]} />
             <Text style={[styles.attachmentMenuTitle, { color: colors.text }]}>
               Add Attachment
@@ -716,7 +733,6 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 8,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   modeRow: {
@@ -893,7 +909,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingTop: 12,
     paddingHorizontal: 16,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
   },
   menuHandle: {
     width: 36,

@@ -214,6 +214,7 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = memo(
         <TouchableOpacity
           style={[
             styles.runButton,
+            isRunning && styles.runButtonRunning,
             {
               backgroundColor: isRunning ? colors.surface
                 : isPaused ? colors.surface
@@ -283,11 +284,18 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   runButton: {
-    width: 44,
+    // A circle when it holds a single icon, a pill once the running state adds
+    // an elapsed timer next to the spinner — a hard 44pt width made that row
+    // spill over the neighbouring Stop button.
+    minWidth: 44,
     height: 44,
     borderRadius: 22,
+    paddingHorizontal: 4,
     alignItems: "center",
     justifyContent: "center",
+  },
+  runButtonRunning: {
+    paddingHorizontal: 12,
   },
   runningContent: {
     flexDirection: "row",
