@@ -91,6 +91,13 @@ export {
   type WebsocketPythonBridgeOptions
 } from "./python-websocket-bridge.js";
 export { createPythonBridge } from "./python-bridge-factory.js";
+export {
+  encodeFrame,
+  FrameDecoder,
+  FrameSizeError,
+  DEFAULT_MAX_BRIDGE_FRAME_SIZE,
+  type FrameDecoderOptions
+} from "./python-bridge-framing.js";
 export { SwappableBridge } from "./swappable-python-bridge.js";
 /**
  * Transport-agnostic public handle for a Python worker bridge. An interface

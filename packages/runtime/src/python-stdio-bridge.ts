@@ -47,6 +47,7 @@ const join = (...parts: string[]): string =>
 import { createLogger, getByteLimitEnv } from "@nodetool-ai/config";
 
 import { PythonBridgeBase } from "./python-bridge-base.js";
+import { encodeFrame, FrameDecoder, FrameSizeError } from "./python-bridge-framing.js";
 
 const log = createLogger("nodetool.runtime.python-stdio-bridge");
 import type {
@@ -92,8 +93,10 @@ function isProductionMode(): boolean {
 
 export class PythonStdioBridge extends PythonBridgeBase {
   private _process: ChildProcess | null = null;
-  /** Buffered stdout data waiting to be parsed into frames. */
-  private _readBuffer = Buffer.alloc(0);
+  /** Incremental length-prefixed frame decoder for stdout. */
+  private _frameDecoder = new FrameDecoder({
+    maxFrameSize: MAX_BRIDGE_FRAME_SIZE
+  });
   /** Recent stderr lines from the worker for diagnostics. */
   private _recentStderr: string[] = [];
 
@@ -183,7 +186,7 @@ export class PythonStdioBridge extends PythonBridgeBase {
         settled = true;
         clearTimeout(startupTimer);
         // Tear down this candidate so a timed-out or failed spawn doesn't leak:
-        // its stdout handler would keep appending to the SHARED _readBuffer
+        // its stdout handler would keep appending to the SHARED frame decoder
         // (desyncing the next candidate's frame stream) and the heavy worker
         // (mid torch/CUDA import) would stay alive forever.
         proc.stdout?.removeAllListeners();
@@ -199,7 +202,7 @@ export class PythonStdioBridge extends PythonBridgeBase {
           this._process = null;
           this._connected = false;
         }
-        this._readBuffer = Buffer.alloc(0);
+        this._frameDecoder.reset();
         reject(error);
       };
 
@@ -212,8 +215,7 @@ export class PythonStdioBridge extends PythonBridgeBase {
 
       // Stdout is binary protocol data — accumulate and parse frames.
       proc.stdout!.on("data", (chunk: Buffer) => {
-        this._readBuffer = Buffer.concat([this._readBuffer, chunk]);
-        this._drainFrames();
+        this._drainFrames(chunk);
       });
 
       // Stderr carries logs and the readiness signal.
@@ -296,27 +298,29 @@ export class PythonStdioBridge extends PythonBridgeBase {
 
   // ── Frame reader ───────────────────────────────────────────────────
 
-  /** Extract complete length-prefixed frames from _readBuffer. */
-  private _drainFrames(): void {
-    while (this._readBuffer.length >= 4) {
-      const length = this._readBuffer.readUInt32BE(0);
-      if (length > MAX_BRIDGE_FRAME_SIZE) {
+  /** Extract complete length-prefixed frames from a stdout chunk. */
+  private _drainFrames(chunk: Buffer): void {
+    let frames: Buffer[];
+    try {
+      frames = this._frameDecoder.push(chunk);
+    } catch (err) {
+      if (err instanceof FrameSizeError) {
         const stderrHint = this.getRecentStderrSummary(6);
         const desyncHint =
           "This usually means the Python worker wrote non-protocol data to stdout " +
           "(for example a library print/progress bar), desynchronizing the msgpack frame stream.";
         this._failProtocol(
           new Error(
-            `Incoming Python bridge frame exceeds max size (${length} > ${MAX_BRIDGE_FRAME_SIZE}). ` +
-              desyncHint +
+            `${err.message}. ${desyncHint}` +
               (stderrHint ? ` Recent stderr: ${stderrHint}` : "")
           )
         );
         return;
       }
-      if (this._readBuffer.length < 4 + length) break; // incomplete frame
-      const payload = this._readBuffer.subarray(4, 4 + length);
-      this._readBuffer = this._readBuffer.subarray(4 + length);
+      this._failProtocol(err instanceof Error ? err : new Error(String(err)));
+      return;
+    }
+    for (const payload of frames) {
       try {
         const msg = unpack(payload) as Record<string, unknown>;
         this._handleMessage(msg);
@@ -347,13 +351,10 @@ export class PythonStdioBridge extends PythonBridgeBase {
         `Outgoing Python bridge frame exceeds max size (${payload.length} > ${MAX_BRIDGE_FRAME_SIZE})`
       );
     }
-    const header = Buffer.alloc(4);
-    header.writeUInt32BE(payload.length, 0);
     // Writing to a broken pipe can throw synchronously (or emit 'error'); turn
     // it into a rejected request rather than an uncaught exception.
     try {
-      this._process.stdin.write(header);
-      this._process.stdin.write(payload);
+      this._process.stdin.write(encodeFrame(payload));
     } catch (err) {
       this._connected = false;
       throw new Error(
@@ -377,6 +378,7 @@ export class PythonStdioBridge extends PythonBridgeBase {
       this._process = null;
     }
     this._connected = false;
+    this._frameDecoder.reset();
   }
 
   /** Check if a Python interpreter can be found (without spawning). */
