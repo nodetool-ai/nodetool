@@ -178,6 +178,30 @@ describe("resolveOfferingPrices", () => {
     ]);
   });
 
+  it("does not price a text-to-video endpoint from a video-input variant row", () => {
+    // `videoInput: true` is a billing axis — providers charge more when a video
+    // goes in. Taking that row for a t2v endpoint would undercharge, so the
+    // headline price stands and the route stays a name match.
+    const result = resolve(
+      model(),
+      offering({
+        priceUsd: 0.09,
+        variants: [
+          {
+            spec: "bytedance/seedance-2.0/text-to-video",
+            unitClass: "per-video-second",
+            priceUsd: 0.125,
+            videoInput: true
+          }
+        ]
+      })
+    );
+    const t2v = result.entries.find(
+      (e) => e.modelId === "bytedance/seedance-2.0/text-to-video"
+    );
+    expect(t2v).toMatchObject({ unitPrice: 0.09, match: "catalog" });
+  });
+
   it("ignores a variant spec naming a model NodeTool does not ship", () => {
     const result = resolve(
       model(),
@@ -190,17 +214,15 @@ describe("resolveOfferingPrices", () => {
 
   it("takes providerModelId only when the provider's own listing knows it", () => {
     const claimed = resolve(
-      model({ slug: "no-name-match" }),
+      model({ slug: "no-name-match", name: "Nothing Like This" }),
       offering({ providerModelId: "bytedance/seedance-2.0/text-to-video" })
     );
-    expect(claimed).toMatchObject({
-      entries: [
-        expect.objectContaining({
-          modelId: "bytedance/seedance-2.0/text-to-video",
-          match: "provider-id"
-        })
-      ]
-    });
+    expect(claimed.entries).toEqual([
+      expect.objectContaining({
+        modelId: "bytedance/seedance-2.0/text-to-video",
+        match: "provider-id"
+      })
+    ]);
 
     // GenSpend often fills the field with its own slug; that names no NodeTool
     // model, so it must resolve to nothing rather than to a guess.
@@ -209,6 +231,27 @@ describe("resolveOfferingPrices", () => {
       offering({ providerModelId: "no-name-match" })
     );
     expect(echoed.entries).toEqual([]);
+  });
+
+  it("carries an exact price to the model's sibling endpoints at lower trust", () => {
+    // GenSpend prices a model once per provider, but AtlasCloud ships it as
+    // three task endpoints. The named one keeps the exact route; the siblings
+    // take the same price marked `catalog`, so the estimate covers the whole
+    // model without claiming the id was receipted.
+    const result = resolve(
+      model(),
+      offering({ providerModelId: "bytedance/seedance-2.0/text-to-video" })
+    );
+    expect(result.entries).toEqual([
+      expect.objectContaining({
+        modelId: "bytedance/seedance-2.0/image-to-video",
+        match: "catalog"
+      }),
+      expect.objectContaining({
+        modelId: "bytedance/seedance-2.0/text-to-video",
+        match: "provider-id"
+      })
+    ]);
   });
 
   it("prefers the receipt id over a name match", () => {
@@ -452,7 +495,7 @@ describe("buildPriceIndex", () => {
     });
   });
 
-  it("takes the cheaper of two equally-trusted offerings on one id", () => {
+  it("takes the cheaper of two equally-trusted offerings of one model", () => {
     const { prices } = build([
       model({ offerings: [offering({ priceUsd: 0.2 })] }),
       model({ slug: "seedance-2", offerings: [offering({ priceUsd: 0.05 })] })
@@ -460,6 +503,27 @@ describe("buildPriceIndex", () => {
     expect(
       prices["atlascloud:bytedance/seedance-2.0/text-to-video"].unit_price
     ).toBe(0.05);
+  });
+
+  it("assumes the dearer tier when two models share one provider id", () => {
+    // Providers that select tier by parameter give Pro and Standard the same
+    // callable id, so one NodeTool node could run either. A budget gate that
+    // took the cheaper of the two would let a Pro run through under-reserved.
+    const { prices } = build([
+      model({
+        slug: "seedance-2-standard",
+        name: "Seedance 2.0",
+        offerings: [offering({ priceUsd: 0.05 })]
+      }),
+      model({
+        slug: "seedance-2-pro",
+        name: "Seedance 2.0",
+        offerings: [offering({ priceUsd: 0.2 })]
+      })
+    ]);
+    expect(
+      prices["atlascloud:bytedance/seedance-2.0/text-to-video"].unit_price
+    ).toBe(0.2);
   });
 
   it("sorts keys so an unchanged catalog produces no diff", () => {

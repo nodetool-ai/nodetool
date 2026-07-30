@@ -62,19 +62,25 @@ entry records which of five routes bridged them, in descending order of trust:
   Best of the automatic routes, because the row carries that endpoint's *own*
   price: `fal-ai/flux-pro/v1.1` bills $0.04 and `…/v1.1-ultra` $0.06, and both
   get their real number instead of sharing the model's headline price.
+- **`provider-id`** — GenSpend's `providerModelId`, the id the provider's own API
+  invokes and bills with, on a receipt-or-null contract. Verified against the
+  provider's NodeTool listing before use, so an id for a model NodeTool doesn't
+  ship (`resemble-ai/chatterbox`) resolves to nothing instead of a bad key.
 - **`receipt`** — the offering's `sourceUrl` is a model page carrying the native
   id: `fal.ai/models/fal-ai/flux/schnell`, `replicate.com/black-forest-labs/flux-dev`.
-- **`provider-id`** — GenSpend's `providerModelId`. It is frequently filled with
-  GenSpend's own slug rather than the provider's id, so it counts only when the
-  provider's NodeTool listing recognizes it — never on faith.
+  Ranks below `provider-id` because it infers the id from a URL path.
 - **`catalog`** — the model's normalized name exactly equals that of a model the
   provider itself enumerates in NodeTool (`getAvailableImageModels` and
   friends). That listing is the model picker's own source, so the sync can only
   ever emit ids NodeTool actually ships.
 
-A catalog match prices the **model**, not one endpoint variant, so sibling task
-endpoints (text-to-video, image-to-video, edit) share the number — which is what
-GenSpend publishes when it has no per-variant rows.
+GenSpend prices a model once per provider, but a provider ships it as several
+task endpoints and only one of those is what `providerModelId` or a receipt
+names. So the name tier runs even when an exact id was found, carrying the price
+to the model's sibling endpoints at `catalog` trust — capability-checked, so a
+task the model cannot do gets nothing. AtlasCloud's Seedance 2.0 ends up with its
+text-to-video endpoint priced exactly and image-to-video and reference-to-video
+priced by inference, each labelled for what it is.
 
 Five guards keep a wrong number out of a budget decision:
 
@@ -95,6 +101,14 @@ Five guards keep a wrong number out of a budget decision:
   bill on their own basis and never inherit a model's generation price.
 - **Ambiguity is dropped, not resolved.** A name hitting more than eight ids is
   a family name, not a model; it is reported instead of priced.
+- **A video-input variant never prices a text-to-video endpoint.**
+  `videoInput: true` is a billing axis, not a spec note — providers charge more
+  when a video goes in, so applying such a row to a t2v endpoint would
+  undercharge. The headline price stands instead.
+- **Tier ambiguity resolves upward.** Where a provider selects tier by parameter,
+  Pro and Standard share one callable id, so one NodeTool node could run either.
+  Two equally-trusted models on one id keep the dearer price; the same model
+  listed twice keeps the cheaper, which is what a run actually pays.
 
 Anything left unresolved is printed by the sync and written to its `--report`
 file, so the gap is visible rather than silently absent.

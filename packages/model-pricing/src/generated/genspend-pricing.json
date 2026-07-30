@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "source": "https://genspend.io/api/v1/models",
   "attribution": "Prices via genspend.io",
-  "updatedAt": "2026-07-29T18:43:29.107Z",
-  "catalogGeneratedAt": "2026-07-29T18:45:39.395Z",
-  "etag": "\"f247ba578ac3c745053d442f197f0e65cc93e0bf\"",
+  "updatedAt": "2026-07-30T08:45:27.754Z",
+  "catalogGeneratedAt": "2026-07-30T08:45:26.081Z",
+  "etag": "\"363cbe11286573b29e5168540f6d2da959d39eab\"",
   "catalogModels": 135,
   "catalogOfferings": 447,
   "providers": [
@@ -19,7 +19,7 @@
     "together",
     "xai"
   ],
-  "pricedModels": 240,
+  "pricedModels": 283,
   "prices": {
     "atlascloud:alibaba/happyhorse-1.1/image-to-video": {
       "unit_price": 0.14,
@@ -44,7 +44,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "happyhorse-1-1",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://www.atlascloud.ai/models/alibaba/happyhorse-1.1/text-to-video"
     },
@@ -128,7 +128,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-2-mini",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://www.atlascloud.ai/models/bytedance/seedance-2.0-mini/reference-to-video"
     },
@@ -173,7 +173,16 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "seedream-5-lite",
-      "match": "provider-id",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://www.atlascloud.ai/models/bytedance/seedream-v5.0-lite/edit-sequential"
+    },
+    "atlascloud:bytedance/seedream-v5.0-lite/edit": {
+      "unit_price": 0.032,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "seedream-5-lite",
+      "match": "catalog",
       "live": true,
       "source_url": "https://www.atlascloud.ai/models/bytedance/seedream-v5.0-lite/edit-sequential"
     },
@@ -182,7 +191,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "seedream-5-pro",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://www.atlascloud.ai/models/bytedance/seedream-v5.0-pro/edit"
     },
@@ -403,7 +412,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "mai-image-2.5",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://www.atlascloud.ai/models/microsoft/mai-image-2.5/text-to-image"
     },
@@ -457,16 +466,16 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "qwen-image-2",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://www.atlascloud.ai/models/qwen/qwen-image-2.0/text-to-image"
     },
     "atlascloud:xai/grok-imagine-video-v1.5/image-to-video": {
-      "unit_price": 0.05,
+      "unit_price": 0.08,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "grok-imagine-video",
-      "match": "catalog",
+      "match": "variant",
       "live": true,
       "source_url": "https://www.atlascloud.ai/pricing/models"
     },
@@ -485,7 +494,7 @@
       "billing_unit": "1m_chars",
       "unit_class": "per-1m-chars",
       "model_slug": "eleven-flash-v2.5",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://elevenlabs.io/pricing/api"
     },
@@ -494,7 +503,7 @@
       "billing_unit": "1m_chars",
       "unit_class": "per-1m-chars",
       "model_slug": "eleven-multilingual-v2",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://elevenlabs.io/pricing/api"
     },
@@ -503,7 +512,7 @@
       "billing_unit": "1m_chars",
       "unit_class": "per-1m-chars",
       "model_slug": "eleven-turbo-v2.5",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://elevenlabs.io/pricing/api"
     },
@@ -512,7 +521,7 @@
       "billing_unit": "1m_chars",
       "unit_class": "per-1m-chars",
       "model_slug": "eleven-v3",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://elevenlabs.io/pricing/api"
     },
@@ -521,7 +530,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "happyhorse-1-1",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/alibaba/happy-horse/v1.1/image-to-video"
     },
@@ -530,7 +539,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "bria-fibo-edit",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/bria/fibo-edit/edit"
     },
@@ -539,7 +548,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "bria-fibo",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/bria/fibo/generate"
     },
@@ -557,7 +566,7 @@
       "billing_unit": "1m_chars",
       "unit_class": "per-1m-chars",
       "model_slug": "seed-tts-2",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/bytedance/seed-speech/tts/v2"
     },
@@ -596,7 +605,16 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "seedream-4.5",
-      "match": "receipt",
+      "match": "provider-id",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/bytedance/seedream/v4.5/edit"
+    },
+    "fal_ai:fal-ai/bytedance/seedream/v4.5/text-to-image": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "seedream-4.5",
+      "match": "catalog",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/bytedance/seedream/v4.5/edit"
     },
@@ -623,7 +641,7 @@
       "billing_unit": "1m_chars",
       "unit_class": "per-1m-chars",
       "model_slug": "chatterbox",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/chatterbox/text-to-speech"
     },
@@ -633,6 +651,15 @@
       "unit_class": "per-1m-chars",
       "model_slug": "eleven-v3",
       "match": "receipt",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/elevenlabs/text-to-dialogue/eleven-v3"
+    },
+    "fal_ai:fal-ai/elevenlabs/tts/eleven-v3": {
+      "unit_price": 100,
+      "billing_unit": "1m_chars",
+      "unit_class": "per-1m-chars",
+      "model_slug": "eleven-v3",
+      "match": "catalog",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/elevenlabs/text-to-dialogue/eleven-v3"
     },
@@ -646,12 +673,21 @@
       "source_url": "https://fal.ai/models/fal-ai/elevenlabs/tts/turbo-v2.5",
       "tier": "turbo"
     },
+    "fal_ai:fal-ai/flux-1/dev": {
+      "unit_price": 0.025,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "flux-1-dev",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/flux/dev"
+    },
     "fal_ai:fal-ai/flux-1/schnell": {
       "unit_price": 0.003,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "flux-1-schnell",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/flux-1/schnell"
     },
@@ -660,16 +696,34 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "flux-2-flex",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/flux-2-flex"
+    },
+    "fal_ai:fal-ai/flux-2-flex/edit": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "flux-2-flex",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/flux-2-flex"
+    },
+    "fal_ai:fal-ai/flux-2-max": {
+      "unit_price": 0.07,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "flux-2-max",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/flux-2-max/edit"
     },
     "fal_ai:fal-ai/flux-2-max/edit": {
       "unit_price": 0.07,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "flux-2-max",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/flux-2-max/edit"
     },
@@ -708,7 +762,16 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "flux-2-klein-9b",
-      "match": "receipt",
+      "match": "provider-id",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/flux-2/klein/9b"
+    },
+    "fal_ai:fal-ai/flux-2/klein/9b/edit": {
+      "unit_price": 0.011,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "flux-2-klein-9b",
+      "match": "catalog",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/flux-2/klein/9b"
     },
@@ -779,21 +842,39 @@
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/flux/dev"
     },
+    "fal_ai:fal-ai/gemini-3-pro-image-preview": {
+      "unit_price": 0.15,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "gemini-3-pro-image",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/gemini-3-pro-image-preview/edit"
+    },
     "fal_ai:fal-ai/gemini-3-pro-image-preview/edit": {
       "unit_price": 0.15,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gemini-3-pro-image",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/gemini-3-pro-image-preview/edit"
+    },
+    "fal_ai:fal-ai/gemini-3.1-flash-image-preview": {
+      "unit_price": 0.08,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "gemini-3.1-flash-image",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/gemini-3.1-flash-image-preview/edit"
     },
     "fal_ai:fal-ai/gemini-3.1-flash-image-preview/edit": {
       "unit_price": 0.08,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gemini-3.1-flash-image",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/gemini-3.1-flash-image-preview/edit"
     },
@@ -802,7 +883,7 @@
       "billing_unit": "1m_chars",
       "unit_class": "per-1m-chars",
       "model_slug": "gemini-3.1-flash-tts",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/gemini-3.1-flash-tts"
     },
@@ -811,7 +892,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "hunyuan-image-3",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/hunyuan-image/v3/text-to-image"
     },
@@ -820,7 +901,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "ideogram-v3-character",
-      "match": "receipt",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://fal.ai/models/fal-ai/ideogram/character"
     },
@@ -829,7 +910,16 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "ideogram-v2",
-      "match": "receipt",
+      "match": "provider-id",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/ideogram/v2"
+    },
+    "fal_ai:fal-ai/ideogram/v2/edit": {
+      "unit_price": 0.08,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "ideogram-v2",
+      "match": "catalog",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/ideogram/v2"
     },
@@ -838,7 +928,16 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "ideogram-v2-turbo",
-      "match": "receipt",
+      "match": "provider-id",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/ideogram/v2/turbo"
+    },
+    "fal_ai:fal-ai/ideogram/v2/turbo/edit": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "ideogram-v2-turbo",
+      "match": "catalog",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/ideogram/v2/turbo"
     },
@@ -847,7 +946,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "ideogram-v2a-turbo",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/ideogram/v2a/turbo"
     },
@@ -910,7 +1009,16 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "infinitalk",
-      "match": "receipt",
+      "match": "provider-id",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/infinitalk"
+    },
+    "fal_ai:fal-ai/infinitalk/video-to-video": {
+      "unit_price": 0.2,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "infinitalk",
+      "match": "catalog",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/infinitalk"
     },
@@ -919,7 +1027,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "kling-image-o1",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/kling-image/o1"
     },
@@ -928,16 +1036,34 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "kling-image-o3",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/kling-image/o3/image-to-image"
+    },
+    "fal_ai:fal-ai/kling-image/o3/text-to-image": {
+      "unit_price": 0.028,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "kling-image-o3",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/kling-image/o3/image-to-image"
+    },
+    "fal_ai:fal-ai/kling-image/v3/image-to-image": {
+      "unit_price": 0.028,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "kling-image-v3",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/kling-image/v3/text-to-image"
     },
     "fal_ai:fal-ai/kling-image/v3/text-to-image": {
       "unit_price": 0.028,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "kling-image-v3",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/kling-image/v3/text-to-image"
     },
@@ -955,7 +1081,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "kling-motion-control-3",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/kling-video/v3/pro/motion-control"
     },
@@ -973,7 +1099,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "krea-2-turbo",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/krea-2/turbo"
     },
@@ -982,7 +1108,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "luma-photon",
-      "match": "receipt",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://fal.ai/models/fal-ai/luma-photon"
     },
@@ -1039,7 +1165,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "minimax-image-01",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/minimax/image-01"
     },
@@ -1061,6 +1187,42 @@
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/nano-banana"
     },
+    "fal_ai:fal-ai/nano-banana-2": {
+      "unit_price": 0.08,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "gemini-3.1-flash-image",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/gemini-3.1-flash-image-preview/edit"
+    },
+    "fal_ai:fal-ai/nano-banana-2/edit": {
+      "unit_price": 0.08,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "gemini-3.1-flash-image",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/gemini-3.1-flash-image-preview/edit"
+    },
+    "fal_ai:fal-ai/nano-banana-pro": {
+      "unit_price": 0.15,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "gemini-3-pro-image",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/gemini-3-pro-image-preview/edit"
+    },
+    "fal_ai:fal-ai/nano-banana-pro/edit": {
+      "unit_price": 0.15,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "gemini-3-pro-image",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/gemini-3-pro-image-preview/edit"
+    },
     "fal_ai:fal-ai/nano-banana/edit": {
       "unit_price": 0.0398,
       "billing_unit": "images",
@@ -1075,7 +1237,7 @@
       "billing_unit": "1m_chars",
       "unit_class": "per-1m-chars",
       "model_slug": "orpheus-3b",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/orpheus-tts"
     },
@@ -1084,7 +1246,25 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "pixverse-c1",
-      "match": "receipt",
+      "match": "provider-id",
+      "live": false,
+      "source_url": "https://fal.ai/models/fal-ai/pixverse/c1/image-to-video"
+    },
+    "fal_ai:fal-ai/pixverse/c1/reference-to-video": {
+      "unit_price": 0.05,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "pixverse-c1",
+      "match": "catalog",
+      "live": false,
+      "source_url": "https://fal.ai/models/fal-ai/pixverse/c1/image-to-video"
+    },
+    "fal_ai:fal-ai/pixverse/c1/text-to-video": {
+      "unit_price": 0.05,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "pixverse-c1",
+      "match": "catalog",
       "live": false,
       "source_url": "https://fal.ai/models/fal-ai/pixverse/c1/image-to-video"
     },
@@ -1093,7 +1273,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "pixverse-v6-i2v",
-      "match": "receipt",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://fal.ai/models/fal-ai/pixverse/v6/image-to-video"
     },
@@ -1102,7 +1282,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "pixverse-v6-t2v",
-      "match": "receipt",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://fal.ai/models/fal-ai/pixverse/v6/text-to-video"
     },
@@ -1111,7 +1291,7 @@
       "billing_unit": "1m_chars",
       "unit_class": "per-1m-chars",
       "model_slug": "qwen3-tts",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/qwen-3-tts/text-to-speech/1.7b"
     },
@@ -1120,7 +1300,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "qwen-image",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/qwen-image"
     },
@@ -1129,7 +1309,16 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "qwen-image-2",
-      "match": "receipt",
+      "match": "provider-id",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/qwen-image-2/edit"
+    },
+    "fal_ai:fal-ai/qwen-image-2/text-to-image": {
+      "unit_price": 0.035,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "qwen-image-2",
+      "match": "catalog",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/qwen-image-2/edit"
     },
@@ -1138,7 +1327,25 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "qwen-image-edit",
-      "match": "receipt",
+      "match": "provider-id",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/qwen-image-edit"
+    },
+    "fal_ai:fal-ai/qwen-image-edit/image-to-image": {
+      "unit_price": 0.03,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "qwen-image-edit",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/qwen-image-edit"
+    },
+    "fal_ai:fal-ai/qwen-image-edit/inpaint": {
+      "unit_price": 0.03,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "qwen-image-edit",
+      "match": "catalog",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/qwen-image-edit"
     },
@@ -1147,18 +1354,45 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "qwen-image-max",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/qwen-image-max/edit"
+    },
+    "fal_ai:fal-ai/qwen-image-max/text-to-image": {
+      "unit_price": 0.075,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "qwen-image-max",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/qwen-image-max/edit"
+    },
+    "fal_ai:fal-ai/qwen-image/image-to-image": {
+      "unit_price": 0.03,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "qwen-image-edit",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/qwen-image-edit"
     },
     "fal_ai:fal-ai/recraft-20b": {
       "unit_price": 0.0219,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "recraft-20b",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/recraft-20b"
+    },
+    "fal_ai:fal-ai/recraft-v3": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "recraft-v3",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/recraft/v3/text-to-image"
     },
     "fal_ai:fal-ai/recraft/v3/image-to-image": {
       "unit_price": 0.04,
@@ -1183,7 +1417,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "recraft-v4-1",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/recraft/v4.1/text-to-image"
     },
@@ -1192,9 +1426,18 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "recraft-v4",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/recraft/v4/text-to-image"
+    },
+    "fal_ai:fal-ai/sora-2/image-to-video": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "sora-2",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/sora-2/text-to-video"
     },
     "fal_ai:fal-ai/sora-2/text-to-video": {
       "unit_price": 0.1,
@@ -1210,7 +1453,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "sd-3.5-large",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/stable-diffusion-v35-large"
     },
@@ -1333,7 +1576,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "vidu-q2-reference-to-image",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/vidu/q2/reference-to-image"
     },
@@ -1342,7 +1585,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "vidu-q2-text-to-image",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/vidu/q2/text-to-image"
     },
@@ -1378,7 +1621,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "wan-2.2",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/wan/v2.2-a14b/image-to-video"
     },
@@ -1387,7 +1630,25 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "wan-2.7",
-      "match": "receipt",
+      "match": "provider-id",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/wan/v2.7/image-to-video"
+    },
+    "fal_ai:fal-ai/wan/v2.7/reference-to-video": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "wan-2.7",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/wan/v2.7/image-to-video"
+    },
+    "fal_ai:fal-ai/wan/v2.7/text-to-video": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "wan-2.7",
+      "match": "catalog",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/wan/v2.7/image-to-video"
     },
@@ -1396,16 +1657,43 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "z-image-turbo",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/z-image/turbo"
+    },
+    "fal_ai:google/gemini-omni-flash": {
+      "unit_price": 0.13,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "gemini-omni-flash",
+      "match": "catalog",
+      "live": false,
+      "source_url": "https://fal.ai/models/google/gemini-omni-flash/image-to-video"
+    },
+    "fal_ai:google/gemini-omni-flash/edit": {
+      "unit_price": 0.13,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "gemini-omni-flash",
+      "match": "catalog",
+      "live": false,
+      "source_url": "https://fal.ai/models/google/gemini-omni-flash/image-to-video"
     },
     "fal_ai:google/gemini-omni-flash/image-to-video": {
       "unit_price": 0.13,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "gemini-omni-flash",
-      "match": "receipt",
+      "match": "provider-id",
+      "live": false,
+      "source_url": "https://fal.ai/models/google/gemini-omni-flash/image-to-video"
+    },
+    "fal_ai:google/gemini-omni-flash/reference-to-video": {
+      "unit_price": 0.13,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "gemini-omni-flash",
+      "match": "catalog",
       "live": false,
       "source_url": "https://fal.ai/models/google/gemini-omni-flash/image-to-video"
     },
@@ -1414,7 +1702,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "krea-2-large",
-      "match": "receipt",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://fal.ai/models/krea/v2/large/text-to-image"
     },
@@ -1423,7 +1711,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "krea-2-medium",
-      "match": "receipt",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://fal.ai/models/krea/v2/medium/text-to-image"
     },
@@ -1432,7 +1720,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "luma-uni-1",
-      "match": "receipt",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://fal.ai/models/luma/agent/uni-1/v1/text-to-image"
     },
@@ -1441,25 +1729,61 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "wan-2.6-i2v",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/wan/v2.6/image-to-video"
+    },
+    "fal_ai:xai/grok-imagine-image": {
+      "unit_price": 0.02,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "grok-imagine",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://fal.ai/models/xai/grok-imagine-image/edit"
     },
     "fal_ai:xai/grok-imagine-image/edit": {
       "unit_price": 0.02,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "grok-imagine",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/xai/grok-imagine-image/edit"
+    },
+    "fal_ai:xai/grok-imagine-video/image-to-video": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "grok-imagine-video",
+      "match": "catalog",
+      "live": false,
+      "source_url": "https://fal.ai/models/xai/grok-imagine-video/v1.5/image-to-video"
+    },
+    "fal_ai:xai/grok-imagine-video/reference-to-video": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "grok-imagine-video",
+      "match": "catalog",
+      "live": false,
+      "source_url": "https://fal.ai/models/xai/grok-imagine-video/v1.5/image-to-video"
+    },
+    "fal_ai:xai/grok-imagine-video/text-to-video": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "grok-imagine-video",
+      "match": "catalog",
+      "live": false,
+      "source_url": "https://fal.ai/models/xai/grok-imagine-video/v1.5/image-to-video"
     },
     "fal_ai:xai/grok-imagine-video/v1.5/image-to-video": {
       "unit_price": 0.08,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "grok-imagine-video",
-      "match": "receipt",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://fal.ai/models/xai/grok-imagine-video/v1.5/image-to-video"
     },
@@ -1468,7 +1792,7 @@
       "billing_unit": "1m_tokens",
       "unit_class": "per-1m-tokens",
       "model_slug": "gemini-2.5-flash-tts",
-      "match": "catalog",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://ai.google.dev/gemini-api/docs/pricing"
     },
@@ -1477,7 +1801,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gemini-3-pro-image",
-      "match": "catalog",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://ai.google.dev/gemini-api/docs/pricing"
     },
@@ -1486,7 +1810,16 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gemini-3.1-flash-image",
-      "match": "catalog",
+      "match": "provider-id",
+      "live": false,
+      "source_url": "https://ai.google.dev/gemini-api/docs/pricing"
+    },
+    "gemini:gemini-3.1-flash-lite-image": {
+      "unit_price": 0.0336,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "nano-banana-2-lite",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://ai.google.dev/gemini-api/docs/pricing"
     },
@@ -1495,7 +1828,7 @@
       "billing_unit": "1m_tokens",
       "unit_class": "per-1m-tokens",
       "model_slug": "gemini-3.1-flash-tts",
-      "match": "catalog",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://ai.google.dev/gemini-api/docs/pricing"
     },
@@ -1504,7 +1837,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "imagen-4",
-      "match": "catalog",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://ai.google.dev/gemini-api/docs/pricing"
     },
@@ -1513,7 +1846,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "veo-3.1-fast",
-      "match": "catalog",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://ai.google.dev/gemini-api/docs/pricing"
     },
@@ -1522,7 +1855,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "veo-3.1",
-      "match": "catalog",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://ai.google.dev/gemini-api/docs/pricing"
     },
@@ -1531,7 +1864,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "veo-3.1-lite",
-      "match": "catalog",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://ai.google.dev/gemini-api/docs/pricing"
     },
@@ -1540,7 +1873,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-1.5-pro",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://kie.ai/seedance-1-5-pro"
     },
@@ -1549,7 +1882,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-2",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://kie.ai/seedance-2-0"
     },
@@ -1576,7 +1909,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "flux-2-pro",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://kie.ai/flux-2"
     },
@@ -1585,7 +1918,7 @@
       "billing_unit": "generations",
       "unit_class": "per-generation",
       "model_slug": "gemini-omni-video",
-      "match": "catalog",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://kie.ai/gemini-omni"
     },
@@ -1594,7 +1927,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gemini-2.5-flash-image",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://kie.ai/nano-banana"
     },
@@ -1621,7 +1954,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gpt-image-2",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://kie.ai/gpt-image-2"
     },
@@ -1639,7 +1972,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gpt-image-1.5",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://kie.ai/gpt-image-1.5"
     },
@@ -1648,9 +1981,18 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "grok-imagine-video",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://kie.ai/grok-imagine-video-1.5"
+    },
+    "kie:hailuo/2-3-image-to-video-standard": {
+      "unit_price": 0.025,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "hailuo-2.3",
+      "match": "provider-id",
+      "live": true,
+      "source_url": "https://kie.ai/hailuo-2-3"
     },
     "kie:happyhorse-1-1/image-to-video": {
       "unit_price": 0.1125,
@@ -1675,9 +2017,36 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "happyhorse-1-1",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://kie.ai/happyhorse-1-1"
+    },
+    "kie:happyhorse/text-to-video": {
+      "unit_price": 0.14,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "happyhorse-1",
+      "match": "provider-id",
+      "live": true,
+      "source_url": "https://kie.ai/happyhorse-1-0"
+    },
+    "kie:infinitalk/from-audio": {
+      "unit_price": 0.015,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "infinitalk",
+      "match": "provider-id",
+      "live": true,
+      "source_url": "https://kie.ai/infinitalk"
+    },
+    "kie:kling-3.0/motion-control": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "kling-motion-control-3",
+      "match": "provider-id",
+      "live": true,
+      "source_url": "https://kie.ai/kling-3-motion-control"
     },
     "kie:kling/v3-turbo-image-to-video": {
       "unit_price": 0.09,
@@ -1693,7 +2062,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "kling-3.0-turbo",
-      "match": "catalog",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://kie.ai/kling-3-0-turbo"
     },
@@ -1702,7 +2071,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gemini-3.1-flash-image",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://kie.ai/nano-banana-2"
     },
@@ -1720,9 +2089,18 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gemini-3-pro-image",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://kie.ai/nano-banana-pro"
+    },
+    "kie:qwen/text-to-image": {
+      "unit_price": 0.02,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "qwen-image",
+      "match": "provider-id",
+      "live": true,
+      "source_url": "https://kie.ai/qwen-image"
     },
     "kie:seedream/4.5-edit": {
       "unit_price": 0.0325,
@@ -1738,7 +2116,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "seedream-4.5",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://kie.ai/seedream-4-5"
     },
@@ -1756,7 +2134,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "seedream-5-lite",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://kie.ai/seedream5-0-lite"
     },
@@ -1774,7 +2152,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "seedream-5-pro",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://kie.ai/seedream-5-0-pro"
     },
@@ -1801,7 +2179,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "wan-2.7",
-      "match": "catalog",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://kie.ai/wan-2-7-video"
     },
@@ -1819,7 +2197,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "hailuo-02",
-      "match": "catalog",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://platform.minimax.io/docs/guides/pricing-paygo"
     },
@@ -1828,7 +2206,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "hailuo-2.3",
-      "match": "catalog",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://platform.minimax.io/docs/guides/pricing-paygo"
     },
@@ -1837,7 +2215,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "minimax-image-01",
-      "match": "catalog",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://platform.minimax.io/docs/guides/pricing-paygo"
     },
@@ -1846,7 +2224,7 @@
       "billing_unit": "1m_chars",
       "unit_class": "per-1m-chars",
       "model_slug": "minimax-speech-02-hd",
-      "match": "catalog",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://platform.minimax.io/docs/guides/pricing-paygo"
     },
@@ -1855,7 +2233,7 @@
       "billing_unit": "1m_chars",
       "unit_class": "per-1m-chars",
       "model_slug": "minimax-speech-2.6-hd",
-      "match": "catalog",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://platform.minimax.io/docs/guides/pricing-paygo"
     },
@@ -1864,7 +2242,7 @@
       "billing_unit": "1m_tokens",
       "unit_class": "per-1m-tokens",
       "model_slug": "gpt-4o-mini-tts",
-      "match": "catalog",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://developers.openai.com/api/docs/models/gpt-4o-mini-tts"
     },
@@ -1873,7 +2251,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gpt-image-1",
-      "match": "catalog",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://developers.openai.com/api/docs/guides/image-generation"
     },
@@ -1882,7 +2260,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gpt-image-1.5",
-      "match": "catalog",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://developers.openai.com/api/docs/guides/image-generation"
     },
@@ -1891,7 +2269,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gpt-image-2",
-      "match": "catalog",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://developers.openai.com/api/docs/guides/image-generation"
     },
@@ -1900,7 +2278,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "sora-2",
-      "match": "catalog",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://developers.openai.com/api/docs/pricing"
     },
@@ -1909,7 +2287,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "sora-2-pro",
-      "match": "catalog",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://developers.openai.com/api/docs/pricing"
     },
@@ -1918,7 +2296,7 @@
       "billing_unit": "1m_chars",
       "unit_class": "per-1m-chars",
       "model_slug": "tts-1",
-      "match": "catalog",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://developers.openai.com/api/docs/models/tts-1"
     },
@@ -1927,7 +2305,7 @@
       "billing_unit": "1m_chars",
       "unit_class": "per-1m-chars",
       "model_slug": "tts-1-hd",
-      "match": "catalog",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://developers.openai.com/api/docs/models/tts-1-hd"
     },
@@ -1945,7 +2323,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "flux-1-dev",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://replicate.com/black-forest-labs/flux-dev"
     },
@@ -1954,7 +2332,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "flux-1-kontext-pro",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://replicate.com/black-forest-labs/flux-kontext-pro"
     },
@@ -1963,7 +2341,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "flux-1-schnell",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://replicate.com/black-forest-labs/flux-schnell"
     },
@@ -1972,7 +2350,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-1-pro",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://replicate.com/bytedance/seedance-1-pro"
     },
@@ -1981,7 +2359,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "seedream-4",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://replicate.com/bytedance/seedream-4"
     },
@@ -1990,7 +2368,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "imagen-4",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://replicate.com/google/imagen-4"
     },
@@ -2008,7 +2386,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "veo-3",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://replicate.com/google/veo-3"
     },
@@ -2017,16 +2395,25 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "veo-3-fast",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://replicate.com/google/veo-3-fast"
+    },
+    "replicate:ideogram-ai/ideogram-v3-quality": {
+      "unit_price": 0.09,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "ideogram-v3",
+      "match": "provider-id",
+      "live": true,
+      "source_url": "https://replicate.com/pricing"
     },
     "replicate:kwaivgi/kling-v2.5-turbo-pro": {
       "unit_price": 0.07,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "kling-2.5-turbo-pro",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://replicate.com/kwaivgi/kling-v2.5-turbo-pro"
     },
@@ -2035,7 +2422,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "luma-ray-2",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://replicate.com/luma/ray-2-720p"
     },
@@ -2044,7 +2431,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "hailuo-02",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://replicate.com/minimax/hailuo-02"
     },
@@ -2071,7 +2458,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "sora-2",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://replicate.com/openai/sora-2"
     },
@@ -2080,7 +2467,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "recraft-v3",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://replicate.com/recraft-ai/recraft-v3"
     },
@@ -2098,7 +2485,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "sd-3.5-large",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://replicate.com/stability-ai/stable-diffusion-3.5-large"
     },
@@ -2107,7 +2494,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "wan-2.5",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://replicate.com/wan-video/wan-2.5-t2v"
     },
@@ -2193,7 +2580,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "veo-3",
-      "match": "catalog",
+      "match": "provider-id",
       "live": false,
       "source_url": "https://www.together.ai/pricing"
     },

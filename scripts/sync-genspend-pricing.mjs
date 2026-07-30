@@ -117,10 +117,18 @@ export function buildPriceIndex({ models, index, aliases }) {
         const key = `${providerId}:${entry.modelId}`;
         const existing = prices[key];
         if (existing) {
+          // Equal trust, same model listed twice: the cheaper number is what a
+          // run pays. Equal trust, *different* models on one id — a provider
+          // that selects tier by parameter, so `kling-v3` is both Pro and
+          // Standard — means one NodeTool node could run either, and a budget
+          // gate must assume the dearer.
+          const sameModel = existing.model_slug === model.slug;
+          const tieBreak = sameModel
+            ? entry.unitPrice < existing.unit_price
+            : entry.unitPrice > existing.unit_price;
           const better =
             MATCH_RANK[entry.match] > MATCH_RANK[existing.match] ||
-            (MATCH_RANK[entry.match] === MATCH_RANK[existing.match] &&
-              entry.unitPrice < existing.unit_price);
+            (MATCH_RANK[entry.match] === MATCH_RANK[existing.match] && tieBreak);
           if (!better) continue;
         } else {
           stats.ids += 1;

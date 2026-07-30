@@ -56,12 +56,16 @@ const RECEIPT_PATTERNS = {
 /** GenSpend modality → the inventory modality it can price. */
 const MODALITY_ALIASES = { image: "image", video: "video", audio: "audio" };
 
-/** How much each route can be trusted, high wins. See the module docs. */
+/**
+ * How much each route can be trusted, high wins. `provider-id` outranks
+ * `receipt` because GenSpend reads the field off the provider's own API
+ * reference, while a receipt id is inferred from a URL path.
+ */
 export const MATCH_RANK = {
   alias: 5,
   variant: 4,
-  receipt: 3,
-  "provider-id": 2,
+  "provider-id": 3,
+  receipt: 2,
   catalog: 1
 };
 
@@ -217,6 +221,15 @@ export function resolveOfferingPrices({
   for (const variant of Array.isArray(offering.variants) ? offering.variants : []) {
     const found = verifyId(index, providerId, variant?.spec);
     if (!found) continue;
+    // `videoInput: true` is a billing axis, not a spec note — providers charge
+    // more when a video goes in. Applying such a row to a text-to-video
+    // endpoint would undercharge, so let the headline price stand instead.
+    if (
+      variant.videoInput === true &&
+      capabilityForModelId(found.id, found.name) === "t2v"
+    ) {
+      continue;
+    }
     const price = isFiniteNumber(variant.priceUsd) ? variant.priceUsd : headlinePrice;
     const unitClass =
       typeof variant.unitClass === "string" && variant.unitClass
@@ -235,54 +248,56 @@ export function resolveOfferingPrices({
     claim(priceEntry(claimed.id, headlinePrice, headlineClass, "provider-id"));
   }
 
-  if (byId.size > 0) {
-    return {
-      providerId,
-      entries: [...byId.values()].sort((a, b) =>
-        a.modelId.localeCompare(b.modelId)
-      ),
-      reason: null
-    };
-  }
-
-  // Name matching — the only interpreting route, and the only one that needs
-  // the modality, capability and ambiguity guards.
+  // Name matching. GenSpend prices a model once per provider, but a provider
+  // ships it as several task endpoints (text-to-video, image-to-video, edit),
+  // and only one of those is what `providerModelId` or a receipt names. So the
+  // name tier still runs, to carry the price to the model's sibling endpoints —
+  // at `catalog` trust, and only where the model's own capabilities allow it.
+  //
+  // This is the only interpreting route, and the only one needing the modality,
+  // capability and ambiguity guards.
   const modality = MODALITY_ALIASES[normalize(model.modality)];
   const keyMap = modality ? index?.[providerId]?.byKey?.[modality] : undefined;
+  const named = new Set();
+  let namedReason = null;
+
   if (!keyMap || audioKindMismatch(model, modality)) {
-    return { providerId, entries: [], reason: "unmatched" };
+    namedReason = "unmatched";
+  } else {
+    for (const key of modelKeys(
+      model.slug,
+      model.name,
+      model.shortName,
+      ...(Array.isArray(model.aliases) ? model.aliases : [])
+    )) {
+      for (const id of keyMap.get(key) ?? []) named.add(id);
+    }
+    if (named.size === 0) namedReason = "unmatched";
+    else if (named.size > maxIds) {
+      named.clear();
+      namedReason = "ambiguous";
+    }
   }
 
-  const hits = new Set();
-  for (const key of modelKeys(
-    model.slug,
-    model.name,
-    model.shortName,
-    ...(Array.isArray(model.aliases) ? model.aliases : [])
-  )) {
-    for (const id of keyMap.get(key) ?? []) hits.add(id);
-  }
-  if (hits.size === 0) {
-    return { providerId, entries: [], reason: "unmatched" };
-  }
-  if (hits.size > maxIds) {
-    return { providerId, entries: [], reason: "ambiguous" };
-  }
-
-  const allowed = [...hits]
+  const allowed = [...named]
     .map((id) => index[providerId].byId.get(id.toLowerCase()))
     .filter((entry) => entry && !capabilitiesRefuteTask(model, entry));
-  if (allowed.length === 0) {
-    return { providerId, entries: [], reason: "refuted-by-capabilities" };
+  if (named.size > 0 && allowed.length === 0) {
+    namedReason = "refuted-by-capabilities";
+  }
+  for (const entry of allowed) {
+    claim(priceEntry(entry.id, headlinePrice, headlineClass, "catalog"));
+  }
+
+  if (byId.size === 0) {
+    return { providerId, entries: [], reason: namedReason ?? "unmatched" };
   }
 
   return {
     providerId,
-    entries: allowed
-      .map((entry) =>
-        priceEntry(entry.id, headlinePrice, headlineClass, "catalog")
-      )
-      .sort((a, b) => a.modelId.localeCompare(b.modelId)),
+    entries: [...byId.values()].sort((a, b) =>
+      a.modelId.localeCompare(b.modelId)
+    ),
     reason: null
   };
 }
