@@ -1,0 +1,150 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-06-21T16:03:52.969Z",
+  "updated_at": "2026-06-21T16:55:51.256Z",
+  "name": "Narrate a Script",
+  "tool_name": null,
+  "description": "Turn written copy into a voice track with ElevenLabs multilingual v2 on fal. Pair it with Score a Silent Clip to build a narrated cut from text alone. Billed per character.",
+  "tags": [
+    "audio",
+    "example"
+  ],
+  "thumbnail": "Narrate a Script.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "script",
+          "value": "Every frame you see here was generated from a single line of text.",
+          "description": "The words to speak"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Script"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "tts",
+        "type": "nodetool.audio.TextToSpeech",
+        "data": {
+          "model": {
+            "type": "tts_model",
+            "provider": "fal_ai",
+            "id": "fal-ai/elevenlabs/tts/multilingual-v2",
+            "name": "ElevenLabs Multilingual v2",
+            "path": null,
+            "voices": []
+          },
+          "speed": 1.0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 400,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Speak"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "narration"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 760,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "3  Voice track"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "tts",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e2",
+        "source": "tts",
+        "sourceHandle": "audio",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "script": {
+        "type": "string",
+        "default": "Every frame you see here was generated from a single line of text.",
+        "label": ""
+      }
+    },
+    "required": [
+      "script"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "narration": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "const": "audio"
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      }
+    },
+    "required": [
+      "narration"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "e31acfae86ee104dbf9df243c9ba6084"
+}

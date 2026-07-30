@@ -1,0 +1,180 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-06-21T16:03:52.969Z",
+  "updated_at": "2026-06-21T16:55:51.256Z",
+  "name": "Single Shot from a Line",
+  "tool_name": null,
+  "description": "The smallest possible text-to-video graph: a line of direction, a template that adds the house look, one render. Useful as a smoke test for video credentials before running a template that bills several generations per run.",
+  "tags": [
+    "video",
+    "example"
+  ],
+  "thumbnail": "Single Shot from a Line.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "shot",
+          "value": "Rain running down a diner window at night, neon bleeding through the glass",
+          "description": "What the shot is"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Shot"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "tpl",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "{{ shot }}. Slow, deliberate camera move. Cinematic, shallow depth of field, natural motion. No text, no logo, no subtitles."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 320,
+          "selectable": true,
+          "title": "2  Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "vid",
+        "type": "nodetool.video.TextToVideo",
+        "data": {
+          "model": {
+            "type": "video_model",
+            "provider": "fal_ai",
+            "id": "fal-ai/ltx-2.3/text-to-video/fast",
+            "name": "LTX-2.3 Text to Video Fast",
+            "path": null,
+            "supported_tasks": []
+          },
+          "negative_prompt": "text, watermark, logo, subtitles",
+          "aspect_ratio": "16:9",
+          "resolution": "1080p",
+          "duration": 6,
+          "timeout_seconds": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Render"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "clip"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1080,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "4  Clip"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "tpl",
+        "targetHandle": "shot"
+      },
+      {
+        "id": "e2",
+        "source": "tpl",
+        "sourceHandle": "output",
+        "target": "vid",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e3",
+        "source": "vid",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "shot": {
+        "type": "string",
+        "default": "Rain running down a diner window at night, neon bleeding through the glass",
+        "label": ""
+      }
+    },
+    "required": [
+      "shot"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "clip": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "const": "video"
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      }
+    },
+    "required": [
+      "clip"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "e31acfae86ee104dbf9df243c9ba6084"
+}

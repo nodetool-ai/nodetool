@@ -1,0 +1,96 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-06-21T16:03:52.969Z",
+  "updated_at": "2026-06-21T16:55:51.256Z",
+  "name": "Run JavaScript in a Sandbox",
+  "tool_name": null,
+  "description": "Execute a JavaScript snippet and capture stdout. Same escape hatch as the Python runner, for when the logic is easier to express in JS. Runs locally - no model, no key, no cost.",
+  "tags": [
+    "code",
+    "utility",
+    "example"
+  ],
+  "thumbnail": "Run JavaScript in a Sandbox.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "run",
+        "type": "nodetool.code.ExecuteJavaScript",
+        "data": {
+          "code": "const vals=[12,7,19,4,7,22];\nconsole.log('sum', vals.reduce((a,b)=>a+b,0));\nconsole.log('max', Math.max(...vals));",
+          "execution_mode": "subprocess",
+          "stdin": "",
+          "image": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 360,
+          "selectable": true,
+          "title": "1  Execute"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "stdout"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 440,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "2  Output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "run",
+        "sourceHandle": "stdout",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {}
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "stdout": {
+        "type": "string",
+        "default": "",
+        "label": ""
+      }
+    },
+    "required": [
+      "stdout"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "e31acfae86ee104dbf9df243c9ba6084"
+}

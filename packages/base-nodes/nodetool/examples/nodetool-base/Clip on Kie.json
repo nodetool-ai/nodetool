@@ -1,0 +1,154 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-06-21T16:03:52.969Z",
+  "updated_at": "2026-06-21T16:55:51.256Z",
+  "name": "Clip on Kie",
+  "tool_name": null,
+  "description": "Generate a short clip through Kie's Kling 2.6. The Kie counterpart to Single Shot from a Line - useful for comparing what the same direction yields across providers before committing a template to one.",
+  "tags": [
+    "video",
+    "example"
+  ],
+  "thumbnail": "Clip on Kie.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "shot",
+          "value": "A tram crossing an empty city square in heavy rain at night",
+          "description": "What the shot is"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Shot"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "vid",
+        "type": "nodetool.video.TextToVideo",
+        "data": {
+          "model": {
+            "type": "video_model",
+            "provider": "kie",
+            "id": "kling-2.6/text-to-video",
+            "name": "Kling 2.6 Text to Video",
+            "path": null,
+            "supported_tasks": []
+          },
+          "negative_prompt": "text, watermark, subtitles",
+          "aspect_ratio": "16:9",
+          "resolution": "1080p",
+          "duration": 5,
+          "timeout_seconds": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 400,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Render"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "clip"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 760,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "3  Clip"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "vid",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e2",
+        "source": "vid",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "shot": {
+        "type": "string",
+        "default": "A tram crossing an empty city square in heavy rain at night",
+        "label": ""
+      }
+    },
+    "required": [
+      "shot"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "clip": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "const": "video"
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      }
+    },
+    "required": [
+      "clip"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "e31acfae86ee104dbf9df243c9ba6084"
+}

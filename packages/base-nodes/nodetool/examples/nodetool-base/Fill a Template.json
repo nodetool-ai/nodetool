@@ -1,0 +1,130 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-06-21T16:03:52.969Z",
+  "updated_at": "2026-06-21T16:55:51.256Z",
+  "name": "Fill a Template",
+  "tool_name": null,
+  "description": "Substitute values into a text template. This is the seam between a workflow's inputs and a model prompt - keep the wording in one Template node rather than scattering it across several prompt fields.",
+  "tags": [
+    "data",
+    "utility",
+    "example"
+  ],
+  "thumbnail": "Fill a Template.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "subject",
+          "value": "the winter release",
+          "description": "What the line is about"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Subject"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "tpl",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "Subject: {{ subject }}\n\nWrite one sentence of launch copy about it."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 320,
+          "selectable": true,
+          "title": "2  Template"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "filled"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "3  Filled"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "tpl",
+        "targetHandle": "subject"
+      },
+      {
+        "id": "e2",
+        "source": "tpl",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "subject": {
+        "type": "string",
+        "default": "the winter release",
+        "label": ""
+      }
+    },
+    "required": [
+      "subject"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "filled": {
+        "type": "string",
+        "default": "",
+        "label": ""
+      }
+    },
+    "required": [
+      "filled"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "e31acfae86ee104dbf9df243c9ba6084"
+}

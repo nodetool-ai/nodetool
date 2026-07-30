@@ -213,6 +213,10 @@ function classifyError(message: string | undefined): string {
   if (m.includes("required")) return "missing-input";
   if (m.includes("is empty")) return "missing-input";
   if (m.includes("no tiles provided")) return "missing-input";
+  // Audio effects word an unfed input as "No audio connected: … none was
+  // provided" rather than the "… is empty" the video and image nodes use.
+  // Same condition — this run supplies no inputs — so same bucket.
+  if (m.includes("none was provided")) return "missing-input";
   return "other";
 }
 

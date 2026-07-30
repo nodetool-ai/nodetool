@@ -1,0 +1,156 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-06-21T16:03:52.969Z",
+  "updated_at": "2026-06-21T16:55:51.256Z",
+  "name": "Re-delimit a List",
+  "tool_name": null,
+  "description": "Split text on one delimiter and rejoin it on another - turning a comma list into a pipe list, or CSV-ish text into newline records. Pure string work: no model, no key, no cost.",
+  "tags": [
+    "data",
+    "utility",
+    "example"
+  ],
+  "thumbnail": "Re-delimit a List.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "raw",
+          "value": "alpha, beta, gamma, delta",
+          "description": "Comma-separated text to re-format"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Raw text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "sp",
+        "type": "nodetool.text.Split",
+        "data": {
+          "delimiter": ", "
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Split"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "jn",
+        "type": "nodetool.text.Join",
+        "data": {
+          "separator": " | "
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Join"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "reformatted"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "4  Result"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "sp",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e2",
+        "source": "sp",
+        "sourceHandle": "output",
+        "target": "jn",
+        "targetHandle": "strings"
+      },
+      {
+        "id": "e3",
+        "source": "jn",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "raw": {
+        "type": "string",
+        "default": "alpha, beta, gamma, delta",
+        "label": ""
+      }
+    },
+    "required": [
+      "raw"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "reformatted": {
+        "type": "string",
+        "default": "",
+        "label": ""
+      }
+    },
+    "required": [
+      "reformatted"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "e31acfae86ee104dbf9df243c9ba6084"
+}
