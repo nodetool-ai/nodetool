@@ -137,12 +137,17 @@ describe("journey provider-failure-mid-stream (task D1)", () => {
   );
 
   it("an unregistered fault name is reported, not silently ignored", async () => {
+    // "ws-drop-no-fin" was this fixture's stand-in for an unimplemented
+    // fault when D1 wrote this test; task D2 has since shipped a
+    // `FaultModule` for every `ws-*` name. The "client" seam (§9) has no
+    // shipped module yet, so `client-cancel-storm` is today's still-genuinely-
+    // unregistered example — swap again whenever that seam ships too.
     const report = await runJourney(JOURNEY_NAME, {
       journeysDir: JOURNEYS_DIR,
       surfaces: ["kernel"],
-      faults: ["ws-drop-no-fin"]
+      faults: ["client-cancel-storm"]
     });
-    expect(report.unknownFaults).toEqual(["ws-drop-no-fin"]);
+    expect(report.unknownFaults).toEqual(["client-cancel-storm"]);
     expect(report.verdict.ok).toBe(false);
   });
 });
