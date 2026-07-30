@@ -6,7 +6,10 @@ name: User Journeys
 # run it, send a chat message, run a mini app, browse the library), so it is
 # slower and has more moving parts than the page-load smoke suite. Running it
 # nightly first lets it prove it is stable before it is allowed to block a
-# merge. Promote it to `pull_request` once it has a clean streak.
+# merge.
+#
+# Required from 2026-08-15 as a Ring 1 (merge-to-main) check — flip
+# continue-on-error to false then. Tracked in .github/workflows/README.md.
 on:
   schedule:
     # 03:30 UTC daily.
@@ -26,8 +29,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     # Report failures without failing the workflow run, so a flaky night does
-    # not page anyone while the suite is still earning trust. Remove this when
-    # promoting the suite to a required check.
+    # not page anyone while the suite is still earning trust. Required from
+    # 2026-08-15 — flip this to false then. Tracked in
+    # .github/workflows/README.md.
     continue-on-error: true
 
     steps:
