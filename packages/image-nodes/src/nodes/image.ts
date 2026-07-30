@@ -1654,7 +1654,7 @@ export class TextToImageNode extends BaseNode {
     type: "image_model",
     default: {
       type: "image_model",
-      provider: "huggingface_fal_ai",
+      provider: "fal_ai",
       id: "fal-ai/flux/schnell",
       name: "FLUX.1 Schnell",
       path: null,
@@ -1761,7 +1761,7 @@ export class ImageToImageNode extends BaseNode {
     type: "image_model",
     default: {
       type: "image_model",
-      provider: "huggingface_fal_ai",
+      provider: "fal_ai",
       id: "fal-ai/flux/dev",
       name: "FLUX.1 Dev",
       path: null,

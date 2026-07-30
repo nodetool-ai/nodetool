@@ -78,7 +78,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎬 Image to Video Animation\n\nGenerate a still from a scene prompt, then animate it into a short cinematic clip.\n\n**Pipeline:** scene prompt → Text-to-Image → build motion prompt → Image-to-Video\n\n**Try this:** edit the scene, motion, or duration prompts.\n\n**Cost note:** the animation step uses Veo 3.1, a paid per-second video model — each run costs noticeably more than an image-only template."
+          "comment": "# \ud83c\udfac Image to Video Animation\n\nGenerate a still from a scene prompt, then animate it into a short cinematic clip.\n\n**Pipeline:** scene prompt \u2192 Text-to-Image \u2192 build motion prompt \u2192 Image-to-Video\n\n**Try this:** edit the scene, motion, or duration prompts.\n\n**Cost note:** the animation step uses Veo 3.1, a paid per-second video model \u2014 each run costs noticeably more than an image-only template."
         },
         "ui_properties": {
           "selected": false,
@@ -122,7 +122,7 @@
           "width": 416,
           "selectable": true,
           "height": 360,
-          "title": "3️⃣ Animate to video"
+          "title": "3\ufe0f\u20e3 Animate to video"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -133,7 +133,7 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "huggingface_fal_ai",
+            "provider": "fal_ai",
             "id": "fal-ai/flux/schnell",
             "name": "FLUX.1 Schnell",
             "path": null,
@@ -156,7 +156,7 @@
           "width": 384,
           "selectable": true,
           "height": 400,
-          "title": "2️⃣ Generate still"
+          "title": "2\ufe0f\u20e3 Generate still"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -177,7 +177,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "1️⃣ Scene prompt"
+          "title": "1\ufe0f\u20e3 Scene prompt"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}

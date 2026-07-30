@@ -1,0 +1,145 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-30T12:00:00.000Z",
+  "updated_at": "2026-07-30T12:00:00.000Z",
+  "name": "Generate then Upscale a Poster",
+  "tool_name": null,
+  "description": "Generate small and cheap, then pay for resolution only on the frame you keep. Iterating at 1K and upscaling once at the end costs a fraction of generating every draft at full size.",
+  "tags": [
+    "image",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "p",
+        "type": "nodetool.constant.String",
+        "data": {
+          "value": "a retro travel poster of a volcanic coastline, screenprint texture"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "gen",
+        "type": "nodetool.image.TextToImage",
+        "data": {
+          "model": {
+            "type": "image_model",
+            "provider": "fal_ai",
+            "id": "fal-ai/flux/schnell",
+            "name": "FLUX.1 Schnell",
+            "path": null,
+            "supported_tasks": []
+          },
+          "prompt": "",
+          "negative_prompt": "",
+          "entities": [],
+          "aspect_ratio": "3:4",
+          "resolution": "1K"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Draft"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "up",
+        "type": "nodetool.image.Upscale",
+        "data": {
+          "model": {
+            "type": "image_model",
+            "provider": "fal_ai",
+            "id": "fal-ai/clarity-upscaler",
+            "name": "Clarity Upscaler",
+            "path": null,
+            "supported_tasks": []
+          },
+          "scale": 2,
+          "prompt": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 640,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Upscale 2x"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "poster"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 960,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Poster"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "p",
+        "sourceHandle": "output",
+        "target": "gen",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e2",
+        "source": "gen",
+        "sourceHandle": "output",
+        "target": "up",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e3",
+        "source": "up",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

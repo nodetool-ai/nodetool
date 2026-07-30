@@ -244,7 +244,7 @@
         "id": "comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎙️ Podcast Repurposing Studio\n\nDrop in one episode and ship the whole content pack: titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images. The episode is transcribed once; four writer branches fan out from the transcript.\n\n**Pipeline:** Episode audio → Transcript → Show notes · Newsletter · Posts · Quotes → Quote cards\n\n**Try this:** pick the ASR, language, and image models, then tune each writer's prompt to your show's voice."
+          "comment": "# \ud83c\udf99\ufe0f Podcast Repurposing Studio\n\nDrop in one episode and ship the whole content pack: titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images. The episode is transcribed once; four writer branches fan out from the transcript.\n\n**Pipeline:** Episode audio \u2192 Transcript \u2192 Show notes \u00b7 Newsletter \u00b7 Posts \u00b7 Quotes \u2192 Quote cards\n\n**Try this:** pick the ASR, language, and image models, then tune each writer's prompt to your show's voice."
         },
         "ui_properties": {
           "position": {
@@ -278,7 +278,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "1️⃣ Episode audio",
+          "title": "1\ufe0f\u20e3 Episode audio",
           "selectable": true,
           "bypassed": false
         },
@@ -290,8 +290,8 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "show_context",
-          "value": "Trailhead — a weekly hiking and outdoor-gear podcast hosted by Maya. Voice: warm, practical, a little irreverent. CTA: subscribe and grab the free gear checklist at trailhead.fm",
-          "description": "Show name, host, voice, and call to action — every writer branch uses this"
+          "value": "Trailhead \u2014 a weekly hiking and outdoor-gear podcast hosted by Maya. Voice: warm, practical, a little irreverent. CTA: subscribe and grab the free gear checklist at trailhead.fm",
+          "description": "Show name, host, voice, and call to action \u2014 every writer branch uses this"
         },
         "ui_properties": {
           "position": {
@@ -300,7 +300,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "2️⃣ Show context",
+          "title": "2\ufe0f\u20e3 Show context",
           "selectable": true,
           "bypassed": false
         },
@@ -324,7 +324,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "3️⃣ Quote-card count",
+          "title": "3\ufe0f\u20e3 Quote-card count",
           "selectable": true,
           "bypassed": false
         },
@@ -351,7 +351,7 @@
           "zIndex": 0,
           "width": 300,
           "height": 240,
-          "title": "4️⃣ Transcribe the episode",
+          "title": "4\ufe0f\u20e3 Transcribe the episode",
           "selectable": true,
           "bypassed": false
         },
@@ -362,7 +362,7 @@
         "id": "shownotes_prompt",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "You are producing the episode page for this podcast.\n\nShow: {{ SHOW }}\n\nFrom the transcript below, return Markdown, no commentary:\n\nTitles: 3 episode title options — specific, curiosity-driven, under 60 characters.\nSummary: one paragraph, 3-4 sentences, written for the episode page.\nShow notes: 6-10 bullet chapters in listening order — each a short phrase naming what gets discussed.\nResources: anything mentioned worth linking — books, tools, people, places.\nCTA: one closing line using the show's call to action.\n\nTranscript:\n{{ TRANSCRIPT }}"
+          "prompt": "You are producing the episode page for this podcast.\n\nShow: {{ SHOW }}\n\nFrom the transcript below, return Markdown, no commentary:\n\nTitles: 3 episode title options \u2014 specific, curiosity-driven, under 60 characters.\nSummary: one paragraph, 3-4 sentences, written for the episode page.\nShow notes: 6-10 bullet chapters in listening order \u2014 each a short phrase naming what gets discussed.\nResources: anything mentioned worth linking \u2014 books, tools, people, places.\nCTA: one closing line using the show's call to action.\n\nTranscript:\n{{ TRANSCRIPT }}"
         },
         "ui_properties": {
           "position": {
@@ -413,7 +413,7 @@
           "zIndex": 0,
           "width": 330,
           "height": 330,
-          "title": "5️⃣ Write show notes & titles",
+          "title": "5\ufe0f\u20e3 Write show notes & titles",
           "selectable": true,
           "bypassed": false
         },
@@ -434,7 +434,7 @@
           "zIndex": 0,
           "width": 320,
           "height": 300,
-          "title": "📝 Show notes & titles",
+          "title": "\ud83d\udcdd Show notes & titles",
           "selectable": true,
           "bypassed": false
         },
@@ -445,7 +445,7 @@
         "id": "newsletter_prompt",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "Turn this podcast episode into the show's email newsletter edition.\n\nShow: {{ SHOW }}\n\nReturn Markdown, no commentary:\n\nSubject: 3 subject-line options under 50 characters.\nBody: 150-250 words in the host's voice — open on the episode's single most surprising idea, tease two more takeaways without spoiling them, close with the show's call to action and a listen-link placeholder.\n\nTranscript:\n{{ TRANSCRIPT }}"
+          "prompt": "Turn this podcast episode into the show's email newsletter edition.\n\nShow: {{ SHOW }}\n\nReturn Markdown, no commentary:\n\nSubject: 3 subject-line options under 50 characters.\nBody: 150-250 words in the host's voice \u2014 open on the episode's single most surprising idea, tease two more takeaways without spoiling them, close with the show's call to action and a listen-link placeholder.\n\nTranscript:\n{{ TRANSCRIPT }}"
         },
         "ui_properties": {
           "position": {
@@ -477,7 +477,7 @@
             "path": null,
             "supported_tasks": []
           },
-          "system": "You write email newsletters for podcasters. Short, personal, in the host's voice — the reader should feel the episode, not a summary of it.",
+          "system": "You write email newsletters for podcasters. Short, personal, in the host's voice \u2014 the reader should feel the episode, not a summary of it.",
           "audio": {
             "type": "audio",
             "uri": "",
@@ -496,7 +496,7 @@
           "zIndex": 0,
           "width": 330,
           "height": 330,
-          "title": "6️⃣ Draft the newsletter",
+          "title": "6\ufe0f\u20e3 Draft the newsletter",
           "selectable": true,
           "bypassed": false
         },
@@ -517,7 +517,7 @@
           "zIndex": 0,
           "width": 320,
           "height": 300,
-          "title": "✉️ Newsletter edition",
+          "title": "\u2709\ufe0f Newsletter edition",
           "selectable": true,
           "bypassed": false
         },
@@ -528,7 +528,7 @@
         "id": "posts_prompt",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "From this podcast episode transcript, write exactly 5 social posts, one per line — no numbering, no labels, no hashtags unless they earn their place.\n\nRules:\n- Each post stands alone: one idea, claim, or moment from the episode, written to stop the scroll.\n- Mix formats across the five: a bold take, a question, a mini-story, a concrete stat or detail, a one-line lesson.\n- Plain language in the show's voice ({{ SHOW }}). 280 characters maximum each.\n\nTranscript:\n{{ TRANSCRIPT }}"
+          "prompt": "From this podcast episode transcript, write exactly 5 social posts, one per line \u2014 no numbering, no labels, no hashtags unless they earn their place.\n\nRules:\n- Each post stands alone: one idea, claim, or moment from the episode, written to stop the scroll.\n- Mix formats across the five: a bold take, a question, a mini-story, a concrete stat or detail, a one-line lesson.\n- Plain language in the show's voice ({{ SHOW }}). 280 characters maximum each.\n\nTranscript:\n{{ TRANSCRIPT }}"
         },
         "ui_properties": {
           "position": {
@@ -571,7 +571,7 @@
           "zIndex": 0,
           "width": 330,
           "height": 245,
-          "title": "7️⃣ Generate social posts",
+          "title": "7\ufe0f\u20e3 Generate social posts",
           "selectable": true,
           "bypassed": false
         },
@@ -592,7 +592,7 @@
           "zIndex": 0,
           "width": 300,
           "height": 260,
-          "title": "📣 Social posts",
+          "title": "\ud83d\udce3 Social posts",
           "selectable": true,
           "bypassed": false
         },
@@ -603,7 +603,7 @@
         "id": "quotes_prompt",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "From this transcript, pick exactly {{ COUNT }} verbatim quotes worth putting on a quote card, one per line — no numbering, no attribution, no surrounding quotation marks.\n\nRules:\n- Verbatim from the transcript, lightly trimmed for readability only.\n- 8 to 25 words: punchy, self-contained, meaningful without context.\n- Prefer strong opinions, hard-won lessons, and vivid phrasing over pleasantries.\n\nTranscript:\n{{ TRANSCRIPT }}"
+          "prompt": "From this transcript, pick exactly {{ COUNT }} verbatim quotes worth putting on a quote card, one per line \u2014 no numbering, no attribution, no surrounding quotation marks.\n\nRules:\n- Verbatim from the transcript, lightly trimmed for readability only.\n- 8 to 25 words: punchy, self-contained, meaningful without context.\n- Prefer strong opinions, hard-won lessons, and vivid phrasing over pleasantries.\n\nTranscript:\n{{ TRANSCRIPT }}"
         },
         "ui_properties": {
           "position": {
@@ -646,7 +646,7 @@
           "zIndex": 0,
           "width": 330,
           "height": 245,
-          "title": "8️⃣ Pull the best quotes",
+          "title": "8\ufe0f\u20e3 Pull the best quotes",
           "selectable": true,
           "bypassed": false
         },
@@ -683,7 +683,7 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "huggingface_fal_ai",
+            "provider": "fal_ai",
             "id": "fal-ai/flux/schnell",
             "name": "FLUX.1 Schnell",
             "path": null,
@@ -702,7 +702,7 @@
           "zIndex": 0,
           "width": 320,
           "height": 340,
-          "title": "9️⃣ Render quote cards",
+          "title": "9\ufe0f\u20e3 Render quote cards",
           "selectable": true,
           "bypassed": false
         },
@@ -723,7 +723,7 @@
           "zIndex": 0,
           "width": 360,
           "height": 380,
-          "title": "🖼️ Quote cards",
+          "title": "\ud83d\uddbc\ufe0f Quote cards",
           "selectable": true,
           "bypassed": false
         },

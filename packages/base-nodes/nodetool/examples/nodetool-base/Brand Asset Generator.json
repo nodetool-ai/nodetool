@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Brand Asset Generator",
   "tool_name": null,
-  "description": "Turn a brand name and vibe into a whole social kit in one run: the graph fans out to two branches at once — a streamed gallery of four on-brand, text-overlaid social images (Instagram, LinkedIn, X, product launch) and a one-page brand brief (voice, palette, tagline options). Differentiator: structured multi-asset outputs from a single fan-out graph. Uses fal-ai flux/schnell for images (paid) and gpt-5-mini for text.",
+  "description": "Turn a brand name and vibe into a whole social kit in one run: the graph fans out to two branches at once \u2014 a streamed gallery of four on-brand, text-overlaid social images (Instagram, LinkedIn, X, product launch) and a one-page brand brief (voice, palette, tagline options). Differentiator: structured multi-asset outputs from a single fan-out graph. Uses fal-ai flux/schnell for images (paid) and gpt-5-mini for text.",
   "tags": [
     "brand-asset",
     "branding",
@@ -135,7 +135,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🏷️ Brand Asset Generator\n\nFrom a brand name + vibe, produce a full social kit in one run.\n\n**Two branches fan out from the same inputs:**\n- **Images** → an art director writes 4 prompts, each rendered, stamped with the brand name (in your color) and tagline, then collected into a gallery.\n- **Brief** → a strategist writes a one-page brand guideline (voice, palette, taglines).\n\n**Try this:** change the brand color or edit the two prompt templates to shift the whole kit."
+          "comment": "# \ud83c\udff7\ufe0f Brand Asset Generator\n\nFrom a brand name + vibe, produce a full social kit in one run.\n\n**Two branches fan out from the same inputs:**\n- **Images** \u2192 an art director writes 4 prompts, each rendered, stamped with the brand name (in your color) and tagline, then collected into a gallery.\n- **Brief** \u2192 a strategist writes a one-page brand guideline (voice, palette, taglines).\n\n**Try this:** change the brand color or edit the two prompt templates to shift the whole kit."
         },
         "ui_properties": {
           "selected": false,
@@ -169,7 +169,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "1️⃣ Brand name"
+          "title": "1\ufe0f\u20e3 Brand name"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -191,7 +191,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "2️⃣ Brand vibe"
+          "title": "2\ufe0f\u20e3 Brand vibe"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -213,7 +213,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "3️⃣ Tagline"
+          "title": "3\ufe0f\u20e3 Tagline"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -238,7 +238,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "4️⃣ Brand color"
+          "title": "4\ufe0f\u20e3 Brand color"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -258,7 +258,7 @@
           "width": 300,
           "selectable": true,
           "bypassed": false,
-          "title": "5️⃣ Write image prompts"
+          "title": "5\ufe0f\u20e3 Write image prompts"
         },
         "dynamic_properties": {
           "brand_name": "Aurora Labs",
@@ -290,7 +290,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "6️⃣ Split into 4 prompts"
+          "title": "6\ufe0f\u20e3 Split into 4 prompts"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -301,7 +301,7 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "huggingface_fal_ai",
+            "provider": "fal_ai",
             "id": "fal-ai/flux/schnell",
             "name": "FLUX.1 Schnell",
             "path": null,
@@ -324,7 +324,7 @@
           "width": 360,
           "selectable": true,
           "bypassed": false,
-          "title": "7️⃣ Render each image",
+          "title": "7\ufe0f\u20e3 Render each image",
           "height": 400
         },
         "dynamic_properties": {},
@@ -359,7 +359,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "8️⃣ Stamp brand name"
+          "title": "8\ufe0f\u20e3 Stamp brand name"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -393,7 +393,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "9️⃣ Overlay tagline"
+          "title": "9\ufe0f\u20e3 Overlay tagline"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -413,7 +413,7 @@
           "width": 240,
           "selectable": true,
           "bypassed": false,
-          "title": "🔟 Collect gallery"
+          "title": "\ud83d\udd1f Collect gallery"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -436,7 +436,7 @@
         "id": "prompt_brief",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "Write a one-page brand brief for the brand below.\n\nBRAND\nName: {{ brand_name }}\nPositioning: {{ brand_description }}\nWorking tagline: {{ tagline }}\n\nProduce Markdown with exactly these sections:\n- **Voice & tone** — 3 adjectives, then one sentence on how the brand speaks.\n- **Color palette** — a primary color plus 2 complementary colors as hex codes, each with a one-line usage note.\n- **Tagline options** — 3 alternatives to the working tagline, in the brand's voice.\n- **Do / Don't** — 2 bullets each, covering visuals and copy.\n\nKeep the whole brief under 200 words. Output only the Markdown, with no preamble."
+          "prompt": "Write a one-page brand brief for the brand below.\n\nBRAND\nName: {{ brand_name }}\nPositioning: {{ brand_description }}\nWorking tagline: {{ tagline }}\n\nProduce Markdown with exactly these sections:\n- **Voice & tone** \u2014 3 adjectives, then one sentence on how the brand speaks.\n- **Color palette** \u2014 a primary color plus 2 complementary colors as hex codes, each with a one-line usage note.\n- **Tagline options** \u2014 3 alternatives to the working tagline, in the brand's voice.\n- **Do / Don't** \u2014 2 bullets each, covering visuals and copy.\n\nKeep the whole brief under 200 words. Output only the Markdown, with no preamble."
         },
         "ui_properties": {
           "position": {
@@ -447,7 +447,7 @@
           "width": 300,
           "selectable": true,
           "bypassed": false,
-          "title": "5️⃣ Write brief prompt"
+          "title": "5\ufe0f\u20e3 Write brief prompt"
         },
         "dynamic_properties": {
           "brand_name": "Aurora Labs",
@@ -496,7 +496,7 @@
           "width": 300,
           "selectable": true,
           "bypassed": false,
-          "title": "6️⃣ Draft brand brief",
+          "title": "6\ufe0f\u20e3 Draft brand brief",
           "height": 300
         },
         "dynamic_properties": {},

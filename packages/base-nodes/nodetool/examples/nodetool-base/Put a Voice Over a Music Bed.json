@@ -1,0 +1,174 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-30T12:00:00.000Z",
+  "updated_at": "2026-07-30T12:00:00.000Z",
+  "name": "Put a Voice Over a Music Bed",
+  "tool_name": null,
+  "description": "Generate a bed, synthesise a voice, and lay one over the other. Overlay mixes both signals rather than replacing one with the other.",
+  "tags": [
+    "audio",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "t",
+        "type": "nodetool.constant.String",
+        "data": {
+          "value": "Built for people who would rather ship than configure."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Script"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "tts",
+        "type": "nodetool.audio.TextToSpeech",
+        "data": {
+          "model": {
+            "type": "tts_model",
+            "provider": "openai",
+            "id": "tts-1",
+            "name": "TTS 1",
+            "path": null,
+            "voices": [
+              "alloy",
+              "echo",
+              "fable",
+              "onyx",
+              "nova",
+              "shimmer"
+            ],
+            "selected_voice": "nova"
+          },
+          "text": "",
+          "speed": 1.0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Voice"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "mus",
+        "type": "nodetool.audio.TextToMusic",
+        "data": {
+          "model": {
+            "type": "music_model",
+            "provider": "replicate",
+            "id": "meta/musicgen",
+            "name": "MusicGen",
+            "path": null
+          },
+          "prompt": "calm ambient pad, no drums, soft and unobtrusive",
+          "lyrics": "",
+          "duration": 8.0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 640,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Music bed"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ov",
+        "type": "nodetool.audio.OverlayAudio",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 960,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Overlay"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "spot"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "5  Spot"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "t",
+        "sourceHandle": "output",
+        "target": "tts",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e2",
+        "source": "tts",
+        "sourceHandle": "audio",
+        "target": "ov",
+        "targetHandle": "a"
+      },
+      {
+        "id": "e3",
+        "source": "mus",
+        "sourceHandle": "audio",
+        "target": "ov",
+        "targetHandle": "b"
+      },
+      {
+        "id": "e4",
+        "source": "ov",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

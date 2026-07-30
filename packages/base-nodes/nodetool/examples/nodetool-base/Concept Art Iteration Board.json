@@ -128,7 +128,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🖼️ Concept Art Iteration Board\n\nOne brief becomes a gallery of on-brief concept-art variations — the thing a single image prompt can't do.\n\n**Why the graph:** an agent first commits to a coherent art direction, so every variation shares one visual language instead of drifting. The list generator then writes N distinct prompts from that direction, and each one streams into the image node — so the output fills up as a variant gallery rather than a single picture.\n\n**Pipeline:** Brief + Style + Mood → Art-director agent → N prompts → Text-to-Image (one per prompt) → gallery\n\n**Try this:** change Style or Mood for a whole new look, or bump Variations to compare more options in one run."
+          "comment": "# \ud83d\uddbc\ufe0f Concept Art Iteration Board\n\nOne brief becomes a gallery of on-brief concept-art variations \u2014 the thing a single image prompt can't do.\n\n**Why the graph:** an agent first commits to a coherent art direction, so every variation shares one visual language instead of drifting. The list generator then writes N distinct prompts from that direction, and each one streams into the image node \u2014 so the output fills up as a variant gallery rather than a single picture.\n\n**Pipeline:** Brief + Style + Mood \u2192 Art-director agent \u2192 N prompts \u2192 Text-to-Image (one per prompt) \u2192 gallery\n\n**Try this:** change Style or Mood for a whole new look, or bump Variations to compare more options in one run."
         },
         "ui_properties": {
           "position": {
@@ -150,7 +150,7 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "huggingface_fal_ai",
+            "provider": "fal_ai",
             "id": "fal-ai/flux/schnell",
             "name": "FLUX.1 Schnell",
             "path": null,
@@ -172,7 +172,7 @@
           "zIndex": 0,
           "width": 461,
           "height": 489,
-          "title": "9️⃣ Render each variation",
+          "title": "9\ufe0f\u20e3 Render each variation",
           "selectable": true,
           "bypassed": false,
           "selected_generation": "8200a9c8-6d27-4298-9e02-19b2df7abfa0"
@@ -203,7 +203,7 @@
           "zIndex": 0,
           "width": 390,
           "height": 292,
-          "title": "8️⃣ Generate prompt list",
+          "title": "8\ufe0f\u20e3 Generate prompt list",
           "selectable": true,
           "bypassed": false
         },
@@ -222,7 +222,7 @@
             "path": null,
             "supported_tasks": []
           },
-          "system": "You are a senior concept-art director for games and film. You translate a creative brief into precise, evocative art direction a concept artist can execute immediately. Commit to concrete choices — name colors, framings, and shapes rather than hedging with vague adjectives. Keep the whole direction internally consistent so every downstream variation reads as one coherent world.",
+          "system": "You are a senior concept-art director for games and film. You translate a creative brief into precise, evocative art direction a concept artist can execute immediately. Commit to concrete choices \u2014 name colors, framings, and shapes rather than hedging with vague adjectives. Keep the whole direction internally consistent so every downstream variation reads as one coherent world.",
           "image": {
             "type": "image",
             "uri": "",
@@ -249,7 +249,7 @@
           "zIndex": 0,
           "width": 319,
           "height": 207,
-          "title": "6️⃣ Art-director agent",
+          "title": "6\ufe0f\u20e3 Art-director agent",
           "selectable": true,
           "bypassed": false
         },
@@ -272,7 +272,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "1️⃣ Brief",
+          "title": "1\ufe0f\u20e3 Brief",
           "selectable": true,
           "bypassed": false
         },
@@ -294,7 +294,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "2️⃣ Style",
+          "title": "2\ufe0f\u20e3 Style",
           "selectable": true,
           "bypassed": false
         },
@@ -316,7 +316,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "3️⃣ Mood",
+          "title": "3\ufe0f\u20e3 Mood",
           "selectable": true,
           "bypassed": false
         },
@@ -342,7 +342,7 @@
           "zIndex": 0,
           "width": 418,
           "height": 563,
-          "title": "7️⃣ Write variation prompts",
+          "title": "7\ufe0f\u20e3 Write variation prompts",
           "selectable": true,
           "bypassed": false
         },
@@ -356,7 +356,7 @@
         "id": "77560ab1-75f1-4208-aa4f-66732f56e22b",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "Creative brief: {{ brief }}\nArt style: {{ style }}\nMood: {{ mood }}\n\nTask: turn the brief above into a concrete art-direction brief a concept artist could execute without asking a single follow-up question. Interpret the brief — do not restate it.\n\nCover each of these, one tight paragraph each, in order:\n1. Composition and camera framing\n2. Color palette — name 4–6 specific colors and where they fall\n3. Key design elements, silhouette, and shape language\n4. Lighting and atmosphere that carry the mood\n\nWrite in vivid, specific visual language. No preamble, no headings beyond the four numbered points.",
+          "prompt": "Creative brief: {{ brief }}\nArt style: {{ style }}\nMood: {{ mood }}\n\nTask: turn the brief above into a concrete art-direction brief a concept artist could execute without asking a single follow-up question. Interpret the brief \u2014 do not restate it.\n\nCover each of these, one tight paragraph each, in order:\n1. Composition and camera framing\n2. Color palette \u2014 name 4\u20136 specific colors and where they fall\n3. Key design elements, silhouette, and shape language\n4. Lighting and atmosphere that carry the mood\n\nWrite in vivid, specific visual language. No preamble, no headings beyond the four numbered points.",
           "dynamic_properties": {
             "brief": "An ancient forest guardian: a towering tree-spirit, bark-skinned and moss-cloaked, watching over an enchanted grove. Fantasy RPG character concept.",
             "style": "Painterly digital concept art, dramatic cinematic lighting, rich saturated color, visible brushwork, AAA game key art",
@@ -372,7 +372,7 @@
           "zIndex": 0,
           "width": 377,
           "height": 571,
-          "title": "5️⃣ Build art-direction brief",
+          "title": "5\ufe0f\u20e3 Build art-direction brief",
           "selectable": true,
           "bypassed": false
         },
@@ -420,7 +420,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "4️⃣ Variations",
+          "title": "4\ufe0f\u20e3 Variations",
           "selectable": true,
           "bypassed": false
         },

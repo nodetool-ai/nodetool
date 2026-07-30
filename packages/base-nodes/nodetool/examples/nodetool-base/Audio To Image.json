@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Audio To Image",
   "tool_name": null,
-  "description": "Speak an image into existence: no keyboard needed. Whisper transcribes your audio, then FLUX renders the description as an image — the whole pipeline runs from a single voice note.",
+  "description": "Speak an image into existence: no keyboard needed. Whisper transcribes your audio, then FLUX renders the description as an image \u2014 the whole pipeline runs from a single voice note.",
   "tags": [
     "huggingface",
     "multimodal",
@@ -53,7 +53,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎙️ Audio To Image\n\nSpeak a description and watch it become an image. Whisper transcribes your audio, then a text-to-image model renders it.\n\n**Pipeline:** Audio → Whisper → Text-to-Image\n\n**Try this:** swap the ASR or image model, or change aspect ratio / resolution."
+          "comment": "# \ud83c\udf99\ufe0f Audio To Image\n\nSpeak a description and watch it become an image. Whisper transcribes your audio, then a text-to-image model renders it.\n\n**Pipeline:** Audio \u2192 Whisper \u2192 Text-to-Image\n\n**Try this:** swap the ASR or image model, or change aspect ratio / resolution."
         },
         "ui_properties": {
           "selected": false,
@@ -82,7 +82,7 @@
           }
         },
         "ui_properties": {
-          "title": "1️⃣ Record audio",
+          "title": "1\ufe0f\u20e3 Record audio",
           "selected": false,
           "position": {
             "x": 65,
@@ -109,7 +109,7 @@
           }
         },
         "ui_properties": {
-          "title": "2️⃣ Transcribe",
+          "title": "2\ufe0f\u20e3 Transcribe",
           "selected": false,
           "position": {
             "x": 340,
@@ -129,7 +129,7 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "huggingface_fal_ai",
+            "provider": "fal_ai",
             "id": "fal-ai/flux/schnell",
             "name": "FLUX.1 Schnell",
             "path": null,
@@ -141,7 +141,7 @@
           "timeout_seconds": 0
         },
         "ui_properties": {
-          "title": "3️⃣ Generate image",
+          "title": "3\ufe0f\u20e3 Generate image",
           "selected": false,
           "position": {
             "x": 650,
