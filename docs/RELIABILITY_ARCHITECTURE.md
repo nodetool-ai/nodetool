@@ -3,6 +3,8 @@
 > Status: proposal. Author: Principal Reliability Engineering review, 2026-07.
 > Scope: the architectural investment that buys the most stability over the
 > next several years, designed in enough depth to start building.
+> Execution plan: [RELIABILITY_TASKS.md](RELIABILITY_TASKS.md) — the same
+> work cut into six parallel tracks of one-PR tasks.
 
 NodeTool's recent failures — CLI runs behaving differently from WebSocket
 runs, packaged Electron builds dying with green CI, half-open sockets,
