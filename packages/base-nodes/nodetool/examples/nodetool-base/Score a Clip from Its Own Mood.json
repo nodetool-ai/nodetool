@@ -1,0 +1,208 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-30T16:00:00.000Z",
+  "updated_at": "2026-07-30T16:00:00.000Z",
+  "name": "Score a Clip from Its Own Mood",
+  "tool_name": null,
+  "description": "The agent watches nothing \u2014 it reads your description of the mood and writes the music prompt. Splitting it this way means you can adjust the mood in words rather than re-describing the music.",
+  "tags": [
+    "video",
+    "audio",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "clip",
+        "type": "nodetool.input.VideoInput",
+        "data": {
+          "name": "clip",
+          "value": null,
+          "description": "The clip to score"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1  Clip"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "mood",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "mood",
+          "value": "",
+          "description": "The mood to hit"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "2  Mood"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ag",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
+          "mode": "loop",
+          "system": "You write prompts for a music generation model. One sentence naming instrumentation, tempo and texture. No lyrics, no artist names.",
+          "prompt": "",
+          "tools": [],
+          "image": [],
+          "audio": [],
+          "history": [],
+          "thread_id": "",
+          "max_tokens": 16384,
+          "max_turns": 100
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "3  Music prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "mus",
+        "type": "nodetool.audio.TextToMusic",
+        "data": {
+          "model": {
+            "type": "music_model",
+            "provider": "fal_ai",
+            "id": "fal-ai/stable-audio-25/text-to-audio",
+            "name": "Stable Audio 2.5",
+            "path": null
+          },
+          "prompt": "",
+          "lyrics": "",
+          "duration": 10.0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 990,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "4  Compose"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "mix",
+        "type": "nodetool.video.AddAudio",
+        "data": {
+          "volume": 0.4,
+          "mix": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "5  Lay under"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "scored"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 330
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "6  Scored clip"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "mood",
+        "sourceHandle": "output",
+        "target": "ag",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e2",
+        "source": "ag",
+        "sourceHandle": "text",
+        "target": "mus",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e3",
+        "source": "clip",
+        "sourceHandle": "output",
+        "target": "mix",
+        "targetHandle": "video"
+      },
+      {
+        "id": "e4",
+        "source": "mus",
+        "sourceHandle": "audio",
+        "target": "mix",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e5",
+        "source": "mix",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

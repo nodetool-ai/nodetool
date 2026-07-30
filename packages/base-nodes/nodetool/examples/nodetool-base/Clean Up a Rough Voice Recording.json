@@ -1,0 +1,186 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-30T16:00:00.000Z",
+  "updated_at": "2026-07-30T16:00:00.000Z",
+  "name": "Clean Up a Rough Voice Recording",
+  "tool_name": null,
+  "description": "The repair chain for a recording made in a real room: gate the noise floor, cut the rumble below speech, even out the level, then stop it clipping. Every step is cheap and local \u2014 no model involved.",
+  "tags": [
+    "audio",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.AudioInput",
+        "data": {
+          "name": "audio",
+          "value": null,
+          "description": "The rough recording"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1  Recording"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ng",
+        "type": "lib.audio.NoiseGate",
+        "data": {
+          "threshold_db": -48.0,
+          "attack_ms": 1.0,
+          "release_ms": 120.0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "2  Gate"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "hp",
+        "type": "lib.audio.HighPassFilter",
+        "data": {
+          "cutoff_frequency_hz": 90.0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "3  Cut rumble"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "cmp",
+        "type": "lib.audio.Compress",
+        "data": {
+          "threshold": -18.0,
+          "ratio": 3.0,
+          "attack": 5.0,
+          "release": 60.0,
+          "auto_gain": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 990,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "4  Even it out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "lim",
+        "type": "lib.audio.Limiter",
+        "data": {
+          "threshold_db": -1.0,
+          "release_ms": 200.0,
+          "auto_gain": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "5  Limit"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "cleaned"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 330
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "6  Cleaned"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "ng",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e2",
+        "source": "ng",
+        "sourceHandle": "output",
+        "target": "hp",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e3",
+        "source": "hp",
+        "sourceHandle": "output",
+        "target": "cmp",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e4",
+        "source": "cmp",
+        "sourceHandle": "output",
+        "target": "lim",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e5",
+        "source": "lim",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}
