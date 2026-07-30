@@ -1,0 +1,117 @@
+name: GenSpend Pricing Sync
+
+# Nightly: pull generative-media prices from the GenSpend catalog
+# (https://genspend.io/api/v1/models) into
+# `packages/model-pricing/src/generated/genspend-pricing.json`, and open a PR
+# when a price moved.
+#
+# A price change is a diff a human should see before it gates a run's budget, so
+# this opens a PR and never pushes to main. When nothing moved the script
+# rewrites nothing and no PR is opened.
+#
+# The sync matches GenSpend models against the models each provider enumerates
+# in NodeTool, so it needs the backend packages built. No provider API keys: the
+# listings it reads are static or manifest-backed, and the GenSpend API is
+# public and read-only.
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    # 03:20 UTC nightly — off the hour so it doesn't contend with the other
+    # scheduled jobs.
+    - cron: "20 3 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: genspend-pricing
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Refresh the GenSpend price catalog
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Build backend packages
+        # The sync reads each provider's model listing from the built runtime.
+        run: npm run build:packages
+
+      - name: Sync prices
+        run: npm run sync:genspend -- --report genspend-coverage.json
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: genspend-coverage
+          path: genspend-coverage.json
+          if-no-files-found: warn
+
+      - name: Detect changes
+        id: diff
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- packages/model-pricing/src/generated/genspend-pricing.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "summary<<EOF"
+              node -e "
+                const c = require('./packages/model-pricing/src/generated/genspend-pricing.json');
+                const report = require('./genspend-coverage.json');
+                console.log(\`\${c.pricedModels} priced model ids across \${c.providers.length} providers, from \${c.catalogOfferings} offerings over \${c.catalogModels} tracked models (prices last moved \${c.updatedAt}).\`);
+                console.log('');
+                console.log('| Provider | Offerings priced | Model ids | Unresolved |');
+                console.log('| --- | --- | --- | --- |');
+                for (const [provider, s] of Object.entries(report.coverage).sort()) {
+                  console.log(\`| \${provider} | \${s.priced}/\${s.offerings} | \${s.ids} | \${s.unresolved} |\`);
+                }
+              "
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open PR
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          branch: chore/genspend-pricing-sync
+          base: main
+          add-paths: packages/model-pricing/src/generated/genspend-pricing.json
+          commit-message: "chore(pricing): sync GenSpend price catalog"
+          title: "chore(pricing): sync GenSpend price catalog"
+          body: |
+            Nightly refresh of the GenSpend price catalog. Prices via
+            [genspend.io](https://genspend.io).
+
+            ${{ steps.diff.outputs.summary }}
+
+            These numbers feed `getModelUnitPrice`, so they are what the editor's
+            cost preview shows and what a run's budget check is gated on. Read
+            the diff before merging:
+
+            - [ ] No price moved by an order of magnitude (GenSpend quarantines
+                  >3× swings, but a unit change would slip through)
+            - [ ] `unit_class` values still match the `billing_unit` they map to
+            - [ ] No model lost its price because the provider's receipt page moved
+            - [ ] New `match: "catalog"` entries name the model they claim to price
+
+            Unresolved offerings are listed in the run log and the
+            `genspend-coverage` artifact — pin any that should be priced in
+            `scripts/genspend/aliases.json`.
+          delete-branch: true

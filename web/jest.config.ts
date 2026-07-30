@@ -39,6 +39,8 @@ export default {
     // ESM-only dist, so map it and the catalog subpaths it imports to source.
     "^@nodetool-ai/model-pricing$":
       "<rootDir>/../packages/model-pricing/src/index.ts",
+    "^@nodetool-ai/model-pricing/genspend-catalog$":
+      "<rootDir>/../packages/model-pricing/src/genspend-catalog.ts",
     "^@nodetool-ai/fal-nodes/unit-pricing-catalog$":
       "<rootDir>/../packages/fal-nodes/src/generated/fal-unit-pricing.json",
     "^@nodetool-ai/kie-nodes/unit-pricing-catalog$":
