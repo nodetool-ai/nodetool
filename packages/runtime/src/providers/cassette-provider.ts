@@ -80,6 +80,18 @@ export interface CassetteInteraction {
   response: ProviderStreamItem[] | Message;
   /** Usage captured during recording, reproduced on replay for cost parity. */
   usage?: UsageInfo;
+  /**
+   * Scripted failure: when present, replay throws this instead of returning
+   * `response` (which is ignored). Lets a cassette pin "the upstream call
+   * failed this way" for error-taxonomy tests
+   * (`BaseProvider.isRateLimitError`/`isAuthError`/`isContextLengthError`)
+   * without a live provider ever producing the failure. This is a minimal,
+   * single-shot failure — the full HTTP-fault matrix (mid-stream truncation,
+   * malformed SSE, slow-drip, cost-field omission) is Track D's job
+   * (`docs/RELIABILITY_TASKS.md` D1); this field only needs to exist so a
+   * contract cassette can represent "the request failed" at all.
+   */
+  error?: { message: string; status?: number };
 }
 
 /** A serializable cassette: an ordered list of interactions. */
@@ -391,6 +403,7 @@ export class CassetteProvider extends BaseProvider {
     if (this.mode === "replay" || this.mode === "auto") {
       const hit = this.matchInteraction("generateMessage", hash);
       if (hit) {
+        if (hit.error) throw reconstructScriptedError(hit.error);
         if (hit.usage) this.trackUsage(request.model, hit.usage);
         return cloneMessage(hit.response as Message);
       }
@@ -431,6 +444,7 @@ export class CassetteProvider extends BaseProvider {
     if (this.mode === "replay" || this.mode === "auto") {
       const hit = this.matchInteraction("generateMessages", hash);
       if (hit) {
+        if (hit.error) throw reconstructScriptedError(hit.error);
         const items = hit.response as ProviderStreamItem[];
         for (const item of items) {
           yield cloneStreamItem(item);
@@ -506,6 +520,16 @@ function usageFromSlot(
     info.cacheWriteTokens = usage.cacheWriteTokens;
   }
   return info;
+}
+
+/** Rebuild an Error from a scripted {@link CassetteInteraction.error}. */
+function reconstructScriptedError(error: {
+  message: string;
+  status?: number;
+}): Error {
+  const err = new Error(error.message) as Error & { status?: number };
+  if (error.status !== undefined) err.status = error.status;
+  return err;
 }
 
 function cloneMessage(message: Message): Message {
