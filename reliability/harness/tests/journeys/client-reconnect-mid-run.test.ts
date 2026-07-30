@@ -47,7 +47,7 @@
  * `Job.get`) to make the discrepancy explicit rather than asserting the
  * wrong thing as if it were correct.
  */
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { WebSocket } from "ws";
 import {
   createTestUiServer,
