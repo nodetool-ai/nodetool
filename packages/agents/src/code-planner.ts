@@ -73,6 +73,24 @@ export interface CodePlannerOptions {
   signal?: AbortSignal;
 }
 
+/**
+ * Span attributes describing the *shape* of a generation request.
+ *
+ * The instruction is deliberately absent — it is user prose that can carry
+ * business detail, and traces ship to third-party backends. Generated code and
+ * sample values stay off spans for the same reason. Exported so the omission is
+ * asserted by a test rather than resting on review.
+ */
+export const codeGenSpanAttributes = (
+  options: CodePlannerOptions
+): Record<string, unknown> => ({
+  "agent.plan.kind": "code",
+  "code_gen.instruction_chars": options.instruction.length,
+  "code_gen.input_count": options.inputs?.length ?? 0,
+  "code_gen.has_samples": options.sampleValues !== undefined,
+  "code_gen.is_edit": options.currentCode !== undefined
+});
+
 export class CodePlanner {
   private readonly provider: BaseProvider;
   private readonly model: string;
@@ -96,10 +114,9 @@ export class CodePlanner {
     return yield* withAgentSpanGen(
       "plan",
       {
-        objective: this.options.instruction,
         provider: this.provider.provider,
         model: this.model,
-        extra: { "agent.plan.kind": "code" }
+        extra: codeGenSpanAttributes(this.options)
       },
       () => this._planImpl(context)
     );

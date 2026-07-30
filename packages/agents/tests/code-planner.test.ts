@@ -4,7 +4,7 @@
  * the rule that only an accepted `submit_code` call counts.
  */
 import { describe, it, expect } from "vitest";
-import { CodePlanner } from "../src/code-planner.js";
+import { CodePlanner, codeGenSpanAttributes } from "../src/code-planner.js";
 import { SubmitCodeTool } from "../src/tools/submit-code-tool.js";
 import type {
   BaseProvider,
@@ -262,5 +262,38 @@ describe("SubmitCodeTool", () => {
     expect(result.outputs).toEqual(["words", "count"]);
     expect(accepted).toBe(1);
     expect(tool.submission?.code).toContain("split");
+  });
+});
+
+describe("codeGenSpanAttributes", () => {
+  const secret = "reconcile the Q3 ledger for ACME Corp";
+
+  const attrs = codeGenSpanAttributes({
+    provider: {} as never,
+    model: "m",
+    instruction: secret,
+    inputs: [
+      { name: "rows", type: { type: "list", type_args: [], optional: false } }
+    ],
+    currentCode: "return { total: 0 };",
+    sampleValues: { rows: [{ account: "ACME-1", amount: 4200 }] }
+  });
+
+  it("records the shape of the request", () => {
+    expect(attrs).toEqual({
+      "agent.plan.kind": "code",
+      "code_gen.instruction_chars": secret.length,
+      "code_gen.input_count": 1,
+      "code_gen.has_samples": true,
+      "code_gen.is_edit": true
+    });
+  });
+
+  // Traces ship to third-party backends, so content must never ride along.
+  it("carries no instruction, sample or code text", () => {
+    const serialized = JSON.stringify(attrs);
+    expect(serialized).not.toContain(secret);
+    expect(serialized).not.toContain("ACME");
+    expect(serialized).not.toContain("return {");
   });
 });
