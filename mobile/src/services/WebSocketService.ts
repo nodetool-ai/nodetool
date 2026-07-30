@@ -20,6 +20,7 @@ import { apiService } from './api';
 import { useAuthStore } from '../stores/AuthStore';
 import { WebSocketManager } from './WebSocketManager';
 import { subscribeAppLifecycle } from '../hooks/useAppLifecycle';
+import { validateInboundMessage } from './validateInboundMessage';
 import type { WebSocketMessageData } from '../types/chat';
 
 type MessageHandler = (message: Record<string, unknown>) => void;
@@ -215,6 +216,9 @@ class WebSocketService {
    * message carries several matching ids (e.g. both `workflow_id` and `job_id`).
    */
   private routeMessage(message: Record<string, unknown>): void {
+    // Dev/test only (see validateInboundMessage) — observe-only, never
+    // affects dispatch below.
+    validateInboundMessage(message);
     this.trackJob(message);
 
     const routingKeys = new Set<string>();

@@ -8,6 +8,7 @@ import { handleSystemStats, SystemStatsMessage } from "../../stores/systemStatsH
 import { ResourceChangeUpdate } from "../../stores/ApiTypes";
 import { ConnectionState, WebSocketManager } from "./WebSocketManager";
 import { FrontendToolRegistry } from "../tools/frontendTools";
+import { validateInboundMessage } from "./validateInboundMessage";
 
 /**
  * Base shape of every message routed through the WebSocket.
@@ -173,7 +174,7 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
 
       this.wsManager.on("message", (data: unknown) => {
         const message = data as WebSocketMessage;
-        this.routeMessage(message);
+        this.ingestMessage(message);
         this.emit("message", message);
       });
 
@@ -213,6 +214,17 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
       this.isConnecting = false;
       throw error;
     }
+  }
+
+  /**
+   * Validate (dev/test only — see `validateInboundMessage`) then route an
+   * inbound, already msgpack-decoded message. Validation never affects
+   * dispatch: a message that fails the protocol schema is still routed
+   * exactly as before, just logged.
+   */
+  private ingestMessage(message: WebSocketMessage): void {
+    validateInboundMessage(message);
+    this.routeMessage(message);
   }
 
   /**

@@ -151,4 +151,69 @@ describe("GlobalWebSocketManager", () => {
       });
     });
   });
+
+  describe("inbound protocol validation (B4)", () => {
+    let consoleErrorSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      consoleErrorSpy.mockRestore();
+    });
+
+    it("does not log for a valid message and still dispatches it", () => {
+      const handler = jest.fn();
+      const unsubscribe = globalWebSocketManager.subscribe("job-valid", handler);
+
+      const validMessage = {
+        type: "node_update",
+        node_id: "n1",
+        node_name: "My Node",
+        node_type: "nodetool.text.Concat",
+        status: "completed",
+        job_id: "job-valid"
+      };
+
+      (globalWebSocketManager as any).ingestMessage(validMessage);
+
+      expect(handler).toHaveBeenCalledWith(validMessage);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+
+      unsubscribe();
+    });
+
+    it("logs a structured error for an invalid message but still dispatches it", () => {
+      const handler = jest.fn();
+      const unsubscribe = globalWebSocketManager.subscribe("job-invalid", handler);
+
+      // Missing required fields (node_name, node_type, status) for node_update.
+      const invalidMessage = {
+        type: "node_update",
+        node_id: "n1",
+        job_id: "job-invalid"
+      };
+
+      (globalWebSocketManager as any).ingestMessage(invalidMessage);
+
+      // Observe-only: the message is still routed to subscribers.
+      expect(handler).toHaveBeenCalledWith(invalidMessage);
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy.mock.calls[0][0]).toContain("node_update");
+
+      unsubscribe();
+    });
+
+    it("skips validation for message types outside the protocol union", () => {
+      const invalidButUnvalidated = {
+        type: "some_unrelated_frame",
+        anything: "goes"
+      };
+
+      (globalWebSocketManager as any).ingestMessage(invalidButUnvalidated);
+
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+  });
 });
