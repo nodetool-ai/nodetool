@@ -3,36 +3,34 @@
 //
 // The art gates marketing: generate-template-entries.mjs emits
 // `indexable: false` for any example without a matching <name>.jpg, keeping
-// its /templates page out of the sitemap and the smoke walk. So an example
-// with no card is a page nobody finds.
+// its /templates page out of the sitemap and the smoke walk. An example with
+// no card is a page nobody finds.
 //
-// Two sources, in order of preference:
+// House style, matched from the cards already shipped: one flat two-tone
+// pictogram, centred, on a dark desaturated ground, and no text at all. The
+// title is set in HTML on the page itself, so baking words into the image
+// only fights it — and looks wrong beside the existing set.
 //
-//   1. A real run output. Point --outputs at a directory of
-//      "<Example Name>.(png|jpg|webp|mp4|mov)" files — the workspace of a
-//      `nodetool workflows run` sweep, collected by name. The image (or the
-//      first frame of the video) becomes the card, full bleed, with a
-//      gradient scrim carrying the title. Showing what the workflow produced
-//      beats any illustration of it.
+// Art comes from Recraft's text-to-vector model on fal. A diffusion model is
+// the wrong tool here: FLUX (schnell and dev) reads "flat icon" as an
+// invitation to render a lit 3D scene with a floor and a cast shadow, however
+// many negations the prompt carries. Recraft emits actual vector shapes, so
+// flat is the only thing it can produce. The ground is then normalised to the
+// house colour so a gallery row sits on one background rather than on whatever
+// each generation happened to pick.
 //
-//   2. A rendered card, when no output exists. Title, description and the
-//      node pipeline, drawn from the workflow itself so it stays true to the
-//      graph as the graph changes.
+//   FAL_API_KEY=... node scripts/generate-example-thumbnails.mjs
+//   FAL_API_KEY=... node scripts/generate-example-thumbnails.mjs --only "Movie Posters"
+//   FAL_API_KEY=... node scripts/generate-example-thumbnails.mjs --force
 //
-// Existing art is never overwritten; pass --force to rebuild it.
-//
-//   node scripts/generate-example-thumbnails.mjs
-//   node scripts/generate-example-thumbnails.mjs --outputs /tmp/sweep --force
+// Existing art is left alone unless --force is passed. --force rebuilds
+// everything, including hand-made cards, so reach for --only when redoing one.
 
-import { execFile } from "node:child_process";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { promisify } from "node:util";
 import sharp from "sharp";
 
-const execFileAsync = promisify(execFile);
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const EXAMPLES_DIR = path.join(
   REPO_ROOT,
@@ -45,185 +43,204 @@ const ASSETS_DIR = path.join(
 
 const W = 1280;
 const H = 720;
-const IMAGE_EXT = new Set([".png", ".jpg", ".jpeg", ".webp"]);
-const VIDEO_EXT = new Set([".mp4", ".mov", ".webm"]);
+const FAL_ENDPOINT = "https://fal.run/fal-ai/recraft/v4.1/text-to-vector";
+const SUBJECTS_FILE = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "example-thumbnail-subjects.json"
+);
 
-/** Accent per primary tag, so a gallery row reads by kind at a glance. */
-const ACCENT = {
-  image: "#38bdf8",
-  video: "#a78bfa",
-  audio: "#34d399",
-  text: "#fbbf24",
-  data: "#f472b6"
-};
-const DEFAULT_ACCENT = "#818cf8";
+/** The ground the shipped cards sit on, sampled from their corners. */
+const GROUND = { r: 43, g: 47, b: 51 };
 
-function xml(s) {
-  return String(s)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+/**
+ * Recraft reads the palette phrase as a suggestion and returns colour hotter
+ * than the house style. Measured over both sets — mean saturation of the lit
+ * pixels, ignoring the ground — the shipped cards sit at 0.276 and generated
+ * ones at 0.321. This is that ratio, so a generated card lands where a drawn
+ * one does instead of shouting next to it in the gallery.
+ */
+const SATURATION = 0.86;
+
+/**
+ * Two-tone palettes drawn from the existing set — a light muted fill against a
+ * deep plum. Chosen per example by name hash so the gallery varies but never
+ * lands somewhere garish.
+ */
+const PALETTES = [
+  "dusty rose and deep plum",
+  "pale lavender and dark indigo",
+  "muted sage and deep teal",
+  "soft apricot and dark umber",
+  "pale slate blue and deep navy",
+  "warm sand and dark olive"
+];
+
+/**
+ * The style half of the prompt. Every clause here is load-bearing against a
+ * specific failure: models add captions unless told twice, drift photographic
+ * unless "flat vector" is repeated, and crowd the frame without an explicit
+ * call for negative space.
+ */
+const STYLE =
+  "%SUBJECT%, minimal flat two-tone icon, %PALETTE%, centred, " +
+  "dark charcoal background, no text";
+
+function hash(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i += 1) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
 }
 
-/** Greedy wrap by character budget — close enough for a fixed card width. */
-function wrap(text, width, maxLines) {
-  const words = String(text).split(/\s+/).filter(Boolean);
-  const lines = [];
-  let line = "";
-  for (const word of words) {
-    const next = line ? `${line} ${word}` : word;
-    if (next.length > width && line) {
-      lines.push(line);
-      line = word;
-      if (lines.length === maxLines) return lines;
-    } else {
-      line = next;
-    }
-  }
-  if (line && lines.length < maxLines) lines.push(line);
-  return lines;
-}
-
-/** Title block drawn over the bottom of a full-bleed output. */
-function scrimOverlay(name, kicker, accent) {
-  const lines = wrap(name, 30, 2);
-  const top = H - 138;
-  const titles = lines
-    .map(
-      (ln, i) =>
-        `<text x="64" y="${top + 40 + i * 54}" font-family="DejaVu Sans, sans-serif" ` +
-        `font-size="46" font-weight="700" fill="#eef0f5">${xml(ln)}</text>`
-    )
-    .join("");
-  return Buffer.from(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
-      <defs>
-        <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0.40" stop-color="#080a0f" stop-opacity="0"/>
-          <stop offset="0.72" stop-color="#080a0f" stop-opacity="0.72"/>
-          <stop offset="1" stop-color="#080a0f" stop-opacity="0.97"/>
-        </linearGradient>
-      </defs>
-      <rect width="${W}" height="${H}" fill="url(#scrim)"/>
-      <rect width="${W}" height="6" fill="${accent}"/>
-      <text x="64" y="${H - 152}" font-family="DejaVu Sans, sans-serif" font-size="20"
-        font-weight="700" letter-spacing="2" fill="${accent}">${xml(kicker.toUpperCase())}</text>
-      ${titles}
-    </svg>`
-  );
-}
-
-/** Standalone card for an example with no captured output. */
-function renderedCard(name, kicker, accent, description, steps) {
-  const titleLines = wrap(name, 24, 2);
-  const descLines = wrap(description, 52, 4);
-  const titles = titleLines
-    .map(
-      (ln, i) =>
-        `<text x="64" y="${168 + i * 62}" font-family="DejaVu Sans, sans-serif" ` +
-        `font-size="52" font-weight="700" fill="#eef0f5">${xml(ln)}</text>`
-    )
-    .join("");
-  const desc = descLines
-    .map(
-      (ln, i) =>
-        `<text x="64" y="${168 + titleLines.length * 62 + 34 + i * 32}" ` +
-        `font-family="DejaVu Sans, sans-serif" font-size="23" fill="#8c94a5">${xml(ln)}</text>`
-    )
-    .join("");
-
-  // Pipeline chips: what the workflow is actually made of.
-  let x = 64;
-  const chips = [];
-  const shownSteps = steps.slice(0, 5);
-  for (const [i, step] of shownSteps.entries()) {
-    const w = Math.min(260, 17 + step.length * 12);
-    if (x + w > W - 64) break;
-    chips.push(
-      `<rect x="${x}" y="${H - 132}" width="${w}" height="46" rx="23"
-         fill="#181b24" stroke="#333a49"/>
-       <text x="${x + w / 2}" y="${H - 101}" text-anchor="middle"
-         font-family="DejaVu Sans, sans-serif" font-size="19"
-         fill="#c3cad8">${xml(step)}</text>`
-    );
-    x += w + 14;
-    if (x < W - 120 && i < shownSteps.length - 1) {
-      chips.push(
-        `<text x="${x - 8}" y="${H - 101}" font-family="DejaVu Sans, sans-serif"
-           font-size="19" fill="#5c6474">›</text>`
-      );
-      x += 18;
-    }
-  }
-
-  return Buffer.from(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
-      <defs>
-        <radialGradient id="glow" cx="0.82" cy="0.12" r="0.72">
-          <stop offset="0" stop-color="${accent}" stop-opacity="0.5"/>
-          <stop offset="1" stop-color="${accent}" stop-opacity="0"/>
-        </radialGradient>
-        <radialGradient id="glow2" cx="0.04" cy="0.96" r="0.6">
-          <stop offset="0" stop-color="${accent}" stop-opacity="0.22"/>
-          <stop offset="1" stop-color="${accent}" stop-opacity="0"/>
-        </radialGradient>
-      </defs>
-      <rect width="${W}" height="${H}" fill="#0e1016"/>
-      <rect width="${W}" height="${H}" fill="url(#glow)"/>
-      <rect width="${W}" height="${H}" fill="url(#glow2)"/>
-      <rect width="${W}" height="6" fill="${accent}"/>
-      <text x="64" y="112" font-family="DejaVu Sans, sans-serif" font-size="20"
-        font-weight="700" letter-spacing="2" fill="${accent}">${xml(kicker.toUpperCase())}</text>
-      ${titles}${desc}${chips.join("")}
-      <rect x="0.5" y="0.5" width="${W - 1}" height="${H - 1}" fill="none" stroke="#2e3442"/>
-    </svg>`
-  );
-}
-
-/** First frame of a clip, as a temp PNG. */
-async function firstFrame(videoPath) {
-  const out = path.join(
-    fs.mkdtempSync(path.join(os.tmpdir(), "nt-thumb-")),
-    "frame.png"
-  );
+/**
+ * Concrete objects to draw for each example, cached in
+ * scripts/example-thumbnail-subjects.json.
+ *
+ * Feeding the title straight to the image model fails on abstract ones: "A
+ * Boolean Constant" produced two rounded bars that mean nothing, while "Add
+ * Reverb to a Voice" produced a microphone because the title happens to name
+ * an object. So a language model turns each title into drawable nouns once,
+ * and the answers are checked in — reviewable, editable by hand, and not
+ * re-billed on every run.
+ */
+async function loadSubjects() {
   try {
-    await execFileAsync("ffmpeg", [
-      "-y", "-ss", "0.5", "-i", videoPath, "-frames:v", "1", out
-    ]);
-    return fs.existsSync(out) ? out : null;
+    return JSON.parse(fs.readFileSync(SUBJECTS_FILE, "utf8"));
   } catch {
-    return null; // no ffmpeg, or an unreadable clip — fall through to a card
+    return {};
   }
 }
 
-/** Captured output for `name`, if the sweep directory holds one. */
-async function outputFor(dir, name) {
-  if (!dir) return null;
-  for (const ext of [...IMAGE_EXT, ...VIDEO_EXT]) {
-    const candidate = path.join(dir, `${name}${ext}`);
-    if (!fs.existsSync(candidate)) continue;
-    return VIDEO_EXT.has(ext) ? await firstFrame(candidate) : candidate;
+/**
+ * Written after every derivation, not once at the end. Deriving is billed and
+ * the batch runs long enough to get interrupted; flushing only on completion
+ * throws away every subject derived so far and re-bills them on the next run.
+ */
+function saveSubjects(subjects) {
+  const ordered = Object.fromEntries(
+    Object.keys(subjects)
+      .sort()
+      .map((k) => [k, subjects[k]])
+  );
+  fs.writeFileSync(SUBJECTS_FILE, `${JSON.stringify(ordered, null, 2)}\n`);
+}
+
+async function deriveSubject(name, steps, openaiKey) {
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${openaiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "gpt-5-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You name physical objects for an icon illustrator. Given a " +
+            "workflow title and the node types it runs, reply with one or two " +
+            "concrete, drawable nouns standing for what it does — things with " +
+            "a recognisable silhouette, the icon a designer would reach for. " +
+            "Take the meaning from the mechanism, never from a figure of " +
+            "speech in the title. No abstractions, no adjectives, no " +
+            'explanation. Examples: "a microphone and a sound wave", "a ' +
+            'toggle switch", "a shopping tag and a camera". Phrase only.'
+        },
+        { role: "user", content: `${name}. Runs: ${steps}` }
+      ]
+    })
+  });
+  if (!res.ok) throw new Error(`openai ${res.status}`);
+  const body = await res.json();
+  const text = body?.choices?.[0]?.message?.content?.trim();
+  if (!text) throw new Error("openai returned no subject");
+  return text.replace(/^["']|["']$/g, "").toLowerCase();
+}
+
+async function generate(prompt, falKey) {
+  const res = await fetch(FAL_ENDPOINT, {
+    method: "POST",
+    headers: {
+      Authorization: `Key ${falKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ prompt, image_size: "landscape_16_9" })
+  });
+  if (!res.ok) {
+    throw new Error(`fal ${res.status}: ${(await res.text()).slice(0, 200)}`);
   }
-  return null;
+  const body = await res.json();
+  const url = body?.images?.[0]?.url;
+  if (!url) throw new Error(`fal returned no image: ${JSON.stringify(body).slice(0, 200)}`);
+  const img = await fetch(url);
+  if (!img.ok) throw new Error(`image fetch ${img.status}`);
+  return Buffer.from(await img.arrayBuffer());
+}
+
+/**
+ * Pull the generated ground onto the house colour. The model returns a dark
+ * background but never exactly the same one twice, and a gallery row of
+ * near-misses reads as sloppier than a row of one colour.
+ */
+async function normaliseGround(buf) {
+  const base = sharp(buf)
+    .resize(W, H, { fit: "cover", position: "centre" })
+    .modulate({ saturation: SATURATION });
+  const { data, info } = await base
+    .clone()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  // Corner sample: whatever the model used for the ground.
+  const at = (x, y) => {
+    const i = (y * info.width + x) * info.channels;
+    return { r: data[i], g: data[i + 1], b: data[i + 2] };
+  };
+  const corners = [at(6, 6), at(info.width - 6, 6), at(6, info.height - 6)];
+  const avg = (k) => corners.reduce((s, c) => s + c[k], 0) / corners.length;
+  const src = { r: avg("r"), g: avg("g"), b: avg("b") };
+
+  // Only nudge when the model actually produced a dark ground; a bright one
+  // means it ignored the brief and shifting it would wreck the illustration.
+  const luma = 0.2126 * src.r + 0.7152 * src.g + 0.0722 * src.b;
+  if (luma > 110) return base.jpeg({ quality: 90 }).toBuffer();
+
+  return base
+    .linear(
+      [1, 1, 1],
+      [GROUND.r - src.r, GROUND.g - src.g, GROUND.b - src.b]
+    )
+    .jpeg({ quality: 90 })
+    .toBuffer();
 }
 
 async function main() {
   const argv = process.argv.slice(2);
   const force = argv.includes("--force");
-  const outIdx = argv.indexOf("--outputs");
-  const outputsDir = outIdx >= 0 ? argv[outIdx + 1] : null;
+  const onlyIdx = argv.indexOf("--only");
+  const only = onlyIdx >= 0 ? argv[onlyIdx + 1] : null;
+
+  const falKey = process.env.FAL_API_KEY || process.env.FAL_KEY;
+  if (!falKey) {
+    console.error("FAL_API_KEY (or FAL_KEY) is required — the art is generated.");
+    process.exit(1);
+  }
+
+  const openaiKey = process.env.OPENAI_API_KEY;
+  const subjects = await loadSubjects();
+  let derived = 0;
 
   fs.mkdirSync(ASSETS_DIR, { recursive: true });
-  let fromOutput = 0;
-  let rendered = 0;
+  let made = 0;
   let kept = 0;
+  const failed = [];
 
   for (const file of fs.readdirSync(EXAMPLES_DIR).sort()) {
     if (!file.endsWith(".json")) continue;
     const name = file.slice(0, -5);
+    if (only && name !== only) continue;
     const dest = path.join(ASSETS_DIR, `${name}.jpg`);
-    if (fs.existsSync(dest) && !force) {
+    if (fs.existsSync(dest) && !force && !only) {
       kept += 1;
       continue;
     }
@@ -234,32 +251,45 @@ async function main() {
     } catch {
       continue;
     }
-    const tags = (doc.tags ?? []).filter((t) => t !== "example");
-    const kicker = tags[0] ?? "workflow";
-    const accent = ACCENT[kicker] ?? DEFAULT_ACCENT;
-    const steps = (doc.graph?.nodes ?? [])
-      .map((n) => String(n.type ?? "").split(".").pop())
-      .filter(Boolean);
 
-    const output = await outputFor(outputsDir, name);
-    if (output) {
-      await sharp(output)
-        .resize(W, H, { fit: "cover", position: "centre" })
-        .composite([{ input: scrimOverlay(name, kicker, accent) }])
-        .jpeg({ quality: 88 })
-        .toFile(dest);
-      fromOutput += 1;
-    } else {
-      await sharp(renderedCard(name, kicker, accent, doc.description ?? "", steps))
-        .jpeg({ quality: 88 })
-        .toFile(dest);
-      rendered += 1;
+    if (!subjects[name] && openaiKey) {
+      try {
+        subjects[name] = await deriveSubject(
+          name,
+          (doc.graph?.nodes ?? [])
+            .map((n) => String(n.type ?? "").split(".").pop())
+            .filter(Boolean)
+            .join(", "),
+          openaiKey
+        );
+        derived += 1;
+        saveSubjects(subjects);
+      } catch (err) {
+        // A weaker icon beats no icon, but never fail quietly: falling back
+        // silently is how every card ends up drawn from a bare title.
+        console.warn(`  ! subject fallback for ${name}: ${err.message}`);
+      }
+    }
+    const subject = subjects[name] ?? name.toLowerCase();
+    const palette = PALETTES[hash(name) % PALETTES.length];
+    const prompt = STYLE.replace("%PALETTE%", palette).replace("%SUBJECT%", subject);
+
+    try {
+      const raw = await generate(prompt, falKey);
+      fs.writeFileSync(dest, await normaliseGround(raw));
+      made += 1;
+      console.log(`  ${name}`);
+    } catch (err) {
+      failed.push(`${name}: ${err.message}`);
     }
   }
 
-  console.log(
-    `card art — ${fromOutput} from run output, ${rendered} rendered, ${kept} already present`
-  );
+  if (derived) {
+    console.log(`  (${derived} new subjects cached in ${path.basename(SUBJECTS_FILE)})`);
+  }
+  console.log(`card art — ${made} generated, ${kept} already present, ${failed.length} failed`);
+  for (const f of failed) console.error(`  FAILED ${f}`);
+  if (failed.length) process.exitCode = 1;
 }
 
 await main();
