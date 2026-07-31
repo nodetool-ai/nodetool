@@ -12,6 +12,7 @@ export function isSdkV1DiscoveryRequest(
   }
   return (
     pathname === "/api/sdk/v1/capabilities" ||
+    pathname === "/api/sdk/v1/models" ||
     pathname === "/api/sdk/v1/node-types" ||
     pathname === "/api/sdk/v1/workflows" ||
     /^\/api\/workflows\/[^/]+\/interface$/.test(pathname)

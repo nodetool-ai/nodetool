@@ -8,6 +8,11 @@ import {
   sdkNodeTypeInventoryOutput
 } from "../src/api-schemas/nodes.js";
 import {
+  sdkV1ModelCatalog,
+  sdkV1ModelCatalogEntry,
+  sdkV1ModelCatalogQuery
+} from "../src/api-schemas/sdk-models-v1.js";
+import {
   sdkV1Error,
   sdkV1HttpError,
   sdkV1RpcError,
@@ -173,6 +178,9 @@ export function generateSdkProtocolArtifacts(): Record<string, string> {
     $defs: {
       Error: component(sdkV1Error),
       HttpError: component(sdkV1HttpError),
+      ModelCatalog: component(sdkV1ModelCatalog),
+      ModelCatalogEntry: component(sdkV1ModelCatalogEntry),
+      ModelCatalogQuery: component(sdkV1ModelCatalogQuery, "input"),
       NodeTypeInventoryInput: component(sdkNodeTypeInventoryInput, "input"),
       NodeTypeInventoryOutput: component(sdkNodeTypeInventoryOutput),
       RpcError: component(sdkV1RpcError),
@@ -260,6 +268,42 @@ export function generateSdkProtocolArtifacts(): Record<string, string> {
             ...errorResponses([["503", "Capabilities are unavailable"]])
           },
           summary: "Get public SDK capabilities"
+        }
+      },
+      "/api/sdk/v1/models": {
+        get: {
+          operationId: "listModels",
+          parameters: [
+            "compatibility",
+            "availability",
+            "provider",
+            "scope",
+            "cursor",
+            "limit"
+          ].map((name) => ({
+            in: "query",
+            name,
+            required: false,
+            schema: {
+              $ref: `./${SCHEMA_FILE}#/$defs/ModelCatalogQuery/properties/${name}`
+            }
+          })),
+          responses: {
+            "200": {
+              content: {
+                "application/json": {
+                  schema: schemaReference("ModelCatalog")
+                }
+              },
+              description: "A bounded page of models visible to this SDK principal"
+            },
+            ...errorResponses([
+              ["400", "Invalid catalog query"],
+              ["501", "Requested execution scope is not available"],
+              ["503", "Model catalog is unavailable"]
+            ])
+          },
+          summary: "List execution-compatible models"
         }
       },
       "/api/sdk/v1/assets/temporary": {
@@ -699,7 +743,7 @@ export function generateSdkProtocolArtifacts(): Record<string, string> {
     manifest_version: 1,
     optional_profiles: ["assets", "jobs", "agent", "offline-bundles"],
     protocol_version: PROTOCOL_VERSION,
-    public_profiles: ["discovery"],
+    public_profiles: ["discovery", "model_catalog"],
     status: "draft"
   });
 

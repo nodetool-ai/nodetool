@@ -63,6 +63,7 @@ describe("generated public SDK protocol artifacts", () => {
       "/api/sdk/v1/jobs",
       "/api/sdk/v1/jobs/{job_id}",
       "/api/sdk/v1/jobs/{job_id}/cancel",
+      "/api/sdk/v1/models",
       "/api/sdk/v1/node-types",
       "/api/sdk/v1/preflight",
       "/api/sdk/v1/workflow-interfaces",

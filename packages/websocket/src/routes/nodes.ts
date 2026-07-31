@@ -4,6 +4,7 @@ import type { HttpApiOptions } from "../http-api.js";
 import {
   handleNodeMetadata,
   handleSdkCapabilities,
+  handleSdkModelCatalog,
   handleSdkNodeTypeInventory,
   handleSdkPreflight
 } from "../http-api.js";
@@ -36,6 +37,12 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   app.get("/api/sdk/v1/capabilities", async (req, reply) => {
     await bridge(req, reply, (request) =>
       handleSdkCapabilities(request, apiOptions)
+    );
+  });
+
+  app.get("/api/sdk/v1/models", async (req, reply) => {
+    await bridge(req, reply, (request) =>
+      handleSdkModelCatalog(request, apiOptions)
     );
   });
 

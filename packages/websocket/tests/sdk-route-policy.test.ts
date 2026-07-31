@@ -8,6 +8,7 @@ describe("SDK v1 route policy", () => {
   it.each([
     ["GET", "/api/sdk/v1/workflows"],
     ["GET", "/api/sdk/v1/capabilities"],
+    ["GET", "/api/sdk/v1/models"],
     ["POST", "/api/sdk/v1/workflow-interfaces"],
     ["GET", "/api/sdk/v1/node-types"],
     ["GET", "/api/workflows/workflow-1/interface"]

@@ -30,7 +30,12 @@ export const unifiedModel = z.object({
   likes: z.number().nullish(),
   supported_tasks: z.array(z.string()).nullish(),
   trending_score: z.number().nullish(),
-  image: z.string().nullish()
+  image: z.string().nullish(),
+  supports_tools: z.boolean().nullish(),
+  voices: z.array(z.string()).nullish(),
+  durations: z.array(z.number()).nullish(),
+  resolutions: z.array(z.string()).nullish(),
+  aspect_ratios: z.array(z.string()).nullish()
 });
 
 // ── Provider info ───────────────────────────────────────────────────

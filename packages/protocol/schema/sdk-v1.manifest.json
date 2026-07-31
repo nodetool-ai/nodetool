@@ -10,7 +10,7 @@
       "media_type": "application/vnd.oai.openapi+json;version=3.1",
       "path": "sdk-v1.openapi.json",
       "profile": "discovery",
-      "sha256": "e236c382bcb190969362032d45711c69a7fdde97d5fa1cd7a8fb2a15dcd8f85d"
+      "sha256": "897baf7c966ed1df8c1019434013ac77735f4c21d46521059aa99ef72d9d94da"
     },
     {
       "media_type": "application/schema+json",
@@ -22,7 +22,7 @@
       "media_type": "application/schema+json",
       "path": "sdk-v1.discovery.schema.json",
       "profile": "discovery",
-      "sha256": "c012ff82562e22911cc757a51861a77357c9e9768b38dd9ef4bd089496586daa"
+      "sha256": "a386e224e19b23a55cbb760c5877f9a5e64ba67438d525fe8d7fe58ee5ede982"
     }
   ],
   "default_websocket_encoding": "messagepack",
@@ -36,7 +36,8 @@
   ],
   "protocol_version": "1",
   "public_profiles": [
-    "discovery"
+    "discovery",
+    "model_catalog"
   ],
   "status": "draft"
 }

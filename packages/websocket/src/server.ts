@@ -103,6 +103,9 @@ import {
   isSdkV1DiscoveryRequest
 } from "./sdk/sdk-route-policy.js";
 import { createNodeToolSdkV1CapabilitiesProvider } from "./sdk/sdk-runtime-capabilities-service.js";
+import { getSdkV1ModelCatalog } from "./sdk/sdk-model-catalog-service.js";
+import type { UnifiedModel } from "@nodetool-ai/protocol";
+import { unifiedModel } from "@nodetool-ai/protocol/api-schemas/models.js";
 import { createNodeToolSdkV1PreflightService } from "./sdk/sdk-preflight-service.js";
 import { createSdkV1ExecutionTargetReadiness } from "./sdk/sdk-execution-target-readiness.js";
 import { SdkLiveRunnerRegistry } from "./sdk/sdk-live-runner-registry.js";
@@ -927,6 +930,25 @@ const resolveExecutionTarget = createSdkV1ExecutionTargetReadiness({
   getActiveWorker: () => workerManager.getActiveWorker()
 });
 
+function listRegistryRecommendedModels(): UnifiedModel[] {
+  const models: UnifiedModel[] = [];
+  for (const metadata of registry.listMetadata()) {
+    for (const candidate of metadata.recommended_models ?? []) {
+      const parsed = unifiedModel.safeParse(candidate);
+      if (parsed.success) {
+        models.push({
+          ...parsed.data,
+          provider:
+            parsed.data.provider == null
+              ? undefined
+              : (parsed.data.provider as UnifiedModel["provider"])
+        });
+      }
+    }
+  }
+  return models;
+}
+
 const apiOptions: HttpApiOptions = {
   metadataRoots,
   registry,
@@ -939,6 +961,7 @@ const apiOptions: HttpApiOptions = {
       discovery: "available",
       execution: "available",
       preflight: "available",
+      model_catalog: "available",
       temporary_asset_upload: "available"
     },
     authModes: enforceAuth ? ["bearer"] : ["trusted_local"],
@@ -984,7 +1007,14 @@ const apiOptions: HttpApiOptions = {
         concurrent: target.concurrent
       });
     }
-  })
+  }),
+  sdkModelCatalogService: {
+    list: (args) =>
+      getSdkV1ModelCatalog({
+        ...args,
+        recommendedModels: listRegistryRecommendedModels()
+      })
+  }
 };
 if (_resolvedExamplesDir) {
   apiOptions.examplesDir = _resolvedExamplesDir;
