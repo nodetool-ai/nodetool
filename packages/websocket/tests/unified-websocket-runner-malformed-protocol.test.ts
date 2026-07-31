@@ -5,7 +5,7 @@
  * structured rejection without killing the connection or corrupting a
  * running job.
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { pack, unpack } from "msgpackr";
 import {
   UnifiedWebSocketRunner,
@@ -111,6 +111,45 @@ describe("UnifiedWebSocketRunner malformed-protocol corpus", () => {
 
     // The connection is still alive — the ping right after it still gets a pong.
     expect(out.some((m) => m.type === "pong")).toBe(true);
+  });
+
+  it("accepts MessagePack nil in the C# SDK run_job envelope", async () => {
+    const runJob = vi.spyOn(runner, "runJob").mockResolvedValue();
+    ws.queue.push({
+      type: "websocket.message",
+      bytes: pack({
+        command: "run_job",
+        type: "run_job",
+        request_id: null,
+        data: {
+          job_id: "csharp-job",
+          workflow_id: "workflow-1",
+          graph: null,
+          params: null,
+          execution_options: null
+        }
+      })
+    });
+    ws.queue.push({ type: "websocket.disconnect" });
+
+    await runner.receiveMessages();
+
+    expect(runJob).toHaveBeenCalledOnce();
+    expect(runJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        job_id: "csharp-job",
+        workflow_id: "workflow-1",
+        graph: null,
+        params: null,
+        execution_options: null
+      })
+    );
+    const out = decodeAll(ws);
+    expect(out.some((message) => message.error === "invalid_command")).toBe(false);
+    expect(out).toContainEqual({
+      message: "Job started",
+      workflow_id: "workflow-1"
+    });
   });
 
   it("rejects an unknown frame type without dropping the connection", async () => {
