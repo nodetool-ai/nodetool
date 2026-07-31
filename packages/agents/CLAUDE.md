@@ -576,7 +576,7 @@ expectations, and the runner reports the same metrics as graph-planner
 predicates, tool-call budgets, no-error-results) — never an exact transcript,
 so many valid tool orderings pass.
 
-Eight suites are registered:
+Nine suites are registered:
 
 | Suite | Tools | Bridge (`src/evals/`) |
 |---|---|---|
@@ -588,6 +588,36 @@ Eight suites are registered:
 | `model3d-tools` | `ui_3d_*` | `surfaces/model3d.ts` |
 | `app-tools` | `ui_app_*` App Builder | `surfaces/app.ts` |
 | `thread-memory-tools` | `thread_memory_*` / `asset_*` | `surfaces/thread-memory.ts` |
+| `creative-pipeline` | the three creative surfaces, composed, plus `ui_brief_*` / `ui_review_*` | `surfaces/creative-pipeline.ts` |
+
+`creative-pipeline` is the long-horizon suite: one commission carried through
+brief → ideation → sketch → storyboard → cut → review, scoring the *seams*
+rather than any one surface. It composes the real sketch, storyboard and
+timeline bridges instead of reimplementing them, so it cannot drift from the
+three suites that already cover those contracts, and replaces
+`ui_storyboard_assemble_timeline` with a version that actually drives the
+timeline bridge — the handoff is the thing under test. `ui_brief_*` and
+`ui_review_*` are eval instrumentation, not a frontend contract: a brief passed
+only in the prompt can't be told apart from one the model ignored.
+
+Rendered clips come back 1.35× the requested length, the way a video model that
+emits fixed-length takes does, so a cut planned to exactly fill the brief
+overruns. Catching that in review and trimming — and trimming the *last* clip,
+since shortening an earlier one only opens a gap — is what separates a scoring
+run from a passing-looking one. The predicates grade behaviour, not prose:
+`reviewActedOn` (did the cut change after the notes) and severity, never a
+keyword match on the note text.
+
+Measured on `claude_agent_sdk`/sonnet: `review-catches-overrun` scores 1.00 in
+~25 calls; `brief-constraints-hold` 0.91 in 97. The full six-phase case needs a
+turn cap well past the default — it spent 138 calls without converging at
+`--max-iterations 140`. Budget accordingly, and note the suite costs real money
+(~$1–3 per case).
+
+```bash
+IS_SANDBOX=1 npm run dev:nodetool -- eval creative-pipeline \
+  -p claude_agent_sdk -m sonnet --max-iterations 200 --no-find-model
+```
 
 `thread-memory-tools` is the odd one out: instead of reimplementing a browser
 surface, its bridge executes the **real backend tools** (`thread_memory_save`/
@@ -624,7 +654,7 @@ npm run dev:nodetool -- eval model3d-tools -p openai -m gpt-5.4-mini --min-succe
 ```
 
 Harness tests (scripted provider, no network): `tests/tool-loop-eval.test.ts`
-plus one per surface (`tests/{script,sketch,timeline,storyboard,model3d,app}-tool-loop.test.ts`).
+plus one per surface (`tests/{script,sketch,timeline,storyboard,model3d,app,creative-pipeline}-tool-loop.test.ts`).
 A live check against a local Ollama model runs when a daemon is reachable:
 `tests/tool-loop-eval.ollama.test.ts`.
 
