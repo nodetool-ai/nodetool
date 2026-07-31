@@ -443,6 +443,20 @@ npm run dev:nodetool -- eval graph-planner -p openai -m gpt-5.4-mini --json --ou
 npm run dev:nodetool -- eval graph-planner -p anthropic -m ... --min-success 0.8   # non-zero exit below threshold
 ```
 
+A **`graph-e2e`** suite takes the same planner all the way through: it plans a
+workflow, executes it on the kernel with the case's inputs, and has an LLM judge
+decide whether the outputs achieve the case's goal. A case succeeds only if all
+three hold, and that end-to-end rate is what `--min-success` gates on. Two cases
+are deterministic (exact string and arithmetic results, judge skipped) and run
+without model providers; the rest need one, and cost inference twice — once for
+the run, once for the judge.
+
+```bash
+npm run dev:nodetool -- eval graph-e2e --list
+npm run dev:nodetool -- eval graph-e2e -p anthropic -m claude-sonnet-5
+npm run dev:nodetool -- eval graph-e2e -p openai -m gpt-5.4-mini --timeout 600000
+```
+
 A **`code-gen`** suite drives `CodePlanner` over the Code-node authoring shapes
 (reshape, merge, compute, parse, split, format, validate, seed) and reports
 first-pass and post-repair acceptance separately; `--min-success` gates on

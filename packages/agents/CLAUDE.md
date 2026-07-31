@@ -439,6 +439,52 @@ npm run dev:nodetool -- eval graph-planner -p anthropic -m ... --min-success 0.8
 
 Harness tests (scripted provider, no network): `tests/graph-planner-eval.test.ts`.
 
+### End-to-end eval suite (`graph-e2e`)
+
+The `graph-planner` suite stops at the graph: it scores structure, which says
+nothing about whether the workflow does what was asked. `src/evals/graph-e2e-
+{cases,eval}.ts` closes that loop — every case runs three phases and only counts
+as a success when all three hold:
+
+1. **plan** — `GraphPlanner.plan()` produces a graph, scored structurally by the
+   same `checkExpectations` the graph-planner suite uses.
+2. **execute** — `applyRunPolicy` stamps the run's provider/model onto the
+   planner's Agent nodes (the planner leaves them model-less on purpose — the
+   run owns that choice — so an unstamped graph dies on "Select a model"),
+   then the graph runs for real with the case's inputs as run params, through a
+   caller-supplied `GraphRunner`. The runner is injected so this package needs
+   no execution dependency and the harness tests can drive scripted runs with
+   no kernel; the CLI wires the real one over `ExecutionSession`
+   (`packages/cli/src/evals/graph-runner.ts`).
+3. **judge** — deterministic output checks (an output by name exists, is
+   non-empty, matches/doesn't match a literal) plus an LLM judge
+   (`src/evals/goal-judge.ts`) that reads the case's goal statement and the
+   actual outputs and answers `{achieved, score, reasoning}` as plain JSON. A
+   regex cannot tell a real German translation from the English echoed back;
+   the judge can. A provider failure or unparseable answer is reported as a
+   judge error, never as a pass.
+
+Metrics per case: planned, executed, goalAchieved, score, submit rounds, node/
+edge counts, plan and run duration, cost, plus the outputs themselves.
+Aggregate: end-to-end success rate (the `--min-success` gate), plan rate,
+execution rate, mean score. Cases whose graph needs a real model
+(`needsModelProviders`) skip without configured providers; the two deterministic
+cases (`concat`, `arithmetic`) run anywhere and use `skipJudge`, since their
+outputs are pinned exactly by pattern.
+
+Each case costs inference twice — the run, then the judge — so it is the most
+expensive suite here. A full pass on `claude_agent_sdk`/`sonnet` runs ~$0.07.
+
+```bash
+npm run dev:nodetool -- eval graph-e2e --list
+npm run dev:nodetool -- eval graph-e2e -p anthropic -m claude-sonnet-5
+npm run dev:nodetool -- eval graph-e2e -p openai -m gpt-5.4-mini --cases concat,arithmetic
+npm run dev:nodetool -- eval graph-e2e -p anthropic -m ... --timeout 600000 --min-success 0.8
+```
+
+Harness tests (scripted provider, fake runner, no network):
+`tests/graph-e2e-eval.test.ts`.
+
 ### Code node authoring eval (`code-gen`)
 
 `src/evals/code-gen-{cases,eval}.ts` drives the real `CodePlanner` over eight

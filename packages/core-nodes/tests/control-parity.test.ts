@@ -119,7 +119,7 @@ function generationOutputsForNode(
 }
 
 describe("control parity: If node", () => {
-  it("routes static true input to the true sink and leaves the false sink null", async () => {
+  it("routes static true input to the true sink and never runs the false sink", async () => {
     const result = await runWorkflow(
       [
         { id: "src", type: "test.Input", name: "value" },
@@ -152,10 +152,13 @@ describe("control parity: If node", () => {
 
     expect(result.status).toBe("completed");
     expect(result.outputs.true_sink).toEqual(["hello"]);
-    expect(result.outputs.false_sink).toEqual([null]);
+    // The false sink is on the untaken branch: its inbox closes without a
+    // value, so it never runs and collects no value — rather than running on
+    // its default and emitting null.
+    expect(result.outputs.false_sink).toEqual([]);
   });
 
-  it("routes static false input to the false sink and leaves the true sink null", async () => {
+  it("routes static false input to the false sink and never runs the true sink", async () => {
     const result = await runWorkflow(
       [
         { id: "src", type: "test.Input", name: "value" },
@@ -187,7 +190,7 @@ describe("control parity: If node", () => {
     );
 
     expect(result.status).toBe("completed");
-    expect(result.outputs.true_sink).toEqual([null]);
+    expect(result.outputs.true_sink).toEqual([]);
     expect(result.outputs.false_sink).toEqual(["hello"]);
   });
 

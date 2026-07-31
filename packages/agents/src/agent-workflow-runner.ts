@@ -28,7 +28,7 @@ import { randomUUID } from "node:crypto";
 const log = createLogger("nodetool.agents.workflow-runner");
 
 /** The run-level execution policy stamped onto planner-authored Agent nodes. */
-interface RunPolicy {
+export interface RunPolicy {
   providerId: string;
   modelId: string;
   systemPrompt?: string;
@@ -43,8 +43,13 @@ interface RunPolicy {
  * they are written in here. A property the node already carries wins — a
  * hand-authored graph, or a model the planner pinned via `find_model`, is
  * never overwritten.
+ *
+ * Exported because a planned graph is only runnable once this has been applied:
+ * anything that executes planner output outside this runner (the `graph-e2e`
+ * eval suite) has to stamp the same policy, or every Agent node dies on
+ * "Select a model".
  */
-function applyRunPolicy(graphData: GraphData, policy: RunPolicy): GraphData {
+export function applyRunPolicy(graphData: GraphData, policy: RunPolicy): GraphData {
   const { providerId, modelId, systemPrompt, maxStepIterations } = policy;
   return {
     ...graphData,

@@ -197,9 +197,14 @@ export function checkExpectations(
     const hasOut = new Set(graph.edges.map((e) => e.source));
     const orphans = graph.nodes
       .filter((n) => {
-        const isInput = n.type.startsWith("nodetool.input.");
+        // Inputs and constants are sources: they are wired correctly with no
+        // incoming edge, so requiring one flags a `nodetool.constant.String`
+        // feeding a comparison as unwired when it is doing its job.
+        const isSource =
+          n.type.startsWith("nodetool.input.") ||
+          n.type.startsWith("nodetool.constant.");
         const isOutput = n.type.startsWith("nodetool.output.");
-        if (!isInput && !hasIn.has(n.id)) return true;
+        if (!isSource && !hasIn.has(n.id)) return true;
         if (!isOutput && !hasOut.has(n.id)) return true;
         return false;
       })

@@ -448,6 +448,35 @@ export type {
 } from "./evals/graph-planner-eval.js";
 export { GRAPH_PLANNER_EVAL_CASES } from "./evals/graph-planner-cases.js";
 
+// End-to-end graph evaluation harness (plan → execute → judge)
+export {
+  runGraphE2eEval,
+  formatGraphE2eReport,
+  checkRunOutputs,
+  outputsByName,
+  previewOutputValue
+} from "./evals/graph-e2e-eval.js";
+export type {
+  GraphE2eEvalCase,
+  GraphE2eExpectations,
+  GraphE2eCaseResult,
+  GraphE2eEvalReport,
+  RunGraphE2eEvalOptions,
+  GraphRunner,
+  GraphRunResult,
+  GraphRunOutput
+} from "./evals/graph-e2e-eval.js";
+export { GRAPH_E2E_EVAL_CASES } from "./evals/graph-e2e-cases.js";
+export {
+  judgeGoalAchievement,
+  parseJudgeVerdict,
+  renderValueForJudge
+} from "./evals/goal-judge.js";
+export type {
+  GoalJudgeVerdict,
+  JudgeGoalOptions
+} from "./evals/goal-judge.js";
+
 // Code node authoring evaluation harness (CodePlanner)
 export {
   runCodeGenEval,
@@ -630,5 +659,11 @@ export { normalizeModelProperties } from "./normalize-model-properties.js";
 export type { ModelPropertyRegistry } from "./normalize-model-properties.js";
 export { GraphPlanner } from "./graph-planner.js";
 export type { GraphPlannerOptions } from "./graph-planner.js";
-export { AgentWorkflowRunner } from "./agent-workflow-runner.js";
-export type { AgentWorkflowRunnerOptions } from "./agent-workflow-runner.js";
+export {
+  AgentWorkflowRunner,
+  applyRunPolicy
+} from "./agent-workflow-runner.js";
+export type {
+  AgentWorkflowRunnerOptions,
+  RunPolicy
+} from "./agent-workflow-runner.js";

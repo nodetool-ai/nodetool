@@ -42,7 +42,10 @@ export class IfNode extends BaseNode {
     const value = this.value ?? null;
 
     // Emit only the taken branch. Omitting the other key means no message is
-    // sent on that output, so downstream nodes on the untaken branch don't fire.
+    // sent on that output, so the untaken branch's inbox closes empty and the
+    // actor skips those nodes instead of running them on their defaults
+    // (`_runCorrelatedImpl`, "received nothing" check) — the skip cascades down
+    // the whole untaken subgraph.
     if (condition) {
       return { if_true: value };
     }

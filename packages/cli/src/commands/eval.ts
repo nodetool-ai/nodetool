@@ -27,6 +27,7 @@ interface EvalCliOptions {
   out?: string;
   maxRetries?: string;
   maxIterations?: string;
+  timeout?: string;
   minSuccess?: string;
   /** commander negated flag: `--no-find-model` sets this to false. */
   findModel?: boolean;
@@ -55,6 +56,8 @@ interface EvalRunDeps {
   maxRetries?: number;
   /** Turn cap per case, for loop-style suites (tool-loop). */
   maxIterations?: number;
+  /** Per-case execution timeout (ms), for suites that run what they plan. */
+  timeoutMs?: number;
   /** Progress callback (one line per event, for CLI display). */
   onEvent: (line: string) => void;
 }
@@ -140,6 +143,61 @@ const graphPlannerSuite: EvalSuite = {
     return {
       report,
       formatted: formatEvalReport(report),
+      successRate: report.summary.successRate
+    };
+  }
+};
+
+/**
+ * End-to-end graph suite: plan a workflow, run it on the kernel, judge the
+ * outputs against the case's goal.
+ *
+ * This is the one suite that executes what the planner produced, so it needs a
+ * `GraphRunner` — built here over `ExecutionSession` — and it costs real
+ * inference twice per case (the run, then the judge). Its success rate is the
+ * end-to-end claim: planned AND ran AND achieved the goal.
+ */
+const graphE2eSuite: EvalSuite = {
+  id: "graph-e2e",
+  description:
+    "Plan a workflow with the agent, execute it, and judge whether the outputs achieve the goal",
+  async listCases() {
+    const { GRAPH_E2E_EVAL_CASES } = await import("@nodetool-ai/agents");
+    return GRAPH_E2E_EVAL_CASES.map((c) => ({
+      id: c.id,
+      description: c.description,
+      needsModelProviders: c.needsModelProviders
+    }));
+  },
+  async run(deps) {
+    const { GRAPH_E2E_EVAL_CASES, runGraphE2eEval, formatGraphE2eReport } =
+      await import("@nodetool-ai/agents");
+    const { createEvalGraphRunner } = await import("../evals/graph-runner.js");
+
+    const cases = selectCases(GRAPH_E2E_EVAL_CASES, deps.caseIds);
+
+    console.log(
+      `Running ${cases.length} graph-e2e case(s) with ${deps.providerId}/${deps.model}` +
+        (deps.providers && Object.keys(deps.providers).length > 0
+          ? ` (find_model: ${Object.keys(deps.providers).join(", ")})`
+          : " (no model providers — model-dependent cases skipped)")
+    );
+
+    const report = await runGraphE2eEval({
+      provider: deps.provider,
+      model: deps.model,
+      registry: deps.registry,
+      providers: deps.providers,
+      runGraph: createEvalGraphRunner(),
+      cases,
+      maxRetries: deps.maxRetries,
+      timeoutMs: deps.timeoutMs,
+      onEvent: deps.onEvent
+    });
+
+    return {
+      report,
+      formatted: formatGraphE2eReport(report),
       successRate: report.summary.successRate
     };
   }
@@ -394,6 +452,7 @@ function makeToolLoopSuite(
 /** All evaluation suites exposed under `nodetool eval <suite>`. */
 export const EVAL_SUITES: readonly EvalSuite[] = [
   graphPlannerSuite,
+  graphE2eSuite,
   codeGenSuite,
   taskPlannerSuite,
   scriptPlannerSuite,
@@ -492,6 +551,7 @@ async function runSuite(suite: EvalSuite, opts: EvalCliOptions): Promise<void> {
       maxIterations: opts.maxIterations
         ? Number(opts.maxIterations)
         : undefined,
+      timeoutMs: opts.timeout ? Number(opts.timeout) : undefined,
       onEvent: (line) => {
         if (!opts.json) console.log(line);
       }
@@ -553,6 +613,10 @@ export function registerEvalCommand(program: Command): void {
       .option(
         "--max-iterations <n>",
         "Turn cap per case for loop-style suites (tool-loop; default 12)"
+      )
+      .option(
+        "--timeout <ms>",
+        "Per-case execution timeout for suites that run what they plan (graph-e2e; default 300000)"
       )
       .option(
         "--min-success <rate>",
