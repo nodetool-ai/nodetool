@@ -16,16 +16,95 @@ import { zodToJsonSchema } from "@nodetool-ai/runtime";
 import { createProviderStrict } from "../../cli/src/providers.js";
 import {
   CREATIVE_PIPELINE_TOOL_LOOP_CASES,
-  type CreativePipelineFinalState
+  createCreativePipelineBridge,
+  LANTERN_BRIEF,
+  ATLAS_BRIEF,
+  type CreativePipelineFinalState,
+  type MediaBackend
 } from "../src/evals/surfaces/creative-pipeline.js";
 
+const argv = process.argv.slice(2);
+const live = argv.includes("--live");
+const positional = argv.filter((a) => !a.startsWith("--"));
 const [caseId = "full-pipeline", providerId = "claude_agent_sdk", model = "sonnet", maxIter = "220"] =
-  process.argv.slice(2);
+  positional;
 
 const evalCase = CREATIVE_PIPELINE_TOOL_LOOP_CASES.find((c) => c.id === caseId);
 if (!evalCase) throw new Error(`no case ${caseId}`);
 
-const bridge = evalCase.createBridge();
+const outDir = path.resolve("nodetool-debug");
+const mediaDir = path.join(outDir, `creative-${caseId}-media`);
+
+/**
+ * Real generation on fal, wired only when --live is passed.
+ *
+ * Models are chosen for cost, not fidelity: flux/schnell bills $0.003 per
+ * megapixel and LTX-distilled image-to-video $0.0008, so a four-shot run adds
+ * cents to an agent loop that costs dollars. The point is to prove the
+ * pipeline produces real artifacts end to end, not to win a bake-off — swap
+ * the ids below for a heavier pair when the output itself matters.
+ */
+function createFalMediaBackend(fal: {
+  textToImage: (p: Record<string, unknown>) => Promise<Uint8Array>;
+  imageToVideo: (i: Uint8Array[], p: Record<string, unknown>) => Promise<Uint8Array>;
+}): MediaBackend {
+  fs.mkdirSync(mediaDir, { recursive: true });
+  const imageModel = {
+    id: "fal-ai/flux/schnell",
+    name: "FLUX schnell",
+    provider: "fal_ai"
+  };
+  const videoModel = {
+    id: "fal-ai/ltx-2-19b/distilled/image-to-video",
+    name: "LTX 2 19B distilled",
+    provider: "fal_ai"
+  };
+  const save = (label: string, ext: string, bytes: Uint8Array) => {
+    const p = path.join(mediaDir, `${label}.${ext}`);
+    fs.writeFileSync(p, bytes);
+    process.stderr.write(`    ↳ ${path.basename(p)} (${(bytes.length / 1024).toFixed(0)} KB)\n`);
+    return { path: p, bytes };
+  };
+  return {
+    async image(prompt, label) {
+      const bytes = await fal.textToImage({
+        prompt,
+        model: imageModel,
+        aspectRatio: "9:16"
+      });
+      return save(label, "png", bytes);
+    },
+    async video(from, prompt, label, durationSeconds) {
+      const bytes = await fal.imageToVideo([from], {
+        model: videoModel,
+        prompt,
+        durationSeconds,
+        aspectRatio: "9:16"
+      });
+      return save(label, "mp4", bytes);
+    }
+  };
+}
+
+let media: MediaBackend | undefined;
+if (live) {
+  const falProvider = (await createProviderStrict("fal_ai")) as unknown as Parameters<
+    typeof createFalMediaBackend
+  >[0];
+  media = createFalMediaBackend(falProvider);
+  process.stderr.write(`live media ON → ${mediaDir}\n`);
+}
+
+// --live needs its own bridge so the media backend reaches it; the case's
+// createBridge() closes over its own brief with no backend.
+const briefFor: Record<string, typeof LANTERN_BRIEF> = {
+  "full-pipeline": LANTERN_BRIEF,
+  "brief-constraints-hold": ATLAS_BRIEF,
+  "review-catches-overrun": LANTERN_BRIEF
+};
+const bridge = media
+  ? createCreativePipelineBridge({ brief: briefFor[caseId] ?? LANTERN_BRIEF, media })
+  : evalCase.createBridge();
 const provider = await createProviderStrict(providerId);
 
 interface Entry {
@@ -95,7 +174,6 @@ try {
 }
 
 const final = bridge.finalState();
-const outDir = path.resolve("nodetool-debug");
 fs.mkdirSync(outDir, { recursive: true });
 const stem = path.join(outDir, `creative-${caseId}`);
 
@@ -140,9 +218,20 @@ for (const c of [...final.timeline.clips].sort((a, b) => a.startMs - b.startMs))
   );
 }
 L.push("");
+if (final.artifacts.length) {
+  L.push("## Generated media");
+  for (const a of final.artifacts) {
+    L.push(
+      a.path
+        ? `- **${a.kind}** \`${path.basename(a.path)}\` (${((a.bytes ?? 0) / 1024).toFixed(0)} KB) — ${a.prompt.slice(0, 110)}`
+        : `- **${a.kind}** FAILED — ${a.error}`
+    );
+  }
+  L.push("");
+}
 L.push("## Review notes");
 for (const r of final.reviewNotes) L.push(`- **${r.severity}** — ${r.note}`);
-L.push(`\nTimeline edits after review: **${final.editsAfterReview}**`);
+L.push(`\nTimeline revisions after assembly: **${final.editsAfterAssembly}**`);
 L.push("");
 L.push("## Phase snapshots");
 for (const s of snapshots) {
@@ -163,4 +252,4 @@ for (const e of transcript) {
 fs.writeFileSync(`${stem}.md`, `${L.join("\n")}\n`);
 
 console.log(`\nwrote ${stem}.md and ${stem}.json`);
-console.log(`calls=${n} cut=${final.cutDurationSeconds.toFixed(2)}s notes=${final.reviewNotes.length} editsAfterReview=${final.editsAfterReview}`);
+console.log(`calls=${n} cut=${final.cutDurationSeconds.toFixed(2)}s notes=${final.reviewNotes.length} edits=${final.editsAfterAssembly} artifacts=${final.artifacts.length}`);

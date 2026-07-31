@@ -117,6 +117,12 @@ export interface CreativePipelineFinalState {
   /** The model inspected the assembled cut before reporting on it. */
   inspectedCut: boolean;
   /**
+   * Media a live {@link MediaBackend} produced. Always empty in the default
+   * headless mode, so no predicate depends on it — a case that asserted on
+   * artifacts would fail every CI run.
+   */
+  artifacts: GeneratedArtifact[];
+  /**
    * Timeline-mutating calls made after the cut was assembled. Zero means the
    * model shipped the sequence exactly as the renderer handed it over.
    *
@@ -190,8 +196,54 @@ const TIMELINE_MUTATORS = new Set([
 /** Surface tools that count as "work" for the brief-read-first check. */
 const WORK_PREFIXES = ["ui_sketch_", "ui_storyboard_", "ui_timeline_"];
 
+/** One piece of media a live backend actually produced. */
+export interface GeneratedArtifact {
+  kind: "style" | "keyframe" | "clip";
+  /** Absolute path on disk, or undefined when the generation failed. */
+  path?: string;
+  prompt: string;
+  shotId?: string;
+  bytes?: number;
+  error?: string;
+}
+
+/**
+ * Optional sink that turns the faked generate/render calls into real media.
+ *
+ * The suite is headless by default: `ui_sketch_generate` and the storyboard's
+ * keyframe/clip jobs flip a status flag and produce nothing, which is what
+ * makes the eval runnable in CI for the price of the agent loop alone. Supply
+ * a backend and the same tool calls additionally hit a real provider, so the
+ * run leaves actual stills and clips on disk without changing a single tool
+ * contract or predicate.
+ *
+ * Kept as an interface here rather than a fal implementation because
+ * `packages/agents` has no fal dependency and should not grow one for an
+ * opt-in path — see `scripts/dump-creative-run.ts` for the fal wiring.
+ *
+ * Known divergence in live mode: the timeline still lays clips at the
+ * simulated {@link RENDER_OVERSHOOT}, so the scored runtime is not the runtime
+ * of the files on disk. A live run against LTX asked for 3s takes and got
+ * 4.84s ones — a 1.61× overshoot against the 1.35× modelled here, so the
+ * planted defect is if anything conservative. Closing the gap means feeding
+ * the delivered duration back into assembly, which needs the backend to
+ * report it; until then, treat live media as artifacts the run produced
+ * rather than as the thing being measured.
+ */
+export interface MediaBackend {
+  image(prompt: string, label: string): Promise<{ path: string; bytes: Uint8Array }>;
+  video(
+    from: Uint8Array,
+    prompt: string,
+    label: string,
+    durationSeconds: number
+  ): Promise<{ path: string; bytes: Uint8Array }>;
+}
+
 export interface CreativePipelineInitialState {
   brief: CreativeBrief;
+  /** Omit for the headless default; supply to produce real media. */
+  media?: MediaBackend;
 }
 
 /**
@@ -202,6 +254,8 @@ export function createCreativePipelineBridge(
   initial: CreativePipelineInitialState
 ): HeadlessSurfaceBridge<CreativePipelineFinalState> {
   const brief = initial.brief;
+  const media = initial.media;
+  const artifacts: GeneratedArtifact[] = [];
 
   const sketch = createSketchToolBridge({
     name: `${brief.product} — style frame`,
@@ -428,6 +482,73 @@ export function createCreativePipelineBridge(
     }
   );
 
+  /** Keyframe bytes per shot, so a clip can be animated from its own still. */
+  const keyframeBytes = new Map<string, Uint8Array>();
+
+  const shotAction = (id: string) =>
+    storyboard.finalState().shots.find((s) => s.id === id)?.action ?? "";
+
+  /**
+   * Mirror a faked generate/render onto the live backend.
+   *
+   * A generation failure is recorded on the artifact and never thrown: the
+   * model is being scored on directing the pipeline, and failing its run
+   * because fal rate-limited would measure the weather. It is not swallowed
+   * either — the error lands in the artifact list and in the run report.
+   */
+  async function captureMedia(
+    name: string,
+    args: Record<string, unknown>,
+    result: unknown
+  ): Promise<void> {
+    if (!media) return;
+    const record = async (
+      kind: GeneratedArtifact["kind"],
+      prompt: string,
+      shotId: string | undefined,
+      run: () => Promise<{ path: string; bytes: Uint8Array }>
+    ) => {
+      try {
+        const out = await run();
+        artifacts.push({ kind, path: out.path, prompt, shotId, bytes: out.bytes.length });
+        if (kind === "keyframe" && shotId) keyframeBytes.set(shotId, out.bytes);
+      } catch (err) {
+        artifacts.push({ kind, prompt, shotId, error: (err as Error).message });
+      }
+    };
+
+    if (name === "ui_sketch_generate") {
+      const prompt = String(args.prompt ?? "");
+      if (prompt) await record("style", prompt, undefined, () => media.image(prompt, "style-frame"));
+      return;
+    }
+    const shotId = (result as { shot?: { id?: string } })?.shot?.id;
+    if (!shotId) return;
+
+    if (name === "ui_storyboard_generate_keyframe") {
+      const prompt = shotAction(shotId);
+      await record("keyframe", prompt, shotId, () => media.image(prompt, `keyframe-${shotId}`));
+      return;
+    }
+    if (name === "ui_storyboard_generate_clip") {
+      const still = keyframeBytes.get(shotId);
+      if (!still) {
+        artifacts.push({
+          kind: "clip",
+          prompt: shotAction(shotId),
+          shotId,
+          error: "no keyframe was generated for this shot to animate"
+        });
+        return;
+      }
+      const prompt = shotAction(shotId);
+      const seconds = shotSeconds.get(shotId) ?? DEFAULT_SHOT_SECONDS;
+      await record("clip", prompt, shotId, () =>
+        media.video(still, prompt, `clip-${shotId}`, seconds)
+      );
+    }
+  }
+
   /**
    * Wrap every surface tool to maintain the cross-phase bookkeeping the
    * predicates read: which phase the model is in, what each shot's requested
@@ -456,6 +577,8 @@ export function createCreativePipelineBridge(
           shotSeconds.set(shot.id, seconds);
         }
       }
+
+      if (media) await captureMedia(t.name, args, result);
       return result;
     }
   });
@@ -481,6 +604,7 @@ export function createCreativePipelineBridge(
       cutDurationSeconds: cutDurationSeconds(),
       reviewNotes: [...reviewNotes],
       inspectedCut,
+      artifacts: [...artifacts],
       editsAfterAssembly
     })
   };

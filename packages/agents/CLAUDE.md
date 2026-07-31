@@ -644,6 +644,30 @@ IS_SANDBOX=1 npx tsx packages/agents/scripts/dump-creative-run.ts \
   full-pipeline claude_agent_sdk sonnet 220
 ```
 
+**Live media (`--live`).** The suite fakes every generate/render, which is what
+makes it a CI-priced eval. Pass `--live` and the same tool calls additionally
+hit fal, so the run leaves real stills and clips in
+`nodetool-debug/creative-<case>-media/` without changing a tool contract or a
+predicate. `MediaBackend` is an interface in the bridge; the fal wiring lives in
+the script, because `packages/agents` has no fal dependency and should not grow
+one for an opt-in path.
+
+Media is the cheap half: `flux/schnell` at $0.003/megapixel and
+`ltx-2-19b/distilled/image-to-video` at $0.0008 put a nine-artifact run around
+**$0.17**, against ~$2.60 for the agent loop driving it. A measured live run
+produced a style frame, four keyframes and four clips.
+
+Two caveats. The timeline still lays clips at the simulated overshoot, so the
+scored runtime is not the runtime of the files on disk — LTX returned 4.84s
+takes for 3s requests, a 1.61× overshoot against the 1.35× modelled, so the
+planted defect is conservative. And the provider reads `FAL_API_KEY`, not
+`FAL_KEY`.
+
+```bash
+FAL_API_KEY=$FAL_KEY IS_SANDBOX=1 npx tsx \
+  packages/agents/scripts/dump-creative-run.ts full-pipeline claude_agent_sdk sonnet 220 --live
+```
+
 `thread-memory-tools` is the odd one out: instead of reimplementing a browser
 surface, its bridge executes the **real backend tools** (`thread_memory_save`/
 `list`, `asset_search`) plus a stub `generate_image` against an in-memory DB
