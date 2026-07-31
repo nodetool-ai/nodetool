@@ -24,7 +24,6 @@ export function isSdkV1AuthenticationRequired(
   serverAuthenticationRequired = false
 ): boolean {
   return (
-    serverAuthenticationRequired ||
-    isSdkV1AuthenticationEnabled(environment)
+    serverAuthenticationRequired || isSdkV1AuthenticationEnabled(environment)
   );
 }

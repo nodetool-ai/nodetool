@@ -272,6 +272,156 @@
         "x-nodetool-implementation": "planned"
       }
     },
+    "/api/sdk/v1/model-downloads": {
+      "get": {
+        "operationId": "listModelDownloads",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "$ref": "./sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadQuery/properties/scope"
+            }
+          },
+          {
+            "in": "query",
+            "name": "operation_id",
+            "required": false,
+            "schema": {
+              "$ref": "./sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadQuery/properties/operation_id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadSnapshot"
+                }
+              }
+            },
+            "description": "Current reconnectable model download states"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Invalid download query"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Requested execution scope is not available"
+          }
+        },
+        "summary": "List model downloads"
+      },
+      "post": {
+        "operationId": "startModelDownload",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadStartRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadState"
+                }
+              }
+            },
+            "description": "Accepted download state"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Invalid download request"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Requested model download is not available"
+          }
+        },
+        "summary": "Start or retry a model download"
+      }
+    },
+    "/api/sdk/v1/model-downloads/cancel": {
+      "post": {
+        "operationId": "cancelModelDownload",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadCancelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.lifecycle.schema.json#/$defs/ModelDownloadState"
+                }
+              }
+            },
+            "description": "Current terminal download state"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Invalid cancellation request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./sdk-v1.discovery.schema.json#/$defs/HttpError"
+                }
+              }
+            },
+            "description": "Download operation was not found"
+          }
+        },
+        "summary": "Cancel a model download"
+      }
+    },
     "/api/sdk/v1/models": {
       "get": {
         "operationId": "listModels",

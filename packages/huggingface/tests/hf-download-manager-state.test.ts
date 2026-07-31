@@ -14,4 +14,11 @@ describe("DownloadManager state snapshots", () => {
     expect(getExistingDownloadManager("read-only-user")).toBeNull();
     expect(getExistingDownloadManager("read-only-user")).toBeNull();
   });
+
+  it("bounds state snapshot requests", () => {
+    const manager = new DownloadManager();
+    expect(manager.listDownloadStates()).toEqual([]);
+    expect(() => manager.listDownloadStates(0)).toThrow(RangeError);
+    expect(() => manager.listDownloadStates(501)).toThrow(RangeError);
+  });
 });

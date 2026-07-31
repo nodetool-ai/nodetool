@@ -8,7 +8,10 @@ import {
   type SdkV1ModelCatalogEntry,
   type SdkV1ModelCatalogQuery
 } from "@nodetool-ai/protocol/api-schemas/sdk-models-v1.js";
-import { getAllModels, getAvailableProviderIds } from "../trpc/routers/models.js";
+import {
+  getAllModels,
+  getAvailableProviderIds
+} from "../trpc/routers/models.js";
 import { getExistingDownloadManager } from "@nodetool-ai/huggingface";
 
 const LOCAL_PROVIDER_IDS = new Set([
@@ -133,8 +136,7 @@ export function projectSdkModelCatalog(
     })
     .filter(
       (entry) =>
-        (!query.compatibility ||
-          entry.compatibility === query.compatibility) &&
+        (!query.compatibility || entry.compatibility === query.compatibility) &&
         (!query.availability || entry.availability === query.availability) &&
         (!query.provider || entry.provider === query.provider)
     )
@@ -144,16 +146,11 @@ export function projectSdkModelCatalog(
     .update(JSON.stringify(entries))
     .digest("hex");
   const start = query.cursor
-    ? Math.max(
-        0,
-        entries.findIndex((entry) => entry.key === query.cursor) + 1
-      )
+    ? Math.max(0, entries.findIndex((entry) => entry.key === query.cursor) + 1)
     : 0;
   const page = entries.slice(start, start + query.limit);
   const nextCursor =
-    start + page.length < entries.length
-      ? (page.at(-1)?.key ?? null)
-      : null;
+    start + page.length < entries.length ? (page.at(-1)?.key ?? null) : null;
 
   return sdkV1ModelCatalog.parse({
     version: "1",
@@ -178,17 +175,24 @@ export async function getSdkV1ModelCatalog(args: {
   userId: string;
   query: SdkV1ModelCatalogQuery;
   recommendedModels?: readonly UnifiedModel[];
+  getWorkerModels?: () => Promise<readonly UnifiedModel[]>;
 }): Promise<SdkV1ModelCatalog> {
-  if (args.query.scope !== "local") {
-    throw new SdkModelCatalogServiceError(
-      "Worker model catalogs are not available through this server yet."
-    );
+  let availableModels: readonly UnifiedModel[];
+  let providerIds: readonly string[];
+  if (args.query.scope === "worker") {
+    if (!args.getWorkerModels) {
+      throw new SdkModelCatalogServiceError(
+        "Worker model catalogs are not available through this server."
+      );
+    }
+    availableModels = await args.getWorkerModels();
+    providerIds = [];
+  } else {
+    [availableModels, providerIds] = await Promise.all([
+      getAllModels(args.userId),
+      getAvailableProviderIds(args.userId)
+    ]);
   }
-
-  const [availableModels, providerIds] = await Promise.all([
-    getAllModels(args.userId),
-    getAvailableProviderIds(args.userId)
-  ]);
   const recommendedModels = [
     ...RECOMMENDED_MODELS,
     ...(args.recommendedModels ?? [])
@@ -197,7 +201,10 @@ export async function getSdkV1ModelCatalog(args: {
     ...availableModels,
     ...recommendedModels
   ]);
-  const manager = getExistingDownloadManager(args.userId);
+  const manager =
+    args.query.scope === "local"
+      ? getExistingDownloadManager(args.userId)
+      : null;
   const downloadingRepoIds = new Set<string>();
   if (manager) {
     for (const model of models) {

@@ -63,6 +63,8 @@ describe("generated public SDK protocol artifacts", () => {
       "/api/sdk/v1/jobs",
       "/api/sdk/v1/jobs/{job_id}",
       "/api/sdk/v1/jobs/{job_id}/cancel",
+      "/api/sdk/v1/model-downloads",
+      "/api/sdk/v1/model-downloads/cancel",
       "/api/sdk/v1/models",
       "/api/sdk/v1/node-types",
       "/api/sdk/v1/preflight",
@@ -86,9 +88,7 @@ describe("generated public SDK protocol artifacts", () => {
   });
 
   it("validates baseline payloads from the committed JSON Schema", () => {
-    const bundle = JSON.parse(
-      artifacts["sdk-v1.discovery.schema.json"]
-    ) as {
+    const bundle = JSON.parse(artifacts["sdk-v1.discovery.schema.json"]) as {
       $defs: Record<string, Parameters<typeof z.fromJSONSchema>[0]>;
     };
     const fixturePath = new URL(
@@ -122,9 +122,7 @@ describe("generated public SDK protocol artifacts", () => {
   });
 
   it("allows additive response fields but keeps requests strict", () => {
-    const bundle = JSON.parse(
-      artifacts["sdk-v1.discovery.schema.json"]
-    ) as {
+    const bundle = JSON.parse(artifacts["sdk-v1.discovery.schema.json"]) as {
       $defs: Record<string, Parameters<typeof z.fromJSONSchema>[0]>;
     };
     const fixturePath = new URL(

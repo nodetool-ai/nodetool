@@ -19,6 +19,9 @@ describe("SDK v1 route policy", () => {
   it.each([
     ["POST", "/api/sdk/v1/workflows"],
     ["POST", "/api/sdk/v1/preflight"],
+    ["GET", "/api/sdk/v1/model-downloads"],
+    ["POST", "/api/sdk/v1/model-downloads"],
+    ["POST", "/api/sdk/v1/model-downloads/cancel"],
     ["GET", "/api/sdk/v1/workflow-interfaces"],
     ["GET", "/api/workflows/workflow-1"],
     ["GET", "/api/nodes/metadata"]
@@ -43,10 +46,7 @@ describe("SDK v1 route policy", () => {
   it("never bypasses authentication on an authenticated server", () => {
     expect(isSdkV1AuthenticationRequired({}, true)).toBe(true);
     expect(
-      isSdkV1AuthenticationRequired(
-        { NODETOOL_REQUIRE_SDK_AUTH_V1: "0" },
-        true
-      )
+      isSdkV1AuthenticationRequired({ NODETOOL_REQUIRE_SDK_AUTH_V1: "0" }, true)
     ).toBe(true);
   });
 });

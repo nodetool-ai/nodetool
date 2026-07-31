@@ -43,10 +43,94 @@ export const sdkV1ModelCatalog = z.object({
   next_cursor: z.string().nullable()
 });
 
-export type SdkV1ModelAvailability = z.infer<
-  typeof sdkV1ModelAvailability
->;
+export const sdkV1ModelDownloadStatus = z.enum([
+  "start",
+  "progress",
+  "completed",
+  "error",
+  "cancelled"
+]);
+
+export const sdkV1ModelDownloadStartRequest = z
+  .object({
+    repo_id: z.string().min(1).max(512),
+    path: z.string().min(1).max(2048).nullable().optional(),
+    model_type: z.string().min(1).max(256),
+    scope: sdkV1ModelScope.optional().default("local"),
+    allow_patterns: z
+      .array(z.string().min(1).max(512))
+      .max(100)
+      .nullable()
+      .optional(),
+    ignore_patterns: z
+      .array(z.string().min(1).max(512))
+      .max(100)
+      .nullable()
+      .optional()
+  })
+  .superRefine((value, context) => {
+    if (value.path && value.allow_patterns) {
+      context.addIssue({
+        code: "custom",
+        path: ["allow_patterns"],
+        message: "allow_patterns is not supported when path is provided"
+      });
+    }
+    if (value.path && value.ignore_patterns) {
+      context.addIssue({
+        code: "custom",
+        path: ["ignore_patterns"],
+        message: "ignore_patterns is not supported when path is provided"
+      });
+    }
+  });
+
+export const sdkV1ModelDownloadCancelRequest = z.object({
+  operation_id: z.string().min(1).max(1024)
+});
+
+export const sdkV1ModelDownloadQuery = z.object({
+  scope: sdkV1ModelScope.optional().default("local"),
+  operation_id: z.string().min(1).max(1024).optional()
+});
+
+export const sdkV1ModelDownloadState = z.object({
+  version: z.literal("1"),
+  operation_id: z.string().min(1),
+  scope: sdkV1ModelScope,
+  repo_id: z.string().min(1),
+  path: z.string().nullable(),
+  model_type: z.string().min(1),
+  status: sdkV1ModelDownloadStatus,
+  downloaded_bytes: z.number().int().nonnegative(),
+  total_bytes: z.number().int().nonnegative(),
+  downloaded_files: z.number().int().nonnegative(),
+  current_files: z.array(z.string()),
+  total_files: z.number().int().nonnegative(),
+  error: z.string().nullable(),
+  started_at: z.string().datetime(),
+  updated_at: z.string().datetime()
+});
+
+export const sdkV1ModelDownloadSnapshot = z.object({
+  version: z.literal("1"),
+  downloads: z.array(sdkV1ModelDownloadState)
+});
+
+export type SdkV1ModelAvailability = z.infer<typeof sdkV1ModelAvailability>;
 export type SdkV1ModelScope = z.infer<typeof sdkV1ModelScope>;
 export type SdkV1ModelCatalogQuery = z.infer<typeof sdkV1ModelCatalogQuery>;
 export type SdkV1ModelCatalogEntry = z.infer<typeof sdkV1ModelCatalogEntry>;
 export type SdkV1ModelCatalog = z.infer<typeof sdkV1ModelCatalog>;
+export type SdkV1ModelDownloadStatus = z.infer<typeof sdkV1ModelDownloadStatus>;
+export type SdkV1ModelDownloadStartRequest = z.infer<
+  typeof sdkV1ModelDownloadStartRequest
+>;
+export type SdkV1ModelDownloadCancelRequest = z.infer<
+  typeof sdkV1ModelDownloadCancelRequest
+>;
+export type SdkV1ModelDownloadQuery = z.infer<typeof sdkV1ModelDownloadQuery>;
+export type SdkV1ModelDownloadState = z.infer<typeof sdkV1ModelDownloadState>;
+export type SdkV1ModelDownloadSnapshot = z.infer<
+  typeof sdkV1ModelDownloadSnapshot
+>;

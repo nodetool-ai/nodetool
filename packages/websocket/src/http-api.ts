@@ -100,6 +100,12 @@ import {
   handleSdkV1ModelCatalog,
   type SdkV1ModelCatalogHttpService
 } from "./sdk/sdk-model-catalog-http-handler.js";
+import {
+  handleSdkV1ModelDownloadCancel,
+  handleSdkV1ModelDownloads,
+  handleSdkV1ModelDownloadStart
+} from "./sdk/sdk-model-download-http-handler.js";
+import type { SdkV1ModelDownloadService } from "./sdk/sdk-model-download-service.js";
 
 const log = createLogger("nodetool.websocket.http");
 
@@ -134,6 +140,8 @@ export interface HttpApiOptions {
   sdkPreflightService?: SdkV1PreflightHttpService;
   /** Additive, read-only SDK model catalog over NodeTool's model services. */
   sdkModelCatalogService?: SdkV1ModelCatalogHttpService;
+  /** Additive SDK lifecycle over NodeTool's existing model downloaders. */
+  sdkModelDownloadService?: SdkV1ModelDownloadService;
   /**
    * Path to a directory of example workflow JSON files (e.g.
    * `packages/base-nodes/nodetool/examples/nodetool-base`).
@@ -242,6 +250,62 @@ export async function handleSdkModelCatalog(
       );
     }
   });
+}
+
+function sdkModelDownloadHandlerOptions(options: HttpApiOptions) {
+  return {
+    service:
+      options.sdkModelDownloadService ??
+      ({
+        start: () => {
+          throw new Error("SDK model download service is unavailable");
+        },
+        list: () => {
+          throw new Error("SDK model download service is unavailable");
+        },
+        cancel: () => {
+          throw new Error("SDK model download service is unavailable");
+        }
+      } satisfies SdkV1ModelDownloadService),
+    getUserId: (request: Request) =>
+      getUserId(request, options.userIdHeader ?? "x-user-id"),
+    onInternalError: (error: unknown) => {
+      log.error(
+        "SDK model download failed",
+        error instanceof Error ? error : new Error(String(error))
+      );
+    }
+  };
+}
+
+export async function handleSdkModelDownloadStart(
+  request: Request,
+  options: HttpApiOptions
+): Promise<Response> {
+  return handleSdkV1ModelDownloadStart(
+    request,
+    sdkModelDownloadHandlerOptions(options)
+  );
+}
+
+export async function handleSdkModelDownloads(
+  request: Request,
+  options: HttpApiOptions
+): Promise<Response> {
+  return handleSdkV1ModelDownloads(
+    request,
+    sdkModelDownloadHandlerOptions(options)
+  );
+}
+
+export async function handleSdkModelDownloadCancel(
+  request: Request,
+  options: HttpApiOptions
+): Promise<Response> {
+  return handleSdkV1ModelDownloadCancel(
+    request,
+    sdkModelDownloadHandlerOptions(options)
+  );
 }
 
 // Lazily created storage handler — recreated if options change

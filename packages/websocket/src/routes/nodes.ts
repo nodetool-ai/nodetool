@@ -5,6 +5,9 @@ import {
   handleNodeMetadata,
   handleSdkCapabilities,
   handleSdkModelCatalog,
+  handleSdkModelDownloadCancel,
+  handleSdkModelDownloads,
+  handleSdkModelDownloadStart,
   handleSdkNodeTypeInventory,
   handleSdkPreflight
 } from "../http-api.js";
@@ -43,6 +46,24 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   app.get("/api/sdk/v1/models", async (req, reply) => {
     await bridge(req, reply, (request) =>
       handleSdkModelCatalog(request, apiOptions)
+    );
+  });
+
+  app.get("/api/sdk/v1/model-downloads", async (req, reply) => {
+    await bridge(req, reply, (request) =>
+      handleSdkModelDownloads(request, apiOptions)
+    );
+  });
+
+  app.post("/api/sdk/v1/model-downloads", async (req, reply) => {
+    await bridge(req, reply, (request) =>
+      handleSdkModelDownloadStart(request, apiOptions)
+    );
+  });
+
+  app.post("/api/sdk/v1/model-downloads/cancel", async (req, reply) => {
+    await bridge(req, reply, (request) =>
+      handleSdkModelDownloadCancel(request, apiOptions)
     );
   });
 
