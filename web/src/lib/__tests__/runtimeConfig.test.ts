@@ -59,6 +59,31 @@ describe("runtimeConfig", () => {
     expect(isAuthRequired()).toBe(false);
   });
 
+  it("keeps code generation off unless the backend enables it", async () => {
+    mockFetch.mockResolvedValue(jsonResponse({ authMode: "local" }));
+
+    const { loadRuntimeConfig, isCodeGenerationEnabled } = await import(
+      "../runtimeConfig"
+    );
+    expect(isCodeGenerationEnabled()).toBe(false);
+    await loadRuntimeConfig();
+    expect(isCodeGenerationEnabled()).toBe(false);
+  });
+
+  it("turns code generation on when the backend reports it", async () => {
+    mockFetch.mockResolvedValue(
+      jsonResponse({ authMode: "local", codeGeneration: true })
+    );
+
+    const { loadRuntimeConfig, isCodeGenerationEnabled } = await import(
+      "../runtimeConfig"
+    );
+    const config = await loadRuntimeConfig();
+
+    expect(config.codeGeneration).toBe(true);
+    expect(isCodeGenerationEnabled()).toBe(true);
+  });
+
   it("caches after the first successful load", async () => {
     mockFetch.mockResolvedValue(
       jsonResponse({ authMode: "local", supabaseUrl: null })

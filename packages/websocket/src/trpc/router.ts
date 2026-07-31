@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { router, publicProcedure } from "./index.js";
 import { assetsRouter } from "./routers/assets.js";
+import { codeGenRouter } from "./routers/code-gen.js";
 import { collectionsRouter } from "./routers/collections.js";
 import { costsRouter } from "./routers/costs.js";
 import { extensionRouter } from "./routers/extension.js";
@@ -34,6 +35,7 @@ export const appRouter = router({
     ok: true as const
   })),
   assets: assetsRouter,
+  codeGen: codeGenRouter,
   collections: collectionsRouter,
   costs: costsRouter,
   extension: extensionRouter,

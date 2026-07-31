@@ -115,6 +115,20 @@ jest.mock("../../node/ExposedLabeledInputs", () => ({
   default: () => <div data-testid="exposed-labeled-inputs" />
 }));
 
+// The rollout flag; the Ask AI button is absent until a deployment turns
+// generation on.
+let mockCodeGenEnabled = true;
+jest.mock("../../../lib/runtimeConfig", () => ({
+  isCodeGenerationEnabled: () => mockCodeGenEnabled
+}));
+
+jest.mock("../code_gen/CodeGenDialog", () => ({
+  __esModule: true,
+  default: ({ nodeId }: { nodeId: string }) => (
+    <div data-testid="code-gen-dialog" data-node-id={nodeId} />
+  )
+}));
+
 jest.mock("../../properties/TextEditorModal", () => ({
   __esModule: true,
   default: ({ language }: { language?: string }) => (
@@ -250,6 +264,63 @@ describe("CodeBody", () => {
       },
       dynamic_properties: { a: "", b: "" }
     });
+  });
+
+  it("hides Ask AI entirely when the feature flag is off", () => {
+    mockCodeGenEnabled = false;
+    try {
+      renderWithTheme(
+        <CodeBody
+          {...makeProps({
+            nodeType: "nodetool.code.Code",
+            data: { properties: { code: "" } }
+          })}
+        />
+      );
+      expect(
+        screen.queryByRole("button", { name: /ask ai/i })
+      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId("code-gen-dialog")).not.toBeInTheDocument();
+    } finally {
+      mockCodeGenEnabled = true;
+    }
+  });
+
+  it("offers Ask AI on the universal Code node only", () => {
+    const { unmount } = renderWithTheme(
+      <CodeBody
+        {...makeProps({
+          nodeType: "nodetool.code.Code",
+          data: { properties: { code: "" } }
+        })}
+      />
+    );
+    expect(screen.getByRole("button", { name: /ask ai/i })).toBeInTheDocument();
+    unmount();
+
+    // The other 19 `nodetool.code.*` executors run real interpreters and have
+    // no generator yet.
+    renderWithTheme(<CodeBody {...makeProps()} />);
+    expect(
+      screen.queryByRole("button", { name: /ask ai/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it("opens the code generation dialog from Ask AI", () => {
+    renderWithTheme(
+      <CodeBody
+        {...makeProps({
+          nodeType: "nodetool.code.Code",
+          data: { properties: { code: "" } }
+        })}
+      />
+    );
+    expect(screen.queryByTestId("code-gen-dialog")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /ask ai/i }));
+    expect(screen.getByTestId("code-gen-dialog")).toHaveAttribute(
+      "data-node-id",
+      "node-1"
+    );
   });
 
   it("does not derive IO for non-universal code executors", () => {

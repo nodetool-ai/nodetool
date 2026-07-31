@@ -29,7 +29,9 @@ jest.mock("../../components/node/codeNodeUi", () => ({
 }));
 
 import { findSnippetByNodeType } from "../../config/snippetMetadata";
+import { CODE_GEN_PALETTE_NODE_TYPE } from "../../config/codeGenPaletteMetadata";
 import useMetadataStore from "../../stores/MetadataStore";
+import useCodeGenDialogStore from "../../stores/CodeGenDialogStore";
 import {
   inferOutputKeysFromCode,
   inferInputKeysFromCode
@@ -163,6 +165,34 @@ describe("instantiatePaletteNode", () => {
     );
 
     expect(result.afterAdd).toBeUndefined();
+  });
+
+  it("creates an empty Code node and opens the dialog for the AI authoring entry", () => {
+    useCodeGenDialogStore.setState({ request: null });
+    const codeMetadata = makeMetadata("nodetool.code.Code");
+    (useMetadataStore.getState as jest.Mock).mockReturnValue({
+      getMetadata: jest.fn().mockReturnValue(codeMetadata)
+    });
+
+    const createNode = makeCreateNode();
+    const result = instantiatePaletteNode(
+      makeMetadata(CODE_GEN_PALETTE_NODE_TYPE),
+      { x: 1, y: 2 },
+      createNode
+    );
+
+    expect(createNode).toHaveBeenCalledWith(codeMetadata, { x: 1, y: 2 });
+    expect(result.node.type).toBe("nodetool.code.Code");
+    expect(result.afterAdd).toBeUndefined();
+    expect(useCodeGenDialogStore.getState().request).toBeNull();
+
+    result.onAdded?.(result.node.id);
+
+    // The node is created before the dialog, so cancelling has to remove it.
+    expect(useCodeGenDialogStore.getState().request).toEqual({
+      nodeId: "new-node-1",
+      discard: { nodeIds: ["new-node-1"], edgeIds: [], restoreEdges: [] }
+    });
   });
 
   it("falls back to regular creation when code metadata is missing", () => {

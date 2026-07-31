@@ -15,6 +15,13 @@ interface LanguageModelSelectProps {
   onChange: (value: LanguageModelValue) => void;
   value: string;
   allowedProviders?: string[];
+  /**
+   * Hide models the provider declares as non-tool-capable. Pass `true` from
+   * contexts that need function calling.
+   */
+  requireToolSupport?: boolean;
+  /** Button label when nothing is selected. Defaults to "Select Model". */
+  placeholder?: string;
   recommendedModels?: UnifiedModel[];
   modelPacks?: ModelPack[];
 }
@@ -23,6 +30,8 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
   onChange,
   value,
   allowedProviders,
+  requireToolSupport,
+  placeholder = "Select Model",
   recommendedModels,
   modelPacks
 }) => {
@@ -71,9 +80,9 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
       <ModelSelectButton
         ref={buttonRef}
         active={!!value}
-        label={currentSelectedModelDetails?.name || value || "Select Model"}
+        label={currentSelectedModelDetails?.name || value || placeholder}
         secondaryLabel={currentSelectedModelDetails?.provider}
-        subLabel="Select Model"
+        subLabel={placeholder}
         onClick={handleClick}
       />
       <LanguageModelMenuDialog
@@ -82,6 +91,7 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
         onClose={handleClose}
         onModelChange={handleDialogModelSelect}
         allowedProviders={allowedProviders}
+        requireToolSupport={requireToolSupport}
         recommendedModels={recommendedModels}
         modelPacks={modelPacks}
       />

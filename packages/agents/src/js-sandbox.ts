@@ -1436,30 +1436,6 @@ function replaceInPlace(target: unknown, source: unknown): void {
   }
 }
 
-/** Names that should never be reassigned via `globals` — core sandbox APIs. */
-const RESERVED_SANDBOX_NAMES = new Set([
-  "console",
-  "fetch",
-  "crypto",
-  "uuid",
-  "sleep",
-  "getSecret",
-  "workspace",
-  "assetToSandbox",
-  "sandboxToAsset",
-  "progress",
-  "format",
-  "data",
-  // Pure guest-side helpers defined by the prelude.
-  "toBase64",
-  "fromBase64",
-  "toHex",
-  "fromHex",
-  "utf8Encode",
-  "utf8Decode",
-  "__maxIter"
-]);
-
 /**
  * Names injected as bridge bindings into the QuickJS guest. The rest of the
  * `buildSandbox` record (JSON, Math, Date, URL, etc.) is deliberately NOT
@@ -1467,7 +1443,7 @@ const RESERVED_SANDBOX_NAMES = new Set([
  * host versions creates thousands of handles that slow execution and leak on
  * teardown.
  */
-const EXPOSED_BRIDGE_NAMES = [
+export const EXPOSED_BRIDGE_NAMES = [
   "console",
   "fetch",
   "crypto",
@@ -1482,6 +1458,29 @@ const EXPOSED_BRIDGE_NAMES = [
   "data",
   "__maxIter"
 ] as const;
+
+export type ExposedBridgeName = (typeof EXPOSED_BRIDGE_NAMES)[number];
+
+/** Pure helpers the guest prelude defines — no host call behind them. */
+export const GUEST_HELPER_NAMES = [
+  "toBase64",
+  "fromBase64",
+  "toHex",
+  "fromHex",
+  "utf8Encode",
+  "utf8Decode"
+] as const;
+
+export type GuestHelperName = (typeof GUEST_HELPER_NAMES)[number];
+
+/** Globals the prelude removes so the guest cannot re-enter code generation. */
+export const DELETED_GUEST_GLOBALS = ["eval", "Function"] as const;
+
+/** Names that should never be reassigned via `globals` — core sandbox APIs. */
+export const RESERVED_SANDBOX_NAMES: ReadonlySet<string> = new Set<string>([
+  ...EXPOSED_BRIDGE_NAMES,
+  ...GUEST_HELPER_NAMES
+]);
 
 /**
  * Execute JavaScript code inside a QuickJS WebAssembly sandbox.
@@ -1734,8 +1733,7 @@ globalThis.crypto = {
   digest: __wrap(__crypto.digest),
   hmac: __wrap(__crypto.hmac)
 };
-delete globalThis.eval;
-delete globalThis.Function;
+${DELETED_GUEST_GLOBALS.map((n) => `delete globalThis.${n};`).join("\n")}
 export default true;`,
           "sandbox-init"
         );

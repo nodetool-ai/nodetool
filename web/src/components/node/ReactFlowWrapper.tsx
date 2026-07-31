@@ -27,6 +27,7 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import { useShallow } from "zustand/react/shallow";
 import { useLiveRunStore } from "../../stores/LiveRunStore";
 import ContextMenus from "../context_menus/ContextMenus";
+import CodeGenDialogHost from "../code_gen/CodeGenDialogHost";
 import CommentNode from "../node/CommentNode";
 import PreviewNode from "../node/PreviewNode/PreviewNode";
 import { OutputNode } from "../node/OutputNode";
@@ -1023,6 +1024,7 @@ const ReactFlowWrapper = ({
       )}
       <MiniMapNavigator />
       <ViewportStatusIndicator />
+      <CodeGenDialogHost />
     </div>
   );
 };

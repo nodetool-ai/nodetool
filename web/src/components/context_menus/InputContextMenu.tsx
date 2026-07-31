@@ -25,6 +25,7 @@ import { useTheme } from "@mui/material/styles";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import InputIcon from "@mui/icons-material/Input";
 import EditNoteIcon from "@mui/icons-material/EditNote";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -33,12 +34,15 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { NodeMetadata, TypeMetadata } from "../../stores/ApiTypes";
 import { labelForType } from "../../config/data_types";
 import { isCollectType, isConnectable, Slugify } from "../../utils/TypeHandler";
+import { CODE_NODE_TYPE } from "../../constants/nodeTypes";
 import { useNodes } from "../../contexts/NodeContext";
 import { filterTypesByOutputType } from "../node_menu/typeFilterUtils";
 import { rankSearchNodes } from "../../utils/nodeSearch";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import NodeItem from "../node_menu/NodeItem";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
+import { useCodeGenFromHandle } from "../../hooks/useCodeGenFromHandle";
+import { isCodeGenerationEnabled } from "../../lib/runtimeConfig";
 
 const NODE_ROW_HEIGHT = 28;
 
@@ -613,6 +617,43 @@ const InputContextMenu: React.FC = () => {
     ]
   );
 
+  const { createValue } = useCodeGenFromHandle();
+  // Off until the deployment enables AI authoring — the entry point is absent,
+  // not disabled.
+  const codeGenEnabled = isCodeGenerationEnabled();
+
+  const handleCreateValueWithAI = useCallback(
+    (event?: React.MouseEvent<HTMLElement>) => {
+      event?.preventDefault();
+      event?.stopPropagation();
+      if (nodeId && handleId && type && event) {
+        const codeNodeMetadata = getMetadata(CODE_NODE_TYPE);
+        if (codeNodeMetadata) {
+          const placement = computeFlowPosition(
+            { x: event.clientX, y: event.clientY },
+            codeNodeMetadata
+          );
+          createValue({
+            targetNodeId: nodeId,
+            targetHandle: handleId,
+            targetType: type,
+            position: { x: placement.x, y: placement.y }
+          });
+        }
+      }
+      closeContextMenu();
+    },
+    [
+      closeContextMenu,
+      computeFlowPosition,
+      createValue,
+      getMetadata,
+      handleId,
+      nodeId,
+      type
+    ]
+  );
+
   const handleCreateConstantNode = useCallback(
     (event?: React.MouseEvent<HTMLElement>) => {
       if (event) {
@@ -1017,6 +1058,20 @@ const InputContextMenu: React.FC = () => {
                 <EditNoteIcon />
               </span>
               <Text size="small">Prompt</Text>
+            </Box>
+          )}
+          {codeGenEnabled && type != null && handleId != null && (
+            <Box
+              component="button"
+              type="button"
+              className="create-value-with-ai"
+              onClick={handleCreateValueWithAI}
+              sx={actionRowStyles}
+            >
+              <span className="icon-bg">
+                <AutoAwesomeIcon />
+              </span>
+              <Text size="small">Create value with AI…</Text>
             </Box>
           )}
         </Box>

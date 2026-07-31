@@ -443,6 +443,15 @@ npm run dev:nodetool -- eval graph-planner -p openai -m gpt-5.4-mini --json --ou
 npm run dev:nodetool -- eval graph-planner -p anthropic -m ... --min-success 0.8   # non-zero exit below threshold
 ```
 
+A **`code-gen`** suite drives `CodePlanner` over the Code-node authoring shapes
+(reshape, merge, compute, parse, split, format, validate, seed) and reports
+first-pass and post-repair acceptance separately; `--min-success` gates on
+post-repair.
+
+```bash
+npm run dev:nodetool -- eval code-gen -p anthropic -m claude-sonnet-5
+```
+
 The other two planning modes have a suite each, scoring the plan without
 running it: **`task-planner`** (multi-task DAG quality — parallel width,
 decomposition size, tool routing, no synthesis task) and **`script-planner`**

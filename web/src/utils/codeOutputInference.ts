@@ -95,19 +95,32 @@ function extractObjectKeys(objExpr: acorn.ObjectExpression): string[] {
 // Input inference
 // ---------------------------------------------------------------------------
 
-/** Identifiers provided by the sandbox or the Code node itself. */
+/**
+ * Identifiers provided by the sandbox or the Code node itself.
+ *
+ * Mirrors the sandbox manifest in `@nodetool-ai/agents`
+ * (`src/code-gen/sandbox-manifest.ts`), which web cannot import — the package
+ * is not a web dependency and pulls in the QuickJS WASM runtime. A name that
+ * does not exist in the sandbox keeps a real undefined variable from becoming
+ * an input handle; a missing bridge name grows a bogus one. The pinning test
+ * lives in `packages/agents/tests/sandbox-manifest-drift.test.ts`.
+ */
 const SANDBOX_GLOBALS = new Set([
-  // JS globals available in sandbox
+  // QuickJS built-ins
   "console", "JSON", "Math", "Date", "RegExp", "Array", "Object", "String",
   "Number", "Boolean", "Map", "Set", "WeakMap", "WeakSet", "Symbol", "Promise",
   "Error", "TypeError", "RangeError", "URIError", "SyntaxError",
   "parseInt", "parseFloat", "isNaN", "isFinite",
   "encodeURIComponent", "decodeURIComponent", "encodeURI", "decodeURI",
   "btoa", "atob", "structuredClone", "TextEncoder", "TextDecoder",
-  "URL", "URLSearchParams", "setTimeout", "setInterval", "Infinity", "NaN",
-  // Non-native APIs
-  "_", "dayjs", "cheerio", "csvParse", "validator",
-  "fetch", "uuid", "sleep", "getSecret", "workspace",
+  "URL", "URLSearchParams", "Infinity", "NaN",
+  // Host bridges
+  "fetch", "crypto", "uuid", "sleep", "getSecret", "workspace",
+  "assetToSandbox", "sandboxToAsset", "progress", "format", "data",
+  // Pure guest helpers defined by the sandbox prelude
+  "toBase64", "fromBase64", "toHex", "fromHex", "utf8Encode", "utf8Decode",
+  // Blocked in the sandbox, but still not user inputs
+  "setTimeout", "setInterval", "eval", "Function",
   // JS literals that acorn parses as Identifier nodes
   "undefined", "true", "false", "null", "NaN", "Infinity",
   "this", "arguments", "globalThis", "self", "window", "document", "process",

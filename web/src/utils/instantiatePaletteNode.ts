@@ -3,7 +3,9 @@ import type { XYPosition } from "@xyflow/react";
 import type { NodeMetadata } from "../stores/ApiTypes";
 import type { NodeData } from "../stores/NodeData";
 import { findSnippetByNodeType } from "../config/snippetMetadata";
+import { CODE_GEN_PALETTE_NODE_TYPE } from "../config/codeGenPaletteMetadata";
 import useMetadataStore from "../stores/MetadataStore";
+import useCodeGenDialogStore from "../stores/CodeGenDialogStore";
 import {
   inferOutputKeysFromCode,
   inferInputKeysFromCode
@@ -16,10 +18,19 @@ type PaletteCreateNodeFn = (
   properties?: Record<string, unknown>
 ) => Node<NodeData>;
 
+export interface PaletteNodeInstance {
+  node: Node<NodeData>;
+  /** Dynamic IO to merge once the node exists in the store. */
+  afterAdd?: Partial<NodeData>;
+  /** Run after `addNode` — for entry points that open UI on the new node. */
+  onAdded?: (nodeId: string) => void;
+}
+
 /**
- * Turn node-menu metadata into a concrete ReactFlow node. Code snippets use a
- * virtual `node_type` in the palette; they become real `nodetool.code.Code`
- * nodes with the snippet body (same as clicking the menu item).
+ * Turn node-menu metadata into a concrete ReactFlow node. Code snippets and
+ * the "Write Code with AI" entry use a virtual `node_type` in the palette;
+ * both become real `nodetool.code.Code` nodes — the snippet with its body, the
+ * AI entry empty and with the generation dialog opened against it.
  *
  * For snippets, call `updateNodeData(node.id, afterAdd)` after `addNode(node)` —
  * dynamic IO is merged only once the node exists in the store.
@@ -28,7 +39,23 @@ export function instantiatePaletteNode(
   metadata: NodeMetadata,
   position: XYPosition,
   createNode: PaletteCreateNodeFn
-): { node: Node<NodeData>; afterAdd?: Partial<NodeData> } {
+): PaletteNodeInstance {
+  if (metadata.node_type === CODE_GEN_PALETTE_NODE_TYPE) {
+    const codeMetadata = useMetadataStore.getState().getMetadata(CODE_NODE_TYPE);
+    if (codeMetadata) {
+      const node = createNode(codeMetadata, position);
+      return {
+        node,
+        onAdded: (nodeId: string) => {
+          useCodeGenDialogStore.getState().openCodeGenDialog({
+            nodeId,
+            discard: { nodeIds: [nodeId], edgeIds: [], restoreEdges: [] }
+          });
+        }
+      };
+    }
+  }
+
   const snippet = findSnippetByNodeType(metadata.node_type);
   if (snippet) {
     const codeMetadata = useMetadataStore.getState().getMetadata(CODE_NODE_TYPE);

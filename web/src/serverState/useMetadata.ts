@@ -5,6 +5,8 @@ import { UnifiedModel, NodeMetadata } from "../stores/ApiTypes";
 import useMetadataStore from "../stores/MetadataStore";
 import { createConnectabilityMatrix } from "../components/node_menu/typeFilterUtils";
 import { generateSnippetMetadata } from "../config/snippetMetadata";
+import { generateCodeGenPaletteMetadata } from "../config/codeGenPaletteMetadata";
+import { isCodeGenerationEnabled } from "../lib/runtimeConfig";
 import { attachBundleFalUnitPricing } from "../utils/attachBundleFalUnitPricing";
 import { attachBundleKieUnitPricing } from "../utils/attachBundleKieUnitPricing";
 import { WORKFLOW_NODE_TYPE, PREVIEW_NODE_TYPE } from "../constants/nodeTypes";
@@ -126,6 +128,10 @@ export const loadMetadata = async (): Promise<"success" | "error"> => {
 
   const snippetMetadata = generateSnippetMetadata();
   Object.assign(metadataByType, snippetMetadata);
+  // The palette entry only exists where the backend can serve generation.
+  if (isCodeGenerationEnabled()) {
+    Object.assign(metadataByType, generateCodeGenPaletteMetadata());
+  }
 
   // Merge bundled FAL list prices onto metadata before publishing to the
   // store. Backend `NodeMetadata` does not include `fal_unit_pricing` today,

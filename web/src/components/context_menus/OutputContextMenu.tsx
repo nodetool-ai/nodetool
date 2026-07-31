@@ -23,6 +23,7 @@ import SaveAltIcon from "@mui/icons-material/SaveAlt";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useDynamicOutput } from "../../hooks/nodes/useDynamicOutput";
 import { useReactFlow } from "@xyflow/react";
@@ -36,6 +37,8 @@ import { rankSearchNodes } from "../../utils/nodeSearch";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import NodeItem from "../node_menu/NodeItem";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
+import { useCodeGenFromHandle } from "../../hooks/useCodeGenFromHandle";
+import { isCodeGenerationEnabled } from "../../lib/runtimeConfig";
 
 const NODE_ROW_HEIGHT = 28;
 
@@ -330,6 +333,41 @@ const OutputContextMenu: React.FC = () => {
     }
     closeContextMenu();
   }, [createOutputNode, closeContextMenu]);
+
+  const { transformOutput } = useCodeGenFromHandle();
+  // Off until the deployment enables AI authoring — the entry point is absent,
+  // not disabled.
+  const codeGenEnabled = isCodeGenerationEnabled();
+
+  // Placement mirrors createNodeWithEdge: a fixed gap right of the handle,
+  // vertically centered on it, computed in flow space so zoom doesn't matter.
+  const handleTransformWithAI = useCallback(
+    (event?: React.MouseEvent<HTMLElement>) => {
+      event?.preventDefault();
+      event?.stopPropagation();
+      if (nodeId && sourceHandle && sourceType && event) {
+        const flowAnchor = reactFlowInstance.screenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY
+        });
+        transformOutput({
+          sourceNodeId: nodeId,
+          sourceHandle,
+          sourceType,
+          position: { x: flowAnchor.x + 40, y: flowAnchor.y - 100 }
+        });
+      }
+      closeContextMenu();
+    },
+    [
+      closeContextMenu,
+      nodeId,
+      reactFlowInstance,
+      sourceHandle,
+      sourceType,
+      transformOutput
+    ]
+  );
 
   const handleCreateSaveNode = useCallback((event?: React.MouseEvent<HTMLElement>) => {
     if (event) {
@@ -636,6 +674,18 @@ const OutputContextMenu: React.FC = () => {
               >
                 <span className="icon-bg"><SaveAltIcon /></span>
                 <Text size="small">{saveLabel}</Text>
+              </Box>
+            )}
+            {codeGenEnabled && sourceType != null && sourceHandle != null && (
+              <Box
+                component="button"
+                type="button"
+                className="transform-output-with-ai"
+                onClick={handleTransformWithAI}
+                sx={actionRowStyles}
+              >
+                <span className="icon-bg"><AutoAwesomeIcon /></span>
+                <Text size="small">Transform this output…</Text>
               </Box>
             )}
           </Box>

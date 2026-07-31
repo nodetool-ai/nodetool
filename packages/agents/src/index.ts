@@ -286,13 +286,53 @@ export {
   serializeResult,
   resolveSandboxLimits
 } from "./js-sandbox.js";
+export {
+  DEFAULT_TIMEOUT_MS,
+  MAX_OUTPUT_SIZE,
+  MAX_LOOP_ITERATIONS,
+  EXPOSED_BRIDGE_NAMES,
+  GUEST_HELPER_NAMES,
+  RESERVED_SANDBOX_NAMES
+} from "./js-sandbox.js";
 export type {
   RunSandboxOptions,
   RunSandboxResult,
   SandboxLimits,
   ResolvedSandboxLimits,
-  SandboxProgressCallback
+  SandboxProgressCallback,
+  ExposedBridgeName,
+  GuestHelperName
 } from "./js-sandbox.js";
+
+// Code Node authoring: the sandbox capability manifest and prompt rendering
+export {
+  getSandboxManifest,
+  sandboxManifestNames,
+  SANDBOX_MANIFEST_NODE_TYPE
+} from "./code-gen/sandbox-manifest.js";
+export type {
+  SandboxManifest,
+  SandboxBridgeDoc,
+  SandboxMemberDoc,
+  SandboxLimitDoc
+} from "./code-gen/sandbox-manifest.js";
+export {
+  renderSandboxApiReference,
+  extractApiReferences,
+  unknownApiReferences
+} from "./code-gen/sandbox-prompt.js";
+export {
+  buildCodeGenSystemPrompt,
+  buildCodeGenUserPrompt,
+  buildCodeGenRetryPrompt
+} from "./code-gen/prompt.js";
+export type { CodeGenPromptInput } from "./code-gen/prompt.js";
+export { analyzeGeneratedCode, collectBoundNames } from "./code-gen/analyze.js";
+export type { CodeAnalysis } from "./code-gen/analyze.js";
+export { SubmitCodeTool } from "./tools/submit-code-tool.js";
+export type { SubmitCodeToolOptions } from "./tools/submit-code-tool.js";
+export { CodePlanner } from "./code-planner.js";
+export type { CodePlannerOptions } from "./code-planner.js";
 
 // Constants
 export { MAX_TOOL_RESULT_CHARS, truncateToolResult } from "./constants.js";
@@ -407,6 +447,22 @@ export type {
   EvalCheck
 } from "./evals/graph-planner-eval.js";
 export { GRAPH_PLANNER_EVAL_CASES } from "./evals/graph-planner-cases.js";
+
+// Code node authoring evaluation harness (CodePlanner)
+export {
+  runCodeGenEval,
+  formatCodeGenReport,
+  checkCodeGenExpectations
+} from "./evals/code-gen-eval.js";
+export type {
+  CodeGenEvalCase,
+  CodeGenEvalExpectations,
+  CodeGenEvalCheck,
+  CodeGenCaseResult,
+  CodeGenEvalReport,
+  RunCodeGenEvalOptions
+} from "./evals/code-gen-eval.js";
+export { CODE_GEN_EVAL_CASES } from "./evals/code-gen-cases.js";
 
 // Tool-loop evaluation harness (frontend ui_* tool surface)
 export {

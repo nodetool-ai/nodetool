@@ -145,6 +145,48 @@ const graphPlannerSuite: EvalSuite = {
   }
 };
 
+/**
+ * Code node authoring suite (`CodePlanner` + `submit_code`).
+ *
+ * Its gate reads post-repair acceptance — a submission accepted at all within
+ * the round cap — while the report also carries first-pass acceptance, which is
+ * what the model managed without the tool's feedback.
+ */
+const codeGenSuite: EvalSuite = {
+  id: "code-gen",
+  description:
+    "Run the Code node authoring eval suite (CodePlanner writes one typed Code node) against a provider/model, reporting first-pass and post-repair acceptance",
+  async listCases() {
+    const { CODE_GEN_EVAL_CASES } = await import("@nodetool-ai/agents");
+    return CODE_GEN_EVAL_CASES.map((c) => ({
+      id: c.id,
+      description: c.description
+    }));
+  },
+  async run(deps) {
+    const { CODE_GEN_EVAL_CASES, runCodeGenEval, formatCodeGenReport } =
+      await import("@nodetool-ai/agents");
+
+    const cases = selectCases(CODE_GEN_EVAL_CASES, deps.caseIds);
+    console.log(
+      `Running ${cases.length} code-gen case(s) with ${deps.providerId}/${deps.model}`
+    );
+
+    const report = await runCodeGenEval({
+      provider: deps.provider,
+      model: deps.model,
+      cases,
+      onEvent: deps.onEvent
+    });
+
+    return {
+      report,
+      formatted: formatCodeGenReport(report),
+      successRate: report.summary.postRepairRate
+    };
+  }
+};
+
 /** Sub-agent execution suite (RunSubtaskTool + inherited toolset). */
 const subtaskSuite: EvalSuite = {
   id: "subtask",
@@ -352,6 +394,7 @@ function makeToolLoopSuite(
 /** All evaluation suites exposed under `nodetool eval <suite>`. */
 export const EVAL_SUITES: readonly EvalSuite[] = [
   graphPlannerSuite,
+  codeGenSuite,
   taskPlannerSuite,
   scriptPlannerSuite,
   subtaskSuite,
