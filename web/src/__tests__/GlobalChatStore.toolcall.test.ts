@@ -40,6 +40,7 @@ jest.mock(
   { virtual: true }
 );
 
+import { z } from "zod";
 import { FrontendToolRegistry } from "../lib/tools/frontendTools";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 
@@ -82,13 +83,9 @@ describe("GlobalChatStore tool_call handling", () => {
     const unregister = FrontendToolRegistry.register({
       name: "ui_sum",
       description: "Sum two numbers",
-      parameters: {
-        type: "object",
-        properties: { a: { type: "number" }, b: { type: "number" } },
-        required: ["a", "b"]
-      },
-      async execute(args: { a: number; b: number }) {
-        return { sum: args.a + args.b } as any;
+      parameters: z.object({ a: z.number(), b: z.number() }),
+      async execute({ a, b }) {
+        return { sum: a + b };
       }
     });
 

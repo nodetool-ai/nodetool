@@ -1,23 +1,35 @@
+import type { ZodType, output as ZodOutput } from "zod";
 import {
   isZodSchema,
   parseWithTypeCoercion,
   zodToJsonSchema,
+  type JsonSchema,
   type ZodOrJsonSchema
 } from "@nodetool-ai/runtime/zod-schema";
 import { NodeMetadata, Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { NodeStore } from "../../stores/NodeStore";
 
-export interface FrontendToolDefinition<Result = unknown, Args = any> {
+/** A tool's parsed args, or `unknown` when it declares a raw JSON schema. */
+type InferToolArgs<Schema extends ZodOrJsonSchema> =
+  Schema extends ZodType ? ZodOutput<Schema> : unknown;
+
+export interface FrontendToolDefinition<
+  Schema extends ZodOrJsonSchema = ZodOrJsonSchema,
+  Result = unknown
+> {
   name: `ui_${string}`;
   description: string;
-  parameters: ZodOrJsonSchema;
+  parameters: Schema;
   /**
    * Excludes the tool from the LLM-facing manifest (token savings) while still
    * allowing direct calls by name for backwards compatibility.
    */
   hidden?: boolean;
   requireUserConsent?: boolean;
-  execute: (args: Args, ctx: FrontendToolContext) => Promise<Result>;
+  execute: (
+    args: InferToolArgs<Schema>,
+    ctx: FrontendToolContext
+  ) => Promise<Result>;
 }
 
 export interface FrontendToolState {
@@ -54,15 +66,33 @@ export interface FrontendToolContext {
 
 type ActiveCall = { controller: AbortController };
 
-const registry = new Map<string, FrontendToolDefinition>();
+/**
+ * A tool with its schema erased. `never` args is the one `execute` signature
+ * every tool is assignable to; `call` re-widens after validating against the
+ * tool's own `parameters`.
+ */
+type RegisteredTool = Omit<FrontendToolDefinition, "parameters" | "execute"> & {
+  parameters: ZodOrJsonSchema;
+  execute: (args: never, ctx: FrontendToolContext) => Promise<unknown>;
+};
+
+export interface FrontendToolManifestEntry {
+  name: string;
+  description: string;
+  parameters: JsonSchema;
+}
+
+const registry = new Map<string, RegisteredTool>();
 const active = new Map<string, ActiveCall>();
 
 export const FrontendToolRegistry = {
-  register(tool: FrontendToolDefinition) {
+  register<Schema extends ZodOrJsonSchema, Result>(
+    tool: FrontendToolDefinition<Schema, Result>
+  ): () => boolean {
     registry.set(tool.name, tool);
     return () => registry.delete(tool.name);
   },
-  getManifest() {
+  getManifest(): FrontendToolManifestEntry[] {
     return Array.from(registry.values())
       .filter((tool) => !tool.hidden)
       .map(({ name, description, parameters }) => ({
@@ -73,10 +103,10 @@ export const FrontendToolRegistry = {
           : parameters
       }));
   },
-  has(name: string) {
+  has(name: string): boolean {
     return registry.has(name);
   },
-  get(name: string) {
+  get(name: string): RegisteredTool | undefined {
     return registry.get(name);
   },
   async call(
@@ -84,7 +114,7 @@ export const FrontendToolRegistry = {
     args: unknown,
     toolCallId: string,
     ctx: Omit<FrontendToolContext, "abortSignal">
-  ) {
+  ): Promise<unknown> {
     const tool = registry.get(name);
     if (!tool) {throw new Error(`Unknown tool: ${name}`);}
     const controller = new AbortController();
@@ -94,7 +124,7 @@ export const FrontendToolRegistry = {
         ? parseWithTypeCoercion(tool.parameters, args)
         : args;
 
-      const result = await tool.execute(validatedArgs, {
+      const result = await tool.execute(validatedArgs as never, {
         abortSignal: controller.signal,
         getState: ctx.getState
       });
@@ -104,7 +134,7 @@ export const FrontendToolRegistry = {
       active.delete(toolCallId);
     }
   },
-  abortAll() {
+  abortAll(): void {
     for (const { controller } of active.values()) {controller.abort();}
     active.clear();
   }

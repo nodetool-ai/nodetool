@@ -88,10 +88,10 @@ describe("injectEntities", () => {
 
 describe("ui_entity_apply tool", () => {
   it("injects the entity descriptor for the selected entity id", async () => {
-    const tool = FrontendToolRegistry.get("ui_entity_apply");
-    expect(tool).toBeDefined();
-    const result = (await tool!.execute(
+    const result = (await FrontendToolRegistry.call(
+      "ui_entity_apply",
       { text: "Mara walks", entityIds: ["asset-1"] },
+      "call_1",
       noopCtx
     )) as { prompt: string; referenceAssetIds: string[] };
     expect(result.prompt).toContain("a tall woman with red hair");

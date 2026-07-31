@@ -108,18 +108,7 @@ FrontendToolRegistry.register({
       .optional(),
     w: optionalWorkflowIdSchemaCompact
   }),
-  async execute(
-    {
-      nodes,
-      edges,
-      w
-    }: {
-      nodes?: GraphNodeInput[] | GraphNodeInput;
-      edges?: GraphEdgeInput[] | GraphEdgeInput;
-      w?: string | null;
-    },
-    ctx
-  ) {
+  async execute({ nodes, edges, w }, ctx) {
     const state = ctx.getState();
     const workflowId = resolveWorkflowId(state, w);
     const nodeStore = state.getNodeStore(workflowId)?.getState();

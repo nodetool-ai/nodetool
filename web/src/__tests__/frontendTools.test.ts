@@ -12,7 +12,7 @@ describe("FrontendToolRegistry", () => {
       description: "Test tool",
       parameters: { type: "object", properties: {}, required: [] },
       async execute() {
-        return { ok: true } as any;
+        return { ok: true };
       }
     });
 
@@ -28,7 +28,7 @@ describe("FrontendToolRegistry", () => {
       hidden: true,
       parameters: { type: "object", properties: {}, required: [] },
       async execute() {
-        return { ok: true } as any;
+        return { ok: true };
       }
     });
 
@@ -41,13 +41,9 @@ describe("FrontendToolRegistry", () => {
     const unregister = FrontendToolRegistry.register({
       name: "ui_echo",
       description: "Echo tool",
-      parameters: {
-        type: "object",
-        properties: { value: { type: "string" } },
-        required: ["value"]
-      },
-      async execute(args: { value: string }) {
-        return { echoed: args.value } as any;
+      parameters: z.object({ value: z.string() }),
+      async execute(args) {
+        return { echoed: args.value };
       }
     });
 

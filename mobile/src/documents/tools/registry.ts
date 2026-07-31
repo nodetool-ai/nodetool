@@ -41,12 +41,13 @@ export interface ToolManifestEntry {
   parameters: ToolParameterSchema;
 }
 
+/** `never` args: the one `execute` signature every tool is assignable to. */
 const registry = new Map<string, MobileToolDefinition<never>>();
 const active = new Map<string, AbortController>();
 
 export const MobileToolRegistry = {
-  register<Args>(tool: MobileToolDefinition<Args>): () => void {
-    registry.set(tool.name, tool as unknown as MobileToolDefinition<never>);
+  register<Args>(tool: MobileToolDefinition<Args>): () => boolean {
+    registry.set(tool.name, tool);
     return () => registry.delete(tool.name);
   },
 

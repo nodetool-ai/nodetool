@@ -162,7 +162,8 @@ export interface TimelineAddTextClipOptions {
   trackId?: string;
   startMs?: number;
   durationMs?: number;
-  style?: Omit<TimelineTextStyle, "text">;
+  /** Every field is optional — `textStyleWithDefaults` fills in the required ones. */
+  style?: Partial<Omit<TimelineTextStyle, "text">>;
 }
 
 export interface TimelineAddShapeClipOptions {
