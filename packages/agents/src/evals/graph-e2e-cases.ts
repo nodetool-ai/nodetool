@@ -82,8 +82,12 @@ export const GRAPH_E2E_EVAL_CASES: readonly GraphE2eEvalCase[] = [
   {
     id: "extract-fields",
     description: "Structured extraction from unstructured input text",
+    // "Output the name under the name person" reads as a riddle and the
+    // planner resolved it by naming the output `name`. Name the three output
+    // nodes explicitly instead — the case is about extraction, not about
+    // parsing the instruction.
     objective:
-      "Extract the person's full name, their city, and their job title from the input text with an LLM step. Output the name under the name person, the city under the name city, and the job title under the name role.",
+      'Extract three fields from the input text with an LLM step: the person\'s full name, their city, and their job title. Create exactly three output nodes, named "person", "city", and "role" — "person" carries the full name, "city" the city, "role" the job title.',
     goal:
       'The three outputs carry the values from the input text: person is "Amara Osei", city is "Lisbon", role is her job title (marine biologist). Each output holds only that value, not the whole sentence.',
     inputs: {
@@ -126,8 +130,11 @@ export const GRAPH_E2E_EVAL_CASES: readonly GraphE2eEvalCase[] = [
   {
     id: "arithmetic",
     description: "Deterministic compute the graph must get exactly right",
+    // Python nodes need a worker the eval host may not have, and the planner
+    // reached for one on some runs — so the constraint is stated, the way a
+    // user who knows their environment would state it.
     objective:
-      "Compute the total of the input amount plus a tip of the input tip_percent percent of that amount, rounded to two decimal places, and output the total as a number under the name total. Use a deterministic computation step, not an LLM.",
+      'Compute the total of the input amount plus a tip of the input tip_percent percent of that amount, rounded to two decimal places, and output it from an output node named "total". Use a deterministic computation step, not an LLM. No Python interpreter is available — the computation must run in JavaScript.',
     goal: "The total output is 101.4 (84.50 plus a 20% tip of 16.90).",
     inputs: { amount: 84.5, tip_percent: 20 },
     expectGraph: {

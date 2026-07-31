@@ -586,8 +586,9 @@ describe("correlated scheduler — fire-once with no max-scope inputs", () => {
     expect(calls).toEqual([{ items: ["a", "b"] }]);
   });
 
-  it("leaves the declared default in place when an empty-scope list input never receives a value", async () => {
-    // Arrange: the upstream closes without emitting.
+  it("does not fire when its only wired input closes without ever emitting", async () => {
+    // Arrange: the upstream closes without emitting — the untaken side of an
+    // `If`, or a filter that matched nothing.
     const node = makeNode({ properties: { items: "declared-default" } });
     const inbox = new NodeInbox();
     const calls: Array<Record<string, unknown>> = [];
@@ -608,8 +609,39 @@ describe("correlated scheduler — fire-once with no max-scope inputs", () => {
     // Act
     await actor.run();
 
-    // Assert: the node fires with its own default, NOT an empty array.
-    expect(calls).toEqual([{ items: "declared-default" }]);
+    // Assert: a node wired to data it never received is on an untaken branch.
+    // Firing it on its declared default would run the branch nobody took.
+    expect(calls).toEqual([]);
+  });
+
+  it("still fires with the declared default for a handle that stays empty when another delivered", async () => {
+    // Arrange: `a` delivers, `items` closes empty. The node ran, so the empty
+    // handle falls back to its declared default rather than skipping the node.
+    const node = makeNode({ properties: { items: "declared-default" } });
+    const inbox = new NodeInbox();
+    const calls: Array<Record<string, unknown>> = [];
+    const { actor } = createActor(
+      node,
+      inbox,
+      {
+        async process(inputs) {
+          calls.push(inputs);
+          return {};
+        }
+      },
+      { correlation: analysis([]), listInputHandles: new Set(["items"]) }
+    );
+    inbox.addUpstream("items", 1);
+    inbox.addUpstream("a", 1);
+    await inbox.put("a", "value");
+    inbox.markSourceDone("items");
+    inbox.markSourceDone("a");
+
+    // Act
+    await actor.run();
+
+    // Assert: fires once, with the default for `items` (not an empty array).
+    expect(calls).toEqual([{ a: "value", items: "declared-default" }]);
   });
 });
 

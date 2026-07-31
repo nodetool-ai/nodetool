@@ -929,7 +929,25 @@ export class NodeActor {
           }
         }
       }
-      if (readyOrAllowed) {
+      // A node wired to data inputs that received nothing on any of them is on
+      // an untaken branch: its upstreams all closed without emitting (an `If`
+      // emits only the taken handle, a filter can emit nothing at all). Firing
+      // it here would run it on its declared defaults — an Agent node with an
+      // empty prompt burning a model call, the untaken half of every
+      // conditional doing work nobody asked for. Skip instead, which closes
+      // this node's outputs with nothing and cascades the skip downstream.
+      //
+      // Partial input still fires: a node that got a value on one handle and
+      // nothing on another runs with defaults for the missing one, as before.
+      // Only "wired to something, received nothing" is treated as untaken.
+      const receivedNothing = dataHandles.length > 0 && envelopes.size === 0;
+      if (receivedNothing) {
+        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+        log.debug("Skipping node on untaken branch", {
+          nodeId: this.node.id,
+          type: this.node.type
+        });
+      } else if (readyOrAllowed) {
         this._lastEnvelopes = envelopes;
         await this._executeWithInputs(values);
         fired.add("");

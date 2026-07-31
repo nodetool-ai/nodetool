@@ -10,6 +10,16 @@ actors.
 - `NodeActor` / `NodeInbox` — correlation-aware, buffered scheduling.
 - `WorkflowRunner` — drives a run, emits `ProcessingMessage`s, collects outputs.
 
+## Untaken branches
+
+A node wired to data inputs that receives nothing on any of them does not run.
+Its upstreams closed without emitting — an `If` emits only the taken handle, a
+filter can emit nothing — so the node is on a branch nobody took. Skipping it
+closes its own outputs with nothing, which cascades down the untaken subgraph.
+
+Partial input still fires: a node that got a value on one handle and nothing on
+another runs, with the declared default filling in the empty handle.
+
 ## Usage
 
 ```ts
