@@ -725,6 +725,18 @@ export const useScript = (
     })
   );
 
+/**
+ * Reactive cast list for a script. Narrower than {@link useScript}, whose
+ * `sections` field changes on every keystroke — a component that only needs the
+ * cast subscribes here so typing doesn't re-render it.
+ */
+export const useScriptCast = (scriptId: string): ScriptSpeaker[] =>
+  useScriptStore((state) => state.scripts[scriptId]?.cast ?? EMPTY_CAST);
+
+/** Reactive title for a script — see {@link useScriptCast} on why it's narrow. */
+export const useScriptTitle = (scriptId: string): string =>
+  useScriptStore((state) => state.scripts[scriptId]?.title ?? "");
+
 /** Reactive transient voicing flag for a line. */
 export const useLineVoicing = (lineId: string): boolean =>
   useScriptStore((state) => !!state.voicingLineIds[lineId]);

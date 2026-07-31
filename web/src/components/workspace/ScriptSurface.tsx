@@ -8,7 +8,11 @@ import {
   useWorkspaceTabsStore,
   type WorkspaceTabMode
 } from "../../stores/WorkspaceTabsStore";
-import { useScriptStore, useScript } from "../../stores/script/ScriptStore";
+import {
+  useScriptStore,
+  useScriptCast,
+  useScriptTitle
+} from "../../stores/script/ScriptStore";
 import { useScriptServerSync } from "../../hooks/script/useScriptServerSync";
 import { useScriptAgentBridge } from "../../hooks/script/useScriptAgentBridge";
 import { useDocumentUndoShortcuts } from "../../hooks/useDocumentUndoShortcuts";
@@ -50,7 +54,11 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
   const undo = useScriptStore((state) => state.undo);
   const redo = useScriptStore((state) => state.redo);
   const setTabTitle = useWorkspaceTabsStore((state) => state.setTitle);
-  const { title, cast } = useScript(refId);
+  // Narrow subscriptions on purpose: the whole-script view also carries
+  // `sections`, which changes on every keystroke and would re-render the cast
+  // panel and the assistant along with it.
+  const title = useScriptTitle(refId);
+  const cast = useScriptCast(refId);
   const readOnly = mode === "view";
   const [dockTab, setDockTab] = useState<DockTab>("cast");
   const [sheetOpen, setSheetOpen] = useState(false);
