@@ -91,14 +91,17 @@ const runJobGraphSchema = z
 
 export const runJobDataSchema = z
   .object({
-    job_id: z.string().optional(),
+    job_id: z.string().nullable().optional(),
     workflow_id: z.string().optional(),
     concurrent: z.boolean().optional(),
     user_id: z.string().optional(),
     auth_token: z.string().optional(),
-    job_name: z.string().optional(),
-    params: z.record(z.string(), z.unknown()).optional(),
-    graph: runJobGraphSchema.optional(),
+    job_name: z.string().nullable().optional(),
+    params: z.record(z.string(), z.unknown()).nullable().optional(),
+    // MessagePack clients commonly encode an absent optional object as nil
+    // instead of omitting its map key. Treat nil like absence for workflow
+    // runs, where workflow_id supplies the graph.
+    graph: runJobGraphSchema.nullable().optional(),
     explicit_types: z.boolean().optional(),
     require_terminal_result: z.boolean().optional(),
     execution_options: z
@@ -108,6 +111,7 @@ export const runJobDataSchema = z
         asset_persistence: z.enum(["auto", "temporary"]).optional()
       })
       .passthrough()
+      .nullable()
       .optional(),
     settings: z.record(z.string(), z.unknown()).optional(),
     application_id: z.string().nullable().optional(),
@@ -265,7 +269,8 @@ export const webSocketCommandEnvelopeSchema = z
   .object({
     command: z.string().min(1),
     data: looseDataSchema.optional(),
-    request_id: z.string().optional()
+    // Non-RPC MessagePack clients may encode the unused optional key as nil.
+    request_id: z.string().nullable().optional()
   })
   .passthrough();
 
