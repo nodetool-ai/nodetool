@@ -38,11 +38,13 @@ const mediaDir = path.join(outDir, `creative-${caseId}-media`);
 /**
  * Real generation on fal, wired only when --live is passed.
  *
- * Models are chosen for cost, not fidelity: flux/schnell bills $0.003 per
- * megapixel and LTX-distilled image-to-video $0.0008, so a four-shot run adds
- * cents to an agent loop that costs dollars. The point is to prove the
- * pipeline produces real artifacts end to end, not to win a bake-off — swap
- * the ids below for a heavier pair when the output itself matters.
+ * Stills come from gpt-image-2 and clips from LTX-distilled. The first draft
+ * used flux/schnell for cost — $0.003 per megapixel against gpt-image-2's
+ * per-image rate — and it was the wrong trade for this brief: flux mangles
+ * hands, and the commission requires them in shot after shot. A cheap model
+ * that cannot draw the thing being asked for is not cheap.
+ *
+ * Override either with CREATIVE_IMAGE_MODEL / CREATIVE_VIDEO_MODEL.
  */
 function createFalMediaBackend(fal: {
   textToImage: (p: Record<string, unknown>) => Promise<Uint8Array>;
@@ -50,13 +52,15 @@ function createFalMediaBackend(fal: {
 }): MediaBackend {
   fs.mkdirSync(mediaDir, { recursive: true });
   const imageModel = {
-    id: "fal-ai/flux/schnell",
-    name: "FLUX schnell",
+    id: process.env.CREATIVE_IMAGE_MODEL ?? "openai/gpt-image-2",
+    name: "image model",
     provider: "fal_ai"
   };
   const videoModel = {
-    id: "fal-ai/ltx-2-19b/distilled/image-to-video",
-    name: "LTX 2 19B distilled",
+    id:
+      process.env.CREATIVE_VIDEO_MODEL ??
+      "fal-ai/ltx-2-19b/distilled/image-to-video",
+    name: "video model",
     provider: "fal_ai"
   };
   const save = (label: string, ext: string, bytes: Uint8Array) => {

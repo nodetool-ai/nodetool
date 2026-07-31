@@ -653,16 +653,22 @@ so the suite's media can be inspected without paying for a run. `MediaBackend` i
 the script, because `packages/agents` has no fal dependency and should not grow
 one for an opt-in path.
 
-Media is the cheap half: `flux/schnell` at $0.003/megapixel and
-`ltx-2-19b/distilled/image-to-video` at $0.0008 put a nine-artifact run around
-**$0.17**, against ~$2.60 for the agent loop driving it. A measured live run
-produced a style frame, four keyframes and four clips.
+Stills default to `openai/gpt-image-2`, clips to
+`ltx-2-19b/distilled/image-to-video`; override with `CREATIVE_IMAGE_MODEL` /
+`CREATIVE_VIDEO_MODEL`. The first draft used `flux/schnell` at $0.003 per
+megapixel on cost grounds and it was the wrong trade — flux mangles hands and
+the brief requires them in three of four shots. Video stays cheap at $0.0008
+per megapixel; the agent loop driving the run is still the dominant cost at
+~$2.60.
 
-Two caveats. The timeline still lays clips at the simulated overshoot, so the
+Three caveats. The timeline still lays clips at the simulated overshoot, so the
 scored runtime is not the runtime of the files on disk — LTX returned 4.84s
 takes for 3s requests, a 1.61× overshoot against the 1.35× modelled, so the
-planted defect is conservative. And the provider reads `FAL_API_KEY`, not
-`FAL_KEY`.
+planted defect is conservative. The provider reads `FAL_API_KEY`, not
+`FAL_KEY`. And no predicate can see the pixels: `forbiddenAvoided` reads shot
+text and layer names, so a run passed it while gpt-image-2 branded a bottle
+with lettering the brief forbade. The suite grades the plan; grading the
+artifact needs a human or a vision model.
 
 ```bash
 FAL_API_KEY=$FAL_KEY IS_SANDBOX=1 npx tsx \
